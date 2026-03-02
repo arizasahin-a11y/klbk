@@ -2923,6 +2923,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             let termDom = '';
             try { const el = document.getElementById('academicTerm'); if (el) termDom = el.value; } catch (e) { }
 
+            let successCount = 0;
+            let lastError = null;
+            let hadLocalFileError = false;
+
             // Process each student
             for (let i = 0; i < validStudents.length; i++) {
                 const req = validStudents[i];
@@ -2933,6 +2937,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (printPath.match(/^[a-zA-Z]:\\/) || printPath.match(/^[a-zA-Z]:\//)) {
                         printPath = 'file:///' + printPath.replace(/\\/g, '/');
                     }
+                    if (printPath.includes("file://") || printPath.includes("C:") || printPath.includes("D:")) {
+                        hadLocalFileError = true;
+                    }
+
                     Swal.update({ html: `Öğrenci işleniyor: <b>${i + 1} / ${validStudents.length}</b><br><small>${req.info.name} - PDF İndiriliyor...</small>` });
                     const pdfBytes = await window.getFileBytes(printPath);
                     if (typeof PDFLib === 'undefined') continue;
@@ -3086,6 +3094,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const outBytes = await pdfDoc.save();
                     const fileName = `${req.info.class} ${req.info.no} ${req.info.name}.pdf`.replace(/[\/\\]/g, '-');
                     zip.file(fileName, outBytes);
+                    successCount++;
 
                     // Add to combined document for immediate printing
                     if (combinedPdfDoc) {
@@ -3100,7 +3109,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 } catch (e) {
                     console.error("Batch PDF err:", req.info.name, e);
+                    lastError = e;
                 }
+            }
+
+            if (successCount === 0) {
+                let errorHtml = `<div style="text-align:left; font-size:0.95rem;">`;
+                if (hadLocalFileError) {
+                    errorHtml += `<b style="color:#e11d48;">UYARI:</b> Sistemi Vercel gibi bir internet sunucusunda çalıştırırken, bilgisayarınızdaki yerel dosyalara (C:\\ veya D:\\ vb.) erişilemez. Tarayıcı internet üzerindeki bir sitenin sizin yerel diskinize sızmasını engeller.<br><br>
+                 <b>ÇÖZÜM:</b> Soru kağıdı PDF'lerinizi OneDrive, Google Drive veya Supabase depolama sistemine yükleyip, herkesin erişebileceği (https:// ile başlayan) linkleri ayarlardaki Soru Kağıdı bölümüne yapıştırmalısınız.`;
+                } else {
+                    errorHtml += `Hiçbir soru kağıdı indirilemedi. Dosya yolu hatalı, internet linkiniz kopuk veya (CORS) indirme izni ayarlanmamış olabilir.<br><br><b>Detay:</b> ${lastError ? lastError.message : 'Bilinmeyen Hata'}`;
+                }
+                errorHtml += `</div>`;
+
+                Swal.fire({
+                    title: 'Soru Kağıtları İndirilemedi',
+                    html: errorHtml,
+                    icon: 'error',
+                    width: 600
+                });
+                return;
             }
 
             Swal.update({ html: `ZIP Dosyası Sıkıştırılıyor... Lütfen Bekleyin.` });
@@ -3120,11 +3149,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 link.click();
                 setTimeout(() => document.body.removeChild(link), 100);
 
+                let successMsg = `${successCount} adet soru kağıdı '${finalName}' olarak indirildi. Yazdırılıyor...`;
+                if (successCount < validStudents.length) {
+                    successMsg += `<br><br><small style="color:#e11d48;">Dikkat: ${validStudents.length - successCount} adet kağıt bağlantı hatası nedeniyle atlandı.</small>`;
+                }
+
                 Swal.fire({
                     title: 'Başarılı!',
-                    text: `${validStudents.length} adet soru kağıdı '${finalName}' olarak indirildi. Yazdırılıyor...`,
+                    html: successMsg,
                     icon: 'success',
-                    timer: 3000,
+                    timer: 4000,
                     showConfirmButton: false
                 });
 
