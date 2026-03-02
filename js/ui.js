@@ -2739,16 +2739,43 @@ document.addEventListener('DOMContentLoaded', async () => {
             htmlMsg += `</div>`;
 
             Swal.fire({
-                title: 'Dosya Okuma / Bulut Hatası',
+                title: 'Dosya Okuma uyarısı',
                 html: htmlMsg,
-                icon: 'error',
+                icon: 'warning',
                 width: 600
             });
 
-            // Clean up but DO NOT fallback printing, since the fallback won't work either on a cloud server
-            console.error("Fallback print aborted due to unreadable source path.");
-            finalize(null);
+            console.warn("Attempting fallback print mechanism...");
         }
+
+        // Fallback or Original Print
+        const iframe = document.createElement('iframe');
+        iframe.src = printPath;
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+
+        let fallbackResolved = false;
+
+        iframe.onload = () => {
+            if (fallbackResolved) return; fallbackResolved = true;
+            try { iframe.contentWindow.print(); } catch (err) { console.warn("Print failed", err); }
+            setTimeout(() => finalize(iframe), 3000);
+        };
+
+        iframe.onerror = () => {
+            if (fallbackResolved) return; fallbackResolved = true;
+            console.error("Iframe failed to load.");
+            finalize(iframe);
+        };
+
+        // Safety timeout in case both fail to fire
+        setTimeout(() => {
+            if (!fallbackResolved) {
+                fallbackResolved = true;
+                console.error("Iframe load timed out.");
+                finalize(iframe);
+            }
+        }, 6000);
     };
 
     // ─── Toplu Soru Kağıdı ZIP İhracı ───────────────────────────────────────────
