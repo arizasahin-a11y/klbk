@@ -2344,18 +2344,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         return new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', url, true);
-            xhr.responseType = 'arraybuffer';
-            xhr.onload = function () {
-                if (this.status === 200 || (this.status === 0 && this.response.byteLength > 0)) {
-                    resolve(this.response);
-                } else {
-                    reject(new Error(`Okuma hatası: ${this.status}`));
-                }
-            };
-            xhr.onerror = () => reject(new Error("Bağlantı/Güvenlik hatası. Tarayıcı yerel dosyaya erişimi engelliyor olabilir."));
-            xhr.send();
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', url, true);
+                xhr.responseType = 'arraybuffer';
+                xhr.onload = function () {
+                    if (this.status === 200 || (this.status === 0 && this.response && this.response.byteLength > 0)) {
+                        resolve(this.response);
+                    } else {
+                        reject(new Error(`Okuma hatası: ${this.status}`));
+                    }
+                };
+                xhr.onerror = () => reject(new Error("Bağlantı/Güvenlik hatası. Tarayıcı yerel dosyaya erişimi engelliyor olabilir."));
+                xhr.send();
+            } catch (e) { reject(e); }
         });
     };
 
@@ -2742,10 +2744,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             iframe.src = printPath;
             iframe.style.display = 'none';
             document.body.appendChild(iframe);
+
+            let fallbackResolved = false;
+
             iframe.onload = () => {
-                iframe.contentWindow.print();
+                if (fallbackResolved) return; fallbackResolved = true;
+                try { iframe.contentWindow.print(); } catch (err) { console.warn("Fallback print failed", err); }
                 setTimeout(() => finalize(iframe), 3000);
             };
+
+            iframe.onerror = () => {
+                if (fallbackResolved) return; fallbackResolved = true;
+                console.error("Fallback iframe failed to load.");
+                finalize(iframe);
+            };
+
+            // Safety timeout in case both fail to fire
+            setTimeout(() => {
+                if (!fallbackResolved) {
+                    fallbackResolved = true;
+                    console.error("Fallback iframe load timed out.");
+                    finalize(iframe);
+                }
+            }, 6000);
         }
     };
 
