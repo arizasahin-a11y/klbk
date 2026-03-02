@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Yönetimi | Master</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="login-body">
+
+    <!-- Background Animation Elements -->
+    <div class="bg-shape shape-1"
+        style="background: radial-gradient(circle, rgba(16,185,129,0.2) 0%, transparent 70%);"></div>
+    <div class="bg-shape shape-2"></div>
+    <div class="bg-shape shape-3"
+        style="background: radial-gradient(circle, rgba(245,158,11,0.2) 0%, transparent 70%);"></div>
+
+    <div class="login-container">
+        <div class="login-card glass-panel" style="border-top: 4px solid var(--primary);">
+            <div class="login-header">
+                <div class="logo-icon" style="background: var(--primary); color: white;">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <h2>Sistem Yönetimi</h2>
+                <p>Yeni okul tanımlama ve kullanıcı oluşturma paneli</p>
+            </div>
+
+            <form id="masterForm" class="login-form">
+                <div class="form-group">
+                    <label for="regSchool">Kurum Adı</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-school"></i>
+                        <input type="text" id="regSchool" name="regSchool" placeholder="Örn: Atatürk Anadolu Lisesi"
+                            required autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="regUsername">Hesap Kullanıcı Adı</label>
+                    <div class="input-wrapper">
+                        <i class="fa-regular fa-user"></i>
+                        <input type="text" id="regUsername" name="regUsername" placeholder="Örn: ataturk_lisesi"
+                            required autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="regPassword">Hesap Şifresi</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="regPassword" name="regPassword" placeholder="Şifre belirleyin"
+                            required>
+                    </div>
+                </div>
+
+                <div id="masterMessage" class="message-box hidden"></div>
+
+                <button type="submit" class="btn btn-primary btn-block btn-lg">
+                    <i class="fa-solid fa-plus-circle"></i>
+                    <span>Okul Ekle ve Kullanıcı Oluştur</span>
+                </button>
+
+                <div style="text-align: center; margin-top: 1rem;">
+                    <a href="index.html" class="forgot-link" style="color: var(--gray-500);"><i
+                            class="fa-solid fa-arrow-left"></i> Giriş Sayfasına Dön</a>
+                </div>
+            </form>
+
+            <div class="login-footer">
+                <p>Kelebek Sınav Sistemi Master Paneli</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="js/master.js"></script>
+</body>
+
+</html>
