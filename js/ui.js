@@ -2758,7 +2758,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         iframe.onload = () => {
             if (fallbackResolved) return; fallbackResolved = true;
-            try { iframe.contentWindow.print(); } catch (err) { console.warn("Print failed", err); }
+            try {
+                iframe.contentWindow.print();
+            } catch (err) {
+                console.warn("Iframe Print failed, attempting window.open...", err);
+                try {
+                    window.open(printPath, '_blank');
+                } catch (windowErr) {
+                    console.error("Window open fallback also failed", windowErr);
+                }
+            }
             setTimeout(() => finalize(iframe), 3000);
         };
 
