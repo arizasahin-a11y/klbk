@@ -2725,48 +2725,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (e) {
             console.error("PDF Overlay Error:", e);
+
+            let htmlMsg = `<div style="text-align:left; font-size:0.95rem;">
+                             <b>Adım:</b> ${currentStep}<br>
+                             <b>Hata:</b> ${e.message}<br><br>`;
+
+            if (printPath.includes("file://") || printPath.includes("C:") || printPath.includes("D:")) {
+                htmlMsg += `<b style="color:#e11d48;">UYARI:</b> Sistemi Vercel gibi bir internet sunucusunda çalıştırırken, bilgisayarınızdaki yerel dosyalara (C:\\ veya D:\\) erişilemez. Güvenlik nedeniyle tarayıcılar buna izin vermez.<br><br>
+                 <b>ÇÖZÜM:</b> Soru kağıdı PDF'lerinizi OneDrive, Google Drive veya Supabase gibi bir buluta yükleyip <b>'Herkesin görebileceği' bir internet linkini (https://...)</b> buraya yapıştırmalısınız. Veya dosyaları Vercel deponuza (GitHub'a) yükleyip göreceli yol (Örn: <code>/pdf/sinav.pdf</code>) yazmalısınız.`;
+            } else {
+                htmlMsg += `<small><i>Dosya yolu hatalı olabilir veya internetten çektiğiniz linkin (CORS) indirme izni yoktur.</i></small>`;
+            }
+            htmlMsg += `</div>`;
+
             Swal.fire({
-                title: 'Overlay Hatas\u0131',
-                html: `<div style="text-align:left; font-size:0.9rem;">
-                        <b>Ad\u0131m:</b> ${currentStep}<br>
-                        <b>Hata:</b> ${e.message}<br><br>
-                        <small><i>Taray\u0131c\u0131 g\u00fcvenlik k\u0131s\u0131tlamas\u0131 veya dosya yolu hatal\u0131 olabilir. Orijinal dosya yazd\u0131r\u0131l\u0131yor...</i></small>
-                       </div>`,
-                icon: 'warning',
-                timer: 4000,
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false
+                title: 'Dosya Okuma / Bulut Hatası',
+                html: htmlMsg,
+                icon: 'error',
+                width: 600
             });
 
-            // Fallback: Original
-            const iframe = document.createElement('iframe');
-            iframe.src = printPath;
-            iframe.style.display = 'none';
-            document.body.appendChild(iframe);
-
-            let fallbackResolved = false;
-
-            iframe.onload = () => {
-                if (fallbackResolved) return; fallbackResolved = true;
-                try { iframe.contentWindow.print(); } catch (err) { console.warn("Fallback print failed", err); }
-                setTimeout(() => finalize(iframe), 3000);
-            };
-
-            iframe.onerror = () => {
-                if (fallbackResolved) return; fallbackResolved = true;
-                console.error("Fallback iframe failed to load.");
-                finalize(iframe);
-            };
-
-            // Safety timeout in case both fail to fire
-            setTimeout(() => {
-                if (!fallbackResolved) {
-                    fallbackResolved = true;
-                    console.error("Fallback iframe load timed out.");
-                    finalize(iframe);
-                }
-            }, 6000);
+            // Clean up but DO NOT fallback printing, since the fallback won't work either on a cloud server
+            console.error("Fallback print aborted due to unreadable source path.");
+            finalize(null);
         }
     };
 
