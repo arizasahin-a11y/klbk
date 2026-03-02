@@ -80,6 +80,41 @@ const DataManager = {
         }
     },
 
+    // --- Supabase Storage (PDF Uploads) ---
+    uploadFileToSupabase: async function (file) {
+        if (!file) return null;
+
+        const bucketName = 'xms';
+        // Create a unique filepath: e.g., 20260303_1405_safasdf.pdf
+        const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${file.name.replace(/[^a-zA-Z0-9.\-]/g, "_")}`;
+
+        const uploadUrl = `${this.supabaseUrl}/storage/v1/object/${bucketName}/${uniqueFileName}`;
+
+        try {
+            const res = await fetch(uploadUrl, {
+                method: 'POST',
+                headers: {
+                    'apikey': this.supabaseKey,
+                    'Authorization': `Bearer ${this.supabaseKey}`,
+                    'Content-Type': file.type || 'application/pdf'
+                },
+                body: file
+            });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(`Upload failed: ${res.status} ${errText}`);
+            }
+
+            // Return the public URL for the newly uploaded file
+            const publicUrl = `${this.supabaseUrl}/storage/v1/object/public/${bucketName}/${uniqueFileName}`;
+            return publicUrl;
+        } catch (e) {
+            console.error("Supabase Storage Upload Error:", e);
+            throw e;
+        }
+    },
+
     // Internal Method: Get Full Data Store (Returns Memory)
     _getData: function () {
         if (!this._memoryData) {

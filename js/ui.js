@@ -3750,13 +3750,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.browseToInput = function (btn) {
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
-        fileInput.onchange = (e) => {
+        fileInput.accept = 'application/pdf';
+        fileInput.onchange = async (e) => {
             const file = e.target.files[0];
             if (file) {
-                console.log('Selected file:', file);
-                const input = btn.closest('.input-group').querySelector('input');
-                // Use file.path for local/Electron environments to get absolute path
-                if (input) input.value = file.path || file.name;
+                if (file.type !== "application/pdf") {
+                    Swal.fire("Sadece PDF türünde dosyalar yükleyebilirsiniz.", "", "warning");
+                    return;
+                }
+
+                // Show loading spinner
+                const originalBtnHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                btn.disabled = true;
+
+                try {
+                    const publicUrl = await DataManager.uploadFileToSupabase(file);
+                    const input = btn.closest('.input-group').querySelector('input');
+                    if (input) input.value = publicUrl;
+
+                    Swal.fire({
+                        toast: true, position: 'top-end', icon: 'success',
+                        title: 'PDF Buluta Yüklendi!', showConfirmButton: false, timer: 3000
+                    });
+                } catch (err) {
+                    Swal.fire("Yükleme Başarısız!", err.message, "error");
+                } finally {
+                    btn.innerHTML = originalBtnHtml;
+                    btn.disabled = false;
+                }
             }
         };
         fileInput.click();
@@ -3804,9 +3826,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div style="flex:1; min-width:160px;">
                             <label style="font-size:0.7rem; color:var(--gray-500); display:block;">Grup ${groupLetter} Soru Kağıdı</label>
                             <div class="input-group" style="display:flex; gap:2px;">
-                                <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-group="${groupLetter}" style="flex:1; margin:0; height:35px; font-size:0.8rem;" value="${subPapers[groupLetter] || ''}" placeholder="Yol">
+                                <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-group="${groupLetter}" style="flex:1; margin:0; height:35px; font-size:0.8rem;" value="${subPapers[groupLetter] || ''}" placeholder="C:\\Yol veya URL">
                                 <button type="button" class="btn btn-light btn-sm" style="height:35px; padding:0 8px;" onclick="window.pasteToInput(this)" title="Panodan Yapıştır"><i class="fa-solid fa-paste"></i></button>
-                                <button type="button" class="btn btn-light btn-sm" style="height:35px; padding:0 8px;" onclick="window.browseToInput(this)" title="Dosya Seç"><i class="fa-solid fa-folder-open"></i></button>
+                                <button type="button" class="btn btn-primary btn-sm" style="height:35px; padding:0 12px; font-size:0.8rem; display:flex; gap:6px; align-items:center;" onclick="window.browseToInput(this)" title="Buluta PDF Yükle"><i class="fa-solid fa-cloud-arrow-up"></i> Buluta Yükle</button>
                             </div>
                         </div>
 `;
@@ -3818,7 +3840,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="input-group" style="display:flex; gap:2px;">
                             <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" style="flex:1; margin:0; height:35px; font-size:0.8rem;" value="${typeof subPapers === 'string' ? subPapers : (subPapers['default'] || '')}" placeholder="C:\\Yol veya URL">
                             <button type="button" class="btn btn-light btn-sm" style="height:35px; padding:0 8px;" onclick="window.pasteToInput(this)" title="Panodan Yapıştır"><i class="fa-solid fa-paste"></i></button>
-                            <button type="button" class="btn btn-light btn-sm" style="height:35px; padding:0 8px;" onclick="window.browseToInput(this)" title="Dosya Seç"><i class="fa-solid fa-folder-open"></i></button>
+                            <button type="button" class="btn btn-primary btn-sm" style="height:35px; padding:0 12px; font-size:0.8rem; display:flex; gap:6px; align-items:center;" onclick="window.browseToInput(this)" title="Buluta PDF Yükle"><i class="fa-solid fa-cloud-arrow-up"></i> Buluta Yükle</button>
                         </div>
                     </div>
 `;
@@ -3837,8 +3859,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
                         ${paperInputs}
                     </div>
-                    <div style="margin-top:5px; font-size:0.7rem; color:var(--gray-500); font-style:italic;">
-                        <i class="fa-solid fa-info-circle"></i> Tarayıcı güvenliği nedeniyle dosya seçildiğinde tam yol otomatik alınamazsa lütfen yolu kopyalayıp <b>Panodan Yapıştır</b> butonunu kullanın.
+                    <div style="margin-top:5px; font-size:0.75rem; color:var(--info); font-style:italic;">
+                        <i class="fa-solid fa-info-circle"></i> Soru Kağıdı yazdırma işlemi için C:\\.. yerel yolları kullanılamaz. <b>Buluta Yükle</b> butonuna tıklayarak Soru Kağıdı PDF'inizi seçtiğinizde, sistem onu Supabase sunucunuza depolayacak ve kalıcı yazdırma bağlantısını buraya otomatik işleyecektir.
                     </div>
                 </div>
     `;
