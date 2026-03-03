@@ -1641,6 +1641,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             name: '', date: '', time: '', subjects: [],
             selectedClasses: [], excludedStudents: [], selectedClassrooms: []
         };
+        window._wizAvailableSubjects = null;
 
         const dateInput = document.getElementById('wizSessionDate');
         const today = new Date().toISOString().split('T')[0];
@@ -1747,13 +1748,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const updateSelectOptions = () => {
             select.innerHTML = '<option value="">-- Ders Seçiniz --</option>';
+            // Filter by available subjects if populated (calculated in populateWizardClasses)
+            const availableSet = window._wizAvailableSubjects || new Set();
+
             allSubjects.forEach(sub => {
-                // Hide if already selected
-                if (!wizardSessionData.subjects.find(s => s.name === sub)) {
-                    select.innerHTML += `<option value="${sub}">${sub}</option>`;
+                // Hide if already selected OR if no available student takes it (if any students are left)
+                const isSelected = !!wizardSessionData.subjects.find(s => s.name === sub);
+                const isAvailable = availableSet.has(sub);
+
+                if (!isSelected) {
+                    if (isAvailable || availableSet.size === 0) {
+                        select.innerHTML += `<option value="${sub}">${sub}</option>`;
+                    }
                 }
             });
         };
+
+        // Expose refresh function for populateWizardClasses to trigger
+        window._wizRefreshSubjectList = updateSelectOptions;
 
         const renderTags = () => {
             subjectsContainer.innerHTML = '';
@@ -1913,9 +1925,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // --- Student Occupancy Check (USER REQUEST) ---
         const totalStudentsCount = students.length;
-        // busyStudentNos (other sessions) + claimedStudentNos (already added in this wizard)
         const totalAssignedCount = busyStudentNos.size + claimedStudentNos.size;
         const availableCount = totalStudentsCount - totalAssignedCount;
+
+        // Calculate subjects taken by "really" available students (not busy, not claimed)
+        const availableSubjects = new Set();
+        students.forEach(s => {
+            if (!busyStudentNos.has(s.no.toString()) && !claimedStudentNos.has(s.no.toString())) {
+                if (s.dersler) s.dersler.forEach(d => availableSubjects.add(d.trim()));
+            }
+        });
+
+        // Store available subjects globally for populateWizardSubjects to use
+        window._wizAvailableSubjects = availableSubjects;
 
         const subSelect = document.getElementById('wizSubjectSelect');
         const btnAddSub = document.getElementById('btnAddWizardSubject');
@@ -1930,6 +1952,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (btnAddSub) btnAddSub.disabled = false;
             if (noStdsMsg) noStdsMsg.classList.add('hidden');
         }
+
+        // Trigger subject list refresh if the function exists
+        if (window._wizRefreshSubjectList) window._wizRefreshSubjectList();
 
         if (subjectGroups.length === 0) return;
 
