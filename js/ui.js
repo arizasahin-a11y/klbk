@@ -2574,8 +2574,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (designType === '1') {
             drawExplicitOppositeFrame(ox, oy, ow, oh, 6 * sf, 1.5 * sf);
             drawExplicitOppositeFrame(ix, iy, iw, ih, 4 * sf, 0.5 * sf);
-            const d1_c = 10 * sf;
-            [ix, ix + iw - d1_c].forEach(tx => { [iy, iy + ih - d1_c].forEach(ty => { page.drawRectangle({ x: tx, y: ty, width: d1_c, height: d1_c, borderColor: rgb(0, 0, 0), borderWidth: 0.5 * sf }); }); });
+            const rad = 3.5 * sf;
+            [ix + rad + 1 * sf, ix + iw - rad - 1 * sf].forEach(tx => { [iy + rad + 1 * sf, iy + ih - rad - 1 * sf].forEach(ty => { page.drawCircle({ x: tx, y: ty, size: rad, color: rgb(0.85, 0.85, 0.85), borderColor: rgb(0, 0, 0), borderWidth: 0.5 * sf }); }); });
             page.drawLine({ start: { x: ix + leftW, y: iy }, end: { x: ix + leftW, y: iy + ih }, thickness: 0.75 * sf });
             page.drawLine({ start: { x: ix + leftW + midW, y: iy }, end: { x: ix + leftW + midW, y: iy + ih }, thickness: 0.75 * sf });
             drawDivs(ix, iy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, rgb(0, 0, 0), 0.75 * sf);
