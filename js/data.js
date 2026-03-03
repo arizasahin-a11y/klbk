@@ -108,9 +108,46 @@ const DataManager = {
 
             // Return the public URL for the newly uploaded file
             const publicUrl = `${this.supabaseUrl}/storage/v1/object/public/${bucketName}/${uniqueFileName}`;
+            const publicUrlWithNoCache = `${publicUrl}?t=${Date.now()}`;
             return publicUrl;
         } catch (e) {
             console.error("Supabase Storage Upload Error:", e);
+            throw e;
+        }
+    },
+
+    listSupabaseFiles: async function () {
+        const bucketName = 'xms';
+        const listUrl = `${this.supabaseUrl}/storage/v1/object/list/${bucketName}`;
+
+        try {
+            const res = await fetch(listUrl, {
+                method: 'POST',
+                headers: {
+                    'apikey': this.supabaseKey,
+                    'Authorization': `Bearer ${this.supabaseKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    limit: 100,
+                    offset: 0,
+                    sortBy: { column: 'created_at', order: 'desc' }
+                })
+            });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(`Failed to list files: ${res.status} ${errText}`);
+            }
+
+            const files = await res.json();
+            return files.map(f => ({
+                name: f.name,
+                url: `${this.supabaseUrl}/storage/v1/object/public/${bucketName}/${f.name}`,
+                created_at: f.created_at
+            }));
+        } catch (e) {
+            console.error("Supabase Storage List Error:", e);
             throw e;
         }
     },

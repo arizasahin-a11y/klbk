@@ -3795,10 +3795,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const originalColor = btn.style.backgroundColor;
                     btn.innerHTML = '<i class="fa-solid fa-check"></i> Yüklendi';
                     btn.style.backgroundColor = '#10b981';
+                    btn.style.color = '#fff';
 
                     setTimeout(() => {
                         btn.innerHTML = originalBtnHtml;
-                        btn.style.backgroundColor = originalColor;
+                        btn.style.backgroundColor = '';
+                        btn.style.color = '';
                         btn.disabled = false;
                     }, 3000);
 
@@ -3806,15 +3808,85 @@ document.addEventListener('DOMContentLoaded', async () => {
                     console.error("Yükleme Hatası:", err);
                     btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Hata!';
                     btn.style.backgroundColor = '#ef4444';
+                    btn.style.color = '#fff';
                     setTimeout(() => {
                         btn.innerHTML = originalBtnHtml;
                         btn.style.backgroundColor = '';
+                        btn.style.color = '';
                         btn.disabled = false;
                     }, 3000);
                 }
             }
         };
         fileInput.click();
+    };
+
+    window.showCloudFiles = async function (btn) {
+        const inputGroup = btn.closest('.input-group');
+        const input = inputGroup ? inputGroup.querySelector('input.meta-paper-input') : null;
+        if (!input) return;
+
+        try {
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+            const files = await DataManager.listSupabaseFiles();
+            btn.innerHTML = '<i class="fa-solid fa-cloud"></i> Buluttan Seç';
+            btn.disabled = false;
+
+            if (files.length === 0) {
+                Swal.fire({
+                    title: 'Bulut Boş',
+                    text: 'Henüz hiç dosya yüklenmemiş.',
+                    icon: 'info',
+                    target: Swal.getContainer()
+                });
+                return;
+            }
+
+            let listHtml = '<div style="max-height: 400px; overflow-y: auto;"><table class="table table-sm"><thead><tr><th>Dosya Adı</th><th>Tarih</th><th>Seç</th></tr></thead><tbody>';
+            files.forEach(f => {
+                const date = new Date(f.created_at).toLocaleString('tr-TR');
+                listHtml += `
+                    <tr>
+                        <td style="font-size:0.8rem; text-align:left; word-break:break-all;">${f.name}</td>
+                        <td style="font-size:0.7rem;">${date}</td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" onclick="window.selectCloudFile('${f.url}', this)">Seç</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            listHtml += '</tbody></table></div>';
+
+            window.selectCloudFile = (url, pickBtn) => {
+                input.value = url;
+                input.setAttribute('value', url);
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                Swal.close(Swal.getPopup().closest('.swal2-container')); // Close only the top-most modal
+                // Actually Swal.close() closes everything.
+                // Better approach for nested modals:
+                const nestedModal = pickBtn.closest('.swal2-container');
+                if (nestedModal) nestedModal.remove();
+            };
+
+            const modalContainer = document.createElement('div');
+            modalContainer.className = 'swal2-container swal2-center swal2-backdrop-show';
+            modalContainer.style.zIndex = '2000';
+            modalContainer.innerHTML = `
+                <div aria-labelledby="swal2-title" aria-describedby="swal2-html-container" class="swal2-popup swal2-modal swal2-show" tabindex="-1" role="dialog" aria-live="assertive" aria-modal="true" style="display: grid; width: 600px;">
+                    <button type="button" class="swal2-close" aria-label="Close this dialog" onclick="this.closest('.swal2-container').remove()">×</button>
+                    <h2 class="swal2-title" id="swal2-title">Buluttaki Dosyalar</h2>
+                    <div id="swal2-html-container" class="swal2-html-container" style="display: block;">${listHtml}</div>
+                </div>
+            `;
+            document.body.appendChild(modalContainer);
+
+        } catch (err) {
+            Swal.fire({ title: 'Hata', text: err.message, icon: 'error', target: Swal.getContainer() });
+            btn.innerHTML = '<i class="fa-solid fa-cloud"></i> Buluttan Seç';
+            btn.disabled = false;
+        }
     };
 
 
@@ -3866,6 +3938,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div class="input-group" style="display:flex; gap:2px;">
                                 <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-group="${groupLetter}" style="flex:1; margin:0; height:35px; font-size:0.8rem;" value="${subPapers[groupLetter] || ''}" placeholder="C:\\Yol veya URL">
                                 <button type="button" class="btn btn-secondary btn-sm" style="height:35px; padding:0 8px;" onclick="const inp=this.closest('.input-group').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Bağlantıyı Aç / Test Et"><i class="fa-solid fa-external-link"></i> Test</button>
+                                <button type="button" class="btn btn-info btn-sm" style="height:35px; padding:0 8px;" onclick="window.showCloudFiles(this)" title="Buluttaki Dosyalardan Seç"><i class="fa-solid fa-cloud"></i> Buluttan Seç</button>
                                 <button type="button" class="btn btn-light btn-sm" style="height:35px; padding:0 8px;" onclick="window.pasteToInput(this)" title="Panodan Yapıştır"><i class="fa-solid fa-paste"></i></button>
                                 <button type="button" class="btn btn-primary btn-sm" style="height:35px; padding:0 12px; font-size:0.8rem; display:flex; gap:6px; align-items:center;" onclick="window.browseToInput(this)" title="Buluta PDF Yükle"><i class="fa-solid fa-cloud-arrow-up"></i> Buluta Yükle</button>
                             </div>
@@ -3879,6 +3952,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="input-group" style="display:flex; gap:2px;">
                             <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" style="flex:1; margin:0; height:35px; font-size:0.8rem;" value="${typeof subPapers === 'string' ? subPapers : (subPapers['default'] || '')}" placeholder="C:\\Yol veya URL">
                             <button type="button" class="btn btn-secondary btn-sm" style="height:35px; padding:0 8px;" onclick="const inp=this.closest('.input-group').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Bağlantıyı Aç / Test Et"><i class="fa-solid fa-external-link"></i> Test</button>
+                            <button type="button" class="btn btn-info btn-sm" style="height:35px; padding:0 8px;" onclick="window.showCloudFiles(this)" title="Buluttaki Dosyalardan Seç"><i class="fa-solid fa-cloud"></i> Buluttan Seç</button>
                             <button type="button" class="btn btn-light btn-sm" style="height:35px; padding:0 8px;" onclick="window.pasteToInput(this)" title="Panodan Yapıştır"><i class="fa-solid fa-paste"></i></button>
                             <button type="button" class="btn btn-primary btn-sm" style="height:35px; padding:0 12px; font-size:0.8rem; display:flex; gap:6px; align-items:center;" onclick="window.browseToInput(this)" title="Buluta PDF Yükle"><i class="fa-solid fa-cloud-arrow-up"></i> Buluta Yükle</button>
                         </div>
@@ -3914,6 +3988,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         Swal.fire({
             title: 'Oturum Detaylı Bilgilerini Düzenle',
             width: '900px',
+            allowOutsideClick: false,
+            backdrop: true,
             html: `
                 <div style="text-align: left;">
                     <div style="background: var(--light-primary); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid var(--primary); display:flex; align-items:center; gap:1rem;">
