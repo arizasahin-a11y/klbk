@@ -1063,8 +1063,8 @@
                 const diffMins = (targetTime - now) / 1000 / 60;
                 const diffEndMins = (endTime - now) / 1000 / 60;
 
-                // Active if started and not finished yet
-                if (diffMins <= 0 && diffEndMins >= 0) {
+                // Active if within 20 mins of starting, and not finished yet
+                if (diffMins <= 20 && diffEndMins >= 0) {
                     const roomResult = ses.results.find(r => r.name === myRoomName);
                     if (roomResult) {
                         activeSession = ses;

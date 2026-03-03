@@ -3834,12 +3834,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.disabled = false;
 
             if (files.length === 0) {
-                Swal.fire({
-                    title: 'Bulut Boş',
-                    text: 'Henüz hiç dosya yüklenmemiş.',
-                    icon: 'info',
-                    target: Swal.getContainer()
-                });
+                alert('Bulut Boş: Henüz hiç dosya yüklenmemiş.');
                 return;
             }
 
@@ -3863,27 +3858,38 @@ document.addEventListener('DOMContentLoaded', async () => {
                 input.setAttribute('value', url);
                 input.dispatchEvent(new Event('input', { bubbles: true }));
                 input.dispatchEvent(new Event('change', { bubbles: true }));
-                Swal.close(Swal.getPopup().closest('.swal2-container')); // Close only the top-most modal
-                // Actually Swal.close() closes everything.
-                // Better approach for nested modals:
-                const nestedModal = pickBtn.closest('.swal2-container');
-                if (nestedModal) nestedModal.remove();
+                const dialog = pickBtn.closest('dialog');
+                if (dialog) {
+                    dialog.close();
+                    dialog.remove();
+                }
             };
 
-            const modalContainer = document.createElement('div');
-            modalContainer.className = 'swal2-container swal2-center swal2-backdrop-show';
-            modalContainer.style.zIndex = '2000';
-            modalContainer.innerHTML = `
-                <div aria-labelledby="swal2-title" aria-describedby="swal2-html-container" class="swal2-popup swal2-modal swal2-show" tabindex="-1" role="dialog" aria-live="assertive" aria-modal="true" style="display: grid; width: 600px;">
-                    <button type="button" class="swal2-close" aria-label="Close this dialog" onclick="this.closest('.swal2-container').remove()">×</button>
-                    <h2 class="swal2-title" id="swal2-title">Buluttaki Dosyalar</h2>
-                    <div id="swal2-html-container" class="swal2-html-container" style="display: block;">${listHtml}</div>
+            const dialog = document.createElement('dialog');
+            dialog.style.padding = '0';
+            dialog.style.border = 'none';
+            dialog.style.borderRadius = '12px';
+            dialog.style.boxShadow = '0 10px 25px rgba(0,0,0,0.5)';
+            dialog.style.maxWidth = '600px';
+            dialog.style.width = '100%';
+            dialog.style.zIndex = '9999';
+            dialog.style.position = 'fixed';
+            dialog.style.top = '50%';
+            dialog.style.left = '50%';
+            dialog.style.transform = 'translate(-50%, -50%)';
+            dialog.style.margin = '0';
+            dialog.innerHTML = `
+                <div style="background:var(--primary); color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="margin:0; font-size:1.1rem; font-family:inherit;">Buluttaki Dosyalar</h3>
+                    <button type="button" onclick="this.closest('dialog').close(); this.closest('dialog').remove();" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
                 </div>
+                <div style="padding:15px; background:white;">${listHtml}</div>
             `;
-            document.body.appendChild(modalContainer);
+            document.body.appendChild(dialog);
+            dialog.showModal();
 
         } catch (err) {
-            Swal.fire({ title: 'Hata', text: err.message, icon: 'error', target: Swal.getContainer() });
+            alert('Hata: ' + err.message);
             btn.innerHTML = '<i class="fa-solid fa-cloud"></i> Buluttan Seç';
             btn.disabled = false;
         }
