@@ -1645,7 +1645,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const dateInput = document.getElementById('wizSessionDate');
         const today = new Date().toISOString().split('T')[0];
-        if (dateInput) dateInput.min = today;
+        if (dateInput) {
+            dateInput.min = today;
+            dateInput.addEventListener('change', (e) => {
+                wizardSessionData.date = e.target.value;
+                if (currentWizardStep === 2) populateWizardClasses();
+            });
+        }
+
+        const timeInput = document.getElementById('wizSessionTime');
+        if (timeInput) {
+            timeInput.addEventListener('input', (e) => {
+                wizardSessionData.time = e.target.value;
+                if (currentWizardStep === 2) populateWizardClasses();
+            });
+        }
 
         document.getElementById('wizSessionName').value = '';
         document.getElementById('wizSessionDate').value = '';
@@ -1925,7 +1939,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (cb.checked) {
                     const pid = cb.value;
                     let foundPool = null;
-                    subjectGroups.forEach(g => { const p = g.pools.find(p => p.pid === pid); if (p) foundPool = p; });
+                    subjectGroups.forEach(g => {
+                        const p = g.pools.find(p => p.pid === pid);
+                        if (p) foundPool = p;
+                    });
                     if (foundPool) {
                         foundPool.students.forEach(s => {
                             const sno = s.no.toString();
@@ -1938,10 +1955,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Update persistence
             wizardSessionData.selectedClasses = Array.from(document.querySelectorAll('.wiz-class-cb:checked')).map(cb => cb.value);
 
-            // Calculate subjects taken by "really" available students
+            // Calculate subjects taken by "really" available students (NOT BUSY AND NOT CLAIMED)
             const availableSubjects = new Set();
             availableInSchool.forEach(s => {
-                if (!claimedNos.has(s.no.toString())) {
+                const sno = s.no.toString();
+                // A student is available if they are not in a busy session AND not claimed in the current wizard view
+                if (!claimedNos.has(sno)) {
                     if (s.dersler) s.dersler.forEach(d => availableSubjects.add(d.trim()));
                 }
             });
@@ -1968,7 +1987,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 3. Render HTML
         if (subjectGroups.length === 0) {
             container.innerHTML = '<p style="text-align: center; color: var(--danger); margin-top: 2rem;">Bu dersleri alan veya çakışmayan hiçbir öğrenci/sınıf bulunamadı.</p>';
-            updateOccupancy();
+            updateOccupancy(); // Still update to refresh available subjects for untargeted classes
             return;
         }
 
@@ -1979,10 +1998,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem;">`;
 
             grp.pools.forEach(inf => {
-                // Auto check by default ONLY if new, otherwise persist
-                if (!window._wizInitialized) {
-                    if (!wizardSessionData.selectedClasses.includes(inf.pid)) wizardSessionData.selectedClasses.push(inf.pid);
+                // AUTO-CHECK LOGIC (REFINED): 
+                // Auto-check if this is the first time we see this pool (pid not in selectedClasses)
+                // AND we haven't explicitly "seen" this pool before (tracked via _wizSeenPools)
+                if (!window._wizSeenPools) window._wizSeenPools = new Set();
+
+                if (!window._wizSeenPools.has(inf.pid)) {
+                    if (!wizardSessionData.selectedClasses.includes(inf.pid)) {
+                        wizardSessionData.selectedClasses.push(inf.pid);
+                    }
+                    window._wizSeenPools.add(inf.pid);
                 }
+
                 const isChecked = wizardSessionData.selectedClasses.includes(inf.pid);
 
                 html += `
@@ -2799,32 +2826,47 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawLine({ start: { x: ox, y: oy }, end: { x: ox + ow - 10 * sf, y: oy }, thickness: thk, color: navy }); // Bottom (Partial)
 
             // Stylized Profile Silhouette (CLOSING THE RIGHT SIDE)
-            // Coordinates relative to box
+            // Precise trace matching stencil with kalpak/cap
             const rx = ox + ow - 10 * sf;
             const ty = oy + oh;
             const pts = [
-                { x: rx, y: ty }, // Top start
-                { x: rx + 1.5 * sf, y: ty - 4 * sf }, // Top forehead
-                { x: rx + 0.5 * sf, y: ty - 8 * sf }, // Mid forehead
-                { x: rx - 3.5 * sf, y: ty - 12 * sf }, // Eye socket indentation
-                { x: rx + 4.5 * sf, y: ty - 18 * sf }, // Nose bridge to tip
-                { x: rx + 3.2 * sf, y: ty - 20 * sf }, // Under nose
-                { x: rx - 0.2 * sf, y: ty - 22 * sf }, // Upper lip
-                { x: rx - 1.2 * sf, y: ty - 24 * sf }, // Mouth indentation
-                { x: rx + 1.5 * sf, y: ty - 26 * sf }, // Lower lip
-                { x: rx + 4.5 * sf, y: ty - 30 * sf }, // Chin tip
-                { x: rx - 1 * sf, y: ty - 34 * sf }, // Under chin
+                { x: rx, y: ty }, // Top start (Forehead/Hat top)
+                { x: rx + 5 * sf, y: ty - 1 * sf }, // Hat top peak
+                { x: rx + 11 * sf, y: ty - 6 * sf }, // Hat back curve
+                { x: rx + 12 * sf, y: ty - 13 * sf }, // Hat back edge
+                { x: rx + 9.5 * sf, y: ty - 16 * sf }, // Ear top area hint
+                { x: rx + 7 * sf, y: ty - 22 * sf }, // Neck back curve start
+                { x: rx + 9 * sf, y: ty - 32 * sf }, // Solder/Neck base
                 { x: rx - 5 * sf, y: oy } // Neck to bottom edge
             ];
 
-            for (let i = 0; i < pts.length - 1; i++) {
-                page.drawLine({
-                    start: pts[i],
-                    end: pts[i + 1],
-                    thickness: 2.2 * sf,
-                    color: navy
-                });
-            }
+            // Re-trace for FACE PROFILE (Frontal detail)
+            const fpts = [
+                { x: rx + 0.1 * sf, y: ty - 7.5 * sf }, // Cap peak tip (over forehead)
+                { x: rx - 1.5 * sf, y: ty - 9 * sf }, // Forehead start
+                { x: rx - 2 * sf, y: ty - 12 * sf }, // Eye socket indentation
+                { x: rx + 3 * sf, y: ty - 18 * sf }, // Nose bridge to tip
+                { x: rx + 1 * sf, y: ty - 20 * sf }, // Under nose
+                { x: rx + 0.2 * sf, y: ty - 22 * sf }, // Upper lip
+                { x: rx - 0.5 * sf, y: ty - 24 * sf }, // Mouth indentation
+                { x: rx + 1 * sf, y: ty - 26 * sf }, // Lower lip
+                { x: rx + 2 * sf, y: ty - 29 * sf }, // Chin tip
+                { x: rx - 1.5 * sf, y: ty - 33 * sf } // Under chin
+            ];
+
+            const drawPath = (path) => {
+                for (let i = 0; i < path.length - 1; i++) {
+                    page.drawLine({
+                        start: path[i],
+                        end: path[i + 1],
+                        thickness: 2.4 * sf,
+                        color: navy
+                    });
+                }
+            };
+
+            drawPath(pts); // Draw hat and back neck
+            drawPath(fpts); // Draw face profile
 
             // Adjust Bottom Frame line to meet silhouette end precisely
             page.drawLine({ start: { x: ox + ow - 10 * sf, y: oy }, end: { x: rx - 5 * sf, y: oy }, thickness: thk, color: navy });
