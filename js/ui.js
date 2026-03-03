@@ -2661,6 +2661,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 page.drawRectangle({ x: tx, y: oy - 2 * sf, width: 4 * sf, height: 4 * sf, color: em, rotate: degrees(45) });
             }
             page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1 * sf, color: ed });
+            page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1 * sf, color: ed });
             page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1.5 * sf, color: em });
             drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, ed, 0.75 * sf);
             drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12, schoolFont), schoolFont);
@@ -2668,6 +2669,44 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
             page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: mainFont, color: ed });
             await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+        } else if (designType === '7') {
+            // LATIN THEME
+            const stone = rgb(0.29, 0.29, 0.29); const paper = rgb(0.98, 0.98, 0.94);
+            page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: paper });
+            drawExplicitOppositeFrame(ox, oy, ow, oh, 0, 1.5 * sf, stone);
+            drawExplicitOppositeFrame(ox + 3 * sf, oy + 3 * sf, ow - 6 * sf, oh - 6 * sf, 0, 0.5 * sf, stone);
+            const colW = 6 * sf;
+            [ox, ox + ow - colW].forEach(tx => {
+                page.drawRectangle({ x: tx, y: oy, width: colW, height: oh, color: stone });
+                page.drawLine({ start: { x: tx + colW / 2, y: oy + 5 * sf }, end: { x: tx + colW / 2, y: oy + oh - 5 * sf }, thickness: 0.5 * sf, color: paper });
+            });
+            page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1 * sf, color: stone });
+            page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1 * sf, color: stone });
+            page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1 * sf, color: stone });
+            drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, stone, 0.75 * sf);
+            drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 11, schoolFont), schoolFont);
+            drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
+            if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
+            await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+        } else if (designType === '8') {
+            // ARABIC THEME
+            const emerald = rgb(0, 0.41, 0.31); const gold = rgb(0.83, 0.69, 0.22);
+            page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: rgb(0.99, 0.96, 0.9) });
+            drawExplicitOppositeFrame(ox, oy, ow, oh, 10 * sf, 2 * sf, emerald);
+            const diamondSz = 4 * sf;
+            for (let k = 0; k < ow / (diamondSz * 3); k++) {
+                const tx = ox + k * diamondSz * 3 + diamondSz;
+                page.drawRectangle({ x: tx, y: oy + oh - 2 * sf, width: diamondSz, height: diamondSz, color: gold, rotate: degrees(45) });
+                page.drawRectangle({ x: tx, y: oy - 2 * sf, width: diamondSz, height: diamondSz, color: gold, rotate: degrees(45) });
+            }
+            page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1.5 * sf, color: emerald });
+            page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1.5 * sf, color: emerald });
+            page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1.2 * sf, color: emerald });
+            drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, emerald, 1 * sf);
+            drawCenterText(sName.split('').join(' '), ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 10.5, schoolFont), schoolFont);
+            drawCenterText(examText, ox + leftW, oy + row3H + 2 * sf, midW, row2H - 4 * sf, getFitSize(examText, midW, 13.5), mainFont);
+            if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
+            await drawLogo(ox + (leftW - 30 * sf) / 2, oy + row3H + (row2H + row1H - 30 * sf) / 2, 30 * sf);
         }
     };
 
@@ -4193,6 +4232,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <option value="4" ${subHeader === '4' ? 'selected' : ''}>Osmanlı Teması</option>
                                 <option value="5" ${subHeader === '5' ? 'selected' : ''}>Japon Teması</option>
                                 <option value="6" ${subHeader === '6' ? 'selected' : ''}>Afrika Teması</option>
+                                <option value="7" ${subHeader === '7' ? 'selected' : ''}>Latin Teması</option>
+                                <option value="8" ${subHeader === '8' ? 'selected' : ''}>Arabic Teması</option>
                             </select>
                         </div>
                         <div style="display:flex; justify-content:flex-end; align-items:center; gap:0.5rem;">
