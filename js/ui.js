@@ -2667,7 +2667,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     };
 
                     if (designType === '1') {
-                        drawExplicitOppositeFrame(ox, oy, ow, oh, 6 * sf, 1.5 * sf); drawExplicitOppositeFrame(ix, iy, iw, ih, 4 * sf, 0.5 * sf);
+                        drawExplicitOppositeFrame(ox, oy, ow, oh, 6 * sf, 1.5 * sf);
+                        drawExplicitOppositeFrame(ix, iy, iw, ih, 4 * sf, 0.5 * sf);
+                        // Ornament: Corner bracket accents
+                        const d1_c = 10 * sf;
+                        [ix, ix + iw - d1_c].forEach(tx => {
+                            [iy, iy + ih - d1_c].forEach(ty => {
+                                page.drawRectangle({ x: tx, y: ty, width: d1_c, height: d1_c, borderColor: rgb(0, 0, 0), borderWidth: 0.5 * sf });
+                            });
+                        });
                         page.drawLine({ start: { x: ix + leftW, y: iy }, end: { x: ix + leftW, y: iy + ih }, thickness: 0.75 * sf });
                         page.drawLine({ start: { x: ix + leftW + midW, y: iy }, end: { x: ix + leftW + midW, y: iy + ih }, thickness: 0.75 * sf });
                         drawDivs(ix, iy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, rgb(0, 0, 0), 0.75 * sf);
@@ -2680,6 +2688,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         await drawLogo(ix + (leftW - 26 * sf) / 2, iy + row3H + (row2H + row1H - 26 * sf) / 2, 26 * sf);
                     } else if (designType === '2') {
                         drawExplicitOppositeFrame(ox, oy, ow, oh, 0, 1 * sf);
+                        // Ornament: Mid-line notches
+                        const notch = 4 * sf;
+                        page.drawRectangle({ x: ox - notch / 2, y: oy + oh / 2 - notch, width: notch, height: notch * 2, color: rgb(1, 1, 1), borderColor: rgb(0, 0, 0), borderWidth: 1 * sf });
+                        page.drawRectangle({ x: ox + ow - notch / 2, y: oy + oh / 2 - notch, width: notch, height: notch * 2, color: rgb(1, 1, 1), borderColor: rgb(0, 0, 0), borderWidth: 1 * sf });
                         page.drawRectangle({ x: ox, y: oy + oh - 3 * sf, width: ow, height: 3 * sf, color: rgb(0.3, 0.3, 0.3) });
                         page.drawRectangle({ x: ox, y: oy, width: ow, height: oh - 3 * sf, color: rgb(0.97, 0.97, 0.97) });
                         const gc = rgb(0.8, 0.8, 0.8);
@@ -2697,6 +2709,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const ac = rgb(0.2, 0.3, 0.5);
                         drawExplicitOppositeFrame(ox, oy, ow, oh, 10 * sf, 1 * sf, ac);
                         drawExplicitOppositeFrame(ox + 2 * sf, oy + 2 * sf, ow - 4 * sf, oh - 4 * sf, 8 * sf, 0.5 * sf, rgb(0.7, 0.7, 0.7));
+                        // Ornament: Inset/Outset corner decorations (small circles on joints)
+                        const rd = 3 * sf;
+                        [ox + 10 * sf, ox + ow - 10 * sf].forEach(tx => {
+                            [oy + 10 * sf, oy + oh - 10 * sf].forEach(ty => {
+                                page.drawCircle({ x: tx, y: ty, size: rd, color: rgb(1, 1, 1), borderColor: ac, borderWidth: 1 * sf });
+                            });
+                        });
                         page.drawRectangle({ x: ox + leftW, y: oy + row3H, width: midW, height: row1H + row2H, color: rgb(0.98, 0.98, 0.99) });
                         page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1 * sf, color: ac });
                         page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1 * sf, color: ac });
@@ -2712,6 +2731,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: rgb(0.99, 0.98, 0.94) });
                         drawExplicitOppositeFrame(ox, oy, ow, oh, 0, 2 * sf, dr);
                         drawExplicitOppositeFrame(ox + 3 * sf, oy + 3 * sf, ow - 6 * sf, oh - 6 * sf, 0, 0.75 * sf, gd);
+                        // Ornament: Central Kartuş curves (simulated with small arcs or rectangles)
+                        const kw = 60 * sf; const kh = 6 * sf;
+                        page.drawEllipse({ x: ox + ow / 2, y: oy + oh, xScale: kw, yScale: kh, color: rgb(0.99, 0.98, 0.94), borderColor: dr, borderWidth: 1 * sf });
+                        page.drawEllipse({ x: ox + ow / 2, y: oy, xScale: kw, yScale: kh, color: rgb(0.99, 0.98, 0.94), borderColor: dr, borderWidth: 1 * sf });
                         page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1 * sf, color: gd });
                         page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1 * sf, color: gd });
                         page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1 * sf, color: dr });
@@ -2723,7 +2746,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
                     } else if (designType === '5') {
                         const ink = rgb(0.1, 0.1, 0.1); const red = rgb(0.78, 0.1, 0.18);
-                        page.drawLine({ start: { x: ox, y: oy + oh }, end: { x: ox + ow, y: oy + oh }, thickness: 1.5 * sf, color: ink });
+                        page.drawLine({ start: { x: ox, y: oy + oh }, end: { x: ox + ow, y: oy + oh }, thickness: 2.5 * sf, color: ink });
+                        // Ornament: Torii style overhangs (small extensions on top)
+                        page.drawLine({ start: { x: ox - 5 * sf, y: oy + oh + 2 * sf }, end: { x: ox + 15 * sf, y: oy + oh + 2 * sf }, thickness: 2 * sf, color: red });
+                        page.drawLine({ start: { x: ox + ow - 15 * sf, y: oy + oh + 2 * sf }, end: { x: ox + ow + 5 * sf, y: oy + oh + 2 * sf }, thickness: 2 * sf, color: red });
                         page.drawRectangle({ x: ox + leftW + midW + 5 * sf, y: oy + oh - 25 * sf, width: rightW - 10 * sf, height: 20 * sf, color: rgb(1, 1, 1), borderColor: red, borderWidth: 1 * sf });
                         drawCenterText(lang.score, ox + leftW + midW + 5 * sf, oy + oh - 25 * sf, rightW - 10 * sf, 20 * sf, 8, mainFont);
                         page.drawLine({ start: { x: ox + leftW, y: oy + row3H }, end: { x: ox + leftW, y: oy + oh - 5 * sf }, thickness: 0.5 * sf, color: rgb(0.7, 0.7, 0.7) });
@@ -2737,6 +2763,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const ed = rgb(0.24, 0.16, 0.11); const em = rgb(0.53, 0.35, 0.22);
                         page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: rgb(0.97, 0.95, 0.92) });
                         drawExplicitOppositeFrame(ox, oy, ow, oh, 12 * sf, 2 * sf, ed);
+                        // Ornament: Tribal "teeth" protrusions (small triangles along top/bottom)
+                        for (let k = 0; k < 12; k++) {
+                            const tx = ox + (ow / 12) * k + 5 * sf;
+                            page.drawRectangle({ x: tx, y: oy + oh - 2 * sf, width: 4 * sf, height: 4 * sf, color: em, rotate: degrees(45) });
+                            page.drawRectangle({ x: tx, y: oy - 2 * sf, width: 4 * sf, height: 4 * sf, color: em, rotate: degrees(45) });
+                        }
                         page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1 * sf, color: ed });
                         page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1.5 * sf, color: em });
                         drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, ed, 0.75 * sf);
