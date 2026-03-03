@@ -3780,14 +3780,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                 try {
                     const publicUrl = await DataManager.uploadFileToSupabase(file);
                     const input = btn.closest('.input-group').querySelector('input');
-                    if (input) input.value = publicUrl;
+                    if (input) {
+                        input.value = publicUrl;
+                        // Trigger change event just in case
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
 
-                    Swal.fire({
-                        toast: true, position: 'top-end', icon: 'success',
-                        title: 'PDF Buluta Yüklendi!', showConfirmButton: false, timer: 3000
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'PDF Buluta Yüklendi!'
                     });
                 } catch (err) {
-                    Swal.fire("Yükleme Başarısız!", err.message, "error");
+                    Swal.fire({
+                        title: "Yükleme Başarısız!",
+                        text: err.message,
+                        icon: "error",
+                        target: Swal.getContainer() // Keep it over the current modal
+                    });
                 } finally {
                     btn.innerHTML = originalBtnHtml;
                     btn.disabled = false;
