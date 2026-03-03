@@ -2746,27 +2746,36 @@ document.addEventListener('DOMContentLoaded', async () => {
             const ty = oy + oh;
             const pts = [
                 { x: rx, y: ty }, // Top start
-                { x: rx + 2 * sf, y: ty - 5 * sf }, // Forehead
-                { x: rx - 2 * sf, y: ty - 12 * sf }, // Brow
-                { x: rx + 5 * sf, y: ty - 18 * sf }, // Nose Tip
-                { x: rx - 1 * sf, y: ty - 22 * sf }, // Mouth area
-                { x: rx + 3 * sf, y: ty - 28 * sf }, // Chin
-                { x: rx - 5 * sf, y: oy } // Bottom end
+                { x: rx + 1.5 * sf, y: ty - 4 * sf }, // Top forehead
+                { x: rx + 0.5 * sf, y: ty - 8 * sf }, // Mid forehead
+                { x: rx - 3.5 * sf, y: ty - 12 * sf }, // Eye socket indentation
+                { x: rx + 4.5 * sf, y: ty - 18 * sf }, // Nose bridge to tip
+                { x: rx + 3.2 * sf, y: ty - 20 * sf }, // Under nose
+                { x: rx - 0.2 * sf, y: ty - 22 * sf }, // Upper lip
+                { x: rx - 1.2 * sf, y: ty - 24 * sf }, // Mouth indentation
+                { x: rx + 1.5 * sf, y: ty - 26 * sf }, // Lower lip
+                { x: rx + 4.5 * sf, y: ty - 30 * sf }, // Chin tip
+                { x: rx - 1 * sf, y: ty - 34 * sf }, // Under chin
+                { x: rx - 5 * sf, y: oy } // Neck to bottom edge
             ];
 
             for (let i = 0; i < pts.length - 1; i++) {
                 page.drawLine({
                     start: pts[i],
                     end: pts[i + 1],
-                    thickness: 2.5 * sf,
+                    thickness: 2.2 * sf,
                     color: navy
                 });
             }
 
-            // Signature Hint
-            const sigY = oy + 8 * sf;
-            page.drawLine({ start: { x: ox + ow - 40 * sf, y: sigY }, end: { x: rx - 5 * sf, y: sigY + 2 * sf }, thickness: 0.5 * sf, color: navy });
-            page.drawCircle({ x: ox + ow - 40 * sf, y: sigY, size: 0.8 * sf, color: navy });
+            // Adjust Bottom Frame line to meet silhouette end precisely
+            page.drawLine({ start: { x: ox + ow - 10 * sf, y: oy }, end: { x: rx - 5 * sf, y: oy }, thickness: thk, color: navy });
+
+            // Signature Hint - More fluid aesthetic
+            const sigX = ox + ow - 42 * sf, sigPos = oy + 6 * sf;
+            page.drawLine({ start: { x: sigX, y: sigPos }, end: { x: rx - 3 * sf, y: sigPos + 2 * sf }, thickness: 0.6 * sf, color: navy });
+            page.drawCircle({ x: sigX, y: sigPos, size: 0.8 * sf, color: navy });
+            page.drawLine({ start: { x: sigX + 6 * sf, y: sigPos - 1.5 * sf }, end: { x: rx - 10 * sf, y: sigPos + 0.5 * sf }, thickness: 0.4 * sf, color: navy });
 
             page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1.2 * sf, color: navy });
             page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1.2 * sf, color: navy });
