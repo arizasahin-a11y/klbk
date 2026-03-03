@@ -2637,6 +2637,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
             page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: mainFont, color: dr });
             await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+
+            // Ottoman Icon: Dagger (Hancer)
+            const hx = ox + 4 * sf, hy = oy + oh - 8 * sf;
+            page.drawLine({ start: { x: hx, y: hy }, end: { x: hx + 10 * sf, y: hy + 4 * sf }, thickness: 1.5 * sf, color: gd }); // blade
+            page.drawCircle({ x: hx, y: hy, size: 1.5 * sf, color: dr }); // hilt base
         } else if (designType === '5') {
             const ink = rgb(0.1, 0.1, 0.1); const red = rgb(0.78, 0.1, 0.18);
             page.drawLine({ start: { x: ox, y: oy + oh }, end: { x: ox + ow, y: oy + oh }, thickness: 2.5 * sf, color: ink });
@@ -2651,6 +2656,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
             if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
             await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+
+            // Japanese Icon: Sword (Kilic/Katana)
+            const sx = ox + 5 * sf, sy = oy + oh - 6 * sf;
+            page.drawLine({ start: { x: sx, y: sy }, end: { x: sx + 12 * sf, y: sy }, thickness: 1 * sf, color: ink }); // blade
+            page.drawCircle({ x: sx + 3 * sf, y: sy, size: 1.5 * sf, color: red }); // tsuba
         } else if (designType === '6') {
             const ed = rgb(0.24, 0.16, 0.11); const em = rgb(0.53, 0.35, 0.22);
             page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: rgb(0.97, 0.95, 0.92) });
@@ -2688,6 +2698,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
             if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
             await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+
+            // Latin Icon: Chili Pepper (Aci Biber)
+            const cx_ = ox + 6 * sf, cy_ = oy + oh - 7 * sf;
+            page.drawEllipse({ x: cx_, y: cy_, xScale: 4 * sf, yScale: 2 * sf, color: rgb(0.8, 0, 0), rotate: degrees(-30) }); // pepper body
+            page.drawLine({ start: { x: cx_ - 2 * sf, y: cy_ + 1 * sf }, end: { x: cx_ - 4 * sf, y: cy_ + 3 * sf }, thickness: 1 * sf, color: rgb(0, 0.5, 0) }); // stem
         } else if (designType === '8') {
             // ARABIC THEME
             const emerald = rgb(0, 0.41, 0.31); const gold = rgb(0.83, 0.69, 0.22);
@@ -2703,10 +2718,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1.5 * sf, color: emerald });
             page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1.2 * sf, color: emerald });
             drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, emerald, 1 * sf);
-            drawCenterText(sName.split('').join(' '), ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 10.5, schoolFont), schoolFont);
+            const spacedName = sName.length > 20 ? sName : sName.split('').join(' ');
+            drawCenterText(spacedName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(spacedName, midW, 10.5, schoolFont), schoolFont);
             drawCenterText(examText, ox + leftW, oy + row3H + 2 * sf, midW, row2H - 4 * sf, getFitSize(examText, midW, 13.5), mainFont);
             if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
             await drawLogo(ox + (leftW - 30 * sf) / 2, oy + row3H + (row2H + row1H - 30 * sf) / 2, 30 * sf);
+
+            // Arabic Icon: Snake (Yilan)
+            const snX = ox + 8 * sf, snY1 = oy + oh - 8 * sf, snY2 = oy + oh - 4 * sf;
+            page.drawLine({ start: { x: snX, y: snY1 }, end: { x: snX + 4 * sf, y: snY1 + 2 * sf }, thickness: 1 * sf, color: emerald });
+            page.drawLine({ start: { x: snX + 4 * sf, y: snY1 + 2 * sf }, end: { x: snX + 2 * sf, y: snY2 }, thickness: 1 * sf, color: emerald });
+            page.drawCircle({ x: snX + 2 * sf, y: snY2, size: 0.8 * sf, color: gold }); // snake head
         }
     };
 
