@@ -129,6 +129,7 @@ const DataManager = {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
+                    prefix: '',
                     limit: 100,
                     offset: 0,
                     sortBy: { column: 'created_at', order: 'desc' }

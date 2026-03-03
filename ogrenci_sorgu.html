@@ -1075,30 +1075,17 @@
             }
 
             if (activeSession && activeRoomData) {
-                if (!activeSession.triggeredSmartboards) {
-                    activeSession.triggeredSmartboards = {};
-                }
+                // If we aren't already showing THIS session in full screen, show it
+                if (currentFullScreenSessionId !== activeSession.id && !userClosedFullScreen) {
+                    currentFullScreenSessionId = activeSession.id;
+                    renderFullScreenPlan(activeRoomData, activeSession);
 
-                const triggeredBy = activeSession.triggeredSmartboards[currentStudent.class];
-
-                if (!triggeredBy) {
-                    // This is the first student from this class checking!
-                    activeSession.triggeredSmartboards[currentStudent.class] = currentStudent.no;
-                    DataManager.addExamSession(activeSession); // Save it
-
-                    if (currentFullScreenSessionId !== activeSession.id && !userClosedFullScreen) {
-                        currentFullScreenSessionId = activeSession.id;
-                        renderFullScreenPlan(activeRoomData, activeSession);
+                    // Track that this board has triggered (for future features/syncing if needed)
+                    if (!activeSession.triggeredSmartboards) activeSession.triggeredSmartboards = {};
+                    if (!activeSession.triggeredSmartboards[currentStudent.class]) {
+                        activeSession.triggeredSmartboards[currentStudent.class] = currentStudent.no;
+                        DataManager.addExamSession(activeSession);
                     }
-                } else if (triggeredBy === currentStudent.no) {
-                    // It's the same student who originally triggered it (maybe refreshed the page)
-                    if (currentFullScreenSessionId !== activeSession.id && !userClosedFullScreen) {
-                        currentFullScreenSessionId = activeSession.id;
-                        renderFullScreenPlan(activeRoomData, activeSession);
-                    }
-                } else {
-                    // This is NOT the first student. Just show normal view.
-                    closeFullScreenPlan();
                 }
             } else {
                 closeFullScreenPlan();
