@@ -1762,18 +1762,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const updateSelectOptions = () => {
             select.innerHTML = '<option value="">-- Ders Seçiniz --</option>';
-            // Filter by available subjects if populated (calculated in populateWizardClasses)
-            const availableSet = window._wizAvailableSubjects || new Set();
+            const avail = window._wizAvailableSubjects;
 
             allSubjects.forEach(sub => {
-                // Hide if already selected OR if no available student takes it (if any students are left)
-                const isSelected = !!wizardSessionData.subjects.find(s => s.name === sub);
-                const isAvailable = availableSet.has(sub);
+                const normSub = (sub || "").trim().toLocaleUpperCase('tr-TR');
+                const isSelected = !!wizardSessionData.subjects.find(s => (s.name || "").trim().toLocaleUpperCase('tr-TR') === normSub);
 
-                if (!isSelected) {
-                    if (isAvailable || availableSet.size === 0) {
-                        select.innerHTML += `<option value="${sub}">${sub}</option>`;
-                    }
+                // If avail is null (initial) or has the subject, show it
+                const isAvailable = !avail || avail.has(normSub);
+
+                if (!isSelected && isAvailable) {
+                    select.innerHTML += `<option value="${sub}">${sub}</option>`;
                 }
             });
         };
@@ -1876,14 +1875,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const availableInSchool = students.filter(s => !busyStudentNos.has(s.no.toString()));
 
-        // Grouping logic (same as before but more robust)
         const currentSubjects = wizardSessionData.subjects;
         const subjectGroups = [];
 
         currentSubjects.forEach(subObj => {
-            const subName = subObj.name.trim().toUpperCase();
+            const subNameNorm = (subObj.name || "").trim().toLocaleUpperCase('tr-TR');
             const targetStudents = availableInSchool.filter(s =>
-                (s.dersler || []).some(d => d.trim().toUpperCase() === subName)
+                (s.dersler || []).some(d => (d || "").trim().toLocaleUpperCase('tr-TR') === subNameNorm)
             );
 
             if (targetStudents.length === 0) return;
@@ -1891,34 +1889,35 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Separate by Class
             const classGroups = {};
             targetStudents.forEach(s => {
-                if (!classGroups[s.class]) classGroups[s.class] = [];
-                classGroups[s.class].push(s);
+                const clsName = (s.class || "Bilinmeyen");
+                if (!classGroups[clsName]) classGroups[clsName] = [];
+                classGroups[clsName].push(s);
             });
 
             const pools = [];
             Object.entries(classGroups).forEach(([cls, stds]) => {
-                const alans = new Set(stds.map(s => (s.alan || "Genel").trim().toUpperCase()));
+                const alans = new Set(stds.map(s => (s.alan || "Genel").trim().toLocaleUpperCase('tr-TR')));
                 if (alans.size === 1) {
                     const alanName = stds[0].alan || "Genel";
                     pools.push({
-                        pid: `${subName}_${cls}`,
+                        pid: `${subNameNorm}_${cls}`,
                         class: cls,
                         alan: alanName,
                         students: stds,
                         count: stds.length,
-                        match: subName,
+                        match: subObj.name,
                         displayName: (alanName && alanName !== "Genel") ? `${cls} (${alanName})` : cls
                     });
                 } else {
                     alans.forEach(aln => {
-                        const filtered = stds.filter(s => (s.alan || "Genel").trim().toUpperCase() === aln);
+                        const filtered = stds.filter(s => (s.alan || "Genel").trim().toLocaleUpperCase('tr-TR') === aln);
                         pools.push({
-                            pid: `${subName}_${cls}_${aln}`,
+                            pid: `${subNameNorm}_${cls}_${aln}`,
                             class: cls,
                             alan: aln,
                             students: filtered,
                             count: filtered.length,
-                            match: subName,
+                            match: subObj.name,
                             displayName: `${cls} (${aln})`
                         });
                     });
@@ -1931,19 +1930,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 2. Helper Update Function (Reacts to checkbox changes)
         const updateOccupancy = () => {
             const claimedNos = new Set();
-            document.querySelectorAll('.wiz-class-cb').forEach(cb => {
-                if (cb.checked) {
-                    const pid = cb.value;
-                    subjectGroups.forEach(g => {
-                        const p = g.pools.find(p => p.pid === pid);
-                        if (p) {
-                            p.students.forEach(s => {
-                                const sno = s.no.toString();
-                                if (!wizardSessionData.excludedStudents.includes(sno)) claimedNos.add(sno);
-                            });
-                        }
-                    });
-                }
+            document.querySelectorAll('.wiz-class-cb:checked').forEach(cb => {
+                const pid = cb.value;
+                subjectGroups.forEach(g => {
+                    const p = g.pools.find(p => p.pid === pid);
+                    if (p) {
+                        p.students.forEach(s => {
+                            const sno = s.no.toString();
+                            if (!wizardSessionData.excludedStudents.includes(sno)) claimedNos.add(sno);
+                        });
+                    }
+                });
             });
 
             wizardSessionData.selectedClasses = Array.from(document.querySelectorAll('.wiz-class-cb:checked')).map(cb => cb.value);
@@ -1951,8 +1948,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const availableSubjects = new Set();
             availableInSchool.forEach(s => {
                 const sno = s.no.toString();
+                // A student is available if not busy AND not claimed in CURRENT Step 2 selections
                 if (!claimedNos.has(sno)) {
-                    if (s.dersler) s.dersler.forEach(d => availableSubjects.add(d.trim()));
+                    if (s.dersler) {
+                        s.dersler.forEach(d => {
+                            if (d) availableSubjects.add(d.trim().toLocaleUpperCase('tr-TR'));
+                        });
+                    }
                 }
             });
 
@@ -2820,40 +2822,39 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawLine({ start: { x: ox, y: oy }, end: { x: ox + ow - 10 * sf, y: oy }, thickness: thk, color: navy }); // Bottom (Partial)
 
             // Stylized Profile Silhouette (CLOSING THE RIGHT SIDE)
-            // Precise trace matching stencil with kalpak/cap
-            const rx = ox + ow - 10 * sf;
+            // ULTRA-Precise trace matching stencil image provided
+            const rx = ox + ow - 8 * sf;
             const ty = oy + oh;
 
-            // Continuous path for the silhouette
-            const profilePts = [
-                { x: rx, y: ty }, // Start top
-                { x: rx + 4 * sf, y: ty - 0.5 * sf }, // Kalpak top flat
-                { x: rx + 8 * sf, y: ty - 1.5 * sf }, // Kalpak back curve start
-                { x: rx + 13 * sf, y: ty - 5 * sf }, // Kalpak back curve
-                { x: rx + 16 * sf, y: ty - 12 * sf }, // Kalpak back vertical
-                { x: rx + 15 * sf, y: ty - 18 * sf }, // Ear area mid
-                { x: rx + 12 * sf, y: ty - 24 * sf }, // Neck back start
-                { x: rx + 14 * sf, y: ty - 32 * sf }, // Shoulder curve
-                { x: rx + 15 * sf, y: ty - 40 * sf }, // Shoulder base
-                { x: rx + 13 * sf, y: oy }, // To bottom frame
-                { x: rx - 5 * sf, y: oy } // To neckline meeting bottom frame
+            // Hat top and Back curve
+            const backPts = [
+                { x: rx, y: ty }, // Hat top middle
+                { x: rx + 6 * sf, y: ty - 0.5 * sf }, // Hat top back peak 1
+                { x: rx + 14 * sf, y: ty - 3 * sf }, // Hat back curve start
+                { x: rx + 18 * sf, y: ty - 8 * sf }, // Hat back curve mid
+                { x: rx + 19 * sf, y: ty - 15 * sf }, // Ear area mid
+                { x: rx + 16 * sf, y: ty - 22 * sf }, // Neck back start
+                { x: rx + 17 * sf, y: ty - 32 * sf }, // Shoulder slope
+                { x: rx + 18 * sf, y: ty - 40 * sf }, // Shoulder finish
+                { x: rx + 12 * sf, y: oy } // Merge bottom border
             ];
 
-            // Face details (profile front)
-            const facePts = [
-                { x: rx + 0.2 * sf, y: ty - 8 * sf }, // Kalpak front peak tip
-                { x: rx - 2 * sf, y: ty - 10 * sf }, // Forehead top
-                { x: rx - 2.5 * sf, y: ty - 13 * sf }, // Eyebrow/Eye indentation
-                { x: rx + 4 * sf, y: ty - 20 * sf }, // Nose tip
-                { x: rx + 1.5 * sf, y: ty - 22 * sf }, // Under nose
-                { x: rx + 0.8 * sf, y: ty - 24 * sf }, // Mouth indentation
-                { x: rx + 2 * sf, y: ty - 26 * sf }, // Lower lip
-                { x: rx + 4.5 * sf, y: ty - 31 * sf }, // Chin tip
-                { x: rx - 1 * sf, y: ty - 36 * sf }, // Jawline
-                { x: rx - 4 * sf, y: oy - 2 * sf } // Neck meeting shoulder
+            // Face Profile (Front)
+            const frontPts = [
+                { x: rx + 1.2 * sf, y: ty - 7.5 * sf }, // Hat peak tip (front overhanging)
+                { x: rx - 2.2 * sf, y: ty - 10 * sf }, // Forehead start
+                { x: rx - 3.2 * sf, y: ty - 13.5 * sf }, // Eye socket indentation
+                { x: rx + 5.5 * sf, y: ty - 22 * sf }, // Sharp Nose tip
+                { x: rx + 1.2 * sf, y: ty - 23.5 * sf }, // Under nose
+                { x: rx + 0.8 * sf, y: ty - 25 * sf }, // Upper lip
+                { x: rx + 0.5 * sf, y: ty - 26 * sf }, // Mid lips
+                { x: rx + 2.5 * sf, y: ty - 28 * sf }, // Lower lip
+                { x: rx + 5 * sf, y: ty - 32.5 * sf }, // Chin tip
+                { x: rx + 0.5 * sf, y: ty - 37 * sf }, // Jawline
+                { x: rx - 4 * sf, y: oy } // Meeting bottom border
             ];
 
-            const drawPath = (path, thickness = 2.5 * sf) => {
+            const drawPath = (path, thickness = 2.8 * sf) => {
                 for (let i = 0; i < path.length - 1; i++) {
                     page.drawLine({
                         start: path[i],
@@ -2864,14 +2865,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             };
 
-            drawPath(profilePts);
-            drawPath(facePts);
+            drawPath(backPts);
+            drawPath(frontPts);
 
-            // Re-align signature hint to be more elegant
-            const sigX = ox + ow - 45 * sf, sigPos = oy + 8 * sf;
-            page.drawLine({ start: { x: sigX, y: sigPos }, end: { x: rx - 10 * sf, y: sigPos + 3 * sf }, thickness: 0.8 * sf, color: navy });
-            page.drawCircle({ x: sigX, y: sigPos, size: 1 * sf, color: navy });
-            page.drawLine({ start: { x: sigX + 10 * sf, y: sigPos - 2 * sf }, end: { x: rx - 15 * sf, y: sigPos + 1 * sf }, thickness: 0.5 * sf, color: navy });
+            // Signature Hint - More elegant placement
+            const sigX = ox + ow - 48 * sf, sigPos = oy + 6 * sf;
+            page.drawLine({ start: { x: sigX, y: sigPos }, end: { x: rx - 12 * sf, y: sigPos + 2 * sf }, thickness: 0.8 * sf, color: navy });
+            page.drawCircle({ x: sigX, y: sigPos, size: 0.9 * sf, color: navy });
+            page.drawLine({ start: { x: sigX + 12 * sf, y: sigPos - 2.5 * sf }, end: { x: rx - 18 * sf, y: sigPos + 1 * sf }, thickness: 0.5 * sf, color: navy });
 
             page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1.2 * sf, color: navy });
             page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1.2 * sf, color: navy });
