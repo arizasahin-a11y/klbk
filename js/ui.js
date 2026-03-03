@@ -2395,9 +2395,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     window.printFile = function (path, studentInfo = null) {
-        if (!path) return;
-        window._printQueue.push({ path: path.trim(), info: studentInfo });
-        if (!window._isProcessingPrint) window._processPrintQueue();
+        if (!path) return Promise.resolve();
+        return new Promise((resolve) => {
+            window._printQueue.push({ path: path.trim(), info: studentInfo, resolve });
+            if (!window._isProcessingPrint) window._processPrintQueue();
+        });
     };
 
     window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}) {
@@ -2675,7 +2677,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         window._isProcessingPrint = true;
-        let { path, info } = window._printQueue.shift();
+        let item = window._printQueue.shift();
+        let { path, info, resolve } = item;
 
         // Clean & Format Path
         let printPath = path;
@@ -2685,6 +2688,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const finalize = (iframe) => {
             if (iframe && document.body.contains(iframe)) document.body.removeChild(iframe);
+            if (resolve) resolve();
             setTimeout(() => window._processPrintQueue(), 1000);
         };
 
@@ -3338,31 +3342,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             for (let i = 0; i < groups.length; i++) {
                 const groupName = groups[i];
 
-                if (isPaused) {
-                    const confirmNext = await Swal.fire({
-                        title: `Sıradaki: ${groupName}`,
-                        text: `${i + 1} / ${groups.length}. grup yazdırılsın mı?`,
-                        icon: 'info',
-                        showCancelButton: true,
-                        confirmButtonText: 'Devam Et',
-                        cancelButtonText: 'Durdur'
-                    });
-                    if (!confirmNext.isConfirmed) break;
-                } else {
+                if (!isPaused) {
                     // Small toast for continuous progress
                     Swal.fire({
                         title: 'Toplu Yazdırma',
-                        html: `Sıradaki: <b>${groupName}</b> (${i + 1} / ${groups.length})`,
+                        html: `İşleniyor: <b>${groupName}</b> (${i + 1} / ${groups.length})`,
                         timer: 1500,
                         showConfirmButton: false,
                         toast: true,
                         position: 'top-end'
                     });
-                    await new Promise(r => setTimeout(r, 1500)); // Delay for browser stability
+                    await new Promise(r => setTimeout(r, 1000));
                 }
 
                 // Call self for individual group with forcePrintPapers enabled
                 await window.printSessionDistribution(id, groupName, true);
+
+                if (isPaused && i < groups.length - 1) {
+                    const nextG = groups[i + 1];
+                    const confirmNext = await Swal.fire({
+                        title: `Sıradaki: ${nextG}`,
+                        html: `<b>${groupName}</b> tamamlandı.<br>Sonraki gruba geçilsin mi?<br><br><small>${i + 2} / ${groups.length}</small>`,
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Evet, Devam',
+                        cancelButtonText: 'Durdur'
+                    });
+                    if (!confirmNext.isConfirmed) break;
+                }
             }
             return; // Exit session-wide flow
         }
@@ -3469,7 +3476,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const blob = new Blob([mergedBytes], { type: 'application/pdf' });
                 const blobUrl = URL.createObjectURL(blob);
                 Swal.close();
-                window.printFile(blobUrl, {});
+                await window.printFile(blobUrl, {});
             } catch (err) {
                 console.error("Batch Merge Error:", err);
                 Swal.fire('Hata', 'Toplu PDF oluşturulurken hata: ' + err.message, 'error');
