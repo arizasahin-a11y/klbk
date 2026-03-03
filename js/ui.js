@@ -2729,6 +2729,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawLine({ start: { x: snX, y: snY1 }, end: { x: snX + 4 * sf, y: snY1 + 2 * sf }, thickness: 1 * sf, color: emerald });
             page.drawLine({ start: { x: snX + 4 * sf, y: snY1 + 2 * sf }, end: { x: snX + 2 * sf, y: snY2 }, thickness: 1 * sf, color: emerald });
             page.drawCircle({ x: snX + 2 * sf, y: snY2, size: 0.8 * sf, color: gold }); // snake head
+        } else if (designType === '9') {
+            // ATATURK THEME
+            const navy = rgb(0.1, 0.15, 0.25); const gold = rgb(0.72, 0.53, 0.04);
+            page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: rgb(0.99, 0.99, 1) });
+            drawExplicitOppositeFrame(ox, oy, ow, oh, 15 * sf, 2.5 * sf, navy);
+
+            // Silhouette & Signature Aesthetic (Right Side)
+            const sx = ox + ow - 35 * sf, sy = oy + oh / 2;
+            page.drawSVGPath('M 0,10 C 2,12 5,15 8,12 C 10,10 9,5 11,3 C 13,1 18,2 20,5 C 22,8 20,15 18,20 C 16,25 10,28 5,28 C 0,28 -5,25 -8,20 L -2,15 Z', { x: sx, y: oy + 25 * sf, scale: 1.2 * sf, color: navy }); // Stylized Profile
+            page.drawSVGPath('M 0,0 C 5,2 10,0 15,3 C 18,5 20,10 18,15', { x: sx - 10 * sf, y: oy + 10 * sf, scale: 0.8 * sf, color: navy, borderColor: navy, borderWidth: 0.5 * sf }); // Signature hint
+
+            page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1.2 * sf, color: navy });
+            page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1.2 * sf, color: navy });
+            page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1 * sf, color: navy });
+            drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, navy, 0.5 * sf);
+            drawCenterText(sName.toUpperCase(), ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName.toUpperCase(), midW, 11.5, schoolFont), schoolFont);
+            drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14.5), mainFont);
+            if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
+            page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: mainFont, color: navy });
+            await drawLogo(ox + (leftW - 30 * sf) / 2, oy + row3H + (row2H + row1H - 30 * sf) / 2, 30 * sf);
         }
     };
 
@@ -4256,6 +4276,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <option value="6" ${subHeader === '6' ? 'selected' : ''}>Afrika Teması</option>
                                 <option value="7" ${subHeader === '7' ? 'selected' : ''}>Latin Teması</option>
                                 <option value="8" ${subHeader === '8' ? 'selected' : ''}>Arabic Teması</option>
+                                <option value="9" ${subHeader === '9' ? 'selected' : ''}>Atatürk Teması</option>
                             </select>
                         </div>
                         <div style="display:flex; justify-content:flex-end; align-items:center; gap:0.5rem;">
