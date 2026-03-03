@@ -2429,7 +2429,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentStep = "PDF i\u015fleniyor";
             if (typeof PDFLib === 'undefined') throw new Error("PDF k\u00fct\u00fcphanesi (pdf-lib) yüklenemedi.");
 
-            const { PDFDocument, rgb } = PDFLib;
+            const { PDFDocument, rgb, degrees } = PDFLib;
             const pdfDoc = await PDFDocument.load(pdfBytes);
 
             if (typeof fontkit !== 'undefined') {
