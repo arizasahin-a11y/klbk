@@ -3779,11 +3779,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 try {
                     const publicUrl = await DataManager.uploadFileToSupabase(file);
-                    const input = btn.closest('.input-group').querySelector('input');
+                    // More robust way to find the input within the same group
+                    const inputGroup = btn.closest('.input-group');
+                    const input = inputGroup ? inputGroup.querySelector('input.meta-paper-input') : null;
+
                     if (input) {
                         input.value = publicUrl;
-                        // Trigger change event just in case
+                        // Force UI refresh and ensure it's picked up by any listeners
+                        input.setAttribute('value', publicUrl);
                         input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
                     }
 
                     const Toast = Swal.mixin({
@@ -3803,7 +3808,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         title: "Yükleme Başarısız!",
                         text: err.message,
                         icon: "error",
-                        target: Swal.getContainer() // Keep it over the current modal
+                        target: Swal.getContainer()
                     });
                 } finally {
                     btn.innerHTML = originalBtnHtml;
@@ -3862,7 +3867,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <label style="font-size:0.7rem; color:var(--gray-500); display:block;">Grup ${groupLetter} Soru Kağıdı</label>
                             <div class="input-group" style="display:flex; gap:2px;">
                                 <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-group="${groupLetter}" style="flex:1; margin:0; height:35px; font-size:0.8rem;" value="${subPapers[groupLetter] || ''}" placeholder="C:\\Yol veya URL">
-                                <button type="button" class="btn btn-secondary btn-sm" style="height:35px; padding:0 8px;" onclick="const url=this.previousElementSibling.value; if(url) window.open(url, '_blank');" title="Bağlantıyı Aç / Test Et"><i class="fa-solid fa-external-link"></i> Test</button>
+                                <button type="button" class="btn btn-secondary btn-sm" style="height:35px; padding:0 8px;" onclick="const inp=this.closest('.input-group').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Bağlantıyı Aç / Test Et"><i class="fa-solid fa-external-link"></i> Test</button>
                                 <button type="button" class="btn btn-light btn-sm" style="height:35px; padding:0 8px;" onclick="window.pasteToInput(this)" title="Panodan Yapıştır"><i class="fa-solid fa-paste"></i></button>
                                 <button type="button" class="btn btn-primary btn-sm" style="height:35px; padding:0 12px; font-size:0.8rem; display:flex; gap:6px; align-items:center;" onclick="window.browseToInput(this)" title="Buluta PDF Yükle"><i class="fa-solid fa-cloud-arrow-up"></i> Buluta Yükle</button>
                             </div>
@@ -3875,7 +3880,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <label style="font-size:0.7rem; color:var(--gray-500); display:block;">Soru Kağıdı Adresi</label>
                         <div class="input-group" style="display:flex; gap:2px;">
                             <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" style="flex:1; margin:0; height:35px; font-size:0.8rem;" value="${typeof subPapers === 'string' ? subPapers : (subPapers['default'] || '')}" placeholder="C:\\Yol veya URL">
-                            <button type="button" class="btn btn-secondary btn-sm" style="height:35px; padding:0 8px;" onclick="const url=this.previousElementSibling.value; if(url) window.open(url, '_blank');" title="Bağlantıyı Aç / Test Et"><i class="fa-solid fa-external-link"></i> Test</button>
+                            <button type="button" class="btn btn-secondary btn-sm" style="height:35px; padding:0 8px;" onclick="const inp=this.closest('.input-group').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Bağlantıyı Aç / Test Et"><i class="fa-solid fa-external-link"></i> Test</button>
                             <button type="button" class="btn btn-light btn-sm" style="height:35px; padding:0 8px;" onclick="window.pasteToInput(this)" title="Panodan Yapıştır"><i class="fa-solid fa-paste"></i></button>
                             <button type="button" class="btn btn-primary btn-sm" style="height:35px; padding:0 12px; font-size:0.8rem; display:flex; gap:6px; align-items:center;" onclick="window.browseToInput(this)" title="Buluta PDF Yükle"><i class="fa-solid fa-cloud-arrow-up"></i> Buluta Yükle</button>
                         </div>
