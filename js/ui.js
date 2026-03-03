@@ -2516,68 +2516,72 @@ document.addEventListener('DOMContentLoaded', async () => {
                         .replace(/\u00dc/g, 'U').replace(/\u00fc/g, 'u');
                 };
 
+                // --- Inverse Scale Factor for "Fit to Printer" consistency ---
+                const A4_W = 595.28;
+                const A4_H = 841.89;
+                const sf = 1 / Math.min(A4_W / width, A4_H / height);
+
                 const drawCenterText = (str, cx, cy, cw, ch, sz, fnt) => {
+                    const s_sz = sz * sf;
                     if (!str) return;
                     const cl = cleanTurkishChars(str).toString();
-                    const tw = fnt ? fnt.widthOfTextAtSize(cl, sz) : cl.length * (sz * 0.6);
+                    const tw = fnt ? fnt.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
                     const tx = cx + Math.max(0, (cw - tw) / 2);
-                    const ty = cy + (ch / 2) - (sz * 0.35);
-                    page.drawText(cl, { x: tx, y: ty, size: sz, font: fnt || undefined, color: rgb(0, 0, 0) });
+                    const ty = cy + (ch / 2) - (s_sz * 0.35);
+                    page.drawText(cl, { x: tx, y: ty, size: s_sz, font: fnt || undefined, color: rgb(0, 0, 0) });
                 };
 
                 const drawLeftText = (str, cx, cy, cw, ch, sz, fnt) => {
+                    const s_sz = sz * sf;
                     if (!str) return;
                     const cl = cleanTurkishChars(str).toString();
-                    const tx = cx + 5; // 5pt left padding
-                    const ty = cy + (ch / 2) - (sz * 0.35);
-                    page.drawText(cl, { x: tx, y: ty, size: sz, font: fnt || undefined, color: rgb(0, 0, 0) });
+                    const tx = cx + (5 * sf); // left padding scaled
+                    const ty = cy + (ch / 2) - (s_sz * 0.35);
+                    page.drawText(cl, { x: tx, y: ty, size: s_sz, font: fnt || undefined, color: rgb(0, 0, 0) });
                 };
 
                 // ONLY DRAW ON PAGE 1
                 if (i === 0) {
                     // --- PERFECT REPRODUCTION HEADER ---
-                    // Soru kağıdı ilk sayfası: Sağ, Sol, Üst marjlar tam 0.5 cm (14.17 pt)
-                    // Üst bilginin alt sınırı en fazla 3 cm (85.04 pt) olacak.
+                    // Soru kağıdı ilk sayfası: Sağ, Sol, Üst marjlar tam 0.5 cm
+                    // Üst bilginin alt sınırı en fazla 3 cm (2.5 cm box)
 
-                    const margin = 14.17; // 0.5 cm
-                    const limitY = 85.04; // 3.0 cm
+                    const margin = 14.17 * sf; // 0.5 cm offset points
+                    const limitY = 85.04 * sf; // 3.0 cm from top
 
-                    // PDFLib'te SVG stroke (çizgi kalınlığı) çizginin ortasından merkeze doğru dışa taşar.
-                    // Çerçevenin dışarı taşmaması/kesilmemesi için stroke yarısı kadar içeri alıyoruz.
-                    const outerStroke = 1.6;
-                    const strokeOffset = outerStroke / 2 + 1; // Güvenlik payı eklendi
+                    const outerStroke = 1.6 * sf;
+                    const strokeOffset = outerStroke / 2 + (1 * sf); // Security margin
 
                     const ox = margin + strokeOffset;
                     const oy = height - limitY + strokeOffset;
                     const ow = width - (margin * 2) - (strokeOffset * 2);
                     const oh = limitY - margin - (strokeOffset * 2);
 
-                    const gap = 2; // İç çerçeve ile dış çerçeve arası boşluk
+                    const gap = 2 * sf;
                     const ix = ox + gap;
                     const iy = oy + gap;
                     const iw = ow - (gap * 2);
                     const ih = oh - (gap * 2);
 
-                    const leftW = 65;
-                    const rightW = 85;
+                    const leftW = 65 * sf;
+                    const rightW = 85 * sf;
                     const midW = iw - leftW - rightW;
 
-                    const row3H = 25;
-                    const row2H = 19;
-                    const row1H = ih - row3H - row2H; // approx 22
+                    const row3H = 25 * sf;
+                    const row2H = 19 * sf;
+                    const row1H = ih - row3H - row2H;
 
                     // Mid section columns
-                    const midCol2W = 30; // No
-                    const midCol4W = 30; // Room
-                    const midCol5W = 75; // Subject
-                    const midCol6W = 30; // Seat
-                    const midCol3W = midW - midCol2W - midCol4W - midCol5W - midCol6W; // Name (Expanded)
+                    const midCol2W = 30 * sf;
+                    const midCol4W = 30 * sf;
+                    const midCol5W = 75 * sf;
+                    const midCol6W = 30 * sf;
+                    const midCol3W = midW - midCol2W - midCol4W - midCol5W - midCol6W;
 
                     // 1. BACKGROUNDS
-                    // Row 1 (School Name) - Pseudo Cylindrical Gradient
                     const gradTopY = iy + row3H + row2H;
                     const strips = [
-                        { c: 0.82, h: 4 }, { c: 0.94, h: 4 }, { c: 1.0, h: row1H - 15 }, { c: 0.94, h: 4 }, { c: 0.82, h: 3 }
+                        { c: 0.82, h: 4 * sf }, { c: 0.94, h: 4 * sf }, { c: 1.0, h: row1H - (15 * sf) }, { c: 0.94, h: 4 * sf }, { c: 0.82, h: 3 * sf }
                     ];
                     let curStripY = gradTopY;
                     for (let s of strips) {
@@ -2585,40 +2589,38 @@ document.addEventListener('DOMContentLoaded', async () => {
                         curStripY += s.h;
                     }
 
-                    // Name cell (very light gray/dotted sim)
+                    // Name cell
                     page.drawRectangle({ x: ix + leftW + midCol2W, y: iy, width: midCol3W, height: row3H, color: rgb(0.96, 0.96, 0.96) });
-
-                    // Room, Subject, Seat (solid gray)
+                    // Room, Subject, Seat
                     const roomX = ix + leftW + midCol2W + midCol3W;
                     page.drawRectangle({ x: roomX, y: iy, width: midW - (midCol2W + midCol3W), height: row3H, color: rgb(0.88, 0.88, 0.88) });
 
                     // 2. GRID LINES
-                    // Vertical Boundaries
-                    page.drawLine({ start: { x: ix + leftW, y: iy }, end: { x: ix + leftW, y: iy + ih }, thickness: 0.75 }); // Between Logo and School Name
-                    page.drawLine({ start: { x: ix + leftW + midW, y: iy }, end: { x: ix + leftW + midW, y: iy + ih }, thickness: 0.75 }); // Between Exam Info and PUAN
+                    const lineThin = 0.5 * sf;
+                    const lineMed = 0.75 * sf;
+                    const lineThick = 1.5 * sf;
 
-                    // Row 3 inner verticals
+                    page.drawLine({ start: { x: ix + leftW, y: iy }, end: { x: ix + leftW, y: iy + ih }, thickness: lineMed });
+                    page.drawLine({ start: { x: ix + leftW + midW, y: iy }, end: { x: ix + leftW + midW, y: iy + ih }, thickness: lineMed });
+
                     let curX = ix + leftW + midCol2W;
-                    page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: 0.75 }); // After No
+                    page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: lineMed });
                     curX += midCol3W;
-                    page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: 0.75 }); // After Name
+                    page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: lineMed });
                     curX += midCol4W;
-                    page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: 0.75 }); // After Room
+                    page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: lineMed });
                     curX += midCol5W;
-                    page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: 0.75 }); // After Subject
+                    page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: lineMed });
 
-                    // Horizontal Lines
-                    page.drawLine({ start: { x: ix + leftW, y: iy + row3H + row2H }, end: { x: ix + leftW + midW, y: iy + row3H + row2H }, thickness: 0.75 }); // Between Row 1 & 2
-                    page.drawLine({ start: { x: ix, y: iy + row3H }, end: { x: ix + leftW + midW, y: iy + row3H }, thickness: 0.75 }); // Between Row 2 & 3
+                    page.drawLine({ start: { x: ix + leftW, y: iy + row3H + row2H }, end: { x: ix + leftW + midW, y: iy + row3H + row2H }, thickness: lineMed });
+                    page.drawLine({ start: { x: ix, y: iy + row3H }, end: { x: ix + leftW + midW, y: iy + row3H }, thickness: lineMed });
 
-                    // 3. EXPLICIT MANUAL LINES FOR OUTER FRAME (100% Guaranteed Render)
+                    // 3. EXPLICIT MANUAL LINES
                     const drawExplicitOppositeFrame = (x, y, w, h, r, thickness) => {
-                        // Straight margins
-                        page.drawLine({ start: { x: x + r, y: y + h }, end: { x: x + w, y: y + h }, thickness }); // Top
-                        page.drawLine({ start: { x: x + w, y: y + h }, end: { x: x + w, y: y + r }, thickness }); // Right
-                        page.drawLine({ start: { x: x + w - r, y: y }, end: { x: x, y: y }, thickness }); // Bottom
-                        page.drawLine({ start: { x: x, y: y }, end: { x: x, y: y + h - r }, thickness }); // Left
-                        // Top-Left Arc
+                        page.drawLine({ start: { x: x + r, y: y + h }, end: { x: x + w, y: y + h }, thickness });
+                        page.drawLine({ start: { x: x + w, y: y + h }, end: { x: x + w, y: y + r }, thickness });
+                        page.drawLine({ start: { x: x + w - r, y: y }, end: { x: x, y: y }, thickness });
+                        page.drawLine({ start: { x: x, y: y }, end: { x: x, y: y + h - r }, thickness });
                         const segments = 12;
                         for (let j = 0; j < segments; j++) {
                             const a1 = Math.PI / 2 + (Math.PI / 2) * (j / segments);
@@ -2629,7 +2631,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 thickness
                             });
                         }
-                        // Bottom-Right Arc
                         for (let j = 0; j < segments; j++) {
                             const a1 = -Math.PI / 2 + (Math.PI / 2) * (j / segments);
                             const a2 = -Math.PI / 2 + (Math.PI / 2) * ((j + 1) / segments);
@@ -2640,16 +2641,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                             });
                         }
                     };
-                    drawExplicitOppositeFrame(ox, oy, ow, oh, 6, 1.5);
-                    drawExplicitOppositeFrame(ix, iy, iw, ih, 4, 0.5);
+                    drawExplicitOppositeFrame(ox, oy, ow, oh, 6 * sf, lineThick);
+                    drawExplicitOppositeFrame(ix, iy, iw, ih, 4 * sf, lineThin);
 
                     // 4. TEXT CONTENT
-                    // Row 1: School Name (Spaced & Custom Font)
-                    // Ensure lowercase 'i' successfully converts to 'İ' (dotted) before toUpperCase
                     let sName = (school.name || '').replace(/i/g, 'İ').toUpperCase().split('').join(' ');
                     drawCenterText(sName, ix + leftW, iy + row3H + row2H, midW, row1H, 11, schoolFont);
 
-                    // Row 2: Exam Info
                     const sess = window.currentRenderedSession || {};
                     let termDom = '';
                     try {
@@ -2665,15 +2663,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (termStr && !termStr.includes('DÖNEM') && !termStr.includes('DONEM')) termStr += ' DÖNEM';
 
                     const examNoStr = info?.examNo || info?.examNumber || '';
-                    // [Year] ÖĞRETİM YILI [Term] [Subject] DERSİ [No]. YAZILI SINAVI
                     const examText = `${school.academicYear || ''} ÖĞRETİM YILI ${termStr} ${info?.subject || ''} DERSİ ${examNoStr ? `${examNoStr}. ` : ''}YAZILI SINAVI`.trim().toUpperCase();
 
-                    // Decrease font size slightly if row 2 text is very long. Let's find absolute max size that fits.
-                    let row2Sz = 14; // Start with max desired size
-                    let examTextWidth = mainFont ? mainFont.widthOfTextAtSize(cleanTurkishChars(examText), row2Sz) : examText.length * (row2Sz * 0.6);
-                    while (examTextWidth > (midW - 10) && row2Sz > 5) {
+                    let row2Sz = 14;
+                    let examTextWidth = mainFont ? mainFont.widthOfTextAtSize(cleanTurkishChars(examText), row2Sz * sf) : examText.length * (row2Sz * sf * 0.6);
+                    while (examTextWidth > (midW - (10 * sf)) && row2Sz > 5) {
                         row2Sz -= 0.5;
-                        examTextWidth = mainFont ? mainFont.widthOfTextAtSize(cleanTurkishChars(examText), row2Sz) : examText.length * (row2Sz * 0.6);
+                        examTextWidth = mainFont ? mainFont.widthOfTextAtSize(cleanTurkishChars(examText), row2Sz * sf) : examText.length * (row2Sz * sf * 0.6);
                     }
                     drawCenterText(examText, ix + leftW, iy + row3H, midW, row2H, row2Sz, mainFont);
 
@@ -2682,35 +2678,32 @@ document.addEventListener('DOMContentLoaded', async () => {
                         drawCenterText(info.class, ix, iy, leftW, row3H, 16, mainFont); // Class
                         drawCenterText(info.no, ix + leftW, iy, midCol2W, row3H, 12, mainFont); // No
 
-                        // Name left-aligned using cursive nameFont with dynamic scaling and heavy pseudo-bold
                         let nameStr = info.name.replace(/i/g, 'İ').toUpperCase();
-                        let nameSz = 28; // Start very large
-                        let nameWidth = nameFont ? nameFont.widthOfTextAtSize(cleanTurkishChars(nameStr), nameSz) : nameStr.length * (nameSz * 0.5);
-                        while (nameWidth > (midCol3W - 15) && nameSz > 8) {
+                        let nameSz = 28;
+                        let nameWidth = nameFont ? nameFont.widthOfTextAtSize(cleanTurkishChars(nameStr), nameSz * sf) : nameStr.length * (nameSz * sf * 0.5);
+                        while (nameWidth > (midCol3W - (15 * sf)) && nameSz > 8) {
                             nameSz -= 0.5;
-                            nameWidth = nameFont ? nameFont.widthOfTextAtSize(cleanTurkishChars(nameStr), nameSz) : nameStr.length * (nameSz * 0.5);
+                            nameWidth = nameFont ? nameFont.widthOfTextAtSize(cleanTurkishChars(nameStr), nameSz * sf) : nameStr.length * (nameSz * sf * 0.5);
                         }
-                        // Clamp vertically so it is as large as possible without touching the 25pt high box lines
                         if (nameSz > 24) nameSz = 24;
 
-                        // Extreme Pseudo-bold by drawing the text 3 times with X offsets
                         drawLeftText(nameStr, ix + leftW + midCol2W, iy, midCol3W, row3H, nameSz, nameFont);
-                        drawLeftText(nameStr, ix + leftW + midCol2W + 0.3, iy, midCol3W, row3H, nameSz, nameFont);
-                        drawLeftText(nameStr, ix + leftW + midCol2W + 0.6, iy, midCol3W, row3H, nameSz, nameFont);
+                        drawLeftText(nameStr, ix + leftW + midCol2W + (0.3 * sf), iy, midCol3W, row3H, nameSz, nameFont);
+                        drawLeftText(nameStr, ix + leftW + midCol2W + (0.6 * sf), iy, midCol3W, row3H, nameSz, nameFont);
 
                         // Inner Top Labels for Right-Side Cells
-                        page.drawText("DERSLİK", { x: ix + leftW + midCol2W + midCol3W + 2, y: iy + row3H - 6.5, size: 5.5, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                        page.drawText("SINAV", { x: ix + leftW + midCol2W + midCol3W + midCol4W + 2, y: iy + row3H - 6.5, size: 5.5, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                        page.drawText("YER", { x: ix + leftW + midCol2W + midCol3W + midCol4W + midCol5W + 2, y: iy + row3H - 6.5, size: 5.5, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                        page.drawText("DERSLİK", { x: ix + leftW + midCol2W + midCol3W + (2 * sf), y: iy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                        page.drawText("SINAV", { x: ix + leftW + midCol2W + midCol3W + midCol4W + (2 * sf), y: iy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                        page.drawText("YER", { x: ix + leftW + midCol2W + midCol3W + midCol4W + midCol5W + (2 * sf), y: iy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
 
                         // Shift actual values down slightly to accommodate top labels
-                        drawCenterText(info.room, ix + leftW + midCol2W + midCol3W, iy - 2.5, midCol4W, row3H, 11, mainFont); // Room
-                        drawCenterText((info.subject || '').toUpperCase(), ix + leftW + midCol2W + midCol3W + midCol4W, iy - 2.5, midCol5W, row3H, 9.5, mainFont); // Subject
-                        drawCenterText(info.seat, ix + leftW + midCol2W + midCol3W + midCol4W + midCol5W, iy - 2.5, midCol6W, row3H, 14, mainFont); // Seat
+                        drawCenterText(info.room, ix + leftW + midCol2W + midCol3W, iy - (2.5 * sf), midCol4W, row3H, 11, mainFont); // Room
+                        drawCenterText((info.subject || '').toUpperCase(), ix + leftW + midCol2W + midCol3W + midCol4W, iy - (2.5 * sf), midCol5W, row3H, 9.5, mainFont); // Subject
+                        drawCenterText(info.seat, ix + leftW + midCol2W + midCol3W + midCol4W + midCol5W, iy - (2.5 * sf), midCol6W, row3H, 14, mainFont); // Seat
                     }
 
                     // PUAN label
-                    page.drawText("PUAN", { x: ix + leftW + midW + 5, y: iy + ih - 10, size: 7, font: mainFont, color: rgb(0.5, 0.5, 0.5) });
+                    page.drawText("PUAN", { x: ix + leftW + midW + (5 * sf), y: iy + ih - (10 * sf), size: 7 * sf, font: mainFont, color: rgb(0.5, 0.5, 0.5) });
 
                     // 5. LOGO
                     if (school.logo) {
@@ -2720,7 +2713,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             if (school.logo.includes('image/png') || school.logo.toLowerCase().endsWith('.png')) logoImage = await pdfDoc.embedPng(logoBytes);
                             else logoImage = await pdfDoc.embedJpg(logoBytes);
 
-                            const logoDim = 26; // Exact proportion
+                            const logoDim = 26 * sf;
                             const lx = ix + (leftW - logoDim) / 2;
                             const ly = iy + row3H + (row2H + row1H - logoDim) / 2;
                             page.drawImage(logoImage, { x: lx, y: ly, width: logoDim, height: logoDim });
