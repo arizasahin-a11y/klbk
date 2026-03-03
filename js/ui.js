@@ -2744,8 +2744,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                              <b>Hata:</b> ${e.message}<br><br>`;
 
             if (printPath.includes("file://") || printPath.includes("C:") || printPath.includes("D:")) {
-                htmlMsg += `<b style="color:#e11d48;">UYARI:</b> Sistemi Vercel gibi bir internet sunucusunda çalıştırırken, bilgisayarınızdaki yerel dosyalara (C:\\ veya D:\\) erişilemez. Güvenlik nedeniyle tarayıcılar buna izin vermez.<br><br>
-                 <b>ÇÖZÜM:</b> Soru kağıdı PDF'lerinizi OneDrive, Google Drive veya Supabase gibi bir buluta yükleyip <b>'Herkesin görebileceği' bir internet linkini (https://...)</b> buraya yapıştırmalısınız. Veya dosyaları Vercel deponuza (GitHub'a) yükleyip göreceli yol (Örn: <code>/pdf/sinav.pdf</code>) yazmalısınız.`;
+                htmlMsg += `<b style="color:#e11d48;">UYARI:</b> Sistemi bir internet sunucusunda çalıştırırken, bilgisayarınızdaki yerel dosyalara (C:\\ veya D:\\) erişilemez. Güvenlik nedeniyle tarayıcılar buna izin vermez.<br><br>
+                 <b>ÇÖZÜM:</b> Soru kağıdı PDF'lerinizi OneDrive, Google Drive veya Supabase gibi bir buluta yükleyip <b>'Herkesin görebileceği' bir internet linkini (https://...)</b> buraya yapıştırmalısınız.`;
+            } else if (printPath.includes('supabase.co')) {
+                htmlMsg += `<b style="color:#e11d48;">UYARI:</b> Supabase dosya okuma formatında (CORS) veya isim/boşluk yapısında bir hata oluştu.<br><br>
+                 <b>ÇÖZÜM:</b> Sorunu aşmak için dosyayı "Yeni Sekmede" açarak manuel olarak yazdırabilirsiniz (Oturum Listesindeki yazdırma butonu bunu yapmaya çalışır)`;
             } else {
                 htmlMsg += `<small><i>Dosya yolu hatalı olabilir veya internetten çektiğiniz linkin (CORS) indirme izni yoktur.</i></small>`;
             }
@@ -3838,20 +3841,36 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            let listHtml = '<div style="max-height: 400px; overflow-y: auto;"><table class="table table-sm"><thead><tr><th>Dosya Adı</th><th>Tarih</th><th>Seç</th></tr></thead><tbody>';
+            let listHtml = '<div style="max-height: 400px; overflow-y: auto;"><table class="table table-sm"><thead><tr><th>Dosya Adı</th><th>Tarih</th><th>İşlem</th></tr></thead><tbody>';
             files.forEach(f => {
                 const date = new Date(f.created_at).toLocaleString('tr-TR');
                 listHtml += `
-                    <tr>
+                    <tr id="cloud-row-${f.name.replace(/[^a-zA-Z0-9]/g, '_')}">
                         <td style="font-size:0.8rem; text-align:left; word-break:break-all;">${f.name}</td>
                         <td style="font-size:0.7rem;">${date}</td>
-                        <td>
+                        <td style="display:flex; gap:5px;">
                             <button class="btn btn-primary btn-sm" onclick="window.selectCloudFile('${f.url}', this)">Seç</button>
+                            <button class="btn btn-danger btn-sm" onclick="window.deleteCloudFile('${f.name}', this)"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     </tr>
                 `;
             });
             listHtml += '</tbody></table></div>';
+
+            window.deleteCloudFile = async (name, btnEl) => {
+                if (!confirm(`'${name}' dosyasını buluttan silmek istediğinize emin misiniz?`)) return;
+                try {
+                    btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                    btnEl.disabled = true;
+                    await DataManager.deleteSupabaseFile(name);
+                    const row = btnEl.closest('tr');
+                    if (row) row.remove();
+                } catch (e) {
+                    alert('Silme hatası: ' + e.message);
+                    btnEl.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                    btnEl.disabled = false;
+                }
+            };
 
             window.selectCloudFile = (url, pickBtn) => {
                 input.value = url;

@@ -555,12 +555,18 @@
             renderExams();
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(updateAllTimers, 1000);
+
+            if (window.cloudSyncInterval) clearInterval(window.cloudSyncInterval);
+            window.cloudSyncInterval = setInterval(async () => {
+                await DataManager.initCloud();
+            }, 3000); // 3 seconds fast-poll for instant screen view changes
         }
 
         function logout() {
             localStorage.removeItem('klbk_student_session');
             currentStudent = null;
             clearInterval(timerInterval);
+            if (window.cloudSyncInterval) clearInterval(window.cloudSyncInterval);
             document.getElementById('loginView').classList.remove('hidden');
             document.getElementById('resultsView').classList.add('hidden');
             document.getElementById('studentNo').value = '';

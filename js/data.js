@@ -85,18 +85,21 @@ const DataManager = {
         if (!file) return null;
 
         const bucketName = 'xms';
-        // Create a unique filepath: e.g., 20260303_1405_safasdf.pdf
-        const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${file.name.replace(/[^a-zA-Z0-9.\-]/g, "_")}`;
+        // Clean the original filename, but preserve it without adding random strings
+        let cleanName = file.name.replace(/[^a-zA-Z0-9.\-—_ğüşöçİĞÜŞÖÇ ]/g, "_");
+        // Ensure name is unique enough if uploaded multiple times? Usually Supabase allows overwrite if upsert is true. We'll add a short prefix just in case to prevent accidental full overwrites if they upload different files with the same name, or just use the clean name. Let's use just the name so it overwrites/updates cleanly.
+        const uniqueFileName = cleanName;
 
         const uploadUrl = `${this.supabaseUrl}/storage/v1/object/${bucketName}/${uniqueFileName}`;
 
         try {
             const res = await fetch(uploadUrl, {
-                method: 'POST',
+                method: 'POST', // Changed from POST to POST with upsert header or PUT? Usually Supabase Storage API uses POST to create. To overwrite, we might need upsert headers.
                 headers: {
                     'apikey': this.supabaseKey,
                     'Authorization': `Bearer ${this.supabaseKey}`,
-                    'Content-Type': file.type || 'application/pdf'
+                    'Content-Type': file.type || 'application/pdf',
+                    'x-upsert': 'true' // Allow overwriting files with the same name
                 },
                 body: file
             });
@@ -108,10 +111,33 @@ const DataManager = {
 
             // Return the public URL for the newly uploaded file
             const publicUrl = `${this.supabaseUrl}/storage/v1/object/public/${bucketName}/${uniqueFileName}`;
-            const publicUrlWithNoCache = `${publicUrl}?t=${Date.now()}`;
             return publicUrl;
         } catch (e) {
             console.error("Supabase Storage Upload Error:", e);
+            throw e;
+        }
+    },
+
+    deleteSupabaseFile: async function (fileName) {
+        const bucketName = 'xms';
+        const deleteUrl = `${this.supabaseUrl}/storage/v1/object/${bucketName}/${fileName}`;
+
+        try {
+            const res = await fetch(deleteUrl, {
+                method: 'DELETE',
+                headers: {
+                    'apikey': this.supabaseKey,
+                    'Authorization': `Bearer ${this.supabaseKey}`
+                }
+            });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(`Delete failed: ${res.status} ${errText}`);
+            }
+            return true;
+        } catch (e) {
+            console.error("Supabase Storage Delete Error:", e);
             throw e;
         }
     },
