@@ -2231,8 +2231,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <input type="radio" name="mode-${ses.id}" value="seating" style="width:16px; height:16px;" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Şema
                             </label>
                             <div style="width:1px; height:20px; background:var(--gray-300); margin:0 5px;"></div>
-                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--primary);">
-                                <input type="checkbox" class="session-paper-check" data-id="${ses.id}" style="width:17px; height:17px;"> Soru Kağıdı
+                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--primary);" title="${(() => {
+                    const meta = ses.subjectMetadata || {};
+                    const subjects = Object.keys(meta);
+                    if (subjects.length === 0) return 'Soru kağıdı tanımlanmamış';
+                    let count = 0;
+                    subjects.forEach(s => { if (meta[s].papers && (typeof meta[s].papers === 'string' || Object.values(meta[s].papers).some(p => p))) count++; });
+                    return `${count} / ${subjects.length} ders için kağıt tanımlı`;
+                })()}">
+                                <input type="checkbox" class="session-paper-check" data-id="${ses.id}" style="width:17px; height:17px;">
+                                <i class="fa-solid fa-file-pdf" style="margin-left:2px; ${(() => {
+                    const meta = ses.subjectMetadata || {};
+                    const subjects = Object.keys(meta);
+                    let hasAny = subjects.some(s => meta[s].papers && (typeof meta[s].papers === 'string' || Object.values(meta[s].papers).some(p => p)));
+                    return hasAny ? 'color: var(--secondary);' : 'color: var(--gray-400);';
+                })()}"></i> Soru Kağıdı
                             </label>
                             <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--info);" title="Ekran Görünümü">
                                 <input type="checkbox" class="session-screen-check" data-id="${ses.id}" ${ses.screenViewEnabled ? 'checked' : ''} style="width:17px; height:17px;"> <i class="fa-solid fa-desktop"></i>
@@ -3791,18 +3804,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!ses) return;
 
         // Extract ALL unique full subject names (e.g., "Matematik 10") present in the results
-        const uniqueFullSubjects = new Set();
+        // Extract ALL unique full subject names (e.g., "Matematik 10") and map them to student counts
+        const subjectStats = {};
         if (ses.results) {
             ses.results.forEach(room => {
                 Object.values(room.seats || {}).forEach(std => {
-                    if (std._matchedSubject) uniqueFullSubjects.add(std._matchedSubject);
+                    const sub = std._matchedSubject;
+                    if (sub) {
+                        if (!subjectStats[sub]) subjectStats[sub] = { count: 0, classes: new Set() };
+                        subjectStats[sub].count++;
+                        subjectStats[sub].classes.add(std.class);
+                    }
                 });
             });
         }
 
-        // Falling back to standard subjects if results are empty (unlikely but safe)
-        const subjectNames = uniqueFullSubjects.size > 0
-            ? Array.from(uniqueFullSubjects).sort()
+        const subjectNames = Object.keys(subjectStats).length > 0
+            ? Object.keys(subjectStats).sort()
             : (ses.subjects || []).map(s => typeof s === 'object' ? s.name : s);
 
         const metadata = ses.subjectMetadata || {};
@@ -3827,6 +3845,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <label style="font-size:0.7rem; color:var(--gray-500); display:block;">Grup ${groupLetter} Soru Kağıdı</label>
                             <div class="input-group" style="display:flex; gap:2px;">
                                 <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-group="${groupLetter}" style="flex:1; margin:0; height:35px; font-size:0.8rem;" value="${subPapers[groupLetter] || ''}" placeholder="C:\\Yol veya URL">
+                                <button type="button" class="btn btn-secondary btn-sm" style="height:35px; padding:0 8px;" onclick="const url=this.previousElementSibling.value; if(url) window.open(url, '_blank');" title="Bağlantıyı Aç / Test Et"><i class="fa-solid fa-external-link"></i> Test</button>
                                 <button type="button" class="btn btn-light btn-sm" style="height:35px; padding:0 8px;" onclick="window.pasteToInput(this)" title="Panodan Yapıştır"><i class="fa-solid fa-paste"></i></button>
                                 <button type="button" class="btn btn-primary btn-sm" style="height:35px; padding:0 12px; font-size:0.8rem; display:flex; gap:6px; align-items:center;" onclick="window.browseToInput(this)" title="Buluta PDF Yükle"><i class="fa-solid fa-cloud-arrow-up"></i> Buluta Yükle</button>
                             </div>
@@ -3839,6 +3858,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <label style="font-size:0.7rem; color:var(--gray-500); display:block;">Soru Kağıdı Adresi</label>
                         <div class="input-group" style="display:flex; gap:2px;">
                             <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" style="flex:1; margin:0; height:35px; font-size:0.8rem;" value="${typeof subPapers === 'string' ? subPapers : (subPapers['default'] || '')}" placeholder="C:\\Yol veya URL">
+                            <button type="button" class="btn btn-secondary btn-sm" style="height:35px; padding:0 8px;" onclick="const url=this.previousElementSibling.value; if(url) window.open(url, '_blank');" title="Bağlantıyı Aç / Test Et"><i class="fa-solid fa-external-link"></i> Test</button>
                             <button type="button" class="btn btn-light btn-sm" style="height:35px; padding:0 8px;" onclick="window.pasteToInput(this)" title="Panodan Yapıştır"><i class="fa-solid fa-paste"></i></button>
                             <button type="button" class="btn btn-primary btn-sm" style="height:35px; padding:0 12px; font-size:0.8rem; display:flex; gap:6px; align-items:center;" onclick="window.browseToInput(this)" title="Buluta PDF Yükle"><i class="fa-solid fa-cloud-arrow-up"></i> Buluta Yükle</button>
                         </div>
@@ -3850,8 +3870,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="meta-subject-row" style="padding: 1rem; border: 1px solid var(--gray-200); border-radius: 8px; margin-bottom: 1rem; background: var(--gray-50);">
                     <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem; border-bottom:1px solid var(--gray-200); padding-bottom:0.5rem;">
                         <input type="checkbox" class="meta-sub-check" checked data-sub="${sub}" style="width:18px; height:18px;">
-                        <strong style="color:var(--primary); font-size:1rem;">${sub}</strong>
-                        <div style="flex:1; display:flex; justify-content:flex-end; align-items:center; gap:0.5rem;">
+                        <div style="flex:1;">
+                            <strong style="color:var(--primary); font-size:1rem;">${sub}</strong>
+                            <div style="font-size:0.75rem; color:var(--gray-500); margin-top:2px;">
+                                <i class="fa-solid fa-users"></i> ${subjectStats[sub]?.count || 0} Öğrenci (${Array.from(subjectStats[sub]?.classes || []).join(', ')})
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; align-items:center; gap:0.5rem;">
                             <label style="font-size:0.8rem; font-weight:bold;">Sınav No:</label>
                             <input type="text" class="swal2-input meta-exam-num-input" data-sub="${sub}" style="width:80px; margin:0; height:35px; font-size:0.8rem; text-align:center;" value="${subExamNum}" placeholder="No">
                         </div>
