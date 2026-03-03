@@ -4246,8 +4246,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const subjectNames = Object.keys(subjectStats).length > 0
-            ? Object.keys(subjectStats).sort()
-            : (ses.subjects || []).map(s => typeof s === 'object' ? s.name : s);
+            ? Object.keys(subjectStats).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
+            : (ses.subjects || []).map(s => typeof s === 'object' ? s.name : s).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 
         const metadata = ses.subjectMetadata || {};
         const hasGroups = ses.hasGroups;
