@@ -1821,142 +1821,156 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Step 2 Logic: Classes for Subject
     function populateWizardClasses() {
         const container = document.getElementById('wizClassesContainer');
+        const students = DataManager.getStudents();
+        const sessions = DataManager.getExamSessions();
+
         if (wizardSessionData.subjects.length === 0) {
             container.innerHTML = '<p style="text-align: center; color: var(--gray-500); margin-top: 2rem;">Lütfen yukarıdan en az bir ders seçip ekleyin.</p>';
+            // Reset occupancy UI
+            const subSelect = document.getElementById('wizSubjectSelect');
+            const btnAddSub = document.getElementById('btnAddWizardSubject');
+            const noStdsMsg = document.getElementById('wizNoStudentsMsg');
+            if (subSelect) subSelect.disabled = false;
+            if (btnAddSub) btnAddSub.disabled = false;
+            if (noStdsMsg) noStdsMsg.classList.add('hidden');
+            window._wizAvailableSubjects = null;
+            if (window._wizRefreshSubjectList) window._wizRefreshSubjectList();
             return;
         }
 
-        const students = DataManager.getStudents();
-        const sessions = DataManager.getExamSessions();
         const busyStudentNos = new Set();
-
         // Find students already in other sessions at the same time
         sessions.forEach(ses => {
             if (ses.id !== wizardSessionData.id && ses.date === wizardSessionData.date && ses.time === wizardSessionData.time) {
                 const sesSubjects = ses.subjects || [ses.subject];
                 const excluded = ses.excludedStudents || [];
-
                 students.forEach(s => {
                     const poolId = `${s.class}|${s.alan || ""}`;
                     if (ses.selectedClasses.includes(poolId) || ses.selectedClasses.includes(s.class)) {
-                        // Check if this student takes any of the session's subjects
                         const takesSub = s.dersler && s.dersler.some(d =>
                             sesSubjects.some(base => {
                                 const baseName = typeof base === 'object' ? base.name : base;
                                 return d.trim() === baseName || d.trim().startsWith(baseName + " ");
                             })
                         );
-                        if (takesSub && !excluded.includes(s.no.toString())) {
-                            busyStudentNos.add(s.no.toString());
-                        }
+                        if (takesSub && !excluded.includes(s.no.toString())) busyStudentNos.add(s.no.toString());
                     }
                 });
             }
         });
 
-        // Calculate total available population per class (to check for full-class subjects)
-        const classPopMap = {};
-        students.forEach(s => {
-            const sno = s.no.toString();
-            if (!busyStudentNos.has(sno)) {
-                classPopMap[s.class] = (classPopMap[s.class] || 0) + 1;
-            }
-        });
+        // 1. First Pass: Identify all potential students for each subject added to the wizard
+        // We need this to render the list, but CLAIMED students will depend on which checkboxes are CHECKED.
+        const subjectGroups = []; // { subject, pools: [ { pid, count, students, match, displayName } ] }
 
-        const claimedStudentNos = new Set();
-        const subjectGroups = []; // Array of { subject, poolMap: { poolId: { ... } }, ids: [] }
+        // We'll track which students are available (not busy in other sessions)
+        const availableInSchool = students.filter(s => !busyStudentNos.has(s.no.toString()));
 
         wizardSessionData.subjects.forEach(baseSub => {
-            const currentSubPools = {};
+            const poolsInSub = [];
             const classMatches = {}; // "11-A" => { students: [], match: "" }
 
-            students.forEach(s => {
-                const sno = s.no.toString();
-                if (busyStudentNos.has(sno) || claimedStudentNos.has(sno)) return;
-
-                const baseSubName = baseSub.name;
+            availableInSchool.forEach(s => {
                 const match = s.dersler && s.dersler.find(d =>
-                    d.trim() === baseSubName || d.trim().startsWith(baseSubName + " ")
+                    d.trim() === baseSub.name || d.trim().startsWith(baseSub.name + " ")
                 );
-
                 if (match) {
                     if (!classMatches[s.class]) classMatches[s.class] = { students: [], match: match };
                     classMatches[s.class].students.push(s);
                 }
             });
 
-            // For each matching class, decide if we merge or split
             Object.keys(classMatches).sort().forEach(cls => {
                 const matchInf = classMatches[cls];
-                const totalInClass = classPopMap[cls] || 0;
-
-                // Merge if EVERYONE in the class (who is available) takes this subject
-                if (matchInf.students.length === totalInClass) {
-                    const pid = cls;
-                    currentSubPools[pid] = { class: cls, alan: null, count: matchInf.students.length, students: matchInf.students, match: matchInf.match };
-                    matchInf.students.forEach(s => claimedStudentNos.add(s.no.toString()));
-                } else {
-                    // Split by alan
-                    const alanMap = {};
-                    matchInf.students.forEach(s => {
-                        const alan = s.alan || "";
-                        if (!alanMap[alan]) alanMap[alan] = [];
-                        alanMap[alan].push(s);
+                // Grouping Logic: If alan is consistent, don't split.
+                const alans = [...new Set(matchInf.students.map(s => s.alan || ""))];
+                if (alans.length <= 1) {
+                    const pid = `${cls}_${baseSub.name}`.replace(/\s+/g, '_');
+                    poolsInSub.push({
+                        pid: pid,
+                        class: cls,
+                        alan: alans[0] || null,
+                        count: matchInf.students.length,
+                        students: matchInf.students,
+                        match: matchInf.match,
+                        displayName: alans[0] ? `${cls} (${alans[0]})` : cls
                     });
-
-                    Object.keys(alanMap).sort().forEach(alan => {
-                        const pid = `${cls}|${alan}`;
-                        const stds = alanMap[alan];
-                        currentSubPools[pid] = { class: cls, alan: alan, count: stds.length, students: stds, match: matchInf.match };
-                        stds.forEach(s => claimedStudentNos.add(s.no.toString()));
+                } else {
+                    alans.sort().forEach(alan => {
+                        const stds = matchInf.students.filter(s => (s.alan || "") === alan);
+                        const pid = `${cls}|${alan}_${baseSub.name}`.replace(/\s+/g, '_');
+                        poolsInSub.push({
+                            pid: pid,
+                            class: cls,
+                            alan: alan,
+                            count: stds.length,
+                            students: stds,
+                            match: matchInf.match,
+                            displayName: `${cls} (${alan})`
+                        });
                     });
                 }
             });
 
-            const pids = Object.keys(currentSubPools).sort();
-            if (pids.length > 0) {
-                subjectGroups.push({ subject: baseSub, poolMap: currentSubPools, ids: pids });
+            if (poolsInSub.length > 0) {
+                subjectGroups.push({ subject: baseSub, pools: poolsInSub });
             }
         });
 
-        if (subjectGroups.length === 0 && wizardSessionData.subjects.length > 0) {
+        // 2. Helper Update Function (Reacts to checkbox changes)
+        const updateOccupancy = () => {
+            const claimedNos = new Set();
+            // Go through ALL rendered checkboxes to see what's checked
+            document.querySelectorAll('.wiz-class-cb').forEach(cb => {
+                if (cb.checked) {
+                    const pid = cb.value;
+                    let foundPool = null;
+                    subjectGroups.forEach(g => { const p = g.pools.find(p => p.pid === pid); if (p) foundPool = p; });
+                    if (foundPool) {
+                        foundPool.students.forEach(s => {
+                            const sno = s.no.toString();
+                            if (!wizardSessionData.excludedStudents.includes(sno)) claimedNos.add(sno);
+                        });
+                    }
+                }
+            });
+
+            // Update persistence
+            wizardSessionData.selectedClasses = Array.from(document.querySelectorAll('.wiz-class-cb:checked')).map(cb => cb.value);
+
+            // Calculate subjects taken by "really" available students
+            const availableSubjects = new Set();
+            availableInSchool.forEach(s => {
+                if (!claimedNos.has(s.no.toString())) {
+                    if (s.dersler) s.dersler.forEach(d => availableSubjects.add(d.trim()));
+                }
+            });
+
+            window._wizAvailableSubjects = availableSubjects;
+
+            const subSelect = document.getElementById('wizSubjectSelect');
+            const btnAddSub = document.getElementById('btnAddWizardSubject');
+            const noStdsMsg = document.getElementById('wizNoStudentsMsg');
+            const availableCount = availableInSchool.length - claimedNos.size;
+
+            if (availableCount <= 0 && availableInSchool.length > 0) {
+                if (subSelect) subSelect.disabled = true;
+                if (btnAddSub) btnAddSub.disabled = true;
+                if (noStdsMsg) noStdsMsg.classList.remove('hidden');
+            } else {
+                if (subSelect) subSelect.disabled = false;
+                if (btnAddSub) btnAddSub.disabled = false;
+                if (noStdsMsg) noStdsMsg.classList.add('hidden');
+            }
+            if (window._wizRefreshSubjectList) window._wizRefreshSubjectList();
+        };
+
+        // 3. Render HTML
+        if (subjectGroups.length === 0) {
             container.innerHTML = '<p style="text-align: center; color: var(--danger); margin-top: 2rem;">Bu dersleri alan veya çakışmayan hiçbir öğrenci/sınıf bulunamadı.</p>';
+            updateOccupancy();
+            return;
         }
-
-        // --- Student Occupancy Check (USER REQUEST) ---
-        const totalStudentsCount = students.length;
-        const totalAssignedCount = busyStudentNos.size + claimedStudentNos.size;
-        const availableCount = totalStudentsCount - totalAssignedCount;
-
-        // Calculate subjects taken by "really" available students (not busy, not claimed)
-        const availableSubjects = new Set();
-        students.forEach(s => {
-            if (!busyStudentNos.has(s.no.toString()) && !claimedStudentNos.has(s.no.toString())) {
-                if (s.dersler) s.dersler.forEach(d => availableSubjects.add(d.trim()));
-            }
-        });
-
-        // Store available subjects globally for populateWizardSubjects to use
-        window._wizAvailableSubjects = availableSubjects;
-
-        const subSelect = document.getElementById('wizSubjectSelect');
-        const btnAddSub = document.getElementById('btnAddWizardSubject');
-        const noStdsMsg = document.getElementById('wizNoStudentsMsg');
-
-        if (availableCount <= 0 && totalStudentsCount > 0) {
-            if (subSelect) subSelect.disabled = true;
-            if (btnAddSub) btnAddSub.disabled = true;
-            if (noStdsMsg) noStdsMsg.classList.remove('hidden');
-        } else {
-            if (subSelect) subSelect.disabled = false;
-            if (btnAddSub) btnAddSub.disabled = false;
-            if (noStdsMsg) noStdsMsg.classList.add('hidden');
-        }
-
-        // Trigger subject list refresh if the function exists
-        if (window._wizRefreshSubjectList) window._wizRefreshSubjectList();
-
-        if (subjectGroups.length === 0) return;
 
         let html = '';
         subjectGroups.forEach(grp => {
@@ -1964,23 +1978,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <i class="fa-solid fa-book"></i> ${grp.subject.name} Sınavına Girecek Sınıflar</h4>`;
             html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem;">`;
 
-            grp.ids.forEach(pid => {
-                const inf = grp.poolMap[pid];
-                const displayName = inf.alan ? `${inf.class} (${inf.alan})` : inf.class;
-
-                // Auto check by default
-                if (!wizardSessionData.selectedClasses.includes(pid)) wizardSessionData.selectedClasses.push(pid);
+            grp.pools.forEach(inf => {
+                // Auto check by default ONLY if new, otherwise persist
+                if (!window._wizInitialized) {
+                    if (!wizardSessionData.selectedClasses.includes(inf.pid)) wizardSessionData.selectedClasses.push(inf.pid);
+                }
+                const isChecked = wizardSessionData.selectedClasses.includes(inf.pid);
 
                 html += `
             <div style="background: white; border: 1px solid var(--gray-200); border-radius: 6px; padding: 0.5rem;">
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                            <input type="checkbox" class="wiz-class-cb" value="${pid}" checked>
+                            <input type="checkbox" class="wiz-class-cb" value="${inf.pid}" ${isChecked ? 'checked' : ''}>
                             <div style="flex:1;">
-                                <span style="font-weight:bold;">${displayName}</span>
+                                <span style="font-weight:bold;">${inf.displayName}</span>
                                 <span style="font-size:0.8rem; color:var(--gray-500); display:block;">${inf.match} - ${inf.count} Öğrenci</span>
                             </div>
                         </label>
-                        <button type="button" class="btn btn-secondary btn-sm" style="width:100%; margin-top:0.5rem; font-size:0.7rem;" onclick="window.wizToggleStudents('${pid.replace(/'/g, "\\'")}')">
+                        <button type="button" class="btn btn-secondary btn-sm" style="width:100%; margin-top:0.5rem; font-size:0.7rem;" onclick="window.wizToggleStudents('${inf.pid.replace(/'/g, "\\'")}')">
                             <i class="fa-solid fa-users"></i> Seçim Yap(${inf.count})
                         </button>
                     </div>
@@ -1990,26 +2004,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         container.innerHTML = html;
+        window._wizInitialized = true;
+
+        // Bind events for live reactivity
+        document.querySelectorAll('.wiz-class-cb').forEach(cb => {
+            cb.addEventListener('change', updateOccupancy);
+        });
 
         window.wizToggleStudents = (pid) => {
-            // Find student list for this pool from all groups
-            let studentsInPool = [];
-            subjectGroups.forEach(g => { if (g.poolMap[pid]) studentsInPool = g.poolMap[pid].students; });
+            let inf = null;
+            subjectGroups.forEach(g => { const p = g.pools.find(p => p.pid === pid); if (p) inf = p; });
+            if (!inf) return;
 
             let listHtml = `
-    <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+                <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
                     <button class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.wiz-std-cb').forEach(cb => cb.checked = true)" style="flex:1;">Hepsini Seç</button>
                     <button class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.wiz-std-cb').forEach(cb => cb.checked = false)" style="flex:1;">Hiçbirini Seç</button>
                 </div>
-    <div style="text-align:left; max-height:300px; overflow-y:auto; padding:1rem; border:1px solid var(--gray-200); border-radius:8px;">`;
-            studentsInPool.forEach(s => {
+                <div style="text-align:left; max-height:300px; overflow-y:auto; padding:1rem; border:1px solid var(--gray-200); border-radius:8px;">`;
+            inf.students.forEach(s => {
                 const isExcluded = wizardSessionData.excludedStudents.includes(s.no.toString());
                 listHtml += `
-        <label style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem; cursor:pointer;">
-            <input type="checkbox" class="wiz-std-cb" value="${s.no}" ${isExcluded ? '' : 'checked'}>
-                <span><b>${s.no}</b> - ${s.name}</span>
-        </label>
-        `;
+                    <label style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem; cursor:pointer;">
+                        <input type="checkbox" class="wiz-std-cb" value="${s.no}" ${isExcluded ? '' : 'checked'}>
+                        <span><b>${s.no}</b> - ${s.name}</span>
+                    </label>
+                `;
             });
             listHtml += `</div>`;
 
@@ -2020,26 +2040,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 confirmButtonText: 'Tamam',
                 preConfirm: () => {
                     const checkedNos = Array.from(document.querySelectorAll('.wiz-std-cb:checked')).map(cb => cb.value);
-                    const allNos = studentsInPool.map(s => s.no.toString());
+                    const allNos = inf.students.map(s => s.no.toString());
                     const excluded = allNos.filter(no => !checkedNos.includes(no));
 
                     wizardSessionData.excludedStudents = wizardSessionData.excludedStudents.filter(no => !allNos.includes(no));
                     wizardSessionData.excludedStudents.push(...excluded);
+                    updateOccupancy();
                     return true;
                 }
             });
         };
 
-        // Bind events
-        document.querySelectorAll('.wiz-class-cb').forEach(cb => {
-            cb.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    if (!wizardSessionData.selectedClasses.includes(e.target.value)) wizardSessionData.selectedClasses.push(e.target.value);
-                } else {
-                    wizardSessionData.selectedClasses = wizardSessionData.selectedClasses.filter(plot => plot !== e.target.value);
-                }
-            });
-        });
+        updateOccupancy();
     }
 
     // Step 3 Logic: Classrooms Auto-Match
