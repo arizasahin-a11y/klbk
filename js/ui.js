@@ -1846,148 +1846,141 @@ document.addEventListener('DOMContentLoaded', async () => {
             const noStdsMsg = document.getElementById('wizNoStudentsMsg');
             if (subSelect) subSelect.disabled = false;
             if (btnAddSub) btnAddSub.disabled = false;
-            if (noStdsMsg) noStdsMsg.classList.add('hidden');
+            if (noStdsMsg) noStdsMsg.style.display = 'none';
             window._wizAvailableSubjects = null;
             if (window._wizRefreshSubjectList) window._wizRefreshSubjectList();
             return;
         }
 
         const busyStudentNos = new Set();
-        // Find students already in other sessions at the same time
-        sessions.forEach(ses => {
-            if (ses.id !== wizardSessionData.id && ses.date === wizardSessionData.date && ses.time === wizardSessionData.time) {
-                const sesSubjects = ses.subjects || [ses.subject];
-                const excluded = ses.excludedStudents || [];
-                students.forEach(s => {
-                    const poolId = `${s.class}|${s.alan || ""}`;
-                    if (ses.selectedClasses.includes(poolId) || ses.selectedClasses.includes(s.class)) {
-                        const takesSub = s.dersler && s.dersler.some(d =>
-                            sesSubjects.some(base => {
-                                const baseName = typeof base === 'object' ? base.name : base;
-                                return d.trim() === baseName || d.trim().startsWith(baseName + " ");
-                            })
-                        );
-                        if (takesSub && !excluded.includes(s.no.toString())) busyStudentNos.add(s.no.toString());
-                    }
-                });
+        const curDate = (wizardSessionData.date || "").trim();
+        const curTime = (wizardSessionData.time || "").trim();
+
+        // ONLY exclude students if there's an EXACT conflict in Date and Time.
+        // Draft sessions (no date/time) DO NOT block each other to allow planning.
+        sessions.forEach(s => {
+            if (s.id === wizardSessionData.id) return;
+            const sDate = (s.date || "").trim();
+            const sTime = (s.time || "").trim();
+
+            if (curDate && curTime && sDate === curDate && sTime === curTime) {
+                if (s.results) {
+                    s.results.forEach(room => {
+                        Object.values(room.seats || {}).forEach(std => {
+                            if (std.no) busyStudentNos.add(std.no.toString());
+                        });
+                    });
+                }
             }
         });
 
-        // 1. First Pass: Identify all potential students for each subject added to the wizard
-        // We need this to render the list, but CLAIMED students will depend on which checkboxes are CHECKED.
-        const subjectGroups = []; // { subject, pools: [ { pid, count, students, match, displayName } ] }
-
-        // We'll track which students are available (not busy in other sessions)
         const availableInSchool = students.filter(s => !busyStudentNos.has(s.no.toString()));
 
-        wizardSessionData.subjects.forEach(baseSub => {
-            const poolsInSub = [];
-            const classMatches = {}; // "11-A" => { students: [], match: "" }
+        // Grouping logic (same as before but more robust)
+        const currentSubjects = wizardSessionData.subjects;
+        const subjectGroups = [];
 
-            availableInSchool.forEach(s => {
-                const match = s.dersler && s.dersler.find(d =>
-                    d.trim() === baseSub.name || d.trim().startsWith(baseSub.name + " ")
-                );
-                if (match) {
-                    if (!classMatches[s.class]) classMatches[s.class] = { students: [], match: match };
-                    classMatches[s.class].students.push(s);
-                }
+        currentSubjects.forEach(subObj => {
+            const subName = subObj.name.trim().toUpperCase();
+            const targetStudents = availableInSchool.filter(s =>
+                (s.dersler || []).some(d => d.trim().toUpperCase() === subName)
+            );
+
+            if (targetStudents.length === 0) return;
+
+            // Separate by Class
+            const classGroups = {};
+            targetStudents.forEach(s => {
+                if (!classGroups[s.class]) classGroups[s.class] = [];
+                classGroups[s.class].push(s);
             });
 
-            Object.keys(classMatches).sort().forEach(cls => {
-                const matchInf = classMatches[cls];
-                // Grouping Logic: If alan is consistent, don't split.
-                const alans = [...new Set(matchInf.students.map(s => s.alan || ""))];
-                if (alans.length <= 1) {
-                    const pid = `${cls}_${baseSub.name}`.replace(/\s+/g, '_');
-                    poolsInSub.push({
-                        pid: pid,
+            const pools = [];
+            Object.entries(classGroups).forEach(([cls, stds]) => {
+                const alans = new Set(stds.map(s => (s.alan || "Genel").trim().toUpperCase()));
+                if (alans.size === 1) {
+                    const alanName = stds[0].alan || "Genel";
+                    pools.push({
+                        pid: `${subName}_${cls}`,
                         class: cls,
-                        alan: alans[0] || null,
-                        count: matchInf.students.length,
-                        students: matchInf.students,
-                        match: matchInf.match,
-                        displayName: alans[0] ? `${cls} (${alans[0]})` : cls
+                        alan: alanName,
+                        students: stds,
+                        count: stds.length,
+                        match: subName,
+                        displayName: (alanName && alanName !== "Genel") ? `${cls} (${alanName})` : cls
                     });
                 } else {
-                    alans.sort().forEach(alan => {
-                        const stds = matchInf.students.filter(s => (s.alan || "") === alan);
-                        const pid = `${cls}|${alan}_${baseSub.name}`.replace(/\s+/g, '_');
-                        poolsInSub.push({
-                            pid: pid,
+                    alans.forEach(aln => {
+                        const filtered = stds.filter(s => (s.alan || "Genel").trim().toUpperCase() === aln);
+                        pools.push({
+                            pid: `${subName}_${cls}_${aln}`,
                             class: cls,
-                            alan: alan,
-                            count: stds.length,
-                            students: stds,
-                            match: matchInf.match,
-                            displayName: `${cls} (${alan})`
+                            alan: aln,
+                            students: filtered,
+                            count: filtered.length,
+                            match: subName,
+                            displayName: `${cls} (${aln})`
                         });
                     });
                 }
             });
 
-            if (poolsInSub.length > 0) {
-                subjectGroups.push({ subject: baseSub, pools: poolsInSub });
-            }
+            subjectGroups.push({ subject: subObj, pools });
         });
 
         // 2. Helper Update Function (Reacts to checkbox changes)
         const updateOccupancy = () => {
             const claimedNos = new Set();
-            // Go through ALL rendered checkboxes to see what's checked
             document.querySelectorAll('.wiz-class-cb').forEach(cb => {
                 if (cb.checked) {
                     const pid = cb.value;
-                    let foundPool = null;
                     subjectGroups.forEach(g => {
                         const p = g.pools.find(p => p.pid === pid);
-                        if (p) foundPool = p;
+                        if (p) {
+                            p.students.forEach(s => {
+                                const sno = s.no.toString();
+                                if (!wizardSessionData.excludedStudents.includes(sno)) claimedNos.add(sno);
+                            });
+                        }
                     });
-                    if (foundPool) {
-                        foundPool.students.forEach(s => {
-                            const sno = s.no.toString();
-                            if (!wizardSessionData.excludedStudents.includes(sno)) claimedNos.add(sno);
-                        });
-                    }
                 }
             });
 
-            // Update persistence
             wizardSessionData.selectedClasses = Array.from(document.querySelectorAll('.wiz-class-cb:checked')).map(cb => cb.value);
 
-            // Calculate subjects taken by "really" available students (NOT BUSY AND NOT CLAIMED)
             const availableSubjects = new Set();
             availableInSchool.forEach(s => {
                 const sno = s.no.toString();
-                // A student is available if they are not in a busy session AND not claimed in the current wizard view
                 if (!claimedNos.has(sno)) {
                     if (s.dersler) s.dersler.forEach(d => availableSubjects.add(d.trim()));
                 }
             });
 
             window._wizAvailableSubjects = availableSubjects;
-
-            const subSelect = document.getElementById('wizSubjectSelect');
-            const btnAddSub = document.getElementById('btnAddWizardSubject');
-            const noStdsMsg = document.getElementById('wizNoStudentsMsg');
-            const availableCount = availableInSchool.length - claimedNos.size;
-
-            if (availableCount <= 0 && availableInSchool.length > 0) {
-                if (subSelect) subSelect.disabled = true;
-                if (btnAddSub) btnAddSub.disabled = true;
-                if (noStdsMsg) noStdsMsg.classList.remove('hidden');
-            } else {
-                if (subSelect) subSelect.disabled = false;
-                if (btnAddSub) btnAddSub.disabled = false;
-                if (noStdsMsg) noStdsMsg.classList.add('hidden');
-            }
             if (window._wizRefreshSubjectList) window._wizRefreshSubjectList();
+
+            const totalOccupancy = claimedNos.size;
+            document.getElementById('wizOccupancyCount').textContent = totalOccupancy;
+
+            const btnAdd = document.getElementById('btnAddWizardSubject');
+            const select = document.getElementById('wizSubjectSelect');
+            const noMsg = document.getElementById('wizNoStudentsMsg');
+
+            if (availableSubjects.size === 0 && availableInSchool.length > 0 && totalOccupancy >= availableInSchool.length) {
+                if (btnAdd) btnAdd.disabled = true;
+                if (select) select.disabled = true;
+                if (noMsg) noMsg.style.display = 'block';
+            } else {
+                if (btnAdd) btnAdd.disabled = false;
+                if (select) select.disabled = false;
+                if (noMsg) noMsg.style.display = 'none';
+            }
         };
 
         // 3. Render HTML
         if (subjectGroups.length === 0) {
             container.innerHTML = '<p style="text-align: center; color: var(--danger); margin-top: 2rem;">Bu dersleri alan veya çakışmayan hiçbir öğrenci/sınıf bulunamadı.</p>';
-            updateOccupancy(); // Still update to refresh available subjects for untargeted classes
+            updateOccupancy();
             return;
         }
 
@@ -1998,22 +1991,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem;">`;
 
             grp.pools.forEach(inf => {
-                // AUTO-CHECK LOGIC (REFINED): 
-                // Auto-check if this is the first time we see this pool (pid not in selectedClasses)
-                // AND we haven't explicitly "seen" this pool before (tracked via _wizSeenPools)
                 if (!window._wizSeenPools) window._wizSeenPools = new Set();
-
                 if (!window._wizSeenPools.has(inf.pid)) {
-                    if (!wizardSessionData.selectedClasses.includes(inf.pid)) {
-                        wizardSessionData.selectedClasses.push(inf.pid);
-                    }
+                    if (!wizardSessionData.selectedClasses.includes(inf.pid)) wizardSessionData.selectedClasses.push(inf.pid);
                     window._wizSeenPools.add(inf.pid);
                 }
 
                 const isChecked = wizardSessionData.selectedClasses.includes(inf.pid);
 
                 html += `
-            <div style="background: white; border: 1px solid var(--gray-200); border-radius: 6px; padding: 0.5rem;">
+                    <div style="background: white; border: 1px solid var(--gray-200); border-radius: 6px; padding: 0.5rem;">
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                             <input type="checkbox" class="wiz-class-cb" value="${inf.pid}" ${isChecked ? 'checked' : ''}>
                             <div style="flex:1;">
@@ -2025,7 +2012,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <i class="fa-solid fa-users"></i> Seçim Yap(${inf.count})
                         </button>
                     </div>
-    `;
+                `;
             });
             html += `</div>`;
         });
@@ -2038,11 +2025,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             cb.addEventListener('change', updateOccupancy);
         });
 
+        // Toggle Students Modal (inside pools)
         window.wizToggleStudents = (pid) => {
             let inf = null;
             subjectGroups.forEach(g => { const p = g.pools.find(p => p.pid === pid); if (p) inf = p; });
             if (!inf) return;
 
+            // Student selection modal logic
             let listHtml = `
                 <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
                     <button class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.wiz-std-cb').forEach(cb => cb.checked = true)" style="flex:1;">Hepsini Seç</button>
@@ -2070,16 +2059,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const allNos = inf.students.map(s => s.no.toString());
                     const excluded = allNos.filter(no => !checkedNos.includes(no));
 
-                    wizardSessionData.excludedStudents = wizardSessionData.excludedStudents.filter(no => !allNos.includes(no));
+                    // Update global exclusion list
+                    allNos.forEach(no => {
+                        const idx = wizardSessionData.excludedStudents.indexOf(no);
+                        if (idx > -1) wizardSessionData.excludedStudents.splice(idx, 1);
+                    });
                     wizardSessionData.excludedStudents.push(...excluded);
                     updateOccupancy();
-                    return true;
                 }
             });
         };
 
         updateOccupancy();
     }
+
+
 
     // Step 3 Logic: Classrooms Auto-Match
     function populateWizardClassrooms() {
@@ -2829,53 +2823,55 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Precise trace matching stencil with kalpak/cap
             const rx = ox + ow - 10 * sf;
             const ty = oy + oh;
-            const pts = [
-                { x: rx, y: ty }, // Top start (Forehead/Hat top)
-                { x: rx + 5 * sf, y: ty - 1 * sf }, // Hat top peak
-                { x: rx + 11 * sf, y: ty - 6 * sf }, // Hat back curve
-                { x: rx + 12 * sf, y: ty - 13 * sf }, // Hat back edge
-                { x: rx + 9.5 * sf, y: ty - 16 * sf }, // Ear top area hint
-                { x: rx + 7 * sf, y: ty - 22 * sf }, // Neck back curve start
-                { x: rx + 9 * sf, y: ty - 32 * sf }, // Solder/Neck base
-                { x: rx - 5 * sf, y: oy } // Neck to bottom edge
+
+            // Continuous path for the silhouette
+            const profilePts = [
+                { x: rx, y: ty }, // Start top
+                { x: rx + 4 * sf, y: ty - 0.5 * sf }, // Kalpak top flat
+                { x: rx + 8 * sf, y: ty - 1.5 * sf }, // Kalpak back curve start
+                { x: rx + 13 * sf, y: ty - 5 * sf }, // Kalpak back curve
+                { x: rx + 16 * sf, y: ty - 12 * sf }, // Kalpak back vertical
+                { x: rx + 15 * sf, y: ty - 18 * sf }, // Ear area mid
+                { x: rx + 12 * sf, y: ty - 24 * sf }, // Neck back start
+                { x: rx + 14 * sf, y: ty - 32 * sf }, // Shoulder curve
+                { x: rx + 15 * sf, y: ty - 40 * sf }, // Shoulder base
+                { x: rx + 13 * sf, y: oy }, // To bottom frame
+                { x: rx - 5 * sf, y: oy } // To neckline meeting bottom frame
             ];
 
-            // Re-trace for FACE PROFILE (Frontal detail)
-            const fpts = [
-                { x: rx + 0.1 * sf, y: ty - 7.5 * sf }, // Cap peak tip (over forehead)
-                { x: rx - 1.5 * sf, y: ty - 9 * sf }, // Forehead start
-                { x: rx - 2 * sf, y: ty - 12 * sf }, // Eye socket indentation
-                { x: rx + 3 * sf, y: ty - 18 * sf }, // Nose bridge to tip
-                { x: rx + 1 * sf, y: ty - 20 * sf }, // Under nose
-                { x: rx + 0.2 * sf, y: ty - 22 * sf }, // Upper lip
-                { x: rx - 0.5 * sf, y: ty - 24 * sf }, // Mouth indentation
-                { x: rx + 1 * sf, y: ty - 26 * sf }, // Lower lip
-                { x: rx + 2 * sf, y: ty - 29 * sf }, // Chin tip
-                { x: rx - 1.5 * sf, y: ty - 33 * sf } // Under chin
+            // Face details (profile front)
+            const facePts = [
+                { x: rx + 0.2 * sf, y: ty - 8 * sf }, // Kalpak front peak tip
+                { x: rx - 2 * sf, y: ty - 10 * sf }, // Forehead top
+                { x: rx - 2.5 * sf, y: ty - 13 * sf }, // Eyebrow/Eye indentation
+                { x: rx + 4 * sf, y: ty - 20 * sf }, // Nose tip
+                { x: rx + 1.5 * sf, y: ty - 22 * sf }, // Under nose
+                { x: rx + 0.8 * sf, y: ty - 24 * sf }, // Mouth indentation
+                { x: rx + 2 * sf, y: ty - 26 * sf }, // Lower lip
+                { x: rx + 4.5 * sf, y: ty - 31 * sf }, // Chin tip
+                { x: rx - 1 * sf, y: ty - 36 * sf }, // Jawline
+                { x: rx - 4 * sf, y: oy - 2 * sf } // Neck meeting shoulder
             ];
 
-            const drawPath = (path) => {
+            const drawPath = (path, thickness = 2.5 * sf) => {
                 for (let i = 0; i < path.length - 1; i++) {
                     page.drawLine({
                         start: path[i],
                         end: path[i + 1],
-                        thickness: 2.4 * sf,
+                        thickness: thickness,
                         color: navy
                     });
                 }
             };
 
-            drawPath(pts); // Draw hat and back neck
-            drawPath(fpts); // Draw face profile
+            drawPath(profilePts);
+            drawPath(facePts);
 
-            // Adjust Bottom Frame line to meet silhouette end precisely
-            page.drawLine({ start: { x: ox + ow - 10 * sf, y: oy }, end: { x: rx - 5 * sf, y: oy }, thickness: thk, color: navy });
-
-            // Signature Hint - More fluid aesthetic
-            const sigX = ox + ow - 42 * sf, sigPos = oy + 6 * sf;
-            page.drawLine({ start: { x: sigX, y: sigPos }, end: { x: rx - 3 * sf, y: sigPos + 2 * sf }, thickness: 0.6 * sf, color: navy });
-            page.drawCircle({ x: sigX, y: sigPos, size: 0.8 * sf, color: navy });
-            page.drawLine({ start: { x: sigX + 6 * sf, y: sigPos - 1.5 * sf }, end: { x: rx - 10 * sf, y: sigPos + 0.5 * sf }, thickness: 0.4 * sf, color: navy });
+            // Re-align signature hint to be more elegant
+            const sigX = ox + ow - 45 * sf, sigPos = oy + 8 * sf;
+            page.drawLine({ start: { x: sigX, y: sigPos }, end: { x: rx - 10 * sf, y: sigPos + 3 * sf }, thickness: 0.8 * sf, color: navy });
+            page.drawCircle({ x: sigX, y: sigPos, size: 1 * sf, color: navy });
+            page.drawLine({ start: { x: sigX + 10 * sf, y: sigPos - 2 * sf }, end: { x: rx - 15 * sf, y: sigPos + 1 * sf }, thickness: 0.5 * sf, color: navy });
 
             page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1.2 * sf, color: navy });
             page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1.2 * sf, color: navy });
