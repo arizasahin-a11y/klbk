@@ -2730,24 +2730,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawLine({ start: { x: snX + 4 * sf, y: snY1 + 2 * sf }, end: { x: snX + 2 * sf, y: snY2 }, thickness: 1 * sf, color: emerald });
             page.drawCircle({ x: snX + 2 * sf, y: snY2, size: 0.8 * sf, color: gold }); // snake head
         } else if (designType === '9') {
-            // ATATURK THEME
-            const navy = rgb(0.1, 0.15, 0.25); const gold = rgb(0.72, 0.53, 0.04);
+            // ATATURK THEME (KOCATEPE)
+            const navy = rgb(0.1, 0.15, 0.25);
             page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: rgb(0.99, 0.99, 1) });
-            drawExplicitOppositeFrame(ox, oy, ow, oh, 15 * sf, 2.5 * sf, navy);
 
-            // Silhouette & Signature Aesthetic (Right Side)
-            const sx = ox + ow - 28 * sf, sy = oy + oh / 2 + 5 * sf;
-            // Face Profile approximation with ellipses
-            page.drawEllipse({ x: sx, y: sy + 8 * sf, xScale: 7 * sf, yScale: 10 * sf, color: navy, rotate: degrees(-15) }); // Head/Hair
-            page.drawEllipse({ x: sx - 5 * sf, y: sy + 6 * sf, xScale: 3 * sf, yScale: 4 * sf, color: navy, rotate: degrees(20) }); // Forehead
-            page.drawEllipse({ x: sx - 8 * sf, y: sy - 1 * sf, xScale: 5 * sf, yScale: 2 * sf, color: navy, rotate: degrees(10) }); // Nose
-            page.drawEllipse({ x: sx - 4 * sf, y: sy - 8 * sf, xScale: 4 * sf, yScale: 3 * sf, color: navy, rotate: degrees(-25) }); // Chin/Jaw
+            // Manual Frame DRAW (Open Right)
+            const thk = 2 * sf;
+            page.drawLine({ start: { x: ox, y: oy }, end: { x: ox, y: oy + oh }, thickness: thk, color: navy }); // Left
+            page.drawLine({ start: { x: ox, y: oy + oh }, end: { x: ox + ow, y: oy + oh }, thickness: thk, color: navy }); // Top
+            page.drawLine({ start: { x: ox, y: oy }, end: { x: ox + ow, y: oy }, thickness: thk, color: navy }); // Bottom
 
-            // Signature aesthetic hint (lines and circles)
-            const sigY = oy + 12 * sf;
-            page.drawLine({ start: { x: sx - 15 * sf, y: sigY }, end: { x: sx + 10 * sf, y: sigY + 4 * sf }, thickness: 0.75 * sf, color: navy });
-            page.drawCircle({ x: sx - 15 * sf, y: sigY, size: 1.2 * sf, color: navy });
-            page.drawLine({ start: { x: sx - 5 * sf, y: sigY - 2 * sf }, end: { x: sx + 5 * sf, y: sigY + 1 * sf }, thickness: 0.5 * sf, color: navy });
+            // Silhouette (Kocatepe Aesthetic) - Positioned on right edge to "close" it
+            const sx = ox + ow - 15 * sf;
+            const sy = oy + oh / 2 + 10 * sf;
+
+            // Kalpak (Cylindrical Hat)
+            page.drawRectangle({ x: sx - 8 * sf, y: sy + 15 * sf, width: 10 * sf, height: 12 * sf, color: navy, rotate: degrees(10) });
+            // Head/Face Profile (Leaning forward)
+            page.drawEllipse({ x: sx - 4 * sf, y: sy + 10 * sf, xScale: 6 * sf, yScale: 8 * sf, color: navy, rotate: degrees(-20) });
+            // Back/Body (Leaning)
+            page.drawEllipse({ x: sx + 2 * sf, y: sy - 10 * sf, xScale: 12 * sf, yScale: 20 * sf, color: navy, rotate: degrees(-10) });
+            // Ground/Rock base
+            page.drawEllipse({ x: sx + 5 * sf, y: oy + 5 * sf, xScale: 15 * sf, yScale: 6 * sf, color: navy });
+
+            // Signature aesthetic hint
+            const sigY = oy + 10 * sf;
+            page.drawLine({ start: { x: ox + ow - 35 * sf, y: sigY }, end: { x: ox + ow - 15 * sf, y: sigY + 3 * sf }, thickness: 0.75 * sf, color: navy });
+            page.drawCircle({ x: ox + ow - 35 * sf, y: sigY, size: 1 * sf, color: navy });
 
             page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1.2 * sf, color: navy });
             page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1.2 * sf, color: navy });
