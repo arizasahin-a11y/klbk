@@ -2591,7 +2591,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (termStr.includes('1.')) termStr = `I. ${lang.term}`; else if (termStr.includes('2.')) termStr = `II. ${lang.term}`;
                     const examNoStr = info?.examNo || metadata?.examNo || '';
                     const examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} ${examNoStr ? `${examNoStr}. ` : ''}${lang.written}`.toUpperCase();
-                    let sName = (school.name || '').replace(/i/g, 'İ').toUpperCase().split('').join(' ');
+                    const rawSchoolName = (school.name || '').replace(/i/g, 'İ').toUpperCase();
+                    let sName = rawSchoolName.split('').join(' ');
+                    // If spaced name is likely to overflow midW even at relatively small size, use raw
+                    if (schoolFont.widthOfTextAtSize(cleanTurkishChars(sName), 9 * sf) > midW) sName = rawSchoolName;
 
                     const drawExplicitOppositeFrame = (x, y, w, h, r, th, rColor) => {
                         const col = rColor || rgb(0, 0, 0);
@@ -2629,17 +2632,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                         } catch (e) { }
                     };
 
-                    const getFitSize = (txt, mw, bs) => {
+                    const getFitSize = (txt, mw, bs, fnt = mainFont) => {
                         let sz = bs;
-                        let tw = mainFont.widthOfTextAtSize(cleanTurkishChars(txt), sz * sf);
-                        while (tw > mw && sz > 5) { sz -= 0.5; tw = mainFont.widthOfTextAtSize(cleanTurkishChars(txt), sz * sf); }
+                        let tw = (fnt || mainFont).widthOfTextAtSize(cleanTurkishChars(txt), sz * sf);
+                        while (tw > mw && sz > 4) {
+                            sz -= 0.5;
+                            tw = (fnt || mainFont).widthOfTextAtSize(cleanTurkishChars(txt), sz * sf);
+                        }
                         return sz;
                     };
 
                     const drawStudentName = (tx, ty, tw, th) => {
                         if (!info) return;
                         let n = info.name.replace(/i/g, 'İ').toUpperCase();
-                        let sz = Math.min(24, getFitSize(n, tw - 10 * sf, 28));
+                        let sz = Math.min(24, getFitSize(n, tw - 10 * sf, 28, nameFont));
                         drawLeftText(n, tx, ty, tw, th, sz, nameFont);
                         drawLeftText(n, tx + 0.3 * sf, ty, tw, th, sz, nameFont);
                     };
@@ -2681,7 +2687,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         drawDivs(ix, iy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, rgb(0, 0, 0), 0.75 * sf);
                         page.drawLine({ start: { x: ix + leftW, y: iy + row3H + row2H }, end: { x: ix + leftW + midW, y: iy + row3H + row2H }, thickness: 0.75 * sf });
                         page.drawLine({ start: { x: ix, y: iy + row3H }, end: { x: ix + leftW + midW, y: iy + row3H }, thickness: 0.75 * sf });
-                        drawCenterText(sName, ix + leftW, iy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 11), schoolFont);
+                        drawCenterText(sName, ix + leftW, iy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 11, schoolFont), schoolFont);
                         drawCenterText(examText, ix + leftW, iy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
                         page.drawText(lang.score, { x: ix + leftW + midW + 5 * sf, y: iy + ih - 10 * sf, size: 7 * sf, font: mainFont, color: rgb(0.5, 0.5, 0.5) });
                         if (info) drawCommon(ix, iy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
@@ -2700,7 +2706,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         page.drawLine({ start: { x: ox + leftW, y: oy + row3H + row2H }, end: { x: ox + leftW + midW, y: oy + row3H + row2H }, thickness: 1 * sf, color: gc });
                         page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1 * sf, color: gc });
                         drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, gc, 1 * sf);
-                        drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12), schoolFont);
+                        drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12, schoolFont), schoolFont);
                         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 15), mainFont);
                         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
                         page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
@@ -2721,7 +2727,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1 * sf, color: ac });
                         page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1 * sf, color: ac });
                         drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, rgb(0.7, 0.7, 0.7), 1 * sf);
-                        drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12), schoolFont);
+                        drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12, schoolFont), schoolFont);
                         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 13), mainFont);
                         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
                         page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: mainFont, color: ac });
@@ -2739,7 +2745,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1 * sf, color: gd });
                         page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1 * sf, color: dr });
                         drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, gd, 0.5 * sf);
-                        drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12), schoolFont);
+                        drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12, schoolFont), schoolFont);
                         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
                         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
                         page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: mainFont, color: dr });
@@ -2755,7 +2761,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         page.drawLine({ start: { x: ox + leftW, y: oy + row3H }, end: { x: ox + leftW, y: oy + oh - 5 * sf }, thickness: 0.5 * sf, color: rgb(0.7, 0.7, 0.7) });
                         page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + ow, y: oy + row3H }, thickness: 0.5 * sf, color: ink });
                         drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, rgb(0.8, 0.8, 0.8), 0.5 * sf);
-                        drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12), schoolFont);
+                        drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12, schoolFont), schoolFont);
                         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
                         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
                         await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
@@ -2772,7 +2778,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1 * sf, color: ed });
                         page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1.5 * sf, color: em });
                         drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, ed, 0.75 * sf);
-                        drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12), schoolFont);
+                        drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12, schoolFont), schoolFont);
                         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
                         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
                         page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: mainFont, color: ed });
