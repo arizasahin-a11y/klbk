@@ -1907,10 +1907,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
-        if (subjectGroups.length === 0) {
+        if (subjectGroups.length === 0 && wizardSessionData.subjects.length > 0) {
             container.innerHTML = '<p style="text-align: center; color: var(--danger); margin-top: 2rem;">Bu dersleri alan veya çakışmayan hiçbir öğrenci/sınıf bulunamadı.</p>';
-            return;
         }
+
+        // --- Student Occupancy Check (USER REQUEST) ---
+        const totalStudentsCount = students.length;
+        // busyStudentNos (other sessions) + claimedStudentNos (already added in this wizard)
+        const totalAssignedCount = busyStudentNos.size + claimedStudentNos.size;
+        const availableCount = totalStudentsCount - totalAssignedCount;
+
+        const subSelect = document.getElementById('wizSubjectSelect');
+        const btnAddSub = document.getElementById('btnAddWizardSubject');
+        const noStdsMsg = document.getElementById('wizNoStudentsMsg');
+
+        if (availableCount <= 0 && totalStudentsCount > 0) {
+            if (subSelect) subSelect.disabled = true;
+            if (btnAddSub) btnAddSub.disabled = true;
+            if (noStdsMsg) noStdsMsg.classList.remove('hidden');
+        } else {
+            if (subSelect) subSelect.disabled = false;
+            if (btnAddSub) btnAddSub.disabled = false;
+            if (noStdsMsg) noStdsMsg.classList.add('hidden');
+        }
+
+        if (subjectGroups.length === 0) return;
 
         let html = '';
         subjectGroups.forEach(grp => {
