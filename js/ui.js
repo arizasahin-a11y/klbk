@@ -2544,15 +2544,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // ONLY DRAW ON PAGE 1
                 if (i === 0) {
-                    const designType = school.pdfHeaderDesign || '1';
+                    const sess = window.currentRenderedSession || {};
+                    const subjectName = info?.subject || '';
+                    const metadata = sess.subjectMetadata?.[subjectName] || {};
+                    const designType = metadata.pdfHeaderDesign || '1';
 
-                    // --- PERFECT REPRODUCTION HEADER SHARED VARS ---
-                    const margin = 14.17 * sf; // 0.5 cm offset points
-                    const limitY = 85.04 * sf; // 3.0 cm from top
-
+                    const margin = 14.17 * sf;
+                    const limitY = 85.04 * sf;
                     const outerStroke = 1.6 * sf;
-                    const strokeOffset = outerStroke / 2 + (1 * sf); // Security margin
-
+                    const strokeOffset = outerStroke / 2 + (1 * sf);
                     const ox = margin + strokeOffset;
                     const oy = height - limitY + strokeOffset;
                     const ow = width - (margin * 2) - (strokeOffset * 2);
@@ -2572,264 +2572,179 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const row2H = 19 * sf;
                     const row1H = ih - row3H - row2H;
 
-                    // Mid section columns
                     const midCol2W = 30 * sf;
                     const midCol4W = 30 * sf;
                     const midCol5W = 75 * sf;
                     const midCol6W = 30 * sf;
                     const midCol3W = midW - midCol2W - midCol4W - midCol5W - midCol6W;
 
-                    // Localization Helper for Foreign Language Exams
                     const getTranslations = (subject) => {
                         const sub = (subject || '').toLowerCase();
-                        if (sub.includes('ingilizce') || sub.includes('english')) {
-                            return { year: 'ACADEMIC YEAR', term: 'TERM', class: 'CLASS', no: 'NO', name: 'NAME SURNAME', room: 'ROOM', exam: 'EXAM', seat: 'SEAT', score: 'SCORE', written: 'WRITTEN EXAM', subject: 'ENGLISH' };
-                        } else if (sub.includes('almanca') || sub.includes('deutsch')) {
-                            return { year: 'SCHULJAHR', term: 'HALBJAHR', class: 'KLASSE', no: 'NR', name: 'NAME VORNAME', room: 'RAUM', exam: 'PRÜFUNG', seat: 'PLATZ', score: 'PUNKTE', written: 'SCHRIFTLICHE PRÜFUNG', subject: 'DEUTSCH' };
-                        } else if (sub.includes('fransızca') || sub.includes('français') || sub.includes('fransizca')) {
-                            return { year: 'ANNÉE SCOLAIRE', term: 'SEMESTRE', class: 'CLASSE', no: 'N°', name: 'NOM PRÉNOM', room: 'SALLE', exam: 'EXAMEN', seat: 'PLACE', score: 'NOTE', written: 'EXAMEN ÉCRIT', subject: 'FRANÇAIS' };
-                        }
-                        // Default Turkish
+                        if (sub.includes('ingilizce') || sub.includes('english')) return { year: 'ACADEMIC YEAR', term: 'TERM', class: 'CLASS', no: 'NO', name: 'NAME SURNAME', room: 'ROOM', exam: 'EXAM', seat: 'SEAT', score: 'SCORE', written: 'WRITTEN EXAM', subject: 'ENGLISH' };
+                        if (sub.includes('almanca') || sub.includes('deutsch')) return { year: 'SCHULJAHR', term: 'HALBJAHR', class: 'KLASSE', no: 'NR', name: 'NAME VORNAME', room: 'RAUM', exam: 'PRÜFUNG', seat: 'PLATZ', score: 'PUNKTE', written: 'SCHRIFTLICHE PRÜFUNG', subject: 'DEUTSCH' };
+                        if (sub.includes('fransızca') || sub.includes('français')) return { year: 'ANNÉE SCOLAIRE', term: 'SEMESTRE', class: 'CLASSE', no: 'N°', name: 'NOM PRÉNOM', room: 'SALLE', exam: 'EXAMEN', seat: 'PLACE', score: 'NOTE', written: 'EXAMEN ÉCRIT', subject: 'FRANÇAIS' };
                         return { year: 'ÖĞRETİM YILI', term: 'DÖNEM', class: 'SINIFI', no: 'NO', name: 'ADI SOYADI', room: 'DERSLİK', exam: 'SINAV', seat: 'YER', score: 'PUAN', written: 'YAZILI SINAVI', subject: (subject || '').toUpperCase() };
                     };
                     const lang = getTranslations(info?.subject);
-
-                    const sess = window.currentRenderedSession || {};
-                    let termDom = '';
-                    try { const termEl = document.getElementById('academicTerm'); if (termEl) termDom = termEl.value; } catch (e) { }
-
+                    let termDom = ''; try { const el = document.getElementById('academicTerm'); if (el) termDom = el.value; } catch (e) { }
                     let termStr = (sess.academicTerm || termDom || '').toUpperCase();
-                    if (termStr === '1. DÖNEM' || termStr === '1 DÖNEM' || termStr === '1. DONEM') termStr = `I. ${lang.term}`;
-                    else if (termStr === '2. DÖNEM' || termStr === '2 DÖNEM' || termStr === '2. DONEM') termStr = `II. ${lang.term}`;
-                    else termStr = termStr.replace('1.', '1.').replace('2.', '2.').replace('DÖNEM', lang.term).replace('DONEM', lang.term);
-                    if (termStr && !termStr.includes(lang.term)) termStr += ` ${lang.term}`;
-
-                    const examNoStr = info?.examNo || info?.examNumber || '';
-                    const examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} ${examNoStr ? `${examNoStr}. ` : ''}${lang.written}`.trim().toUpperCase();
-
+                    if (termStr.includes('1.')) termStr = `I. ${lang.term}`; else if (termStr.includes('2.')) termStr = `II. ${lang.term}`;
+                    const examNoStr = info?.examNo || metadata?.examNo || '';
+                    const examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} ${examNoStr ? `${examNoStr}. ` : ''}${lang.written}`.toUpperCase();
                     let sName = (school.name || '').replace(/i/g, 'İ').toUpperCase().split('').join(' ');
 
-                    const drawExplicitOppositeFrame = (x, y, w, h, r, thickness) => {
-                        page.drawLine({ start: { x: x + r, y: y + h }, end: { x: x + w, y: y + h }, thickness });
-                        page.drawLine({ start: { x: x + w, y: y + h }, end: { x: x + w, y: y + r }, thickness });
-                        page.drawLine({ start: { x: x + w - r, y: y }, end: { x: x, y: y }, thickness });
-                        page.drawLine({ start: { x: x, y: y }, end: { x: x, y: y + h - r }, thickness });
-                        const segments = 12;
-                        for (let j = 0; j < segments; j++) {
-                            const a1 = Math.PI / 2 + (Math.PI / 2) * (j / segments);
-                            const a2 = Math.PI / 2 + (Math.PI / 2) * ((j + 1) / segments);
-                            page.drawLine({ start: { x: x + r + r * Math.cos(a1), y: y + h - r + r * Math.sin(a1) }, end: { x: x + r + r * Math.cos(a2), y: y + h - r + r * Math.sin(a2) }, thickness });
-                        }
-                        for (let j = 0; j < segments; j++) {
-                            const a1 = -Math.PI / 2 + (Math.PI / 2) * (j / segments);
-                            const a2 = -Math.PI / 2 + (Math.PI / 2) * ((j + 1) / segments);
-                            page.drawLine({ start: { x: x + w - r + r * Math.cos(a1), y: y + r + r * Math.sin(a1) }, end: { x: x + w - r + r * Math.cos(a2), y: y + r + r * Math.sin(a2) }, thickness });
+                    const drawExplicitOppositeFrame = (x, y, w, h, r, th, rColor) => {
+                        const col = rColor || rgb(0, 0, 0);
+                        page.drawLine({ start: { x: x + r, y: y + h }, end: { x: x + w - r, y: y + h }, thickness: th, color: col });
+                        page.drawLine({ start: { x: x + w, y: y + h - r }, end: { x: x + w, y: y + r }, thickness: th, color: col });
+                        page.drawLine({ start: { x: x + w - r, y: y }, end: { x: x + r, y: y }, thickness: th, color: col });
+                        page.drawLine({ start: { x: x, y: y + r }, end: { x: x, y: y + h - r }, thickness: th, color: col });
+                        if (r > 0) {
+                            const segs = 6;
+                            for (let j = 0; j < segs; j++) {
+                                const a1 = Math.PI / 2 + (Math.PI / 2) * (j / segs); const a2 = Math.PI / 2 + (Math.PI / 2) * ((j + 1) / segs);
+                                page.drawLine({ start: { x: x + r + r * Math.cos(a1), y: y + h - r + r * Math.sin(a1) }, end: { x: x + r + r * Math.cos(a2), y: y + h - r + r * Math.sin(a2) }, thickness: th, color: col });
+                            }
+                            for (let j = 0; j < segs; j++) {
+                                const a1 = 0 + (Math.PI / 2) * (j / segs); const a2 = 0 + (Math.PI / 2) * ((j + 1) / segs);
+                                page.drawLine({ start: { x: x + w - r + r * Math.cos(a1), y: y + h - r + r * Math.sin(a1) }, end: { x: x + w - r + r * Math.cos(a2), y: y + h - r + r * Math.sin(a2) }, thickness: th, color: col });
+                            }
+                            for (let j = 0; j < segs; j++) {
+                                const a1 = -Math.PI / 2 + (Math.PI / 2) * (j / segs); const a2 = -Math.PI / 2 + (Math.PI / 2) * ((j + 1) / segs);
+                                page.drawLine({ start: { x: x + w - r + r * Math.cos(a1), y: y + r + r * Math.sin(a1) }, end: { x: x + w - r + r * Math.cos(a2), y: y + r + r * Math.sin(a2) }, thickness: th, color: col });
+                            }
+                            for (let j = 0; j < segs; j++) {
+                                const a1 = Math.PI + (Math.PI / 2) * (j / segs); const a2 = Math.PI + (Math.PI / 2) * ((j + 1) / segs);
+                                page.drawLine({ start: { x: x + r + r * Math.cos(a1), y: y + r + r * Math.sin(a1) }, end: { x: x + r + r * Math.cos(a2), y: y + r + r * Math.sin(a2) }, thickness: th, color: col });
+                            }
                         }
                     };
 
-                    const prepareLogo = async () => {
-                        if (!school.logo) return null;
+                    const drawLogo = async (lx, ly, dim) => {
+                        if (!school.logo) return;
                         try {
-                            const logoBytes = await window.getFileBytes(school.logo);
-                            if (school.logo.includes('image/png') || school.logo.toLowerCase().endsWith('.png')) return await pdfDoc.embedPng(logoBytes);
-                            return await pdfDoc.embedJpg(logoBytes);
-                        } catch (e) {
-                            console.warn("Logo error", e);
-                            return null;
-                        }
+                            const bytes = await window.getFileBytes(school.logo);
+                            const img = school.logo.toLowerCase().endsWith('.png') ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
+                            page.drawImage(img, { x: lx, y: ly, width: dim, height: dim });
+                        } catch (e) { }
                     };
 
-                    const drawLogo = async (lx, ly, logoDim) => {
-                        const logoImage = await prepareLogo();
-                        if (logoImage) page.drawImage(logoImage, { x: lx, y: ly, width: logoDim, height: logoDim });
-                    };
-
-                    const getFitSize = (text, maxWidth, baseSize) => {
-                        let sz = baseSize;
-                        let textWidth = mainFont ? mainFont.widthOfTextAtSize(cleanTurkishChars(text), sz * sf) : text.length * (sz * sf * 0.6);
-                        while (textWidth > maxWidth && sz > 5) {
-                            sz -= 0.5;
-                            textWidth = mainFont ? mainFont.widthOfTextAtSize(cleanTurkishChars(text), sz * sf) : text.length * (sz * sf * 0.6);
-                        }
+                    const getFitSize = (txt, mw, bs) => {
+                        let sz = bs;
+                        let tw = mainFont.widthOfTextAtSize(cleanTurkishChars(txt), sz * sf);
+                        while (tw > mw && sz > 5) { sz -= 0.5; tw = mainFont.widthOfTextAtSize(cleanTurkishChars(txt), sz * sf); }
                         return sz;
                     };
 
-                    const drawStudentName = (x, y, w, h) => {
+                    const drawStudentName = (tx, ty, tw, th) => {
                         if (!info) return;
-                        let nameStr = info.name.replace(/i/g, 'İ').toUpperCase();
-                        let nameSz = getFitSize(nameStr, w - (15 * sf), 28);
-                        if (nameSz > 24) nameSz = 24;
-                        drawLeftText(nameStr, x, y, w, h, nameSz, nameFont);
-                        drawLeftText(nameStr, x + (0.3 * sf), y, w, h, nameSz, nameFont);
-                        drawLeftText(nameStr, x + (0.6 * sf), y, w, h, nameSz, nameFont);
+                        let n = info.name.replace(/i/g, 'İ').toUpperCase();
+                        let sz = Math.min(24, getFitSize(n, tw - 10 * sf, 28));
+                        drawLeftText(n, tx, ty, tw, th, sz, nameFont);
+                        drawLeftText(n, tx + 0.3 * sf, ty, tw, th, sz, nameFont);
+                    };
+
+                    const drawCommon = (bx, by, bL, b2, b3, b4, b5, b6) => {
+                        drawCenterText(lang.class, bx, by + row3H - 8 * sf, bL, 8 * sf, 6, mainFont);
+                        drawCenterText(info?.class || '', bx, by - 2 * sf, bL, row3H, 16, mainFont);
+                        drawCenterText(lang.no, bx + bL, by + row3H - 8 * sf, b2, 8 * sf, 6, mainFont);
+                        drawCenterText(info?.no || '', bx + bL, by - 2 * sf, b2, row3H, 12, mainFont);
+                        drawStudentName(bx + bL + b2, by, b3, row3H);
+                        page.drawText(lang.room, { x: bx + bL + b2 + b3 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                        drawCenterText(info?.room || '', bx + bL + b2 + b3, by - 2.5 * sf, b4, row3H, 11, mainFont);
+                        page.drawText(lang.exam, { x: bx + bL + b2 + b3 + b4 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                        drawCenterText((info?.subject || '').toUpperCase(), bx + bL + b2 + b3 + b4, by - 2.5 * sf, b5, row3H, 9.5, mainFont);
+                        page.drawText(lang.seat, { x: bx + bL + b2 + b3 + b4 + b5 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                        drawCenterText(info?.seat || '', bx + bL + b2 + b3 + b4 + b5, by - 2.5 * sf, b6, row3H, 14, mainFont);
+                    };
+
+                    const drawDivs = (bx, by, bL, b2, b3, b4, b5, col, th) => {
+                        let c = bx + bL; page.drawLine({ start: { x: c, y: by }, end: { x: c, y: by + row3H }, thickness: th, color: col });
+                        c += b2; page.drawLine({ start: { x: c, y: by }, end: { x: c, y: by + row3H }, thickness: th, color: col });
+                        c += b3; page.drawLine({ start: { x: c, y: by }, end: { x: c, y: by + row3H }, thickness: th, color: col });
+                        c += b4; page.drawLine({ start: { x: c, y: by }, end: { x: c, y: by + row3H }, thickness: th, color: col });
+                        c += b5; page.drawLine({ start: { x: c, y: by }, end: { x: c, y: by + row3H }, thickness: th, color: col });
                     };
 
                     if (designType === '1') {
-                        // ==========================================
-                        // DESIGN 1: CLASSIC
-                        // ==========================================
-                        const gradTopY = iy + row3H + row2H;
-                        const strips = [{ c: 0.82, h: 4 * sf }, { c: 0.94, h: 4 * sf }, { c: 1.0, h: row1H - (15 * sf) }, { c: 0.94, h: 4 * sf }, { c: 0.82, h: 3 * sf }];
-                        let curStripY = gradTopY;
-                        for (let s of strips) { page.drawRectangle({ x: ix + leftW, y: curStripY, width: midW, height: s.h, color: rgb(s.c, s.c, s.c) }); curStripY += s.h; }
-                        page.drawRectangle({ x: ix + leftW + midCol2W, y: iy, width: midCol3W, height: row3H, color: rgb(0.96, 0.96, 0.96) });
-                        page.drawRectangle({ x: ix + leftW + midCol2W + midCol3W, y: iy, width: midW - (midCol2W + midCol3W), height: row3H, color: rgb(0.88, 0.88, 0.88) });
-
-                        const lineThin = 0.5 * sf; const lineMed = 0.75 * sf; const lineThick = 1.5 * sf;
-                        page.drawLine({ start: { x: ix + leftW, y: iy }, end: { x: ix + leftW, y: iy + ih }, thickness: lineMed });
-                        page.drawLine({ start: { x: ix + leftW + midW, y: iy }, end: { x: ix + leftW + midW, y: iy + ih }, thickness: lineMed });
-
-                        let curX = ix + leftW + midCol2W;
-                        page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: lineMed }); curX += midCol3W;
-                        page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: lineMed }); curX += midCol4W;
-                        page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: lineMed }); curX += midCol5W;
-                        page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: lineMed });
-                        page.drawLine({ start: { x: ix + leftW, y: iy + row3H + row2H }, end: { x: ix + leftW + midW, y: iy + row3H + row2H }, thickness: lineMed });
-                        page.drawLine({ start: { x: ix, y: iy + row3H }, end: { x: ix + leftW + midW, y: iy + row3H }, thickness: lineMed });
-
-                        drawExplicitOppositeFrame(ox, oy, ow, oh, 6 * sf, lineThick);
-                        drawExplicitOppositeFrame(ix, iy, iw, ih, 4 * sf, lineThin);
-
-                        drawCenterText(sName, ix + leftW, iy + row3H + row2H, midW, row1H, 11, schoolFont);
-                        drawCenterText(examText, ix + leftW, iy + row3H, midW, row2H, getFitSize(examText, midW - (10 * sf), 14), mainFont);
-
-                        if (info) {
-                            drawCenterText(info.class, ix, iy, leftW, row3H, 16, mainFont);
-                            drawCenterText(info.no, ix + leftW, iy, midCol2W, row3H, 12, mainFont);
-                            drawStudentName(ix + leftW + midCol2W, iy, midCol3W, row3H);
-                            page.drawText(lang.room, { x: ix + leftW + midCol2W + midCol3W + (2 * sf), y: iy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                            page.drawText(lang.exam, { x: ix + leftW + midCol2W + midCol3W + midCol4W + (2 * sf), y: iy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                            page.drawText(lang.seat, { x: ix + leftW + midCol2W + midCol3W + midCol4W + midCol5W + (2 * sf), y: iy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                            drawCenterText(info.room, ix + leftW + midCol2W + midCol3W, iy - (2.5 * sf), midCol4W, row3H, 11, mainFont);
-                            drawCenterText((info.subject || '').toUpperCase(), ix + leftW + midCol2W + midCol3W + midCol4W, iy - (2.5 * sf), midCol5W, row3H, 9.5, mainFont);
-                            drawCenterText(info.seat, ix + leftW + midCol2W + midCol3W + midCol4W + midCol5W, iy - (2.5 * sf), midCol6W, row3H, 14, mainFont);
-                        }
-                        page.drawText(lang.score, { x: ix + leftW + midW + (5 * sf), y: iy + ih - (10 * sf), size: 7 * sf, font: mainFont, color: rgb(0.5, 0.5, 0.5) });
-
-                        const logoDim = 26 * sf;
-                        await drawLogo(ix + (leftW - logoDim) / 2, iy + row3H + (row2H + row1H - logoDim) / 2, logoDim);
-
+                        drawExplicitOppositeFrame(ox, oy, ow, oh, 6 * sf, 1.5 * sf); drawExplicitOppositeFrame(ix, iy, iw, ih, 4 * sf, 0.5 * sf);
+                        page.drawLine({ start: { x: ix + leftW, y: iy }, end: { x: ix + leftW, y: iy + ih }, thickness: 0.75 * sf });
+                        page.drawLine({ start: { x: ix + leftW + midW, y: iy }, end: { x: ix + leftW + midW, y: iy + ih }, thickness: 0.75 * sf });
+                        drawDivs(ix, iy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, rgb(0, 0, 0), 0.75 * sf);
+                        page.drawLine({ start: { x: ix + leftW, y: iy + row3H + row2H }, end: { x: ix + leftW + midW, y: iy + row3H + row2H }, thickness: 0.75 * sf });
+                        page.drawLine({ start: { x: ix, y: iy + row3H }, end: { x: ix + leftW + midW, y: iy + row3H }, thickness: 0.75 * sf });
+                        drawCenterText(sName, ix + leftW, iy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 11), schoolFont);
+                        drawCenterText(examText, ix + leftW, iy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
+                        page.drawText(lang.score, { x: ix + leftW + midW + 5 * sf, y: iy + ih - 10 * sf, size: 7 * sf, font: mainFont, color: rgb(0.5, 0.5, 0.5) });
+                        if (info) drawCommon(ix, iy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
+                        await drawLogo(ix + (leftW - 26 * sf) / 2, iy + row3H + (row2H + row1H - 26 * sf) / 2, 26 * sf);
                     } else if (designType === '2') {
-                        // ==========================================
-                        // DESIGN 2: MODERN FRAMELESS
-                        // ==========================================
-                        const lineMed = 1 * sf;
-
-                        // Modern Accent Bar on Top
-                        page.drawRectangle({ x: ox, y: oy + oh - (3 * sf), width: ow, height: 3 * sf, color: rgb(0.3, 0.3, 0.3) });
-
-                        // Light uniform background for the main info body
-                        page.drawRectangle({ x: ox, y: oy, width: ow, height: oh - (3 * sf), color: rgb(0.97, 0.97, 0.97) });
-
-                        // Lines separating regions
-                        page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh - (3 * sf) }, thickness: lineMed, color: rgb(0.8, 0.8, 0.8) });
-                        page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh - (3 * sf) }, thickness: lineMed, color: rgb(0.8, 0.8, 0.8) });
-                        page.drawLine({ start: { x: ox + leftW, y: oy + row3H + row2H }, end: { x: ox + leftW + midW, y: oy + row3H + row2H }, thickness: lineMed, color: rgb(0.8, 0.8, 0.8) });
-                        page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: lineMed, color: rgb(0.8, 0.8, 0.8) });
-
-                        // Row 3 inner dividers
-                        let curX = ox + leftW + midCol2W;
-                        page.drawLine({ start: { x: curX, y: oy }, end: { x: curX, y: oy + row3H }, thickness: lineMed, color: rgb(0.8, 0.8, 0.8) }); curX += midCol3W;
-                        page.drawLine({ start: { x: curX, y: oy }, end: { x: curX, y: oy + row3H }, thickness: lineMed, color: rgb(0.8, 0.8, 0.8) }); curX += midCol4W;
-                        page.drawLine({ start: { x: curX, y: oy }, end: { x: curX, y: oy + row3H }, thickness: lineMed, color: rgb(0.8, 0.8, 0.8) }); curX += midCol5W;
-                        page.drawLine({ start: { x: curX, y: oy }, end: { x: curX, y: oy + row3H }, thickness: lineMed, color: rgb(0.8, 0.8, 0.8) });
-
-                        // Text
-                        drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, 12, schoolFont);
-                        drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW - (10 * sf), 15), mainFont);
-
-                        if (info) {
-                            drawCenterText(lang.class, ox, oy + row3H - (8 * sf), leftW, 8 * sf, 6, mainFont);
-                            drawCenterText(info.class, ox, oy - (2 * sf), leftW, row3H, 16, mainFont);
-
-                            drawCenterText(lang.no, ox + leftW, oy + row3H - (8 * sf), midCol2W, 8 * sf, 6, mainFont);
-                            drawCenterText(info.no, ox + leftW, oy - (2 * sf), midCol2W, row3H, 12, mainFont);
-
-                            drawStudentName(ox + leftW + midCol2W, oy, midCol3W, row3H);
-
-                            page.drawText(lang.room, { x: ox + leftW + midCol2W + midCol3W + (2 * sf), y: oy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                            drawCenterText(info.room, ox + leftW + midCol2W + midCol3W, oy - (2.5 * sf), midCol4W, row3H, 11, mainFont);
-
-                            page.drawText(lang.exam, { x: ox + leftW + midCol2W + midCol3W + midCol4W + (2 * sf), y: oy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                            drawCenterText((info.subject || '').toUpperCase(), ox + leftW + midCol2W + midCol3W + midCol4W, oy - (2.5 * sf), midCol5W, row3H, 9.5, mainFont);
-
-                            page.drawText(lang.seat, { x: ox + leftW + midCol2W + midCol3W + midCol4W + midCol5W + (2 * sf), y: oy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                            drawCenterText(info.seat, ox + leftW + midCol2W + midCol3W + midCol4W + midCol5W, oy - (2.5 * sf), midCol6W, row3H, 14, mainFont);
-                        }
-
-                        page.drawText(lang.score, { x: ox + leftW + midW + (5 * sf), y: oy + oh - (12 * sf), size: 7 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-
-                        const logoDim = 28 * sf;
-                        await drawLogo(ox + (leftW - logoDim) / 2, oy + row3H + (row2H + row1H - logoDim) / 2, logoDim);
-
+                        drawExplicitOppositeFrame(ox, oy, ow, oh, 0, 1 * sf);
+                        page.drawRectangle({ x: ox, y: oy + oh - 3 * sf, width: ow, height: 3 * sf, color: rgb(0.3, 0.3, 0.3) });
+                        page.drawRectangle({ x: ox, y: oy, width: ow, height: oh - 3 * sf, color: rgb(0.97, 0.97, 0.97) });
+                        const gc = rgb(0.8, 0.8, 0.8);
+                        page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh - 3 * sf }, thickness: 1 * sf, color: gc });
+                        page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh - 3 * sf }, thickness: 1 * sf, color: gc });
+                        page.drawLine({ start: { x: ox + leftW, y: oy + row3H + row2H }, end: { x: ox + leftW + midW, y: oy + row3H + row2H }, thickness: 1 * sf, color: gc });
+                        page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1 * sf, color: gc });
+                        drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, gc, 1 * sf);
+                        drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12), schoolFont);
+                        drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 15), mainFont);
+                        if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
+                        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                        await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
                     } else if (designType === '3') {
-                        // ==========================================
-                        // DESIGN 3: DARK ACCENT ELEGANT
-                        // ==========================================
-                        const lineThick = 1 * sf;
-                        const accentColor = rgb(0.12, 0.12, 0.12);
-                        const lightGray = rgb(0.9, 0.9, 0.9);
-
-                        // Outer Frame
-                        drawExplicitOppositeFrame(ox, oy, ow, oh, 0, lineThick);
-
-                        // Row 1 & 2 Background (Dark)
-                        page.drawRectangle({ x: ox + leftW, y: oy + row3H, width: midW, height: row1H + row2H, color: accentColor });
-
-                        // Seat info background
-                        const rightColX = ox + leftW + midCol2W + midCol3W;
-                        page.drawRectangle({ x: rightColX, y: oy, width: ow - rightColX, height: row3H, color: rgb(0.94, 0.94, 0.94) });
-
-                        // Vertical bounds
-                        page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: lineThick });
-                        page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: lineThick });
-
-                        // Row 3 inner dividers
-                        let curX = ox + leftW + midCol2W;
-                        page.drawLine({ start: { x: curX, y: oy }, end: { x: curX, y: oy + row3H }, thickness: lineThick }); curX += midCol3W;
-                        page.drawLine({ start: { x: curX, y: oy }, end: { x: curX, y: oy + row3H }, thickness: lineThick }); curX += midCol4W;
-                        page.drawLine({ start: { x: curX, y: oy }, end: { x: curX, y: oy + row3H }, thickness: lineThick }); curX += midCol5W;
-                        page.drawLine({ start: { x: curX, y: oy }, end: { x: curX, y: oy + row3H }, thickness: lineThick });
-
-                        // Horizontal
-                        page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: lineThick });
-                        page.drawLine({ start: { x: ox + leftW, y: oy + row3H + row2H }, end: { x: ox + leftW + midW, y: oy + row3H + row2H }, thickness: 0.5 * sf, color: rgb(0.6, 0.6, 0.6) });
-
-                        // Text drawing custom funcs for white text
-                        const drawCenterTextWhite = (str, cx, cy, cw, ch, sz, fnt) => {
-                            const s_sz = sz * sf; if (!str) return; const cl = cleanTurkishChars(str).toString();
-                            const tw = fnt ? fnt.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
-                            page.drawText(cl, { x: cx + Math.max(0, (cw - tw) / 2), y: cy + (ch / 2) - (s_sz * 0.35), size: s_sz, font: fnt || undefined, color: rgb(1, 1, 1) });
-                        };
-
-                        drawCenterTextWhite(sName, ox + leftW, oy + row3H + row2H, midW, row1H, 11, schoolFont);
-                        drawCenterTextWhite(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW - (10 * sf), 14), mainFont);
-
-                        if (info) {
-                            page.drawText(lang.class, { x: ox + leftW / 2 - (10 * sf), y: oy + row3H - (8 * sf), size: 6 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                            drawCenterText(info.class, ox, oy - (2 * sf), leftW, row3H, 16, mainFont);
-
-                            drawCenterText(lang.no, ox + leftW, oy + row3H - (8 * sf), midCol2W, 8 * sf, 6, mainFont);
-                            drawCenterText(info.no, ox + leftW, oy - (2 * sf), midCol2W, row3H, 12, mainFont);
-
-                            drawStudentName(ox + leftW + midCol2W, oy, midCol3W, row3H);
-
-                            page.drawText(lang.room, { x: ox + leftW + midCol2W + midCol3W + (2 * sf), y: oy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                            drawCenterText(info.room, ox + leftW + midCol2W + midCol3W, oy - (2.5 * sf), midCol4W, row3H, 11, mainFont);
-
-                            page.drawText(lang.exam, { x: ox + leftW + midCol2W + midCol3W + midCol4W + (2 * sf), y: oy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                            drawCenterText((info.subject || '').toUpperCase(), ox + leftW + midCol2W + midCol3W + midCol4W, oy - (2.5 * sf), midCol5W, row3H, 9.5, mainFont);
-
-                            page.drawText(lang.seat, { x: ox + leftW + midCol2W + midCol3W + midCol4W + midCol5W + (2 * sf), y: oy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                            drawCenterText(info.seat, ox + leftW + midCol2W + midCol3W + midCol4W + midCol5W, oy - (2.5 * sf), midCol6W, row3H, 14, mainFont);
-                        }
-
-                        // PUAN box using accent color
-                        page.drawRectangle({ x: ox + leftW + midW, y: oy + row3H, width: ow - leftW - midW, height: row1H + row2H, color: accentColor });
-                        page.drawText(lang.score, { x: ox + leftW + midW + (3 * sf), y: oy + oh - (10 * sf), size: 7 * sf, font: mainFont, color: lightGray });
-
-                        const logoDim = 28 * sf;
-                        await drawLogo(ox + (leftW - logoDim) / 2, oy + row3H + (row2H + row1H - logoDim) / 2, logoDim);
+                        const ac = rgb(0.2, 0.3, 0.5);
+                        drawExplicitOppositeFrame(ox, oy, ow, oh, 10 * sf, 1 * sf, ac);
+                        drawExplicitOppositeFrame(ox + 2 * sf, oy + 2 * sf, ow - 4 * sf, oh - 4 * sf, 8 * sf, 0.5 * sf, rgb(0.7, 0.7, 0.7));
+                        page.drawRectangle({ x: ox + leftW, y: oy + row3H, width: midW, height: row1H + row2H, color: rgb(0.98, 0.98, 0.99) });
+                        page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1 * sf, color: ac });
+                        page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1 * sf, color: ac });
+                        page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1 * sf, color: ac });
+                        drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, rgb(0.7, 0.7, 0.7), 1 * sf);
+                        drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12), schoolFont);
+                        drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 13), mainFont);
+                        if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
+                        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: mainFont, color: ac });
+                        await drawLogo(ox + (leftW - 25 * sf) / 2, oy + row3H + (row2H + row1H - 25 * sf) / 2, 25 * sf);
+                    } else if (designType === '4') {
+                        const dr = rgb(0.45, 0.08, 0.08); const gd = rgb(0.72, 0.53, 0.04);
+                        page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: rgb(0.99, 0.98, 0.94) });
+                        drawExplicitOppositeFrame(ox, oy, ow, oh, 0, 2 * sf, dr);
+                        drawExplicitOppositeFrame(ox + 3 * sf, oy + 3 * sf, ow - 6 * sf, oh - 6 * sf, 0, 0.75 * sf, gd);
+                        page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1 * sf, color: gd });
+                        page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1 * sf, color: gd });
+                        page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1 * sf, color: dr });
+                        drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, gd, 0.5 * sf);
+                        drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12), schoolFont);
+                        drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
+                        if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
+                        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: mainFont, color: dr });
+                        await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+                    } else if (designType === '5') {
+                        const ink = rgb(0.1, 0.1, 0.1); const red = rgb(0.78, 0.1, 0.18);
+                        page.drawLine({ start: { x: ox, y: oy + oh }, end: { x: ox + ow, y: oy + oh }, thickness: 1.5 * sf, color: ink });
+                        page.drawRectangle({ x: ox + leftW + midW + 5 * sf, y: oy + oh - 25 * sf, width: rightW - 10 * sf, height: 20 * sf, color: rgb(1, 1, 1), borderColor: red, borderWidth: 1 * sf });
+                        drawCenterText(lang.score, ox + leftW + midW + 5 * sf, oy + oh - 25 * sf, rightW - 10 * sf, 20 * sf, 8, mainFont);
+                        page.drawLine({ start: { x: ox + leftW, y: oy + row3H }, end: { x: ox + leftW, y: oy + oh - 5 * sf }, thickness: 0.5 * sf, color: rgb(0.7, 0.7, 0.7) });
+                        page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + ow, y: oy + row3H }, thickness: 0.5 * sf, color: ink });
+                        drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, rgb(0.8, 0.8, 0.8), 0.5 * sf);
+                        drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12), schoolFont);
+                        drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
+                        if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
+                        await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+                    } else if (designType === '6') {
+                        const ed = rgb(0.24, 0.16, 0.11); const em = rgb(0.53, 0.35, 0.22);
+                        page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: rgb(0.97, 0.95, 0.92) });
+                        drawExplicitOppositeFrame(ox, oy, ow, oh, 12 * sf, 2 * sf, ed);
+                        page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1 * sf, color: ed });
+                        page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1.5 * sf, color: em });
+                        drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, ed, 0.75 * sf);
+                        drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12), schoolFont);
+                        drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
+                        if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
+                        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: mainFont, color: ed });
+                        await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
                     }
                 }
             }
@@ -3339,7 +3254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // ─── Oturumu Yazdır ────────────────────────────────────────────────────────
-    window.printSessionDistribution = async function (id, filterValue = null) {
+    window.printSessionDistribution = async function (id, filterValue = null, forcePrintPapers = false) {
         const session = DataManager.getExamSessions().find(s => s.id === id);
         if (!session || !session.results) {
             Swal.fire('Bilgi', 'Bu oturum için dağıtım henüz yapılmamış.', 'info');
@@ -3415,8 +3330,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     await new Promise(r => setTimeout(r, 1500)); // Delay for browser stability
                 }
 
-                // Call self for individual group
-                await window.printSessionDistribution(id, groupName);
+                // Call self for individual group with forcePrintPapers enabled
+                await window.printSessionDistribution(id, groupName, true);
             }
             return; // Exit session-wide flow
         }
@@ -3424,32 +3339,69 @@ document.addEventListener('DOMContentLoaded', async () => {
         // BATCH EXPORT INTERCEPT
         let isBulkExportChecked = false;
         if (filterValue) {
-            // Sınıf veya Salon yanındaki yazdır butonuna basıldığında
             const cbClass = document.querySelector(`.class-paper-check[data-class="${filterValue}"]`);
             const cbRoom = document.querySelector(`.room-paper-check[data-room="${filterValue}"]`);
             if (cbClass && cbClass.checked) isBulkExportChecked = true;
             if (cbRoom && cbRoom.checked) isBulkExportChecked = true;
         }
 
-        if (isBulkExportChecked) {
+        // If bulk export (Class/Room level paper check) is on, ask for Print vs ZIP
+        if (isBulkExportChecked && !forcePrintPapers) {
+            const choiceResult = await Swal.fire({
+                title: 'Yazdırma Seçeneği',
+                html: `<b>${filterValue}</b> için soru kağıtları ne yapılsın?`,
+                icon: 'question',
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-print"></i> Sırayla Yazdır',
+                denyButtonText: '<i class="fa-solid fa-file-zipper"></i> ZIP İndir',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#4f46e5',
+                denyButtonColor: '#10b981'
+            });
 
-            // QUICK VALIDATION: Ensure at least one paper exists before proceeding with anything
-            let hasValidPaper = false;
+            if (choiceResult.isConfirmed) {
+                forcePrintPapers = true;
+            } else if (choiceResult.isDenied) {
+                setTimeout(() => window.exportBatchPDFs(session, mode, filterValue), 100);
+                return; // Exit, as user chose ZIP
+            } else {
+                return; // User cancelled
+            }
+        }
+
+        // AUTOMATIC PAPER PRINTING HELPER
+        const printPapersForGroup = (fVal) => {
             const metadata = session.subjectMetadata || {};
             let allStudentsInSession = [];
-            (session.results || []).forEach(room => Object.values(room.seats || {}).forEach(s => allStudentsInSession.push({ ...s, room: room.name })));
+            (session.results || []).forEach(room => {
+                let ctr = 1; const seatToNum = {};
+                for (let g = 1; g <= room.groups; g++) {
+                    const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
+                    for (let r = 1; r <= cf.rows; r++)
+                        for (let c = 1; c <= cf.cols; c++) {
+                            const sid = `G${g}-S${r}-C${c}`;
+                            if (!(room.disabledSeats || []).includes(sid)) seatToNum[sid] = ctr++;
+                        }
+                }
+                Object.entries(room.seats).forEach(([sid, s]) => {
+                    allStudentsInSession.push({ ...s, room: room.name, seat: seatToNum[sid] || '-' });
+                });
+            });
 
             const targetStudents = allStudentsInSession.filter(s => {
-                if (!filterValue) return true;
-                if (mode === 'class') return s.class === filterValue;
-                if (mode === 'room') return s.room === filterValue;
+                if (mode === 'class') return s.class === fVal;
+                if (mode === 'room') return s.room === fVal;
                 return true;
             });
 
+            // QUICK VALIDATION: Ensure at least one paper exists before proceeding with anything
+            let hasValidPaper = false;
             targetStudents.forEach(s => {
                 const subName = s._matchedSubject || '-';
                 const group = s._groupLabel || s.group || 'default';
-                const papers = (metadata[subName] || {}).papers || {};
+                const meta = metadata[subName] || {};
+                const papers = meta.papers || {};
                 let path = typeof papers === 'string' ? papers : (papers[group] || papers['default'] || '');
                 if (path) hasValidPaper = true;
             });
@@ -3463,18 +3415,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return; // ABORT THE WHOLE PRINT ACTION
             }
 
-            // Initiate the background zip export with a slight delay so normal print popup isn't blocked by Swal
-            setTimeout(() => {
-                window.exportBatchPDFs(session, mode, filterValue);
-            }, 100);
-            // Continue to print the class/room list as requested by user.
-        }
+            targetStudents.forEach(s => {
+                const subName = s._matchedSubject || '-';
+                const group = s._groupLabel || s.group || 'default';
+                const meta = metadata[subName] || {};
+                const papers = meta.papers || {};
+                let path = typeof papers === 'string' ? papers : (papers[group] || papers['default'] || '');
+
+                if (path) {
+                    const studentInfo = {
+                        no: s.no, name: s.name, class: s.class, room: s.room,
+                        seat: s.seat, subject: subName, group: group,
+                        examNo: meta.examNo || meta.examNumber || ''
+                    };
+                    window.printFile(path, studentInfo);
+                }
+            });
+        };
+
 
         const modeLabels = { class: 'Sınıf', room: 'Salon', seating: 'Şema' };
         const modeLabel = modeLabels[mode];
         const isSeating = mode === 'seating';
 
-        // ─────── SORU KAĞIDI YAZDIRMA (INTERCEPT) ───────────────────────────
+        // ─────── SORU KAĞIDI YAZDIRMA (MANUEL SEÇİM INTERCEPT) ─────────
         // Eğer öğrenci checkboxları seçiliyse listeyi değil, kağıtları yazdır/aç. (Batch export harici manuel seçimler)
         const checkedStudents = Array.from(document.querySelectorAll('.student-paper-check:checked')).filter(cb => {
             if (!filterValue) return true; // Genel liste, hepsini al
@@ -3484,7 +3448,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return true;
         });
 
-        if (checkedStudents.length > 0 && !isBulkExportChecked) {
+        if (checkedStudents.length > 0 && !isBulkExportChecked && !forcePrintPapers) {
             const metadata = session.subjectMetadata || {};
             let foundCount = 0;
             let errors = [];
@@ -3847,6 +3811,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const win = window.open('', '_blank');
             win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${session.name} - ${modeLabel}</title><style>${pageCss}</style></head><body>${body}<script>window.onload=()=>setTimeout(()=>{if(!${isPreview}){window.focus();window.print();}},500);</script></body></html>`);
             win.document.close();
+
+            // Interleaved Paper Printing Trigger
+            if (forcePrintPapers && filterValue) {
+                printPapersForGroup(filterValue);
+            }
         };
 
         if (filterValue) {
@@ -4073,8 +4042,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = metadata[sub] || {};
             const subExamNum = data.examNo || data.examNumber || '';
             const subPapers = data.papers || {};
-
-
+            const subHeader = data.pdfHeaderDesign || '1'; // Inject subHeader variable
 
             let paperInputs = '';
             if (hasGroups) {
@@ -4117,6 +4085,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div style="font-size:0.75rem; color:var(--gray-500); margin-top:2px;">
                                 <i class="fa-solid fa-users"></i> ${subjectStats[sub]?.count || 0} Öğrenci (${Array.from(subjectStats[sub]?.classes || []).join(', ')})
                             </div>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; align-items:center; gap:0.5rem; margin-right:0.5rem;">
+                            <select class="swal2-select meta-header-design-select" data-sub="${sub}" style="margin:0; height:35px; font-size:0.8rem; padding:0 20px 0 10px; width:140px;">
+                                <option value="1" ${subHeader === '1' ? 'selected' : ''}>Klasik Çerçeveli</option>
+                                <option value="2" ${subHeader === '2' ? 'selected' : ''}>Modern Hatlar</option>
+                                <option value="3" ${subHeader === '3' ? 'selected' : ''}>Klasik Parçalı</option>
+                                <option value="4" ${subHeader === '4' ? 'selected' : ''}>Osmanlı Teması</option>
+                                <option value="5" ${subHeader === '5' ? 'selected' : ''}>Japon Teması</option>
+                                <option value="6" ${subHeader === '6' ? 'selected' : ''}>Afrika Teması</option>
+                            </select>
                         </div>
                         <div style="display:flex; justify-content:flex-end; align-items:center; gap:0.5rem;">
                             <label style="font-size:0.8rem; font-weight:bold;">Sınav No:</label>
@@ -4231,8 +4209,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         papers['default'] = paperInputs[0].value.trim();
                     }
 
+                    const headerSelect = document.querySelector(`.meta-header-design-select[data-sub="${sub}"]`);
+                    const headerDesign = headerSelect ? headerSelect.value : '1';
+
                     newMetadata[sub] = {
                         examNo: examNum,
+                        pdfHeaderDesign: headerDesign,
                         papers: papers
                     };
 
