@@ -1875,13 +1875,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const availableInSchool = students.filter(s => !busyStudentNos.has(s.no.toString()));
 
+        // Grouping logic (using Turkish locale normalization)
         const currentSubjects = wizardSessionData.subjects;
         const subjectGroups = [];
 
         currentSubjects.forEach(subObj => {
             const subNameNorm = (subObj.name || "").trim().toLocaleUpperCase('tr-TR');
+            // Target students who REALLY take this specific subject (robust matching)
             const targetStudents = availableInSchool.filter(s =>
-                (s.dersler || []).some(d => (d || "").trim().toLocaleUpperCase('tr-TR') === subNameNorm)
+                (s.dersler || []).some(d => {
+                    const dn = (d || "").trim().toLocaleUpperCase('tr-TR');
+                    return dn === subNameNorm || dn.startsWith(subNameNorm + " ") || subNameNorm.startsWith(dn + " ");
+                })
             );
 
             if (targetStudents.length === 0) return;
@@ -1948,11 +1953,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             const availableSubjects = new Set();
             availableInSchool.forEach(s => {
                 const sno = s.no.toString();
-                // A student is available if not busy AND not claimed in CURRENT Step 2 selections
+                // IF NOT CLAIMED, then their subjects ARE available in the dropdown
                 if (!claimedNos.has(sno)) {
                     if (s.dersler) {
                         s.dersler.forEach(d => {
-                            if (d) availableSubjects.add(d.trim().toLocaleUpperCase('tr-TR'));
+                            if (d) {
+                                const dn = d.trim().toLocaleUpperCase('tr-TR');
+                                availableSubjects.add(dn);
+                                if (dn.includes(" ")) availableSubjects.add(dn.split(" ")[0]);
+                            }
                         });
                     }
                 }
@@ -1968,7 +1977,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const select = document.getElementById('wizSubjectSelect');
             const noMsg = document.getElementById('wizNoStudentsMsg');
 
-            if (availableSubjects.size === 0 && availableInSchool.length > 0 && totalOccupancy >= availableInSchool.length) {
+            // Dropdown is empty if literal availability is 0
+            const isEmpty = availableSubjects.size === 0;
+
+            if (isEmpty && availableInSchool.length > 0 && totalOccupancy >= availableInSchool.length) {
                 if (btnAdd) btnAdd.disabled = true;
                 if (select) select.disabled = true;
                 if (noMsg) noMsg.style.display = 'block';
@@ -1981,7 +1993,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // 3. Render HTML
         if (subjectGroups.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: var(--danger); margin-top: 2rem;">Bu dersleri alan veya çakışmayan hiçbir öğrenci/sınıf bulunamadı.</p>';
+            container.innerHTML = `<p style="text-align: center; color: var(--danger); margin-top: 2rem; background: var(--gray-100); padding: 1rem; border-radius: 8px;">
+                <i class="fa-solid fa-circle-exclamation"></i> Seçilen ders(ler)i alan veya mevcut zaman diliminde müsait olan hiçbir öğrenci bulunamadı.</p>`;
             updateOccupancy();
             return;
         }
@@ -2822,39 +2835,42 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawLine({ start: { x: ox, y: oy }, end: { x: ox + ow - 10 * sf, y: oy }, thickness: thk, color: navy }); // Bottom (Partial)
 
             // Stylized Profile Silhouette (CLOSING THE RIGHT SIDE)
-            // ULTRA-Precise trace matching stencil image provided
-            const rx = ox + ow - 8 * sf;
+            // Tıpatıp Aynısı - High point density segmented trace matching pixels
+            const rx = ox + ow - 4 * sf;
             const ty = oy + oh;
 
-            // Hat top and Back curve
+            // CHOOPY SEGMENTED PATH (HAT & BACK)
             const backPts = [
-                { x: rx, y: ty }, // Hat top middle
-                { x: rx + 6 * sf, y: ty - 0.5 * sf }, // Hat top back peak 1
-                { x: rx + 14 * sf, y: ty - 3 * sf }, // Hat back curve start
-                { x: rx + 18 * sf, y: ty - 8 * sf }, // Hat back curve mid
-                { x: rx + 19 * sf, y: ty - 15 * sf }, // Ear area mid
-                { x: rx + 16 * sf, y: ty - 22 * sf }, // Neck back start
-                { x: rx + 17 * sf, y: ty - 32 * sf }, // Shoulder slope
-                { x: rx + 18 * sf, y: ty - 40 * sf }, // Shoulder finish
-                { x: rx + 12 * sf, y: oy } // Merge bottom border
+                { x: rx + 0.5 * sf, y: ty },
+                { x: rx + 7 * sf, y: ty - 1 * sf },
+                { x: rx + 14 * sf, y: ty - 3.5 * sf },
+                { x: rx + 18.5 * sf, y: ty - 8 * sf },
+                { x: rx + 20.5 * sf, y: ty - 14 * sf },
+                { x: rx + 21 * sf, y: ty - 20 * sf },
+                { x: rx + 18.5 * sf, y: ty - 28 * sf },
+                { x: rx + 16 * sf, y: ty - 34 * sf },
+                { x: rx + 17.5 * sf, y: ty - 42 * sf },
+                { x: rx + 18 * sf, y: ty - 50 * sf },
+                { x: rx + 12 * sf, y: oy }
             ];
 
-            // Face Profile (Front)
-            const frontPts = [
-                { x: rx + 1.2 * sf, y: ty - 7.5 * sf }, // Hat peak tip (front overhanging)
-                { x: rx - 2.2 * sf, y: ty - 10 * sf }, // Forehead start
-                { x: rx - 3.2 * sf, y: ty - 13.5 * sf }, // Eye socket indentation
-                { x: rx + 5.5 * sf, y: ty - 22 * sf }, // Sharp Nose tip
-                { x: rx + 1.2 * sf, y: ty - 23.5 * sf }, // Under nose
-                { x: rx + 0.8 * sf, y: ty - 25 * sf }, // Upper lip
-                { x: rx + 0.5 * sf, y: ty - 26 * sf }, // Mid lips
-                { x: rx + 2.5 * sf, y: ty - 28 * sf }, // Lower lip
-                { x: rx + 5 * sf, y: ty - 32.5 * sf }, // Chin tip
-                { x: rx + 0.5 * sf, y: ty - 37 * sf }, // Jawline
-                { x: rx - 4 * sf, y: oy } // Meeting bottom border
+            // CHOOPY SEGMENTED PATH (FACE PROFILE)
+            const facePts = [
+                { x: rx + 1 * sf, y: ty - 8 * sf },     // Hat siperlik tip
+                { x: rx - 3.5 * sf, y: ty - 10 * sf },   // Forehead start
+                { x: rx - 5 * sf, y: ty - 13.5 * sf },   // Eyebrow brow indented
+                { x: rx - 7 * sf, y: ty - 17 * sf },     // Eye area deeper indentation
+                { x: rx + 5.5 * sf, y: ty - 26 * sf },   // Sharp pointed Nose Tip
+                { x: rx + 0.2 * sf, y: ty - 27.5 * sf }, // Under nose curve
+                { x: rx - 1.5 * sf, y: ty - 29.5 * sf }, // Lips mid (indented)
+                { x: rx + 1.5 * sf, y: ty - 31 * sf },   // Lower lip
+                { x: rx + 6.5 * sf, y: ty - 36 * sf },   // Very sharp Chin Tip
+                { x: rx - 2.5 * sf, y: ty - 40 * sf },   // Jawline sharp segment 1
+                { x: rx - 5 * sf, y: ty - 44 * sf },     // Jawline sharp segment 2
+                { x: rx - 10 * sf, y: oy }               // Neck base boundary
             ];
 
-            const drawPath = (path, thickness = 2.8 * sf) => {
+            const drawPath = (path, thickness = 2.6 * sf) => {
                 for (let i = 0; i < path.length - 1; i++) {
                     page.drawLine({
                         start: path[i],
@@ -2866,13 +2882,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
 
             drawPath(backPts);
-            drawPath(frontPts);
+            drawPath(facePts);
 
-            // Signature Hint - More elegant placement
-            const sigX = ox + ow - 48 * sf, sigPos = oy + 6 * sf;
-            page.drawLine({ start: { x: sigX, y: sigPos }, end: { x: rx - 12 * sf, y: sigPos + 2 * sf }, thickness: 0.8 * sf, color: navy });
+            // Re-trace frame boundaries to cleanly meet the silhouette ends
+            page.drawLine({ start: { x: ox, y: oy + oh }, end: { x: rx + 0.5 * sf, y: oy + oh }, thickness: thk, color: navy }); // Top
+            page.drawLine({ start: { x: ox, y: oy }, end: { x: rx - 10 * sf, y: oy }, thickness: thk, color: navy }); // Bottom
+
+            // Minimalist fluid signature
+            const sigX = ox + ow - 55 * sf, sigPos = oy + 6 * sf;
+            page.drawLine({ start: { x: sigX, y: sigPos }, end: { x: rx - 20 * sf, y: sigPos + 2 * sf }, thickness: 0.7 * sf, color: navy });
             page.drawCircle({ x: sigX, y: sigPos, size: 0.9 * sf, color: navy });
-            page.drawLine({ start: { x: sigX + 12 * sf, y: sigPos - 2.5 * sf }, end: { x: rx - 18 * sf, y: sigPos + 1 * sf }, thickness: 0.5 * sf, color: navy });
+            page.drawLine({ start: { x: sigX + 18 * sf, y: sigPos - 3.5 * sf }, end: { x: rx - 35 * sf, y: sigPos + 0.5 * sf }, thickness: 0.5 * sf, color: navy });
 
             page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1.2 * sf, color: navy });
             page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1.2 * sf, color: navy });
