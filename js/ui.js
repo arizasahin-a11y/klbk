@@ -2736,9 +2736,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             drawExplicitOppositeFrame(ox, oy, ow, oh, 15 * sf, 2.5 * sf, navy);
 
             // Silhouette & Signature Aesthetic (Right Side)
-            const sx = ox + ow - 35 * sf, sy = oy + oh / 2;
-            page.drawSVGPath('M 0,10 C 2,12 5,15 8,12 C 10,10 9,5 11,3 C 13,1 18,2 20,5 C 22,8 20,15 18,20 C 16,25 10,28 5,28 C 0,28 -5,25 -8,20 L -2,15 Z', { x: sx, y: oy + 25 * sf, scale: 1.2 * sf, color: navy }); // Stylized Profile
-            page.drawSVGPath('M 0,0 C 5,2 10,0 15,3 C 18,5 20,10 18,15', { x: sx - 10 * sf, y: oy + 10 * sf, scale: 0.8 * sf, color: navy, borderColor: navy, borderWidth: 0.5 * sf }); // Signature hint
+            const sx = ox + ow - 28 * sf, sy = oy + oh / 2 + 5 * sf;
+            // Face Profile approximation with ellipses
+            page.drawEllipse({ x: sx, y: sy + 8 * sf, xScale: 7 * sf, yScale: 10 * sf, color: navy, rotate: degrees(-15) }); // Head/Hair
+            page.drawEllipse({ x: sx - 5 * sf, y: sy + 6 * sf, xScale: 3 * sf, yScale: 4 * sf, color: navy, rotate: degrees(20) }); // Forehead
+            page.drawEllipse({ x: sx - 8 * sf, y: sy - 1 * sf, xScale: 5 * sf, yScale: 2 * sf, color: navy, rotate: degrees(10) }); // Nose
+            page.drawEllipse({ x: sx - 4 * sf, y: sy - 8 * sf, xScale: 4 * sf, yScale: 3 * sf, color: navy, rotate: degrees(-25) }); // Chin/Jaw
+
+            // Signature aesthetic hint (lines and circles)
+            const sigY = oy + 12 * sf;
+            page.drawLine({ start: { x: sx - 15 * sf, y: sigY }, end: { x: sx + 10 * sf, y: sigY + 4 * sf }, thickness: 0.75 * sf, color: navy });
+            page.drawCircle({ x: sx - 15 * sf, y: sigY, size: 1.2 * sf, color: navy });
+            page.drawLine({ start: { x: sx - 5 * sf, y: sigY - 2 * sf }, end: { x: sx + 5 * sf, y: sigY + 1 * sf }, thickness: 0.5 * sf, color: navy });
 
             page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 1.2 * sf, color: navy });
             page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 1.2 * sf, color: navy });
