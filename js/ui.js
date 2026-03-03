@@ -2648,6 +2648,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     let sName = (school.name || '').replace(/i/g, 'İ').toUpperCase().split('').join(' ');
                     drawCenterText(sName, ix + leftW, iy + row3H + row2H, midW, row1H, 11, schoolFont);
 
+                    // Localization Helper for Foreign Language Exams
+                    const getTranslations = (subject) => {
+                        const sub = (subject || '').toLowerCase();
+                        if (sub.includes('ingilizce') || sub.includes('english')) {
+                            return { year: 'ACADEMIC YEAR', term: 'TERM', class: 'CLASS', no: 'NO', name: 'NAME SURNAME', room: 'ROOM', exam: 'EXAM', seat: 'SEAT', score: 'SCORE', written: 'WRITTEN EXAM' };
+                        } else if (sub.includes('almanca') || sub.includes('deutsch')) {
+                            return { year: 'SCHULJAHR', term: 'HALBJAHR', class: 'KLASSE', no: 'NR', name: 'NAME VORNAME', room: 'RAUM', exam: 'PRÜFUNG', seat: 'PLATZ', score: 'PUNKTE', written: 'SCHRIFTLICHE PRÜFUNG' };
+                        } else if (sub.includes('fransızca') || sub.includes('français') || sub.includes('fransizca')) {
+                            return { year: 'ANNÉE SCOLAIRE', term: 'SEMESTRE', class: 'CLASSE', no: 'N°', name: 'NOM PRÉNOM', room: 'SALLE', exam: 'EXAMEN', seat: 'PLACE', score: 'NOTE', written: 'EXAMEN ÉCRIT' };
+                        }
+                        // Default Turkish
+                        return { year: 'ÖĞRETİM YILI', term: 'DÖNEM', class: 'SINIFI', no: 'NO', name: 'ADI SOYADI', room: 'DERSLİK', exam: 'SINAV', seat: 'YER', score: 'PUAN', written: 'YAZILI SINAVI' };
+                    };
+                    const lang = getTranslations(info?.subject);
+
                     const sess = window.currentRenderedSession || {};
                     let termDom = '';
                     try {
@@ -2656,14 +2671,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } catch (e) { }
 
                     let termStr = (sess.academicTerm || termDom || '').toUpperCase();
-                    if (termStr === '1. DÖNEM' || termStr === '1 DÖNEM' || termStr === '1. DONEM') termStr = 'I. DÖNEM';
-                    else if (termStr === '2. DÖNEM' || termStr === '2 DÖNEM' || termStr === '2. DONEM') termStr = 'II. DÖNEM';
-                    else termStr = termStr.replace('1.', '1.').replace('2.', '2.');
+                    if (termStr === '1. DÖNEM' || termStr === '1 DÖNEM' || termStr === '1. DONEM') termStr = `I. ${lang.term}`;
+                    else if (termStr === '2. DÖNEM' || termStr === '2 DÖNEM' || termStr === '2. DONEM') termStr = `II. ${lang.term}`;
+                    else termStr = termStr.replace('1.', '1.').replace('2.', '2.').replace('DÖNEM', lang.term).replace('DONEM', lang.term);
 
-                    if (termStr && !termStr.includes('DÖNEM') && !termStr.includes('DONEM')) termStr += ' DÖNEM';
+                    if (termStr && !termStr.includes(lang.term)) termStr += ` ${lang.term}`;
 
                     const examNoStr = info?.examNo || info?.examNumber || '';
-                    const examText = `${school.academicYear || ''} ÖĞRETİM YILI ${termStr} ${info?.subject || ''} DERSİ ${examNoStr ? `${examNoStr}. ` : ''}YAZILI SINAVI`.trim().toUpperCase();
+                    const examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${info?.subject || ''} ${examNoStr ? `${examNoStr}. ` : ''}${lang.written}`.trim().toUpperCase();
 
                     let row2Sz = 14;
                     let examTextWidth = mainFont ? mainFont.widthOfTextAtSize(cleanTurkishChars(examText), row2Sz * sf) : examText.length * (row2Sz * sf * 0.6);
@@ -2692,9 +2707,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         drawLeftText(nameStr, ix + leftW + midCol2W + (0.6 * sf), iy, midCol3W, row3H, nameSz, nameFont);
 
                         // Inner Top Labels for Right-Side Cells
-                        page.drawText("DERSLİK", { x: ix + leftW + midCol2W + midCol3W + (2 * sf), y: iy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                        page.drawText("SINAV", { x: ix + leftW + midCol2W + midCol3W + midCol4W + (2 * sf), y: iy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                        page.drawText("YER", { x: ix + leftW + midCol2W + midCol3W + midCol4W + midCol5W + (2 * sf), y: iy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                        page.drawText(lang.room, { x: ix + leftW + midCol2W + midCol3W + (2 * sf), y: iy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                        page.drawText(lang.exam, { x: ix + leftW + midCol2W + midCol3W + midCol4W + (2 * sf), y: iy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                        page.drawText(lang.seat, { x: ix + leftW + midCol2W + midCol3W + midCol4W + midCol5W + (2 * sf), y: iy + row3H - (6.5 * sf), size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
 
                         // Shift actual values down slightly to accommodate top labels
                         drawCenterText(info.room, ix + leftW + midCol2W + midCol3W, iy - (2.5 * sf), midCol4W, row3H, 11, mainFont); // Room
@@ -2703,7 +2718,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
 
                     // PUAN label
-                    page.drawText("PUAN", { x: ix + leftW + midW + (5 * sf), y: iy + ih - (10 * sf), size: 7 * sf, font: mainFont, color: rgb(0.5, 0.5, 0.5) });
+                    page.drawText(lang.score, { x: ix + leftW + midW + (5 * sf), y: iy + ih - (10 * sf), size: 7 * sf, font: mainFont, color: rgb(0.5, 0.5, 0.5) });
 
                     // 5. LOGO
                     if (school.logo) {
