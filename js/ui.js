@@ -2349,18 +2349,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Robust file fetcher for local file:/// stability
     window.getFileBytes = async function (url) {
+        // Bypass browser cache for Supabase to avoid CORS blocking from cached incomplete headers
+        let fetchUrl = url;
+        if (url.includes('supabase.co')) {
+            fetchUrl += (url.includes('?') ? '&' : '?') + 'cb=' + Date.now();
+        }
+
         try {
-            const res = await fetch(url);
-            if (res.ok) return await res.arrayBuffer();
+            const res = await fetch(fetchUrl, { mode: 'cors', cache: 'no-store' });
+            if (res.ok) {
+                return await res.arrayBuffer();
+            } else {
+                console.warn(`Fetch returned ${res.status} for ${fetchUrl}`);
+            }
         } catch (e) {
-            console.warn("Fetch failed, trying XHR for", url);
+            console.warn("Fetch failed (likely CORS), trying XHR for", fetchUrl);
         }
 
         return new Promise((resolve, reject) => {
             try {
                 const xhr = new XMLHttpRequest();
-                xhr.open('GET', url, true);
+                xhr.open('GET', fetchUrl, true);
                 xhr.responseType = 'arraybuffer';
+                // Try to force cache bypass on XHR too
+                xhr.setRequestHeader('Cache-Control', 'no-cache');
                 xhr.onload = function () {
                     if (this.status === 200 || (this.status === 0 && this.response && this.response.byteLength > 0)) {
                         resolve(this.response);
@@ -2368,7 +2380,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         reject(new Error(`Okuma hatası: ${this.status}`));
                     }
                 };
-                xhr.onerror = () => reject(new Error("Bağlantı/Güvenlik hatası. Tarayıcı yerel dosyaya erişimi engelliyor olabilir."));
+                xhr.onerror = () => {
+                    if (url.includes('http')) {
+                        reject(new Error("CORS Hatası: Sunucu PDF dosyasının okunmasına izin vermiyor. Lütfen yeni sekmede açarak yazdırın."));
+                    } else {
+                        reject(new Error("Bağlantı/Güvenlik hatası. Tarayıcı yerel dosyaya erişimi engelliyor olabilir."));
+                    }
+                };
                 xhr.send();
             } catch (e) { reject(e); }
         });
@@ -2735,6 +2753,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     finalize(iframe);
                 }, 5000);
             };
+
+            return; // Successfully printed, prevent fallback mechanism
 
         } catch (e) {
             console.error("PDF Overlay Error:", e);
