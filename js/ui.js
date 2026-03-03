@@ -3586,7 +3586,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Filtre varsa direkt yazdır, yoksa onay al
-        const startPrint = (isPreview = false) => {
+        const startPrint = async (isPreview = false) => {
             // ── Sayfa CSS ──────────────────────────────────────────────────
             const pageCss = `
                 body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1e293b; margin: 0; padding: 0; background: #fff; }
