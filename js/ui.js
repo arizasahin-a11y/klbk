@@ -2452,10 +2452,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         const school = DataManager.getSchoolSettings();
-        const sess = window.currentRenderedSession || {};
+        const sess = options.session || window.currentRenderedSession || {};
         const subjectName = info?.subject || '';
-        const metadata = sess.subjectMetadata?.[subjectName] || {};
-        const designType = metadata.pdfHeaderDesign || '1';
+        const metadata = options.metadata || sess.subjectMetadata?.[subjectName] || {};
+        const designType = options.designType || metadata.pdfHeaderDesign || '1';
 
         const margin = 14.17 * sf;
         const limitY = 85.04 * sf;
@@ -3469,7 +3469,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const { width, height } = firstPage.getSize();
                     const A4_W = 595.28, A4_H = 841.89;
                     const sf = 1 / Math.min(A4_W / width, A4_H / height);
-                    await window.renderStudentPDFHeader(mergedPdf, firstPage, studentInfo, { ...fonts, sf });
+                    await window.renderStudentPDFHeader(mergedPdf, firstPage, studentInfo, { ...fonts, sf, metadata: meta });
                     pages.forEach(p => mergedPdf.addPage(p));
                 }
                 const mergedBytes = await mergedPdf.save();
@@ -3918,7 +3918,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         if (filterValue) {
-            startPrint(false);
+            await startPrint(false);
         } else {
             Swal.fire({
                 title: 'Yazdır',
