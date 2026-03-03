@@ -1991,6 +1991,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         };
 
+        // Helper to check what is currently claimed to prevent auto-select conflicts
+        const getCurrentlyClaimedNos = () => {
+            const claimed = new Set();
+            wizardSessionData.selectedClasses.forEach(pid => {
+                subjectGroups.forEach(g => {
+                    const p = g.pools.find(p => p.pid === pid);
+                    if (p) {
+                        p.students.forEach(s => {
+                            const sno = s.no.toString();
+                            if (!wizardSessionData.excludedStudents.includes(sno)) claimed.add(sno);
+                        });
+                    }
+                });
+            });
+            return claimed;
+        };
+
         // 3. Render HTML
         if (subjectGroups.length === 0) {
             container.innerHTML = `<p style="text-align: center; color: var(--danger); margin-top: 2rem; background: var(--gray-100); padding: 1rem; border-radius: 8px;">
@@ -2007,9 +2024,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             grp.pools.forEach(inf => {
                 if (!window._wizSeenPools) window._wizSeenPools = new Set();
+
                 if (!window._wizSeenPools.has(inf.pid)) {
-                    if (!wizardSessionData.selectedClasses.includes(inf.pid)) wizardSessionData.selectedClasses.push(inf.pid);
                     window._wizSeenPools.add(inf.pid);
+
+                    // Conflict check before auto-selecting
+                    const currentClaimed = getCurrentlyClaimedNos();
+                    let hasOverlap = false;
+                    for (const s of inf.students) {
+                        const sno = s.no.toString();
+                        if (currentClaimed.has(sno) && !wizardSessionData.excludedStudents.includes(sno)) {
+                            hasOverlap = true;
+                            break;
+                        }
+                    }
+
+                    // Only auto-select if students aren't already sitting for another exam in this session
+                    if (!hasOverlap) {
+                        if (!wizardSessionData.selectedClasses.includes(inf.pid)) {
+                            wizardSessionData.selectedClasses.push(inf.pid);
+                        }
+                    }
                 }
 
                 const isChecked = wizardSessionData.selectedClasses.includes(inf.pid);
