@@ -3791,28 +3791,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                         input.dispatchEvent(new Event('change', { bubbles: true }));
                     }
 
-                    const Toast = Swal.mixin({
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 3000,
-                        timerProgressBar: true
-                    });
+                    // Button success state
+                    const originalColor = btn.style.backgroundColor;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Yüklendi';
+                    btn.style.backgroundColor = '#10b981';
 
-                    Toast.fire({
-                        icon: 'success',
-                        title: 'PDF Buluta Yüklendi!'
-                    });
+                    setTimeout(() => {
+                        btn.innerHTML = originalBtnHtml;
+                        btn.style.backgroundColor = originalColor;
+                        btn.disabled = false;
+                    }, 3000);
+
                 } catch (err) {
-                    Swal.fire({
-                        title: "Yükleme Başarısız!",
-                        text: err.message,
-                        icon: "error",
-                        target: Swal.getContainer()
-                    });
-                } finally {
-                    btn.innerHTML = originalBtnHtml;
-                    btn.disabled = false;
+                    console.error("Yükleme Hatası:", err);
+                    btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Hata!';
+                    btn.style.backgroundColor = '#ef4444';
+                    setTimeout(() => {
+                        btn.innerHTML = originalBtnHtml;
+                        btn.style.backgroundColor = '';
+                        btn.disabled = false;
+                    }, 3000);
                 }
             }
         };
