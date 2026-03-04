@@ -286,62 +286,88 @@
                             </div>
                             <div class="details-panel ${isOpen ? '' : 'hidden'}">`;
 
-                // Render subjects accordion
+                // Render subjects list
                 subjectsObj.forEach(sub => {
-                    const subId = ses.id + "|" + encodeURIComponent(sub.name);
+                    const encodedSub = encodeURIComponent(sub.name);
+                    const subId = ses.id + "|" + encodedSub;
                     const isSubOpen = openSubjects.has(subId);
 
-                    html += `<div class="nested-accordion">
-                                <div class="nested-header" onclick="toggleSubject('${ses.id}', '${encodeURIComponent(sub.name)}')">
-                                    <span><i class="fa-solid fa-book" style="margin-right:8px; color:var(--primary);"></i> ${sub.name}</span>
-                                    <i class="fa-solid fa-angle-${isSubOpen ? 'up' : 'down'}"></i>
+                    const meta = ses.subjectMetadata && ses.subjectMetadata[sub.name] ? ses.subjectMetadata[sub.name] : {};
+                    const currentPdf = meta.papers && meta.papers['default'] ? meta.papers['default'] : '';
+
+                    html += `<div class="nested-accordion" style="margin-bottom: 1.5rem; border: 2px solid ${isSubOpen ? 'var(--primary-light)' : 'var(--gray-200)'};">
+                                <div class="nested-header" onclick="toggleSubject('${ses.id}', '${encodedSub}')" style="${isSubOpen ? 'background: white; border-bottom: 1px solid var(--gray-100);' : ''}">
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <div style="width:36px; height:36px; background: ${currentPdf ? 'var(--secondary)' : 'var(--gray-200)'}; color:white; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                                            <i class="fa-solid ${currentPdf ? 'fa-check' : 'fa-book'}"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-weight:900; font-size:1.1rem;">${sub.name}</div>
+                                            <div style="font-size:0.75rem; color:var(--gray-500);">${currentPdf ? 'Sınav kağıdı yüklendi' : 'Sınav kağıdı bekleniyor...'}</div>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-angle-${isSubOpen ? 'up' : 'down'}" style="color:var(--gray-400)"></i>
                                 </div>
-                                <div class="nested-content ${isSubOpen ? '' : 'hidden'}">`;
+                                <div class="nested-content ${isSubOpen ? '' : 'hidden'}" style="background-color: #fafbfc;">`;
 
                     if (diffMins > 0) {
                         // EXAM NOT STARTED -> PDF Settings
-                        const meta = ses.subjectMetadata && ses.subjectMetadata[sub.name] ? ses.subjectMetadata[sub.name] : {};
-                        const currentPdf = meta.papers && meta.papers['default'] ? meta.papers['default'] : '';
-
-                        html += `<div style="margin-bottom: 1rem;">
-                                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--gray-600); display: block; margin-bottom: 4px;">
-                                        Soru Kağıdı PDF Linki (veya Buluttan Yükleyin)
-                                    </label>
-                                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                        <input type="text" id="pdfLink-${ses.id}-${encodeURIComponent(sub.name)}" 
-                                            class="form-control" style="flex:1; padding:0.5rem; border:1px solid var(--gray-300); border-radius:4px;" 
-                                            placeholder="Soru kağıdı bağlantısı..." value="${currentPdf}">
+                        html += `<div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-100);">
+                                    <h5 style="margin-top:0; margin-bottom:15px; font-weight:800; color:var(--dark); display:flex; align-items:center; gap:8px;">
+                                        <i class="fa-solid fa-file-pdf" style="color:var(--danger)"></i> Sınav Kağıdı Ayarları
+                                    </h5>
+                                    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+                                        <div style="flex:1; min-width: 300px;">
+                                            <label style="font-size: 0.8rem; font-weight: 700; color: var(--gray-500); text-transform:uppercase; display: block; margin-bottom: 6px;">
+                                                Dosya Bağlantısı (URL)
+                                            </label>
+                                            <input type="text" id="pdfLink-${ses.id}-${encodedSub}" 
+                                                class="form-control" style="width:100%; padding:0.75rem; border:2px solid var(--gray-200); border-radius:8px; font-weight:600;" 
+                                                placeholder="https://..." value="${currentPdf}">
+                                        </div>
                                         
-                                        <button class="btn btn-secondary" style="padding: 0.5rem;" onclick="pasteLink('${ses.id}', '${encodeURIComponent(sub.name)}')">
-                                            <i class="fa-solid fa-paste"></i> Yapıştır
-                                        </button>
-                                        
-                                        <button class="btn btn-secondary" style="padding: 0.5rem;" onclick="openCloudBrowser('${ses.id}', '${encodeURIComponent(sub.name)}')">
-                                            <i class="fa-solid fa-cloud"></i> Buluttan
-                                        </button>
+                                        <div style="display: flex; gap: 8px;">
+                                            <button class="btn btn-secondary" style="padding: 0.75rem 1rem; border-radius:8px;" onclick="pasteLink('${ses.id}', '${encodedSub}')" title="Yapıştır">
+                                                <i class="fa-solid fa-paste"></i>
+                                            </button>
+                                            
+                                            <button class="btn btn-secondary" style="padding: 0.75rem 1rem; border-radius:8px;" onclick="openCloudBrowser('${ses.id}', '${encodedSub}')" title="Buluttan Seç">
+                                                <i class="fa-solid fa-cloud"></i>
+                                            </button>
 
-                                        <input type="file" id="file-${ses.id}-${encodeURIComponent(sub.name)}" style="display:none;" accept="application/pdf" onchange="uploadPdf(this, '${ses.id}', '${sub.name}')">
-                                        <button class="btn btn-primary" style="padding: 0.5rem; background: var(--secondary);" onclick="document.getElementById('file-${ses.id}-${encodeURIComponent(sub.name)}').click()">
-                                            <i class="fa-solid fa-cloud-arrow-up"></i> Yükle
-                                        </button>
+                                            <input type="file" id="file-${ses.id}-${encodedSub}" style="display:none;" accept="application/pdf" onchange="uploadPdf(this, '${ses.id}', '${encodedSub}')">
+                                            <button class="btn btn-primary" style="padding: 0.75rem 1.25rem; border-radius:8px; background: var(--secondary);" onclick="document.getElementById('file-${ses.id}-${encodedSub}').click()">
+                                                <i class="fa-solid fa-cloud-arrow-up"></i> Yükle
+                                            </button>
 
-                                        <button class="btn btn-primary" style="padding: 0.5rem;" onclick="savePdfLink('${ses.id}', '${sub.name}')">
-                                            <i class="fa-solid fa-save"></i> Kaydet
-                                        </button>
+                                            <button class="btn btn-primary" style="padding: 0.75rem 1.5rem; border-radius:8px; font-weight:800;" onclick="savePdfLink('${ses.id}', '${encodedSub}')">
+                                                <i class="fa-solid fa-save"></i> KAYDET
+                                            </button>
+                                        </div>
                                     </div>
-                                    ${currentPdf ? `<p style="font-size: 0.8rem; color: var(--secondary); margin-top:5px;"><i class="fa-solid fa-check"></i> Soru kağıdı kayıtlı.</p>` : ''}
+                                    ${currentPdf ? `<div style="margin-top:12px; display:flex; align-items:center; gap:6px;">
+                                        <span class="badge" style="background:var(--secondary); color:white; font-size:0.75rem; padding: 4px 10px; border-radius:20px;">
+                                            <i class="fa-solid fa-check-circle"></i> Bağlantı Kayıtlı
+                                        </span>
+                                        <a href="${currentPdf}" target="_blank" style="font-size:0.8rem; color:var(--primary); font-weight:600; text-decoration:none;">
+                                            <i class="fa-solid fa-external-link"></i> Önizle
+                                        </a>
+                                    </div>` : ''}
                                 </div>`;
                     } else {
                         // EXAM STARTED -> Live Messaging
-                        html += `<div style="background: #fff5f5; padding: 1rem; border-radius: 8px; border: 1px solid #fecaca; margin-bottom: 1rem;">
-                                    <h5 style="color: var(--danger); margin-top: 0; margin-bottom: 10px;">
-                                        <i class="fa-solid fa-tower-broadcast"></i> Sınav Anı Canlı Mesajlaşma
-                                    </h5>
-                                    <p style="font-size: 0.85rem; color: var(--gray-600); margin-bottom: 10px;">Öğrencilerin akıllı tahta vb. ekranlarında görünecek acil veya uyarı mesajı yazabilirsiniz.</p>
+                        html += `<div style="background: white; padding: 1.5rem; border-radius: 12px; border: 2px solid #fee2e2; box-shadow: var(--shadow-sm);">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                                        <h5 style="color: var(--danger); margin:0; font-weight:900; display:flex; align-items:center; gap:8px;">
+                                            <i class="fa-solid fa-tower-broadcast fa-beat"></i> CANLI MESAJ GÖNDER
+                                        </h5>
+                                        <span style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">Hedef: ${sub.name} Sınavı Alan Tüm Öğrenciler</span>
+                                    </div>
+                                    <p style="font-size: 0.9rem; color: var(--gray-600); margin-bottom: 12px;">Yazacağınız mesaj öğrencilerin/akıllı tahtaların ekranında <b>20 saniye</b> boyunca görünecektir.</p>
                                     <div style="display: flex; gap: 10px;">
-                                        <input type="text" id="msg-${ses.id}" class="form-control" style="flex:1; padding:0.5rem; border:1px solid var(--danger); border-radius:4px;" placeholder="Mesajınız...">
-                                        <button class="btn btn-primary" style="background: var(--danger); border: none; padding: 0.5rem 1rem;" onclick="sendLiveMessage('${ses.id}', '${sub.name}')">
-                                            <i class="fa-solid fa-paper-plane"></i> Gönder
+                                        <input type="text" id="msg-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.85rem; border:2px solid #fecaca; border-radius:10px; font-weight:600;" placeholder="Düzeltme, ek süre veya önemli uyarı...">
+                                        <button class="btn btn-primary" style="background: var(--danger); border: none; padding: 0.85rem 1.5rem; border-radius:10px; font-weight:900;" onclick="sendLiveMessage('${ses.id}', '${encodedSub}')">
+                                            <i class="fa-solid fa-paper-plane"></i> GÖNDER
                                         </button>
                                     </div>
                                 </div>`;
@@ -406,14 +432,15 @@
             }
         }
 
-        async function uploadPdf(input, sesId, subName) {
+        async function uploadPdf(input, sesId, encodedSub) {
             const file = input.files[0];
+            const subName = decodeURIComponent(encodedSub);
             if (!file) return;
 
             // Show loading
             Swal.fire({
                 title: 'Yükleniyor...',
-                text: 'Soru kağıdı buluta aktarılıyor, lütfen bekleyin.',
+                text: `${subName} için soru kağıdı buluta aktarılıyor, lütfen bekleyin.`,
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading() }
             });
@@ -421,7 +448,6 @@
             try {
                 // Reuse ui.js/data.js upload logic
                 const url = await DataManager.uploadFileToSupabase(file);
-                const encodedSub = encodeURIComponent(subName);
                 document.getElementById(`pdfLink-${sesId}-${encodedSub}`).value = url;
                 Swal.close();
                 Swal.fire({
@@ -434,11 +460,11 @@
             input.value = '';
         }
 
-        function savePdfLink(sesId, subName) {
-            const encodedSub = encodeURIComponent(subName);
+        function savePdfLink(sesId, encodedSub) {
+            const subName = decodeURIComponent(encodedSub);
             const link = document.getElementById(`pdfLink-${sesId}-${encodedSub}`).value.trim();
             if (!link) {
-                Swal.fire('Uyarı', 'Lütfen geçerli bir link girin veya yükleyin.', 'warning');
+                Swal.fire('Uyarı', `${subName} için lütfen geçerli bir link girin veya yükleyin.`, 'warning');
                 return;
             }
 
@@ -450,30 +476,30 @@
                 session.subjectMetadata[subName].papers['default'] = link;
                 DataManager.addExamSession(session);
                 Swal.fire({
-                    toast: true, position: 'top-end', icon: 'success', title: 'Soru Kağıdı Kaydedildi', showConfirmButton: false, timer: 1500
+                    toast: true, position: 'top-end', icon: 'success', title: `${subName} Soru Kağıdı Kaydedildi`, showConfirmButton: false, timer: 1500
                 });
                 renderExams();
             }
         }
 
-        function sendLiveMessage(sesId, subName) {
-            const msgInput = document.getElementById(`msg-${sesId}`);
+        function sendLiveMessage(sesId, encodedSub) {
+            const subName = decodeURIComponent(encodedSub);
+            const msgInput = document.getElementById(`msg-${sesId}-${encodedSub}`);
             const text = msgInput.value.trim();
+            // ... (rest same but with encodedSub in ID)
             if (!text) return;
 
             const sessions = DataManager.getExamSessions();
             const session = sessions.find(s => s.id === sesId);
             if (session) {
-                // Initialize array for live messages
                 if (!session.liveMessages) session.liveMessages = [];
 
-                // Add new message
                 session.liveMessages.push({
                     text: text,
                     subject: subName,
                     author: currentUser,
                     timestamp: Date.now(),
-                    expireAt: Date.now() + (10 * 60 * 1000) // Mesaj 10 dakika sonra otomatik kaybolacak
+                    expireAt: Date.now() + (10 * 60 * 1000)
                 });
 
                 DataManager.addExamSession(session);
