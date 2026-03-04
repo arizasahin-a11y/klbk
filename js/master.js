@@ -65,10 +65,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const schoolMap = {};
         for (const [uname, user] of Object.entries(globalUsersDb)) {
             if (uname === 'admin') continue; // Skip master admin
+
+            // Legacy data support (before multiple users per school feature)
+            // If the user has a schoolName but no storeKey, we assume their storeKey is klbk_data_{username}
             const sName = user.schoolName;
-            const sKey = user.storeKey || `klbk_data_${uname}`; // Backwards compatibility
-            if (sName && !schoolMap[sKey]) {
-                schoolMap[sKey] = sName;
+            let sKey = user.storeKey;
+
+            if (sName) {
+                if (!sKey) {
+                    sKey = `klbk_data_${uname}`; // Infer the original storeKey
+                }
+
+                // Only add if we haven't tracked this explicit storeKey yet
+                if (!schoolMap[sKey]) {
+                    schoolMap[sKey] = sName;
+                }
             }
         }
 
@@ -165,12 +176,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const username = regUsernameInput.value.trim();
             const password = regPasswordInput.value;
             const role = regRoleSelect.value;
-            let branch = '';
+            let branch = [];
 
             if (role === 'ogretmen' && !isNewSchool) {
-                branch = regBranchSelect.value;
-                if (!branch) {
-                    showMessage('Lütfen geçerli bir branş seçiniz.', 'error');
+                // Collect selected options for multiple branches
+                const options = Array.from(regBranchSelect.options);
+                branch = options.filter(opt => opt.selected).map(opt => opt.value);
+
+                if (branch.length === 0) {
+                    showMessage('Lütfen geçerli en az bir branş seçiniz.', 'error');
                     return;
                 }
             }
