@@ -1879,16 +1879,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         const currentSubjects = wizardSessionData.subjects;
         const subjectGroups = [];
 
+        // Track ALL students who have been assigned to ANY subject group in this wizard session
+        // This ensures MUTUAL EXCLUSIVITY: a student cannot take two exams in the same session.
+        const studentsAssignedToASubject = new Set();
+
         currentSubjects.forEach(subObj => {
             const subNameNorm = (subObj.name || "").trim().toLocaleUpperCase('tr-TR');
 
-            // Target students who REALLY take this specific subject (robust matching) AND are still available
-            const targetStudents = availableInSchool.filter(s =>
-                (s.dersler || []).some(d => {
+            // Target students who REALLY take this specific subject 
+            // AND are NOT already sitting for a previously parsed subject in this session
+            const targetStudents = availableInSchool.filter(s => {
+                const sno = s.no.toString();
+                if (studentsAssignedToASubject.has(sno)) return false; // Already taking another exam!
+
+                return (s.dersler || []).some(d => {
                     const dn = (d || "").trim().toLocaleUpperCase('tr-TR');
                     return dn === subNameNorm || dn.startsWith(subNameNorm + " ") || subNameNorm.startsWith(dn + " ");
-                })
-            );
+                });
+            });
 
             if (targetStudents.length === 0) return;
 
@@ -1931,6 +1939,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             subjectGroups.push({ subject: subObj, pools });
+
+            // Mark all students in these pools as "assigned" so they can't be picked up by the next subject
+            pools.forEach(p => {
+                p.students.forEach(s => studentsAssignedToASubject.add(s.no.toString()));
+            });
         });
 
         // --- 1.5 Determine who is ACTUALLY CLAIMED based on current checkboxes ---
@@ -2041,7 +2054,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 3. Render HTML
         if (subjectGroups.length === 0) {
             container.innerHTML = `<p style="text-align: center; color: var(--danger); margin-top: 2rem; background: var(--gray-100); padding: 1rem; border-radius: 8px;">
-                <i class="fa-solid fa-circle-exclamation"></i> Seçilen ders(ler)i alan veya mevcut zaman diliminde müsait olan hiçbir öğrenci bulunamadı.</p>`;
+                <i class="fa-solid fa-circle-exclamation"></i> Seçilen ders(ler)i alan hiçbir öğrenci bulunamadı veya tüm potansiyel öğrenciler daha önce eklenen derslere atandı.</p>`;
             // Initialize occupancy state even if empty
             if (!window._wizInitialized) {
                 window._wizInitialized = true;
@@ -2052,80 +2065,42 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         let html = '';
 
-        // We need to keep track of claimed students AS WE RENDER
-        // so that a class selected in biology is completely hidden from math.
-        const renderingClaimedNos = new Set();
-
         subjectGroups.forEach((grp, idx) => {
-            // Filter pools based on whether their students are already claimed by PREVIOUS subjects
-            const visiblePools = [];
+            html += `<h4 style="margin: 1.5rem 0 0.75rem 0; color: var(--primary); font-size: 1rem; border-bottom: 2px solid var(--gray-200); padding-bottom: 0.3rem;">
+                <i class="fa-solid fa-book"></i> ${grp.subject.name} Sınavına Girecek Sınıflar</h4>`;
+            html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem;">`;
 
-            grp.pools.forEach(pool => {
-                // How many students in this pool are NOT YET claimed?
-                const availableStudentsInPool = pool.students.filter(s => {
-                    const sno = s.no.toString();
-                    return !renderingClaimedNos.has(sno);
-                });
+            grp.pools.forEach(inf => {
+                if (!window._wizSeenPools) window._wizSeenPools = new Set();
 
-                // If there's anyone left, we show this pool (class) for this subject
-                if (availableStudentsInPool.length > 0) {
-                    // Update the pool's student list and count to only show available ones
-                    const newPool = { ...pool, students: availableStudentsInPool, count: availableStudentsInPool.length };
-                    visiblePools.push(newPool);
+                if (!window._wizSeenPools.has(inf.pid)) {
+                    window._wizSeenPools.add(inf.pid);
 
-                    // IF this pool is checked, add THESE students to the renderingClaimedNos
-                    if (wizardSessionData.selectedClasses.includes(newPool.pid)) {
-                        newPool.students.forEach(s => {
-                            const sno = s.no.toString();
-                            if (!wizardSessionData.excludedStudents.includes(sno)) {
-                                renderingClaimedNos.add(sno);
-                            }
-                        });
+                    // Since pools are now strictly Mutually Exclusive, we can safely auto-select 
+                    // anything new that appears without fear of conflicts!
+                    if (!wizardSessionData.selectedClasses.includes(inf.pid)) {
+                        wizardSessionData.selectedClasses.push(inf.pid);
                     }
                 }
+
+                const isChecked = wizardSessionData.selectedClasses.includes(inf.pid);
+
+                html += `
+                    <div style="background: white; border: 1px solid var(--gray-200); border-radius: 6px; padding: 0.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" class="wiz-class-cb" value="${inf.pid}" ${isChecked ? 'checked' : ''}>
+                            <div style="flex:1;">
+                                <span style="font-weight:bold;">${inf.displayName}</span>
+                                <span style="font-size:0.8rem; color:var(--gray-500); display:block;">${inf.match} - ${inf.count} Öğrenci</span>
+                            </div>
+                        </label>
+                        <button type="button" class="btn btn-secondary btn-sm" style="width:100%; margin-top:0.5rem; font-size:0.7rem;" onclick="window.wizToggleStudents('${inf.pid.replace(/'/g, "\\'")}')">
+                            <i class="fa-solid fa-users"></i> Seçim Yap(${inf.count})
+                        </button>
+                    </div>
+                `;
             });
-
-            if (visiblePools.length > 0) {
-                html += `<h4 style="margin: 1.5rem 0 0.75rem 0; color: var(--primary); font-size: 1rem; border-bottom: 2px solid var(--gray-200); padding-bottom: 0.3rem;">
-                    <i class="fa-solid fa-book"></i> ${grp.subject.name} Sınavına Girecek Sınıflar</h4>`;
-                html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem;">`;
-
-                visiblePools.forEach(inf => {
-                    if (!window._wizSeenPools) window._wizSeenPools = new Set();
-
-                    if (!window._wizSeenPools.has(inf.pid)) {
-                        window._wizSeenPools.add(inf.pid);
-
-                        // It's safe to auto-select because we already filtered out overlaps above
-                        if (!wizardSessionData.selectedClasses.includes(inf.pid)) {
-                            wizardSessionData.selectedClasses.push(inf.pid);
-                            // Also need to add to renderingClaimedNos since we just auto-selected it
-                            inf.students.forEach(s => {
-                                const sno = s.no.toString();
-                                renderingClaimedNos.add(sno);
-                            });
-                        }
-                    }
-
-                    const isChecked = wizardSessionData.selectedClasses.includes(inf.pid);
-
-                    html += `
-                        <div style="background: white; border: 1px solid var(--gray-200); border-radius: 6px; padding: 0.5rem;">
-                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                <input type="checkbox" class="wiz-class-cb" value="${inf.pid}" ${isChecked ? 'checked' : ''}>
-                                <div style="flex:1;">
-                                    <span style="font-weight:bold;">${inf.displayName}</span>
-                                    <span style="font-size:0.8rem; color:var(--gray-500); display:block;">${inf.match} - ${inf.count} Öğrenci</span>
-                                </div>
-                            </label>
-                            <button type="button" class="btn btn-secondary btn-sm" style="width:100%; margin-top:0.5rem; font-size:0.7rem;" onclick="window.wizToggleStudents('${inf.pid.replace(/'/g, "\\'")}')">
-                                <i class="fa-solid fa-users"></i> Seçim Yap(${inf.count})
-                            </button>
-                        </div>
-                    `;
-                });
-                html += `</div>`;
-            }
+            html += `</div>`;
         });
 
         // Optimization: Only update DOM if HTML changed
