@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const regUsernameInput = document.getElementById('regUsername');
     const regPasswordInput = document.getElementById('regPassword');
+    const regEmailInput = document.getElementById('regEmail');
     const messageBox = document.getElementById('masterMessage');
 
     // Supabase Configuration
@@ -243,6 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const username = regUsernameInput.value.trim();
             const password = regPasswordInput.value;
+            const email = regEmailInput ? regEmailInput.value.trim() : '';
             const role = regRoleSelect.value;
             let branch = [];
 
@@ -293,6 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 password: password,
                 schoolName: schoolNameToUse,
                 storeKey: storeKeyToUse,
+                email: email,
                 role: role,
                 branch: branch
             };
