@@ -235,15 +235,50 @@
 
             let targetSessions = [];
             sessions.forEach(ses => {
-                if (!ses.subjects) return;
-                // Filter subjects that match any of teacher's branches (Precise matching)
-                const matchingSubjects = ses.subjects.filter(sub => {
-                    const subNameStr = (typeof sub === 'object' ? sub.name : sub) || '';
+                if (!ses.subjects && (!ses.results || ses.results.length === 0)) return;
+                
+                // Precise branch matching helper
+                const branchMatches = (sName) => {
+                    if (!sName) return false;
+                    const name = sName.toLowerCase();
                     return myBranches.some(b => {
-                        const branchName = b.toLowerCase();
-                        const subjectName = subNameStr.toLowerCase();
-                        return subjectName === branchName || subjectName.startsWith(branchName + " ");
+                        const bn = b.toLowerCase();
+                        return name === bn || name.startsWith(bn + " ");
                     });
+                };
+
+                const matchingSubjects = [];
+                const seenNames = new Set();
+
+                // 1. Detect ACTUAL subjects from distribution (more accurate for levels like Fizik 9)
+                if (ses.results) {
+                    ses.results.forEach(room => {
+                        Object.values(room.seats).forEach(std => {
+                            if (std.author === currentUser && std._matchedSubject) {
+                                if (branchMatches(std._matchedSubject) && !seenNames.has(std._matchedSubject)) {
+                                    seenNames.add(std._matchedSubject);
+                                    // Map back to original subject for properties like hasGroups
+                                    const orig = (ses.subjects || []).find(s => {
+                                        const n = (typeof s === 'object' ? s.name : s);
+                                        return std._matchedSubject.startsWith(n);
+                                    });
+                                    matchingSubjects.push({
+                                        name: std._matchedSubject,
+                                        hasGroups: orig ? (typeof orig === 'object' ? orig.hasGroups : ses.hasGroups) : ses.hasGroups
+                                    });
+                                }
+                            }
+                        });
+                    });
+                }
+
+                // 2. Fallback to ses.subjects (for pre-distribution view or missing matchedSubject)
+                (ses.subjects || []).forEach(sub => {
+                    const subName = (typeof sub === 'object' ? sub.name : sub);
+                    if (branchMatches(subName) && !seenNames.has(subName)) {
+                        seenNames.add(subName);
+                        matchingSubjects.push(sub);
+                    }
                 });
 
                 if (matchingSubjects.length > 0) {
@@ -266,21 +301,14 @@
                 const diffMins = diffMs / 1000 / 60;
                 const diffEndMins = (endTime - now) / 1000 / 60;
 
-                // Stop showing very old exams (e.g. 2 hours after end)
                 if (diffEndMins < -120) return;
 
                 let stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : 'near'));
-                const displayTime = ses.time;
                 const isOpen = openSessions.has(ses.id);
 
-                let timerDisplayHtml = '';
-                if (stateCode === 'finished') {
-                    timerDisplayHtml = `<div class="countdown" id="cd-${ses.id}" style="color:var(--gray-500)">BİTTİ</div>`;
-                } else if (stateCode === 'active') {
-                    timerDisplayHtml = `<div class="countdown" id="cd-${ses.id}" style="color:var(--danger)">DEVAM EDİYOR</div>`;
-                } else {
-                    timerDisplayHtml = `<div class="countdown" id="cd-${ses.id}">${formatCountdown(diffMs)}</div>`;
-                }
+                let timerDisplayHtml = stateCode === 'finished' ? `<div class="countdown" id="cd-${ses.id}" style="color:var(--gray-500)">BİTTİ</div>`
+                    : (stateCode === 'active' ? `<div class="countdown" id="cd-${ses.id}" style="color:var(--danger)">DEVAM EDİYOR</div>`
+                    : `<div class="countdown" id="cd-${ses.id}">${formatCountdown(diffMs)}</div>`);
 
                 html += `<div class="exam-card" data-ses-id="${ses.id}">
                             <div class="exam-header" onclick="toggleSession('${ses.id}')">
@@ -289,7 +317,7 @@
                                         <i class="fa-solid fa-clock"></i> OTURUM
                                     </div>
                                     <h4 style="margin:0; font-weight:900;">${ses.name}</h4>
-                                    <small style="color:var(--gray-500)">${ses.date} ${displayTime}</small>
+                                    <small style="color:var(--gray-500)">${ses.date} ${ses.time}</small>
                                 </div>
                                 <div style="display: flex; align-items:center; gap: 10px;">
                                     <div class="print-tools" style="display: flex; align-items: center; gap: 12px; background: #f1f5f9; padding: 5px 12px; border-radius: 30px; border: 1px solid var(--gray-200); margin-right: 5px;" onclick="event.stopPropagation()">
@@ -313,23 +341,17 @@
                             </div>
                             <div class="details-panel ${isOpen ? '' : 'hidden'}">`;
 
-                // Render subjects list
                 subjectsObj.forEach(sub => {
                     const subNameStr = (typeof sub === 'object' ? sub.name : sub);
                     const encodedSub = encodeURIComponent(subNameStr);
                     const subId = ses.id + "|" + encodedSub;
                     const isSubOpen = openSubjects.has(subId);
 
-                    const meta = ses.subjectMetadata && ses.subjectMetadata[subNameStr] ? ses.subjectMetadata[subNameStr] : {};
+                    const meta = (ses.subjectMetadata && ses.subjectMetadata[subNameStr]) || {};
                     let currentPdf = '';
                     if (meta.papers) {
-                        // If it's a string, use it (backward compatibility)
-                        if (typeof meta.papers === 'string') {
-                            currentPdf = meta.papers;
-                        } else {
-                            // Use 'default' or first available group paper if default not found
-                            currentPdf = meta.papers['default'] || Object.values(meta.papers)[0] || '';
-                        }
+                        if (typeof meta.papers === 'string') currentPdf = meta.papers;
+                        else currentPdf = meta.papers['default'] || Object.values(meta.papers)[0] || '';
                     }
 
                     html += `<div class="nested-accordion" style="margin-bottom: 1.5rem; border: 2px solid ${isSubOpen ? 'var(--primary-light)' : 'var(--gray-200)'};">
@@ -339,15 +361,14 @@
                                             <i class="fa-solid ${currentPdf ? 'fa-check' : 'fa-book'}"></i>
                                         </div>
                                         <div>
-                                            <div style="font-weight:900; font-size:1.1rem;">${(typeof sub === 'object' ? sub.name : sub)}</div>
+                                            <div style="font-weight:900; font-size:1.1rem;">${subNameStr}</div>
                                             <div style="font-size:0.75rem; color:var(--gray-500);">${currentPdf ? 'Sınav kağıdı yüklendi' : 'Sınav kağıdı bekleniyor...'}</div>
                                         </div>
                                     </div>
                                     <i class="fa-solid fa-angle-${isSubOpen ? 'up' : 'down'}" style="color:var(--gray-400)"></i>
                                 </div>
-                                <div class="nested-content ${isSubOpen ? '' : 'hidden'}" style="background-color: #fafbfc;">`;
+                                <div class="nested-content ${isSubOpen ? '' : 'hidden'}" style="background-color: #fafbfc; padding: 1rem;">`;
 
-                    // PDF Settings Box (Always visible for teacher)
                     const hasGroups = (typeof sub === 'object' && sub.hasGroups) || ses.hasGroups;
                     const groupCount = ses.groupCount || 2;
                     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -359,39 +380,22 @@
                             const groupPdf = (meta.papers && meta.papers[groupLetter]) || '';
                             papersHtml += `
                                 <div style="flex:1; min-width:300px; margin-bottom:12px; background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0;">
-                                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--primary); text-transform:uppercase; display: block; margin-bottom: 5px;">
-                                        Grup ${groupLetter} Soru Kağıdı (URL)
-                                    </label>
+                                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--primary); text-transform:uppercase; display: block; margin-bottom: 5px;">Grup ${groupLetter} Soru Kağıdı</label>
                                     <div style="display: flex; gap: 6px;">
-                                        <input type="text" id="pdfLink-${ses.id}-${encodedSub}-${groupLetter}" 
-                                            class="form-control" style="flex:1; padding:0.5rem; border:1px solid var(--gray-300); border-radius:6px; font-weight:600; font-size:0.85rem;" 
-                                            placeholder="https://..." value="${groupPdf}">
-                                        <button class="btn btn-primary" style="padding: 0.4rem 0.8rem; border-radius:6px; font-weight:800; font-size:0.75rem;" onclick="savePdfLink('${ses.id}', '${encodedSub}', '${groupLetter}')">
-                                            <i class="fa-solid fa-save"></i>
-                                        </button>
+                                        <input type="text" id="pdfLink-${ses.id}-${encodedSub}-${groupLetter}" class="form-control" style="flex:1; padding:0.55rem; border:1px solid var(--gray-300); border-radius:6px; font-weight:600; font-size:0.85rem;" placeholder="PDF URL" value="${groupPdf}">
+                                        <button class="btn btn-primary" style="padding: 0.4rem 0.8rem; border-radius:6px; font-weight:800;" onclick="savePdfLink('${ses.id}', '${encodedSub}', '${groupLetter}')"><i class="fa-solid fa-save"></i></button>
                                     </div>
-                                    ${groupPdf ? `<div style="margin-top:5px;"><a href="${groupPdf}" target="_blank" style="font-size:0.7rem; color:var(--primary); font-weight:600; text-decoration:none;"><i class="fa-solid fa-external-link"></i> Önizle</a></div>` : ''}
+                                    ${groupPdf ? `<div style="margin-top:5px;"><a href="${groupPdf}" target="_blank" style="font-size:0.7rem; color:var(--primary); font-weight:600;"><i class="fa-solid fa-external-link"></i> Önizle</a></div>` : ''}
                                 </div>`;
                         }
                     } else {
                         papersHtml = `
-                            <div style="flex:1; min-width: 300px;">
-                                <label style="font-size: 0.75rem; font-weight: 700; color: var(--gray-500); text-transform:uppercase; display: block; margin-bottom: 6px;">
-                                    Dosya Bağlantısı (URL)
-                                </label>
+                            <div style="flex:1;">
+                                <label style="font-size: 0.75rem; font-weight: 700; color: var(--gray-500); text-transform:uppercase; display: block; margin-bottom: 6px;">Soru Kağıdı Bağlantısı</label>
                                 <div style="display: flex; gap: 8px;">
-                                    <input type="text" id="pdfLink-${ses.id}-${encodedSub}" 
-                                        class="form-control" style="flex:1; padding:0.75rem; border:2px solid var(--gray-200); border-radius:8px; font-weight:600;" 
-                                        placeholder="https://..." value="${currentPdf}">
-                                    <button class="btn btn-primary" style="padding: 0.75rem 1.5rem; border-radius:8px; font-weight:800;" onclick="savePdfLink('${ses.id}', '${encodedSub}')">
-                                        <i class="fa-solid fa-save"></i> KAYDET
-                                    </button>
+                                    <input type="text" id="pdfLink-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.75rem; border:2px solid var(--gray-200); border-radius:8px; font-weight:600;" placeholder="https://..." value="${currentPdf}">
+                                    <button class="btn btn-primary" style="padding: 0.75rem 1.5rem; border-radius:8px; font-weight:800;" onclick="savePdfLink('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-save"></i> KAYDET</button>
                                 </div>
-                                ${currentPdf ? `<div style="margin-top:10px; display:flex; align-items:center; gap:6px;">
-                                    <a href="${currentPdf}" target="_blank" style="font-size:0.8rem; color:var(--primary); font-weight:600; text-decoration:none;">
-                                        <i class="fa-solid fa-external-link"></i> Önizle
-                                    </a>
-                                </div>` : ''}
                             </div>`;
                     }
 
@@ -399,9 +403,7 @@
                                 <h5 style="margin-top:0; margin-bottom:15px; font-weight:800; color:var(--dark); display:flex; align-items:center; gap:8px;">
                                     <i class="fa-solid fa-file-pdf" style="color:var(--danger)"></i> Sınav Kağıdı Ayarları
                                 </h5>
-                                <div style="display: flex; flex-direction: column; gap: 10px;">
-                                    ${papersHtml}
-                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">${papersHtml}</div>
                                 <div style="margin-top:15px; padding-top:15px; border-top:1px dashed var(--gray-200); display: flex; gap: 10px; justify-content: flex-end;">
                                      <button class="btn btn-secondary btn-sm" onclick="pasteLink('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-paste"></i> Yapıştır</button>
                                      <button class="btn btn-secondary btn-sm" onclick="openCloudBrowser('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-cloud"></i> Buluttan Seç</button>
@@ -410,37 +412,31 @@
                                 </div>
                             </div>`;
 
-                    // CANLI MESAJ GÖNDER (Sadece sınav sırasında veya bitmişse)
                     if (diffMins <= 0 && diffEndMins >= -120) {
                         html += `<div style="background: white; padding: 1.5rem; border-radius: 12px; border: 2px solid #fee2e2; box-shadow: var(--shadow-sm);">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                                         <h5 style="color: var(--danger); margin:0; font-weight:900; display:flex; align-items:center; gap:8px;">
                                             <i class="fa-solid fa-tower-broadcast fa-beat"></i> CANLI MESAJ GÖNDER
                                         </h5>
-                                        <span style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">Hedef: ${subNameStr} Sınavı Alan Tüm Öğrenciler</span>
+                                        <span style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">Hedef: ${subNameStr}</span>
                                     </div>
                                     <div style="display: flex; gap: 10px;">
-                                        <input type="text" id="msg-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.85rem; border:2px solid #fecaca; border-radius:10px; font-weight:600;" placeholder="Düzeltme, ek süre veya önemli uyarı...">
-                                        <button class="btn btn-primary" style="background: var(--danger); border: none; padding: 0.85rem 1.5rem; border-radius:10px; font-weight:900;" onclick="sendLiveMessage('${ses.id}', '${encodedSub}')">
-                                            <i class="fa-solid fa-paper-plane"></i> GÖNDER
-                                        </button>
+                                        <input type="text" id="msg-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.85rem; border:2px solid #fecaca; border-radius:10px; font-weight:600;" placeholder="Mesaj yazın...">
+                                        <button class="btn btn-primary" style="background: var(--danger); border: none; padding: 0.85rem 1.5rem; border-radius:10px; font-weight:900;" onclick="sendLiveMessage('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-paper-plane"></i> GÖNDER</button>
                                     </div>
                                 </div>`;
                     }
-
-                    html += `   </div> <!-- Close nested-content -->
-                            </div> <!-- Close nested-accordion -->`;
+                    html += `   </div></div>`;
                 });
-
-                html += `</div></div>`; // Close details-panel and exam-card
+                html += `</div></div>`;
             });
 
             if (html === '') {
                 html = '<div class="glass-panel" style="padding: 2rem; text-align: center; color: var(--gray-500); font-weight: 600;">Şu an aktif bir sınavınız bulunmuyor.</div>';
             }
-
             listContainer.innerHTML = html;
         }
+
 
         function updateAllTimers() {
             const now = getNow();
