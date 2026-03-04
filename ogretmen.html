@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Öğretmen Sınav Yönetim Paneli</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .query-container {
+            width: 1200px;
+            max-width: 95%;
+            margin: 2rem auto;
+            padding: 1rem;
+        }
+
+        .exam-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-200);
+            transition: var(--transition);
+        }
+
+        .exam-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .countdown {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.2rem;
+            background: #eef2ff;
+            padding: 0.3rem 0.8rem;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 4px rgba(79, 70, 229, 0.05);
+        }
+
+        .details-panel {
+            margin-top: 1.5rem;
+            border-top: 1px dashed var(--gray-300);
+            padding-top: 1.5rem;
+        }
+
+        /* Nested Accordion for subjects */
+        .nested-accordion {
+            margin-bottom: 1rem;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--gray-200);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nested-header {
+            background: var(--gray-50);
+            padding: 1rem 1.25rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition);
+            color: var(--dark);
+            font-size: 1.05rem;
+        }
+
+        .nested-header:hover {
+            background: white;
+            color: var(--primary);
+        }
+
+        .nested-content {
+            padding: 1.5rem;
+            background: white;
+        }
+
+        .student-top-banner {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: linear-gradient(135deg, var(--secondary), #059669);
+            color: white;
+            padding: 0.8rem 2rem;
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.2);
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+        }
+    </style>
+</head>
+
+<body style="background-color: var(--bg-color); visibility: hidden;">
+    <div id="timeSyncStatus"
+        style="position: fixed; bottom: 20px; right: 20px; font-size: 0.75rem; color: var(--gray-500); background: rgba(255, 255, 255, 0.95); padding: 6px 16px; border-radius: 30px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        İnternet saati ile senkronize ediliyor...
+    </div>
+
+    <div class="student-top-banner">
+        <div>
+            <div style="font-size: 0.8rem; opacity: 0.9; font-weight: 700; text-transform: uppercase;">Öğretmen Sınav
+                Masası</div>
+            <h2 id="teacherNameDisplay" style="margin:0; font-weight: 900; font-size: 1.5rem; line-height: 1.2;">
+            </h2>
+            <p id="teacherBranchDisplay" style="margin:0; opacity: 0.9; font-size: 0.95rem; font-weight: 600;"></p>
+        </div>
+        <button class="btn" onclick="logout()"
+            style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem; border-radius: 10px; font-weight: 600;">
+            <i class="fa-solid fa-right-from-bracket"></i> Çıkış
+        </button>
+    </div>
+
+    <div class="query-container" style="margin-top: 0;">
+        <div id="examsList"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/data.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Check Auth
+        if (sessionStorage.getItem('klbk_isLoggedIn') !== 'true' || sessionStorage.getItem('klbk_role') !== 'ogretmen') {
+            window.location.href = 'index.html';
+        }
+
+        const currentUser = sessionStorage.getItem('klbk_currentUser');
+        const rawBranch = sessionStorage.getItem('klbk_branch') || '';
+        let myBranches = [];
+        try {
+            // It could be a JSON array string or a comma-separated string depending on what auth.js stored.
+            if (rawBranch.startsWith('[')) myBranches = JSON.parse(rawBranch);
+            else myBranches = rawBranch.split(',').map(b => b.trim());
+        } catch (e) {
+            myBranches = rawBranch.split(',').map(b => b.trim());
+        }
+
+        document.getElementById('teacherNameDisplay').textContent = currentUser;
+        document.getElementById('teacherBranchDisplay').textContent = "Branş(lar): " + myBranches.join(', ');
+
+        let timerInterval = null;
+        let trustedBaseTime = 0;
+        let performanceAtSync = 0;
+        let openSessions = new Set();
+        let openSubjects = new Set();
+
+        async function syncTime() {
+            const statusEl = document.getElementById('timeSyncStatus');
+            try {
+                const startTime = Date.now();
+                const response = await fetch('https://worldtimeapi.org/api/ip');
+                const data = await response.json();
+                const serverTime = new Date(data.datetime).getTime();
+                const endTime = Date.now();
+                const latency = (endTime - startTime) / 2;
+                trustedBaseTime = serverTime + latency;
+                performanceAtSync = performance.now();
+                statusEl.innerHTML = '<i class="fa-solid fa-cloud-check"></i> İnternet saati ile senkronize';
+                statusEl.style.color = 'var(--secondary)';
+            } catch (err) {
+                console.error("Time sync failed:", err);
+                statusEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Cihaz saati kullanılıyor';
+                statusEl.style.color = 'var(--danger)';
+                trustedBaseTime = Date.now();
+                performanceAtSync = performance.now();
+            }
+
+            statusEl.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Veriler İndiriliyor...';
+            statusEl.style.color = 'var(--primary)';
+            await DataManager.initCloud();
+            statusEl.classList.add('hidden');
+
+            document.body.style.visibility = 'visible';
+            renderExams();
+            timerInterval = setInterval(updateAllTimers, 1000);
+        }
+
+        function getNow() {
+            if (trustedBaseTime === 0) return new Date();
+            return new Date(trustedBaseTime + (performance.now() - performanceAtSync));
+        }
+
+        syncTime();
+
+        function logout() {
+            sessionStorage.clear();
+            localStorage.removeItem('klbk_student_session');
+            window.location.href = 'index.html';
+        }
+
+        function toggleSession(id) {
+            if (openSessions.has(id)) openSessions.delete(id);
+            else openSessions.add(id);
+            renderExams();
+        }
+
+        function toggleSubject(sesId, subNameStr) {
+            const compositeId = sesId + "|" + subNameStr;
+            if (openSubjects.has(compositeId)) openSubjects.delete(compositeId);
+            else openSubjects.add(compositeId);
+            renderExams(); // Re-render to show/hide
+        }
+
+        function renderExams() {
+            const sessions = DataManager.getExamSessions();
+            const listContainer = document.getElementById('examsList');
+            const now = getNow();
+
+            let targetSessions = [];
+            sessions.forEach(ses => {
+                if (!ses.subjects) return;
+                // Filter subjects that match any of teacher's branches
+                const matchingSubjects = ses.subjects.filter(sub => {
+                    return myBranches.some(b => sub.name.toLowerCase().includes(b.toLowerCase()));
+                });
+
+                if (matchingSubjects.length > 0) {
+                    targetSessions.push({ session: ses, matchingSubjects });
+                }
+            });
+
+            if (targetSessions.length === 0) {
+                listContainer.innerHTML = '<div class="glass-panel" style="padding: 2rem; text-align: center; color: var(--gray-500); font-weight: 600;">Şu an size tanımlı herhangi bir sınav görünmüyor.</div>';
+                return;
+            }
+
+            let html = '';
+            targetSessions.forEach(item => {
+                const ses = item.session;
+                const subjectsObj = item.matchingSubjects;
+                const targetTime = parseDateTime(ses.date, ses.time);
+                const endTime = getExamEndTime(ses.date, ses.time);
+                const diffMs = targetTime - now;
+                const diffMins = diffMs / 1000 / 60;
+                const diffEndMins = (endTime - now) / 1000 / 60;
+
+                // Stop showing very old exams (e.g. 2 hours after end)
+                if (diffEndMins < -120) return;
+
+                let stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : 'near'));
+                const displayTime = ses.time;
+                const isOpen = openSessions.has(ses.id);
+
+                let timerDisplayHtml = '';
+                if (stateCode === 'finished') {
+                    timerDisplayHtml = `<div class="countdown" id="cd-${ses.id}" style="color:var(--gray-500)">BİTTİ</div>`;
+                } else if (stateCode === 'active') {
+                    timerDisplayHtml = `<div class="countdown" id="cd-${ses.id}" style="color:var(--danger)">DEVAM EDİYOR</div>`;
+                } else {
+                    timerDisplayHtml = `<div class="countdown" id="cd-${ses.id}">${formatCountdown(diffMs)}</div>`;
+                }
+
+                html += `<div class="exam-card" data-ses-id="${ses.id}">
+                            <div class="exam-header" onclick="toggleSession('${ses.id}')">
+                                <div style="flex:1">
+                                    <div style="font-size: 0.75rem; color: var(--secondary); font-weight: 700; margin-bottom: 4px;">
+                                        <i class="fa-solid fa-clock"></i> OTURUM
+                                    </div>
+                                    <h4 style="margin:0; font-weight:900;">${ses.name}</h4>
+                                    <small style="color:var(--gray-500)">${ses.date} ${displayTime}</small>
+                                </div>
+                                <div style="display: flex; align-items:center; gap: 10px;">
+                                    ${timerDisplayHtml}
+                                    <i class="fa-solid fa-chevron-down" style="color:var(--gray-400); transition:0.3s; transform: ${isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}"></i>
+                                </div>
+                            </div>
+                            <div class="details-panel ${isOpen ? '' : 'hidden'}">`;
+
+                // Render subjects accordion
+                subjectsObj.forEach(sub => {
+                    const subId = ses.id + "|" + encodeURIComponent(sub.name);
+                    const isSubOpen = openSubjects.has(subId);
+
+                    html += `<div class="nested-accordion">
+                                <div class="nested-header" onclick="toggleSubject('${ses.id}', '${encodeURIComponent(sub.name)}')">
+                                    <span><i class="fa-solid fa-book" style="margin-right:8px; color:var(--primary);"></i> ${sub.name}</span>
+                                    <i class="fa-solid fa-angle-${isSubOpen ? 'up' : 'down'}"></i>
+                                </div>
+                                <div class="nested-content ${isSubOpen ? '' : 'hidden'}">`;
+
+                    if (diffMins > 0) {
+                        // EXAM NOT STARTED -> PDF Settings
+                        const meta = ses.subjectMetadata && ses.subjectMetadata[sub.name] ? ses.subjectMetadata[sub.name] : {};
+                        const currentPdf = meta.papers && meta.papers['default'] ? meta.papers['default'] : '';
+
+                        html += `<div style="margin-bottom: 1rem;">
+                                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--gray-600); display: block; margin-bottom: 4px;">
+                                        Soru Kağıdı PDF Linki (veya Buluttan Yükleyin)
+                                    </label>
+                                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                        <input type="text" id="pdfLink-${ses.id}-${encodeURIComponent(sub.name)}" 
+                                            class="form-control" style="flex:1; padding:0.5rem; border:1px solid var(--gray-300); border-radius:4px;" 
+                                            placeholder="Soru kağıdı bağlantısı..." value="${currentPdf}">
+                                        
+                                        <button class="btn btn-secondary" style="padding: 0.5rem;" onclick="pasteLink('${ses.id}', '${encodeURIComponent(sub.name)}')">
+                                            <i class="fa-solid fa-paste"></i> Yapıştır
+                                        </button>
+                                        
+                                        <input type="file" id="file-${ses.id}-${encodeURIComponent(sub.name)}" style="display:none;" accept="application/pdf" onchange="uploadPdf(this, '${ses.id}', '${sub.name}')">
+                                        <button class="btn btn-primary" style="padding: 0.5rem; background: var(--secondary);" onclick="document.getElementById('file-${ses.id}-${encodeURIComponent(sub.name)}').click()">
+                                            <i class="fa-solid fa-cloud-arrow-up"></i> Yükle
+                                        </button>
+
+                                        <button class="btn btn-primary" style="padding: 0.5rem;" onclick="savePdfLink('${ses.id}', '${sub.name}')">
+                                            <i class="fa-solid fa-save"></i> Kaydet
+                                        </button>
+                                    </div>
+                                    ${currentPdf ? `<p style="font-size: 0.8rem; color: var(--secondary); margin-top:5px;"><i class="fa-solid fa-check"></i> Soru kağıdı kayıtlı.</p>` : ''}
+                                </div>`;
+                    } else {
+                        // EXAM STARTED -> Live Messaging
+                        html += `<div style="background: #fff5f5; padding: 1rem; border-radius: 8px; border: 1px solid #fecaca; margin-bottom: 1rem;">
+                                    <h5 style="color: var(--danger); margin-top: 0; margin-bottom: 10px;">
+                                        <i class="fa-solid fa-tower-broadcast"></i> Sınav Anı Canlı Mesajlaşma
+                                    </h5>
+                                    <p style="font-size: 0.85rem; color: var(--gray-600); margin-bottom: 10px;">Öğrencilerin akıllı tahta vb. ekranlarında görünecek acil veya uyarı mesajı yazabilirsiniz.</p>
+                                    <div style="display: flex; gap: 10px;">
+                                        <input type="text" id="msg-${ses.id}" class="form-control" style="flex:1; padding:0.5rem; border:1px solid var(--danger); border-radius:4px;" placeholder="Mesajınız...">
+                                        <button class="btn btn-primary" style="background: var(--danger); border: none; padding: 0.5rem 1rem;" onclick="sendLiveMessage('${ses.id}', '${sub.name}')">
+                                            <i class="fa-solid fa-paper-plane"></i> Gönder
+                                        </button>
+                                    </div>
+                                </div>`;
+                    }
+
+                    html += `   </div>
+                            </div>`;
+                });
+
+                html += `</div></div>`;
+            });
+
+            if (html === '') {
+                html = '<div class="glass-panel" style="padding: 2rem; text-align: center; color: var(--gray-500); font-weight: 600;">Şu an aktif bir sınavınız bulunmuyor.</div>';
+            }
+
+            listContainer.innerHTML = html;
+        }
+
+        function updateAllTimers() {
+            const now = getNow();
+            const sessions = DataManager.getExamSessions();
+            let needsRender = false;
+            sessions.forEach(ses => {
+                const el = document.getElementById(`cd-${ses.id}`);
+                if (el) {
+                    const targetTime = parseDateTime(ses.date, ses.time);
+                    const endTime = getExamEndTime(ses.date, ses.time);
+                    const diffMs = targetTime - now;
+                    const diffMins = diffMs / 1000 / 60;
+                    const diffEndMins = (endTime - now) / 1000 / 60;
+
+                    if (diffEndMins < 0) {
+                        el.innerText = 'BİTTİ';
+                        el.style.color = 'var(--gray-500)';
+                    } else if (diffMins <= 0) {
+                        el.innerText = 'DEVAM EDİYOR';
+                        el.style.color = 'var(--danger)';
+                        // Need re-render if we transitioned to active so PDF box becomes Msg Box
+                        if (el.dataset.prev !== 'active') {
+                            el.dataset.prev = 'active';
+                            needsRender = true;
+                        }
+                    } else {
+                        el.innerText = formatCountdown(diffMs);
+                        if (el.dataset.prev === 'active') {
+                            el.dataset.prev = 'waiting';
+                            needsRender = true;
+                        }
+                    }
+                }
+            });
+            if (needsRender) renderExams();
+        }
+
+        async function pasteLink(sesId, encodedSub) {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById(`pdfLink-${sesId}-${encodedSub}`).value = text;
+            } catch (err) {
+                Swal.fire('Hata', 'Panodan yapıştırılamadı. Lütfen manuel yapıştırın.', 'error');
+            }
+        }
+
+        async function uploadPdf(input, sesId, subName) {
+            const file = input.files[0];
+            if (!file) return;
+
+            // Show loading
+            Swal.fire({
+                title: 'Yükleniyor...',
+                text: 'Soru kağıdı buluta aktarılıyor, lütfen bekleyin.',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading() }
+            });
+
+            try {
+                // Reuse ui.js/data.js upload logic
+                const url = await DataManager.uploadFileToSupabase(file);
+                const encodedSub = encodeURIComponent(subName);
+                document.getElementById(`pdfLink-${sesId}-${encodedSub}`).value = url;
+                Swal.close();
+                Swal.fire({
+                    toast: true, position: 'top-end', icon: 'success', title: 'Dosya yüklendi!', showConfirmButton: false, timer: 1500
+                });
+            } catch (err) {
+                console.error(err);
+                Swal.fire('Hata', 'Dosya yüklenemedi: ' + err.message, 'error');
+            }
+            input.value = '';
+        }
+
+        function savePdfLink(sesId, subName) {
+            const encodedSub = encodeURIComponent(subName);
+            const link = document.getElementById(`pdfLink-${sesId}-${encodedSub}`).value.trim();
+            if (!link) {
+                Swal.fire('Uyarı', 'Lütfen geçerli bir link girin veya yükleyin.', 'warning');
+                return;
+            }
+
+            const sessions = DataManager.getExamSessions();
+            const session = sessions.find(s => s.id === sesId);
+            if (session) {
+                if (!session.subjectMetadata) session.subjectMetadata = {};
+                if (!session.subjectMetadata[subName]) session.subjectMetadata[subName] = { papers: {} };
+                session.subjectMetadata[subName].papers['default'] = link;
+                DataManager.addExamSession(session);
+                Swal.fire({
+                    toast: true, position: 'top-end', icon: 'success', title: 'Soru Kağıdı Kaydedildi', showConfirmButton: false, timer: 1500
+                });
+                renderExams();
+            }
+        }
+
+        function sendLiveMessage(sesId, subName) {
+            const msgInput = document.getElementById(`msg-${sesId}`);
+            const text = msgInput.value.trim();
+            if (!text) return;
+
+            const sessions = DataManager.getExamSessions();
+            const session = sessions.find(s => s.id === sesId);
+            if (session) {
+                // Initialize array for live messages
+                if (!session.liveMessages) session.liveMessages = [];
+
+                // Add new message
+                session.liveMessages.push({
+                    text: text,
+                    subject: subName,
+                    author: currentUser,
+                    timestamp: Date.now(),
+                    expireAt: Date.now() + (10 * 60 * 1000) // Mesaj 10 dakika sonra otomatik kaybolacak
+                });
+
+                DataManager.addExamSession(session);
+
+                Swal.fire({
+                    toast: true, position: 'top-end', icon: 'success', title: 'Mesaj Gönderildi', showConfirmButton: false, timer: 1500
+                });
+                msgInput.value = '';
+            }
+        }
+
+        // Helper functions
+        function getSchoolSettings() { return DataManager.getSchoolSettings(); }
+
+        function parseDateTime(dateStr, timeStr) {
+            if (dateStr.includes('.')) {
+                const parts = dateStr.split('.');
+                if (parts.length === 3 && parts[0].length === 2) {
+                    dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+            }
+            if (timeStr.includes('. Ders')) {
+                const lessonNum = parseInt(timeStr);
+                const school = getSchoolSettings();
+                const lessonTimes = school.lessonTimes || {};
+                const startTime = lessonTimes[`${lessonNum}_start`];
+                if (startTime) timeStr = startTime;
+                else timeStr = `08:40`;
+            } else if (timeStr.includes(':')) {
+                const [h, m] = timeStr.split(':');
+                timeStr = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+            }
+            return new Date(`${dateStr}T${timeStr}:00`);
+        }
+
+        function getExamEndTime(dateStr, timeStr) {
+            const startTime = parseDateTime(dateStr, timeStr);
+            let endTime = new Date(startTime.getTime() + 40 * 60000); // 40 dk varsayılan
+            if (timeStr.includes('. Ders')) {
+                const lessonNum = parseInt(timeStr);
+                const school = getSchoolSettings();
+                const lessonTimes = school.lessonTimes || {};
+                const endStr = lessonTimes[`${lessonNum}_end`];
+                if (endStr) {
+                    let ds = dateStr;
+                    if (ds.includes('.')) {
+                        const parts = ds.split('.');
+                        if (parts.length === 3 && parts[0].length === 2) { ds = `${parts[2]}-${parts[1]}-${parts[0]}`; }
+                    }
+                    endTime = new Date(`${ds}T${endStr}:00`);
+                }
+            }
+            return endTime;
+        }
+
+        function formatCountdown(ms) {
+            if (ms < 0) return "00:00";
+            const s = Math.floor(ms / 1000);
+            const m = Math.floor(s / 60);
+            return `${m.toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+        }
+    </script>
+</body>
+
+</html>

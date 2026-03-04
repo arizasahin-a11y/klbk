@@ -417,6 +417,44 @@
 
     <div id="timeSyncStatus">İnternet saati senkronize ediliyor...</div>
 
+    <!-- Live Message Modal -->
+    <div id="liveMessageModal" class="hidden"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10000; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: flex-start; padding-top: 50px;">
+        <div class="glass-panel"
+            style="background: white; width: 90%; max-width: 800px; padding: 2.5rem; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border-left: 8px solid var(--danger); position: relative; animation: slideDown 0.4s ease-out;">
+            <button onclick="document.getElementById('liveMessageModal').classList.add('hidden')"
+                style="position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 1.5rem; color: var(--gray-400); cursor: pointer; transition: 0.2s;"><i
+                    class="fa-solid fa-xmark"></i></button>
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                <div
+                    style="width: 50px; height: 50px; background: #fef2f2; color: var(--danger); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                    <i class="fa-solid fa-bell fa-shake"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; color: var(--danger); font-weight: 900; font-size: 1.4rem;">GÖREVLİ ÖĞRETMEN
+                        UYARISI</h3>
+                    <div id="liveMessageAuthor" style="font-size: 0.9rem; color: var(--gray-500); font-weight: 600;">
+                    </div>
+                </div>
+            </div>
+            <p id="liveMessageText"
+                style="font-size: 1.8rem; font-weight: 700; color: var(--dark); line-height: 1.4; margin: 0;"></p>
+        </div>
+    </div>
+    <style>
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+
     <div class="query-container hidden" id="loginView">
         <div class="login-card glass-panel" style="max-width: 400px; margin: 0 auto; margin-top: 100px;">
             <div class="login-header">
@@ -1081,6 +1119,30 @@
             }
 
             if (activeSession && activeRoomData) {
+                // Live Message Logic (Smartboard overlay)
+                if (activeSession.liveMessages && activeSession.liveMessages.length > 0) {
+                    const latestMsg = activeSession.liveMessages.filter(m => m.expireAt > now).sort((a, b) => b.timestamp - a.timestamp)[0];
+                    const modal = document.getElementById('liveMessageModal');
+
+                    if (latestMsg) {
+                        if (window.lastShownMessageId !== latestMsg.timestamp) {
+                            document.getElementById('liveMessageText').textContent = latestMsg.text;
+                            document.getElementById('liveMessageAuthor').innerHTML = `<i class="fa-solid fa-chalkboard-user"></i> ${latestMsg.author} (${latestMsg.subject})`;
+                            modal.classList.remove('hidden');
+                            window.lastShownMessageId = latestMsg.timestamp;
+
+                            setTimeout(() => {
+                                if (window.lastShownMessageId === latestMsg.timestamp) {
+                                    modal.classList.add('hidden');
+                                }
+                            }, 20000);
+                        }
+                    } else if (modal) {
+                        modal.classList.add('hidden');
+                        window.lastShownMessageId = null;
+                    }
+                }
+
                 // If we aren't already showing THIS session in full screen, show it
                 if (currentFullScreenSessionId !== activeSession.id && !userClosedFullScreen) {
                     currentFullScreenSessionId = activeSession.id;

@@ -115,8 +115,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Redirect logic
                 setTimeout(() => {
-                    // Everyone gets directed to dashboard. The school name is fetched dynamically by data.js later via klbk_currentUser
-                    window.location.href = 'dashboard.html';
+                    if (usersDb[username].role === 'ogretmen') {
+                        window.location.href = 'ogretmen.html';
+                    } else {
+                        window.location.href = 'dashboard.html';
+                    }
                 }, 1000);
             } else {
                 showMessage(loginMessageBox, 'Hatalı kullanıcı adı veya şifre.', 'error');
