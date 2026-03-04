@@ -965,10 +965,26 @@
                 });</script>`;
     }
 
-            const win = window.open('', '_blank');
-            win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${session.name} - ${modeLabel}</title><style>${pageCss}</style></head><body>${body}<script>window.onload=()=>setTimeout(()=>window.print(),500);</script></body></html>`);
-            win.document.close();
-        };
+    const win = window.open('', '_blank');
+    win.document.write(`
+    <!DOCTYPE html>
+    <html>
+
+    <head>
+        <meta charset="UTF-8">
+        <title>${session.name} - ${modeLabel}</title>
+        <style>
+            $ {
+                pageCss
+            }
+        </style>
+    </head>
+
+    <body>${body}</body>
+
+    </html>`);
+    win.document.close();
+    };
     </script>
 </body>
 
