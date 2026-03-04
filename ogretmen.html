@@ -115,7 +115,13 @@
         <div>
             <div style="font-size: 0.8rem; opacity: 0.9; font-weight: 700; text-transform: uppercase;">Öğretmen Sınav
                 Masası</div>
-            <h2 id="teacherNameDisplay" style="margin:0; font-weight: 900; font-size: 1.5rem; line-height: 1.2;">
+            <h2
+                style="margin:0; font-weight: 900; font-size: 1.5rem; line-height: 1.2; display: flex; align-items: center; gap: 10px;">
+                <span id="teacherNameDisplay"></span>
+                <button onclick="openTeacherSettings()"
+                    style="background: none; border: none; color: white; cursor: pointer; font-size: 1.1rem; opacity: 0.8; transition: var(--transition);"
+                    title="Hesap Ayarları" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'"><i
+                        class="fa-solid fa-gear"></i></button>
             </h2>
             <p id="teacherBranchDisplay" style="margin:0; opacity: 0.9; font-size: 0.95rem; font-weight: 600;"></p>
         </div>
@@ -310,6 +316,10 @@
                                             <i class="fa-solid fa-paste"></i> Yapıştır
                                         </button>
                                         
+                                        <button class="btn btn-secondary" style="padding: 0.5rem;" onclick="openCloudBrowser('${ses.id}', '${encodeURIComponent(sub.name)}')">
+                                            <i class="fa-solid fa-cloud"></i> Buluttan
+                                        </button>
+
                                         <input type="file" id="file-${ses.id}-${encodeURIComponent(sub.name)}" style="display:none;" accept="application/pdf" onchange="uploadPdf(this, '${ses.id}', '${sub.name}')">
                                         <button class="btn btn-primary" style="padding: 0.5rem; background: var(--secondary);" onclick="document.getElementById('file-${ses.id}-${encodeURIComponent(sub.name)}').click()">
                                             <i class="fa-solid fa-cloud-arrow-up"></i> Yükle
@@ -524,6 +534,124 @@
             const s = Math.floor(ms / 1000);
             const m = Math.floor(s / 60);
             return `${m.toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+        }
+
+        async function openTeacherSettings() {
+            Swal.fire({
+                title: 'Hesap Ayarları',
+                html: `
+                    <div style="text-align: left; margin-top: 10px;">
+                        <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Kullanıcı Adı (Değiştirilemez)</label>
+                        <input type="text" id="profUser" class="form-control" value="${currentUser}" disabled style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; background: var(--gray-100); font-family: inherit;">
+
+                        <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">E-Posta Adresi</label>
+                        <input type="email" id="profEmail" class="form-control" placeholder="E-Posta" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+
+                        <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Yeni Şifre</label>
+                        <input type="password" id="profPass" class="form-control" placeholder="Değiştirmek istemiyorsanız boş bırakın" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Kaydet',
+                cancelButtonText: 'İptal',
+                didOpen: async () => {
+                    Swal.showLoading();
+                    try {
+                        const res = await fetch(`${DataManager.supabaseUrl}/rest/v1/app_store?id=eq.klbk_users&select=*`, {
+                            headers: { 'apikey': DataManager.supabaseKey, 'Authorization': `Bearer ${DataManager.supabaseKey}` }
+                        });
+                        if (res.ok) {
+                            const rows = await res.json();
+                            if (rows && rows.length > 0) {
+                                const db = rows[0].data;
+                                if (db[currentUser]) {
+                                    document.getElementById('profEmail').value = db[currentUser].email || '';
+                                }
+                            }
+                        }
+                    } catch (e) { }
+                    Swal.hideLoading();
+                },
+                preConfirm: async () => {
+                    const email = document.getElementById('profEmail').value.trim();
+                    const pass = document.getElementById('profPass').value;
+
+                    Swal.showLoading();
+                    try {
+                        const res = await fetch(`${DataManager.supabaseUrl}/rest/v1/app_store?id=eq.klbk_users&select=*`, {
+                            headers: { 'apikey': DataManager.supabaseKey, 'Authorization': `Bearer ${DataManager.supabaseKey}` }
+                        });
+                        if (res.ok) {
+                            const rows = await res.json();
+                            if (rows && rows.length > 0) {
+                                const db = rows[0].data;
+                                if (db[currentUser]) {
+                                    db[currentUser].email = email;
+                                    if (pass) db[currentUser].password = pass; // Only update if provided
+
+                                    await fetch(`${DataManager.supabaseUrl}/rest/v1/app_store`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'apikey': DataManager.supabaseKey,
+                                            'Authorization': `Bearer ${DataManager.supabaseKey}`,
+                                            'Content-Type': 'application/json',
+                                            'Prefer': 'resolution=merge-duplicates'
+                                        },
+                                        body: JSON.stringify({ id: 'klbk_users', data: db })
+                                    });
+                                    return true;
+                                }
+                            }
+                        }
+                        throw new Error("Veritabanı hatası");
+                    } catch (e) {
+                        Swal.showValidationMessage('Kaydedilemedi: ' + e.message);
+                        return false;
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire('Başarılı', 'Profil ayarlarınız güncellendi. Yeni şifre belirlediyseniz bir sonraki girişinizde geçerli olacaktır.', 'success');
+                }
+            });
+        }
+
+        async function openCloudBrowser(sesId, encodedSub) {
+            Swal.fire({
+                title: 'Buluttaki Dosyalar',
+                html: '<div id="cloudFilesList" style="max-height: 400px; overflow-y: auto; text-align: left;"><i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...</div>',
+                showConfirmButton: false,
+                showCancelButton: true,
+                cancelButtonText: 'Kapat',
+                width: 600,
+                didOpen: async () => {
+                    try {
+                        const files = await DataManager.listSupabaseFiles();
+                        let html = '<ul style="list-style:none; padding:0; margin:0;">';
+                        if (files.length === 0) {
+                            html += '<li style="padding: 1rem; color: var(--gray-500); text-align: center;">Bulutta kayıtlı dosya yok.</li>';
+                        } else {
+                            files.forEach(f => {
+                                html += `<li style="padding: 0.75rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center;">
+                                            <div style="flex:1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem;" title="${f.name}">
+                                                <i class="fa-solid fa-file-pdf" style="color:var(--danger); margin-right: 8px;"></i> ${f.name}
+                                            </div>
+                                            <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="selectCloudFile('${sesId}', '${encodedSub}', '${f.url}')">Seç</button>
+                                        </li>`;
+                            });
+                        }
+                        html += '</ul>';
+                        document.getElementById('cloudFilesList').innerHTML = html;
+                    } catch (e) {
+                        document.getElementById('cloudFilesList').innerHTML = '<div style="color:var(--danger); padding:1rem;">Dosyalar yüklenemedi.</div>';
+                    }
+                }
+            });
+        }
+
+        window.selectCloudFile = function (sesId, encodedSub, url) {
+            document.getElementById(`pdfLink-${sesId}-${encodedSub}`).value = url;
+            Swal.close();
         }
     </script>
 </body>
