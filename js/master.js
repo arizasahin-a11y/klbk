@@ -3,7 +3,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const masterForm = document.getElementById('masterForm');
 
     // Form Elements
-    const regSchoolInput = document.getElementById('regSchool');
+    const regSchoolSelect = document.getElementById('regSchoolSelect');
+    const newSchoolGroup = document.getElementById('newSchoolGroup');
+    const regSchoolNewInput = document.getElementById('regSchoolNew');
+    const branchGroup = document.getElementById('branchGroup');
+    const regBranchSelect = document.getElementById('regBranch');
+    const regRoleSelect = document.getElementById('regRole');
+
     const regUsernameInput = document.getElementById('regUsername');
     const regPasswordInput = document.getElementById('regPassword');
     const messageBox = document.getElementById('masterMessage');
@@ -11,6 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Supabase Configuration
     const supabaseUrl = "https://esdttjvkqyeaosdcsskr.supabase.co";
     const supabaseKey = "sb_publishable_Rdl1xQ10AjWVZPxLwL_O_A_x4NYDxl6";
+
+    // Global config
+    let globalUsersDb = {};
+    let uniqueSchools = []; // { storeKey: string, name: string }
+
 
     async function getCloudUsers() {
         try {
@@ -46,13 +57,128 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Initialize Page
+    async function initMasterPage() {
+        globalUsersDb = await getCloudUsers();
+
+        // Extract unique schools
+        const schoolMap = {};
+        for (const [uname, user] of Object.entries(globalUsersDb)) {
+            if (uname === 'admin') continue; // Skip master admin
+            const sName = user.schoolName;
+            const sKey = user.storeKey || `klbk_data_${uname}`; // Backwards compatibility
+            if (sName && !schoolMap[sKey]) {
+                schoolMap[sKey] = sName;
+            }
+        }
+
+        uniqueSchools = Object.keys(schoolMap).map(k => ({ storeKey: k, name: schoolMap[k] }));
+
+        // Populate Select
+        regSchoolSelect.innerHTML = '<option value="">-- Okul Seçiniz --</option>';
+        uniqueSchools.forEach(sc => {
+            const opt = document.createElement('option');
+            opt.value = sc.storeKey;
+            opt.textContent = sc.name;
+            regSchoolSelect.appendChild(opt);
+        });
+
+        const newOpt = document.createElement('option');
+        newOpt.value = "_NEW_";
+        newOpt.textContent = "+ Yeni Okul Ekle (Sisteme Tanımla)";
+        newOpt.style.fontWeight = "bold";
+        newOpt.style.color = "var(--primary)";
+        regSchoolSelect.appendChild(newOpt);
+    }
+
+    // Role Change UI Logic
+    regRoleSelect.addEventListener('change', () => {
+        if (regRoleSelect.value === 'ogretmen') {
+            branchGroup.classList.remove('hidden');
+        } else {
+            branchGroup.classList.add('hidden');
+        }
+    });
+
+    // Fetch School Data for Branches
+    async function fetchSchoolBranches(storeKey) {
+        regBranchSelect.innerHTML = '<option value="">Yükleniyor...</option>';
+        try {
+            const res = await fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.${storeKey}&select=*`, {
+                headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+            });
+            if (res.ok) {
+                const rows = await res.json();
+                if (rows && rows.length > 0 && rows[0].data.school && rows[0].data.school.subjects) {
+                    const subjects = rows[0].data.school.subjects;
+                    regBranchSelect.innerHTML = '<option value="">-- Branş Seçiniz --</option>';
+                    subjects.forEach(sub => {
+                        const opt = document.createElement('option');
+                        opt.value = sub;
+                        opt.textContent = sub;
+                        regBranchSelect.appendChild(opt);
+                    });
+                    if (subjects.length === 0) {
+                        regBranchSelect.innerHTML = '<option value="">Okulda henüz ders tanımlanmamış</option>';
+                    }
+                    return;
+                }
+            }
+        } catch (e) {
+            console.error("Dersler alınamadı", e);
+        }
+        regBranchSelect.innerHTML = '<option value="">Okulda henüz ders tanımlanmamış</option>';
+    }
+
+    // School Select Change Logic
+    regSchoolSelect.addEventListener('change', async () => {
+        const val = regSchoolSelect.value;
+        if (val === '_NEW_') {
+            newSchoolGroup.classList.remove('hidden');
+            regSchoolNewInput.required = true;
+            branchGroup.classList.add('hidden');
+            regRoleSelect.value = 'admin'; // Forced admin for new schools usually or idareci
+            regRoleSelect.disabled = false;
+        } else if (val) {
+            newSchoolGroup.classList.add('hidden');
+            regSchoolNewInput.required = false;
+            regSchoolNewInput.value = '';
+            if (regRoleSelect.value === 'ogretmen') {
+                branchGroup.classList.remove('hidden');
+                await fetchSchoolBranches(val);
+            }
+        } else {
+            newSchoolGroup.classList.add('hidden');
+            regSchoolNewInput.required = false;
+            regBranchSelect.innerHTML = '<option value="">Lütfen Önce Okul Seçin</option>';
+        }
+    });
+
     if (masterForm) {
         masterForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const schoolName = regSchoolInput.value.trim();
+            const isNewSchool = regSchoolSelect.value === '_NEW_';
+            const storeKeyToUse = isNewSchool ? `klbk_data_${regUsernameInput.value.trim()}` : regSchoolSelect.value;
+            const schoolNameToUse = isNewSchool ? regSchoolNewInput.value.trim() : regSchoolSelect.options[regSchoolSelect.selectedIndex].text;
+
             const username = regUsernameInput.value.trim();
             const password = regPasswordInput.value;
+            const role = regRoleSelect.value;
+            let branch = '';
+
+            if (role === 'ogretmen' && !isNewSchool) {
+                branch = regBranchSelect.value;
+                if (!branch) {
+                    showMessage('Lütfen geçerli bir branş seçiniz.', 'error');
+                    return;
+                }
+            }
+
+            if (!schoolNameToUse) {
+                showMessage('Lütfen kurum adını belirtin.', 'error');
+                return;
+            }
 
             if (username.length < 3) {
                 showMessage('Kullanıcı adı en az 3 karakter olmalıdır.', 'error');
@@ -83,30 +209,43 @@ document.addEventListener('DOMContentLoaded', () => {
             // Save new user
             usersDb[username] = {
                 password: password,
-                schoolName: schoolName
+                schoolName: schoolNameToUse,
+                storeKey: storeKeyToUse,
+                role: role,
+                branch: branch
             };
             await saveToCloud('klbk_users', usersDb);
 
-            // Pre-seed default settings for the new user logic
-            const userStoreKey = `klbk_data_${username}`;
-            const initialData = {
-                school: {
-                    name: schoolName,
-                    academicYear: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
-                    principal: '', vicePrincipal: '', gradeLevels: [], subjects: []
-                },
-                students: [], classrooms: [], examSessions: []
-            };
-            await saveToCloud(userStoreKey, initialData);
+            // Pre-seed default settings for the new school logic
+            if (isNewSchool) {
+                const initialData = {
+                    school: {
+                        name: schoolNameToUse,
+                        academicYear: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
+                        principal: '', vicePrincipal: '', gradeLevels: [], subjects: []
+                    },
+                    students: [], classrooms: [], examSessions: []
+                };
+                await saveToCloud(storeKeyToUse, initialData);
+            }
 
-            showMessage(`${schoolName} (Kullanıcı: ${username}) başarıyla sisteme eklendi!`, 'success');
+            showMessage(`${schoolNameToUse} için kullanıcı '${username}' başarıyla sisteme eklendi!`, 'success');
 
             // clear form
             masterForm.reset();
             btn.innerHTML = originalHtml;
             btn.disabled = false;
+
+            // Reload select
+            setTimeout(() => {
+                initMasterPage();
+            }, 1000);
         });
     }
+
+    // Call init on load
+    initMasterPage();
+
 
     function showMessage(text, type) {
         if (!messageBox) return;

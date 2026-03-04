@@ -29,6 +29,8 @@ const DataManager = {
 
     // Get Key
     _getStorageKey: function () {
+        const storeKey = sessionStorage.getItem('klbk_storeKey');
+        if (storeKey) return storeKey;
         const user = sessionStorage.getItem('klbk_currentUser') || 'admin';
         return `klbk_data_${user}`;
     },

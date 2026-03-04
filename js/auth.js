@@ -106,6 +106,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 sessionStorage.setItem('klbk_isLoggedIn', 'true');
                 sessionStorage.setItem('klbk_currentUser', username);
                 sessionStorage.setItem('klbk_schoolName', usersDb[username].schoolName || '');
+                sessionStorage.setItem('klbk_storeKey', usersDb[username].storeKey || (`klbk_data_${username}`));
+                sessionStorage.setItem('klbk_role', usersDb[username].role || 'admin');
+                if (usersDb[username].branch) {
+                    sessionStorage.setItem('klbk_branch', usersDb[username].branch);
+                }
                 sessionStorage.setItem('klbk_loginTime', new Date().toISOString());
 
                 // Redirect logic
