@@ -64,7 +64,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Extract unique schools
         const schoolMap = {};
         for (const [uname, user] of Object.entries(globalUsersDb)) {
-            if (uname === 'admin') continue; // Skip master admin
+            // We no longer skip 'admin' here because the admin might want to assign
+            // teachers to their own school name they configured on the dashboard.
 
             // Legacy data support (before multiple users per school feature)
             // If the user has a schoolName but no storeKey, we assume their storeKey is klbk_data_{username}
