@@ -2306,8 +2306,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 let matchedSubject = null;
                 const hasSub = s.dersler && s.dersler.some(d => {
-                    const found = sessionSubjects.some(base => d.trim() === base || d.trim().startsWith(base + " "));
-                    if (found) matchedSubject = d.trim();
+                    const dName = d.trim();
+                    const found = sessionSubjects.some(base => dName === base || dName.startsWith(base + " "));
+                    if (found) {
+                        if (/\d+$/.test(dName)) {
+                            matchedSubject = dName;
+                        } else {
+                            const gradeMatch = s.class.match(/^\d+/);
+                            if (gradeMatch) {
+                                matchedSubject = dName + " " + gradeMatch[0];
+                            } else {
+                                matchedSubject = dName;
+                            }
+                        }
+                    }
                     return found;
                 });
 
@@ -2332,7 +2344,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (actualSubjects.length > 0) {
                     const originalSubjects = wizardSessionData.subjects || [];
                     wizardSessionData.subjects = actualSubjects.map(subName => {
-                        const baseMatch = originalSubjects.find(s => subName.startsWith(s.name));
+                        const baseMatch = originalSubjects.find(s => {
+                            const sName = (typeof s === 'object' ? s.name : s);
+                            return subName.startsWith(sName);
+                        });
                         return {
                             name: subName,
                             hasGroups: baseMatch ? baseMatch.hasGroups : (wizardSessionData.hasGroups || false)
