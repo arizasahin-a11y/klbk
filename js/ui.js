@@ -2327,6 +2327,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 wizardSessionData.results = ExamAlgorithm.distribute([...targetStudents], targetRooms, wizardSessionData);
 
+                // Expand subjects based on actual distributed students' matched subjects
+                const actualSubjects = [...new Set(targetStudents.map(s => s._matchedSubject))].filter(Boolean);
+                if (actualSubjects.length > 0) {
+                    const originalSubjects = wizardSessionData.subjects || [];
+                    wizardSessionData.subjects = actualSubjects.map(subName => {
+                        const baseMatch = originalSubjects.find(s => subName.startsWith(s.name));
+                        return {
+                            name: subName,
+                            hasGroups: baseMatch ? baseMatch.hasGroups : (wizardSessionData.hasGroups || false)
+                        };
+                    }).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+                }
+
                 // Save Session
                 DataManager.addExamSession(wizardSessionData);
                 examWizardModal.classList.add('hidden');

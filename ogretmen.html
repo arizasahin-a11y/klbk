@@ -499,7 +499,10 @@
 
         function savePdfLink(sesId, encodedSub) {
             const subName = decodeURIComponent(encodedSub);
-            const link = document.getElementById(`pdfLink-${sesId}-${encodedSub}`).value.trim();
+            const linkInput = document.getElementById(`pdfLink-${sesId}-${encodedSub}`);
+            if (!linkInput) return;
+            const link = linkInput.value.trim();
+
             if (!link) {
                 Swal.fire('Uyarı', `${subName} için lütfen geçerli bir link girin veya yükleyin.`, 'warning');
                 return;
@@ -509,7 +512,6 @@
             const session = sessions.find(s => s.id === sesId);
             if (session) {
                 if (!session.subjectMetadata) session.subjectMetadata = {};
-                // Correctly structure the metadata: meta -> subName -> papers -> { default: link }
                 if (!session.subjectMetadata[subName]) {
                     session.subjectMetadata[subName] = {
                         examNo: '',
@@ -518,7 +520,7 @@
                     };
                 }
 
-                // Ensure papers is an object
+                // Ensure papers is an object (for backward compatibility)
                 if (typeof session.subjectMetadata[subName].papers !== 'object' || session.subjectMetadata[subName].papers === null) {
                     const oldPaper = session.subjectMetadata[subName].papers;
                     session.subjectMetadata[subName].papers = {};
@@ -752,6 +754,7 @@
             const pageCss = `
                 body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1e293b; margin: 0; padding: 0; background: #fff; }
                 @page { ${isSeating ? 'size: A4 landscape;' : 'size: A4 portrait;'} margin: 0; }
+                
                 .page { 
                     width: ${isSeating ? '297mm' : '210mm'}; 
                     height: ${isSeating ? '210mm' : '297mm'}; 
@@ -764,48 +767,54 @@
                     position: relative;
                 }
                 .page:last-child { page-break-after: avoid; }
+
                 .page-header { 
                     display: flex; justify-content: space-between; align-items: center;
-                    border-bottom: 2px solid #10b981; margin-bottom: 15px; padding-bottom: 8px;
+                    border-bottom: 2px solid #6366f1; margin-bottom: 15px; padding-bottom: 8px;
                 }
-                .page-header h2 { margin: 0; font-size: 18pt; color: #059669; font-weight: 900; }
+                .page-header h2 { margin: 0; font-size: 18pt; color: #4f46e5; font-weight: 900; }
                 .page-header .info { text-align: right; font-size: 10pt; color: #1e293b; font-weight: 600; }
 
                 table { width: 100%; border-collapse: collapse; font-size: 9pt; table-layout: fixed; }
                 th { background: #f8fafc; padding: 5px 8px; text-align: left; border: 1px solid #cbd5e1; font-weight: 700; color: #475569; font-size: 8.5pt; }
-                td { padding: 4px 8px; border: 1px solid #e2e8f0; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 8.5pt; }
+                td { padding: 0 6px; border: 1px solid #e2e8f0; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; height: 13pt; font-size: 8.2pt; }
                 tr:nth-child(even) td { background: #fcfcfc; }
 
                 .msg-box {
-                    margin-top: auto; padding: 12px 15px; border: 2px solid #10b981; border-radius: 10px;
-                    background: #f0fdf4; color: #064e3b; font-size: 9.5pt; line-height: 1.5;
+                    margin-top: auto; padding: 12px 15px; border: 2px solid #6366f1; border-radius: 10px;
+                    background: #f5f7ff; color: #1e293b; font-size: 9.5pt; line-height: 1.5;
                 }
-                .msg-box strong { color: #059669; display: flex; align-items: center; margin-bottom: 4px; }
+                .msg-box strong { color: #4f46e5; display: flex; align-items: center; margin-bottom: 6px; font-size: 1.1em; }
+                .msg-box .icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; background: #ef4444; color: white; border-radius: 50%; margin-right: 10px; font-size: 14px; }
 
+                /* Seating schema centering */
                 .schema-container { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 10px; overflow: hidden; }
                 .classroom-walls { 
-                    border: 4px solid #334155; padding: 30px; border-radius: 20px; background: #fff;
-                    display: inline-block; position: relative;
+                    border: 4px solid #334155; padding: 35px; border-radius: 24px; background: #fff;
+                    display: inline-block; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+                    transform-origin: center;
                 }
-                .front-side { display: flex; justify-content: space-around; align-items: flex-start; margin-top: 30px; width: 100%; border-top: 3px solid #334155; padding-top: 15px; }
+                .front-side { display: flex; justify-content: space-around; align-items: flex-start; margin-top: 40px; width: 100%; border-top: 3px solid #334155; padding-top: 20px; }
                 .teacher-desk { 
-                    width: 120px; height: 60px; border: 2px solid #475569; background: #f1f5f9;
-                    display: flex; align-items: center; justify-content: center; font-size: 8pt; font-weight: bold;
+                    width: 130px; height: 70px; border: 3px solid #475569; background: #f1f5f9;
+                    display: flex; align-items: center; justify-content: center; font-size: 9pt; font-weight: bold; color: #1e293b;
+                    border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
                 }
                 .board { 
-                    background: #0f172a; color: white; padding: 8px 50px; border-radius: 4px; font-size: 10pt;
-                    font-weight: bold; letter-spacing: 2px;
+                    background: #0f172a; color: white; padding: 12px 70px; border-radius: 6px; font-size: 11pt;
+                    font-weight: bold; letter-spacing: 4px; border: 4px solid #475569; box-shadow: 0 6px 12px rgba(0,0,0,0.2);
                 }
-                .groups-row { display: flex; gap: 40px; justify-content: center; }
-                .desk-group { display: grid; gap: 8px; padding: 10px; border: 1px dashed #cbd5e1; border-radius: 8px; }
-                .desk { width: 90px; height: 75px; border: 1.5px solid #10b981; border-radius: 6px;
+                .groups-row { display: flex; gap: 50px; justify-content: center; flex-wrap: wrap; }
+                .desk-group { display: grid; gap: 8px; padding: 12px; border: 1.5px dashed #cbd5e1; border-radius: 10px; background: #fafafa; }
+                .desk { width: 95px; height: 80px; border: 1.8px solid #6366f1; border-radius: 8px;
                         display: flex; flex-direction: column; align-items: center; justify-content: center;
-                        font-size: 8pt; text-align: center; background: white; padding: 4px;
-                        position: relative; }
-                .desk.empty { border: 1.5px dashed #ef4444; color: #ef4444; background: #fff5f5; }
+                        font-size: 8pt; text-align: center; background: white; padding: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+                        position: relative; overflow: visible; }
+                .desk.empty { border: 1.8px dashed #ef4444; color: #ef4444; background: #fff5f5; font-weight: bold; }
                 .desk-num { width: 22px; height: 22px; border-radius: 50%; background: #f1f5f9; border: 1px solid #cbd5e1; color: #1e293b; font-size: 10pt; font-weight: 900; 
                            display: flex; align-items: center; justify-content: center; 
-                           position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); background: white; z-index: 10; }
+                           position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); background: white; z-index: 10;
+                           box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
             `;
 
             const formatDate = (d) => {
@@ -832,6 +841,7 @@
 
             let body = '';
 
+            // ─────── SINIF MODU ───────────────────────────────────────────
             if (mode === 'class') {
                 const flatList = [];
                 session.results.forEach(room => {
@@ -854,27 +864,41 @@
 
                 sorted.forEach(cls => {
                     const students = byClass[cls].sort((a, b) => parseInt(a.no) - parseInt(b.no));
-                    const rows = students.map(s => `<tr>
-                        <td style="width:10%;"><b>${s.no}</b></td>
-                        <td style="width:40%;">${s.name}</td>
-                        <td style="width:30%;">${s._matchedSubject || '-'}</td>
-                        <td style="width:12%;">${s.room}</td>
-                        <td style="width:8%; text-align:center;"><b>${s.seatNum}</b></td></tr>`).join('');
+                    const PAGE_SIZE = 50;
+                    for (let p = 0; p < students.length; p += PAGE_SIZE) {
+                        const chunk = students.slice(p, p + PAGE_SIZE);
+                        const pageNum = Math.floor(p / PAGE_SIZE) + 1;
+                        const totalPages = Math.ceil(students.length / PAGE_SIZE);
 
-                    body += `<div class="page">
-                        ${hdr(`${cls} Sınıf Listesi`)}
-                        <table>
-                            <thead><tr>
-                                <th style="width:10%;">No</th><th style="width:40%;">Ad Soyad</th>
-                                <th style="width:30%;">Sınav Dersi</th><th style="width:12%;">Derslik</th>
-                                <th style="width:8%;">Sıra</th>
-                            </tr></thead>
-                            <tbody>${rows}</tbody>
-                        </table>
-                        ${studentMsg ? `<div class="msg-box"><strong><i class="fa-solid fa-circle-exclamation"></i> Lütfen Dikkat!!!</strong>${studentMsg}</div>` : ""}
-                    </div>`;
+                        const rows = chunk.map(s => {
+                            const meta = (session.subjectMetadata || {})[s._matchedSubject] || {};
+                            const examNo = meta.examNo || meta.examNumber || '';
+                            const eNum = examNo ? ` <small>(${examNo})</small>` : '';
+
+                            return `<tr>
+                                <td style="width:10%;"><b>${s.no}</b></td>
+                                <td style="width:40%;">${s.name}</td>
+                                <td style="width:30%;">${s._matchedSubject || '-'}${eNum}</td>
+                                <td style="width:12%;">${s.room}</td>
+                                <td style="width:8%; text-align:center;"><b>${s.seatNum}</b></td></tr>`;
+                        }).join('');
+
+                        body += `<div class="page">
+                            ${hdr(`${cls} Sınıf Listesi ${totalPages > 1 ? `(Sayfa ${pageNum}/${totalPages})` : ''}`)}
+                            <table>
+                                <thead><tr>
+                                    <th style="width:10%;">No</th><th style="width:40%;">Ad Soyad</th>
+                                    <th style="width:30%;">Sınav Dersi</th><th style="width:12%;">Derslik</th>
+                                    <th style="width:8%;">Sıra</th>
+                                </tr></thead>
+                                <tbody>${rows}</tbody>
+                            </table>
+                            ${(studentMsg && (p + PAGE_SIZE >= students.length)) ? `<div class="msg-box"><strong><span class="icon">!</span> Lütfen Dikkat!!!</strong>${studentMsg}</div>` : ""}
+                        </div>`;
+                    }
                 });
 
+                // ─────── SALON MODU ───────────────────────────────────────────
             } else if (mode === 'room') {
                 const sortedRooms = [...session.results].sort((a, b) => sortByNum(a.name, b.name));
                 sortedRooms.forEach(room => {
@@ -888,32 +912,84 @@
                                 if (!(room.disabledSeats || []).includes(sid)) { seatToNum[sid] = ctr++; seatIds.push(sid); }
                             }
                     }
-                    const rows = seatIds.map(sid => {
-                        const s = room.seats[sid];
-                        if (s) {
-                            return `<tr><td style="text-align:center;"><b>${seatToNum[sid] || '-'}</b></td>
-                                <td>${s.class}</td><td style="text-align:center;"><b>${s.no}</b></td>
-                                <td>${s.name}</td><td>${abbr(s._matchedSubject || '-')}</td>
-                                <td style="border-bottom:1px solid #eee;"></td></tr>`;
-                        } else {
-                            return `<tr style="color: #64748b; background: #f8fafc;"><td style="text-align:center;"><b>${seatToNum[sid] || '-'}</b></td>
-                                <td colspan="4" style="text-align:center; font-weight: bold; letter-spacing: 2px;">BOŞ BIRAKILDI</td>
-                                <td></td></tr>`;
-                        }
-                    }).join('');
+                    const sortedSeatIds = seatIds.sort((a, b) => {
+                        const pa = a.match(/\d+/g).map(Number), pb = b.match(/\d+/g).map(Number);
+                        for (let i = 0; i < pa.length; i++) if (pa[i] !== pb[i]) return pa[i] - pb[i];
+                        return 0;
+                    });
 
-                    const teacherMsg = (session.teacherMsg || '').trim();
-                    body += `<div class="page">${hdr(`${room.name} Salonu - Oturma Listesi`)}
-                        <table>
-                            <thead><tr>
-                                <th style="width:8%;">Sıra</th><th style="width:10%;">Sınıf</th>
-                                <th style="width:10%;">No</th><th style="width:42%;">Ad Soyad</th>
-                                <th style="width:15%;">Sınav</th><th style="width:15%;">Açıklama</th>
-                            </tr></thead>
-                            <tbody>${rows}</tbody>
-                        </table>
-                        ${teacherMsg ? `<div class="msg-box" style="border-color:#ca8a04; background:#fffaf0;"><strong>Lütfen Dikkat!!!</strong>${teacherMsg}</div>` : ""}
-                    </div>`;
+                    const PAGE_SIZE = 50;
+                    for (let p = 0; p < sortedSeatIds.length; p += PAGE_SIZE) {
+                        const chunk = sortedSeatIds.slice(p, p + PAGE_SIZE);
+                        const pageNum = Math.floor(p / PAGE_SIZE) + 1;
+                        const totalPages = Math.ceil(sortedSeatIds.length / PAGE_SIZE);
+
+                        const rows = chunk.map(sid => {
+                            const s = room.seats[sid];
+                            if (s) {
+                                return `<tr><td style="text-align:center;"><b>${seatToNum[sid] || '-'}</b></td>
+                                    <td>${s.class}</td><td style="text-align:center;"><b>${s.no}</b></td>
+                                    <td>${s.name}</td><td>${abbr(s._matchedSubject || '-')}</td>
+                                    <td style="border-bottom:1px solid #eee;"></td></tr>`;
+                            } else {
+                                return `<tr style="color: #64748b; background: #fff5f5;"><td style="text-align:center;"><b>${seatToNum[sid] || '-'}</b></td>
+                                    <td colspan="4" style="text-align:center; font-weight: bold; letter-spacing: 2px;">BOŞ BIRAKILDI</td>
+                                    <td></td></tr>`;
+                            }
+                        }).join('');
+
+                        const studentsInRoom = Object.values(room.seats || {});
+                        const roomClasses = [...new Set(studentsInRoom.map(s => s.class))].sort(sortByNum);
+                        const teacherMsg = (session.teacherMsg || '').trim();
+
+                        let summaryListHtml = ''; let roomTotal = 0;
+                        roomClasses.forEach(cls => {
+                            const classStudents = studentsInRoom.filter(s => s.class === cls);
+                            const classExams = [...new Set(classStudents.map(s => s._matchedSubject || '-'))].sort();
+                            classExams.forEach(ex => {
+                                const count = classStudents.filter(s => (s._matchedSubject || '-') === ex).length;
+                                summaryListHtml += `<div style="padding: 2px 0; border-bottom: 1px dashed #e2e8f0; font-size: 8.5pt;"><b>${cls}</b> ${abbr(ex)} => <b>${count}</b> Öğrenci</div>`;
+                                roomTotal += count;
+                            });
+                        });
+                        const examsInRoom = [...new Set(studentsInRoom.map(s => s._matchedSubject || '-'))].sort();
+                        let examSummaryRows = examsInRoom.map(ex => {
+                            const count = studentsInRoom.filter(s => (s._matchedSubject || '-') === ex).length;
+                            return `<tr><td>${ex}</td><td style="text-align:center; font-weight:bold;">${count}</td></tr>`;
+                        }).join('');
+
+                        const summaryContent = (p + PAGE_SIZE >= sortedSeatIds.length) ? `
+                            <div style="flex-shrink:0; width:45mm; margin-left:10px;">
+                                <div style="background:#f8fafc; padding:6px; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:10px;">
+                                    <div style="font-size:8.5pt; font-weight:900; color:#4f46e5; border-bottom:2px solid #6366f1; padding-bottom:3px; margin-bottom:6px;">DERSLİK ÖZETİ</div>
+                                    <div style="line-height:1.2;">${summaryListHtml}<div style="margin-top:5px; padding-top:3px; border-top:2px solid #6366f1; font-weight:900; color:#4f46e5; text-align:right; font-size:8.5pt;">TOPLAM: ${roomTotal}</div></div>
+                                </div>
+                                <div style="background:#fff7ed; padding:6px; border-radius:10px; border:1px solid #ffedd5;">
+                                    <div style="font-size:8.5pt; font-weight:900; color:#c2410c; border-bottom:2px solid #f97316; padding-bottom:3px; margin-bottom:6px;">SINAV TOPLAMLARI</div>
+                                    <table style="font-size:7.5pt; border-collapse:collapse; background:white;">
+                                        <thead><tr style="background:#fff7ed;"><th style="padding:2px 4px; width:75%;">Sınav</th><th style="padding:2px 4px; width:25%;">Sayı</th></tr></thead>
+                                        <tbody>${examSummaryRows}</tbody>
+                                    </table>
+                                </div>
+                            </div>` : '';
+
+                        body += `<div class="page">${hdr(`${room.name} Salonu - Oturma Listesi ${totalPages > 1 ? `(Sayfa ${pageNum}/${totalPages})` : ''}`)}
+                            <div style="display:flex; gap:0; align-items:flex-start; flex:1;">
+                                <div style="flex:1;">
+                                    <table style="table-layout:fixed;">
+                                        <thead><tr>
+                                            <th style="width:6%;">Sıra</th><th style="width:7%;">Sınıf</th>
+                                            <th style="width:7%;">No</th><th style="width:50%;">Ad Soyad</th>
+                                            <th style="width:15%;">Sınav</th><th style="width:15%;">Açıklama</th>
+                                        </tr></thead>
+                                        <tbody>${rows}</tbody>
+                                    </table>
+                                </div>
+                                ${summaryContent}
+                            </div>
+                            ${(teacherMsg && (p + PAGE_SIZE >= sortedSeatIds.length)) ? `<div class="msg-box" style="border-color:#ca8a04; background:#fffaf0;"><strong><span class="icon" style="background:#ea580c;">!</span> Lütfen Dikkat!!!</strong>${teacherMsg}</div>` : ""}
+                        </div>`;
+                    }
                 });
 
             } else { // seating
@@ -937,12 +1013,19 @@
                                 const isDisabled = (room.disabledSeats || []).includes(sid);
                                 const student = room.seats?.[sid];
                                 const num = seatToNum[sid] || '-';
-                                if (isDisabled) { groupsHtml += `<div class="desk" style="opacity:0.3; border-color:#ccc; border-style:dotted;">KAPALI</div>`; }
-                                else if (student) {
+
+                                if (isDisabled) {
+                                    groupsHtml += `<div class="desk" style="opacity:0.3; border-color:#ccc; border-style:dotted;">KAPALI</div>`;
+                                } else if (student) {
                                     groupsHtml += `<div class="desk">
-                                        <div style="font-size:7pt;color:#64748b;font-weight:700;">${student.class} / ${student.no}</div>
-                                        <div style="font-weight:700;font-size:8.5pt;line-height:1.2;">${student.name}</div>
-                                        <div class="desk-num">${num}</div></div>`;
+                                        <div style="font-size:7pt;color:#64748b;font-weight:700;margin-bottom:2px;">${student.class} / ${student.no}</div>
+                                        <div style="font-weight:900;font-size:8.5pt;line-height:1.1;color:#1e293b;">${student.name}</div>
+                                        <div style="font-size:6.5pt;color:#4f46e5;margin-top:3px;font-weight:600;">${abbr(student._matchedSubject || '-')}</div>
+                                        <div class="desk-num">${num}</div>
+                                    </div>`;
+                                } else if (student === undefined) {
+                                    // Placeholder for empty seats handled in else
+                                    groupsHtml += `<div class="desk empty">BOŞ<div class="desk-num" style="background:#fee2e2; color:#ef4444; border-color:#fecaca;">${num}</div></div>`;
                                 } else {
                                     groupsHtml += `<div class="desk empty">BOŞ<div class="desk-num" style="background:#fee2e2; color:#ef4444; border-color:#fecaca;">${num}</div></div>`;
                                 }
@@ -951,19 +1034,35 @@
                         groupsHtml += '</div>';
                     }
                     groupsHtml += '</div>';
-                    body += `<div class="page">${hdr(`${room.name} Salonu - Oturma Şeması`)}
-                        <div class="schema-container"><div class="classroom-walls">${groupsHtml}
-                            <div class="front-side">${room.teacherDeskPos === 'left' ? `<div class="teacher-desk">ÖĞRETMEN MASASI</div><div class="board">Y A Z I &nbsp; T A H T A S I</div><div style="width:120px;"></div>` : `<div style="width:120px;"></div><div class="board">Y A Z I &nbsp; T A H T A S I</div><div class="teacher-desk">ÖĞRETMEN MASASI</div>`}</div>
-                        </div></div></div>`;
+
+                    body += `<div class="page">
+                        ${hdr(`${room.name} Salonu - Oturma Şeması`)}
+                        <div class="schema-container">
+                            <div class="classroom-walls">
+                                ${groupsHtml}
+                                <div class="front-side">
+                                    ${room.teacherDeskPos === 'left' ?
+                            `<div class="teacher-desk">ÖĞRETMEN MASASI</div><div class="board">Y A Z I &nbsp; T A H T A S I</div><div style="width:130px;"></div>` :
+                            `<div style="width:130px;"></div><div class="board">Y A Z I &nbsp; T A H T A S I</div><div class="teacher-desk">ÖĞRETMEN MASASI</div>`
+                        }
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
                 });
+
                 body += `<script>window.addEventListener('load', () => {
-                    document.querySelectorAll('.schema-container').forEach(wrap => {
-                        const wall = wrap.querySelector('.classroom-walls');
-                        const scale = Math.min((wrap.clientWidth-40)/wall.offsetWidth, (wrap.clientHeight-40)/wall.offsetHeight);
-                        wall.style.transform = "scale(" + Math.min(scale, 1.5) + ")";
-                    });
+                    setTimeout(() => {
+                        document.querySelectorAll('.schema-container').forEach(wrap => {
+                            const wall = wrap.querySelector('.classroom-walls');
+                            const wrapW = wrap.clientWidth - 60;
+                            const wrapH = wrap.clientHeight - 60;
+                            const scale = Math.min(wrapW / wall.offsetWidth, wrapH / wall.offsetHeight);
+                            wall.style.transform = "scale(" + Math.min(scale, 1.4) + ")";
+                        });
+                    }, 100);
                 });<\/script>`;
-    }
+            }
 
             const win = window.open('', '_blank');
             win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${session.name} - ${modeLabel}</title><style>${pageCss}</style></head><body>${body}</body></html>`);
@@ -971,4 +1070,5 @@
         };
     </script>
 </body>
+
 </html>
