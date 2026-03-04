@@ -203,8 +203,57 @@ const DataManager = {
 
     saveSchoolSettings: function (settingsObj) {
         const data = this._getData();
+        const oldName = data.school.name;
         data.school = { ...data.school, ...settingsObj };
         this._saveData(data);
+
+        // Sync new school name back to Master DB if it was changed
+        if (settingsObj.name && oldName !== settingsObj.name) {
+            this._updateMasterSchoolName(settingsObj.name);
+        }
+    },
+
+    // Sync school name changes from the dashboard back to the root Master DB
+    _updateMasterSchoolName: async function (newName) {
+        const storeKey = this._getStorageKey();
+        try {
+            const res = await fetch(`${this.supabaseUrl}/rest/v1/app_store?id=eq.klbk_users&select=*`, {
+                headers: { 'apikey': this.supabaseKey, 'Authorization': `Bearer ${this.supabaseKey}` }
+            });
+            if (res.ok) {
+                const rows = await res.json();
+                if (rows && rows.length > 0) {
+                    const usersDb = rows[0].data;
+                    let updated = false;
+
+                    for (const [uname, user] of Object.entries(usersDb)) {
+                        if (uname === 'admin') continue;
+                        const userStoreKey = user.storeKey || `klbk_data_${uname}`;
+                        if (userStoreKey === storeKey && user.schoolName !== newName) {
+                            user.schoolName = newName;
+                            updated = true;
+                        }
+                    }
+
+                    if (updated) {
+                        await fetch(`${this.supabaseUrl}/rest/v1/app_store`, {
+                            method: 'POST',
+                            headers: {
+                                'apikey': this.supabaseKey,
+                                'Authorization': `Bearer ${this.supabaseKey}`,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'resolution=merge-duplicates'
+                            },
+                            body: JSON.stringify({ id: 'klbk_users', data: usersDb })
+                        });
+                        console.log("Master school name updated for related users.");
+                        sessionStorage.setItem('klbk_schoolName', newName); // Local cache sync
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Failed to update master school name", e);
+        }
     },
 
     getClassRoomMappings: function () {
