@@ -347,7 +347,7 @@
                                 </div>
                                 <div class="nested-content ${isSubOpen ? '' : 'hidden'}" style="background-color: #fafbfc;">`;
 
-                                        // PDF Settings Box (Always visible for teacher)
+                    // PDF Settings Box (Always visible for teacher)
                     const hasGroups = (typeof sub === 'object' && sub.hasGroups) || ses.hasGroups;
                     const groupCount = ses.groupCount || 2;
                     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -428,9 +428,11 @@
                                 </div>`;
                     }
 
+                    html += `   </div> <!-- Close nested-content -->
+                            </div> <!-- Close nested-accordion -->`;
                 });
 
-                html += `</div></div>`;
+                html += `</div></div>`; // Close details-panel and exam-card
             });
 
             if (html === '') {
