@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Form Elements
     const regSchoolSelect = document.getElementById('regSchoolSelect');
+    const editSchoolNameBtn = document.getElementById('editSchoolNameBtn');
     const newSchoolGroup = document.getElementById('newSchoolGroup');
     const regSchoolNewInput = document.getElementById('regSchoolNew');
     const branchGroup = document.getElementById('branchGroup');
@@ -151,6 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
             branchGroup.classList.add('hidden');
             regRoleSelect.value = 'admin'; // Forced admin for new schools usually or idareci
             regRoleSelect.disabled = false;
+            if (editSchoolNameBtn) editSchoolNameBtn.classList.add('hidden');
         } else if (val) {
             newSchoolGroup.classList.add('hidden');
             regSchoolNewInput.required = false;
@@ -159,12 +161,77 @@ document.addEventListener('DOMContentLoaded', () => {
                 branchGroup.classList.remove('hidden');
                 await fetchSchoolBranches(val);
             }
+            if (editSchoolNameBtn) editSchoolNameBtn.classList.remove('hidden');
         } else {
             newSchoolGroup.classList.add('hidden');
             regSchoolNewInput.required = false;
             regBranchSelect.innerHTML = '<option value="">Lütfen Önce Okul Seçin</option>';
+            if (editSchoolNameBtn) editSchoolNameBtn.classList.add('hidden');
         }
     });
+
+    // Edit School Name Logic
+    if (editSchoolNameBtn) {
+        editSchoolNameBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const storeKey = regSchoolSelect.value;
+            const currentName = regSchoolSelect.options[regSchoolSelect.selectedIndex].text;
+            if (!storeKey || storeKey === '_NEW_') return;
+
+            const newName = prompt("Kurumun yeni adını giriniz:", currentName);
+            if (!newName || newName.trim() === '' || newName === currentName) return;
+
+            editSchoolNameBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> İşleniyor...';
+            editSchoolNameBtn.style.pointerEvents = 'none';
+
+            try {
+                // 1. Update Master DB (klbk_users)
+                const usersDb = await getCloudUsers();
+                let masterUpdated = false;
+                for (const [uname, user] of Object.entries(usersDb)) {
+                    let uKey = user.storeKey;
+                    if (user.schoolName && !uKey) uKey = `klbk_data_${uname}`;
+
+                    if (uKey === storeKey && user.schoolName !== newName) {
+                        user.schoolName = newName.trim();
+                        masterUpdated = true;
+                    }
+                }
+
+                if (masterUpdated) {
+                    await saveToCloud('klbk_users', usersDb);
+                }
+
+                // 2. Update School's Own DB limits
+                const res = await fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.${storeKey}&select=*`, {
+                    headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+                });
+                if (res.ok) {
+                    const rows = await res.json();
+                    if (rows && rows.length > 0) {
+                        const schoolData = rows[0].data;
+                        if (schoolData.school) {
+                            schoolData.school.name = newName.trim();
+                            await saveToCloud(storeKey, schoolData);
+                        }
+                    }
+                }
+
+                showMessage(`Okul adı "${newName.trim()}" olarak başarıyla güncellendi.`, 'success');
+                setTimeout(() => {
+                    initMasterPage();
+                    editSchoolNameBtn.innerHTML = '<i class="fa-solid fa-pen"></i> İsmi Düzenle';
+                    editSchoolNameBtn.style.pointerEvents = 'auto';
+                }, 1000);
+
+            } catch (err) {
+                console.error("İsim değiştirme hatası:", err);
+                showMessage("Okul adı güncellenemedi.", "error");
+                editSchoolNameBtn.innerHTML = '<i class="fa-solid fa-pen"></i> İsmi Düzenle';
+                editSchoolNameBtn.style.pointerEvents = 'auto';
+            }
+        });
+    }
 
     if (masterForm) {
         masterForm.addEventListener('submit', async (e) => {

@@ -39,7 +39,13 @@
 
             <form id="masterForm" class="login-form">
                 <div class="form-group">
-                    <label for="regSchoolSelect">Kurum Adı</label>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">
+                        <label for="regSchoolSelect" style="margin-bottom: 0;">Kurum Adı</label>
+                        <a href="#" id="editSchoolNameBtn" class="hidden"
+                            style="color: var(--primary); font-size: 0.85rem; text-decoration: none;"><i
+                                class="fa-solid fa-pen"></i> İsmi Düzenle</a>
+                    </div>
                     <div class="input-wrapper">
                         <i class="fa-solid fa-school"></i>
                         <select id="regSchoolSelect" name="regSchoolSelect" required
