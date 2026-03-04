@@ -2920,31 +2920,39 @@ document.addEventListener('DOMContentLoaded', async () => {
             // CHOOPY SEGMENTED PATH (HAT & BACK)
             const backPts = [
                 { x: rx + 0.5 * sf, y: ty },
-                { x: rx + 7 * sf, y: ty - 1 * sf },
-                { x: rx + 14 * sf, y: ty - 3.5 * sf },
-                { x: rx + 18.5 * sf, y: ty - 8 * sf },
-                { x: rx + 20.5 * sf, y: ty - 14 * sf },
-                { x: rx + 21 * sf, y: ty - 20 * sf },
-                { x: rx + 18.5 * sf, y: ty - 28 * sf },
-                { x: rx + 16 * sf, y: ty - 34 * sf },
-                { x: rx + 17.5 * sf, y: ty - 42 * sf },
-                { x: rx + 18 * sf, y: ty - 50 * sf },
-                { x: rx + 12 * sf, y: oy }
+                { x: rx + 5 * sf, y: ty - 0.5 * sf },
+                { x: rx + 12 * sf, y: ty - 2 * sf },
+                { x: rx + 16 * sf, y: ty - 5 * sf },
+                { x: rx + 19 * sf, y: ty - 9 * sf },
+                { x: rx + 20.5 * sf, y: ty - 15 * sf },
+                { x: rx + 20 * sf, y: ty - 22 * sf },
+                { x: rx + 17 * sf, y: ty - 30 * sf },
+                { x: rx + 15 * sf, y: ty - 38 * sf },
+                { x: rx + 16 * sf, y: ty - 45 * sf },
+                { x: rx + 15 * sf, y: ty - 52 * sf },
+                { x: rx + 11 * sf, y: oy }
             ];
 
-            // CHOOPY SEGMENTED PATH (FACE PROFILE)
+            // CHOOPY SEGMENTED PATH (FACE PROFILE - HIGHEST FIDELITY STENCIL TRACE)
             const facePts = [
-                { x: rx + 1 * sf, y: ty - 8 * sf },     // Hat siperlik tip
-                { x: rx - 3.5 * sf, y: ty - 10 * sf },   // Forehead start
-                { x: rx - 5 * sf, y: ty - 13.5 * sf },   // Eyebrow brow indented
-                { x: rx - 7 * sf, y: ty - 17 * sf },     // Eye area deeper indentation
-                { x: rx + 5.5 * sf, y: ty - 26 * sf },   // Sharp pointed Nose Tip
-                { x: rx + 0.2 * sf, y: ty - 27.5 * sf }, // Under nose curve
-                { x: rx - 1.5 * sf, y: ty - 29.5 * sf }, // Lips mid (indented)
-                { x: rx + 1.5 * sf, y: ty - 31 * sf },   // Lower lip
-                { x: rx + 6.5 * sf, y: ty - 36 * sf },   // Very sharp Chin Tip
-                { x: rx - 2.5 * sf, y: ty - 40 * sf },   // Jawline sharp segment 1
-                { x: rx - 5 * sf, y: ty - 44 * sf },     // Jawline sharp segment 2
+                { x: rx + 0.5 * sf, y: ty - 8 * sf },    // Hat siperlik tip (Sharp point)
+                { x: rx - 2 * sf, y: ty - 9.5 * sf },    // Upper Forehead
+                { x: rx - 4 * sf, y: ty - 12 * sf },     // Mid Forehead
+                { x: rx - 3 * sf, y: ty - 14 * sf },     // Brow ridge peak (bump outwards)
+                { x: rx - 6 * sf, y: ty - 16 * sf },     // Deep eye socket indent
+                { x: rx - 3 * sf, y: ty - 19 * sf },     // Upper bridge of nose
+                { x: rx + 3 * sf, y: ty - 24 * sf },     // Nose slope
+                { x: rx + 7.5 * sf, y: ty - 26 * sf },   // Pointy absolute Nose Tip
+                { x: rx + 1.5 * sf, y: ty - 28 * sf },   // Sharp drop under nose
+                { x: rx + 0.5 * sf, y: ty - 29 * sf },   // Upper lip / Mustache top
+                { x: rx + 2 * sf, y: ty - 30 * sf },     // Upper lip protrusion
+                { x: rx - 1.5 * sf, y: ty - 31.5 * sf }, // Mouth line deep indent
+                { x: rx + 1.5 * sf, y: ty - 33 * sf },   // Lower lip protrusion
+                { x: rx - 1 * sf, y: ty - 35 * sf },     // Dip under lower lip
+                { x: rx + 4.5 * sf, y: ty - 37 * sf },   // Pronounced Chin Tip
+                { x: rx + 0.5 * sf, y: ty - 39 * sf },   // Jaw bottom curve
+                { x: rx - 3.5 * sf, y: ty - 41 * sf },   // Neck line start (adam's apple area)
+                { x: rx - 6 * sf, y: ty - 46 * sf },     // Neck drop
                 { x: rx - 10 * sf, y: oy }               // Neck base boundary
             ];
 
@@ -2981,6 +2989,84 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
             page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: mainFont, color: navy });
             await drawLogo(ox + (leftW - 30 * sf) / 2, oy + row3H + (row2H + row1H - 30 * sf) / 2, 30 * sf);
+        } else if (designType === '10') {
+            // CLOUD THEME (BULUT)
+            const skyBlue = rgb(0.2, 0.6, 0.86); const cloudWhite = rgb(1, 1, 1);
+            page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: cloudWhite });
+
+            // Draw Scalloped (Cloud) Frame
+            const rSize = 6 * sf;
+            const stepsX = Math.floor(ow / (rSize * 1.5));
+            const stepW = ow / stepsX;
+            for (let i = 0; i <= stepsX; i++) {
+                page.drawCircle({ x: ox + i * stepW, y: oy + oh, size: rSize, color: skyBlue });
+                page.drawCircle({ x: ox + i * stepW, y: oy, size: rSize, color: skyBlue });
+            }
+            const stepsY = Math.floor(oh / (rSize * 1.5));
+            const stepH = oh / stepsY;
+            for (let i = 0; i <= stepsY; i++) {
+                page.drawCircle({ x: ox, y: oy + i * stepH, size: rSize, color: skyBlue });
+                page.drawCircle({ x: ox + ow, y: oy + i * stepH, size: rSize, color: skyBlue });
+            }
+            // Inner mask to hollow out clouds
+            page.drawRectangle({ x: ox + 3 * sf, y: oy + 3 * sf, width: ow - 6 * sf, height: oh - 6 * sf, color: cloudWhite });
+
+            page.drawLine({ start: { x: ox + leftW, y: oy + 3 * sf }, end: { x: ox + leftW, y: oy + oh - 3 * sf }, thickness: 1 * sf, color: skyBlue });
+            page.drawLine({ start: { x: ox + leftW + midW, y: oy + 3 * sf }, end: { x: ox + leftW + midW, y: oy + oh - 3 * sf }, thickness: 1 * sf, color: skyBlue });
+            page.drawLine({ start: { x: ox + 3 * sf, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1 * sf, color: skyBlue });
+
+            drawDivs(ox, oy + 3 * sf, leftW, midCol2W, midCol3W, midCol4W, midCol5W, skyBlue, 0.75 * sf);
+            drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 11, schoolFont), schoolFont);
+            drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
+            if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W, 3 * sf);
+
+            page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: mainFont, color: skyBlue });
+            await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+
+        } else if (designType === '11') {
+            // SAWTOOTH THEME (TESTERE DİŞİ)
+            const darkMetal = rgb(0.2, 0.2, 0.2); const lightGray = rgb(0.96, 0.96, 0.96);
+            page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: lightGray });
+
+            // Sawtooth Path Generator
+            const stPts = [];
+            const toothD = 5 * sf;
+            const tCountW = Math.floor(ow / toothD);
+            const tCountH = Math.floor(oh / toothD);
+            const actW = ow / tCountW;
+            const actH = oh / tCountH;
+
+            // Top Edge (Left to Right)
+            for (let i = 0; i < tCountW; i++) { stPts.push({ x: ox + i * actW, y: oy + oh }); stPts.push({ x: ox + i * actW + actW / 2, y: oy + oh - toothD }); }
+            stPts.push({ x: ox + ow, y: oy + oh });
+            // Right Edge (Top to Bottom)
+            for (let i = 0; i < tCountH; i++) { stPts.push({ x: ox + ow, y: oy + oh - i * actH }); stPts.push({ x: ox + ow - toothD, y: oy + oh - i * actH - actH / 2 }); }
+            stPts.push({ x: ox + ow, y: oy });
+            // Bottom Edge (Right to Left)
+            for (let i = 0; i < tCountW; i++) { stPts.push({ x: ox + ow - i * actW, y: oy }); stPts.push({ x: ox + ow - i * actW - actW / 2, y: oy + toothD }); }
+            stPts.push({ x: ox, y: oy });
+            // Left Edge (Bottom to Top)
+            for (let i = 0; i < tCountH; i++) { stPts.push({ x: ox, y: oy + i * actH }); stPts.push({ x: ox + toothD, y: oy + i * actH + actH / 2 }); }
+            stPts.push({ x: ox, y: oy + oh });
+
+            for (let i = 0; i < stPts.length - 1; i++) {
+                page.drawLine({ start: stPts[i], end: stPts[i + 1], thickness: 1 * sf, color: darkMetal });
+            }
+
+            // Inner boundary constraints so content doesn't hit teeth
+            const tOff = toothD + 1 * sf;
+
+            page.drawLine({ start: { x: ox + leftW, y: oy + tOff }, end: { x: ox + leftW, y: oy + oh - tOff }, thickness: 1 * sf, color: darkMetal });
+            page.drawLine({ start: { x: ox + leftW + midW, y: oy + tOff }, end: { x: ox + leftW + midW, y: oy + oh - tOff }, thickness: 1 * sf, color: darkMetal });
+            page.drawLine({ start: { x: ox + tOff, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1 * sf, color: darkMetal });
+
+            drawDivs(ox, oy + tOff, leftW, midCol2W, midCol3W, midCol4W, midCol5W, darkMetal, 0.75 * sf);
+            drawCenterText(sName.toUpperCase(), ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName.toUpperCase(), midW, 11, schoolFont), schoolFont);
+            drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
+            if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W, tOff);
+
+            page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: mainFont, color: darkMetal });
+            await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
         }
     };
 
@@ -4509,6 +4595,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <option value="7" ${subHeader === '7' ? 'selected' : ''}>Latin Teması</option>
                                 <option value="8" ${subHeader === '8' ? 'selected' : ''}>Arabic Teması</option>
                                 <option value="9" ${subHeader === '9' ? 'selected' : ''}>Atatürk Teması</option>
+                                <option value="10" ${subHeader === '10' ? 'selected' : ''}>Bulut Teması</option>
+                                <option value="11" ${subHeader === '11' ? 'selected' : ''}>Testere Dişi</option>
                             </select>
                         </div>
                         <div style="display:flex; justify-content:flex-end; align-items:center; gap:0.5rem;">
