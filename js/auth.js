@@ -192,6 +192,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Real Email Sending via EmailJS
                         const templateParams = {
                             to_email: emailAddress,
+                            email: emailAddress,
+                            user_email: emailAddress,
                             username: foundUser.username,
                             password: foundUser.password,
                             school_name: foundUser.schoolName || 'Kelebek Sistemi'
