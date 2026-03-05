@@ -143,14 +143,67 @@ document.addEventListener('DOMContentLoaded', () => {
         element.classList.remove('hidden');
     }
 
-    // Helper: Shake Form
-    function shakeForm() {
-        const loginCard = document.querySelector('.login-card');
-        if (!loginCard) return;
-        loginCard.style.animation = 'none';
-        loginCard.offsetHeight; /* trigger reflow */
-        loginCard.style.animation = 'shake 0.5s ease-in-out';
-        setTimeout(() => { loginCard.style.animation = 'none'; }, 500);
+    // --- Forgot Password Logic ---
+    const forgotLink = document.querySelector('.forgot-link');
+    if (forgotLink) {
+        forgotLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+
+            const { value: email } = await Swal.fire({
+                title: 'Şifremi Unuttum',
+                text: 'Sisteme kayıtlı e-posta adresinizi giriniz:',
+                input: 'email',
+                inputPlaceholder: 'E-posta adresiniz',
+                showCancelButton: true,
+                confirmButtonText: 'Gönder',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: 'var(--primary)',
+                inputValidator: (value) => {
+                    if (!value) return 'Lütfen bir e-posta adresi girin!';
+                }
+            });
+
+            if (email) {
+                Swal.fire({
+                    title: 'Lütfen Bekleyin',
+                    text: 'Bilgileriniz kontrol ediliyor...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                const usersDb = await getCloudUsers();
+                let foundUser = null;
+
+                // Find user by email
+                for (const [uname, data] of Object.entries(usersDb)) {
+                    if (data.email && data.email.toLowerCase() === email.toLowerCase()) {
+                        foundUser = { username: uname, ...data };
+                        break;
+                    }
+                }
+
+                if (foundUser) {
+                    // In a real scenario, we'd call an email API here. 
+                    // For "en kolayı", we show a success message matching the user's request.
+                    // We'll also log it to console as a "sending" simulation.
+                    console.log(`Email Sent to ${email}: Username: ${foundUser.username}, Password: ${foundUser.password}`);
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Bilgiler Gönderildi',
+                        html: `Kullanıcı bilgileriniz <b>${email}</b> adresine gönderilmiştir.<br><br><small>Not: Bu bir demo sürümüdür. Gerçek gönderim için sistem yöneticisi ayarları gereklidir.</small>`,
+                        confirmButtonColor: 'var(--secondary)'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Hata',
+                        text: 'E-posta adresiniz sisteme kayıtlı değil. Sistem yöneticinizle görüşün.',
+                        confirmButtonColor: 'var(--danger)'
+                    });
+                }
+            }
+        });
     }
 
 });
