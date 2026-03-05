@@ -146,10 +146,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Forgot Password Logic ---
     const forgotLink = document.querySelector('.forgot-link');
     if (forgotLink) {
+        // Initialize EmailJS with Public Key
+        if (window.emailjs) {
+            emailjs.init("0gioGMhJGYrohmvyz");
+        }
+
         forgotLink.addEventListener('click', async (e) => {
             e.preventDefault();
 
-            const { value: email } = await Swal.fire({
+            const { value: emailAddress } = await Swal.fire({
                 title: 'Şifremi Unuttum',
                 text: 'Sisteme kayıtlı e-posta adresinizi giriniz:',
                 input: 'email',
@@ -163,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            if (email) {
+            if (emailAddress) {
                 Swal.fire({
                     title: 'Lütfen Bekleyin',
                     text: 'Bilgileriniz kontrol ediliyor...',
@@ -176,24 +181,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Find user by email
                 for (const [uname, data] of Object.entries(usersDb)) {
-                    if (data.email && data.email.toLowerCase() === email.toLowerCase()) {
+                    if (data.email && data.email.toLowerCase() === emailAddress.toLowerCase()) {
                         foundUser = { username: uname, ...data };
                         break;
                     }
                 }
 
                 if (foundUser) {
-                    // In a real scenario, we'd call an email API here. 
-                    // For "en kolayı", we show a success message matching the user's request.
-                    // We'll also log it to console as a "sending" simulation.
-                    console.log(`Email Sent to ${email}: Username: ${foundUser.username}, Password: ${foundUser.password}`);
+                    try {
+                        // Real Email Sending via EmailJS
+                        const templateParams = {
+                            to_email: emailAddress,
+                            username: foundUser.username,
+                            password: foundUser.password,
+                            school_name: foundUser.schoolName || 'Kelebek Sistemi'
+                        };
 
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Bilgiler Gönderildi',
-                        html: `Kullanıcı bilgileriniz <b>${email}</b> adresine gönderilmiştir.<br><br><small>Not: Bu bir demo sürümüdür. Gerçek gönderim için sistem yöneticisi ayarları gereklidir.</small>`,
-                        confirmButtonColor: 'var(--secondary)'
-                    });
+                        await emailjs.send(
+                            "service_6d7uscc",
+                            "template_i0eo9o5",
+                            templateParams
+                        );
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Bilgiler Gönderildi',
+                            html: `Kullanıcı bilgileriniz <b>${emailAddress}</b> adresine e-posta olarak gönderilmiştir.`,
+                            confirmButtonColor: 'var(--secondary)'
+                        });
+                    } catch (err) {
+                        console.error("EmailJS Error:", err);
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Gönderim Hatası',
+                            text: 'E-posta servisi şu an yanıt vermiyor, ancak bilgileriniz doğrulandı. Lütfen sistem yöneticisi ile iletişime geçin.',
+                            confirmButtonColor: 'var(--primary)'
+                        });
+                    }
                 } else {
                     Swal.fire({
                         icon: 'error',
