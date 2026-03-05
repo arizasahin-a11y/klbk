@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         };
 
                         await emailjs.send(
-                            "service_urx4fdp",
+                            "service_205ar93",
                             "template_i0eo9o5",
                             templateParams
                         );
