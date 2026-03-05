@@ -9,6 +9,8 @@
 .app-container {
     display: flex;
     height: 100vh;
+    height: 100dvh;
+    /* Dynamic viewport height for mobile browsers */
     width: 100vw;
     padding: 1rem;
     gap: 1.5rem;
@@ -58,11 +60,16 @@
 
 .menu-toggle {
     display: none;
-    background: none;
-    border: none;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     color: var(--dark);
-    font-size: 1.25rem;
+    font-size: 1.5rem;
     cursor: pointer;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    align-items: center;
+    justify-content: center;
 }
 
 .sidebar-nav {
@@ -703,13 +710,19 @@ small {
         display: block;
     }
 
-    /* Make all tables horizontally scrollable without wrapper */
+    /* Responsive table wrapper */
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 1rem;
+        border-radius: var(--radius-md);
+    }
+
     table,
     .data-table {
-        display: block !important;
-        overflow-x: auto !important;
-        white-space: nowrap !important;
-        width: 100% !important;
+        min-width: 600px;
+        /* Force scroll on small screens */
     }
 
     /* Adjust grids for mobile */

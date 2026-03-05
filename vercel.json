@@ -1,0 +1,10 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/k9x7v2m4", "destination": "/k9x7v2m4.html" },
+    { "source": "/r1p5s8q3", "destination": "/r1p5s8q3.html" },
+    { "source": "/n4b9v1c7", "destination": "/n4b9v1c7.html" },
+    { "source": "/j2k5l0p8", "destination": "/j2k5l0p8.html" },
+    { "source": "/h6t3y9w1", "destination": "/h6t3y9w1.html" }
+  ]
+}

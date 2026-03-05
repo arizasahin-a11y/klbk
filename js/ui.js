@@ -2396,7 +2396,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         let tableHtml = `
-            <table class="data-table" style="width:100%; border-collapse:collapse; background:white; border-radius:12px; overflow:hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+            <div class="table-responsive">
+                <table class="data-table" style="width:100%; border-collapse:collapse; background:white; border-radius:12px; overflow:hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
                 <thead style="background:var(--gray-50); border-bottom:2px solid var(--gray-200);">
                     <tr>
                         <th style="padding:1.25rem; text-align:left; font-weight:700; color:var(--gray-700);">Sınav Oturumu</th>
@@ -2484,7 +2485,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
         });
 
-        tableHtml += `</tbody></table>`;
+        tableHtml += `</tbody></table></div>`;
         examSessionsList.innerHTML = tableHtml;
     }
 

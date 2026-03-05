@@ -14,7 +14,7 @@
         })();
     </script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>Öğrenci Sınav Sorgu Sistemi</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1069,27 +1069,29 @@
                             <i class="fa-solid fa-chevron-down" style="font-size:0.8rem; transition: 0.3s;"></i>
                         </div>
                         <div class="nested-content hidden">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th style="width:60px;">No</th>
-                                        <th>Ad Soyad</th>
-                                        <th>Sınav Dersi</th>
-                                        <th>Sınav Salonu</th>
-                                        <th style="width:80px; text-align:center;">Yer No</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${classStudents.map(s => `
-                                        <tr style="${s.isMe ? 'background:rgba(16, 185, 129, 0.05); font-weight:bold;' : ''}">
-                                            <td>${s.no}</td>
-                                            <td>${s.name} ${s.isMe ? '<span style="color:var(--secondary); font-size:0.7rem; margin-left:5px;">(SİZSİNİZ)</span>' : ''}</td>
-                                            <td style="font-size:0.85rem; color:var(--gray-600);">${s.subject}</td>
-                                            <td><i class="fa-solid fa-door-open" style="color:var(--gray-400); margin-right:5px; font-size:0.8rem;"></i> ${s.room}</td>
-                                            <td style="text-align:center;"><span class="badge-seat">${s.sn}</span></td>
-                                        </tr>`).join('')}
-                                </tbody>
-                            </table>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:60px;">No</th>
+                                            <th>Ad Soyad</th>
+                                            <th>Sınav Dersi</th>
+                                            <th>Sınav Salonu</th>
+                                            <th style="width:80px; text-align:center;">Yer No</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${classStudents.map(s => `
+                                            <tr style="${s.isMe ? 'background:rgba(16, 185, 129, 0.05); font-weight:bold;' : ''}">
+                                                <td>${s.no}</td>
+                                                <td>${s.name} ${s.isMe ? '<span style="color:var(--secondary); font-size:0.7rem; margin-left:5px;">(SİZSİNİZ)</span>' : ''}</td>
+                                                <td style="font-size:0.85rem; color:var(--gray-600);">${s.subject}</td>
+                                                <td><i class="fa-solid fa-door-open" style="color:var(--gray-400); margin-right:5px; font-size:0.8rem;"></i> ${s.room}</td>
+                                                <td style="text-align:center;"><span class="badge-seat">${s.sn}</span></td>
+                                            </tr>`).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 

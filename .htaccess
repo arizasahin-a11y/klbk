@@ -1,0 +1,10 @@
+RewriteEngine On
+
+# Ensure extensionless requests for masked names serve the gateway files
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^k9x7v2m4$ k9x7v2m4.html [L]
+RewriteRule ^r1p5s8q3$ r1p5s8q3.html [L]
+RewriteRule ^n4b9v1c7$ n4b9v1c7.html [L]
+RewriteRule ^j2k5l0p8$ j2k5l0p8.html [L]
+RewriteRule ^h6t3y9w1$ h6t3y9w1.html [L]

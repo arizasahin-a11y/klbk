@@ -14,7 +14,7 @@
         })();
     </script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>Öğretmen Sınav Yönetim Paneli</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1741,7 +1741,7 @@
                         const isLastPage = (p + PAGE_SIZE >= students.length);
                         const isHighDensity = PAGE_SIZE > 42 || (isLastPage && studentMsg && PAGE_SIZE > 35);
                         const rows = chunk.map(s => `<tr><td style="width:10%;" class="text-center text-bold">${s.no}</td><td style="width:40%; text-transform:uppercase; font-weight:600;">${s.name}</td><td style="width:28%;">${s._matchedSubject || '-'}</td><td style="width:14%;" class="text-center">${s.room}</td><td style="width:8%;" class="text-center text-bold">${s.seatNum}</td></tr> `).join('');
-                        body += `<div class="page portrait ${isHighDensity ? 'compact-header' : ''}"> ${hdr(`${cls} Sınıf Listesi`)} <table class="${isHighDensity ? 'compact' : ''}"><thead><tr><th style="width:10%;" class="text-center">No</th><th style="width:40%;">Ad Soyad</th><th style="width:28%;">Sınav Dersi</th><th style="width:14%;" class="text-center">Derslik</th><th style="width:8%;" class="text-center">Sıra</th></tr></thead><tbody>${rows}</tbody></table>${(studentMsg && isLastPage) ? `<div class="msg-box ${isHighDensity ? 'compact-msg' : ''}"><strong><span class="icon">!</span> Dikkat: </strong>${studentMsg}</div>` : ""}</div> `;
+                        body += `<div class="page portrait ${isHighDensity ? 'compact-header' : ''}"> ${hdr(`${cls} Sınıf Listesi`)} <div class="table-responsive"><table class="${isHighDensity ? 'compact' : ''}"><thead><tr><th style="width:10%;" class="text-center">No</th><th style="width:40%;">Ad Soyad</th><th style="width:28%;">Sınav Dersi</th><th style="width:14%;" class="text-center">Derslik</th><th style="width:8%;" class="text-center">Sıra</th></tr></thead><tbody>${rows}</tbody></table></div>${(studentMsg && isLastPage) ? `<div class="msg-box ${isHighDensity ? 'compact-msg' : ''}"><strong><span class="icon">!</span> Dikkat: </strong>${studentMsg}</div>` : ""}</div> `;
                     }
                 });
 
@@ -1801,7 +1801,7 @@
                                     <table style="font-size:7.5pt;"><thead><tr><th style="padding:2px 4px; width:75%;">Sınav</th><th style="padding:2px 4px; width:25%;">Sayı</th></tr></thead><tbody>${examSummaryRows}</tbody></table>
                                 </div>
                             </div> ` : '';
-                        body += `<div class="page portrait ${isHighDensity ? 'compact-header' : ''}"> ${hdr(`${room.name} Salonu - Oturma Listesi`)} <div style="display:flex; flex:1;"><div style="flex:1;"><table class="${isHighDensity ? 'compact' : ''}"><thead><tr><th style="width:8%;" class="text-center">Sıra</th><th style="width:10%;" class="text-center">Sınıf</th><th style="width:10%;" class="text-center">No</th><th style="width:42%;">Ad Soyad</th><th style="width:15%;">Ders</th><th style="width:15%;">AÇIKLAMA</th></tr></thead><tbody>${rows}</tbody></table></div>${summaryContent}</div>${(teacherMsg && isLastPage) ? `<div class="msg-box ${isHighDensity ? 'compact-msg' : ''}" style="border-color:#ca8a04; background:#fffaf0;"><strong><span class="icon" style="background:#ea580c;">!</span> Dikkat: </strong>${teacherMsg}</div>` : ""}</div> `;
+                        body += `<div class="page portrait ${isHighDensity ? 'compact-header' : ''}"> ${hdr(`${room.name} Salonu - Oturma Listesi`)} <div style="display:flex; flex:1;"><div style="flex:1;"><div class="table-responsive"><table class="${isHighDensity ? 'compact' : ''}"><thead><tr><th style="width:8%;" class="text-center">Sıra</th><th style="width:10%;" class="text-center">Sınıf</th><th style="width:10%;" class="text-center">No</th><th style="width:42%;">Ad Soyad</th><th style="width:15%;">Ders</th><th style="width:15%;">AÇIKLAMA</th></tr></thead><tbody>${rows}</tbody></table></div></div>${summaryContent}</div>${(teacherMsg && isLastPage) ? `<div class="msg-box ${isHighDensity ? 'compact-msg' : ''}" style="border-color:#ca8a04; background:#fffaf0;"><strong><span class="icon" style="background:#ea580c;">!</span> Dikkat: </strong>${teacherMsg}</div>` : ""}</div> `;
                     }
                 });
 
