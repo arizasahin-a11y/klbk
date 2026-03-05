@@ -1037,7 +1037,7 @@
 
             const frontAreaHtml = `
                 <div class="front-area">
-                    ${myRoom.teacherDeskPos === 'left' ? `<div class="teacher-desk">GÖREVLİ ÖĞRETMEN MASASI</div><div class="board"><div>SINAV TAHTASI</div><div class="board-messages" style="font-size:0.75rem; font-weight:500; margin-top:10px; text-align:left; line-height:1.3;"></div></div><div style="width:100px;"></div>` : `<div style="width:100px;"></div><div class="board"><div>SINAV TAHTASI</div><div class="board-messages" style="font-size:0.75rem; font-weight:500; margin-top:10px; text-align:left; line-height:1.3;"></div></div><div class="teacher-desk">MASA</div>`}
+                    ${myRoom.teacherDeskPos === 'left' ? '<div class="teacher-desk">DERS ÖĞRETMEN MASASI</div><div class="board">SINAV TAHTASI</div><div style="width:100px;"></div>' : '<div style="width:100px;"></div><div class="board">SINAV TAHTASI</div><div class="teacher-desk">MASA</div>'}
                 </div>`;
 
             return `
@@ -1147,8 +1147,6 @@
                 }
             });
 
-            // Update board displays
-            updateBoardMessages(groupedMessages);
 
             // Remove windows for subjects that no longer have active unclosed messages
             activeMessages.forEach((win, subject) => {
@@ -1168,24 +1166,7 @@
             });
         }
 
-        function updateBoardMessages(groupedMessages) {
-            const boardContainers = document.querySelectorAll('.board-messages');
-            if (boardContainers.length === 0) return;
 
-            let html = '';
-            Object.entries(groupedMessages).forEach(([subject, messages]) => {
-                messages.forEach(msg => {
-                    html += `<div style="padding:6px 12px; border-left:4px solid var(--danger); background:rgba(239,68,68,0.05); margin-bottom:8px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-                                <div style="font-size:0.7rem; color:var(--gray-500); font-weight:800; text-transform:uppercase;">${subject} <span style="opacity:0.6; margin:0 5px;">|</span> ${msg.author}</div>
-                                <div style="font-weight:800; color:var(--dark); margin-top:3px; line-height:1.4;">${msg.text}</div>
-                             </div>`;
-                });
-            });
-
-            boardContainers.forEach(container => {
-                container.innerHTML = html || '<div style="opacity:0.3; font-style:italic; font-weight:400; text-align:center; padding:10px;">Henüz bir duyuru yok.</div>';
-            });
-        }
 
         function updateMessageWindowContent(subject, messages) {
             const win = activeMessages.get(subject);
@@ -1255,8 +1236,6 @@
                 setTimeout(() => {
                     win.remove();
                     activeMessages.delete(subject);
-                    // Re-sync board messages to remove closed ones if needed (though usually we want to keep them on board)
-                    checkLiveMessages();
                 }, 300);
             }
             // Mark all current messages in this window as closed
@@ -1458,7 +1437,7 @@
 
             let frontAreaHtml = `
                 <div class="front-area" style="margin-top: 50px;">
-                    ${!isTeacherRight ? '<div class="teacher-desk" style="width: 120px; height: 80px; font-size: 0.85rem;">ÖĞRETMEN<br>MASASI</div><div class="board" style="min-height: 100px; height:auto; padding:15px; font-size: 1.1rem; flex:1; display:flex; flex-direction:column; align-items:center;"><div>YAZI TAHTASI</div><div class="board-messages" style="width:100%; margin-top:15px; text-align:left; font-size:0.95rem;"></div></div><div style="width:120px;"></div>' : '<div style="width:120px;"></div><div class="board" style="min-height: 100px; height:auto; padding:15px; font-size: 1.1rem; flex:1; display:flex; flex-direction:column; align-items:center;"><div>YAZI TAHTASI</div><div class="board-messages" style="width:100%; margin-top:15px; text-align:left; font-size:0.95rem;"></div></div><div class="teacher-desk" style="width: 120px; height: 80px; font-size: 0.85rem;">ÖĞRETMEN<br>MASASI</div>'}
+                    ${!isTeacherRight ? '<div class="teacher-desk" style="width: 120px; height: 80px; font-size: 0.85rem;">ÖĞRETMEN<br>MASASI</div><div class="board" style="height: 50px; font-size: 1.1rem;">YAZI TAHTASI</div><div style="width:120px;"></div>' : '<div style="width:120px;"></div><div class="board" style="height: 50px; font-size: 1.1rem;">YAZI TAHTASI</div><div class="teacher-desk" style="width: 120px; height: 80px; font-size: 0.85rem;">ÖĞRETMEN<br>MASASI</div>'}
                 </div>
             `;
 
