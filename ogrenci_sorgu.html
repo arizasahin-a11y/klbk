@@ -417,68 +417,62 @@
 
     <div id="timeSyncStatus">İnternet saati senkronize ediliyor...</div>
 
-    <!-- Live Message Modal -->
-    <div id="liveMessageModal" class="hidden"
-        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10000; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: flex-start; padding-top: 50px;">
-        <div class="glass-panel"
-            style="background: white; width: 90%; max-width: 800px; padding: 2.5rem; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border-left: 8px solid var(--danger); position: relative; animation: slideDown 0.4s ease-out;">
-            <div style="position: absolute; top: 15px; right: 20px; display: flex; gap: 15px;">
-                <button onclick="minimizeMessage()"
-                    style="background: none; border: none; font-size: 1.2rem; color: var(--gray-400); cursor: pointer;"
-                    title="Küçült"><i class="fa-solid fa-minus"></i></button>
-                <button onclick="closeMessage()"
-                    style="background: none; border: none; font-size: 1.2rem; color: var(--gray-400); cursor: pointer;"
-                    title="Kapat"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-                <div
-                    style="width: 50px; height: 50px; background: #fef2f2; color: var(--danger); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
-                    <i class="fa-solid fa-bell fa-shake"></i>
-                </div>
-                <div>
-                    <h3 id="modalSubjectTitle"
-                        style="margin: 0; color: var(--danger); font-weight: 900; font-size: 1.4rem;">GÖREVLİ ÖĞRETMEN
-                        UYARISI</h3>
-                    <div id="liveMessageAuthor" style="font-size: 0.9rem; color: var(--gray-500); font-weight: 600;">
-                    </div>
-                </div>
-            </div>
-            <p id="liveMessageText"
-                style="font-size: 1.8rem; font-weight: 700; color: var(--dark); line-height: 1.4; margin: 0;"></p>
-        </div>
-    </div>
-
-    <!-- Minimized Message Bar -->
-    <div id="minimizedMessageBar" class="hidden" onclick="restoreMessage()"
-        style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; background: var(--danger); color: white; padding: 12px 25px; border-radius: 50px; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4); cursor: pointer; display: flex; align-items: center; gap: 12px; animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);">
-        <i class="fa-solid fa-message fa-beat"></i>
-        <span id="minimizedText" style="font-weight: 800; font-size: 0.9rem;">YENİ MESAJ VAR!</span>
-        <i class="fa-solid fa-chevron-up"></i>
+    <!-- Global Notification Container -->
+    <div id="notificationContainer"
+        style="position: fixed; top: 20px; right: 20px; width: 400px; z-index: 10000; display: flex; flex-direction: column; gap: 15px; pointer-events: none;">
     </div>
 
     <style>
-        @keyframes slideDown {
+        .floating-window {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            border-left: 6px solid var(--danger);
+            pointer-events: auto;
+            position: relative;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            max-width: 100%;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .window-header {
+            padding: 12px 18px;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+        }
+
+        .window-content {
+            padding: 20px;
+        }
+
+        .floating-window.minimized {
+            width: 250px;
+            border-left-width: 10px;
+        }
+
+        .floating-window.minimized .window-content {
+            display: none;
+        }
+
+        @keyframes bounceInRight {
             from {
-                transform: translateY(-50px);
+                transform: translateX(100%);
                 opacity: 0;
             }
 
             to {
-                transform: translateY(0);
+                transform: translateX(0);
                 opacity: 1;
             }
         }
 
-        @keyframes bounceIn {
-            from {
-                transform: translateX(-50%) translateY(100px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateX(-50%) translateY(0);
-                opacity: 1;
-            }
+        .animate-in {
+            animation: bounceInRight 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
         }
     </style>
 
@@ -1114,12 +1108,14 @@
         let currentFullScreenSessionId = null;
         let userClosedFullScreen = false;
 
+        let activeMessages = new Map(); // Store active message windows
+
         function checkLiveMessages() {
             if (!currentStudent) return;
             const sessions = DataManager.getExamSessions();
             const now = getNow();
 
-            // Get student's current subjects from all active sessions
+            // Student's subjects
             const mySubjects = [];
             sessions.forEach(ses => {
                 if (!ses.results) return;
@@ -1132,63 +1128,126 @@
                 });
             });
 
-            let relevantMessage = null;
-            for (let ses of sessions) {
-                if (ses.liveMessages && ses.liveMessages.length > 0) {
-                    // Filter messages matching student's subjects and not expired
-                    const msgs = ses.liveMessages.filter(m =>
-                        m.expireAt > now &&
-                        mySubjects.includes(m.subject)
-                    ).sort((a, b) => b.timestamp - a.timestamp);
-
-                    if (msgs.length > 0) {
-                        relevantMessage = msgs[0];
-                        break;
-                    }
+            // Collect all relevant unexpired messages
+            const allMessages = [];
+            sessions.forEach(ses => {
+                if (ses.liveMessages) {
+                    ses.liveMessages.forEach(m => {
+                        if (m.expireAt > now && mySubjects.includes(m.subject)) {
+                            allMessages.push(m);
+                        }
+                    });
                 }
-            }
+            });
 
-            const modal = document.getElementById('liveMessageModal');
-            const bar = document.getElementById('minimizedMessageBar');
-
-            if (relevantMessage) {
-                // If it's a NEW message, show modal automatically
-                if (window.lastShownMessageId !== relevantMessage.timestamp) {
-                    if (!window.closedMessageIds) window.closedMessageIds = new Set();
-
-                    // If student already closed THIS specific message, don't re-show pop-up
-                    if (window.closedMessageIds.has(relevantMessage.timestamp)) return;
-
-                    document.getElementById('liveMessageText').textContent = relevantMessage.text;
-                    document.getElementById('liveMessageAuthor').innerHTML = `<i class="fa-solid fa-chalkboard-user"></i> ${relevantMessage.author}`;
-                    document.getElementById('modalSubjectTitle').textContent = relevantMessage.subject.toUpperCase() + " UYARISI";
-                    document.getElementById('minimizedText').textContent = relevantMessage.subject.toUpperCase() + ": YENİ MESAJ!";
-
-                    modal.classList.remove('hidden');
-                    bar.classList.add('hidden');
-                    window.lastShownMessageId = relevantMessage.timestamp;
+            // Remove expired windows
+            activeMessages.forEach((win, id) => {
+                const stillValid = allMessages.some(m => m.timestamp === id);
+                if (!stillValid) {
+                    win.remove();
+                    activeMessages.delete(id);
                 }
-            } else {
-                modal.classList.add('hidden');
-                bar.classList.add('hidden');
-                window.lastShownMessageId = null;
+            });
+
+            // Add new windows for new messages
+            allMessages.forEach(msg => {
+                if (!activeMessages.has(msg.timestamp)) {
+                    if (window.closedMessageIds && window.closedMessageIds.has(msg.timestamp)) return;
+                    createMessageWindow(msg);
+                }
+            });
+        }
+
+        function createMessageWindow(msg) {
+            const container = document.getElementById('notificationContainer');
+            const win = document.createElement('div');
+            win.className = 'floating-window animate-in';
+            win.id = `win-${msg.timestamp}`;
+            win.style.zIndex = 10000 + activeMessages.size;
+
+            win.innerHTML = `
+                <div class="window-header" onmousedown="startDragging(event, '${msg.timestamp}')">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-bell fa-shake" style="color:var(--danger)"></i>
+                        <span style="font-weight:900; font-size:0.8rem; color:var(--danger); text-transform:uppercase;">${msg.subject}</span>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="toggleMinimize('${msg.timestamp}')" style="background:none; border:none; cursor:pointer; color:var(--gray-400);"><i class="fa-solid fa-minus"></i></button>
+                        <button onclick="closeSingleMessage('${msg.timestamp}')" style="background:none; border:none; cursor:pointer; color:var(--gray-400);"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+                <div class="window-content">
+                    <div style="font-size:0.75rem; color:var(--gray-500); margin-bottom:10px; font-weight:700;">
+                        <i class="fa-solid fa-user-tie"></i> ${msg.author}
+                    </div>
+                    <p style="font-size: 1.2rem; font-weight: 800; color: var(--dark); line-height: 1.4; margin: 0;">${msg.text}</p>
+                </div>
+            `;
+
+            container.appendChild(win);
+            activeMessages.set(msg.timestamp, win);
+
+            // Play notification sound if available
+            try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch (e) { }
+        }
+
+        function toggleMinimize(id) {
+            const win = activeMessages.get(parseInt(id));
+            if (win) {
+                win.classList.toggle('minimized');
             }
         }
 
-        function closeMessage() {
-            document.getElementById('liveMessageModal').classList.add('hidden');
+        function closeSingleMessage(id) {
+            const win = activeMessages.get(parseInt(id));
+            if (win) {
+                win.style.opacity = '0';
+                win.style.transform = 'scale(0.8) translateX(50px)';
+                setTimeout(() => {
+                    win.remove();
+                    activeMessages.delete(parseInt(id));
+                }, 300);
+            }
             if (!window.closedMessageIds) window.closedMessageIds = new Set();
-            if (window.lastShownMessageId) window.closedMessageIds.add(window.lastShownMessageId);
+            window.closedMessageIds.add(parseInt(id));
         }
 
-        function minimizeMessage() {
-            document.getElementById('liveMessageModal').classList.add('hidden');
-            document.getElementById('minimizedMessageBar').classList.remove('hidden');
+        // --- Dragging Logic ---
+        let draggedElement = null;
+        let offset = { x: 0, y: 0 };
+
+        function startDragging(e, id) {
+            const win = activeMessages.get(parseInt(id));
+            if (!win) return;
+            draggedElement = win;
+
+            // Bring to front
+            activeMessages.forEach(w => w.style.zIndex = 10000);
+            win.style.zIndex = 10001;
+
+            const rect = win.getBoundingClientRect();
+            offset.x = e.clientX - rect.left;
+            offset.y = e.clientY - rect.top;
+
+            win.style.position = 'fixed';
+            win.style.left = rect.left + 'px';
+            win.style.top = rect.top + 'px';
+            win.style.right = 'auto'; // Break from container flow
+
+            document.addEventListener('mousemove', onDragging);
+            document.addEventListener('mouseup', stopDragging);
         }
 
-        function restoreMessage() {
-            document.getElementById('liveMessageModal').classList.remove('hidden');
-            document.getElementById('minimizedMessageBar').classList.add('hidden');
+        function onDragging(e) {
+            if (!draggedElement) return;
+            draggedElement.style.left = (e.clientX - offset.x) + 'px';
+            draggedElement.style.top = (e.clientY - offset.y) + 'px';
+        }
+
+        function stopDragging() {
+            draggedElement = null;
+            document.removeEventListener('mousemove', onDragging);
+            document.removeEventListener('mouseup', stopDragging);
         }
 
         function checkFullScreenTriggers() {
