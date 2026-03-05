@@ -779,11 +779,34 @@
             const dailyLessons = parseInt(school.dailyLessons) || 0;
 
             let lessonOptions = '<option value="">Ders Saati Seçin (Hızlı Seçim)</option>';
+            let currentLessonValue = "";
             for (let i = 1; i <= dailyLessons; i++) {
                 const start = lessonTimes[`${i}_start`];
                 if (start) {
-                    lessonOptions += `<option value="${start}">${i}. Ders (${start})</option>`;
+                    const isSelected = (session.time === start || session.time === `${i}. Ders`) ? 'selected' : '';
+                    if (isSelected) currentLessonValue = start;
+                    lessonOptions += `<option value="${start}" ${isSelected}>${i}. Ders (${start})</option>`;
                 }
+            }
+
+            // Format date for type="date" (YYYY-MM-DD)
+            let dateVal = session.date || "";
+            if (dateVal.includes('.')) {
+                const parts = dateVal.split('.');
+                if (parts.length === 3 && parts[0].length === 2) {
+                    dateVal = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+            }
+
+            // Format time for type="time" (HH:MM)
+            let timeVal = session.time || "";
+            if (timeVal.includes('. Ders')) {
+                const lNum = parseInt(timeVal);
+                if (lessonTimes[`${lNum}_start`]) timeVal = lessonTimes[`${lNum}_start`];
+            }
+            if (timeVal.includes(':')) {
+                const [h, m] = timeVal.split(':');
+                timeVal = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
             }
 
             const { value: formValues } = await Swal.fire({
@@ -791,10 +814,10 @@
                 html: `
                     <div style="text-align: left; padding: 10px;">
                         <label style="display: block; margin-bottom: 5px; font-weight: 700; color: var(--gray-700);">Sınav Adı</label>
-                        <input id="swal-name" class="swal2-input" type="text" value="${session.name}" style="width: 100%; margin: 0 0 15px 0;">
+                        <input id="swal-name" class="swal2-input" type="text" value="${session.name || ""}" style="width: 100%; margin: 0 0 15px 0;">
 
                         <label style="display: block; margin-bottom: 5px; font-weight: 700; color: var(--gray-700);">Sınav Tarihi</label>
-                        <input id="swal-date" class="swal2-input" type="date" value="${session.date}" style="width: 100%; margin: 0 0 15px 0;">
+                        <input id="swal-date" class="swal2-input" type="date" value="${dateVal}" style="width: 100%; margin: 0 0 15px 0;">
                         
                         <label style="display: block; margin-bottom: 5px; font-weight: 700; color: var(--gray-700);">Ders Saati (Otomatik Saat Belirle)</label>
                         <select id="swal-lesson" class="swal2-input" style="width: 100%; margin: 0 0 15px 0; font-size: 0.9rem;">
@@ -802,7 +825,7 @@
                         </select>
 
                         <label style="display: block; margin-bottom: 5px; font-weight: 700; color: var(--gray-700);">Başlangıç Saati</label>
-                        <input id="swal-time" class="swal2-input" type="time" value="${session.time}" style="width: 100%; margin: 0 0 15px 0;">
+                        <input id="swal-time" class="swal2-input" type="time" value="${timeVal}" style="width: 100%; margin: 0 0 15px 0;">
                     </div>
                 `,
                 didOpen: () => {
