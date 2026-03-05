@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const filePath = path.join('a:', 'TOOLS', 'kodlama', 'km', 'KLBK FRVR', 'h6t3y9w1.html');
+const filePath = path.join('a:', 'TOOLS', 'kodlama', 'km', 'KLBK FRVR', 'ogretmen.html');
 let content = fs.readFileSync(filePath, 'utf8');
 
 const targetStr = `            const abbr = (n) => {
