@@ -837,8 +837,24 @@
                             <input type="checkbox" id="selectAllEntities" checked style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--primary);" onchange="document.querySelectorAll('input[name=printEntity]').forEach(cb => cb.checked = this.checked)">
                             <span style="font-size: 1.1rem; font-weight: 900; color: var(--primary);">Tümünü Seç</span>
                         </label>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; max-height: 250px; overflow-y: auto; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; padding: 15px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; max-height: 250px; overflow-y: auto; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 20px;">
                             ${checkboxesHtml}
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px; background: #f1f5f9; padding: 15px; border-radius: 12px;">
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <div style="flex:1;">
+                                    <label style="display: block; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); margin-bottom: 4px;">ÖĞRENCİLERE MESAJ</label>
+                                    <input type="text" id="printStudentMsg" class="form-control" style="font-size: 0.85rem; padding: 8px 12px;" value="${session.studentMsg || ''}" placeholder="Sınav kuralları vb...">
+                                </div>
+                                <div style="flex:1;">
+                                    <label style="display: block; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); margin-bottom: 4px;">GÖREVLİYE MESAJ</label>
+                                    <input type="text" id="printTeacherMsg" class="form-control" style="font-size: 0.85rem; padding: 8px 12px;" value="${session.teacherMsg || ''}" placeholder="Salon başkanı notu...">
+                                </div>
+                            </div>
+                            <div style="width: 150px;">
+                                <label style="display: block; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); margin-bottom: 4px;">SAYFA BAŞINA ÖĞRENCİ</label>
+                                <input type="number" id="printPageSize" class="form-control" style="font-size: 0.85rem; padding: 8px 12px;" min="1" max="50" value="45">
+                            </div>
                         </div>
                     </div>
                 `,
@@ -852,17 +868,24 @@
                     const selected = Array.from(document.querySelectorAll('input[name="printEntity"]:checked')).map(cb => cb.value);
                     if (selected.length === 0) {
                         Swal.showValidationMessage('Lütfen en az bir tane seçin.');
+                        return false;
                     }
-                    return selected;
+                    const sMsg = document.getElementById('printStudentMsg').value;
+                    const tMsg = document.getElementById('printTeacherMsg').value;
+                    let pSize = parseInt(document.getElementById('printPageSize').value) || 45;
+                    if (pSize > 50) pSize = 50;
+                    if (pSize < 1) pSize = 1;
+
+                    return { selected, sMsg, tMsg, pSize };
                 }
             }).then((result) => {
-                if (result.isConfirmed && result.value.length > 0) {
-                    executePrintSession(id, mode, result.value);
+                if (result.isConfirmed && result.value.selected.length > 0) {
+                    executePrintSession(id, mode, result.value.selected, result.value.sMsg, result.value.tMsg, result.value.pSize);
                 }
             });
         }
 
-        async function executePrintSession(id, mode, filterArray) {
+        async function executePrintSession(id, mode, filterArray, studentMsgOverride, teacherMsgOverride, pageSizeOverride) {
             const sessions = DataManager.getExamSessions();
             const session = sessions.find(s => s.id === id);
 
@@ -990,7 +1013,8 @@
                 const byClass = {};
                 flatList.forEach(s => (byClass[s.class] = byClass[s.class] || []).push(s));
                 const sorted = Object.keys(byClass).filter(c => filterArray.includes(c)).sort(sortByNum);
-                const studentMsg = (session.studentMsg || '').trim();
+                const studentMsg = (studentMsgOverride !== undefined ? studentMsgOverride : (session.studentMsg || '')).trim();
+                const PAGE_SIZE = pageSizeOverride || 45;
 
                 sorted.forEach(cls => {
                     const students = byClass[cls].sort((a, b) => parseInt(a.no) - parseInt(b.no));
@@ -1020,7 +1044,7 @@
                         for (let i = 0; i < pa.length; i++) if (pa[i] !== pb[i]) return pa[i] - pb[i];
                         return 0;
                     });
-                    const PAGE_SIZE = 45;
+                    const PAGE_SIZE = pageSizeOverride || 45;
                     for (let p = 0; p < sortedSeatIds.length; p += PAGE_SIZE) {
                         const chunk = sortedSeatIds.slice(p, p + PAGE_SIZE);
                         const rows = chunk.map(sid => {
@@ -1030,7 +1054,7 @@
                         }).join('');
                         const studentsInRoom = Object.values(room.seats || {});
                         const roomClasses = [...new Set(studentsInRoom.map(s => s.class))].sort(sortByNum);
-                        const teacherMsg = (session.teacherMsg || '').trim();
+                        const teacherMsg = (teacherMsgOverride !== undefined ? teacherMsgOverride : (session.teacherMsg || '')).trim();
                         let summaryListHtml = ''; let roomTotal = 0;
                         roomClasses.forEach(cls => {
                             const classStudents = studentsInRoom.filter(s => s.class === cls);
