@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 1. Authentication Check ---
     const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn');
     if (!isLoggedIn) {
-        window.location.href = 'k9x7v2m4';
+        window.location.href = 'k9x7v2m4.html';
         return;
     }
 
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Logout Action ---
     document.getElementById('logoutBtn').addEventListener('click', () => {
         sessionStorage.removeItem('klbk_isLoggedIn');
-        window.location.href = 'k9x7v2m4';
+        window.location.href = 'k9x7v2m4.html';
     });
 
     // --- Global Event Delegation for Accordion Classroom Editor ---

@@ -145,7 +145,7 @@
     <script>
         // Check Auth
         if (sessionStorage.getItem('klbk_isLoggedIn') !== 'true' || sessionStorage.getItem('klbk_role') !== 'ogretmen') {
-            window.location.href = 'k9x7v2m4';
+            window.location.href = 'k9x7v2m4.html';
         }
 
         const currentUser = sessionStorage.getItem('klbk_currentUser');
@@ -231,7 +231,7 @@
         function logout() {
             sessionStorage.clear();
             localStorage.removeItem('klbk_student_session');
-            window.location.href = 'k9x7v2m4';
+            window.location.href = 'k9x7v2m4.html';
         }
 
         function toggleSession(id) {
