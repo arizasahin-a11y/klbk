@@ -422,16 +422,22 @@
         style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10000; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: flex-start; padding-top: 50px;">
         <div class="glass-panel"
             style="background: white; width: 90%; max-width: 800px; padding: 2.5rem; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border-left: 8px solid var(--danger); position: relative; animation: slideDown 0.4s ease-out;">
-            <button onclick="document.getElementById('liveMessageModal').classList.add('hidden')"
-                style="position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 1.5rem; color: var(--gray-400); cursor: pointer; transition: 0.2s;"><i
-                    class="fa-solid fa-xmark"></i></button>
+            <div style="position: absolute; top: 15px; right: 20px; display: flex; gap: 15px;">
+                <button onclick="minimizeMessage()"
+                    style="background: none; border: none; font-size: 1.2rem; color: var(--gray-400); cursor: pointer;"
+                    title="Küçült"><i class="fa-solid fa-minus"></i></button>
+                <button onclick="closeMessage()"
+                    style="background: none; border: none; font-size: 1.2rem; color: var(--gray-400); cursor: pointer;"
+                    title="Kapat"><i class="fa-solid fa-xmark"></i></button>
+            </div>
             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
                 <div
                     style="width: 50px; height: 50px; background: #fef2f2; color: var(--danger); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
                     <i class="fa-solid fa-bell fa-shake"></i>
                 </div>
                 <div>
-                    <h3 style="margin: 0; color: var(--danger); font-weight: 900; font-size: 1.4rem;">GÖREVLİ ÖĞRETMEN
+                    <h3 id="modalSubjectTitle"
+                        style="margin: 0; color: var(--danger); font-weight: 900; font-size: 1.4rem;">GÖREVLİ ÖĞRETMEN
                         UYARISI</h3>
                     <div id="liveMessageAuthor" style="font-size: 0.9rem; color: var(--gray-500); font-weight: 600;">
                     </div>
@@ -441,6 +447,15 @@
                 style="font-size: 1.8rem; font-weight: 700; color: var(--dark); line-height: 1.4; margin: 0;"></p>
         </div>
     </div>
+
+    <!-- Minimized Message Bar -->
+    <div id="minimizedMessageBar" class="hidden" onclick="restoreMessage()"
+        style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; background: var(--danger); color: white; padding: 12px 25px; border-radius: 50px; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4); cursor: pointer; display: flex; align-items: center; gap: 12px; animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);">
+        <i class="fa-solid fa-message fa-beat"></i>
+        <span id="minimizedText" style="font-weight: 800; font-size: 0.9rem;">YENİ MESAJ VAR!</span>
+        <i class="fa-solid fa-chevron-up"></i>
+    </div>
+
     <style>
         @keyframes slideDown {
             from {
@@ -450,6 +465,18 @@
 
             to {
                 transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes bounceIn {
+            from {
+                transform: translateX(-50%) translateY(100px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(-50%) translateY(0);
                 opacity: 1;
             }
         }
@@ -597,7 +624,8 @@
             if (window.cloudSyncInterval) clearInterval(window.cloudSyncInterval);
             window.cloudSyncInterval = setInterval(async () => {
                 await DataManager.initCloud();
-            }, 3000); // 3 seconds fast-poll for instant screen view changes
+                checkLiveMessages();
+            }, 3000);
         }
 
         function logout() {
@@ -1086,6 +1114,83 @@
         let currentFullScreenSessionId = null;
         let userClosedFullScreen = false;
 
+        function checkLiveMessages() {
+            if (!currentStudent) return;
+            const sessions = DataManager.getExamSessions();
+            const now = getNow();
+
+            // Get student's current subjects from all active sessions
+            const mySubjects = [];
+            sessions.forEach(ses => {
+                if (!ses.results) return;
+                ses.results.forEach(room => {
+                    Object.values(room.seats).forEach(seat => {
+                        if (seat.no.toString() === currentStudent.no.toString()) {
+                            if (seat._matchedSubject) mySubjects.push(seat._matchedSubject);
+                        }
+                    });
+                });
+            });
+
+            let relevantMessage = null;
+            for (let ses of sessions) {
+                if (ses.liveMessages && ses.liveMessages.length > 0) {
+                    // Filter messages matching student's subjects and not expired
+                    const msgs = ses.liveMessages.filter(m =>
+                        m.expireAt > now &&
+                        mySubjects.includes(m.subject)
+                    ).sort((a, b) => b.timestamp - a.timestamp);
+
+                    if (msgs.length > 0) {
+                        relevantMessage = msgs[0];
+                        break;
+                    }
+                }
+            }
+
+            const modal = document.getElementById('liveMessageModal');
+            const bar = document.getElementById('minimizedMessageBar');
+
+            if (relevantMessage) {
+                // If it's a NEW message, show modal automatically
+                if (window.lastShownMessageId !== relevantMessage.timestamp) {
+                    if (!window.closedMessageIds) window.closedMessageIds = new Set();
+
+                    // If student already closed THIS specific message, don't re-show pop-up
+                    if (window.closedMessageIds.has(relevantMessage.timestamp)) return;
+
+                    document.getElementById('liveMessageText').textContent = relevantMessage.text;
+                    document.getElementById('liveMessageAuthor').innerHTML = `<i class="fa-solid fa-chalkboard-user"></i> ${relevantMessage.author}`;
+                    document.getElementById('modalSubjectTitle').textContent = relevantMessage.subject.toUpperCase() + " UYARISI";
+                    document.getElementById('minimizedText').textContent = relevantMessage.subject.toUpperCase() + ": YENİ MESAJ!";
+
+                    modal.classList.remove('hidden');
+                    bar.classList.add('hidden');
+                    window.lastShownMessageId = relevantMessage.timestamp;
+                }
+            } else {
+                modal.classList.add('hidden');
+                bar.classList.add('hidden');
+                window.lastShownMessageId = null;
+            }
+        }
+
+        function closeMessage() {
+            document.getElementById('liveMessageModal').classList.add('hidden');
+            if (!window.closedMessageIds) window.closedMessageIds = new Set();
+            if (window.lastShownMessageId) window.closedMessageIds.add(window.lastShownMessageId);
+        }
+
+        function minimizeMessage() {
+            document.getElementById('liveMessageModal').classList.add('hidden');
+            document.getElementById('minimizedMessageBar').classList.remove('hidden');
+        }
+
+        function restoreMessage() {
+            document.getElementById('liveMessageModal').classList.remove('hidden');
+            document.getElementById('minimizedMessageBar').classList.add('hidden');
+        }
+
         function checkFullScreenTriggers() {
             if (!currentStudent) return;
             const sessions = DataManager.getExamSessions();
@@ -1093,9 +1198,8 @@
             const classMappings = DataManager.getClassRoomMappings() || {};
             const myRoomName = classMappings[currentStudent.class];
 
-            if (!myRoomName) return; // No room assigned for this class
+            if (!myRoomName) return;
 
-            // Find an active session with screenViewEnabled
             let activeSession = null;
             let activeRoomData = null;
 
@@ -1107,7 +1211,6 @@
                 const diffMins = (targetTime - now) / 1000 / 60;
                 const diffEndMins = (endTime - now) / 1000 / 60;
 
-                // Active if within 20 mins of starting, and not finished yet
                 if (diffMins <= 20 && diffEndMins >= 0) {
                     const roomResult = ses.results.find(r => r.name === myRoomName);
                     if (roomResult) {
@@ -1119,36 +1222,10 @@
             }
 
             if (activeSession && activeRoomData) {
-                // Live Message Logic (Smartboard overlay)
-                if (activeSession.liveMessages && activeSession.liveMessages.length > 0) {
-                    const latestMsg = activeSession.liveMessages.filter(m => m.expireAt > now).sort((a, b) => b.timestamp - a.timestamp)[0];
-                    const modal = document.getElementById('liveMessageModal');
-
-                    if (latestMsg) {
-                        if (window.lastShownMessageId !== latestMsg.timestamp) {
-                            document.getElementById('liveMessageText').textContent = latestMsg.text;
-                            document.getElementById('liveMessageAuthor').innerHTML = `<i class="fa-solid fa-chalkboard-user"></i> ${latestMsg.author} (${latestMsg.subject})`;
-                            modal.classList.remove('hidden');
-                            window.lastShownMessageId = latestMsg.timestamp;
-
-                            setTimeout(() => {
-                                if (window.lastShownMessageId === latestMsg.timestamp) {
-                                    modal.classList.add('hidden');
-                                }
-                            }, 20000);
-                        }
-                    } else if (modal) {
-                        modal.classList.add('hidden');
-                        window.lastShownMessageId = null;
-                    }
-                }
-
-                // If we aren't already showing THIS session in full screen, show it
                 if (currentFullScreenSessionId !== activeSession.id && !userClosedFullScreen) {
                     currentFullScreenSessionId = activeSession.id;
                     renderFullScreenPlan(activeRoomData, activeSession);
 
-                    // Track that this board has triggered (for future features/syncing if needed)
                     if (!activeSession.triggeredSmartboards) activeSession.triggeredSmartboards = {};
                     if (!activeSession.triggeredSmartboards[currentStudent.class]) {
                         activeSession.triggeredSmartboards[currentStudent.class] = currentStudent.no;
