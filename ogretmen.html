@@ -321,8 +321,23 @@
                                         <h4 style="margin:0; font-weight:900;">${ses.name}</h4>
                                         <small style="color:var(--gray-500)">${ses.date} ${ses.time}</small>
                                     </div>
-                                    <div style="display: flex; align-items:center; gap: 10px;">
-                                        
+                                    <div style="display: flex; align-items:center; gap: 15px;">
+                                        <div class="print-tools-header" style="display: flex; align-items: center; gap: 12px; background: #f8fafc; padding: 6px 12px; border-radius: 10px; border: 1px solid var(--gray-200);" onclick="event.stopPropagation()">
+                                            <div style="display: flex; gap: 10px; align-items: center; font-size: 0.8rem; font-weight: 700; color: var(--gray-600);">
+                                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                                    <input type="radio" name="printMode-${ses.id}" value="class" style="accent-color: var(--primary);"> Sınıf
+                                                </label>
+                                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                                    <input type="radio" name="printMode-${ses.id}" value="room" checked style="accent-color: var(--primary);"> Salon
+                                                </label>
+                                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                                    <input type="radio" name="printMode-${ses.id}" value="seating" style="accent-color: var(--primary);"> Şema
+                                                </label>
+                                            </div>
+                                            <button class="btn btn-primary btn-sm" style="padding: 4px 10px; font-size: 0.75rem;" onclick="printSession('${ses.id}')">
+                                                <i class="fa-solid fa-print"></i>
+                                            </button>
+                                        </div>
                                         ${timerDisplayHtml}
                                         <i class="fa-solid fa-chevron-down" style="color:var(--gray-400); transition:0.3s; transform: ${isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}"></i>
                                     </div>
@@ -400,48 +415,25 @@
                                 </div>`;
                         }
 
-                        html += papersHtml;
-
-                        if (diffMins <= 0 && diffEndMins >= -120) {
+                        if (stateCode === 'far' || stateCode === 'near') {
+                            html += papersHtml;
+                        } else if (stateCode === 'active') {
                             html += `<div style="background: white; padding: 1.5rem; border-radius: 12px; border: 2px solid #fee2e2; box-shadow: var(--shadow-sm);">
-                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                                            <h5 style="color: var(--danger); margin:0; font-weight:900; display:flex; align-items:center; gap:8px;">
-                                                <i class="fa-solid fa-tower-broadcast fa-beat"></i> CANLI MESAJ GÖNDER
-                                            </h5>
-                                            <span style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">Hedef: ${subNameStr}</span>
-                                        </div>
-                                        <div style="display: flex; gap: 10px;">
-                                            <input type="text" id="msg-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.85rem; border:2px solid #fecaca; border-radius:10px; font-weight:600;" placeholder="Düzeltme veya duyuru...">
-                                            <button class="btn btn-primary" style="background: var(--danger); border: none; padding: 0.85rem 1.5rem; border-radius:10px; font-weight:900;" onclick="sendLiveMessage('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-paper-plane"></i> GÖNDER</button>
-                                        </div>
-                                    </div>`;
+                                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                                             <h5 style="color: var(--danger); margin:0; font-weight:900; display:flex; align-items:center; gap:8px;">
+                                                 <i class="fa-solid fa-tower-broadcast fa-beat"></i> CANLI MESAJ GÖNDER
+                                             </h5>
+                                             <span style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">Hedef: ${subNameStr}</span>
+                                         </div>
+                                         <div style="display: flex; gap: 10px;">
+                                             <input type="text" id="msg-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.85rem; border:2px solid #fecaca; border-radius:10px; font-weight:600;" placeholder="Düzeltme veya duyuru...">
+                                             <button class="btn btn-primary" style="background: var(--danger); border: none; padding: 0.85rem 1.5rem; border-radius:10px; font-weight:900;" onclick="sendLiveMessage('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-paper-plane"></i> GÖNDER</button>
+                                         </div>
+                                     </div>`;
                         }
+
                         html += `   </div></div>`;
                     });
-
-                    const printModesHtml = `
-                        <div class="print-tools" style="margin-top: 20px; padding: 20px; background: white; border-radius: 12px; border: 1px solid var(--gray-200); box-shadow: var(--shadow-sm);">
-                            <h5 style="margin-top: 0; margin-bottom: 15px; color: var(--primary); font-weight: 800; font-size: 0.9rem;"><i class="fa-solid fa-print"></i> Yazdırma Seçenekleri</h5>
-                            <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
-                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: var(--gray-700);">
-                                    <input type="radio" name="printMode-${ses.id}" value="class" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary);">
-                                    Sınıf Listesi
-                                </label>
-                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: var(--gray-700);">
-                                    <input type="radio" name="printMode-${ses.id}" value="room" checked style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary);">
-                                    Salon Listesi
-                                </label>
-                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: var(--gray-700);">
-                                    <input type="radio" name="printMode-${ses.id}" value="seating" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary);">
-                                    Oturma Şeması
-                                </label>
-                                <button class="btn btn-primary" style="margin-left: auto; padding: 0.6rem 1.5rem; font-weight: 800; border-radius: 8px;" onclick="printSession('${ses.id}')">
-                                    <i class="fa-solid fa-print"></i> YAZDIR
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    html += printModesHtml;
 
                     html += `</div></div>`;
                 });
@@ -469,20 +461,25 @@
                     const diffMins = diffMs / 1000 / 60;
                     const diffEndMins = (endTime - now) / 1000 / 60;
 
-                    if (diffEndMins < 0) {
+                    if (diffEndMins < -30) {
+                        needsRender = true;
+                    } else if (diffEndMins < 0) {
                         el.innerText = 'BİTTİ';
                         el.style.color = 'var(--gray-500)';
+                        if (el.dataset.prev !== 'finished') {
+                            el.dataset.prev = 'finished';
+                            needsRender = true;
+                        }
                     } else if (diffMins <= 0) {
                         el.innerText = 'DEVAM EDİYOR';
                         el.style.color = 'var(--danger)';
-                        // Need re-render if we transitioned to active so PDF box becomes Msg Box
                         if (el.dataset.prev !== 'active') {
                             el.dataset.prev = 'active';
                             needsRender = true;
                         }
                     } else {
                         el.innerText = formatCountdown(diffMs);
-                        if (el.dataset.prev === 'active') {
+                        if (el.dataset.prev === 'active' || el.dataset.prev === 'finished' || !el.dataset.prev) {
                             el.dataset.prev = 'waiting';
                             needsRender = true;
                         }
@@ -643,10 +640,18 @@
         }
 
         function formatCountdown(ms) {
-            if (ms < 0) return "00:00";
+            if (ms < 0) return "00:00:00:00";
             const s = Math.floor(ms / 1000);
             const m = Math.floor(s / 60);
-            return `${m.toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+            const h = Math.floor(m / 60);
+            const d = Math.floor(h / 24);
+
+            const dd = d.toString().padStart(2, '0');
+            const hh = (h % 24).toString().padStart(2, '0');
+            const mm = (m % 60).toString().padStart(2, '0');
+            const ss = (s % 60).toString().padStart(2, '0');
+
+            return `${dd}:${hh}:${mm}:${ss}`;
         }
 
         async function openTeacherSettings() {
