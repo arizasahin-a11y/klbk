@@ -229,212 +229,218 @@
         }
 
         function renderExams() {
-            const sessions = DataManager.getExamSessions();
-            const listContainer = document.getElementById('examsList');
-            const now = getNow();
+            try {
+                const sessions = DataManager.getExamSessions();
+                const listContainer = document.getElementById('examsList');
+                const now = getNow();
 
-            let targetSessions = [];
-            sessions.forEach(ses => {
-                if (!ses.subjects && (!ses.results || ses.results.length === 0)) return;
-                
-                // Precise branch matching helper
-                const branchMatches = (sName) => {
-                    if (!sName) return false;
-                    const name = sName.toLowerCase();
-                    return myBranches.some(b => {
-                        const bn = b.toLowerCase();
-                        return name === bn || name.startsWith(bn + " ");
-                    });
-                };
+                let targetSessions = [];
+                sessions.forEach(ses => {
+                    if (!ses.subjects && (!ses.results || ses.results.length === 0)) return;
 
-                const matchingSubjects = [];
-                const seenNames = new Set();
+                    const branchMatches = (sName) => {
+                        if (!sName) return false;
+                        const name = sName.toLowerCase().trim();
+                        return myBranches.some(b => {
+                            const bn = b.toLowerCase().trim();
+                            return name === bn || name.startsWith(bn + " ");
+                        });
+                    };
 
-                // 1. Detect ACTUAL subjects from distribution (more accurate for levels like Fizik 9)
-                if (ses.results) {
-                    ses.results.forEach(room => {
-                        Object.values(room.seats).forEach(std => {
-                            if (std.author === currentUser && std._matchedSubject) {
-                                if (branchMatches(std._matchedSubject) && !seenNames.has(std._matchedSubject)) {
-                                    seenNames.add(std._matchedSubject);
-                                    // Map back to original subject for properties like hasGroups
+                    const matchingSubjects = [];
+                    const seenNames = new Set();
+
+                    // 1. Scan results for granular subjects (Fizik 9, Fizik 10 etc)
+                    if (ses.results) {
+                        ses.results.forEach(room => {
+                            Object.values(room.seats || {}).forEach(std => {
+                                const subName = std._matchedSubject || "";
+                                if (subName && branchMatches(subName) && !seenNames.has(subName)) {
+                                    seenNames.add(subName);
                                     const orig = (ses.subjects || []).find(s => {
                                         const n = (typeof s === 'object' ? s.name : s);
-                                        return std._matchedSubject.startsWith(n);
+                                        return subName.startsWith(n);
                                     });
                                     matchingSubjects.push({
-                                        name: std._matchedSubject,
+                                        name: subName,
                                         hasGroups: orig ? (typeof orig === 'object' ? orig.hasGroups : ses.hasGroups) : ses.hasGroups
                                     });
                                 }
-                            }
+                            });
                         });
-                    });
-                }
+                    }
 
-                // 2. Fallback to ses.subjects (for pre-distribution view or missing matchedSubject)
-                (ses.subjects || []).forEach(sub => {
-                    const subName = (typeof sub === 'object' ? sub.name : sub);
-                    if (branchMatches(subName) && !seenNames.has(subName)) {
-                        seenNames.add(subName);
-                        matchingSubjects.push(sub);
+                    // 2. Fallback to session subjects if not already seen as granular
+                    (ses.subjects || []).forEach(sub => {
+                        const subName = (typeof sub === 'object' ? sub.name : sub);
+                        if (branchMatches(subName) && !seenNames.has(subName)) {
+                            // Only add base subject if no granular versions exist in results
+                            const hasGranular = Array.from(seenNames).some(n => n.startsWith(subName + " "));
+                            if (!hasGranular) {
+                                seenNames.add(subName);
+                                matchingSubjects.push(sub);
+                            }
+                        }
+                    });
+
+                    if (matchingSubjects.length > 0) {
+                        targetSessions.push({ session: ses, matchingSubjects });
                     }
                 });
 
-                if (matchingSubjects.length > 0) {
-                    targetSessions.push({ session: ses, matchingSubjects });
+                if (targetSessions.length === 0) {
+                    listContainer.innerHTML = '<div class="glass-panel" style="padding: 2rem; text-align: center; color: var(--gray-500); font-weight: 600;">Şu an size tanımlı herhangi bir sınav görünmüyor.</div>';
+                    return;
                 }
-            });
 
-            if (targetSessions.length === 0) {
-                listContainer.innerHTML = '<div class="glass-panel" style="padding: 2rem; text-align: center; color: var(--gray-500); font-weight: 600;">Şu an size tanımlı herhangi bir sınav görünmüyor.</div>';
-                return;
-            }
+                let html = '';
+                targetSessions.forEach(item => {
+                    const ses = item.session;
+                    const subjectsObj = item.matchingSubjects;
+                    const targetTime = parseDateTime(ses.date, ses.time);
+                    const endTime = getExamEndTime(ses.date, ses.time);
+                    const diffMs = targetTime - now;
+                    const diffMins = diffMs / 1000 / 60;
+                    const diffEndMins = (endTime - now) / 1000 / 60;
 
-            let html = '';
-            targetSessions.forEach(item => {
-                const ses = item.session;
-                const subjectsObj = item.matchingSubjects;
-                const targetTime = parseDateTime(ses.date, ses.time);
-                const endTime = getExamEndTime(ses.date, ses.time);
-                const diffMs = targetTime - now;
-                const diffMins = diffMs / 1000 / 60;
-                const diffEndMins = (endTime - now) / 1000 / 60;
+                    if (diffEndMins < -120) return;
 
-                if (diffEndMins < -120) return;
+                    let stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : 'near'));
+                    const isOpen = openSessions.has(ses.id);
 
-                let stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : 'near'));
-                const isOpen = openSessions.has(ses.id);
+                    let timerDisplayHtml = stateCode === 'finished' ? `<div class="countdown" id="cd-${ses.id}" style="color:var(--gray-500)">BİTTİ</div>`
+                        : (stateCode === 'active' ? `<div class="countdown" id="cd-${ses.id}" style="color:var(--danger)">DEVAM EDİYOR</div>`
+                            : `<div class="countdown" id="cd-${ses.id}">${formatCountdown(diffMs)}</div>`);
 
-                let timerDisplayHtml = stateCode === 'finished' ? `<div class="countdown" id="cd-${ses.id}" style="color:var(--gray-500)">BİTTİ</div>`
-                    : (stateCode === 'active' ? `<div class="countdown" id="cd-${ses.id}" style="color:var(--danger)">DEVAM EDİYOR</div>`
-                    : `<div class="countdown" id="cd-${ses.id}">${formatCountdown(diffMs)}</div>`);
-
-                html += `<div class="exam-card" data-ses-id="${ses.id}">
-                            <div class="exam-header" onclick="toggleSession('${ses.id}')">
-                                <div style="flex:1">
-                                    <div style="font-size: 0.75rem; color: var(--secondary); font-weight: 700; margin-bottom: 4px;">
-                                        <i class="fa-solid fa-clock"></i> OTURUM
-                                    </div>
-                                    <h4 style="margin:0; font-weight:900;">${ses.name}</h4>
-                                    <small style="color:var(--gray-500)">${ses.date} ${ses.time}</small>
-                                </div>
-                                <div style="display: flex; align-items:center; gap: 10px;">
-                                    <div class="print-tools" style="display: flex; align-items: center; gap: 12px; background: #f1f5f9; padding: 5px 12px; border-radius: 30px; border: 1px solid var(--gray-200); margin-right: 5px;" onclick="event.stopPropagation()">
-                                        <label style="font-size: 0.7rem; font-weight: 700; color: var(--gray-600); display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                                            <input type="radio" name="mode-${ses.id}" value="class" style="width: 13px; height: 13px; cursor: pointer;"> Sınıf
-                                        </label>
-                                        <label style="font-size: 0.7rem; font-weight: 700; color: var(--gray-600); display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                                            <input type="radio" name="mode-${ses.id}" value="room" checked style="width: 13px; height: 13px; cursor: pointer;"> Derslik
-                                        </label>
-                                        <label style="font-size: 0.7rem; font-weight: 700; color: var(--gray-600); display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                                            <input type="radio" name="mode-${ses.id}" value="seating" style="width: 13px; height: 13px; cursor: pointer;"> Şema
-                                        </label>
-                                        <div style="width: 1px; height: 18px; background: var(--gray-300);"></div>
-                                        <button onclick="printSession('${ses.id}')" style="background: none; border: none; color: var(--primary); cursor: pointer; font-size: 1.1rem; padding: 0;" title="Yazdır">
-                                            <i class="fa-solid fa-print"></i>
-                                        </button>
-                                    </div>
-                                    ${timerDisplayHtml}
-                                    <i class="fa-solid fa-chevron-down" style="color:var(--gray-400); transition:0.3s; transform: ${isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}"></i>
-                                </div>
-                            </div>
-                            <div class="details-panel ${isOpen ? '' : 'hidden'}">`;
-
-                subjectsObj.forEach(sub => {
-                    const subNameStr = (typeof sub === 'object' ? sub.name : sub);
-                    const encodedSub = encodeURIComponent(subNameStr);
-                    const subId = ses.id + "|" + encodedSub;
-                    const isSubOpen = openSubjects.has(subId);
-
-                    const meta = (ses.subjectMetadata && ses.subjectMetadata[subNameStr]) || {};
-                    let currentPdf = '';
-                    if (meta.papers) {
-                        if (typeof meta.papers === 'string') currentPdf = meta.papers;
-                        else currentPdf = meta.papers['default'] || Object.values(meta.papers)[0] || '';
-                    }
-
-                    html += `<div class="nested-accordion" style="margin-bottom: 1.5rem; border: 2px solid ${isSubOpen ? 'var(--primary-light)' : 'var(--gray-200)'};">
-                                <div class="nested-header" onclick="toggleSubject('${ses.id}', '${encodedSub}')" style="${isSubOpen ? 'background: white; border-bottom: 1px solid var(--gray-100);' : ''}">
-                                    <div style="display:flex; align-items:center; gap:10px;">
-                                        <div style="width:36px; height:36px; background: ${currentPdf ? 'var(--secondary)' : 'var(--gray-200)'}; color:white; border-radius:8px; display:flex; align-items:center; justify-content:center;">
-                                            <i class="fa-solid ${currentPdf ? 'fa-check' : 'fa-book'}"></i>
+                    html += `<div class="exam-card" data-ses-id="${ses.id}">
+                                <div class="exam-header" onclick="toggleSession('${ses.id}')">
+                                    <div style="flex:1">
+                                        <div style="font-size: 0.75rem; color: var(--secondary); font-weight: 700; margin-bottom: 4px;">
+                                            <i class="fa-solid fa-clock"></i> OTURUM
                                         </div>
-                                        <div>
-                                            <div style="font-weight:900; font-size:1.1rem;">${subNameStr}</div>
-                                            <div style="font-size:0.75rem; color:var(--gray-500);">${currentPdf ? 'Sınav kağıdı yüklendi' : 'Sınav kağıdı bekleniyor...'}</div>
+                                        <h4 style="margin:0; font-weight:900;">${ses.name}</h4>
+                                        <small style="color:var(--gray-500)">${ses.date} ${ses.time}</small>
+                                    </div>
+                                    <div style="display: flex; align-items:center; gap: 10px;">
+                                        <div class="print-tools" style="display: flex; align-items: center; gap: 12px; background: #f1f5f9; padding: 5px 12px; border-radius: 30px; border: 1px solid var(--gray-200); margin-right: 5px;" onclick="event.stopPropagation()">
+                                            <label style="font-size: 0.7rem; font-weight: 700; color: var(--gray-600); display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                                <input type="radio" name="mode-${ses.id}" value="class" style="width: 12px; height: 12px; cursor: pointer;"> Sınıf
+                                            </label>
+                                            <label style="font-size: 0.7rem; font-weight: 700; color: var(--gray-600); display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                                <input type="radio" name="mode-${ses.id}" value="room" checked style="width: 12px; height: 12px; cursor: pointer;"> Salon
+                                            </label>
+                                            <label style="font-size: 0.7rem; font-weight: 700; color: var(--gray-600); display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                                <input type="radio" name="mode-${ses.id}" value="seating" style="width: 12px; height: 12px; cursor: pointer;"> Şema
+                                            </label>
+                                            <div style="width: 1px; height: 18px; background: var(--gray-300);"></div>
+                                            <button onclick="printSession('${ses.id}')" style="background: none; border: none; color: var(--primary); cursor: pointer; font-size: 1.1rem; padding: 0;" title="Yazdır">
+                                                <i class="fa-solid fa-print"></i>
+                                            </button>
                                         </div>
+                                        ${timerDisplayHtml}
+                                        <i class="fa-solid fa-chevron-down" style="color:var(--gray-400); transition:0.3s; transform: ${isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}"></i>
                                     </div>
-                                    <i class="fa-solid fa-angle-${isSubOpen ? 'up' : 'down'}" style="color:var(--gray-400)"></i>
                                 </div>
-                                <div class="nested-content ${isSubOpen ? '' : 'hidden'}" style="background-color: #fafbfc; padding: 1rem;">`;
+                                <div class="details-panel ${isOpen ? '' : 'hidden'}">`;
 
-                    const hasGroups = (typeof sub === 'object' && sub.hasGroups) || ses.hasGroups;
-                    const groupCount = ses.groupCount || 2;
-                    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-                    let papersHtml = '';
+                    subjectsObj.forEach(sub => {
+                        const subNameStr = (typeof sub === 'object' ? sub.name : sub);
+                        const encodedSub = encodeURIComponent(subNameStr);
+                        const subId = ses.id + "|" + encodedSub;
+                        const isSubOpen = openSubjects.has(subId);
 
-                    if (hasGroups) {
-                        for (let i = 0; i < groupCount; i++) {
-                            const groupLetter = alphabet[i];
-                            const groupPdf = (meta.papers && meta.papers[groupLetter]) || '';
-                            papersHtml += `
-                                <div style="flex:1; min-width:300px; margin-bottom:12px; background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0;">
-                                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--primary); text-transform:uppercase; display: block; margin-bottom: 5px;">Grup ${groupLetter} Soru Kağıdı</label>
-                                    <div style="display: flex; gap: 6px;">
-                                        <input type="text" id="pdfLink-${ses.id}-${encodedSub}-${groupLetter}" class="form-control" style="flex:1; padding:0.55rem; border:1px solid var(--gray-300); border-radius:6px; font-weight:600; font-size:0.85rem;" placeholder="PDF URL" value="${groupPdf}">
-                                        <button class="btn btn-primary" style="padding: 0.4rem 0.8rem; border-radius:6px; font-weight:800;" onclick="savePdfLink('${ses.id}', '${encodedSub}', '${groupLetter}')"><i class="fa-solid fa-save"></i></button>
+                        const meta = (ses.subjectMetadata && ses.subjectMetadata[subNameStr]) || {};
+                        let currentPdf = '';
+                        if (meta.papers) {
+                            if (typeof meta.papers === 'string') currentPdf = meta.papers;
+                            else currentPdf = meta.papers['default'] || Object.values(meta.papers)[0] || '';
+                        }
+
+                        html += `<div class="nested-accordion" style="margin-bottom: 1.5rem; border: 2px solid ${isSubOpen ? 'var(--primary-light)' : 'var(--gray-200)'};">
+                                    <div class="nested-header" onclick="toggleSubject('${ses.id}', '${encodedSub}')" style="${isSubOpen ? 'background: white; border-bottom: 1px solid var(--gray-100);' : ''}">
+                                        <div style="display:flex; align-items:center; gap:10px;">
+                                            <div style="width:36px; height:36px; background: ${currentPdf ? 'var(--secondary)' : 'var(--gray-200)'}; color:white; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                                                <i class="fa-solid ${currentPdf ? 'fa-check' : 'fa-book'}"></i>
+                                            </div>
+                                            <div>
+                                                <div style="font-weight:900; font-size:1.1rem;">${subNameStr}</div>
+                                                <div style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">${currentPdf ? 'Sınav kağıdı yüklendi' : 'Sınav kağıdı bekleniyor...'}</div>
+                                            </div>
+                                        </div>
+                                        <i class="fa-solid fa-angle-${isSubOpen ? 'up' : 'down'}" style="color:var(--gray-400)"></i>
                                     </div>
-                                    ${groupPdf ? `<div style="margin-top:5px;"><a href="${groupPdf}" target="_blank" style="font-size:0.7rem; color:var(--primary); font-weight:600;"><i class="fa-solid fa-external-link"></i> Önizle</a></div>` : ''}
+                                    <div class="nested-content ${isSubOpen ? '' : 'hidden'}" style="background-color: #fafbfc; padding: 1.25rem;">`;
+
+                        const hasGroups = (typeof sub === 'object' && sub.hasGroups) || ses.hasGroups;
+                        const groupCount = ses.groupCount || 2;
+                        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                        let papersHtml = '';
+
+                        const renderActions = (targetSuffix) => `
+                            <div style="display: flex; gap: 5px; margin-top: 8px;">
+                                 <button class="btn btn-secondary btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="pasteLink('${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-paste"></i> Yapıştır</button>
+                                 <button class="btn btn-secondary btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="openCloudBrowser('${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-cloud"></i> Bulut</button>
+                                 <input type="file" id="file-${ses.id}-${encodedSub}${targetSuffix ? '-' + targetSuffix : ''}" style="display:none;" accept="application/pdf" onchange="uploadPdf(this, '${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})">
+                                 <button class="btn btn-info btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="document.getElementById('file-${ses.id}-${encodedSub}${targetSuffix ? '-' + targetSuffix : ''}').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Yükle</button>
+                            </div>`;
+
+                        if (hasGroups) {
+                            for (let i = 0; i < groupCount; i++) {
+                                const groupLetter = alphabet[i];
+                                const groupPdf = (meta.papers && meta.papers[groupLetter]) || '';
+                                papersHtml += `
+                                    <div style="margin-bottom:12px; background:white; padding:15px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: var(--shadow-sm);">
+                                        <label style="font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform:uppercase; display: block; margin-bottom: 8px;">Grup ${groupLetter} Soru Kağıdı</label>
+                                        <div style="display: flex; gap: 8px;">
+                                            <input type="text" id="pdfLink-${ses.id}-${encodedSub}-${groupLetter}" class="form-control" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" placeholder="https://..." value="${groupPdf}">
+                                            <button class="btn btn-primary" style="padding: 0.65rem 1.25rem; border-radius:8px; font-weight:800;" onclick="savePdfLink('${ses.id}', '${encodedSub}', '${groupLetter}')"><i class="fa-solid fa-save"></i></button>
+                                        </div>
+                                        ${renderActions(groupLetter)}
+                                        ${groupPdf ? `<div style="margin-top:8px;"><a href="${groupPdf}" target="_blank" style="font-size:0.75rem; color:var(--primary); font-weight:700; text-decoration:none;"><i class="fa-solid fa-external-link"></i> Önizle</a></div>` : ''}
+                                    </div>`;
+                            }
+                        } else {
+                            papersHtml = `
+                                <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-100); margin-bottom: 1.25rem;">
+                                    <label style="font-size: 0.75rem; font-weight: 800; color: var(--gray-500); text-transform:uppercase; display: block; margin-bottom: 10px;">
+                                        <i class="fa-solid fa-file-pdf" style="color:var(--danger)"></i> Soru Kağıdı Bağlantısı
+                                    </label>
+                                    <div style="display: flex; gap: 10px;">
+                                        <input type="text" id="pdfLink-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.85rem; border:2px solid var(--gray-200); border-radius:10px; font-weight:600;" placeholder="https://..." value="${currentPdf}">
+                                        <button class="btn btn-primary" style="padding: 0.85rem 1.5rem; border-radius:10px; font-weight:800;" onclick="savePdfLink('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-save"></i> KAYDET</button>
+                                    </div>
+                                    ${renderActions(null)}
                                 </div>`;
                         }
-                    } else {
-                        papersHtml = `
-                            <div style="flex:1;">
-                                <label style="font-size: 0.75rem; font-weight: 700; color: var(--gray-500); text-transform:uppercase; display: block; margin-bottom: 6px;">Soru Kağıdı Bağlantısı</label>
-                                <div style="display: flex; gap: 8px;">
-                                    <input type="text" id="pdfLink-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.75rem; border:2px solid var(--gray-200); border-radius:8px; font-weight:600;" placeholder="https://..." value="${currentPdf}">
-                                    <button class="btn btn-primary" style="padding: 0.75rem 1.5rem; border-radius:8px; font-weight:800;" onclick="savePdfLink('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-save"></i> KAYDET</button>
-                                </div>
-                            </div>`;
-                    }
 
-                    html += `<div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-100); margin-bottom: 1rem;">
-                                <h5 style="margin-top:0; margin-bottom:15px; font-weight:800; color:var(--dark); display:flex; align-items:center; gap:8px;">
-                                    <i class="fa-solid fa-file-pdf" style="color:var(--danger)"></i> Sınav Kağıdı Ayarları
-                                </h5>
-                                <div style="display: flex; flex-direction: column; gap: 10px;">${papersHtml}</div>
-                                <div style="margin-top:15px; padding-top:15px; border-top:1px dashed var(--gray-200); display: flex; gap: 10px; justify-content: flex-end;">
-                                     <button class="btn btn-secondary btn-sm" onclick="pasteLink('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-paste"></i> Yapıştır</button>
-                                     <button class="btn btn-secondary btn-sm" onclick="openCloudBrowser('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-cloud"></i> Buluttan Seç</button>
-                                     <input type="file" id="file-${ses.id}-${encodedSub}" style="display:none;" accept="application/pdf" onchange="uploadPdf(this, '${ses.id}', '${encodedSub}')">
-                                     <button class="btn btn-info btn-sm" onclick="document.getElementById('file-${ses.id}-${encodedSub}').click()"><i class="fa-solid fa-cloud-arrow-up"></i> PDF Yükle</button>
-                                </div>
-                            </div>`;
+                        html += papersHtml;
 
-                    if (diffMins <= 0 && diffEndMins >= -120) {
-                        html += `<div style="background: white; padding: 1.5rem; border-radius: 12px; border: 2px solid #fee2e2; box-shadow: var(--shadow-sm);">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                                        <h5 style="color: var(--danger); margin:0; font-weight:900; display:flex; align-items:center; gap:8px;">
-                                            <i class="fa-solid fa-tower-broadcast fa-beat"></i> CANLI MESAJ GÖNDER
-                                        </h5>
-                                        <span style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">Hedef: ${subNameStr}</span>
-                                    </div>
-                                    <div style="display: flex; gap: 10px;">
-                                        <input type="text" id="msg-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.85rem; border:2px solid #fecaca; border-radius:10px; font-weight:600;" placeholder="Mesaj yazın...">
-                                        <button class="btn btn-primary" style="background: var(--danger); border: none; padding: 0.85rem 1.5rem; border-radius:10px; font-weight:900;" onclick="sendLiveMessage('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-paper-plane"></i> GÖNDER</button>
-                                    </div>
-                                </div>`;
-                    }
-                    html += `   </div></div>`;
+                        if (diffMins <= 0 && diffEndMins >= -120) {
+                            html += `<div style="background: white; padding: 1.5rem; border-radius: 12px; border: 2px solid #fee2e2; box-shadow: var(--shadow-sm);">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                                            <h5 style="color: var(--danger); margin:0; font-weight:900; display:flex; align-items:center; gap:8px;">
+                                                <i class="fa-solid fa-tower-broadcast fa-beat"></i> CANLI MESAJ GÖNDER
+                                            </h5>
+                                            <span style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">Hedef: ${subNameStr}</span>
+                                        </div>
+                                        <div style="display: flex; gap: 10px;">
+                                            <input type="text" id="msg-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.85rem; border:2px solid #fecaca; border-radius:10px; font-weight:600;" placeholder="Düzeltme veya duyuru...">
+                                            <button class="btn btn-primary" style="background: var(--danger); border: none; padding: 0.85rem 1.5rem; border-radius:10px; font-weight:900;" onclick="sendLiveMessage('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-paper-plane"></i> GÖNDER</button>
+                                        </div>
+                                    </div>`;
+                        }
+                        html += `   </div></div>`;
+                    });
+                    html += `</div></div>`;
                 });
-                html += `</div></div>`;
-            });
 
-            if (html === '') {
-                html = '<div class="glass-panel" style="padding: 2rem; text-align: center; color: var(--gray-500); font-weight: 600;">Şu an aktif bir sınavınız bulunmuyor.</div>';
+                if (html === '') {
+                    html = '<div class="glass-panel" style="padding: 2rem; text-align: center; color: var(--gray-500); font-weight: 600;">Şu an size tanımlı aktif bir sınav bulunmuyor.</div>';
+                }
+                listContainer.innerHTML = html;
+            } catch (err) {
+                console.error("renderExams error:", err);
             }
-            listContainer.innerHTML = html;
         }
 
 
@@ -474,16 +480,18 @@
             if (needsRender) renderExams();
         }
 
-        async function pasteLink(sesId, encodedSub) {
+        async function pasteLink(sesId, encodedSub, groupLetter = null) {
             try {
                 const text = await navigator.clipboard.readText();
-                document.getElementById(`pdfLink-${sesId}-${encodedSub}`).value = text;
+                const inputId = groupLetter ? `pdfLink-${sesId}-${encodedSub}-${groupLetter}` : `pdfLink-${sesId}-${encodedSub}`;
+                const el = document.getElementById(inputId);
+                if (el) el.value = text;
             } catch (err) {
                 Swal.fire('Hata', 'Panodan yapıştırılamadı. Lütfen manuel yapıştırın.', 'error');
             }
         }
 
-        async function uploadPdf(input, sesId, encodedSub) {
+        async function uploadPdf(input, sesId, encodedSub, groupLetter = null) {
             const file = input.files[0];
             const subName = decodeURIComponent(encodedSub);
             if (!file) return;
@@ -497,9 +505,10 @@
             });
 
             try {
-                // Reuse ui.js/data.js upload logic
                 const url = await DataManager.uploadFileToSupabase(file);
-                document.getElementById(`pdfLink-${sesId}-${encodedSub}`).value = url;
+                const inputId = groupLetter ? `pdfLink-${sesId}-${encodedSub}-${groupLetter}` : `pdfLink-${sesId}-${encodedSub}`;
+                const el = document.getElementById(inputId);
+                if (el) el.value = url;
                 Swal.close();
                 Swal.fire({
                     toast: true, position: 'top-end', icon: 'success', title: 'Dosya yüklendi!', showConfirmButton: false, timer: 1500
@@ -708,7 +717,7 @@
             });
         }
 
-        async function openCloudBrowser(sesId, encodedSub) {
+        async function openCloudBrowser(sesId, encodedSub, groupLetter = null) {
             Swal.fire({
                 title: 'Buluttaki Dosyalar',
                 html: '<div id="cloudFilesList" style="max-height: 400px; overflow-y: auto; text-align: left;"><i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...</div>',
@@ -728,7 +737,7 @@
                                             <div style="flex:1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem;" title="${f.name}">
                                                 <i class="fa-solid fa-file-pdf" style="color:var(--danger); margin-right: 8px;"></i> ${f.name}
                                             </div>
-                                            <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="selectCloudFile('${sesId}', '${encodedSub}', '${f.url}')">Seç</button>
+                                            <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="selectCloudFile('${sesId}', '${encodedSub}', '${f.url}', ${groupLetter ? "'" + groupLetter + "'" : 'null'})">Seç</button>
                                         </li>`;
                             });
                         }
@@ -741,8 +750,10 @@
             });
         }
 
-        window.selectCloudFile = function (sesId, encodedSub, url) {
-            document.getElementById(`pdfLink-${sesId}-${encodedSub}`).value = url;
+        window.selectCloudFile = function (sesId, encodedSub, url, groupLetter = null) {
+            const inputId = groupLetter ? `pdfLink-${sesId}-${encodedSub}-${groupLetter}` : `pdfLink-${sesId}-${encodedSub}`;
+            const el = document.getElementById(inputId);
+            if (el) el.value = url;
             Swal.close();
         }
 
@@ -788,7 +799,7 @@
 
                 table { width: 100%; border-collapse: collapse; font-size: 9pt; table-layout: fixed; }
                 th { background: #f8fafc; padding: 5px 8px; text-align: left; border: 1px solid #cbd5e1; font-weight: 700; color: #475569; font-size: 8.5pt; }
-                td { padding: 0 6px; border: 1px solid #e2e8f0; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; height: 13pt; font-size: 8.2pt; }
+                td { padding: 4px 6px; border: 1px solid #e2e8f0; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; height: 14pt; font-size: 8.5pt; }
                 tr:nth-child(even) td { background: #fcfcfc; }
 
                 .msg-box {
@@ -834,6 +845,11 @@
                 return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : d;
             };
 
+            const abbr = (n) => {
+                if (!n || n === '-') return n;
+                return n.replace(/Matematik/gi, 'Mat.').replace(/Edebiyat/gi, 'Edb.').replace(/İngilizce/gi, 'İng.').replace(/Fizik/gi, 'Fiz.').replace(/Kimya/gi, 'Kim.').replace(/Biyoloji/gi, 'Biyo.').replace(/Tarih/gi, 'Tar.').replace(/Coğrafya/gi, 'Coğ.').replace(/Felsefe/gi, 'Fel.').replace(/Din Kültürü/gi, 'Din.').replace(/Almanca/gi, 'Alm.').replace(/Görsel Sanatlar/gi, 'Grs.').replace(/Müzik/gi, 'Müz.').replace(/Beden Eğitimi/gi, 'Bed.').replace(/Bilişim/gi, 'Biliş.');
+            };
+
             const hdr = (title) => `
                 <div class="page-header">
                     <h2>${title}</h2>
@@ -844,11 +860,6 @@
                         </div>
                     </div>
                 </div>`;
-
-            const abbr = (n) => {
-                if (!n || n === '-') return n;
-                return n.replace(/Matematik/gi, 'Mat.').replace(/Edebiyat/gi, 'Edb.').replace(/İngilizce/gi, 'İng.').replace(/Fizik/gi, 'Fiz.').replace(/Kimya/gi, 'Kim.').replace(/Biyoloji/gi, 'Biyo.').replace(/Tarih/gi, 'Tar.').replace(/Coğrafya/gi, 'Coğ.').replace(/Felsefe/gi, 'Fel.').replace(/Din Kültürü/gi, 'Din.').replace(/Almanca/gi, 'Alm.').replace(/Görsel Sanatlar/gi, 'Grs.').replace(/Müzik/gi, 'Müz.').replace(/Beden Eğitimi/gi, 'Bed.').replace(/Bilişim/gi, 'Biliş.');
-            };
 
             let body = '';
 
@@ -875,37 +886,11 @@
 
                 sorted.forEach(cls => {
                     const students = byClass[cls].sort((a, b) => parseInt(a.no) - parseInt(b.no));
-                    const PAGE_SIZE = 50;
+                    const PAGE_SIZE = 45;
                     for (let p = 0; p < students.length; p += PAGE_SIZE) {
                         const chunk = students.slice(p, p + PAGE_SIZE);
-                        const pageNum = Math.floor(p / PAGE_SIZE) + 1;
-                        const totalPages = Math.ceil(students.length / PAGE_SIZE);
-
-                        const rows = chunk.map(s => {
-                            const meta = (session.subjectMetadata || {})[s._matchedSubject] || {};
-                            const examNo = meta.examNo || meta.examNumber || '';
-                            const eNum = examNo ? ` <small>(${examNo})</small>` : '';
-
-                            return `<tr>
-                                <td style="width:10%;"><b>${s.no}</b></td>
-                                <td style="width:40%;">${s.name}</td>
-                                <td style="width:30%;">${s._matchedSubject || '-'}${eNum}</td>
-                                <td style="width:12%;">${s.room}</td>
-                                <td style="width:8%; text-align:center;"><b>${s.seatNum}</b></td></tr>`;
-                        }).join('');
-
-                        body += `<div class="page">
-                            ${hdr(`${cls} Sınıf Listesi ${totalPages > 1 ? `(Sayfa ${pageNum}/${totalPages})` : ''}`)}
-                            <table>
-                                <thead><tr>
-                                    <th style="width:10%;">No</th><th style="width:40%;">Ad Soyad</th>
-                                    <th style="width:30%;">Sınav Dersi</th><th style="width:12%;">Derslik</th>
-                                    <th style="width:8%;">Sıra</th>
-                                </tr></thead>
-                                <tbody>${rows}</tbody>
-                            </table>
-                            ${(studentMsg && (p + PAGE_SIZE >= students.length)) ? `<div class="msg-box"><strong><span class="icon">!</span> Lütfen Dikkat!!!</strong>${studentMsg}</div>` : ""}
-                        </div>`;
+                        const rows = chunk.map(s => `<tr><td style="width:10%;"><b>${s.no}</b></td><td style="width:40%; text-transform:uppercase;">${s.name}</td><td style="width:30%;">${s._matchedSubject || '-'}</td><td style="width:12%;">${s.room}</td><td style="width:8%; text-align:center;"><b>${s.seatNum}</b></td></tr>`).join('');
+                        body += `<div class="page">${hdr(`${cls} Sınıf Listesi`)}<table><thead><tr><th style="width:10%;">No</th><th style="width:40%;">Ad Soyad</th><th style="width:30%;">Sınav Dersi</th><th style="width:12%;">Derslik</th><th style="width:8%;">Sıra</th></tr></thead><tbody>${rows}</tbody></table>${(studentMsg && (p + PAGE_SIZE >= students.length)) ? `<div class="msg-box"><strong><span class="icon">!</span> Dikkat: </strong>${studentMsg}</div>` : ""}</div>`;
                     }
                 });
 
@@ -913,8 +898,7 @@
             } else if (mode === 'room') {
                 const sortedRooms = [...session.results].sort((a, b) => sortByNum(a.name, b.name));
                 sortedRooms.forEach(room => {
-                    let ctr = 1; const seatToNum = {};
-                    const seatIds = [];
+                    let ctr = 1; const seatToNum = {}; const seatIds = [];
                     for (let g = 1; g <= room.groups; g++) {
                         const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
                         for (let r = 1; r <= cf.rows; r++)
@@ -928,47 +912,31 @@
                         for (let i = 0; i < pa.length; i++) if (pa[i] !== pb[i]) return pa[i] - pb[i];
                         return 0;
                     });
-
-                    const PAGE_SIZE = 50;
+                    const PAGE_SIZE = 45;
                     for (let p = 0; p < sortedSeatIds.length; p += PAGE_SIZE) {
                         const chunk = sortedSeatIds.slice(p, p + PAGE_SIZE);
-                        const pageNum = Math.floor(p / PAGE_SIZE) + 1;
-                        const totalPages = Math.ceil(sortedSeatIds.length / PAGE_SIZE);
-
                         const rows = chunk.map(sid => {
                             const s = room.seats[sid];
-                            if (s) {
-                                return `<tr><td style="text-align:center;"><b>${seatToNum[sid] || '-'}</b></td>
-                                    <td>${s.class}</td><td style="text-align:center;"><b>${s.no}</b></td>
-                                    <td>${s.name}</td><td>${abbr(s._matchedSubject || '-')}</td>
-                                    <td style="border-bottom:1px solid #eee;"></td></tr>`;
-                            } else {
-                                return `<tr style="color: #64748b; background: #fff5f5;"><td style="text-align:center;"><b>${seatToNum[sid] || '-'}</b></td>
-                                    <td colspan="4" style="text-align:center; font-weight: bold; letter-spacing: 2px;">BOŞ BIRAKILDI</td>
-                                    <td></td></tr>`;
-                            }
+                            if (s) return `<tr><td style="text-align:center; width:6%;"><b>${seatToNum[sid] || '-'}</b></td><td style="width:7%;">${s.class}</td><td style="text-align:center; width:7%;"><b>${s.no}</b></td><td style="width:45%; text-transform:uppercase;">${s.name}</td><td style="width:20%;">${abbr(s._matchedSubject || '-')}</td><td style="width:15%; border-bottom:1px solid #eee;"></td></tr>`;
+                            else return `<tr style="color:#64748b; background:#fff5f5;"><td style="text-align:center;"><b>${seatToNum[sid] || '-'}</b></td><td colspan="4" style="text-align:center; font-weight:bold; letter-spacing:2px;">BOŞ</td><td></td></tr>`;
                         }).join('');
-
                         const studentsInRoom = Object.values(room.seats || {});
                         const roomClasses = [...new Set(studentsInRoom.map(s => s.class))].sort(sortByNum);
                         const teacherMsg = (session.teacherMsg || '').trim();
-
                         let summaryListHtml = ''; let roomTotal = 0;
                         roomClasses.forEach(cls => {
                             const classStudents = studentsInRoom.filter(s => s.class === cls);
                             const classExams = [...new Set(classStudents.map(s => s._matchedSubject || '-'))].sort();
                             classExams.forEach(ex => {
                                 const count = classStudents.filter(s => (s._matchedSubject || '-') === ex).length;
-                                summaryListHtml += `<div style="padding: 2px 0; border-bottom: 1px dashed #e2e8f0; font-size: 8.5pt;"><b>${cls}</b> ${abbr(ex)} => <b>${count}</b> Öğrenci</div>`;
+                                summaryListHtml += `<div style="padding: 2px 0; border-bottom: 1px dashed #e2e8f0; font-size: 8.5pt;"><b>${cls}</b> ${abbr(ex)} => <b>${count}</b></div>`;
                                 roomTotal += count;
                             });
                         });
-                        const examsInRoom = [...new Set(studentsInRoom.map(s => s._matchedSubject || '-'))].sort();
-                        let examSummaryRows = examsInRoom.map(ex => {
+                        let examSummaryRows = [...new Set(studentsInRoom.map(s => s._matchedSubject || '-'))].sort().map(ex => {
                             const count = studentsInRoom.filter(s => (s._matchedSubject || '-') === ex).length;
-                            return `<tr><td>${ex}</td><td style="text-align:center; font-weight:bold;">${count}</td></tr>`;
+                            return `<tr><td style="padding:2px 4px;">${ex}</td><td style="text-align:center; font-weight:bold;">${count}</td></tr>`;
                         }).join('');
-
                         const summaryContent = (p + PAGE_SIZE >= sortedSeatIds.length) ? `
                             <div style="flex-shrink:0; width:45mm; margin-left:10px;">
                                 <div style="background:#f8fafc; padding:6px; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:10px;">
@@ -977,29 +945,10 @@
                                 </div>
                                 <div style="background:#fff7ed; padding:6px; border-radius:10px; border:1px solid #ffedd5;">
                                     <div style="font-size:8.5pt; font-weight:900; color:#c2410c; border-bottom:2px solid #f97316; padding-bottom:3px; margin-bottom:6px;">SINAV TOPLAMLARI</div>
-                                    <table style="font-size:7.5pt; border-collapse:collapse; background:white;">
-                                        <thead><tr style="background:#fff7ed;"><th style="padding:2px 4px; width:75%;">Sınav</th><th style="padding:2px 4px; width:25%;">Sayı</th></tr></thead>
-                                        <tbody>${examSummaryRows}</tbody>
-                                    </table>
+                                    <table style="font-size:7.5pt;"><thead><tr><th style="padding:2px 4px; width:75%;">Sınav</th><th style="padding:2px 4px; width:25%;">Sayı</th></tr></thead><tbody>${examSummaryRows}</tbody></table>
                                 </div>
                             </div>` : '';
-
-                        body += `<div class="page">${hdr(`${room.name} Salonu - Oturma Listesi ${totalPages > 1 ? `(Sayfa ${pageNum}/${totalPages})` : ''}`)}
-                            <div style="display:flex; gap:0; align-items:flex-start; flex:1;">
-                                <div style="flex:1;">
-                                    <table style="table-layout:fixed;">
-                                        <thead><tr>
-                                            <th style="width:6%;">Sıra</th><th style="width:7%;">Sınıf</th>
-                                            <th style="width:7%;">No</th><th style="width:50%;">Ad Soyad</th>
-                                            <th style="width:15%;">Sınav</th><th style="width:15%;">Açıklama</th>
-                                        </tr></thead>
-                                        <tbody>${rows}</tbody>
-                                    </table>
-                                </div>
-                                ${summaryContent}
-                            </div>
-                            ${(teacherMsg && (p + PAGE_SIZE >= sortedSeatIds.length)) ? `<div class="msg-box" style="border-color:#ca8a04; background:#fffaf0;"><strong><span class="icon" style="background:#ea580c;">!</span> Lütfen Dikkat!!!</strong>${teacherMsg}</div>` : ""}
-                        </div>`;
+                        body += `<div class="page">${hdr(`${room.name} Salonu - Oturma Listesi`)}<div style="display:flex; flex:1;"><div style="flex:1;"><table><thead><tr><th>Sıra</th><th>Sınıf</th><th>No</th><th>Ad Soyad</th><th>Sınav</th><th>Açıklama</th></tr></thead><tbody>${rows}</tbody></table></div>${summaryContent}</div>${(teacherMsg && (p + PAGE_SIZE >= sortedSeatIds.length)) ? `<div class="msg-box" style="border-color:#ca8a04; background:#fffaf0;"><strong><span class="icon" style="background:#ea580c;">!</span> Dikkat: </strong>${teacherMsg}</div>` : ""}</div>`;
                     }
                 });
 
@@ -1024,59 +973,20 @@
                                 const isDisabled = (room.disabledSeats || []).includes(sid);
                                 const student = room.seats?.[sid];
                                 const num = seatToNum[sid] || '-';
-
-                                if (isDisabled) {
-                                    groupsHtml += `<div class="desk" style="opacity:0.3; border-color:#ccc; border-style:dotted;">KAPALI</div>`;
-                                } else if (student) {
-                                    groupsHtml += `<div class="desk">
-                                        <div style="font-size:7pt;color:#64748b;font-weight:700;margin-bottom:2px;">${student.class} / ${student.no}</div>
-                                        <div style="font-weight:900;font-size:8.5pt;line-height:1.1;color:#1e293b;">${student.name}</div>
-                                        <div style="font-size:6.5pt;color:#4f46e5;margin-top:3px;font-weight:600;">${abbr(student._matchedSubject || '-')}</div>
-                                        <div class="desk-num">${num}</div>
-                                    </div>`;
-                                } else if (student === undefined) {
-                                    // Placeholder for empty seats handled in else
-                                    groupsHtml += `<div class="desk empty">BOŞ<div class="desk-num" style="background:#fee2e2; color:#ef4444; border-color:#fecaca;">${num}</div></div>`;
-                                } else {
-                                    groupsHtml += `<div class="desk empty">BOŞ<div class="desk-num" style="background:#fee2e2; color:#ef4444; border-color:#fecaca;">${num}</div></div>`;
-                                }
+                                if (isDisabled) groupsHtml += `<div class="desk" style="opacity:0.3; border-style:dotted;">KAPALI</div>`;
+                                else if (student) groupsHtml += `<div class="desk"><div style="font-size:7pt;color:#64748b;font-weight:700;margin-bottom:2px;">${student.class} / ${student.no}</div><div style="font-weight:900;font-size:8.5pt;color:#1e293b; text-transform:uppercase;">${student.name}</div><div style="font-size:6.5pt;color:#4f46e5;margin-top:3px;font-weight:600;">${abbr(student._matchedSubject || '-')}</div><div class="desk-num">${num}</div></div>`;
+                                else groupsHtml += `<div class="desk empty">BOŞ<div class="desk-num" style="background:#fee2e2; color:#ef4444;">${num}</div></div>`;
                             }
                         }
                         groupsHtml += '</div>';
                     }
                     groupsHtml += '</div>';
-
-                    body += `<div class="page">
-                        ${hdr(`${room.name} Salonu - Oturma Şeması`)}
-                        <div class="schema-container">
-                            <div class="classroom-walls">
-                                ${groupsHtml}
-                                <div class="front-side">
-                                    ${room.teacherDeskPos === 'left' ?
-                            `<div class="teacher-desk">ÖĞRETMEN MASASI</div><div class="board">Y A Z I &nbsp; T A H T A S I</div><div style="width:130px;"></div>` :
-                            `<div style="width:130px;"></div><div class="board">Y A Z I &nbsp; T A H T A S I</div><div class="teacher-desk">ÖĞRETMEN MASASI</div>`
-                        }
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
+                    body += `<div class="page">${hdr(`${room.name} Salonu - Oturma Şeması`)}<div class="schema-container"><div class="classroom-walls">${groupsHtml}<div class="front-side">${room.teacherDeskPos === 'left' ? `<div class="teacher-desk">ÖĞRETMEN MASASI</div><div class="board">YAZI TAHTASI</div><div style="width:130px;"></div>` : `<div style="width:130px;"></div><div class="board">YAZI TAHTASI</div><div class="teacher-desk">ÖĞRETMEN MASASI</div>`}</div></div></div></div>`;
                 });
-
-                body += `<script>window.addEventListener('load', () => {
-                    setTimeout(() => {
-                        document.querySelectorAll('.schema-container').forEach(wrap => {
-                            const wall = wrap.querySelector('.classroom-walls');
-                            const wrapW = wrap.clientWidth - 60;
-                            const wrapH = wrap.clientHeight - 60;
-                            const scale = Math.min(wrapW / wall.offsetWidth, wrapH / wall.offsetHeight);
-                            wall.style.transform = "scale(" + Math.min(scale, 1.4) + ")";
-                        });
-                    }, 100);
-                });<\/script>`;
+                body += `<script>window.addEventListener('load', () => { setTimeout(() => { document.querySelectorAll('.schema-container').forEach(wrap => { const wall = wrap.querySelector('.classroom-walls'); const wrapW = wrap.clientWidth - 60; const wrapH = wrap.clientHeight - 60; const scale = Math.min(wrapW / wall.offsetWidth, wrapH / wall.offsetHeight, 1.4); wall.style.transform = "scale(" + scale + ")"; }); }, 150); });<\/script>`;
             }
-
             const win = window.open('', '_blank');
-            win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${session.name} - ${modeLabel}</title><style>${pageCss}</style></head><body>${body}</body></html>`);
+            win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${session.name}</title><style>${pageCss}</style></head><body>${body}</body></html>`);
             win.document.close();
         };
     </script>
