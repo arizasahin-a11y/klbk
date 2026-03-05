@@ -13,6 +13,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
+    <!-- PDF Modification Libraries -->
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         .query-container {
             width: 1200px;
@@ -332,6 +336,10 @@
                                                 </label>
                                                 <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
                                                     <input type="radio" name="printMode-${ses.id}" value="seating" style="accent-color: var(--primary);"> Şema
+                                                </label>
+                                                <div style="width: 1px; height: 16px; background: var(--gray-300); margin: 0 4px;"></div>
+                                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; color: var(--primary);">
+                                                    <input type="checkbox" id="paperCheck-${ses.id}" style="accent-color: var(--primary); width: 16px; height: 16px;"> <b>Sınav Kağıdı</b>
                                                 </label>
                                             </div>
                                             <button class="btn btn-primary btn-sm" style="padding: 4px 10px; font-size: 0.75rem;" onclick="printSession('${ses.id}')">
@@ -779,6 +787,213 @@
             Swal.close();
         }
 
+        // ─── PDF Yazdırma Yardımcıları ─────────────────────────────────────────────
+        window._printQueue = [];
+        window._isProcessingPrint = false;
+        window._cachedFonts = {};
+
+        window.getFileBytes = async function (url) {
+            return new Promise((resolve, reject) => {
+                try {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open("GET", url, true);
+                    xhr.responseType = "arraybuffer";
+                    xhr.onload = () => {
+                        if (xhr.status === 200) resolve(new Uint8Array(xhr.response));
+                        else reject(new Error(`HTTP ${xhr.status}: ${url}`));
+                    };
+                    xhr.onerror = () => reject(new Error(`Network error: ${url}`));
+                    xhr.send();
+                } catch (e) { reject(e); }
+            });
+        };
+
+        window.printFile = function (path, studentInfo = null) {
+            if (!path) return Promise.resolve();
+            return new Promise((resolve) => {
+                window._printQueue.push({ path: path.trim(), info: studentInfo, resolve });
+                if (!window._isProcessingPrint) window._processPrintQueue();
+            });
+        };
+
+        window._processPrintQueue = async function () {
+            if (window._printQueue.length === 0) {
+                window._isProcessingPrint = false;
+                return;
+            }
+            window._isProcessingPrint = true;
+            let item = window._printQueue.shift();
+            let { path, info, resolve } = item;
+
+            let printPath = path;
+            if (printPath.match(/^[a-zA-Z]:\\/) || printPath.match(/^[a-zA-Z]:\//)) {
+                printPath = 'file:///' + printPath.replace(/\\/g, '/');
+            }
+
+            const finalize = (iframe) => {
+                if (iframe && document.body.contains(iframe)) document.body.removeChild(iframe);
+                if (resolve) resolve();
+                setTimeout(() => window._processPrintQueue(), 1000);
+            };
+
+            try {
+                const pdfBytes = await window.getFileBytes(printPath);
+                const { PDFDocument } = PDFLib;
+                const pdfDoc = await PDFDocument.load(pdfBytes);
+
+                if (typeof fontkit !== 'undefined') pdfDoc.registerFontkit(fontkit);
+
+                const fonts = await loadRequiredFonts(pdfDoc);
+                const pages = pdfDoc.getPages();
+
+                for (let i = 0; i < pages.length; i++) {
+                    const page = pages[i];
+                    const { width, height } = page.getSize();
+                    const A4_W = 595.28, A4_H = 841.89;
+                    const sf = 1 / Math.min(A4_W / width, A4_H / height);
+                    if (i === 0 && info && Object.keys(info).length > 0) {
+                        await window.renderStudentPDFHeader(pdfDoc, page, info, { ...fonts, sf });
+                    }
+                }
+
+                const modifiedPdfBytes = await pdfDoc.save();
+                const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
+                const blobUrl = URL.createObjectURL(blob);
+
+                const iframe = document.createElement('iframe');
+                Object.assign(iframe.style, { position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0', visibility: 'hidden' });
+                iframe.src = blobUrl;
+                document.body.appendChild(iframe);
+
+                iframe.onload = () => {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                    setTimeout(() => { URL.revokeObjectURL(blobUrl); finalize(iframe); }, 5000);
+                };
+            } catch (e) {
+                console.error("PDF Overlay Error:", e);
+                window.open(printPath, '_blank');
+                finalize(null);
+            }
+        };
+
+        const loadRequiredFonts = async (pdfDoc) => {
+            const urls = {
+                main: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf',
+                nameFont: 'fonts/MonotypeCorsiva.ttf',
+                schoolFont: 'fonts/SnapITC.ttf'
+            };
+            for (const key in urls) {
+                if (!window._cachedFonts[key]) {
+                    try {
+                        const bytes = await window.getFileBytes(urls[key]);
+                        if (bytes && bytes.byteLength > 1000) window._cachedFonts[key] = bytes;
+                    } catch (e) { console.warn(`Font fetch failed: ${key}`, e); }
+                }
+            }
+            const fonts = {};
+            const fallback = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+            fonts.mainFont = window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback;
+            fonts.nameFont = window._cachedFonts.nameFont ? await pdfDoc.embedFont(window._cachedFonts.nameFont) : fonts.mainFont;
+            fonts.schoolFont = window._cachedFonts.schoolFont ? await pdfDoc.embedFont(window._cachedFonts.schoolFont) : fonts.mainFont;
+            return fonts;
+        };
+
+        window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}) {
+            const { rgb } = PDFLib;
+            const { mainFont, nameFont, schoolFont, sf } = options;
+            const { width, height } = page.getSize();
+            const school = DataManager.getSchoolSettings();
+
+            const drawText = (str, x, y, size, font, color = rgb(0, 0, 0)) => {
+                if (!str) return;
+                page.drawText(str.toString(), { x, y, size: size * sf, font: font || undefined, color });
+            };
+
+            const margin = 14.17 * sf;
+            const limitY = 85.04 * sf;
+            const boxH = limitY - margin;
+            const boxY = height - limitY;
+
+            // Simple header overlay
+            page.drawRectangle({ x: margin, y: boxY, width: width - (margin * 2), height: boxH, color: rgb(1, 1, 1), borderColor: rgb(0, 0, 0), borderWidth: 1 * sf });
+
+            const textY = boxY + (boxH / 2);
+            drawText(school.name || '', margin + 10 * sf, textY + 12 * sf, 10, schoolFont);
+            drawText(`${info.class} / ${info.no} - ${info.name}`, margin + 10 * sf, textY - 2 * sf, 12, nameFont);
+            drawText(`${info.subject} - Salon: ${info.room} - Sıra: ${info.seat}`, margin + 10 * sf, textY - 14 * sf, 9, mainFont);
+        };
+
+        async function printPapersForGroupBatch(targetStudents, session, groupLabel) {
+            const { PDFDocument } = PDFLib;
+            Swal.fire({
+                title: `${groupLabel} Hazırlanıyor...`,
+                html: `Soru kağıtları hazırlanıyor, lütfen bekleyin.<br><br><div id="batch-progress" style="font-weight:bold; font-size:1.2rem;">0 / ${targetStudents.length}</div>`,
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            try {
+                const mergedPdf = await PDFDocument.create();
+                if (typeof fontkit !== 'undefined') mergedPdf.registerFontkit(fontkit);
+                const fonts = await loadRequiredFonts(mergedPdf);
+                const metadata = session.subjectMetadata || {};
+
+                for (let i = 0; i < targetStudents.length; i++) {
+                    const s = targetStudents[i];
+                    const progressEl = document.getElementById('batch-progress');
+                    if (progressEl) progressEl.innerText = `${i + 1} / ${targetStudents.length}`;
+
+                    const subName = s._matchedSubject || '-';
+                    const groupLabel_s = s._groupLabel || s.group || 'default';
+                    const meta = metadata[subName] || {};
+                    const papers = meta.papers || {};
+                    let path = typeof papers === 'string' ? papers : (papers[groupLabel_s] || papers['default'] || '');
+
+                    if (!path) continue;
+                    let printPath = path;
+                    if (printPath.match(/^[a-zA-Z]:\\/) || printPath.match(/^[a-zA-Z]:\//)) printPath = 'file:///' + printPath.replace(/\\/g, '/');
+
+                    try {
+                        const bytes = await window.getFileBytes(printPath);
+                        const studentPdf = await PDFDocument.load(bytes);
+                        const pages = await mergedPdf.copyPages(studentPdf, studentPdf.getPageIndices());
+
+                        const studentInfo = {
+                            no: s.no, name: s.name, class: s.class, room: s.room,
+                            seat: s.seatNum || s.seat || '-', subject: subName, group: groupLabel_s
+                        };
+
+                        const firstPage = pages[0];
+                        const { width, height } = firstPage.getSize();
+                        const A4_W = 595.28, A4_H = 841.89;
+                        const sf = 1 / Math.min(A4_W / width, A4_H / height);
+                        await window.renderStudentPDFHeader(mergedPdf, firstPage, studentInfo, { ...fonts, sf });
+
+                        pages.forEach(p => mergedPdf.addPage(p));
+                    } catch (e) { console.error("Paper load error", path, e); }
+                }
+
+                const mergedBytes = await mergedPdf.save();
+                const blob = new Blob([mergedBytes], { type: 'application/pdf' });
+                const blobUrl = URL.createObjectURL(blob);
+                Swal.close();
+
+                const iframe = document.createElement('iframe');
+                Object.assign(iframe.style, { position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0', visibility: 'hidden' });
+                iframe.src = blobUrl;
+                document.body.appendChild(iframe);
+                iframe.onload = () => {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                    setTimeout(() => { URL.revokeObjectURL(blobUrl); if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 5000);
+                };
+            } catch (err) {
+                console.error("Batch Merge Error:", err);
+                Swal.fire('Hata', 'Toplu PDF oluşturulurken hata: ' + err.message, 'error');
+            }
+        }
+
         window.testPdfLink = function (sesId, encodedSub, groupLetter = null) {
             const inputId = groupLetter ? `pdfLink-${sesId}-${encodedSub}-${groupLetter}` : `pdfLink-${sesId}-${encodedSub}`;
             const el = document.getElementById(inputId);
@@ -888,8 +1103,39 @@
         async function executePrintSession(id, mode, filterArray, studentMsgOverride, teacherMsgOverride, pageSizeOverride) {
             const sessions = DataManager.getExamSessions();
             const session = sessions.find(s => s.id === id);
-
             if (!session || !session.results || session.results.length === 0) return;
+
+            // CHECK FOR PAPER PRINTING
+            const paperCb = document.getElementById(`paperCheck-${id}`);
+            if (paperCb && paperCb.checked) {
+                // Collect target students
+                let allStudents = [];
+                session.results.forEach(room => {
+                    // Re-calculate seat numbers for students in this room
+                    let ctr = 1; const seatToNum = {};
+                    for (let g = 1; g <= room.groups; g++) {
+                        const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
+                        for (let r = 1; r <= cf.rows; r++)
+                            for (let c = 1; c <= cf.cols; c++) {
+                                const sid = `G${g}-S${r}-C${c}`;
+                                if (!(room.disabledSeats || []).includes(sid)) seatToNum[sid] = ctr++;
+                            }
+                    }
+                    Object.entries(room.seats).forEach(([sid, s]) => {
+                        const std = { ...s, room: room.name, seatNum: seatToNum[sid] || '-' };
+                        if (mode === 'class' && filterArray.includes(std.class)) allStudents.push(std);
+                        else if (mode === 'room' && filterArray.includes(std.room)) allStudents.push(std);
+                    });
+                });
+
+                if (allStudents.length === 0) {
+                    Swal.fire('Bilgi', 'Seçilen gruplarda öğrenci bulunamadı.', 'info');
+                    return;
+                }
+
+                await printPapersForGroupBatch(allStudents, session, "Soru Kağıtları");
+                return; // Exit, don't print normal lists
+            }
 
             const pageCss = `
                 body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1e293b; margin: 0; padding: 0; background: #e2e8f0; }
