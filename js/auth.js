@@ -210,11 +210,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             confirmButtonColor: 'var(--secondary)'
                         });
                     } catch (err) {
-                        console.error("EmailJS Error:", err);
+                        console.error("EmailJS Full Error:", err);
+                        const errorMsg = err?.text || err?.message || "Bilinmeyen bir hata oluştu";
                         Swal.fire({
                             icon: 'warning',
                             title: 'Gönderim Hatası',
-                            text: 'E-posta servisi şu an yanıt vermiyor, ancak bilgileriniz doğrulandı. Lütfen sistem yöneticisi ile iletişime geçin.',
+                            html: `E-posta servisi şu an yanıt vermiyor.<br><br><small>Hata: ${errorMsg}</small><br><br>Lütfen bilgilerin doğruluğunu kontrol edin veya sistem yöneticisi ile iletişime geçin.`,
                             confirmButtonColor: 'var(--primary)'
                         });
                     }
