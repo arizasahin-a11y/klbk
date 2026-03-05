@@ -346,6 +346,9 @@ const DataManager = {
         if (!sessionObj.teacherMsg) {
             sessionObj.teacherMsg = "Gelmeyen öğrencinin açıklama hanesine GİRMEDİ yazınız. Kolaylıklar dilerim";
         }
+        if (sessionObj.date) {
+            sessionObj.date = this.formatDateToStandard(sessionObj.date);
+        }
 
         const exists = data.examSessions.findIndex(s => s.id === sessionObj.id);
         if (exists !== -1) {
@@ -393,6 +396,44 @@ const DataManager = {
             totalRooms,
             totalCapacity
         };
+    },
+
+    // --- Date Format Helpers & Migration ---
+    formatDateToStandard: function (val) {
+        if (!val) return "";
+        if (val.includes('-')) {
+            const parts = val.split('-');
+            if (parts.length === 3 && parts[0].length === 4) {
+                return `${parts[2]}.${parts[1]}.${parts[0]}`; // YYYY-MM-DD to DD.MM.YYYY
+            }
+        }
+        return val;
+    },
+
+    formatDateToInput: function (val) {
+        if (!val) return "";
+        if (val.includes('.')) {
+            const parts = val.split('.');
+            if (parts.length === 3 && parts[0].length === 2) {
+                return `${parts[2]}-${parts[1]}-${parts[0]}`; // DD.MM.YYYY to YYYY-MM-DD
+            }
+        }
+        return val;
+    },
+
+    _migrateDateFormats: function () {
+        if (!this._memoryData || !this._memoryData.examSessions) return;
+        let changed = false;
+        this._memoryData.examSessions.forEach(ses => {
+            if (ses.date && ses.date.includes('-')) {
+                ses.date = this.formatDateToStandard(ses.date);
+                changed = true;
+            }
+        });
+        if (changed) {
+            console.log("Date formats migrated to DD.MM.YYYY");
+            this._saveData(this._memoryData);
+        }
     }
 };
 

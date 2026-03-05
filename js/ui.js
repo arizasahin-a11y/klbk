@@ -8,6 +8,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         return a.localeCompare(b, 'tr');
     };
 
+    // --- Global Date Helpers (Delegated to DataManager) ---
+    window.formatDateToStandard = (val) => DataManager.formatDateToStandard(val);
+    window.formatDateToInput = (val) => DataManager.formatDateToInput(val);
+
     // --- 1. Authentication Check ---
     const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn');
     if (!isLoggedIn) {
@@ -2261,7 +2265,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Validations before moving explicitly
             if (currentWizardStep === 1) {
                 wizardSessionData.name = document.getElementById('wizSessionName').value.trim();
-                wizardSessionData.date = document.getElementById('wizSessionDate').value;
+                wizardSessionData.date = window.formatDateToStandard(document.getElementById('wizSessionDate').value);
                 wizardSessionData.time = document.getElementById('wizSessionTime').value.trim();
                 if (!wizardSessionData.name || !wizardSessionData.date || !wizardSessionData.time) {
                     Swal.fire('Eksik', 'Lütfen 1. Adımdaki tüm alanları doldurun.', 'warning');
@@ -2418,7 +2422,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </div>
                     </td>
                     <td style="padding:1.25rem;">
-                        <div style="font-weight:600; color:var(--dark);">${ses.date ? ses.date.split('-').reverse().join('.') : ''}</div>
+                        <div style="font-weight:600; color:var(--dark);">${ses.date || ''}</div>
                         <div style="font-size:0.8rem; color:var(--gray-500);">${ses.time}</div>
                     </td>
                     <td style="padding:1.25rem;">
@@ -4662,7 +4666,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div style="display:flex; gap:1rem; margin-bottom: 1.5rem; background: #fff; padding: 1rem; border: 1px solid var(--gray-200); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                         <div style="flex:1;">
                             <label style="display:block; font-weight:700; font-size:0.85rem; margin-bottom:0.5rem; color:var(--gray-700);">Sınav Tarihi</label>
-                            <input type="date" id="meta-date" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem;" value="${ses.date || ''}">
+                            <input type="date" id="meta-date" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem;" value="${window.formatDateToInput(ses.date) || ''}">
                         </div>
                         <div style="flex:1;">
                             <label style="display:block; font-weight:700; font-size:0.85rem; margin-bottom:0.5rem; color:var(--gray-700);">Sınav Saati / Ders</label>
@@ -4720,7 +4724,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Ensure values are selected even if template literal had issues
                 const dateInp = document.getElementById('meta-date');
                 const timeInp = document.getElementById('meta-time');
-                if (dateInp && ses.date) dateInp.value = ses.date;
+                if (dateInp && ses.date) dateInp.value = window.formatDateToInput(ses.date);
                 if (timeInp && ses.time) timeInp.value = ses.time;
             },
             preConfirm: () => {
@@ -4753,7 +4757,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 return {
                     subjectMetadata: newMetadata,
-                    date: document.getElementById('meta-date').value,
+                    date: window.formatDateToStandard(document.getElementById('meta-date').value),
                     time: document.getElementById('meta-time').value.trim(),
                     studentMsg: document.getElementById('meta-std-msg').value.trim(),
                     teacherMsg: document.getElementById('meta-tch-msg').value.trim()

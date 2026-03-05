@@ -338,7 +338,7 @@
                                             <i class="fa-solid fa-clock"></i> OTURUM
                                         </div>
                                         <h4 style="margin:0; font-weight:900;">${ses.name}</h4>
-                                        <small style="color:var(--gray-500)">${ses.date} ${ses.time}</small>
+                                        <small style="color:var(--gray-500)">${ses.date || ''} ${ses.time}</small>
                                     </div>
                                     <div style="display: flex; align-items:center; gap: 15px;">
                                         <div class="print-tools-header" style="display: flex; align-items: center; gap: 12px; background: #f8fafc; padding: 6px 12px; border-radius: 10px; border: 1px solid var(--gray-200);" onclick="event.stopPropagation()">
@@ -790,13 +790,7 @@
             }
 
             // Format date for type="date" (YYYY-MM-DD)
-            let dateVal = session.date || "";
-            if (dateVal.includes('.')) {
-                const parts = dateVal.split('.');
-                if (parts.length === 3 && parts[0].length === 2) {
-                    dateVal = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                }
-            }
+            let dateVal = DataManager.formatDateToInput(session.date);
 
             // Format time for type="time" (HH:MM)
             let timeVal = session.time || "";
@@ -842,7 +836,7 @@
                 preConfirm: () => {
                     return {
                         name: document.getElementById('swal-name').value,
-                        date: document.getElementById('swal-date').value,
+                        date: DataManager.formatDateToStandard(document.getElementById('swal-date').value),
                         time: document.getElementById('swal-time').value
                     }
                 }
