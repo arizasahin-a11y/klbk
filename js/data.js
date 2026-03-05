@@ -50,6 +50,7 @@ const DataManager = {
                 if (rows && rows.length > 0) {
                     this._memoryData = rows[0].data;
                     console.log("Cloud data loaded successfully.");
+                    this._migrateDateFormats(); // Standardize dates to DD.MM.YYYY
                     return;
                 }
             }
