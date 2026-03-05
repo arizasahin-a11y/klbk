@@ -11,6 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const regBranchSelect = document.getElementById('regBranch');
     const regRoleSelect = document.getElementById('regRole');
 
+    const usernameNewGroup = document.getElementById('usernameNewGroup');
+    const regUsernameSelect = document.getElementById('regUsernameSelect');
+    const btnDeleteUser = document.getElementById('btnDeleteUser');
+    const btnSubmitMaster = document.getElementById('btnSubmitMaster');
     const regUsernameInput = document.getElementById('regUsername');
     const regPasswordInput = document.getElementById('regPassword');
     const regEmailInput = document.getElementById('regEmail');
@@ -66,19 +70,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Extract unique schools
         const schoolMap = {};
         for (const [uname, user] of Object.entries(globalUsersDb)) {
-            // We no longer skip 'admin' here because the admin might want to assign
-            // teachers to their own school name they configured on the dashboard.
-
-            // Legacy data support (before multiple users per school feature)
-            // If the user has a schoolName but no storeKey, we assume their storeKey is klbk_data_{username}
             const sName = user.schoolName;
-            let sKey = user.storeKey;
+            const sKey = getUserStoreKey(uname, user);
 
-            if (sName) {
-                if (!sKey) {
-                    sKey = `klbk_data_${uname}`; // Infer the original storeKey
-                }
-
+            if (sName && sKey) {
                 // Only add if we haven't tracked this explicit storeKey yet
                 if (!schoolMap[sKey]) {
                     schoolMap[sKey] = sName;
@@ -114,8 +109,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Helper to resolve storeKey for a user
+    function getUserStoreKey(uname, user) {
+        if (user.storeKey) return user.storeKey;
+        // Legacy: Infer from username if schoolName exists
+        if (user.schoolName) return `klbk_data_${uname}`;
+        return null;
+    }
+
     // Fetch School Data for Branches
     async function fetchSchoolBranches(storeKey) {
+        if (!regBranchSelect) return;
         regBranchSelect.innerHTML = '<option value="">Yükleniyor...</option>';
         try {
             const res = await fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.${storeKey}&select=*`, {
@@ -144,30 +148,157 @@ document.addEventListener('DOMContentLoaded', () => {
         regBranchSelect.innerHTML = '<option value="">Okulda henüz ders tanımlanmamış</option>';
     }
 
+    function updateUsersList(storeKey) {
+        if (!regUsernameSelect) return;
+        regUsernameSelect.innerHTML = '<option value="">-- Kullanıcı Seçiniz --</option>';
+
+        const schoolUsers = Object.keys(globalUsersDb).filter(uname => {
+            const user = globalUsersDb[uname];
+            const uKey = getUserStoreKey(uname, user);
+            return uKey === storeKey;
+        });
+
+        schoolUsers.forEach(uname => {
+            const opt = document.createElement('option');
+            opt.value = uname;
+            opt.textContent = uname;
+            regUsernameSelect.appendChild(opt);
+        });
+
+        const newOpt = document.createElement('option');
+        newOpt.value = "_NEW_USER_";
+        newOpt.textContent = "+ Yeni Kullanıcı Ekle";
+        newOpt.style.fontWeight = "bold";
+        newOpt.style.color = "var(--secondary)";
+        regUsernameSelect.appendChild(newOpt);
+    }
+
     // School Select Change Logic
     regSchoolSelect.addEventListener('change', async () => {
         const val = regSchoolSelect.value;
+        resetUserForm();
+
         if (val === '_NEW_') {
             newSchoolGroup.classList.remove('hidden');
             regSchoolNewInput.required = true;
             branchGroup.classList.add('hidden');
-            regRoleSelect.value = 'admin'; // Forced admin for new schools usually or idareci
+            regRoleSelect.value = 'admin';
             regRoleSelect.disabled = false;
             if (editSchoolNameBtn) editSchoolNameBtn.classList.add('hidden');
+
+            // New school implies new user
+            regUsernameSelect.innerHTML = '<option value="_NEW_USER_">+ Yeni Kullanıcı Ekle</option>';
+            regUsernameSelect.value = "_NEW_USER_";
+            regUsernameSelect.dispatchEvent(new Event('change'));
         } else if (val) {
             newSchoolGroup.classList.add('hidden');
             regSchoolNewInput.required = false;
             regSchoolNewInput.value = '';
+            if (editSchoolNameBtn) editSchoolNameBtn.classList.remove('hidden');
+
+            updateUsersList(val);
             if (regRoleSelect.value === 'ogretmen') {
-                branchGroup.classList.remove('hidden');
                 await fetchSchoolBranches(val);
             }
-            if (editSchoolNameBtn) editSchoolNameBtn.classList.remove('hidden');
         } else {
             newSchoolGroup.classList.add('hidden');
             regSchoolNewInput.required = false;
-            regBranchSelect.innerHTML = '<option value="">Lütfen Önce Okul Seçin</option>';
+            regUsernameSelect.innerHTML = '<option value="">Lütfen Önce Okul Seçin</option>';
             if (editSchoolNameBtn) editSchoolNameBtn.classList.add('hidden');
+        }
+    });
+
+    // Username Select Change Logic
+    regUsernameSelect.addEventListener('change', async () => {
+        const uname = regUsernameSelect.value;
+        if (uname === "_NEW_USER_") {
+            resetUserFormFields();
+            usernameNewGroup.classList.remove('hidden');
+            regUsernameInput.required = true;
+            btnDeleteUser.classList.add('hidden');
+            updateSubmitButton(false);
+        } else if (uname) {
+            usernameNewGroup.classList.add('hidden');
+            regUsernameInput.required = false;
+            btnDeleteUser.classList.remove('hidden');
+            updateSubmitButton(true);
+
+            // Populate user data
+            const user = globalUsersDb[uname];
+            regPasswordInput.value = user.password || '';
+            regEmailInput.value = user.email || '';
+            regRoleSelect.value = user.role || 'ogretmen';
+
+            if (regRoleSelect.value === 'ogretmen') {
+                branchGroup.classList.remove('hidden');
+                const storeKey = regSchoolSelect.value;
+                await fetchSchoolBranches(storeKey);
+
+                // Select branches
+                const branches = user.branch || [];
+                Array.from(regBranchSelect.options).forEach(opt => {
+                    opt.selected = branches.includes(opt.value);
+                });
+            } else {
+                branchGroup.classList.add('hidden');
+            }
+        } else {
+            resetUserFormFields();
+            updateSubmitButton(false);
+        }
+    });
+
+    function resetUserForm() {
+        regUsernameSelect.value = "";
+        resetUserFormFields();
+    }
+
+    function resetUserFormFields() {
+        usernameNewGroup.classList.add('hidden');
+        regUsernameInput.value = "";
+        regPasswordInput.value = "";
+        regEmailInput.value = "";
+        regRoleSelect.value = "ogretmen";
+        regRoleSelect.dispatchEvent(new Event('change'));
+        btnDeleteUser.classList.add('hidden');
+    }
+
+    function updateSubmitButton(isEdit) {
+        if (isEdit) {
+            btnSubmitMaster.innerHTML = '<i class="fa-solid fa-save"></i> <span>Kullanıcıyı Güncelle</span>';
+            btnSubmitMaster.className = "btn btn-info btn-block btn-lg";
+        } else {
+            btnSubmitMaster.innerHTML = '<i class="fa-solid fa-plus-circle"></i> <span>Okul Ekle ve Kullanıcı Oluştur</span>';
+            btnSubmitMaster.className = "btn btn-primary btn-block btn-lg";
+        }
+    }
+
+    // Delete User Logic
+    btnDeleteUser.addEventListener('click', async () => {
+        const uname = regUsernameSelect.value;
+        if (!uname || uname === "_NEW_USER_") return;
+
+        if (!confirm(`'${uname}' kullanıcısını silmek istediğinize emin misiniz?`)) return;
+
+        btnDeleteUser.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Siliyor...';
+        btnDeleteUser.disabled = true;
+
+        try {
+            delete globalUsersDb[uname];
+            await saveToCloud('klbk_users', globalUsersDb);
+            showMessage(`'${uname}' kullanıcısı başarıyla silindi.`, 'success');
+
+            setTimeout(() => {
+                btnDeleteUser.innerHTML = '<i class="fa-solid fa-trash"></i> Kullanıcıyı Sil';
+                btnDeleteUser.disabled = false;
+                const currentSchool = regSchoolSelect.value;
+                updateUsersList(currentSchool);
+                resetUserForm();
+            }, 1000);
+        } catch (err) {
+            console.error("Silme hatası:", err);
+            showMessage("Kullanıcı silinemedi.", "error");
+            btnDeleteUser.disabled = false;
         }
     });
 
@@ -274,24 +405,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Loading state
-            const btn = masterForm.querySelector('button[type="submit"]');
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> İşleniyor...';
-            btn.disabled = true;
+            const originalHtml = btnSubmitMaster.innerHTML;
+            btnSubmitMaster.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> İşleniyor...';
+            btnSubmitMaster.disabled = true;
 
             const usersDb = await getCloudUsers();
 
-            // Check if user already exists
-            if (usersDb[username]) {
-                showMessage(`'${username}' kullanıcı adı zaten kullanılıyor. Lütfen başka bir tane seçin.`, 'error');
+            const isEdit = regUsernameSelect.value && regUsernameSelect.value !== "_NEW_USER_";
+            const finalUsername = isEdit ? regUsernameSelect.value : username;
+
+            // Check if user already exists (only for new users)
+            if (!isEdit && usersDb[finalUsername]) {
+                showMessage(`'${finalUsername}' kullanıcı adı zaten kullanılıyor. Lütfen başka bir tane seçin.`, 'error');
                 shakeForm();
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
+                btnSubmitMaster.innerHTML = originalHtml;
+                btnSubmitMaster.disabled = false;
                 return;
             }
 
-            // Save new user
-            usersDb[username] = {
+            // Save/Update user
+            usersDb[finalUsername] = {
                 password: password,
                 schoolName: schoolNameToUse,
                 storeKey: storeKeyToUse,
@@ -314,12 +447,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 await saveToCloud(storeKeyToUse, initialData);
             }
 
-            showMessage(`${schoolNameToUse} için kullanıcı '${username}' başarıyla sisteme eklendi!`, 'success');
+            showMessage(`${isEdit ? 'Kullanıcı güncellendi' : 'Yeni kullanıcı oluşturuldu'}: '${finalUsername}'`, 'success');
 
-            // clear form
-            masterForm.reset();
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
+            // Reset form
+            if (isNewSchool || !isEdit) {
+                masterForm.reset();
+                initMasterPage();
+            } else {
+                // Keep same school, just refresh user data
+                globalUsersDb = usersDb;
+                updateUsersList(storeKeyToUse);
+                regUsernameSelect.value = finalUsername;
+                regUsernameSelect.dispatchEvent(new Event('change'));
+            }
+            btnSubmitMaster.innerHTML = originalHtml;
+            btnSubmitMaster.disabled = false;
 
             // Reload select
             setTimeout(() => {
