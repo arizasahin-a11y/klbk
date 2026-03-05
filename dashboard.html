@@ -2,6 +2,17 @@
 <html lang="tr">
 
 <head>
+    <script>
+        (function () {
+            const mapping = { 'index.html': 'k9x7v2m4', 'dashboard.html': 'r1p5s8q3', 'master.html': 'n4b9v1c7', 'ogrenci_sorgu.html': 'j2k5l0p8', 'ogretmen.html': 'h6t3y9w1' };
+            const pathParts = window.location.pathname.split('/');
+            const currentFile = pathParts[pathParts.length - 1] || 'index.html';
+            const maskedName = mapping[currentFile];
+            const handshake = sessionStorage.getItem('klbk_handshake');
+            if (handshake === maskedName) { sessionStorage.removeItem('klbk_handshake'); history.replaceState(null, '', maskedName); }
+            else if (maskedName) { document.documentElement.innerHTML = '<body style="font-family:sans-serif; text-align:center; padding-top:100px; background-color:#f8fafc; color:#1e293b;"><h2 style="color:#ef4444;">GEÇERSİZ LİNK. SİZE VERİLEN LİNKİ KULLANIN.</h2></body>'; window.stop(); }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kelebek Sınav Sistemi | Panel</title>

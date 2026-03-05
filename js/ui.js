@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 1. Authentication Check ---
     const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn');
     if (!isLoggedIn) {
+        sessionStorage.setItem('klbk_handshake', 'k9x7v2m4');
         window.location.href = 'index.html';
         return;
     }
@@ -39,6 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Logout Action ---
     document.getElementById('logoutBtn').addEventListener('click', () => {
         sessionStorage.removeItem('klbk_isLoggedIn');
+        sessionStorage.setItem('klbk_handshake', 'k9x7v2m4');
         window.location.href = 'index.html';
     });
 
