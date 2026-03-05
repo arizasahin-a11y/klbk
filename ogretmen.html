@@ -1102,34 +1102,45 @@
                         const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
                         for (let r = 1; r <= cf.rows; r++)
                             for (let c = 1; c <= cf.cols; c++) {
-                                const sid = `G${g} -S${r} -C${c} `;
+                                const sid = `G${g}-S${r}-C${c}`;
                                 if (!(room.disabledSeats || []).includes(sid)) seatToNum[sid] = ctr++;
                             }
                     }
                     let groupsHtml = '<div class="groups-row">';
                     for (let g = 1; g <= room.groups; g++) {
                         const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
-                        groupsHtml += `< div class="desk-group" style = "grid-template-columns:repeat(${cf.cols},1fr)" > `;
+                        groupsHtml += `<div class="desk-group" style="grid-template-columns:repeat(${cf.cols},1fr)">`;
                         for (let r = cf.rows; r >= 1; r--) {
                             for (let c = 1; c <= cf.cols; c++) {
-                                const sid = `G${g} -S${r} -C${c} `;
+                                const sid = `G${g}-S${r}-C${c}`;
                                 const isDisabled = (room.disabledSeats || []).includes(sid);
                                 const student = room.seats?.[sid];
                                 const num = seatToNum[sid] || '-';
-                                if (isDisabled) groupsHtml += `< div class="desk" style = "opacity:0.3; border-style:dotted;" > KAPALI</div > `;
-                                else if (student) groupsHtml += `< div class="desk" ><div style="font-size:7pt;color:#64748b;font-weight:700;margin-bottom:2px;">${student.class} / ${student.no}</div><div style="font-weight:900;font-size:8.5pt;color:#1e293b; text-transform:uppercase;">${student.name}</div><div style="font-size:6.5pt;color:#4f46e5;margin-top:3px;font-weight:600;">${abbr(student._matchedSubject || '-')}</div><div class="desk-num">${num}</div></div > `;
-                                else groupsHtml += `< div class="desk empty" > BOŞ < div class="desk-num" style = "background:#fee2e2; color:#ef4444;" > ${num}</div ></div > `;
+                                if (isDisabled) groupsHtml += `<div class="desk" style="opacity:0.3; border-style:dotted;">KAPALI</div>`;
+                                else if (student) groupsHtml += `<div class="desk"><div style="font-size:7pt;color:#64748b;font-weight:700;margin-bottom:2px;">${student.class} / ${student.no}</div><div style="font-weight:900;font-size:8.5pt;color:#1e293b; text-transform:uppercase;">${student.name}</div><div style="font-size:6.5pt;color:#4f46e5;margin-top:3px;font-weight:600;">${abbr(student._matchedSubject || '-')}</div><div class="desk-num">${num}</div></div>`;
+                                else groupsHtml += `<div class="desk empty">BOŞ<div class="desk-num" style="background:#fee2e2; color:#ef4444;">${num}</div></div>`;
                             }
                         }
                         groupsHtml += '</div>';
                     }
                     groupsHtml += '</div>';
-                    body += `< div class="page landscape" > ${hdr(`${room.name} Salonu - Oturma Şeması`)} <div class="schema-container"><div class="classroom-walls">${groupsHtml}<div class="front-side">${room.teacherDeskPos === 'left' ? `<div class="teacher-desk">ÖĞRETMEN MASASI</div><div class="board">YAZI TAHTASI</div><div style="width:130px;"></div>` : `<div style="width:130px;"></div><div class="board">YAZI TAHTASI</div><div class="teacher-desk">ÖĞRETMEN MASASI</div>`}</div></div></div></div > `;
+                    body += `<div class="page landscape">${hdr(`${room.name} Salonu - Oturma Şeması`)}<div class="schema-container"><div class="classroom-walls">${groupsHtml}<div class="front-side">${room.teacherDeskPos === 'left' ? `<div class="teacher-desk">ÖĞRETMEN MASASI</div><div class="board">YAZI TAHTASI</div><div style="width:130px;"></div>` : `<div style="width:130px;"></div><div class="board">YAZI TAHTASI</div><div class="teacher-desk">ÖĞRETMEN MASASI</div>`}</div></div></div></div>`;
                 });
             }
 
             if (body !== '') {
-                body += `< script > window.addEventListener('load', () => { setTimeout(() => { document.querySelectorAll('.schema-container').forEach(wrap => { const wall = wrap.querySelector('.classroom-walls'); const wrapW = wrap.clientWidth - 60; const wrapH = wrap.clientHeight - 60; const scale = Math.min(wrapW / wall.offsetWidth, wrapH / wall.offsetHeight, 1.4); wall.style.transform = "scale(" + scale + ")"; }); }, 150); });<\/script>`;
+                body += `<script>window.addEventListener('load', () => { 
+                    setTimeout(() => { 
+                        document.querySelectorAll('.schema-container').forEach(wrap => { 
+                            const wall = wrap.querySelector('.classroom-walls'); 
+                            const wrapW = wrap.clientWidth - 60; 
+                            const wrapH = wrap.clientHeight - 60; 
+                            const scale = Math.min(wrapW / wall.offsetWidth, wrapH / wall.offsetHeight, 1.4); 
+                            wall.style.transform = "scale(" + scale + ")"; 
+                        }); 
+                        window.print();
+                    }, 250); 
+                });<\/script>`;
             }
             const win = window.open('', '_blank');
             win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${session.name}</title><style>${pageCss}</style></head><body>${body}</body></html>`);
