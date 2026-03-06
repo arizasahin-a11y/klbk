@@ -3039,11 +3039,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawSvgPath(facePath, { x: tx + 5 * sf, y: ty, scale: faceScale, color: navy });
 
             // 2) RIGHT WALKER (Walking Right)
-            const walkPath = "M 20.2 147.9 C 20.6 147.9 21.2 147.9 21.7 147.9 C 21.8 148.3 22 148.8 22.1 149.2 C 21.9 149.2 21.7 149.3 21.3 149.4 C 21.1 149.8 20.9 150.4 20.6 151 C 20.3 151 20.1 151 19.7 151 Z";
+            const walkPath = "M 55.4 147.1 C 53.4 147 53.4 145.8 55.5 144.2 C 55.8 144 56.5 144 57.3 144 C 57.8 145.4 56.9 146.1 56.2 147.1 Z M 49.2 146.3 C 49 145 49 143.9 49 142.7 C 48.6 141.5 50.4 141.3 50.8 142.2 C 51.7 143.9 51.7 145.1 51.3 145.5 Z M 42.1 145 C 43.8 141.9 45 140.1 47.2 138.2 C 48.8 137.8 49.7 137.3 49.7 135.7 C 48.5 129.5 47.4 128.9 46 128.9 C 45.4 130.7 45.8 131.8 43.3 133.9 C 40.7 133.3 39.8 128.6 38.7 128.6 C 37.2 129.9 35.6 131.8 34.3 132.2 C 34.8 131 36.4 127.9 38 126.3 C 38.3 124.8 35.9 124.6 34.5 123.6 C 34.3 119.3 36.6 118.6 38.7 119.1 C 41.6 122.8 42 124.3 40 127.4 C 41.4 127.6 45.6 126.8 46.8 126 C 54.6 127.6 59.6 129.8 60 130.8";
             const walkScale = oh / 150 * 1.5;
-            page.drawSvgPath(walkPath, { x: rx - 35 * sf, y: by + 5 * sf, scale: walkScale, color: navy });
+            page.drawSvgPath(walkPath, { x: rx - 50 * sf, y: by + 5 * sf, scale: walkScale, color: navy });
 
-            // 3) FRAME
+            // 3) BORDERS
             page.drawLine({ start: {x: tx, y: ty}, end: {x: rx, y: ty}, thickness: edgeThick, color: navy });
             page.drawLine({ start: {x: tx, y: by}, end: {x: rx, y: by}, thickness: edgeThick, color: navy });
             page.drawLine({ start: {x: tx, y: ty}, end: {x: tx, y: by}, thickness: edgeThick, color: navy });
