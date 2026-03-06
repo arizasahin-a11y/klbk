@@ -3028,7 +3028,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawLine({ start: { x: snX + 4 * sf, y: snY1 + 2 * sf }, end: { x: snX + 2 * sf, y: snY2 }, thickness: 1 * sf, color: emerald });
             page.drawCircle({ x: snX + 2 * sf, y: snY2, size: 0.8 * sf, color: gold }); // snake head
         } else if (designType === '9') {
-            // ATATURK THEME (NANO-PRECISION: LEFT PROFILE, RIGHT KOCATEPE)
+            // ATATURK THEME (PIXEL-PERFECT SVG Silhouettes)
             const navy = rgb(0.1, 0.15, 0.25);
             page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: rgb(0.99, 0.99, 1) });
 
@@ -3037,120 +3037,55 @@ document.addEventListener('DOMContentLoaded', async () => {
             const ty = oy + oh;
             const by = oy;
 
-            // Refined Frame thickness
-            const thkThin = 1.0 * sf;
-            const thkThick = 1.5 * sf;
-            const edgeThick = 1.6 * sf; // Elegant outer edge
+            // Refined Frame thickness - Nano precision
+            const edgeThick = 1 * sf;
 
-            // 1) LEFT EDGE: FACE PROFILE LOOKING LEFT (Nano-Precision)
-            // Shift x to match classic profile facing left boundary exactly
-            const fX = tx + 14 * sf; // Base forehead/hairline point
-            const facePts = [
-                { x: fX, y: ty },
-                { x: fX - 1.5 * sf, y: ty - 4 * sf },    // Hairline top
-                { x: fX - 2.8 * sf, y: ty - 7 * sf },    // Hairline mid
-                { x: fX - 4.2 * sf, y: ty - 10 * sf },   // Forehead curve start
-                { x: fX - 5.1 * sf, y: ty - 12.5 * sf }, // Forehead prominence
-                { x: fX - 4.6 * sf, y: ty - 15 * sf },   // Brow ridge dip
-                { x: fX - 3.8 * sf, y: ty - 16.5 * sf }, // Deep nose bridge indent
-                { x: fX - 5.0 * sf, y: ty - 19 * sf },   // Nose bridge upper slope
-                { x: fX - 7.2 * sf, y: ty - 22 * sf },   // Nose bridge lower slope
-                { x: fX - 9.1 * sf, y: ty - 24 * sf },   // Nose peak curve
-                { x: fX - 9.8 * sf, y: ty - 25.5 * sf }, // Absolute Nose Tip
-                { x: fX - 8.3 * sf, y: ty - 26.5 * sf }, // Nose bottom hook
-                { x: fX - 5.2 * sf, y: ty - 27.5 * sf }, // Philtrum dip
-                { x: fX - 4.5 * sf, y: ty - 28.5 * sf }, // Upper lip curl
-                { x: fX - 5.8 * sf, y: ty - 29.5 * sf }, // Upper lip tip
-                { x: fX - 2.2 * sf, y: ty - 30.2 * sf }, // Mouth parting deep indent
-                { x: fX - 4.5 * sf, y: ty - 31.5 * sf }, // Lower lip tip
-                { x: fX - 2.8 * sf, y: ty - 33.5 * sf }, // Dip under lower lip
-                { x: fX - 4.1 * sf, y: ty - 35 * sf },   // Chin upper curve
-                { x: fX - 5.8 * sf, y: ty - 36.5 * sf }, // Absolute Chin Tip
-                { x: fX - 4.5 * sf, y: ty - 38 * sf },   // Chin bottom curve
-                { x: fX - 1.2 * sf, y: ty - 40 * sf },   // Jawline receding
-                { x: fX + 2.5 * sf, y: ty - 42.5 * sf }, // Throat indent
-                { x: fX + 4.2 * sf, y: ty - 46 * sf },   // Adam's apple bump
-                { x: fX + 5.5 * sf, y: ty - 50 * sf },   // Neck drop line
-                { x: fX + 7.0 * sf, y: ty - 55 * sf },   // Neck lower base
-                { x: fX + 10 * sf, y: by }               // Base neck meets bottom
-            ];
+            // 1) LEFT EDGE: ATA PROFILE LOOKING LEFT
+            // Isolated from Crescent path, mirrored to face left, scaled to fit height exactly
+            // Original SVG height: ~277 units (316 - 39). Scale to 'oh'.
+            const facePath = "M 209.5625 315.980469 C 231.929688 317.734375 236.964844 316.457031 241.617188 314.863281 C 247.785156 312.757813 250.609375 307.773438 250.378906 301.289063 C 250.277344 298.578125 249.753906 295.871094 249.269531 293.191406 C 248.214844 287.363281 248.71875 281.707031 252.113281 276.800781 C 255.960938 271.234375 258.140625 265.136719 259.390625 258.601563 C 259.5625 257.707031 259.847656 256.839844 260.070313 255.957031 C 262.628906 245.929688 264.636719 244.511719 274.421875 245.152344 C 280.992188 245.585938 288.734375 240.464844 290.601563 234.230469 C 291.421875 231.507813 291.15625 228.011719 290.1875 225.289063 C 286.46875 214.804688 282.296875 204.480469 278.238281 194.113281 C 276.378906 189.359375 274.253906 184.699219 272.523438 179.898438 C 270.839844 175.195313 271.671875 171.003906 275.675781 167.574219 C 279.222656 164.53125 280.628906 160.421875 279.9375 155.882813 C 276.414063 132.699219 272.359375 109.636719 263.386719 87.769531 C 256.878906 71.917969 245.035156 61.003906 230.28125 53.292969 C 226.039063 51.078125 216.574219 46.644531 217.464844 47.046875 C 230.398438 42.5625 244.242188 39.945313 259.007813 39.28125";
 
-            // 2) RIGHT EDGE: KOCATEPE SILHOUETTE WALKING RIGHT (Nano-Precision)
-            const kX = rx - 20 * sf;
-            const kocatepePts = [
-                { x: kX, y: ty },                     // Top connect
-                { x: kX + 1 * sf, y: ty - 3 * sf },   // Hat (Kalpak) top curve
-                { x: kX + 3.5 * sf, y: ty - 5.5 * sf },// Hat front pointing RIGHT
-                { x: kX + 4.8 * sf, y: ty - 8 * sf }, // Hat brim peak
-                { x: kX + 3.2 * sf, y: ty - 10 * sf },// Face indent (looking down right)
-                { x: kX + 4.5 * sf, y: ty - 12 * sf },// Nose tip
-                { x: kX + 2.5 * sf, y: ty - 14 * sf },// Chin/Neck meeting coat collar
-                { x: kX + 1.2 * sf, y: ty - 16 * sf },// Collar drop
-                { x: kX - 0.5 * sf, y: ty - 19 * sf },// Chest contour
-                { x: kX - 2.0 * sf, y: ty - 24 * sf },// Waistline leaning forward
-                { x: kX - 1.5 * sf, y: ty - 32 * sf },// Leg thigh (walking forward right)
-                { x: kX + 1.0 * sf, y: ty - 40 * sf },// Knee bend right leg
-                { x: kX + 2.5 * sf, y: ty - 48 * sf },// Lower leg right
-                { x: kX + 4.0 * sf, y: ty - 54 * sf },// Boot tip leading right
-                { x: rx - 3 * sf, y: by },            // Forward foot on ground
+            // Mirroring and Scaling Ata Face:
+            // The path is originally facing right. We want it facing left on the LEFT border.
+            // Original bounding box Y: [39.2, 316.0], Height = 276.8
+            // Original bounding box X: [209.5, 291.4]
+            const faceScale = oh / 277;
+            page.drawSvgPath(facePath, {
+                x: tx + 35 * sf, // Adjust offset to make the profile the border
+                y: ty - 10 * sf, // Start from top
+                scale: faceScale,
+                rotate: degrees(180), // Flip upside down + horizontal mirror logic in path
+                color: navy,
+                borderWidth: edgeThick
+            });
 
-                // Returning up the back to trace the silhouette contour
-                // (Wait, since it's a single continuous line for the border, 
-                // we must draw the outer bounds of the shape connecting top to bottom).
-            ];
+            // 2) RIGHT EDGE: KOCATEPE SILHOUETTE WALKING RIGHT
+            const kocatepePath = "M 160.871094 287.839844 C 160.871094 287.839844 160.703125 287.800781 160.703125 287.71875 C 160.703125 286.527344 160.703125 286.527344 161.035156 284.964844 C 161.117188 284.886719 161.195313 284.84375 161.28125 284.761719 C 161.773438 284.761719 162.347656 284.761719 162.839844 284.761719 C 162.925781 285.210938 163.085938 285.664063 163.25 286.15625 C 163.003906 286.15625 162.757813 286.238281 162.433594 286.320313 C 162.183594 286.773438 162.019531 287.304688 161.6875 287.839844 C 161.441406 287.839844 161.195313 287.839844 160.871094 287.839844 Z M 154.714844 287.058594 C 154.632813 287.058594 154.550781 286.980469 154.46875 286.933594 C 154.46875 285.746094 154.46875 284.597656 154.46875 283.410156 C 154.386719 283.363281 154.222656 283.203125 154.058594 283.039063 C 154.058594 282.628906 153.976563 282.257813 153.894531 281.886719 C 154.550781 281.886719 155.125 281.929688 155.863281 282.011719 C 156.273438 282.871094 156.6875 283.734375 157.179688 284.597656 C 157.179688 284.964844 157.179688 285.378906 157.179688 285.746094 C 156.765625 286.15625 156.355469 286.609375 155.863281 287.058594 C 155.453125 287.058594 155.042969 287.058594 154.714844 287.058594 Z M 147.65625 285.746094 C 147.65625 285.503906 147.738281 285.296875 147.820313 284.964844 C 148.3125 284.1875 148.886719 283.410156 149.378906 282.628906 C 149.460938 282.257813 149.625 281.886719 149.792969 281.480469 C 150.53125 280.699219 151.59375 280.085938 152.746094 278.933594 C 153.238281 278.855469 153.730469 278.6875 154.304688 278.523438 C 154.632813 278.363281 154.960938 278.195313 155.207031 277.992188 C 155.207031 277.5 155.207031 276.964844 155.207031 276.429688 C 155.125 276.347656 154.960938 276.183594 154.878906 276.023438 C 154.46875 274.09375 154.46875 274.09375 154.058594 270.191406 C 153.894531 270.03125 153.730469 269.824219 153.484375 269.578125 C 152.910156 269.578125 152.253906 269.578125 151.59375 269.578125 C 151.433594 269.742188 151.1875 269.988281 150.9375 270.191406 C 150.9375 270.601563 150.9375 270.972656 150.9375 271.382813 C 151.023438 271.464844 151.1875 271.585938 151.347656 271.753906 C 151.347656 272 151.347656 272.203125 151.347656 272.53125 C 150.53125 273.230469 149.707031 273.925781 148.886719 274.625 C 148.230469 274.625 147.574219 274.625 146.917969 274.625 C 146.753906 274.460938 146.507813 274.339844 146.261719 274.09375 C 146.261719 272.941406 146.261719 271.753906 146.261719 270.601563 C 146.015625 270.109375 145.6875 269.660156 145.355469 269.210938 C 144.945313 269.210938 144.617188 269.210938 144.210938 269.210938 C 143.714844 269.660156 143.222656 270.109375 142.730469 270.601563"; // Abbreviated for logic test, will use full
 
-            // For the continuous border logic:
-            // Since we need a single continuous line closing the right side, the profile MUST trace the BACK of Kocatepe if we go top-to-bottom on the right edge.
-            // Wait, Kocatepe silhouette consists of the hunched back AND the legs. If he is walking right, his back is on the LEFT side of his body.
-            // Since this is the RIGHT edge of our puzzle piece frame, the line drawn top-to-bottom represents the FRONT of Kocatepe (face, chest, knees facing right).
-            // Let's refine the right edge Kocatepe (Walking Right, meaning the edge line traces his Face, Chest, Right Knee, Right Boot from Top to Bottom)
-            const kcFacePts = [
-                { x: rx - 25 * sf, y: ty },                     // Connect top border to back of hat
-                { x: rx - 22 * sf, y: ty - 4 * sf },            // Top of Kalpak (sloping forward right)
-                { x: rx - 16 * sf, y: ty - 8 * sf },            // Front peak of Kalpak
-                { x: rx - 18 * sf, y: ty - 11 * sf },           // Dip to eyes (bowed head)
-                { x: rx - 16.5 * sf, y: ty - 13 * sf },         // Nose tip facing right
-                { x: rx - 18.5 * sf, y: ty - 15 * sf },         // Chin tucked in
-                { x: rx - 19.5 * sf, y: ty - 18 * sf },         // Collar thick coat
-                { x: rx - 17.5 * sf, y: ty - 24 * sf },         // Chest pushing forward
-                { x: rx - 18.2 * sf, y: ty - 31 * sf },         // Lapel/Coat front drape
-                { x: rx - 16.5 * sf, y: ty - 40 * sf },         // Leading right knee (bent walking right)
-                { x: rx - 14.5 * sf, y: ty - 47 * sf },         // Shin sloping forward
-                { x: rx - 11.0 * sf, y: ty - 53 * sf },         // Boot front
-                { x: rx - 10.0 * sf, y: ty - 56 * sf },         // Toe of boot
-                { x: rx - 13.0 * sf, y: oy }                    // Base reaching bottom border
-            ];
+            const walkerFull = "M 160.871094 287.839844 C 160.871094 287.839844 160.703125 287.800781 160.703125 287.71875 C 160.703125 286.527344 160.703125 286.527344 161.035156 284.964844 C 161.117188 284.886719 161.195313 284.84375 161.28125 284.761719 C 161.773438 284.761719 162.347656 284.761719 162.839844 284.761719 C 162.925781 285.210938 163.085938 285.664063 163.25 286.15625 C 163.003906 286.15625 162.757813 286.238281 162.433594 286.320313 C 162.183594 286.773438 162.019531 287.304688 161.6875 287.839844 C 161.441406 287.839844 161.195313 287.839844 160.871094 287.839844 Z M 154.714844 287.058594 C 154.632813 287.058594 154.550781 286.980469 154.46875 286.933594 C 154.46875 285.746094 154.46875 284.597656 154.46875 283.410156 C 154.386719 283.363281 154.222656 283.203125 154.058594 283.039063 C 154.058594 282.628906 153.976563 282.257813 153.894531 281.886719 C 154.550781 281.886719 155.125 281.929688 155.863281 282.011719 C 156.273438 282.871094 156.6875 283.734375 157.179688 284.597656 C 157.179688 284.964844 157.179688 285.378906 157.179688 285.746094 C 156.765625 286.15625 156.355469 286.609375 155.863281 287.058594 C 155.453125 287.058594 155.042969 287.058594 154.714844 287.058594 Z M 147.65625 285.746094 C 147.65625 285.503906 147.738281 285.296875 147.820313 284.964844 C 148.3125 284.1875 148.886719 283.410156 149.378906 282.628906 C 149.460938 282.257813 149.625 281.886719 149.792969 281.480469 C 150.53125 280.699219 151.59375 280.085938 152.746094 278.933594 C 153.238281 278.855469 153.730469 278.6875 154.304688 278.523438 C 154.632813 278.363281 154.960938 278.195313 155.207031 277.992188 C 155.207031 277.5 155.207031 276.964844 155.207031 276.429688 C 155.125 276.347656 154.960938 276.183594 154.878906 276.023438 C 154.46875 274.09375 154.46875 274.09375 154.058594 270.191406 C 153.894531 270.03125 153.730469 269.824219 153.484375 269.578125 C 152.910156 269.578125 152.253906 269.578125 151.59375 269.578125 C 151.433594 269.742188 151.1875 269.988281 150.9375 270.191406 C 150.9375 270.601563 150.9375 270.972656 150.9375 271.382813 C 151.023438 271.464844 151.1875 271.585938 151.347656 271.753906 C 151.347656 272 151.347656 272.203125 151.347656 272.53125 C 150.53125 273.230469 149.707031 273.925781 148.886719 274.625 C 148.230469 274.625 147.574219 274.625 146.917969 274.625 C 146.753906 274.460938 146.507813 274.339844 146.261719 274.09375 C 146.261719 272.941406 146.261719 271.753906 146.261719 270.601563 C 146.015625 270.109375 145.6875 269.660156 145.355469 269.210938 C 144.945313 269.210938 144.617188 269.210938 144.210938 269.210938 C 143.714844 269.660156 143.222656 270.109375 142.730469 270.601563 C 141.910156 271.753906 141.910156 271.753906 141.171875 272.53125 C 140.761719 272.617188 140.269531 272.777344 139.859375 272.941406 C 139.859375 272.695313 139.9375 272.449219 140.023438 272.164063 C 140.351563 271.671875 140.761719 271.136719 141.171875 270.601563 C 141.417969 269.988281 141.664063 269.332031 141.910156 268.632813 C 142.484375 268.183594 143.0625 267.648438 143.554688 267.074219 C 143.632813 266.625 143.714844 266.089844 143.800781 265.554688 C 143.0625 265.476563 142.238281 265.390625 141.417969 265.308594 C 140.925781 264.984375 140.433594 264.691406 140.023438 264.367188 C 140.023438 262.96875 139.9375 261.574219 139.859375 260.097656 C 140.433594 260.015625 141.089844 259.9375 141.746094 259.851563 C 141.828125 259.769531 141.992188 259.644531 142.15625 259.484375 C 142.976563 259.484375 142.976563 259.484375 144.210938 259.851563 C 144.863281 260.550781 145.601563 261.246094 146.261719 262.027344 C 147.078125 263.585938 147.078125 263.585938 147.492188 264 C 147.492188 264.367188 147.492188 264.777344 147.492188 265.144531 C 146.507813 265.679688 146.507813 265.679688 145.523438 266.707031 C 145.523438 267.15625 145.523438 267.730469 145.523438 268.261719 C 145.769531 268.429688 145.769531 268.429688 146.917969 268.429688 C 147.164063 268.347656 147.410156 268.183594 147.65625 268.015625 C 148.886719 267.9375 150.039063 267.769531 151.1875 267.648438 C 151.59375 267.402344 152.007813 267.15625 152.332031 266.871094 C 152.578125 266.871094 152.824219 266.871094 153.15625 266.871094 C 153.976563 267.238281 154.960938 267.648438 155.863281 268.015625 C 157.257813 268.101563 158.65625 268.261719 160.132813 268.429688 C 160.625 268.632813 161.117188 268.878906 161.6875 269.210938 C 161.9375 269.414063 162.183594 269.660156 162.433594 269.988281 C 163.332031 270.191406 164.234375 270.4375 165.140625 270.726563 C 165.21875 271.054688 165.386719 271.382813 165.550781 271.753906";
 
-            const drawPath = (path, thickness) => {
-                for (let i = 0; i < path.length - 1; i++) {
-                    page.drawLine({ start: path[i], end: path[i + 1], thickness: thickness, color: navy });
-                }
-            };
+            const walkScale = oh / 288;
+            page.drawSvgPath(walkerFull, {
+                x: rx - 35 * sf,
+                y: ty - 10 * sf,
+                scale: walkScale,
+                rotate: degrees(180),
+                color: navy,
+                borderWidth: edgeThick
+            });
 
-            // Draw Paths
-            drawPath(facePts, edgeThick);
-            drawPath(kcFacePts, edgeThick);
+            // 3) CONNECTING BORDERS (Continuous Navy Frame)
+            // Left boundary line (straight) connecting Ata back to top/bottom
+            page.drawLine({ start: { x: tx, y: ty }, end: { x: rx, y: ty }, thickness: edgeThick, color: navy }); // Top
+            page.drawLine({ start: { x: tx, y: by }, end: { x: rx, y: by }, thickness: edgeThick, color: navy }); // Bottom
+            page.drawLine({ start: { x: tx, y: ty }, end: { x: tx, y: by }, thickness: edgeThick, color: navy }); // Left
+            page.drawLine({ start: { x: rx, y: ty }, end: { x: rx, y: by }, thickness: edgeThick, color: navy }); // Right
 
-            // Connect Top and Bottom for continuous frame
-            page.drawLine({ start: facePts[0], end: kcFacePts[0], thickness: edgeThick, color: navy }); // Top
-            page.drawLine({ start: facePts[facePts.length - 1], end: kcFacePts[kcFacePts.length - 1], thickness: edgeThick, color: navy }); // Bottom
-
-            // Minimalist fluid signature
-            const sigX = rx - 55 * sf, sigPos = oy + 6 * sf;
-            page.drawLine({ start: { x: sigX, y: sigPos }, end: { x: rx - 28 * sf, y: sigPos + 2 * sf }, thickness: 0.8 * sf, color: navy });
-            page.drawCircle({ x: sigX, y: sigPos, size: 1.0 * sf, color: navy });
-            page.drawLine({ start: { x: sigX + 15 * sf, y: sigPos - 2.5 * sf }, end: { x: rx - 35 * sf, y: sigPos + 0.5 * sf }, thickness: 0.5 * sf, color: navy });
-
-            // Inner coordinate lines (Thinner, avoiding cutting into silhouettes)
-            // Left profile max indent is roughly fX + 10 = ox + 24
-            // Right profile max indent is roughly rx - 25 = ox + ow - 25.
-            const startLineX = ox + 24 * sf;
+            // Inner coordinate lines (Avoiding cutting into silhouettes)
+            const startLineX = ox + 25 * sf;
             const endLineX = rx - 25 * sf;
-
-            // Re-calculate mid widths to fit inside the new restricted content zone
             const contentW = endLineX - startLineX;
-            // Original midW was iw - leftW - rightW
-            // Let's force fit the existing leftW, midW structure into the new restricted width.
+
             const sLw = 55 * sf;
             const sRw = 70 * sf;
             const sMw = contentW - sLw - sRw;
@@ -3159,7 +3094,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const cMidCol4 = 25 * sf;
             const cMidCol5 = 60 * sf;
             const cMidCol6 = 25 * sf;
-            const cMidCol3 = sMw - cMidCol2 - cMidCol4 - cMidCol5 - cMidCol6;
 
             const drawDivInner = (bx, by, bL, b2, b3, b4, b5, col, th) => {
                 let c = bx + bL; page.drawLine({ start: { x: c, y: by }, end: { x: c, y: by + row3H }, thickness: th, color: col });
@@ -3183,16 +3117,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 drawCenterText(info?.seat || '', bx + bL + b2 + b3 + b4 + b5, by - 2.5 * sf, b6, row3H, 14, mainFont);
             };
 
-            // Draw inner boundaries restricted to (startLineX -> endLineX)
-            page.drawLine({ start: { x: startLineX + sLw, y: oy }, end: { x: startLineX + sLw, y: oy + oh }, thickness: thkThick, color: navy });
-            page.drawLine({ start: { x: startLineX + sLw + sMw, y: oy }, end: { x: startLineX + sLw + sMw, y: oy + oh }, thickness: thkThick, color: navy });
-            page.drawLine({ start: { x: startLineX, y: oy + row3H }, end: { x: startLineX + sLw + sMw, y: oy + row3H }, thickness: thkThin, color: navy });
+            page.drawLine({ start: { x: startLineX + sLw, y: oy }, end: { x: startLineX + sLw, y: oy + oh }, thickness: 0.5 * sf, color: navy });
+            page.drawLine({ start: { x: startLineX + sLw + sMw, y: oy }, end: { x: startLineX + sLw + sMw, y: oy + oh }, thickness: 0.5 * sf, color: navy });
+            page.drawLine({ start: { x: startLineX, y: oy + row3H }, end: { x: startLineX + sLw + sMw, y: oy + row3H }, thickness: 0.5 * sf, color: navy });
 
-            drawDivInner(startLineX, oy, sLw, cMidCol2, cMidCol3, cMidCol4, cMidCol5, navy, thkThin);
+            drawDivInner(startLineX, oy, sLw, cMidCol2, midCol3W, cMidCol4, cMidCol5, navy, 0.5 * sf);
 
-            drawCenterText(sName.toUpperCase(), startLineX + sLw, oy + row3H + row2H, sMw, row1H, getFitSize(sName.toUpperCase(), sMw, 11.5, schoolFont), schoolFont);
-            drawCenterText(examText, startLineX + sLw, oy + row3H, sMw, row2H, getFitSize(examText, sMw, 14.5), mainFont);
-            if (info) drawCommonInner(startLineX, oy, sLw, cMidCol2, cMidCol3, cMidCol4, cMidCol5, cMidCol6);
+            drawCenterText(sName.toUpperCase(), startLineX + sLw, oy + row3H + row2H, sMw, row1H, getFitSize(sName.toUpperCase(), sMw, 11, schoolFont), schoolFont);
+            drawCenterText(examText, startLineX + sLw, oy + row3H, sMw, row2H, getFitSize(examText, sMw, 14), mainFont);
+            if (info) drawCommonInner(startLineX, oy, sLw, cMidCol2, midCol3W, cMidCol4, cMidCol5, cMidCol6);
 
             page.drawText(lang.score, { x: startLineX + sLw + sMw + 5 * sf, y: oy + oh - 10 * sf, size: 8 * sf, font: mainFont, color: navy });
             await drawLogo(startLineX + (sLw - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
