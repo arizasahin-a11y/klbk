@@ -518,6 +518,59 @@
         </div>
     </div>
 
+    <!-- Sınav Kuralları Ekranı -->
+    <div id="rulesView" class="hidden">
+        <div class="student-top-banner">
+            <div>
+                <div style="font-size: 0.8rem; opacity: 0.9; font-weight: 700; text-transform: uppercase;">Dikkat</div>
+                <h2 style="margin:0; font-weight: 900; font-size: 1.5rem; line-height: 1.2;">Sınav Kuralları</h2>
+            </div>
+            <button class="btn" onclick="logout()"
+                style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem; border-radius: 10px; font-weight: 600;">
+                <i class="fa-solid fa-right-from-bracket"></i> Çıkış
+            </button>
+        </div>
+        <div class="query-container" style="margin-top: 0;">
+            <div class="glass-panel" style="padding: 2rem; border-left: 5px solid var(--warning);">
+                <ol
+                    style="font-weight: 500; font-size: 1rem; color: var(--gray-700); line-height: 1.6; padding-left: 1.5rem; display: flex; flex-direction: column; gap: 10px;">
+                    <li>Tüm öğrenciler sınav başlamadan önce sınav kendilerine ayrılmış derslikte ve oturma planında
+                        gösterilen yerde hazır bulunacaktır. Farklı bir dersliğe ve oturma yerine oturmanız yasaktır.
+                    </li>
+                    <li>Sınav süresince cep telefonu tablet, akıllı saatler kapalı olsa dahi öğrencinin yanında
+                        bulunması kesinlikle yasaktır. Yanınızda bu tür cihazlar varsa sınav başlamadan önce
+                        ulaşamayacağınız bir yere koyunuz.</li>
+                    <li>Sınav yerinizde size ait olsun olmasın, sınav dersine ait ders notu, kitap defter vb. araç gereç
+                        olup olmadığını kontrol edip kaldırınız. Sınav esnasında yanınızda olmaması gereken araç-gereç
+                        bulunması durumunda sorumlusu sizsiniz.</li>
+                    <li>İlk 4 maddeyi yerine getirmemenizden dolayı olabilecek gecikmeler toplam sınav süresine
+                        dâhildir. Bu nedenle tüm gerekli iş, işlem ve kontrolleri yapınız.</li>
+                    <li>Sınav esnasında konuşmak, silgi kalem alış verişi yasaktır. Sınava gerekli ve yeterli araç
+                        gereçle geliniz.</li>
+                    <li>Sınav süresi bittiğinde sınav kâğıtları mutlaka görevli öğretmene teslim ediniz. Süre bittikten
+                        sonra kâğıda bir şey yazmaya çalışmayınız.</li>
+                    <li>Sınavı biten öğrenci ders sonuna kadar beklemek zorundadır. Sınavınızın bitmesi size dışarı
+                        çıkma hakkı vermez. Bu konuda görevli öğretmenin talimatları dışına çıkmayınız</li>
+                    <li>Sınav kurallarıyla ilgili görevli öğretmen herhangi bir uyarı ya da hatırlatma yapmak zorunda
+                        değildir. Sınav kurallarını bildiğiniz ve kurallara uymamanız durumunda sonuçlarından haberdar
+                        olduğunuzu sorumluluğu kabul ettiğinizi unutmayınız.</li>
+                    <li>Sınava katılmayan öğrencilerin yazılı olabilmeleri için mazeretlerini belgelendirmeleri
+                        gerekmektedir. Aksi halde sınav notları G girilecek bu da ortalama alınırken sıfır sayılacaktır.
+                    </li>
+                </ol>
+                <div style="margin-top: 2rem; text-align: center;">
+                    <button class="btn btn-primary"
+                        style="font-size: 1.1rem; padding: 1rem 2rem; font-weight: 800; border-radius: 12px; box-shadow: 0 4px 15px rgba(79,70,229,0.3);"
+                        onclick="acceptRules()">
+                        <i class="fa-solid fa-check-circle" style="margin-right: 8px;"></i> OKUDUM, KABUL EDİYORUM
+                    </button>
+                    <p style="font-size: 0.85rem; color: var(--gray-500); margin-top: 10px;">Bu kuralları 30 günde bir
+                        onaylamanız gerekmektedir.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="js/data.js"></script>
     <script>
         DataManager._getStorageKey = function () {
@@ -609,7 +662,33 @@
 
             document.getElementById('studentNameDisplay').textContent = currentStudent.name;
             document.getElementById('studentClassDisplay').textContent = currentStudent.class + (currentStudent.alan ? ` / ${currentStudent.alan}` : '');
+
+            // Check Rules Agreement
+            const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+            const now = Date.now();
+            const lastAccepted = currentStudent.rulesAcceptedAt || 0;
+
             document.getElementById('loginView').classList.add('hidden');
+
+            if (now - lastAccepted > thirtyDaysMs) {
+                // Show rules
+                document.getElementById('rulesView').classList.remove('hidden');
+                document.getElementById('resultsView').classList.add('hidden');
+            } else {
+                // Show results directly
+                showResultsScreen();
+            }
+        }
+
+        function acceptRules() {
+            if (!currentStudent) return;
+            currentStudent.rulesAcceptedAt = Date.now();
+            DataManager.addStudent(currentStudent); // Save to cloud
+            document.getElementById('rulesView').classList.add('hidden');
+            showResultsScreen();
+        }
+
+        function showResultsScreen() {
             document.getElementById('resultsView').classList.remove('hidden');
             lastStates = {};
             renderExams();
@@ -630,6 +709,7 @@
             if (window.cloudSyncInterval) clearInterval(window.cloudSyncInterval);
             document.getElementById('loginView').classList.remove('hidden');
             document.getElementById('resultsView').classList.add('hidden');
+            document.getElementById('rulesView').classList.add('hidden');
             document.getElementById('studentNo').value = '';
             openSessions.clear();
         }
