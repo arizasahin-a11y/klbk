@@ -1085,6 +1085,7 @@
                         </div>
                     </div>
 
+                    ${!(ses.screenViewLimit > 0) ? `
                     <div class="nested-accordion">
                         <div class="nested-header" onclick="toggleNested(this)">
                             <span><i class="fa-solid fa-thumbtack" style="color:var(--primary); margin-right:10px;"></i> ${myRoom.name} Salonu Oturma Planı</span>
@@ -1103,7 +1104,7 @@
                                 <div style="display:flex; align-items:center; gap:6px;"><div style="width:12px; height:12px; background:rgba(245, 158, 11, 0.15); border:1.5px solid var(--warning); border-radius:3px;"></div> Aynı Ders (Arka/Ön)</div>
                             </div>
                         </div>
-                    </div>
+                    </div>` : ''}
                 </div>`;
         }
 
