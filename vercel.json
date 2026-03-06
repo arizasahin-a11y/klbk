@@ -6,7 +6,15 @@
       "destination": "/index.html"
     },
     {
+      "source": "/k9x7v2m4.html",
+      "destination": "/index.html"
+    },
+    {
       "source": "/r1p5s8q3",
+      "destination": "/dashboard.html"
+    },
+    {
+      "source": "/r1p5s8q3.html",
       "destination": "/dashboard.html"
     },
     {
@@ -14,11 +22,23 @@
       "destination": "/master.html"
     },
     {
+      "source": "/n4b9v1c7.html",
+      "destination": "/master.html"
+    },
+    {
       "source": "/j2k5l0p8",
       "destination": "/ogrenci_sorgu.html"
     },
     {
+      "source": "/j2k5l0p8.html",
+      "destination": "/ogrenci_sorgu.html"
+    },
+    {
       "source": "/h6t3y9w1",
+      "destination": "/ogretmen.html"
+    },
+    {
+      "source": "/h6t3y9w1.html",
       "destination": "/ogretmen.html"
     }
   ],
