@@ -393,6 +393,9 @@ const DataManager = {
         if (sessionObj.date) {
             sessionObj.date = this.formatDateToStandard(sessionObj.date);
         }
+        if (typeof sessionObj.isPublished === 'undefined') {
+            sessionObj.isPublished = false;
+        }
 
         const exists = data.examSessions.findIndex(s => s.id === sessionObj.id);
         if (exists !== -1) {

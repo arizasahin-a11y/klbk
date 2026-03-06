@@ -636,7 +636,7 @@
 
         function renderExams() {
             if (!currentStudent) return;
-            const sessions = DataManager.getExamSessions();
+            const sessions = DataManager.getExamSessions().filter(s => s.isPublished);
             const listContainer = document.getElementById('examsList');
             const now = getNow();
 
@@ -746,7 +746,7 @@
 
         function updateAllTimers() {
             if (!currentStudent) return;
-            const sessions = DataManager.getExamSessions();
+            const sessions = DataManager.getExamSessions().filter(s => s.isPublished);
             const now = getNow();
             let needsFullRender = false;
             sessions.forEach(ses => {

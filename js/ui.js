@@ -2432,15 +2432,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         sessions.forEach((ses, idx) => {
             // Pastel gradient: Purple (280) to Red (0)
             const hue = sessions.length > 1 ? 280 - (idx / (sessions.length - 1)) * 280 : 280;
-            const bgColor = `hsla(${hue}, 70%, 97%, 1)`;
+            const bgColor = ses.isPublished ? `hsla(${hue}, 70%, 97%, 1)` : '#f3f4f6'; // Gray for unpublished
+            const titleColor = ses.isPublished ? 'var(--primary)' : 'var(--gray-500)';
+            const titleText = ses.isPublished ? ses.name : `${ses.name} (Yayınlanmadı)`;
 
             tableHtml += `
                 <tr id="session-row-${ses.id}" style="border-bottom: 1px solid var(--gray-100); transition: background 0.2s; background: ${bgColor};">
                     <td style="padding:1.25rem;">
-                        <span onclick="window.viewSessionDistribution('${ses.id}')" style="font-weight:700; color:var(--primary); text-decoration:none; display:block; cursor:pointer;">
-                            <i class="fa-solid fa-chevron-right" id="arrow-${ses.id}" style="margin-right:8px; transition: transform 0.2s;"></i> ${ses.name}
-                        </span>
-                        <div style="font-size:0.75rem; color:var(--gray-500); margin-top:0.25rem;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <i class="fa-solid fa-chevron-right" id="arrow-${ses.id}" style="cursor:pointer; transition: transform 0.2s; padding:5px; color:var(--dark);" onclick="window.viewSessionDistribution('${ses.id}')"></i>
+                            <span onclick="window.toggleSessionPublish('${ses.id}')" style="font-weight:700; color:${titleColor}; text-decoration:none; display:block; cursor:pointer;" title="Yayın durumunu değiştirmek için tıklayın">
+                                ${titleText}
+                            </span>
+                        </div>
+                        <div style="font-size:0.75rem; color:var(--gray-500); margin-top:0.25rem; padding-left:25px;">
                             ${ses.subjects ? ses.subjects.map(s => typeof s === 'object' ? s.name : s).join(', ') : (ses.subject || '')}
                         </div>
                     </td>
@@ -2567,6 +2572,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 renderExamSessionsList();
             }
         });
+    };
+
+    window.toggleSessionPublish = function (id) {
+        const sessions = DataManager.getExamSessions();
+        const session = sessions.find(s => s.id === id);
+        if (session) {
+            session.isPublished = !session.isPublished;
+            DataManager.addExamSession(session);
+            renderExamSessionsList();
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: session.isPublished ? 'Sınav yayınlandı' : 'Sınav yayından kaldırıldı',
+                showConfirmButton: false,
+                timer: 1500
+            });
+        }
     };
 
     // --- School Logo Handler ---

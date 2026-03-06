@@ -201,7 +201,7 @@
             statusEl.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Veriler İndiriliyor...';
             statusEl.style.color = 'var(--primary)';
             await DataManager.initCloud();
-            lastSyncSessions = JSON.stringify(DataManager.getExamSessions());
+            lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
             statusEl.classList.add('hidden');
 
             document.body.style.visibility = 'visible';
@@ -213,7 +213,7 @@
         async function backgroundSync() {
             try {
                 await DataManager.initCloud();
-                const current = JSON.stringify(DataManager.getExamSessions());
+                const current = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
                 if (current !== lastSyncSessions) {
                     console.log("Oturum verileri değişmiş, yenileniyor...");
                     lastSyncSessions = current;
@@ -250,7 +250,7 @@
 
         function renderExams() {
             try {
-                const sessions = DataManager.getExamSessions();
+                const sessions = DataManager.getExamSessions().filter(s => s.isPublished);
                 const listContainer = document.getElementById('examsList');
                 const now = getNow();
 
@@ -477,7 +477,7 @@
 
         function updateAllTimers() {
             const now = getNow();
-            const sessions = DataManager.getExamSessions();
+            const sessions = DataManager.getExamSessions().filter(s => s.isPublished);
             let needsRender = false;
             sessions.forEach(ses => {
                 const el = document.getElementById(`cd-${ses.id}`);
