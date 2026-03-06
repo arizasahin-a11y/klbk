@@ -3082,42 +3082,40 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawText(lang.score, { x: rx - 50 * sf, y: ty - 10 * sf, size: 8 * sf, font: mainFont, color: navy });
             await drawLogo(startX + (sLw - 28 * sf) / 2, by + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
         } else if (designType === '10') {
-            // CLOUD THEME (OUTLINE ONLY - REFINED)
+            // CLOUD THEME (SIMPLIFIED - LARGE CURVES)
             const edgeColor = rgb(0.1, 0.1, 0.1); 
             const cloudWhite = rgb(1, 1, 1);
             page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: cloudWhite });
 
-            // Draw Organic Cloud Frame (Irregular Scallops - Borders Only)
-            const rBase = 8 * sf;
-            const drawCloudEdge = (x1, y1, x2, y2, isVert) => {
+            // Simplified Cloud Frame: 1-2 large curves per edge
+            const drawSimpleCloudEdge = (x1, y1, x2, y2, isVert) => {
                 const dist = isVert ? Math.abs(y2 - y1) : Math.abs(x2 - x1);
-                const count = Math.ceil(dist / (rBase * 1.5));
+                const count = 1; // Exactly one large curve as requested
                 const step = dist / count;
                 for (let i = 0; i < count; i++) {
-                    const r = rBase * (0.8 + Math.random() * 0.4); 
+                    const r = dist * 0.6; // Large radius to cover the edge with one bump
                     const cx = isVert ? x1 : x1 + (i + 0.5) * step;
                     const cy = isVert ? y1 + (i + 0.5) * step : y1;
-                    // White fill + black border creates the billowy outline without showing inner circles
-                    page.drawCircle({ x: cx, y: cy, size: r, color: cloudWhite, borderColor: edgeColor, borderWidth: 0.8 * sf });
+                    page.drawCircle({ x: cx, y: cy, size: r, color: cloudWhite, borderColor: edgeColor, borderWidth: 1 * sf });
                 }
             };
-            drawCloudEdge(ox, oy + oh, ox + ow, oy + oh, false); // Top
-            drawCloudEdge(ox, oy, ox + ow, oy, false);          // Bottom
-            drawCloudEdge(ox, oy, ox, oy + oh, true);           // Left
-            drawCloudEdge(ox + ow, oy, ox + ow, oy + oh, true); // Right
+            drawSimpleCloudEdge(ox, oy + oh, ox + ow, oy + oh, false); // Top
+            drawSimpleCloudEdge(ox, oy, ox + ow, oy, false);          // Bottom
+            drawSimpleCloudEdge(ox, oy, ox, oy + oh, true);           // Left
+            drawSimpleCloudEdge(ox + ow, oy, ox + ow, oy + oh, true); // Right
 
-            // Inner mask to hollow out clouds and clean up overlaps
-            page.drawRectangle({ x: ox + 4 * sf, y: oy + 4 * sf, width: ow - 8 * sf, height: oh - 8 * sf, color: cloudWhite });
+            // Masking is even more important with large circles
+            page.drawRectangle({ x: ox + 1 * sf, y: oy + 1 * sf, width: ow - 2 * sf, height: oh - 2 * sf, color: cloudWhite });
 
-            // Internal lines in black
-            page.drawLine({ start: { x: ox + leftW, y: oy + 4 * sf }, end: { x: ox + leftW, y: oy + oh - 4 * sf }, thickness: 0.5 * sf, color: edgeColor });
-            page.drawLine({ start: { x: ox + leftW + midW, y: oy + 4 * sf }, end: { x: ox + leftW + midW, y: oy + oh - 4 * sf }, thickness: 0.5 * sf, color: edgeColor });
-            page.drawLine({ start: { x: ox + 4 * sf, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 0.5 * sf, color: edgeColor });
+            // Redraw internal layout lines on top of the mask
+            page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 0.5 * sf, color: edgeColor });
+            page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 0.5 * sf, color: edgeColor });
+            page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 0.5 * sf, color: edgeColor });
 
-            drawDivs(ox, oy + 4 * sf, leftW, midCol2W, midCol3W, midCol4W, midCol5W, edgeColor, 0.5 * sf);
+            drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, edgeColor, 0.5 * sf);
             drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 11, schoolFont), schoolFont);
             drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
-            if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W, 4 * sf);
+            if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W, 0);
 
             page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: mainFont, color: edgeColor });
             await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
