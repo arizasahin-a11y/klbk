@@ -291,22 +291,65 @@ const DataManager = {
 
     bulkImportStudents: function (studentList, mode) {
         const data = this._getData();
+        const stats = {
+            totalStudents: 0,
+            totalClasses: 0,
+            addedCount: 0,
+            deletedCount: 0,
+            classChangedCount: 0
+        };
+
+        // Helper for student identification (Number + Name)
+        const getId = s => `${String(s.no).trim()}|${(s.name || '').trim().toUpperCase()}`;
+
         if (mode === 'fresh') {
+            const classesSet = new Set();
+            studentList.forEach(s => classesSet.add(s.class));
+            stats.totalStudents = studentList.length;
+            stats.totalClasses = classesSet.size;
             data.students = studentList;
         } else {
-            // mode === 'update'
+            // mode === 'update' (Sync operation)
+            const existingStudents = data.students || [];
+            const existingMap = new Map();
+            existingStudents.forEach(s => existingMap.set(getId(s), s));
+
+            const newStudentsMap = new Map();
+            studentList.forEach(s => newStudentsMap.set(getId(s), s));
+
+            const finalStudents = [];
+
+            // 1. Process new students and updates
             studentList.forEach(newStd => {
-                const idx = data.students.findIndex(s => s.no === newStd.no);
-                if (idx !== -1) {
-                    // Update existing
-                    data.students[idx] = { ...data.students[idx], ...newStd };
+                const id = getId(newStd);
+                if (existingMap.has(id)) {
+                    // Existing student - check for class change or other updates
+                    const existingStd = existingMap.get(id);
+                    if (existingStd.class !== newStd.class) {
+                        stats.classChangedCount++;
+                    }
+                    // Merge data, keeping local-only fields if they exist (status, etc.)
+                    finalStudents.push({ ...existingStd, ...newStd });
                 } else {
-                    // Add new
-                    data.students.push(newStd);
+                    // New student
+                    stats.addedCount++;
+                    finalStudents.push(newStd);
                 }
             });
+
+            // 2. Count deleted (those in existing but NOT in new list)
+            existingStudents.forEach(oldStd => {
+                const id = getId(oldStd);
+                if (!newStudentsMap.has(id)) {
+                    stats.deletedCount++;
+                }
+            });
+
+            data.students = finalStudents;
         }
+
         this._saveData(data);
+        return stats;
     },
 
     // --- Classrooms API ---

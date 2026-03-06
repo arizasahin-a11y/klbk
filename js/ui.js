@@ -623,9 +623,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                         method = 'fresh';
                     }
 
-                    DataManager.bulkImportStudents(parsedStudents, method);
+                    const stats = DataManager.bulkImportStudents(parsedStudents, method);
 
-                    Swal.fire('Başarılı', `${parsedStudents.length} öğrenci ${method === 'fresh' ? 'sıfırdan yüklendi' : 'güncellendi/eklendi'}.`, 'success');
+                    if (method === 'fresh') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Sıfırdan Yükleme Tamamlandı',
+                            html: `<b>${stats.totalStudents}</b> öğrenci ve <b>${stats.totalClasses}</b> sınıf başarıyla eklendi.`,
+                            confirmButtonColor: '#4f46e5'
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Güncelleme Tamamlandı',
+                            html: `
+                                <div style="text-align:left; padding: 0 1rem;">
+                                    <p style="margin: 0.5rem 0;"><i class="fa-solid fa-user-plus" style="color:#10b981; width: 20px;"></i> <b>${stats.addedCount}</b> yeni öğrenci eklendi.</p>
+                                    <p style="margin: 0.5rem 0;"><i class="fa-solid fa-user-minus" style="color:#ef4444; width: 20px;"></i> <b>${stats.deletedCount}</b> öğrenci silindi.</p>
+                                    <p style="margin: 0.5rem 0;"><i class="fa-solid fa-shuffle" style="color:#f59e0b; width: 20px;"></i> <b>${stats.classChangedCount}</b> öğrenci sınıf değiştirdi.</p>
+                                </div>
+                            `,
+                            confirmButtonColor: '#4f46e5'
+                        });
+                    }
 
                     // reset upload UI
                     excelFileInput.value = '';
