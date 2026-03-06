@@ -2476,8 +2476,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return hasAny ? 'color: var(--secondary);' : 'color: var(--gray-400);';
                 })()}"></i> Soru Kağıdı
                             </label>
-                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--info);" title="Ekran Görünümü">
-                                <input type="checkbox" class="session-screen-check" data-id="${ses.id}" ${ses.screenViewEnabled ? 'checked' : ''} style="width:17px; height:17px;"> <i class="fa-solid fa-desktop"></i>
+                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer;" title="Ekran Görünümü">
+                                <input type="checkbox" class="session-screen-check" data-id="${ses.id}" ${ses.screenViewEnabled ? 'checked' : ''} style="width:17px; height:17px;">
+                                <i class="fa-solid fa-desktop" style="font-size:0.85rem; color:var(--info);"></i>
+                                <input type="number" class="session-screen-limit" data-id="${ses.id}" value="${ses.screenViewLimit || 20}" min="1" max="180" style="width:45px; padding:2px 4px; border:1px solid var(--gray-300); border-radius:4px; font-size:0.75rem; font-weight:bold; color:var(--info);">
+                                <span style="font-size:0.7rem; color:var(--gray-500); font-weight:600;">dk</span>
                             </label>
                         </div>
                     </td>
@@ -2524,6 +2527,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                     position: 'top-end',
                     icon: 'success',
                     title: isChecked ? 'Tam ekran görünümü aktif edildi' : 'Tam ekran görünümü kapatıldı',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            }
+        }
+
+        if (e.target && e.target.classList.contains('session-screen-limit')) {
+            const sid = e.target.getAttribute('data-id');
+            const limit = parseInt(e.target.value) || 20;
+            const sessions = DataManager.getExamSessions();
+            const session = sessions.find(s => s.id === sid);
+            if (session) {
+                session.screenViewLimit = limit;
+                DataManager.addExamSession(session);
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: `Görünüm süresi ${limit} dk olarak güncellendi`,
                     showConfirmButton: false,
                     timer: 1500
                 });

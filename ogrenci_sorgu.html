@@ -685,7 +685,7 @@
                 // Sınav biteli 30 dakikadan fazla olduysa GÖSTERME
                 if (diffEndMins < -30) return;
 
-                let stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (diffMins > 20 ? 'med' : 'near')));
+                let stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (diffMins > (ses.screenViewLimit || 20) ? 'med' : 'near')));
                 lastStates[ses.id] = stateCode;
 
                 const displayTime = ses.time.includes('. Ders') ? `${ses.time} (${targetTime.getHours().toString().padStart(2, '0')}:${targetTime.getMinutes().toString().padStart(2, '0')})` : ses.time;
@@ -730,7 +730,7 @@
                                 </div>
                             </div>
                             <div id="details-${ses.id}" class="${isOpen ? '' : 'hidden'}">
-                                ${isNearOrActive ? generateDetailsHtml(item) : (isMed ? '<div class="glass-panel" style="padding: 1.5rem; text-align: center; margin-top: 10px; border: 1px dashed var(--primary-light); color: var(--primary); font-weight: 600;"><i class="fa-solid fa-user-shield" style="margin-right: 8px;"></i> Sınav yerleri sınavdan 20 dakika önce burada açıklanacaktır.</div>' : '')}
+                                ${isNearOrActive ? generateDetailsHtml(item) : (isMed ? `<div class="glass-panel" style="padding: 1.5rem; text-align: center; margin-top: 10px; border: 1px dashed var(--primary-light); color: var(--primary); font-weight: 600;"><i class="fa-solid fa-user-shield" style="margin-right: 8px;"></i> Sınav yerleri sınavdan ${ses.screenViewLimit || 20} dakika önce burada açıklanacaktır.</div>` : '')}
                             </div>
                         </div>`;
             });
@@ -760,7 +760,7 @@
 
                 let newState = 'hidden';
                 if (diffMins <= 36 * 60 && diffEndMins >= -30) {
-                    newState = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (diffMins > 20 ? 'med' : 'near')));
+                    newState = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (diffMins > (ses.screenViewLimit || 20) ? 'med' : 'near')));
                 }
 
                 // Only trigger full render if state actually changes
@@ -1304,7 +1304,7 @@
                 const diffMins = (targetTime - now) / 1000 / 60;
                 const diffEndMins = (endTime - now) / 1000 / 60;
 
-                if (diffMins <= 20 && diffEndMins >= 0) {
+                if (diffMins <= (ses.screenViewLimit || 20) && diffEndMins >= 0) {
                     const roomResult = ses.results.find(r => r.name === myRoomName);
                     if (roomResult) {
                         activeSession = ses;
