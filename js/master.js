@@ -98,6 +98,19 @@ document.addEventListener('DOMContentLoaded', () => {
         newOpt.style.fontWeight = "bold";
         newOpt.style.color = "var(--primary)";
         regSchoolSelect.appendChild(newOpt);
+
+        // Load persistent selection
+        const savedKey = localStorage.getItem('klbk_master_last_school');
+        if (savedKey && globalUsersDb) {
+            const exists = uniqueSchools.some(sc => sc.storeKey === savedKey);
+            if (exists) {
+                regSchoolSelect.value = savedKey;
+                // Use a small timeout to ensure the dropdown is ready before triggering change
+                setTimeout(() => {
+                    regSchoolSelect.dispatchEvent(new Event('change'));
+                }, 100);
+            }
+        }
     }
 
     // Role Change UI Logic
@@ -177,6 +190,13 @@ document.addEventListener('DOMContentLoaded', () => {
     regSchoolSelect.addEventListener('change', async () => {
         const val = regSchoolSelect.value;
         resetUserForm();
+
+        // Save persistent selection (only for valid existing schools)
+        if (val && val !== '_NEW_') {
+            localStorage.setItem('klbk_master_last_school', val);
+        } else if (!val) {
+            localStorage.removeItem('klbk_master_last_school');
+        }
 
         if (val === '_NEW_') {
             newSchoolGroup.classList.remove('hidden');
