@@ -352,6 +352,22 @@ const DataManager = {
         return stats;
     },
 
+    resetAllStudentRuleAcceptances: function () {
+        const data = this._getData();
+        if (!data.students) return 0;
+        let count = 0;
+        data.students.forEach(s => {
+            if (s.rulesAcceptedAt) {
+                s.rulesAcceptedAt = 0; // Reset
+                count++;
+            }
+        });
+        if (count > 0) {
+            this._saveData(data);
+        }
+        return count;
+    },
+
     // --- Classrooms API ---
     getClassrooms: function () {
         return this._getData().classrooms;

@@ -44,6 +44,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = 'index.html';
     });
 
+    // --- Global Reset Rules Action ---
+    const resetRulesBtn = document.getElementById('globalResetRulesBtn');
+    if (resetRulesBtn) {
+        resetRulesBtn.addEventListener('click', () => {
+            Swal.fire({
+                title: 'Kural Onaylarını Sıfırla?',
+                text: "Tüm öğrencilerin Sınav Kuralları onay durumları sıfırlanacaktır. Sistemi tekrar kullandıklarında kuralları yeniden onaylamaları istenecektir. Emin misiniz?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Evet, Sıfırla',
+                cancelButtonText: 'İptal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const count = DataManager.resetAllStudentRuleAcceptances();
+                    Swal.fire({
+                        title: 'Başarılı!',
+                        text: `Toplam ${count} öğrencinin kural onayı başarıyla sıfırlandı.`,
+                        icon: 'success'
+                    });
+                }
+            });
+        });
+    }
+
     // --- Global Event Delegation for Accordion Classroom Editor ---
     document.body.addEventListener('change', (e) => {
         if (e.target.matches('.desk-pos-select')) {
