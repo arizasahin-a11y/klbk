@@ -116,11 +116,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Redirect logic
                 setTimeout(() => {
                     if (usersDb[username].role === 'ogretmen') {
-                        sessionStorage.setItem('klbk_handshake', 'h6t3y9w1');
-                        window.location.href = 'ogretmen.html';
+                        window.location.href = 'h6t3y9w1';
                     } else {
-                        sessionStorage.setItem('klbk_handshake', 'r1p5s8q3');
-                        window.location.href = 'dashboard.html';
+                        window.location.href = 'r1p5s8q3';
                     }
                 }, 1000);
             } else {
