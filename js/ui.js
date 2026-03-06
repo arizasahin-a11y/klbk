@@ -3082,32 +3082,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawText(lang.score, { x: rx - 50 * sf, y: ty - 10 * sf, size: 8 * sf, font: mainFont, color: navy });
             await drawLogo(startX + (sLw - 28 * sf) / 2, by + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
         } else if (designType === '10') {
-            // CLOUD THEME (SIMPLIFIED - LARGE CURVES)
+            // CLOUD THEME (FLATTER CURVES: 4x Length, Original Bulge)
             const edgeColor = rgb(0.1, 0.1, 0.1); 
             const cloudWhite = rgb(1, 1, 1);
             page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: cloudWhite });
 
-            // Simplified Cloud Frame: 1-2 large curves per edge
-            const drawSimpleCloudEdge = (x1, y1, x2, y2, isVert) => {
+            // Geometry: R=20, Offset=12 -> Protrusion=8, Length=32 (~4x original 8-9)
+            const r = 20 * sf, offset = 12 * sf, segLen = 32 * sf;
+            const drawFlatterEdge = (x1, y1, x2, y2, isVert, isTopRight) => {
                 const dist = isVert ? Math.abs(y2 - y1) : Math.abs(x2 - x1);
-                const count = 1; // Exactly one large curve as requested
+                const count = Math.max(1, Math.round(dist / segLen));
                 const step = dist / count;
+                const sign = isTopRight ? 1 : -1;
                 for (let i = 0; i < count; i++) {
-                    const r = dist * 0.6; // Large radius to cover the edge with one bump
-                    const cx = isVert ? x1 : x1 + (i + 0.5) * step;
-                    const cy = isVert ? y1 + (i + 0.5) * step : y1;
+                    const mid = (i + 0.5) * step;
+                    const cx = isVert ? x1 + offset * sign : x1 + mid;
+                    const cy = isVert ? y1 + mid : y1 + offset * sign;
                     page.drawCircle({ x: cx, y: cy, size: r, color: cloudWhite, borderColor: edgeColor, borderWidth: 1 * sf });
                 }
             };
-            drawSimpleCloudEdge(ox, oy + oh, ox + ow, oy + oh, false); // Top
-            drawSimpleCloudEdge(ox, oy, ox + ow, oy, false);          // Bottom
-            drawSimpleCloudEdge(ox, oy, ox, oy + oh, true);           // Left
-            drawSimpleCloudEdge(ox + ow, oy, ox + ow, oy + oh, true); // Right
+            drawFlatterEdge(ox, oy + oh, ox + ow, oy + oh, false, false); // Top (center is below line)
+            drawFlatterEdge(ox, oy, ox + ow, oy, false, true);          // Bottom (center is above line)
+            drawFlatterEdge(ox, oy, ox, oy + oh, true, true);           // Left (center is to right)
+            drawFlatterEdge(ox + ow, oy, ox + ow, oy + oh, true, false); // Right (center is to left)
 
-            // Masking is even more important with large circles
+            // Inner mask to clean up the interiors of the large circles
             page.drawRectangle({ x: ox + 1 * sf, y: oy + 1 * sf, width: ow - 2 * sf, height: oh - 2 * sf, color: cloudWhite });
 
-            // Redraw internal layout lines on top of the mask
+            // Internal lines
             page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 0.5 * sf, color: edgeColor });
             page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 0.5 * sf, color: edgeColor });
             page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 0.5 * sf, color: edgeColor });
