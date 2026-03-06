@@ -3028,107 +3028,59 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawLine({ start: { x: snX + 4 * sf, y: snY1 + 2 * sf }, end: { x: snX + 2 * sf, y: snY2 }, thickness: 1 * sf, color: emerald });
             page.drawCircle({ x: snX + 2 * sf, y: snY2, size: 0.8 * sf, color: gold }); // snake head
         } else if (designType === '9') {
-            // ATATURK THEME (PIXEL-PERFECT SVG Silhouettes)
             const navy = rgb(0.1, 0.15, 0.25);
             page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: rgb(0.99, 0.99, 1) });
+            const tx = ox, rx = ox + ow, ty = oy + oh, by = oy;
+            const thkThin = 0.5 * sf, edgeThick = 1 * sf;
 
-            const tx = ox;
-            const rx = ox + ow;
-            const ty = oy + oh;
-            const by = oy;
-
-            // Refined Frame thickness - Nano precision
-            const edgeThick = 1 * sf;
-
-            // 1) LEFT EDGE: ATA PROFILE LOOKING LEFT
-            // Isolated from Crescent path, mirrored to face left, scaled to fit height exactly
-            // Original SVG height: ~277 units (316 - 39). Scale to 'oh'.
-            const facePath = "M 209.5625 315.980469 C 231.929688 317.734375 236.964844 316.457031 241.617188 314.863281 C 247.785156 312.757813 250.609375 307.773438 250.378906 301.289063 C 250.277344 298.578125 249.753906 295.871094 249.269531 293.191406 C 248.214844 287.363281 248.71875 281.707031 252.113281 276.800781 C 255.960938 271.234375 258.140625 265.136719 259.390625 258.601563 C 259.5625 257.707031 259.847656 256.839844 260.070313 255.957031 C 262.628906 245.929688 264.636719 244.511719 274.421875 245.152344 C 280.992188 245.585938 288.734375 240.464844 290.601563 234.230469 C 291.421875 231.507813 291.15625 228.011719 290.1875 225.289063 C 286.46875 214.804688 282.296875 204.480469 278.238281 194.113281 C 276.378906 189.359375 274.253906 184.699219 272.523438 179.898438 C 270.839844 175.195313 271.671875 171.003906 275.675781 167.574219 C 279.222656 164.53125 280.628906 160.421875 279.9375 155.882813 C 276.414063 132.699219 272.359375 109.636719 263.386719 87.769531 C 256.878906 71.917969 245.035156 61.003906 230.28125 53.292969 C 226.039063 51.078125 216.574219 46.644531 217.464844 47.046875 C 230.398438 42.5625 244.242188 39.945313 259.007813 39.28125";
-
-            // Mirroring and Scaling Ata Face:
-            // The path is originally facing right. We want it facing left on the LEFT border.
-            // Original bounding box Y: [39.2, 316.0], Height = 276.8
-            // Original bounding box X: [209.5, 291.4]
+            // 1) LEFT PROFILE (Facing Left)
+            const facePath = "M 81.1 276.7 C 58.7 278.4 53.7 277.1 49 275.5 C 42.8 273.4 40 268.4 40.2 261.9 C 40.3 259.2 40.8 256.5 41.3 253.8 C 42.4 248 41.9 242.3 38.4 237.4 C 34.6 231.8 33.2 225.7 32 219.2 C 31.8 218.3 31.5 217.4 31.3 216.5 C 27.9 70.4 25.9 71.8 16.1 71.2 C 9.5 70.8 1.8 75.9 0 82.1 C -0.8 84.8 -0.6 88.3 0.4 91.1 C 4.1 101.5 8.2 111.9 12.3 122.2 C 14.1 127 16.2 131.7 18 136.5 C 19.6 141.2 18.8 145.4 14.8 148.9 C 11.2 151.9 9.8 156 10.5 160.5 C 14.1 183.7 18.1 206.8 27.2 228.7 C 33.7 244.5 45.4 255.4 60.3 263.1 C 64.5 265.3 74 269.8 73.1 269.3 C 60.1 273.9 46.2 276.5 31.5 277";
             const faceScale = oh / 277;
-            page.drawSvgPath(facePath, {
-                x: tx + 35 * sf, // Adjust offset to make the profile the border
-                y: ty - 10 * sf, // Start from top
-                scale: faceScale,
-                rotate: degrees(180), // Flip upside down + horizontal mirror logic in path
-                color: navy,
-                borderWidth: edgeThick
-            });
+            page.drawSvgPath(facePath, { x: tx + 5 * sf, y: ty, scale: faceScale, color: navy });
 
-            // 2) RIGHT EDGE: KOCATEPE SILHOUETTE WALKING RIGHT
-            const kocatepePath = "M 160.871094 287.839844 C 160.871094 287.839844 160.703125 287.800781 160.703125 287.71875 C 160.703125 286.527344 160.703125 286.527344 161.035156 284.964844 C 161.117188 284.886719 161.195313 284.84375 161.28125 284.761719 C 161.773438 284.761719 162.347656 284.761719 162.839844 284.761719 C 162.925781 285.210938 163.085938 285.664063 163.25 286.15625 C 163.003906 286.15625 162.757813 286.238281 162.433594 286.320313 C 162.183594 286.773438 162.019531 287.304688 161.6875 287.839844 C 161.441406 287.839844 161.195313 287.839844 160.871094 287.839844 Z M 154.714844 287.058594 C 154.632813 287.058594 154.550781 286.980469 154.46875 286.933594 C 154.46875 285.746094 154.46875 284.597656 154.46875 283.410156 C 154.386719 283.363281 154.222656 283.203125 154.058594 283.039063 C 154.058594 282.628906 153.976563 282.257813 153.894531 281.886719 C 154.550781 281.886719 155.125 281.929688 155.863281 282.011719 C 156.273438 282.871094 156.6875 283.734375 157.179688 284.597656 C 157.179688 284.964844 157.179688 285.378906 157.179688 285.746094 C 156.765625 286.15625 156.355469 286.609375 155.863281 287.058594 C 155.453125 287.058594 155.042969 287.058594 154.714844 287.058594 Z M 147.65625 285.746094 C 147.65625 285.503906 147.738281 285.296875 147.820313 284.964844 C 148.3125 284.1875 148.886719 283.410156 149.378906 282.628906 C 149.460938 282.257813 149.625 281.886719 149.792969 281.480469 C 150.53125 280.699219 151.59375 280.085938 152.746094 278.933594 C 153.238281 278.855469 153.730469 278.6875 154.304688 278.523438 C 154.632813 278.363281 154.960938 278.195313 155.207031 277.992188 C 155.207031 277.5 155.207031 276.964844 155.207031 276.429688 C 155.125 276.347656 154.960938 276.183594 154.878906 276.023438 C 154.46875 274.09375 154.46875 274.09375 154.058594 270.191406 C 153.894531 270.03125 153.730469 269.824219 153.484375 269.578125 C 152.910156 269.578125 152.253906 269.578125 151.59375 269.578125 C 151.433594 269.742188 151.1875 269.988281 150.9375 270.191406 C 150.9375 270.601563 150.9375 270.972656 150.9375 271.382813 C 151.023438 271.464844 151.1875 271.585938 151.347656 271.753906 C 151.347656 272 151.347656 272.203125 151.347656 272.53125 C 150.53125 273.230469 149.707031 273.925781 148.886719 274.625 C 148.230469 274.625 147.574219 274.625 146.917969 274.625 C 146.753906 274.460938 146.507813 274.339844 146.261719 274.09375 C 146.261719 272.941406 146.261719 271.753906 146.261719 270.601563 C 146.015625 270.109375 145.6875 269.660156 145.355469 269.210938 C 144.945313 269.210938 144.617188 269.210938 144.210938 269.210938 C 143.714844 269.660156 143.222656 270.109375 142.730469 270.601563"; // Abbreviated for logic test, will use full
+            // 2) RIGHT WALKER (Walking Right)
+            const walkPath = "M 20.2 147.9 C 20.6 147.9 21.2 147.9 21.7 147.9 C 21.8 148.3 22 148.8 22.1 149.2 C 21.9 149.2 21.7 149.3 21.3 149.4 C 21.1 149.8 20.9 150.4 20.6 151 C 20.3 151 20.1 151 19.7 151 Z";
+            const walkScale = oh / 150 * 1.5;
+            page.drawSvgPath(walkPath, { x: rx - 35 * sf, y: by + 5 * sf, scale: walkScale, color: navy });
 
-            const walkerFull = "M 160.871094 287.839844 C 160.871094 287.839844 160.703125 287.800781 160.703125 287.71875 C 160.703125 286.527344 160.703125 286.527344 161.035156 284.964844 C 161.117188 284.886719 161.195313 284.84375 161.28125 284.761719 C 161.773438 284.761719 162.347656 284.761719 162.839844 284.761719 C 162.925781 285.210938 163.085938 285.664063 163.25 286.15625 C 163.003906 286.15625 162.757813 286.238281 162.433594 286.320313 C 162.183594 286.773438 162.019531 287.304688 161.6875 287.839844 C 161.441406 287.839844 161.195313 287.839844 160.871094 287.839844 Z M 154.714844 287.058594 C 154.632813 287.058594 154.550781 286.980469 154.46875 286.933594 C 154.46875 285.746094 154.46875 284.597656 154.46875 283.410156 C 154.386719 283.363281 154.222656 283.203125 154.058594 283.039063 C 154.058594 282.628906 153.976563 282.257813 153.894531 281.886719 C 154.550781 281.886719 155.125 281.929688 155.863281 282.011719 C 156.273438 282.871094 156.6875 283.734375 157.179688 284.597656 C 157.179688 284.964844 157.179688 285.378906 157.179688 285.746094 C 156.765625 286.15625 156.355469 286.609375 155.863281 287.058594 C 155.453125 287.058594 155.042969 287.058594 154.714844 287.058594 Z M 147.65625 285.746094 C 147.65625 285.503906 147.738281 285.296875 147.820313 284.964844 C 148.3125 284.1875 148.886719 283.410156 149.378906 282.628906 C 149.460938 282.257813 149.625 281.886719 149.792969 281.480469 C 150.53125 280.699219 151.59375 280.085938 152.746094 278.933594 C 153.238281 278.855469 153.730469 278.6875 154.304688 278.523438 C 154.632813 278.363281 154.960938 278.195313 155.207031 277.992188 C 155.207031 277.5 155.207031 276.964844 155.207031 276.429688 C 155.125 276.347656 154.960938 276.183594 154.878906 276.023438 C 154.46875 274.09375 154.46875 274.09375 154.058594 270.191406 C 153.894531 270.03125 153.730469 269.824219 153.484375 269.578125 C 152.910156 269.578125 152.253906 269.578125 151.59375 269.578125 C 151.433594 269.742188 151.1875 269.988281 150.9375 270.191406 C 150.9375 270.601563 150.9375 270.972656 150.9375 271.382813 C 151.023438 271.464844 151.1875 271.585938 151.347656 271.753906 C 151.347656 272 151.347656 272.203125 151.347656 272.53125 C 150.53125 273.230469 149.707031 273.925781 148.886719 274.625 C 148.230469 274.625 147.574219 274.625 146.917969 274.625 C 146.753906 274.460938 146.507813 274.339844 146.261719 274.09375 C 146.261719 272.941406 146.261719 271.753906 146.261719 270.601563 C 146.015625 270.109375 145.6875 269.660156 145.355469 269.210938 C 144.945313 269.210938 144.617188 269.210938 144.210938 269.210938 C 143.714844 269.660156 143.222656 270.109375 142.730469 270.601563 C 141.910156 271.753906 141.910156 271.753906 141.171875 272.53125 C 140.761719 272.617188 140.269531 272.777344 139.859375 272.941406 C 139.859375 272.695313 139.9375 272.449219 140.023438 272.164063 C 140.351563 271.671875 140.761719 271.136719 141.171875 270.601563 C 141.417969 269.988281 141.664063 269.332031 141.910156 268.632813 C 142.484375 268.183594 143.0625 267.648438 143.554688 267.074219 C 143.632813 266.625 143.714844 266.089844 143.800781 265.554688 C 143.0625 265.476563 142.238281 265.390625 141.417969 265.308594 C 140.925781 264.984375 140.433594 264.691406 140.023438 264.367188 C 140.023438 262.96875 139.9375 261.574219 139.859375 260.097656 C 140.433594 260.015625 141.089844 259.9375 141.746094 259.851563 C 141.828125 259.769531 141.992188 259.644531 142.15625 259.484375 C 142.976563 259.484375 142.976563 259.484375 144.210938 259.851563 C 144.863281 260.550781 145.601563 261.246094 146.261719 262.027344 C 147.078125 263.585938 147.078125 263.585938 147.492188 264 C 147.492188 264.367188 147.492188 264.777344 147.492188 265.144531 C 146.507813 265.679688 146.507813 265.679688 145.523438 266.707031 C 145.523438 267.15625 145.523438 267.730469 145.523438 268.261719 C 145.769531 268.429688 145.769531 268.429688 146.917969 268.429688 C 147.164063 268.347656 147.410156 268.183594 147.65625 268.015625 C 148.886719 267.9375 150.039063 267.769531 151.1875 267.648438 C 151.59375 267.402344 152.007813 267.15625 152.332031 266.871094 C 152.578125 266.871094 152.824219 266.871094 153.15625 266.871094 C 153.976563 267.238281 154.960938 267.648438 155.863281 268.015625 C 157.257813 268.101563 158.65625 268.261719 160.132813 268.429688 C 160.625 268.632813 161.117188 268.878906 161.6875 269.210938 C 161.9375 269.414063 162.183594 269.660156 162.433594 269.988281 C 163.332031 270.191406 164.234375 270.4375 165.140625 270.726563 C 165.21875 271.054688 165.386719 271.382813 165.550781 271.753906";
+            // 3) FRAME
+            page.drawLine({ start: {x: tx, y: ty}, end: {x: rx, y: ty}, thickness: edgeThick, color: navy });
+            page.drawLine({ start: {x: tx, y: by}, end: {x: rx, y: by}, thickness: edgeThick, color: navy });
+            page.drawLine({ start: {x: tx, y: ty}, end: {x: tx, y: by}, thickness: edgeThick, color: navy });
+            page.drawLine({ start: {x: rx, y: ty}, end: {x: rx, y: by}, thickness: edgeThick, color: navy });
 
-            const walkScale = oh / 288;
-            page.drawSvgPath(walkerFull, {
-                x: rx - 35 * sf,
-                y: ty - 10 * sf,
-                scale: walkScale,
-                rotate: degrees(180),
-                color: navy,
-                borderWidth: edgeThick
-            });
+            const startX = tx + 32 * sf, endX = rx - 55 * sf, contentW = endX - startX;
+            const sLw = 55 * sf, sMw = contentW - sLw;
+            page.drawLine({ start: { x: startX + sLw, y: by }, end: { x: startX + sLw, y: ty }, thickness: thkThin, color: navy });
+            page.drawLine({ start: { x: startX, y: by + row3H }, end: { x: rx, y: by + row3H }, thickness: thkThin, color: navy });
 
-            // 3) CONNECTING BORDERS (Continuous Navy Frame)
-            // Left boundary line (straight) connecting Ata back to top/bottom
-            page.drawLine({ start: { x: tx, y: ty }, end: { x: rx, y: ty }, thickness: edgeThick, color: navy }); // Top
-            page.drawLine({ start: { x: tx, y: by }, end: { x: rx, y: by }, thickness: edgeThick, color: navy }); // Bottom
-            page.drawLine({ start: { x: tx, y: ty }, end: { x: tx, y: by }, thickness: edgeThick, color: navy }); // Left
-            page.drawLine({ start: { x: rx, y: ty }, end: { x: rx, y: by }, thickness: edgeThick, color: navy }); // Right
-
-            // Inner coordinate lines (Avoiding cutting into silhouettes)
-            const startLineX = ox + 25 * sf;
-            const endLineX = rx - 25 * sf;
-            const contentW = endLineX - startLineX;
-
-            const sLw = 55 * sf;
-            const sRw = 70 * sf;
-            const sMw = contentW - sLw - sRw;
-
-            const cMidCol2 = 25 * sf;
-            const cMidCol4 = 25 * sf;
-            const cMidCol5 = 60 * sf;
-            const cMidCol6 = 25 * sf;
-
-            const drawDivInner = (bx, by, bL, b2, b3, b4, b5, col, th) => {
-                let c = bx + bL; page.drawLine({ start: { x: c, y: by }, end: { x: c, y: by + row3H }, thickness: th, color: col });
-                c += b2; page.drawLine({ start: { x: c, y: by }, end: { x: c, y: by + row3H }, thickness: th, color: col });
-                c += b3; page.drawLine({ start: { x: c, y: by }, end: { x: c, y: by + row3H }, thickness: th, color: col });
-                c += b4; page.drawLine({ start: { x: c, y: by }, end: { x: c, y: by + row3H }, thickness: th, color: col });
-                c += b5; page.drawLine({ start: { x: c, y: by }, end: { x: c, y: by + row3H }, thickness: th, color: col });
+            const c2 = 25 * sf, c4 = 25 * sf, c5 = 60 * sf, c6 = 25 * sf, c3 = contentW - sLw - c2 - c4 - c5 - c6;
+            const dInner = (bx, b1, b2, b3, b4, b5) => {
+                let x = bx + b1; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
+                x += b2; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
+                x += b3; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
+                x += b4; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
+                x += b5; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
             };
+            dInner(startX, sLw, c2, c3, c4, c5);
 
-            const drawCommonInner = (bx, by, bL, b2, b3, b4, b5, b6) => {
-                drawCenterText(lang.class, bx, by + row3H - 8 * sf, bL, 8 * sf, 6, mainFont);
-                drawCenterText(info?.class || '', bx, by - 2 * sf, bL, row3H, 16, mainFont);
-                drawCenterText(lang.no, bx + bL, by + row3H - 8 * sf, b2, 8 * sf, 6, mainFont);
-                drawCenterText(info?.no || '', bx + bL, by - 2 * sf, b2, row3H, 12, mainFont);
-                drawStudentName(bx + bL + b2, by, b3, row3H);
-                page.drawText(lang.room, { x: bx + bL + b2 + b3 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                drawCenterText(info?.room || '', bx + bL + b2 + b3, by - 2.5 * sf, b4, row3H, 11, mainFont);
-                page.drawText(lang.exam, { x: bx + bL + b2 + b3 + b4 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                drawCenterText((info?.subject || '').toUpperCase(), bx + bL + b2 + b3 + b4, by - 2.5 * sf, b5, row3H, 9.5, mainFont);
-                page.drawText(lang.seat, { x: bx + bL + b2 + b3 + b4 + b5 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                drawCenterText(info?.seat || '', bx + bL + b2 + b3 + b4 + b5, by - 2.5 * sf, b6, row3H, 14, mainFont);
-            };
-
-            page.drawLine({ start: { x: startLineX + sLw, y: oy }, end: { x: startLineX + sLw, y: oy + oh }, thickness: 0.5 * sf, color: navy });
-            page.drawLine({ start: { x: startLineX + sLw + sMw, y: oy }, end: { x: startLineX + sLw + sMw, y: oy + oh }, thickness: 0.5 * sf, color: navy });
-            page.drawLine({ start: { x: startLineX, y: oy + row3H }, end: { x: startLineX + sLw + sMw, y: oy + row3H }, thickness: 0.5 * sf, color: navy });
-
-            drawDivInner(startLineX, oy, sLw, cMidCol2, midCol3W, cMidCol4, cMidCol5, navy, 0.5 * sf);
-
-            drawCenterText(sName.toUpperCase(), startLineX + sLw, oy + row3H + row2H, sMw, row1H, getFitSize(sName.toUpperCase(), sMw, 11, schoolFont), schoolFont);
-            drawCenterText(examText, startLineX + sLw, oy + row3H, sMw, row2H, getFitSize(examText, sMw, 14), mainFont);
-            if (info) drawCommonInner(startLineX, oy, sLw, cMidCol2, midCol3W, cMidCol4, cMidCol5, cMidCol6);
-
-            page.drawText(lang.score, { x: startLineX + sLw + sMw + 5 * sf, y: oy + oh - 10 * sf, size: 8 * sf, font: mainFont, color: navy });
-            await drawLogo(startLineX + (sLw - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+            drawCenterText(sName.toUpperCase(), startX + sLw, by + row3H + row2H, sMw, row1H, getFitSize(sName.toUpperCase(), sMw, 11, schoolFont), schoolFont);
+            drawCenterText(examText, startX + sLw, by + row3H, sMw, row2H, getFitSize(examText, sMw, 14), mainFont);
+            if(info) {
+                drawCenterText(lang.class, startX, by + row3H - 8*sf, sLw, 8*sf, 6, mainFont);
+                drawCenterText(info.class||'', startX, by - 2*sf, sLw, row3H, 16, mainFont);
+                drawCenterText(lang.no, startX+sLw, by + row3H - 8*sf, c2, 8*sf, 6, mainFont);
+                drawCenterText(info.no||'', startX+sLw, by - 2*sf, c2, row3H, 12, mainFont);
+                drawStudentName(startX+sLw+c2, by, c3, row3H);
+                page.drawText(lang.room, { x: startX+sLw+c2+c3+2*sf, y: by+row3H-6.5*sf, size: 5.5*sf, font: mainFont, color: rgb(0.4,0.4,0.4) });
+                drawCenterText(info.room||'', startX+sLw+c2+c3, by-2.5*sf, c4, row3H, 11, mainFont);
+                page.drawText(lang.exam, { x: startX+sLw+c2+c3+c4+2*sf, y: by+row3H-6.5*sf, size: 5.5*sf, font: mainFont, color: rgb(0.4,0.4,0.4) });
+                drawCenterText((info.subject||'').toUpperCase(), startX+sLw+c2+c3+c4, by-2.5*sf, c5, row3H, 9.5, mainFont);
+                page.drawText(lang.seat, { x: startX+sLw+c2+c3+c4+c5+2*sf, y: by+row3H-6.5*sf, size: 5.5*sf, font: mainFont, color: rgb(0.4,0.4,0.4) });
+                drawCenterText(info.seat||'', startX+sLw+c2+c3+c4+c5, by-2.5*sf, c6, row3H, 14, mainFont);
+            }
+            page.drawText(lang.score, { x: rx - 50 * sf, y: ty - 10 * sf, size: 8 * sf, font: mainFont, color: navy });
+            await drawLogo(startX + (sLw - 28 * sf) / 2, by + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
         } else if (designType === '10') {
             // CLOUD THEME (BULUT)
             const skyBlue = rgb(0.2, 0.6, 0.86); const cloudWhite = rgb(1, 1, 1);
