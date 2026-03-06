@@ -3028,7 +3028,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawLine({ start: { x: snX + 4 * sf, y: snY1 + 2 * sf }, end: { x: snX + 2 * sf, y: snY2 }, thickness: 1 * sf, color: emerald });
             page.drawCircle({ x: snX + 2 * sf, y: snY2, size: 0.8 * sf, color: gold }); // snake head
         } else if (designType === '9') {
-            // ATATURK THEME (LEFT PROFILE, RIGHT KOCATEPE)
+            // ATATURK THEME (NANO-PRECISION: LEFT PROFILE, RIGHT KOCATEPE)
             const navy = rgb(0.1, 0.15, 0.25);
             page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: rgb(0.99, 0.99, 1) });
 
@@ -3037,54 +3037,88 @@ document.addEventListener('DOMContentLoaded', async () => {
             const ty = oy + oh;
             const by = oy;
 
-            // Frame thickness for drawing tables
-            const thkThin = 1.2 * sf;
-            const thkThick = 2.0 * sf;
-            const edgeThick = 4 * sf; // Outer edge of puzzle piece
+            // Refined Frame thickness
+            const thkThin = 1.0 * sf;
+            const thkThick = 1.5 * sf;
+            const edgeThick = 1.6 * sf; // Elegant outer edge
 
-            // 1) LEFT EDGE: FACE PROFILE LOOKING LEFT
-            // Shift x to match classic profile facing left boundary
-            const fX = tx + 10 * sf; // Base forehead point
+            // 1) LEFT EDGE: FACE PROFILE LOOKING LEFT (Nano-Precision)
+            // Shift x to match classic profile facing left boundary exactly
+            const fX = tx + 14 * sf; // Base forehead/hairline point
             const facePts = [
                 { x: fX, y: ty },
-                { x: fX - 1 * sf, y: ty - 8 * sf },    // Hat siperlik
-                { x: fX + 2 * sf, y: ty - 9.5 * sf },  // Forehead top
-                { x: fX + 4 * sf, y: ty - 12 * sf },   // Forehead curve
-                { x: fX + 3 * sf, y: ty - 14 * sf },   // Brow ridge
-                { x: fX + 6 * sf, y: ty - 16 * sf },   // Eye socket
-                { x: fX + 3 * sf, y: ty - 19 * sf },   // Nose bridge
-                { x: fX - 3 * sf, y: ty - 24 * sf },   // Nose slope
-                { x: fX - 7.5 * sf, y: ty - 26 * sf }, // Pointy Nose Tip
-                { x: fX - 1.5 * sf, y: ty - 28 * sf }, // Drop under nose
-                { x: fX - 0.5 * sf, y: ty - 29 * sf }, // Mustache top
-                { x: fX - 2 * sf, y: ty - 30 * sf },   // Upper lip
-                { x: fX + 1.5 * sf, y: ty - 31.5 * sf }, // Mouth indent
-                { x: fX - 1.5 * sf, y: ty - 33 * sf }, // Lower lip
-                { x: fX + 1 * sf, y: ty - 35 * sf },   // Dip under lip
-                { x: fX - 4.5 * sf, y: ty - 37 * sf }, // Chin tip
-                { x: fX - 0.5 * sf, y: ty - 39 * sf }, // Jaw curve
-                { x: fX + 3.5 * sf, y: ty - 41 * sf }, // Neck indent
-                { x: fX + 6 * sf, y: ty - 46 * sf },   // Neck drop
-                { x: fX + 10 * sf, y: by }             // Base neck
+                { x: fX - 1.5 * sf, y: ty - 4 * sf },    // Hairline top
+                { x: fX - 2.8 * sf, y: ty - 7 * sf },    // Hairline mid
+                { x: fX - 4.2 * sf, y: ty - 10 * sf },   // Forehead curve start
+                { x: fX - 5.1 * sf, y: ty - 12.5 * sf }, // Forehead prominence
+                { x: fX - 4.6 * sf, y: ty - 15 * sf },   // Brow ridge dip
+                { x: fX - 3.8 * sf, y: ty - 16.5 * sf }, // Deep nose bridge indent
+                { x: fX - 5.0 * sf, y: ty - 19 * sf },   // Nose bridge upper slope
+                { x: fX - 7.2 * sf, y: ty - 22 * sf },   // Nose bridge lower slope
+                { x: fX - 9.1 * sf, y: ty - 24 * sf },   // Nose peak curve
+                { x: fX - 9.8 * sf, y: ty - 25.5 * sf }, // Absolute Nose Tip
+                { x: fX - 8.3 * sf, y: ty - 26.5 * sf }, // Nose bottom hook
+                { x: fX - 5.2 * sf, y: ty - 27.5 * sf }, // Philtrum dip
+                { x: fX - 4.5 * sf, y: ty - 28.5 * sf }, // Upper lip curl
+                { x: fX - 5.8 * sf, y: ty - 29.5 * sf }, // Upper lip tip
+                { x: fX - 2.2 * sf, y: ty - 30.2 * sf }, // Mouth parting deep indent
+                { x: fX - 4.5 * sf, y: ty - 31.5 * sf }, // Lower lip tip
+                { x: fX - 2.8 * sf, y: ty - 33.5 * sf }, // Dip under lower lip
+                { x: fX - 4.1 * sf, y: ty - 35 * sf },   // Chin upper curve
+                { x: fX - 5.8 * sf, y: ty - 36.5 * sf }, // Absolute Chin Tip
+                { x: fX - 4.5 * sf, y: ty - 38 * sf },   // Chin bottom curve
+                { x: fX - 1.2 * sf, y: ty - 40 * sf },   // Jawline receding
+                { x: fX + 2.5 * sf, y: ty - 42.5 * sf }, // Throat indent
+                { x: fX + 4.2 * sf, y: ty - 46 * sf },   // Adam's apple bump
+                { x: fX + 5.5 * sf, y: ty - 50 * sf },   // Neck drop line
+                { x: fX + 7.0 * sf, y: ty - 55 * sf },   // Neck lower base
+                { x: fX + 10 * sf, y: by }               // Base neck meets bottom
             ];
 
-            // 2) RIGHT EDGE: KOCATEPE SILHOUETTE
-            // Adjusted paths pointing inwards (left) from the right boundary
-            const kX = rx - 6 * sf;
+            // 2) RIGHT EDGE: KOCATEPE SILHOUETTE WALKING RIGHT (Nano-Precision)
+            const kX = rx - 20 * sf;
             const kocatepePts = [
-                { x: kX, y: ty },
-                { x: kX - 3 * sf, y: ty - 6 * sf },   // Hat top
-                { x: kX - 11 * sf, y: ty - 10 * sf }, // Hat brim back
-                { x: kX - 5 * sf, y: ty - 11 * sf },  // Face back
-                { x: kX - 2 * sf, y: ty - 14 * sf },  // Collar
-                { x: kX + 3 * sf, y: ty - 17 * sf },  // Shoulders Hunched
-                { x: kX + 8 * sf, y: ty - 23 * sf },  // Back curve
-                { x: kX + 10 * sf, y: ty - 30 * sf }, // Back lower
-                { x: kX + 8 * sf, y: ty - 38 * sf },  // Coat tail drop
-                { x: kX + 4 * sf, y: ty - 46 * sf },  // Coat lower edge
-                { x: kX - 6 * sf, y: ty - 49 * sf },  // Knee bend
-                { x: kX - 11 * sf, y: ty - 56 * sf }, // Leg straight down
-                { x: kX - 12 * sf, y: by }            // Boot/Foot reaching bottom
+                { x: kX, y: ty },                     // Top connect
+                { x: kX + 1 * sf, y: ty - 3 * sf },   // Hat (Kalpak) top curve
+                { x: kX + 3.5 * sf, y: ty - 5.5 * sf },// Hat front pointing RIGHT
+                { x: kX + 4.8 * sf, y: ty - 8 * sf }, // Hat brim peak
+                { x: kX + 3.2 * sf, y: ty - 10 * sf },// Face indent (looking down right)
+                { x: kX + 4.5 * sf, y: ty - 12 * sf },// Nose tip
+                { x: kX + 2.5 * sf, y: ty - 14 * sf },// Chin/Neck meeting coat collar
+                { x: kX + 1.2 * sf, y: ty - 16 * sf },// Collar drop
+                { x: kX - 0.5 * sf, y: ty - 19 * sf },// Chest contour
+                { x: kX - 2.0 * sf, y: ty - 24 * sf },// Waistline leaning forward
+                { x: kX - 1.5 * sf, y: ty - 32 * sf },// Leg thigh (walking forward right)
+                { x: kX + 1.0 * sf, y: ty - 40 * sf },// Knee bend right leg
+                { x: kX + 2.5 * sf, y: ty - 48 * sf },// Lower leg right
+                { x: kX + 4.0 * sf, y: ty - 54 * sf },// Boot tip leading right
+                { x: rx - 3 * sf, y: by },            // Forward foot on ground
+
+                // Returning up the back to trace the silhouette contour
+                // (Wait, since it's a single continuous line for the border, 
+                // we must draw the outer bounds of the shape connecting top to bottom).
+            ];
+
+            // For the continuous border logic:
+            // Since we need a single continuous line closing the right side, the profile MUST trace the BACK of Kocatepe if we go top-to-bottom on the right edge.
+            // Wait, Kocatepe silhouette consists of the hunched back AND the legs. If he is walking right, his back is on the LEFT side of his body.
+            // Since this is the RIGHT edge of our puzzle piece frame, the line drawn top-to-bottom represents the FRONT of Kocatepe (face, chest, knees facing right).
+            // Let's refine the right edge Kocatepe (Walking Right, meaning the edge line traces his Face, Chest, Right Knee, Right Boot from Top to Bottom)
+            const kcFacePts = [
+                { x: rx - 25 * sf, y: ty },                     // Connect top border to back of hat
+                { x: rx - 22 * sf, y: ty - 4 * sf },            // Top of Kalpak (sloping forward right)
+                { x: rx - 16 * sf, y: ty - 8 * sf },            // Front peak of Kalpak
+                { x: rx - 18 * sf, y: ty - 11 * sf },           // Dip to eyes (bowed head)
+                { x: rx - 16.5 * sf, y: ty - 13 * sf },         // Nose tip facing right
+                { x: rx - 18.5 * sf, y: ty - 15 * sf },         // Chin tucked in
+                { x: rx - 19.5 * sf, y: ty - 18 * sf },         // Collar thick coat
+                { x: rx - 17.5 * sf, y: ty - 24 * sf },         // Chest pushing forward
+                { x: rx - 18.2 * sf, y: ty - 31 * sf },         // Lapel/Coat front drape
+                { x: rx - 16.5 * sf, y: ty - 40 * sf },         // Leading right knee (bent walking right)
+                { x: rx - 14.5 * sf, y: ty - 47 * sf },         // Shin sloping forward
+                { x: rx - 11.0 * sf, y: ty - 53 * sf },         // Boot front
+                { x: rx - 10.0 * sf, y: ty - 56 * sf },         // Toe of boot
+                { x: rx - 13.0 * sf, y: oy }                    // Base reaching bottom border
             ];
 
             const drawPath = (path, thickness) => {
@@ -3093,33 +3127,75 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             };
 
-            // Draw Face profile
+            // Draw Paths
             drawPath(facePts, edgeThick);
+            drawPath(kcFacePts, edgeThick);
 
-            // Draw Kocatepe profile
-            drawPath(kocatepePts, edgeThick);
+            // Connect Top and Bottom for continuous frame
+            page.drawLine({ start: facePts[0], end: kcFacePts[0], thickness: edgeThick, color: navy }); // Top
+            page.drawLine({ start: facePts[facePts.length - 1], end: kcFacePts[kcFacePts.length - 1], thickness: edgeThick, color: navy }); // Bottom
 
-            // Close Top and Bottom bounds to make continuous puzzle frame
-            page.drawLine({ start: facePts[0], end: kocatepePts[0], thickness: edgeThick, color: navy }); // Top
-            page.drawLine({ start: facePts[facePts.length - 1], end: kocatepePts[kocatepePts.length - 1], thickness: edgeThick, color: navy }); // Bottom
+            // Minimalist fluid signature
+            const sigX = rx - 55 * sf, sigPos = oy + 6 * sf;
+            page.drawLine({ start: { x: sigX, y: sigPos }, end: { x: rx - 28 * sf, y: sigPos + 2 * sf }, thickness: 0.8 * sf, color: navy });
+            page.drawCircle({ x: sigX, y: sigPos, size: 1.0 * sf, color: navy });
+            page.drawLine({ start: { x: sigX + 15 * sf, y: sigPos - 2.5 * sf }, end: { x: rx - 35 * sf, y: sigPos + 0.5 * sf }, thickness: 0.5 * sf, color: navy });
 
-            // Minimalist fluid signature inside the frame (bottom right)
-            const sigX = rx - 65 * sf, sigPos = oy + 6 * sf;
-            page.drawLine({ start: { x: sigX, y: sigPos }, end: { x: rx - 30 * sf, y: sigPos + 2 * sf }, thickness: 1.0 * sf, color: navy });
-            page.drawCircle({ x: sigX, y: sigPos, size: 1.3 * sf, color: navy });
-            page.drawLine({ start: { x: sigX + 18 * sf, y: sigPos - 3.5 * sf }, end: { x: rx - 45 * sf, y: sigPos + 0.5 * sf }, thickness: 0.8 * sf, color: navy });
+            // Inner coordinate lines (Thinner, avoiding cutting into silhouettes)
+            // Left profile max indent is roughly fX + 10 = ox + 24
+            // Right profile max indent is roughly rx - 25 = ox + ow - 25.
+            const startLineX = ox + 24 * sf;
+            const endLineX = rx - 25 * sf;
 
-            // Inner coordinate lines (Thickened table borders)
-            page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: thkThick, color: navy });
-            page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: thkThick, color: navy });
-            page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: thkThin, color: navy });
-            drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, navy, thkThin);
+            // Re-calculate mid widths to fit inside the new restricted content zone
+            const contentW = endLineX - startLineX;
+            // Original midW was iw - leftW - rightW
+            // Let's force fit the existing leftW, midW structure into the new restricted width.
+            const sLw = 55 * sf;
+            const sRw = 70 * sf;
+            const sMw = contentW - sLw - sRw;
 
-            drawCenterText(sName.toUpperCase(), ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName.toUpperCase(), midW, 11.5, schoolFont), schoolFont);
-            drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14.5), mainFont);
-            if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
-            page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 8 * sf, font: mainFont, color: navy });
-            await drawLogo(ox + (leftW - 30 * sf) / 2, oy + row3H + (row2H + row1H - 30 * sf) / 2, 30 * sf);
+            const cMidCol2 = 25 * sf;
+            const cMidCol4 = 25 * sf;
+            const cMidCol5 = 60 * sf;
+            const cMidCol6 = 25 * sf;
+            const cMidCol3 = sMw - cMidCol2 - cMidCol4 - cMidCol5 - cMidCol6;
+
+            const drawDivInner = (bx, by, bL, b2, b3, b4, b5, col, th) => {
+                let c = bx + bL; page.drawLine({ start: { x: c, y: by }, end: { x: c, y: by + row3H }, thickness: th, color: col });
+                c += b2; page.drawLine({ start: { x: c, y: by }, end: { x: c, y: by + row3H }, thickness: th, color: col });
+                c += b3; page.drawLine({ start: { x: c, y: by }, end: { x: c, y: by + row3H }, thickness: th, color: col });
+                c += b4; page.drawLine({ start: { x: c, y: by }, end: { x: c, y: by + row3H }, thickness: th, color: col });
+                c += b5; page.drawLine({ start: { x: c, y: by }, end: { x: c, y: by + row3H }, thickness: th, color: col });
+            };
+
+            const drawCommonInner = (bx, by, bL, b2, b3, b4, b5, b6) => {
+                drawCenterText(lang.class, bx, by + row3H - 8 * sf, bL, 8 * sf, 6, mainFont);
+                drawCenterText(info?.class || '', bx, by - 2 * sf, bL, row3H, 16, mainFont);
+                drawCenterText(lang.no, bx + bL, by + row3H - 8 * sf, b2, 8 * sf, 6, mainFont);
+                drawCenterText(info?.no || '', bx + bL, by - 2 * sf, b2, row3H, 12, mainFont);
+                drawStudentName(bx + bL + b2, by, b3, row3H);
+                page.drawText(lang.room, { x: bx + bL + b2 + b3 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                drawCenterText(info?.room || '', bx + bL + b2 + b3, by - 2.5 * sf, b4, row3H, 11, mainFont);
+                page.drawText(lang.exam, { x: bx + bL + b2 + b3 + b4 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                drawCenterText((info?.subject || '').toUpperCase(), bx + bL + b2 + b3 + b4, by - 2.5 * sf, b5, row3H, 9.5, mainFont);
+                page.drawText(lang.seat, { x: bx + bL + b2 + b3 + b4 + b5 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                drawCenterText(info?.seat || '', bx + bL + b2 + b3 + b4 + b5, by - 2.5 * sf, b6, row3H, 14, mainFont);
+            };
+
+            // Draw inner boundaries restricted to (startLineX -> endLineX)
+            page.drawLine({ start: { x: startLineX + sLw, y: oy }, end: { x: startLineX + sLw, y: oy + oh }, thickness: thkThick, color: navy });
+            page.drawLine({ start: { x: startLineX + sLw + sMw, y: oy }, end: { x: startLineX + sLw + sMw, y: oy + oh }, thickness: thkThick, color: navy });
+            page.drawLine({ start: { x: startLineX, y: oy + row3H }, end: { x: startLineX + sLw + sMw, y: oy + row3H }, thickness: thkThin, color: navy });
+
+            drawDivInner(startLineX, oy, sLw, cMidCol2, cMidCol3, cMidCol4, cMidCol5, navy, thkThin);
+
+            drawCenterText(sName.toUpperCase(), startLineX + sLw, oy + row3H + row2H, sMw, row1H, getFitSize(sName.toUpperCase(), sMw, 11.5, schoolFont), schoolFont);
+            drawCenterText(examText, startLineX + sLw, oy + row3H, sMw, row2H, getFitSize(examText, sMw, 14.5), mainFont);
+            if (info) drawCommonInner(startLineX, oy, sLw, cMidCol2, cMidCol3, cMidCol4, cMidCol5, cMidCol6);
+
+            page.drawText(lang.score, { x: startLineX + sLw + sMw + 5 * sf, y: oy + oh - 10 * sf, size: 8 * sf, font: mainFont, color: navy });
+            await drawLogo(startLineX + (sLw - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
         } else if (designType === '10') {
             // CLOUD THEME (BULUT)
             const skyBlue = rgb(0.2, 0.6, 0.86); const cloudWhite = rgb(1, 1, 1);
