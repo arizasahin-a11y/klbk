@@ -3259,13 +3259,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (designType === '9') {
             // Atatürk Teması (v3 Görsel Çerçeve + Sağa 0.5cm Genişlik, Yazı 1cm Yukarı & 0.5cm Dar)
             const cmToPt = 28.35;
-            const targetH = 3 * cmToPt * sf;
-            const extraW = 0.5 * cmToPt * sf;
+            const targetH = (3 * cmToPt + 2.835) * sf; // +1mm (2.835pt)
+            const extraW = 1.0 * cmToPt * sf;          // +0.5cm extra (total 1cm beyond original ow)
 
             const drawH = Math.max(oh, targetH);
             const drawW = ow + extraW;
             const drawX = ox;
-            const drawY = height - margin - strokeOffset - drawH;
+            // Genişleme yukarı doğru olsun (üst kenarı 1mm yukarı çektik)
+            const drawY = height - margin - strokeOffset - (drawH - 2.835 * sf);
 
             try {
                 const headerBytes = await window.getFileBytes('ata_header_v3.png');
@@ -3282,7 +3283,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const contentX = ox + 50 * sf + (textNarrow / 2);
             const contentBaseY = drawY + (drawH * 0.15) + textUp;
 
-            drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 22 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
+            // Okul adını 3mm (8.5pt) aşağı indir (22 - 8.5 ~= 13.5)
+            drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 13.5 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
             drawCenterText(examText, contentX, contentBaseY, contentMidW, row2H, getFitSize(examText, contentMidW, 13), mainFont);
 
             const gc = rgb(0.8, 0.8, 0.8);
@@ -3291,7 +3293,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
             }
             page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 18 * sf, size: 7 * sf, font: mainFont, color: rgb(0.2, 0.2, 0.2) });
-            await drawLogo(ox + (leftW - 22 * sf) / 2, oy + row3H + (row2H + row1H - 22 * sf) / 2, 22 * sf);
+            // Logo kaldırıldı (drawLogo silindi)
 
         } else if (designType === '10') {
             // CLOUD THEME (FLATTER CURVES: 4x Length, Original Bulge)
