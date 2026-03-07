@@ -2660,7 +2660,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const A4W = 595.28, A4H = 841.89;
-            const { PDFLib, DataManager } = window;
+            const { PDFLib } = window; // DataManager is already global, no need to redeclare locally
             const PDFDocument = PDFLib.PDFDocument; // Ensure we use the correct PDFLib instance
             const mergedPdf = await PDFDocument.create();
 
