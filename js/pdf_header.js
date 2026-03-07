@@ -72,7 +72,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const iw = ow - (gap * 2);
     const ih = oh - (gap * 2);
 
-    const leftW = 65 * sf;
+    const leftW = 50.83 * sf; // 65 - 14.17 (0.5cm)
     const rightW = 85 * sf;
     const midW = iw - leftW - rightW;
 
@@ -80,7 +80,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const row2H = 19 * sf;
     const row1H = ih - row3H - row2H;
 
-    const midCol2W = 30 * sf;
+    const midCol2W = 44.17 * sf; // 30 + 14.17 (0.5cm)
     const midCol4W = 30 * sf;
     const midCol5W = 75 * sf;
     const midCol6W = 30 * sf;
