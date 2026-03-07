@@ -3510,12 +3510,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.body.appendChild(iframe);
 
             iframe.onload = () => {
-                iframe.contentWindow.focus();
-                iframe.contentWindow.print();
                 setTimeout(() => {
-                    URL.revokeObjectURL(blobUrl);
-                    finalize(iframe);
-                }, 5000);
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                    setTimeout(() => {
+                        URL.revokeObjectURL(blobUrl);
+                        finalize(iframe);
+                    }, 5000);
+                }, 500);
             };
 
             return; // Successfully printed, prevent fallback mechanism

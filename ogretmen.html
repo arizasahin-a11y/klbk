@@ -993,9 +993,11 @@
                 document.body.appendChild(iframe);
 
                 iframe.onload = () => {
-                    iframe.contentWindow.focus();
-                    iframe.contentWindow.print();
-                    setTimeout(() => { URL.revokeObjectURL(blobUrl); finalize(iframe); }, 5000);
+                    setTimeout(() => {
+                        iframe.contentWindow.focus();
+                        iframe.contentWindow.print();
+                        setTimeout(() => { URL.revokeObjectURL(blobUrl); finalize(iframe); }, 5000);
+                    }, 500);
                 };
             } catch (e) {
                 console.error("PDF Overlay Error:", e);
@@ -1475,9 +1477,11 @@
                 iframe.src = blobUrl;
                 document.body.appendChild(iframe);
                 iframe.onload = () => {
-                    iframe.contentWindow.focus();
-                    iframe.contentWindow.print();
-                    setTimeout(() => { URL.revokeObjectURL(blobUrl); if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 5000);
+                    setTimeout(() => {
+                        iframe.contentWindow.focus();
+                        iframe.contentWindow.print();
+                        setTimeout(() => { URL.revokeObjectURL(blobUrl); if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 5000);
+                    }, 500);
                 };
             } catch (err) {
                 console.error("Batch Merge Error:", err);
