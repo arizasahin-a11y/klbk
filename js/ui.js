@@ -4656,64 +4656,49 @@ document.addEventListener('DOMContentLoaded', async () => {
                 for (let i = 0; i < groupCount; i++) {
                     const groupLetter = alphabet[i];
                     paperInputs += `
-                        <div class="meta-paper-col">
-                            <label style="font-size:0.75rem; color:var(--gray-600); font-weight:600; display:block; margin-bottom:4px;">Grup ${groupLetter} Soru Kağıdı</label>
-                            <div class="input-group" style="display:flex; gap:2px;">
-                                <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-group="${groupLetter}" style="flex:1; margin:0; height:38px; font-size:0.85rem;" value="${subPapers[groupLetter] || ''}" placeholder="Yol veya URL">
-                                <button type="button" class="btn btn-secondary btn-sm" style="height:38px; padding:0 10px;" onclick="const inp=this.closest('.input-group').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Test Et"><i class="fa-solid fa-external-link"></i></button>
-                                <button type="button" class="btn btn-info btn-sm" style="height:38px; padding:0 10px;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
-                                <button type="button" class="btn btn-primary btn-sm" style="height:38px; padding:0 10px;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
-                            </div>
-                        </div>
-`;
+                        <div style="display:flex; align-items:center; gap:3px; margin-top:4px;">
+                            <span style="font-size:0.7rem; font-weight:700; color:var(--gray-500); min-width:18px;">${groupLetter}</span>
+                            <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-group="${groupLetter}" style="flex:1; margin:0; height:30px; font-size:0.8rem; padding:0 6px;" value="${subPapers[groupLetter] || ''}" placeholder="PDF yol / URL">
+                            <button type="button" class="btn btn-secondary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Test Et"><i class="fa-solid fa-external-link"></i></button>
+                            <button type="button" class="btn btn-info btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
+                            <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+                        </div>`;
                 }
             } else {
                 paperInputs = `
-                    <div class="meta-paper-col">
-                        <label style="font-size:0.75rem; color:var(--gray-600); font-weight:600; display:block; margin-bottom:4px;">Soru Kağıdı Adresi</label>
-                        <div class="input-group" style="display:flex; gap:2px;">
-                            <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" style="flex:1; margin:0; height:38px; font-size:0.85rem;" value="${typeof subPapers === 'string' ? subPapers : (subPapers['default'] || '')}" placeholder="Yol veya URL">
-                            <button type="button" class="btn btn-secondary btn-sm" style="height:38px; padding:0 10px;" onclick="const inp=this.closest('.input-group').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Test Et"><i class="fa-solid fa-external-link"></i></button>
-                            <button type="button" class="btn btn-info btn-sm" style="height:38px; padding:0 10px;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
-                            <button type="button" class="btn btn-primary btn-sm" style="height:38px; padding:0 10px;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
-                        </div>
-                    </div>
-`;
+                    <div style="display:flex; align-items:center; gap:3px; margin-top:4px;">
+                        <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" style="flex:1; margin:0; height:30px; font-size:0.8rem; padding:0 6px;" value="${typeof subPapers === 'string' ? subPapers : (subPapers['default'] || '')}" placeholder="PDF yol / URL">
+                        <button type="button" class="btn btn-secondary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Test Et"><i class="fa-solid fa-external-link"></i></button>
+                        <button type="button" class="btn btn-info btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
+                        <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+                    </div>`;
             }
 
             subjectsHtml += `
-                <div class="meta-subject-row">
-                    <div class="meta-subject-header">
-                        <input type="checkbox" class="meta-sub-check" checked data-sub="${sub}" style="width:20px; height:20px;">
-                        <div style="flex:1;">
-                            <strong style="color:var(--primary); font-size:1rem;">${sub}</strong>
-                            <div style="font-size:0.75rem; color:var(--gray-500); margin-top:2px;">
-                                <i class="fa-solid fa-users"></i> ${subjectStats[sub]?.count || 0} Öğrenci
-                            </div>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
-                            <select class="swal2-select meta-header-design-select" data-sub="${sub}" style="margin:0; height:38px; font-size:0.85rem; width:160px;">
-                                <option value="1" ${subHeader === '1' ? 'selected' : ''}>Klasik Çerçeveli</option>
-                                <option value="2" ${subHeader === '2' ? 'selected' : ''}>Modern Hatlar</option>
-                                <option value="3" ${subHeader === '3' ? 'selected' : ''}>Köşe Vurgulu Zarif</option>
-                                <option value="4" ${subHeader === '4' ? 'selected' : ''}>Osmanlı Teması</option>
-                                <option value="5" ${subHeader === '5' ? 'selected' : ''}>Japonya Teması</option>
-                                <option value="6" ${subHeader === '6' ? 'selected' : ''}>Seddülbahir Teması</option>
-                                <option value="7" ${subHeader === '7' ? 'selected' : ''}>Latin Teması</option>
-                                <option value="8" ${subHeader === '8' ? 'selected' : ''}>Arap Teması</option>
-                                <option value="9" ${subHeader === '9' ? 'selected' : ''}>Atatürk Teması</option>
-                                <option value="10" ${subHeader === '10' ? 'selected' : ''}>Bulut Teması</option>
-                                <option value="11" ${subHeader === '11' ? 'selected' : ''}>Testere Dişi</option>
-                            </select>
-                            <div style="display:flex; align-items:center; gap:0.5rem;">
-                                <label style="font-size:0.8rem; font-weight:700;">No:</label>
-                                <input type="text" class="swal2-input meta-exam-num-input" data-sub="${sub}" style="width:70px; margin:0; height:38px; font-size:0.85rem; text-align:center;" value="${subExamNum}">
-                            </div>
+                <div class="meta-subject-row" style="padding:8px 10px; margin-bottom:6px;">
+                    <div class="meta-subject-header" style="display:flex; align-items:center; gap:8px; flex-wrap:nowrap;">
+                        <input type="checkbox" class="meta-sub-check" checked data-sub="${sub}" style="width:18px; height:18px; flex-shrink:0;">
+                        <strong style="color:var(--primary); font-size:0.9rem; white-space:nowrap;">${sub}</strong>
+                        <span style="font-size:0.7rem; color:var(--gray-400);">(${subjectStats[sub]?.count || 0})</span>
+                        <select class="swal2-select meta-header-design-select" data-sub="${sub}" style="margin:0; height:30px; font-size:0.75rem; width:130px; padding:0 4px; flex-shrink:0;">
+                            <option value="1" ${subHeader === '1' ? 'selected' : ''}>Klasik</option>
+                            <option value="2" ${subHeader === '2' ? 'selected' : ''}>Modern</option>
+                            <option value="3" ${subHeader === '3' ? 'selected' : ''}>Köşe Zarif</option>
+                            <option value="4" ${subHeader === '4' ? 'selected' : ''}>Osmanlı</option>
+                            <option value="5" ${subHeader === '5' ? 'selected' : ''}>Japonya</option>
+                            <option value="6" ${subHeader === '6' ? 'selected' : ''}>Seddülbahir</option>
+                            <option value="7" ${subHeader === '7' ? 'selected' : ''}>Latin</option>
+                            <option value="8" ${subHeader === '8' ? 'selected' : ''}>Arap</option>
+                            <option value="9" ${subHeader === '9' ? 'selected' : ''}>Atatürk</option>
+                            <option value="10" ${subHeader === '10' ? 'selected' : ''}>Bulut</option>
+                            <option value="11" ${subHeader === '11' ? 'selected' : ''}>Testere</option>
+                        </select>
+                        <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
+                            <label style="font-size:0.7rem; font-weight:700; color:var(--gray-500);">No:</label>
+                            <input type="text" class="swal2-input meta-exam-num-input" data-sub="${sub}" style="width:45px; margin:0; height:30px; font-size:0.8rem; text-align:center; padding:0;" value="${subExamNum}">
                         </div>
                     </div>
-                    <div class="meta-paper-grid">
-                        ${paperInputs}
-                    </div>
+                    ${paperInputs}
                 </div>
     `;
         });
