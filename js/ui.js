@@ -2660,6 +2660,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const A4W = 595.28, A4H = 841.89;
+            const mergedPdf = await PDFDocument.create();
+            if (typeof fontkit !== 'undefined') mergedPdf.registerFontkit(fontkit);
+
+            let totalPages = 0;
 
             for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
                 const item = items[itemIdx];
@@ -2674,71 +2678,78 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (progEl) progEl.textContent = `${item.subject} (${itemIdx + 1}/${items.length})...`;
 
                 for (let copyIdx = 0; copyIdx < item.count; copyIdx++) {
-                    let pdfDoc;
+                    let tempDoc;
 
                     if (paperPath) {
                         try {
                             const pdfBytes = await window.getFileBytes(paperPath);
-                            pdfDoc = await PDFDocument.load(pdfBytes);
+                            tempDoc = await PDFDocument.load(pdfBytes);
                         } catch (e) {
-                            pdfDoc = await PDFDocument.create();
-                            pdfDoc.addPage([A4W, A4H]);
+                            tempDoc = await PDFDocument.create();
+                            tempDoc.addPage([A4W, A4H]);
                         }
                     } else {
-                        pdfDoc = await PDFDocument.create();
-                        pdfDoc.addPage([A4W, A4H]);
+                        tempDoc = await PDFDocument.create();
+                        tempDoc.addPage([A4W, A4H]);
                     }
 
-                    if (typeof fontkit !== 'undefined') pdfDoc.registerFontkit(fontkit);
+                    if (typeof fontkit !== 'undefined') tempDoc.registerFontkit(fontkit);
 
-                    const fallback = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+                    const fallback = await tempDoc.embedFont(StandardFonts.HelveticaBold);
                     let mainFont = null, nameFont = null, schoolFont = null;
                     try {
-                        if (window._cachedFonts.main) mainFont = await pdfDoc.embedFont(window._cachedFonts.main);
-                        if (window._cachedFonts.nameFont) nameFont = await pdfDoc.embedFont(window._cachedFonts.nameFont);
-                        if (window._cachedFonts.schoolFont) schoolFont = await pdfDoc.embedFont(window._cachedFonts.schoolFont);
+                        if (window._cachedFonts.main) mainFont = await tempDoc.embedFont(window._cachedFonts.main);
+                        if (window._cachedFonts.nameFont) nameFont = await tempDoc.embedFont(window._cachedFonts.nameFont);
+                        if (window._cachedFonts.schoolFont) schoolFont = await tempDoc.embedFont(window._cachedFonts.schoolFont);
                     } catch (e) { console.error('Font embed error', e); }
 
                     mainFont = mainFont || fallback;
                     nameFont = nameFont || mainFont;
                     schoolFont = schoolFont || mainFont;
 
-                    const page = pdfDoc.getPages()[0];
+                    const page = tempDoc.getPages()[0];
                     const { width, height } = page.getSize();
                     const sf = width / A4W;
 
-                    // Render header WITHOUT student info (info = null)
-                    await window.renderStudentPDFHeader(pdfDoc, page, null, {
+                    await window.renderStudentPDFHeader(tempDoc, page, null, {
                         mainFont, nameFont, schoolFont, sf,
                         session: ses,
                         metadata: { pdfHeaderDesign: designType, examNo },
                         designType
                     });
 
-                    // Save and open for print
-                    const pdfData = await pdfDoc.save();
-                    const blob = new Blob([pdfData], { type: 'application/pdf' });
-                    const url = URL.createObjectURL(blob);
-
-                    const iframe = document.createElement('iframe');
-                    iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:0;height:0;';
-                    iframe.src = url;
-                    document.body.appendChild(iframe);
-
-                    await new Promise(resolve => {
-                        iframe.onload = () => {
-                            setTimeout(() => {
-                                try { iframe.contentWindow.print(); } catch (e) { window.open(url, '_blank'); }
-                                setTimeout(() => {
-                                    document.body.removeChild(iframe);
-                                    URL.revokeObjectURL(url);
-                                    resolve();
-                                }, 1000);
-                            }, 500);
-                        };
-                    });
+                    // Copy all pages from temp into merged
+                    const copiedPages = await mergedPdf.copyPages(tempDoc, tempDoc.getPageIndices());
+                    copiedPages.forEach(p => mergedPdf.addPage(p));
+                    totalPages += copiedPages.length;
                 }
             }
+
+            // Save merged PDF and print once
+            const progEl = document.getElementById('spare-progress');
+            if (progEl) progEl.textContent = `${totalPages} sayfa yazdırılıyor...`;
+
+            const mergedBytes = await mergedPdf.save();
+            const blob = new Blob([mergedBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+
+            const iframe = document.createElement('iframe');
+            iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:0;height:0;';
+            iframe.src = url;
+            document.body.appendChild(iframe);
+
+            await new Promise(resolve => {
+                iframe.onload = () => {
+                    setTimeout(() => {
+                        try { iframe.contentWindow.print(); } catch (e) { console.error('Print error', e); }
+                        setTimeout(() => {
+                            document.body.removeChild(iframe);
+                            URL.revokeObjectURL(url);
+                            resolve();
+                        }, 2000);
+                    }, 500);
+                };
+            });
 
             Swal.fire({
                 icon: 'success',
