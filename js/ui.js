@@ -2660,8 +2660,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const A4W = 595.28, A4H = 841.89;
-            const { PDFLib } = window; // DataManager is already global, no need to redeclare locally
-            const PDFDocument = PDFLib.PDFDocument; // Ensure we use the correct PDFLib instance
+            const pdfLib = window.PDFLib;
+            const PDFDocument = pdfLib.PDFDocument;
             const mergedPdf = await PDFDocument.create();
 
             let totalPages = 0;
@@ -2675,8 +2675,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ? (typeof subMeta.papers === 'string' ? subMeta.papers : (subMeta.papers['default'] || subMeta.papers['A'] || Object.values(subMeta.papers).find(p => p) || ''))
                     : '';
 
-                const progEl = document.getElementById('spare-progress');
-                if (progEl) progEl.textContent = `${item.subject} (${itemIdx + 1}/${items.length})...`;
+                const progLine = document.getElementById('spare-progress');
+                if (progLine) progLine.textContent = `${item.subject} (${itemIdx + 1}/${items.length}) hazırlanıyor...`;
 
                 let paperBytes = null;
                 if (paperPath) {
@@ -2685,40 +2685,45 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } catch (e) { console.error(`Failed to load: ${paperPath}`, e); }
                 }
 
-                // V3.3 SUBJECT-BAKING: Create a mummified (baked) subject template once, then clone it.
-                // This is both fast AND extremely stable against async/resource issues.
-                let subjectTemplateDoc;
+                // v4.0 RECONSTRUCTION: Direct Subject Source Cloning
+                let subjectDoc;
                 try {
-                    if (paperBytes) subjectTemplateDoc = await PDFDocument.load(paperBytes);
-                    else {
-                        subjectTemplateDoc = await PDFDocument.create();
-                        subjectTemplateDoc.addPage([A4W, A4H]);
+                    if (paperBytes) {
+                        subjectDoc = await PDFDocument.load(paperBytes);
+                    } else {
+                        subjectDoc = await PDFDocument.create();
+                        subjectDoc.addPage([A4W, A4H]);
                     }
                 } catch (e) {
-                    console.error("Subject template load failed", e);
-                    subjectTemplateDoc = await PDFDocument.create();
-                    subjectTemplateDoc.addPage([A4W, A4H]);
+                    subjectDoc = await PDFDocument.create();
+                    subjectDoc.addPage([A4W, A4H]);
                 }
 
-                if (typeof fontkit !== 'undefined') subjectTemplateDoc.registerFontkit(fontkit);
-                const fallback = await subjectTemplateDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+                // Setup fonts once for this subject source
+                if (typeof fontkit !== 'undefined') subjectDoc.registerFontkit(fontkit);
+                const fallbackFont = await subjectDoc.embedFont(pdfLib.StandardFonts.HelveticaBold);
                 let mainFont = null, nameFont = null, schoolFont = null;
                 try {
-                    if (window._cachedFonts.main) mainFont = await subjectTemplateDoc.embedFont(window._cachedFonts.main);
-                    if (window._cachedFonts.nameFont) nameFont = await subjectTemplateDoc.embedFont(window._cachedFonts.nameFont);
-                    if (window._cachedFonts.schoolFont) schoolFont = await subjectTemplateDoc.embedFont(window._cachedFonts.schoolFont);
+                    if (window._cachedFonts.main) mainFont = await subjectDoc.embedFont(window._cachedFonts.main);
+                    if (window._cachedFonts.nameFont) nameFont = await subjectDoc.embedFont(window._cachedFonts.nameFont);
+                    if (window._cachedFonts.schoolFont) schoolFont = await subjectDoc.embedFont(window._cachedFonts.schoolFont);
                 } catch (e) { }
-                mainFont = mainFont || fallback;
+                mainFont = mainFont || fallbackFont;
                 nameFont = nameFont || mainFont;
                 schoolFont = schoolFont || mainFont;
 
-                // Mark the first page of the subject doc
-                const subjectPages = subjectTemplateDoc.getPages();
+                // DRAW HEADER ONCE on the subject source document (first page)
+                const subjectPages = subjectDoc.getPages();
                 if (subjectPages.length > 0) {
                     const firstPage = subjectPages[0];
                     const { width } = firstPage.getSize();
                     const sf = width / A4W;
-                    await window.renderStudentPDFHeader(subjectTemplateDoc, firstPage, { subject: item.subject, examNo, name: '', class: '', no: '', room: '', seat: '' }, {
+
+                    await window.renderStudentPDFHeader(subjectDoc, firstPage, {
+                        subject: item.subject,
+                        examNo,
+                        name: '', class: '', no: '', room: '', seat: ''
+                    }, {
                         mainFont, nameFont, schoolFont, sf,
                         session: ses,
                         metadata: { pdfHeaderDesign: designType, examNo },
@@ -2726,22 +2731,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
                 }
 
-                // Bake the subject template to catch all async/drawing modifications
-                const bakedBytes = await subjectTemplateDoc.save();
-                let bakedDoc = await PDFDocument.load(bakedBytes);
-                const bakedIndices = bakedDoc.getPageIndices();
-
-                // Now clone for students/copies
+                // NOW CLONE the head-rendered subject doc into the merged PDF
+                const indicesToCopy = subjectDoc.getPageIndices();
                 for (let copyIdx = 0; copyIdx < item.count; copyIdx++) {
-                    const progEl = document.getElementById('spare-progress');
-                    if (progEl) progEl.textContent = `${item.subject} (${itemIdx + 1}/${items.length}) - Kopya ${copyIdx + 1}/${item.count}...`;
+                    if (progLine) progLine.textContent = `${item.subject} (${itemIdx + 1}/${items.length}) - Kopya ${copyIdx + 1}/${item.count}...`;
 
-                    const copiedPages = await mergedPdf.copyPages(bakedDoc, bakedIndices);
+                    const copiedPages = await mergedPdf.copyPages(subjectDoc, indicesToCopy);
                     copiedPages.forEach(p => mergedPdf.addPage(p));
                     totalPages += copiedPages.length;
                 }
-                subjectTemplateDoc = null;
-                bakedDoc = null;
+
+                // Cleanup subject memory
+                subjectDoc = null;
             }
 
             // Save merged PDF and print once
