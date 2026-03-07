@@ -704,6 +704,7 @@
 
         function logout() {
             localStorage.removeItem('klbk_student_session');
+            localStorage.removeItem('klbk_persistent_session');
             currentStudent = null;
             clearInterval(timerInterval);
             if (window.cloudSyncInterval) clearInterval(window.cloudSyncInterval);

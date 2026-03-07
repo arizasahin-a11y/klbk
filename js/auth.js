@@ -50,7 +50,39 @@ document.addEventListener('DOMContentLoaded', () => {
         return defaultUsers;
     }
 
-    // Check if 'rememberedUser' exists in localStorage
+    // --- Persistent Session Check ---
+    const persistentSession = localStorage.getItem('klbk_persistent_session');
+    if (persistentSession) {
+        try {
+            const data = JSON.parse(persistentSession);
+            const loginDate = new Date(data.klbk_loginTime);
+            const now = new Date();
+            const diffDays = (now - loginDate) / (1000 * 60 * 60 * 24);
+
+            if (diffDays < 30) {
+                // Restore session
+                for (const [key, value] of Object.entries(data)) {
+                    sessionStorage.setItem(key, value);
+                }
+                sessionStorage.setItem('klbk_isLoggedIn', 'true');
+
+                // Auto-redirect
+                if (data.klbk_role === 'ogretmen') {
+                    window.location.href = 'h6t3y9w1';
+                } else {
+                    window.location.href = 'r1p5s8q3';
+                }
+                return; // Stop further processing
+            } else {
+                localStorage.removeItem('klbk_persistent_session');
+            }
+        } catch (e) {
+            console.error("Persistent session restore failed", e);
+            localStorage.removeItem('klbk_persistent_session');
+        }
+    }
+
+    // Check if 'rememberedUser' exists in localStorage (for prefilling username)
     const savedUser = localStorage.getItem('klbk_rememberedUser');
     if (savedUser && usernameInput) {
         usernameInput.value = savedUser;
@@ -95,11 +127,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (usersDb[username] && usersDb[username].password === password) {
                 showMessage(loginMessageBox, 'Giriş başarılı! Yönlendiriliyorsunuz...', 'success');
 
-                // Handle Remember Me
+                // Handle Remember Me (Persistent Session)
                 if (rememberMeCheckbox && rememberMeCheckbox.checked) {
                     localStorage.setItem('klbk_rememberedUser', username);
+
+                    // Save full session to localStorage for persistence (Except students)
+                    const role = usersDb[username].role || 'admin';
+                    if (role !== 'student' && role !== 'ogrenci') {
+                        const sessionData = {
+                            klbk_currentUser: username,
+                            klbk_schoolName: usersDb[username].schoolName || '',
+                            klbk_storeKey: usersDb[username].storeKey || (`klbk_data_${username}`),
+                            klbk_role: role,
+                            klbk_loginTime: new Date().toISOString()
+                        };
+                        if (usersDb[username].branch) {
+                            sessionData.klbk_branch = usersDb[username].branch;
+                        }
+                        localStorage.setItem('klbk_persistent_session', JSON.stringify(sessionData));
+                    }
                 } else {
                     localStorage.removeItem('klbk_rememberedUser');
+                    localStorage.removeItem('klbk_persistent_session');
                 }
 
                 // Setup session
