@@ -814,10 +814,38 @@ small {
 }
 
 .swal2-title {
-    font-size: 1.5rem !important;
+    font-size: 1.25rem !important;
     font-weight: 700 !important;
     color: var(--dark) !important;
-    padding-top: 1rem !important;
+    padding-top: 0.5rem !important;
+}
+
+.swal2-responsive-popup {
+    width: 95% !important;
+    max-width: 900px !important;
+    border-radius: 16px !important;
+}
+
+.modal-body-wrapper {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 600px) {
+    .swal2-responsive-popup {
+        padding: 1rem 0.5rem !important;
+    }
+
+    .swal2-title {
+        font-size: 1.1rem !important;
+    }
 }
 
 .swal2-html-container {

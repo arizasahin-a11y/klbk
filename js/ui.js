@@ -655,6 +655,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         Swal.fire({
                             icon: 'success',
                             title: 'Sıfırdan Yükleme Tamamlandı',
+                            customClass: { popup: 'swal2-responsive-popup' },
+                            width: 'auto',
                             html: `<b>${stats.totalStudents}</b> öğrenci ve <b>${stats.totalClasses}</b> sınıf başarıyla eklendi.`,
                             confirmButtonColor: '#4f46e5'
                         });
@@ -662,11 +664,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         Swal.fire({
                             icon: 'success',
                             title: 'Güncelleme Tamamlandı',
+                            customClass: { popup: 'swal2-responsive-popup' },
+                            width: 'auto',
                             html: `
-                                <div style="text-align:left; padding: 0 1rem;">
-                                    <p style="margin: 0.5rem 0;"><i class="fa-solid fa-user-plus" style="color:#10b981; width: 20px;"></i> <b>${stats.addedCount}</b> yeni öğrenci eklendi.</p>
-                                    <p style="margin: 0.5rem 0;"><i class="fa-solid fa-user-minus" style="color:#ef4444; width: 20px;"></i> <b>${stats.deletedCount}</b> öğrenci silindi.</p>
-                                    <p style="margin: 0.5rem 0;"><i class="fa-solid fa-shuffle" style="color:#f59e0b; width: 20px;"></i> <b>${stats.classChangedCount}</b> öğrenci sınıf değiştirdi.</p>
+                                <div style="text-align:left; padding: 0.5rem;">
+                                    <p style="margin: 0.75rem 0; display:flex; align-items:center; gap:10px;"><i class="fa-solid fa-user-plus" style="color:#10b981; font-size:1.1rem;"></i> <span><b>${stats.addedCount}</b> yeni öğrenci eklendi.</span></p>
+                                    <p style="margin: 0.75rem 0; display:flex; align-items:center; gap:10px;"><i class="fa-solid fa-user-minus" style="color:#ef4444; font-size:1.1rem;"></i> <span><b>${stats.deletedCount}</b> öğrenci silindi.</span></p>
+                                    <p style="margin: 0.75rem 0; display:flex; align-items:center; gap:10px;"><i class="fa-solid fa-shuffle" style="color:#f59e0b; font-size:1.1rem;"></i> <span><b>${stats.classChangedCount}</b> öğrenci sınıf değiştirdi.</span></p>
                                 </div>
                             `,
                             confirmButtonColor: '#4f46e5'
@@ -4582,24 +4586,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
 
             const dialog = document.createElement('dialog');
+            dialog.className = 'custom-modal';
             dialog.style.padding = '0';
             dialog.style.border = 'none';
-            dialog.style.borderRadius = '12px';
-            dialog.style.boxShadow = '0 10px 25px rgba(0,0,0,0.5)';
-            dialog.style.maxWidth = '600px';
-            dialog.style.width = '100%';
+            dialog.style.borderRadius = '16px';
+            dialog.style.boxShadow = '0 20px 50px rgba(0,0,0,0.3)';
+            dialog.style.maxWidth = '90%';
+            dialog.style.width = '500px';
             dialog.style.zIndex = '9999';
             dialog.style.position = 'fixed';
             dialog.style.top = '50%';
             dialog.style.left = '50%';
             dialog.style.transform = 'translate(-50%, -50%)';
             dialog.style.margin = '0';
+            dialog.style.overflow = 'hidden';
             dialog.innerHTML = `
-                <div style="background:var(--primary); color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
-                    <h3 style="margin:0; font-size:1.1rem; font-family:inherit;">Buluttaki Dosyalar</h3>
-                    <button type="button" onclick="this.closest('dialog').close(); this.closest('dialog').remove();" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+                <div style="background:linear-gradient(135deg, var(--primary), var(--primary-dark)); color:white; padding:1.25rem; display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="margin:0; font-size:1.1rem; font-weight:700;"><i class="fa-solid fa-cloud"></i> Buluttaki Dosyalar</h3>
+                    <button type="button" onclick="this.closest('dialog').close(); this.closest('dialog').remove();" style="background:rgba(255,255,255,0.2); border:none; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-                <div style="padding:15px; background:white;">${listHtml}</div>
+                <div style="padding:1rem; background:white; max-height:80vh; overflow-y:auto;">
+                    <div class="table-responsive">
+                        ${listHtml}
+                    </div>
+                </div>
             `;
             document.body.appendChild(dialog);
             dialog.showModal();
@@ -4654,97 +4664,91 @@ document.addEventListener('DOMContentLoaded', async () => {
                 for (let i = 0; i < groupCount; i++) {
                     const groupLetter = alphabet[i];
                     paperInputs += `
-                        <div style="flex:1; min-width:160px;">
-                            <label style="font-size:0.7rem; color:var(--gray-500); display:block;">Grup ${groupLetter} Soru Kağıdı</label>
+                        <div class="meta-paper-col">
+                            <label style="font-size:0.75rem; color:var(--gray-600); font-weight:600; display:block; margin-bottom:4px;">Grup ${groupLetter} Soru Kağıdı</label>
                             <div class="input-group" style="display:flex; gap:2px;">
-                                <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-group="${groupLetter}" style="flex:1; margin:0; height:35px; font-size:0.8rem;" value="${subPapers[groupLetter] || ''}" placeholder="C:\\Yol veya URL">
-                                <button type="button" class="btn btn-secondary btn-sm" style="height:35px; padding:0 8px;" onclick="const inp=this.closest('.input-group').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Bağlantıyı Aç / Test Et"><i class="fa-solid fa-external-link"></i> Test</button>
-                                <button type="button" class="btn btn-info btn-sm" style="height:35px; padding:0 8px;" onclick="window.showCloudFiles(this)" title="Buluttaki Dosyalardan Seç"><i class="fa-solid fa-cloud"></i> Buluttan Seç</button>
-                                <button type="button" class="btn btn-light btn-sm" style="height:35px; padding:0 8px;" onclick="window.pasteToInput(this)" title="Panodan Yapıştır"><i class="fa-solid fa-paste"></i></button>
-                                <button type="button" class="btn btn-primary btn-sm" style="height:35px; padding:0 12px; font-size:0.8rem; display:flex; gap:6px; align-items:center;" onclick="window.browseToInput(this)" title="Buluta PDF Yükle"><i class="fa-solid fa-cloud-arrow-up"></i> Buluta Yükle</button>
+                                <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-group="${groupLetter}" style="flex:1; margin:0; height:38px; font-size:0.85rem;" value="${subPapers[groupLetter] || ''}" placeholder="Yol veya URL">
+                                <button type="button" class="btn btn-secondary btn-sm" style="height:38px; padding:0 10px;" onclick="const inp=this.closest('.input-group').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Test Et"><i class="fa-solid fa-external-link"></i></button>
+                                <button type="button" class="btn btn-info btn-sm" style="height:38px; padding:0 10px;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
+                                <button type="button" class="btn btn-primary btn-sm" style="height:38px; padding:0 10px;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
                             </div>
                         </div>
 `;
                 }
             } else {
                 paperInputs = `
-                    <div style="flex:1;">
-                        <label style="font-size:0.7rem; color:var(--gray-500); display:block;">Soru Kağıdı Adresi</label>
+                    <div class="meta-paper-col">
+                        <label style="font-size:0.75rem; color:var(--gray-600); font-weight:600; display:block; margin-bottom:4px;">Soru Kağıdı Adresi</label>
                         <div class="input-group" style="display:flex; gap:2px;">
-                            <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" style="flex:1; margin:0; height:35px; font-size:0.8rem;" value="${typeof subPapers === 'string' ? subPapers : (subPapers['default'] || '')}" placeholder="C:\\Yol veya URL">
-                            <button type="button" class="btn btn-secondary btn-sm" style="height:35px; padding:0 8px;" onclick="const inp=this.closest('.input-group').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Bağlantıyı Aç / Test Et"><i class="fa-solid fa-external-link"></i> Test</button>
-                            <button type="button" class="btn btn-info btn-sm" style="height:35px; padding:0 8px;" onclick="window.showCloudFiles(this)" title="Buluttaki Dosyalardan Seç"><i class="fa-solid fa-cloud"></i> Buluttan Seç</button>
-                            <button type="button" class="btn btn-light btn-sm" style="height:35px; padding:0 8px;" onclick="window.pasteToInput(this)" title="Panodan Yapıştır"><i class="fa-solid fa-paste"></i></button>
-                            <button type="button" class="btn btn-primary btn-sm" style="height:35px; padding:0 12px; font-size:0.8rem; display:flex; gap:6px; align-items:center;" onclick="window.browseToInput(this)" title="Buluta PDF Yükle"><i class="fa-solid fa-cloud-arrow-up"></i> Buluta Yükle</button>
+                            <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" style="flex:1; margin:0; height:38px; font-size:0.85rem;" value="${typeof subPapers === 'string' ? subPapers : (subPapers['default'] || '')}" placeholder="Yol veya URL">
+                            <button type="button" class="btn btn-secondary btn-sm" style="height:38px; padding:0 10px;" onclick="const inp=this.closest('.input-group').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Test Et"><i class="fa-solid fa-external-link"></i></button>
+                            <button type="button" class="btn btn-info btn-sm" style="height:38px; padding:0 10px;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
+                            <button type="button" class="btn btn-primary btn-sm" style="height:38px; padding:0 10px;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
                         </div>
                     </div>
 `;
             }
 
             subjectsHtml += `
-                <div class="meta-subject-row" style="padding: 1rem; border: 1px solid var(--gray-200); border-radius: 8px; margin-bottom: 1rem; background: var(--gray-50);">
-                    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem; border-bottom:1px solid var(--gray-200); padding-bottom:0.5rem;">
-                        <input type="checkbox" class="meta-sub-check" checked data-sub="${sub}" style="width:18px; height:18px;">
+                <div class="meta-subject-row">
+                    <div class="meta-subject-header">
+                        <input type="checkbox" class="meta-sub-check" checked data-sub="${sub}" style="width:20px; height:20px;">
                         <div style="flex:1;">
                             <strong style="color:var(--primary); font-size:1rem;">${sub}</strong>
                             <div style="font-size:0.75rem; color:var(--gray-500); margin-top:2px;">
-                                <i class="fa-solid fa-users"></i> ${subjectStats[sub]?.count || 0} Öğrenci (${Array.from(subjectStats[sub]?.classes || []).join(', ')})
+                                <i class="fa-solid fa-users"></i> ${subjectStats[sub]?.count || 0} Öğrenci
                             </div>
                         </div>
-                        <div style="display:flex; justify-content:flex-end; align-items:center; gap:0.5rem; margin-right:0.5rem;">
-                            <select class="swal2-select meta-header-design-select" data-sub="${sub}" style="margin:0; height:35px; font-size:0.8rem; padding:0 20px 0 10px; width:140px;">
+                        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+                            <select class="swal2-select meta-header-design-select" data-sub="${sub}" style="margin:0; height:38px; font-size:0.85rem; width:160px;">
                                 <option value="1" ${subHeader === '1' ? 'selected' : ''}>Klasik Çerçeveli</option>
-                                <option value="2" ${subHeader === '2' ? 'selected' : ''}>Modern Hatlar</option>
-                                <option value="3" ${subHeader === '3' ? 'selected' : ''}>Klasik Parçalı</option>
-                                <option value="4" ${subHeader === '4' ? 'selected' : ''}>Osmanlı Teması</option>
-                                <option value="5" ${subHeader === '5' ? 'selected' : ''}>Japon Teması</option>
-                                <option value="6" ${subHeader === '6' ? 'selected' : ''}>Afrika Teması</option>
-                                <option value="7" ${subHeader === '7' ? 'selected' : ''}>Latin Teması</option>
-                                <option value="8" ${subHeader === '8' ? 'selected' : ''}>Arabic Teması</option>
                                 <option value="9" ${subHeader === '9' ? 'selected' : ''}>Atatürk Teması</option>
                                 <option value="10" ${subHeader === '10' ? 'selected' : ''}>Bulut Teması</option>
+                                <option value="2" ${subHeader === '2' ? 'selected' : ''}>Modern Hatlar</option>
                                 <option value="11" ${subHeader === '11' ? 'selected' : ''}>Testere Dişi</option>
                             </select>
-                        </div>
-                        <div style="display:flex; justify-content:flex-end; align-items:center; gap:0.5rem;">
-                            <label style="font-size:0.8rem; font-weight:bold;">Sınav No:</label>
-                            <input type="text" class="swal2-input meta-exam-num-input" data-sub="${sub}" style="width:80px; margin:0; height:35px; font-size:0.8rem; text-align:center;" value="${subExamNum}" placeholder="No">
+                            <div style="display:flex; align-items:center; gap:0.5rem;">
+                                <label style="font-size:0.8rem; font-weight:700;">No:</label>
+                                <input type="text" class="swal2-input meta-exam-num-input" data-sub="${sub}" style="width:70px; margin:0; height:38px; font-size:0.85rem; text-align:center;" value="${subExamNum}">
+                            </div>
                         </div>
                     </div>
-                    <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+                    <div class="meta-paper-grid">
                         ${paperInputs}
-                    </div>
-                    <div style="margin-top:5px; font-size:0.75rem; color:var(--info); font-style:italic;">
-                        <i class="fa-solid fa-info-circle"></i> Soru Kağıdı yazdırma işlemi için C:\\.. yerel yolları kullanılamaz. <b>Buluta Yükle</b> butonuna tıklayarak Soru Kağıdı PDF'inizi seçtiğinizde, sistem onu Supabase sunucunuza depolayacak ve kalıcı yazdırma bağlantısını buraya otomatik işleyecektir.
                     </div>
                 </div>
     `;
         });
 
         Swal.fire({
-            title: 'Oturum Detaylı Bilgilerini Düzenle',
-            width: '900px',
+            title: 'Oturum Bilgilerini Düzenle',
+            customClass: { popup: 'swal2-responsive-popup' },
+            width: 'auto',
             allowOutsideClick: false,
             backdrop: true,
             html: `
-                <div style="text-align: left;">
-                    <div style="background: var(--light-primary); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid var(--primary); display:flex; align-items:center; gap:1rem;">
-                        <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary); font-size:1.5rem;"></i>
-                        <div style="flex:1;">
-                            <strong style="display:block; font-size:0.9rem;">Toplu Sınav No Uygula</strong>
-                            <small color="var(--gray-600)">Seçili tüm seviyelere aynı sınav numarasını girin.</small>
+                <div class="modal-body-wrapper" style="text-align: left;">
+                    <div class="modal-form-card" style="margin-bottom: 1.5rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:1rem; flex:1;">
+                            <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary); font-size:1.5rem;"></i>
+                            <div style="flex:1;">
+                                <strong style="display:block; font-size:0.9rem;">Toplu Sınav No Uygula</strong>
+                                <small style="color:var(--gray-500)">Seçili tüm derslere aynı numarayı girin.</small>
+                            </div>
                         </div>
-                        <input type="text" id="bulk-exam-num" class="swal2-input" style="width:100px; margin:0; height:40px;" placeholder="Sınav No">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="const val=document.getElementById('bulk-exam-num').value; document.querySelectorAll('.meta-subject-row').forEach(row => { const cb=row.querySelector('.meta-sub-check'); if(cb && cb.checked){ const input=row.querySelector('.meta-exam-num-input'); if(input) input.value=val; } })">Uygula</button>
+                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <input type="text" id="bulk-exam-num" class="swal2-input" style="width:90px; margin:0; height:40px; text-align:center;" placeholder="No">
+                            <button type="button" class="btn btn-primary btn-sm" style="height:40px;" onclick="const val=document.getElementById('bulk-exam-num').value; document.querySelectorAll('.meta-subject-row').forEach(row => { const cb=row.querySelector('.meta-sub-check'); if(cb && cb.checked){ const input=row.querySelector('.meta-exam-num-input'); if(input) input.value=val; } })">Uygula</button>
+                        </div>
                     </div>
 
-                    <div style="display:flex; gap:1rem; margin-bottom: 1.5rem; background: #fff; padding: 1rem; border: 1px solid var(--gray-200); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                        <div style="flex:1;">
-                            <label style="display:block; font-weight:700; font-size:0.85rem; margin-bottom:0.5rem; color:var(--gray-700);">Sınav Tarihi</label>
-                            <input type="date" id="meta-date" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem;" value="${window.formatDateToInput(ses.date) || ''}">
+                    <div class="modal-row" style="margin-bottom: 1.5rem;">
+                        <div class="modal-form-group">
+                            <label style="font-weight:700;">Sınav Tarihi</label>
+                            <input type="date" id="meta-date" class="swal2-input" style="width:100%; margin:0; height:40px;" value="${window.formatDateToInput(ses.date) || ''}">
                         </div>
-                        <div style="flex:1;">
-                            <label style="display:block; font-weight:700; font-size:0.85rem; margin-bottom:0.5rem; color:var(--gray-700);">Sınav Saati / Ders</label>
+                        <div class="modal-form-group">
+                            <label style="font-weight:700;">Sınav Saati / Ders</label>
                             ${(() => {
                     const school = DataManager.getSchoolSettings();
                     const dailyLessons = parseInt(school.dailyLessons) || 0;
@@ -5561,87 +5565,87 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         let html = `
     <div style="text-align:left; font-size:0.9rem;">
-            <div style="display:flex; gap:10px; margin-bottom:10px;">
-                <div style="flex:1;">
-                    <label style="display:block; font-weight:600; margin-bottom:3px;">Öğrenci No</label>
-                    <input type="number" id="edit-std-no" class="swal2-input" value="${std.no}" style="margin:0; width:100%; height:36px; font-size:0.9rem;">
+            <div class="modal-row" style="margin-bottom:10px;">
+                <div class="modal-form-group">
+                    <label style="font-weight:600;">Öğrenci No</label>
+                    <input type="number" id="edit-std-no" class="swal2-input" value="${std.no}" style="margin:0; width:100%; height:38px;">
                 </div>
-                <div style="flex:2;">
-                    <label style="display:block; font-weight:600; margin-bottom:3px;">Adı Soyadı</label>
-                    <input type="text" id="edit-std-name" class="swal2-input" value="${std.name}" style="margin:0; width:100%; height:36px; font-size:0.9rem;">
+                <div class="modal-form-group" style="flex:2;">
+                    <label style="font-weight:600;">Adı Soyadı</label>
+                    <input type="text" id="edit-std-name" class="swal2-input" value="${std.name}" style="margin:0; width:100%; height:38px;">
                 </div>
             </div>
             
-            <div style="display:flex; gap:10px; margin-bottom:10px;">
-                <div style="flex:1;">
-                    <label style="display:block; font-weight:600; margin-bottom:3px;">Sınıfı</label>
-                    <input type="text" id="edit-std-class" class="swal2-input" value="${std.class}" style="margin:0; width:100%; height:36px; font-size:0.9rem;">
+            <div class="modal-row" style="margin-bottom:10px;">
+                <div class="modal-form-group">
+                    <label style="font-weight:600;">Sınıfı</label>
+                    <input type="text" id="edit-std-class" class="swal2-input" value="${std.class}" style="margin:0; width:100%; height:38px;">
                 </div>
-                <div style="flex:1;">
-                    <label style="display:block; font-weight:600; margin-bottom:3px;">Alanı</label>
-                    <input type="text" id="edit-std-alan" class="swal2-input" value="${std.alan || ''}" style="margin:0; width:100%; height:36px; font-size:0.9rem;">
+                <div class="modal-form-group">
+                    <label style="font-weight:600;">Alanı</label>
+                    <input type="text" id="edit-std-alan" class="swal2-input" value="${std.alan || ''}" style="margin:0; width:100%; height:38px;">
                 </div>
-                <div style="flex:1;">
-                    <label style="display:block; font-weight:600; margin-bottom:3px;">
+                <div class="modal-form-group">
+                    <label style="font-weight:600;">
                         Öğrenci Kodu 
-                        <a href="javascript:void(0)" onclick="window.toggleEditCodeGuide()" style="font-size:0.75rem; font-weight:normal; margin-left:5px; color:var(--primary); text-decoration:underline;">
+                        <a href="javascript:void(0)" onclick="window.toggleEditCodeGuide()" style="font-size:0.75rem; font-weight:normal; margin-left:5px; color:var(--primary);">
                             <i class="fa-solid fa-circle-info"></i> Rehber
                         </a>
                     </label>
-                    <input type="text" id="edit-std-kodu" class="swal2-input" value="${std.ogrenciKodu || ''}" style="margin:0; width:100%; height:36px; font-size:0.9rem;" placeholder="Örn: C, H">
+                    <input type="text" id="edit-std-kodu" class="swal2-input" value="${std.ogrenciKodu || ''}" style="margin:0; width:100%; height:38px;" placeholder="Örn: C, H">
                 </div>
             </div>
             
             <div id="edit-code-guide" style="display:none; margin-top:5px; margin-bottom:15px; padding: 12px; background: rgba(79, 70, 229, 0.05); border-radius: 8px; border: 1px solid rgba(79, 70, 229, 0.1); text-align: left; animation: fadeIn 0.3s ease;">
                 <p style="margin-bottom: 10px; font-size: 0.85rem; font-weight: 600; color: var(--gray-600);">Hızlı Seçim:</p>
-                <div style="display: flex; gap: 15px; margin-bottom:12px;">
+                <div style="display: flex; gap: 15px; margin-bottom:12px; flex-wrap:wrap;">
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.85rem;">
-                        <input type="checkbox" id="edit-chk-c" style="width:18px; height:18px;">
+                        <input type="checkbox" id="edit-chk-c" style="width:20px; height:20px;">
                         <span class="condition-marker type-c" style="margin:0;">C</span> Dikkat
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.85rem;">
-                        <input type="checkbox" id="edit-chk-h" style="width:18px; height:18px;">
+                        <input type="checkbox" id="edit-chk-h" style="width:20px; height:20px;">
                         <span class="condition-marker type-h" style="margin:0;">H</span> Sağlık
                     </label>
                 </div>
                 <div style="padding-top:10px; border-top:1px dashed rgba(79, 70, 229, 0.2); font-size:0.8rem; color:var(--gray-600); line-height:1.4;">
-                    <i class="fa-solid fa-lightbulb" style="color:var(--primary);"></i> <strong>İpucu:</strong> Belli bir derslikte sınava girmesi istenirse derslik adını (Örn: <strong>12B</strong>) buraya yazabilirsiniz.
+                    <i class="fa-solid fa-lightbulb" style="color:var(--primary);"></i> <strong>İpucu:</strong> Belli bir derslikte sınava girmesi istenirse derslik adını (Örn: 12B) buraya yazabilirsiniz.
                 </div>
             </div>
             
-            <div style="margin-bottom:10px;">
-                <label style="display:block; font-weight:600; margin-bottom:3px;">Dersler (Virgülle ayırın)</label>
-                <input type="text" id="edit-std-dersler" class="swal2-input" value="${(std.dersler || []).join(', ')}" style="margin:0; width:100%; height:36px; font-size:0.9rem;">
+            <div class="modal-form-group" style="margin-bottom:10px;">
+                <label style="font-weight:600;">Dersler (Virgülle ayırın)</label>
+                <input type="text" id="edit-std-dersler" class="swal2-input" value="${(std.dersler || []).join(', ')}" style="margin:0; width:100%; height:38px;">
             </div>
             
-            <p style="font-weight:600; margin-top:15px; margin-bottom:5px; border-bottom:1px solid #eee; padding-bottom:5px;">Ekstra Bilgiler</p>
+            <p style="font-weight:600; margin-top:20px; margin-bottom:10px; border-bottom:2px solid var(--gray-100); padding-bottom:5px; color:var(--primary);">Ekstra Bilgiler</p>
             
-            <div style="display:flex; gap:10px; margin-bottom:10px;">
-                <div style="flex:1;">
-                    <label style="display:block; font-weight:600; margin-bottom:3px; font-size:0.8rem;">Ekstra 1</label>
-                    <input type="text" id="edit-std-ex1" class="swal2-input" value="${std.extra1 || ''}" style="margin:0; width:100%; height:30px; font-size:0.85rem;">
+            <div class="modal-row" style="margin-bottom:10px;">
+                <div class="modal-form-group">
+                    <label style="font-weight:600; font-size:0.8rem;">Ekstra 1</label>
+                    <input type="text" id="edit-std-ex1" class="swal2-input" value="${std.extra1 || ''}" style="margin:0; width:100%; height:34px; font-size:0.85rem;">
                 </div>
-                <div style="flex:1;">
-                    <label style="display:block; font-weight:600; margin-bottom:3px; font-size:0.8rem;">Ekstra 2</label>
-                    <input type="text" id="edit-std-ex2" class="swal2-input" value="${std.extra2 || ''}" style="margin:0; width:100%; height:30px; font-size:0.85rem;">
-                </div>
-            </div>
-            <div style="display:flex; gap:10px; margin-bottom:10px;">
-                <div style="flex:1;">
-                    <label style="display:block; font-weight:600; margin-bottom:3px; font-size:0.8rem;">Ekstra 3</label>
-                    <input type="text" id="edit-std-ex3" class="swal2-input" value="${std.extra3 || ''}" style="margin:0; width:100%; height:30px; font-size:0.85rem;">
-                </div>
-                <div style="flex:1;">
-                    <label style="display:block; font-weight:600; margin-bottom:3px; font-size:0.8rem;">Ekstra 4</label>
-                    <input type="text" id="edit-std-ex4" class="swal2-input" value="${std.extra4 || ''}" style="margin:0; width:100%; height:30px; font-size:0.85rem;">
-                </div>
-                <div style="flex:1;">
-                    <label style="display:block; font-weight:600; margin-bottom:3px; font-size:0.8rem;">Ekstra 5</label>
-                    <input type="text" id="edit-std-ex5" class="swal2-input" value="${std.extra5 || ''}" style="margin:0; width:100%; height:30px; font-size:0.85rem;">
+                <div class="modal-form-group">
+                    <label style="font-weight:600; font-size:0.8rem;">Ekstra 2</label>
+                    <input type="text" id="edit-std-ex2" class="swal2-input" value="${std.extra2 || ''}" style="margin:0; width:100%; height:34px; font-size:0.85rem;">
                 </div>
             </div>
+            <div class="modal-row" style="margin-bottom:10px;">
+                <div class="modal-form-group">
+                    <label style="font-weight:600; font-size:0.8rem;">Ekstra 3</label>
+                    <input type="text" id="edit-std-ex3" class="swal2-input" value="${std.extra3 || ''}" style="margin:0; width:100%; height:34px; font-size:0.85rem;">
+                </div>
+                <div class="modal-form-group">
+                    <label style="font-weight:600; font-size:0.8rem;">Ekstra 4</label>
+                    <input type="text" id="edit-std-ex4" class="swal2-input" value="${std.extra4 || ''}" style="margin:0; width:100%; height:34px; font-size:0.85rem;">
+                </div>
+                <div class="modal-form-group">
+                    <label style="font-weight:600; font-size:0.8rem;">Ekstra 5</label>
+                    <input type="text" id="edit-std-ex5" class="swal2-input" value="${std.extra5 || ''}" style="margin:0; width:100%; height:34px; font-size:0.85rem;">
+                </div>
             </div>
-        </div>`;
+        </div>
+`;
 
         Swal.fire({
             title: 'Öğrenci Kartı Düzenle',
