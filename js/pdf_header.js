@@ -368,8 +368,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         // İçerikleri (2. satır vb) 2 mm daha yukarı (5.67 pt) taşı
         const contentBaseY = drawY + (drawH * 0.15) + textUp + (5.67 * sf);
 
-        // Okul adını yukarı taşı (Baseline + offset)
-        drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 22 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
+        // Okul adını 2mm aşağı indir (22 - 5.67 = 16.33)
+        drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 16.33 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
         drawCenterText(examText, contentX, contentBaseY, contentMidW, row2H, getFitSize(examText, contentMidW, 13), mainFont);
 
         // Yatay Çizgi: 2. satırın altına, kenarlardan 3cm uzaklıkta
