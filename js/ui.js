@@ -2664,6 +2664,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             const PDFDocument = pdfLib.PDFDocument;
             const mergedPdf = await PDFDocument.create();
 
+            // v4.1 PRE-EMBED FONTS into the FINAL document once
+            if (typeof fontkit !== 'undefined') mergedPdf.registerFontkit(fontkit);
+            const fallbackFont = await mergedPdf.embedFont(pdfLib.StandardFonts.HelveticaBold);
+            let mainFont = null, nameFont = null, schoolFont = null;
+            try {
+                if (window._cachedFonts.main) mainFont = await mergedPdf.embedFont(window._cachedFonts.main);
+                if (window._cachedFonts.nameFont) nameFont = await mergedPdf.embedFont(window._cachedFonts.nameFont);
+                if (window._cachedFonts.schoolFont) schoolFont = await mergedPdf.embedFont(window._cachedFonts.schoolFont);
+            } catch (e) { }
+            mainFont = mainFont || fallbackFont;
+            nameFont = nameFont || mainFont;
+            schoolFont = schoolFont || mainFont;
+
             let totalPages = 0;
 
             for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
@@ -2685,12 +2698,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } catch (e) { console.error(`Failed to load: ${paperPath}`, e); }
                 }
 
-                // v4.0 RECONSTRUCTION: Direct Subject Source Cloning
                 let subjectDoc;
                 try {
-                    if (paperBytes) {
-                        subjectDoc = await PDFDocument.load(paperBytes);
-                    } else {
+                    if (paperBytes) subjectDoc = await PDFDocument.load(paperBytes);
+                    else {
                         subjectDoc = await PDFDocument.create();
                         subjectDoc.addPage([A4W, A4H]);
                     }
@@ -2699,27 +2710,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     subjectDoc.addPage([A4W, A4H]);
                 }
 
-                // Setup fonts once for this subject source
-                if (typeof fontkit !== 'undefined') subjectDoc.registerFontkit(fontkit);
-                const fallbackFont = await subjectDoc.embedFont(pdfLib.StandardFonts.HelveticaBold);
-                let mainFont = null, nameFont = null, schoolFont = null;
-                try {
-                    if (window._cachedFonts.main) mainFont = await subjectDoc.embedFont(window._cachedFonts.main);
-                    if (window._cachedFonts.nameFont) nameFont = await subjectDoc.embedFont(window._cachedFonts.nameFont);
-                    if (window._cachedFonts.schoolFont) schoolFont = await subjectDoc.embedFont(window._cachedFonts.schoolFont);
-                } catch (e) { }
-                mainFont = mainFont || fallbackFont;
-                nameFont = nameFont || mainFont;
-                schoolFont = schoolFont || mainFont;
+                // NOW CLONE the head-rendered subject doc into the merged PDF
+                const indicesToCopy = subjectDoc.getPageIndices();
+                for (let copyIdx = 0; copyIdx < item.count; copyIdx++) {
+                    if (progLine) progLine.textContent = `${item.subject} (${itemIdx + 1}/${items.length}) - Kopya ${copyIdx + 1}/${item.count}...`;
 
-                // DRAW HEADER ONCE on the subject source document (first page)
-                const subjectPages = subjectDoc.getPages();
-                if (subjectPages.length > 0) {
-                    const firstPage = subjectPages[0];
-                    const { width } = firstPage.getSize();
+                    // 1. Copy pages to the merged PDF first
+                    const copiedPages = await mergedPdf.copyPages(subjectDoc, indicesToCopy);
+
+                    // 2. Identify the first page of this batch for header rendering
+                    const firstCopiedPage = copiedPages[0];
+                    const { width } = firstCopiedPage.getSize();
                     const sf = width / A4W;
 
-                    await window.renderStudentPDFHeader(subjectDoc, firstPage, {
+                    // 3. DRAW HEADER DIRECTLY on the merged PDF's page (avoiding source->target loss)
+                    await window.renderStudentPDFHeader(mergedPdf, firstCopiedPage, {
                         subject: item.subject,
                         examNo,
                         name: '', class: '', no: '', room: '', seat: ''
@@ -2729,14 +2734,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         metadata: { pdfHeaderDesign: designType, examNo },
                         designType
                     });
-                }
 
-                // NOW CLONE the head-rendered subject doc into the merged PDF
-                const indicesToCopy = subjectDoc.getPageIndices();
-                for (let copyIdx = 0; copyIdx < item.count; copyIdx++) {
-                    if (progLine) progLine.textContent = `${item.subject} (${itemIdx + 1}/${items.length}) - Kopya ${copyIdx + 1}/${item.count}...`;
-
-                    const copiedPages = await mergedPdf.copyPages(subjectDoc, indicesToCopy);
+                    // 4. Add all copied (and now header-rendered) pages to the final PDF
                     copiedPages.forEach(p => mergedPdf.addPage(p));
                     totalPages += copiedPages.length;
                 }
