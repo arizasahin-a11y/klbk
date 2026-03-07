@@ -2683,64 +2683,63 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } catch (e) { console.error(`Failed to load: ${paperPath}`, e); }
                 }
 
-                // V3.1 REVOLUTION: Create ONE template per subject, then CLONE ALL its pages
-                let templateDoc;
-                try {
-                    if (paperBytes) {
-                        templateDoc = await PDFLib.PDFDocument.load(paperBytes);
-                    } else {
-                        templateDoc = await PDFLib.PDFDocument.create();
-                        templateDoc.addPage([A4W, A4H]);
-                    }
-                } catch (e) {
-                    console.error("Template load failed, creating blank", e);
-                    templateDoc = await PDFLib.PDFDocument.create();
-                    templateDoc.addPage([A4W, A4H]);
-                }
-
-                if (typeof fontkit !== 'undefined') templateDoc.registerFontkit(fontkit);
-                const fallback = await templateDoc.embedFont(StandardFonts.HelveticaBold);
-                let mainFont = null, nameFont = null, schoolFont = null;
-                try {
-                    if (window._cachedFonts.main) mainFont = await templateDoc.embedFont(window._cachedFonts.main);
-                    if (window._cachedFonts.nameFont) nameFont = await templateDoc.embedFont(window._cachedFonts.nameFont);
-                    if (window._cachedFonts.schoolFont) schoolFont = await templateDoc.embedFont(window._cachedFonts.schoolFont);
-                } catch (e) { }
-                mainFont = mainFont || fallback;
-                nameFont = nameFont || mainFont;
-                schoolFont = schoolFont || mainFont;
-
-                // Draw header ONLY on the first page of the template
-                const templatePages = templateDoc.getPages();
-                if (templatePages.length > 0) {
-                    const firstPage = templatePages[0];
-                    const { width } = firstPage.getSize();
-                    const sf = width / A4W;
-
-                    await window.renderStudentPDFHeader(templateDoc, firstPage, {
-                        subject: item.subject,
-                        examNo,
-                        name: '', class: '', no: '', room: '', seat: ''
-                    }, {
-                        mainFont, nameFont, schoolFont, sf,
-                        session: ses,
-                        metadata: { pdfHeaderDesign: designType, examNo },
-                        designType
-                    });
-                }
-
-                // Bake the template
-                const bakedBytes = await templateDoc.save();
-                const bakedTemplate = await PDFLib.PDFDocument.load(bakedBytes);
-                const bakedIndices = bakedTemplate.getPageIndices();
-
+                // V3.2 FINAL STABILITY: Fresh load per copy to avoid all async/memory issues
                 for (let copyIdx = 0; copyIdx < item.count; copyIdx++) {
-                    // Copy ALL pages from the baked template
-                    const copiedPages = await mergedPdf.copyPages(bakedTemplate, bakedIndices);
+                    const progEl = document.getElementById('spare-progress');
+                    if (progEl) progEl.textContent = `${item.subject} (${itemIdx + 1}/${items.length}) - Kopya ${copyIdx + 1}/${item.count}...`;
+
+                    let tempDoc;
+                    try {
+                        if (paperBytes) {
+                            tempDoc = await PDFLib.PDFDocument.load(paperBytes);
+                        } else {
+                            tempDoc = await PDFLib.PDFDocument.create();
+                            tempDoc.addPage([A4W, A4H]);
+                        }
+                    } catch (e) {
+                        tempDoc = await PDFLib.PDFDocument.create();
+                        tempDoc.addPage([A4W, A4H]);
+                    }
+
+                    if (typeof fontkit !== 'undefined') tempDoc.registerFontkit(fontkit);
+                    const fallback = await tempDoc.embedFont(StandardFonts.HelveticaBold);
+                    let mainFont = null, nameFont = null, schoolFont = null;
+                    try {
+                        if (window._cachedFonts.main) mainFont = await tempDoc.embedFont(window._cachedFonts.main);
+                        if (window._cachedFonts.nameFont) nameFont = await tempDoc.embedFont(window._cachedFonts.nameFont);
+                        if (window._cachedFonts.schoolFont) schoolFont = await tempDoc.embedFont(window._cachedFonts.schoolFont);
+                    } catch (e) { }
+                    mainFont = mainFont || fallback;
+                    nameFont = nameFont || mainFont;
+                    schoolFont = schoolFont || mainFont;
+
+                    const pages = tempDoc.getPages();
+                    if (pages.length > 0) {
+                        const firstPage = pages[0];
+                        const { width } = firstPage.getSize();
+                        const sf = width / A4W;
+
+                        await window.renderStudentPDFHeader(tempDoc, firstPage, {
+                            subject: item.subject,
+                            examNo,
+                            name: '', class: '', no: '', room: '', seat: ''
+                        }, {
+                            mainFont, nameFont, schoolFont, sf,
+                            session: ses,
+                            metadata: { pdfHeaderDesign: designType, examNo },
+                            designType
+                        });
+                    }
+
+                    // Copy ALL pages of this fresh doc to the merged PDF
+                    const indices = tempDoc.getPageIndices();
+                    const copiedPages = await mergedPdf.copyPages(tempDoc, indices);
                     copiedPages.forEach(p => mergedPdf.addPage(p));
                     totalPages += copiedPages.length;
+
+                    // Help GC
+                    tempDoc = null;
                 }
-                templateDoc = null;
             }
 
             // Save merged PDF and print once
