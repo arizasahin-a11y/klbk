@@ -2728,7 +2728,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Bake the subject template to catch all async/drawing modifications
                 const bakedBytes = await subjectTemplateDoc.save();
-                const bakedDoc = await PDFDocument.load(bakedBytes);
+                let bakedDoc = await PDFDocument.load(bakedBytes);
                 const bakedIndices = bakedDoc.getPageIndices();
 
                 // Now clone for students/copies
