@@ -4694,9 +4694,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
                             <select class="swal2-select meta-header-design-select" data-sub="${sub}" style="margin:0; height:38px; font-size:0.85rem; width:160px;">
                                 <option value="1" ${subHeader === '1' ? 'selected' : ''}>Klasik Çerçeveli</option>
+                                <option value="2" ${subHeader === '2' ? 'selected' : ''}>Modern Hatlar</option>
+                                <option value="3" ${subHeader === '3' ? 'selected' : ''}>Köşe Vurgulu Zarif</option>
+                                <option value="4" ${subHeader === '4' ? 'selected' : ''}>Osmanlı Teması</option>
+                                <option value="5" ${subHeader === '5' ? 'selected' : ''}>Japonya Teması</option>
+                                <option value="6" ${subHeader === '6' ? 'selected' : ''}>Seddülbahir Teması</option>
+                                <option value="7" ${subHeader === '7' ? 'selected' : ''}>Latin Teması</option>
+                                <option value="8" ${subHeader === '8' ? 'selected' : ''}>Arap Teması</option>
                                 <option value="9" ${subHeader === '9' ? 'selected' : ''}>Atatürk Teması</option>
                                 <option value="10" ${subHeader === '10' ? 'selected' : ''}>Bulut Teması</option>
-                                <option value="2" ${subHeader === '2' ? 'selected' : ''}>Modern Hatlar</option>
                                 <option value="11" ${subHeader === '11' ? 'selected' : ''}>Testere Dişi</option>
                             </select>
                             <div style="display:flex; align-items:center; gap:0.5rem;">
