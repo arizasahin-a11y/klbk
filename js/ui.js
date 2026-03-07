@@ -2663,6 +2663,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             const mergedPdf = await PDFDocument.create();
             if (typeof fontkit !== 'undefined') mergedPdf.registerFontkit(fontkit);
 
+            // Embed fonts ONCE into mergedPdf
+            const fallbackFont = await mergedPdf.embedFont(StandardFonts.HelveticaBold);
+            let mMainFont = null, mNameFont = null, mSchoolFont = null;
+            try {
+                if (window._cachedFonts.main) mMainFont = await mergedPdf.embedFont(window._cachedFonts.main);
+                if (window._cachedFonts.nameFont) mNameFont = await mergedPdf.embedFont(window._cachedFonts.nameFont);
+                if (window._cachedFonts.schoolFont) mSchoolFont = await mergedPdf.embedFont(window._cachedFonts.schoolFont);
+            } catch (e) { console.error('Font embed error', e); }
+            mMainFont = mMainFont || fallbackFont;
+            mNameFont = mNameFont || mMainFont;
+            mSchoolFont = mSchoolFont || mMainFont;
+
             let totalPages = 0;
 
             for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
@@ -2677,41 +2689,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const progEl = document.getElementById('spare-progress');
                 if (progEl) progEl.textContent = `${item.subject} (${itemIdx + 1}/${items.length})...`;
 
-                for (let copyIdx = 0; copyIdx < item.count; copyIdx++) {
-                    let tempDoc;
+                // Load paper PDF bytes once per subject
+                let paperDoc = null;
+                if (paperPath) {
+                    try {
+                        const pdfBytes = await window.getFileBytes(paperPath);
+                        paperDoc = await PDFDocument.load(pdfBytes);
+                    } catch (e) { paperDoc = null; }
+                }
 
-                    if (paperPath) {
-                        try {
-                            const pdfBytes = await window.getFileBytes(paperPath);
-                            tempDoc = await PDFDocument.load(pdfBytes);
-                        } catch (e) {
-                            tempDoc = await PDFDocument.create();
-                            tempDoc.addPage([A4W, A4H]);
-                        }
+                for (let copyIdx = 0; copyIdx < item.count; copyIdx++) {
+                    let targetPage;
+
+                    if (paperDoc) {
+                        // Copy first page from paper PDF into mergedPdf
+                        const [copiedPage] = await mergedPdf.copyPages(paperDoc, [0]);
+                        mergedPdf.addPage(copiedPage);
+                        targetPage = mergedPdf.getPages()[mergedPdf.getPageCount() - 1];
                     } else {
-                        tempDoc = await PDFDocument.create();
-                        tempDoc.addPage([A4W, A4H]);
+                        // Add blank A4 page
+                        targetPage = mergedPdf.addPage([A4W, A4H]);
                     }
 
-                    if (typeof fontkit !== 'undefined') tempDoc.registerFontkit(fontkit);
-
-                    const fallback = await tempDoc.embedFont(StandardFonts.HelveticaBold);
-                    let mainFont = null, nameFont = null, schoolFont = null;
-                    try {
-                        if (window._cachedFonts.main) mainFont = await tempDoc.embedFont(window._cachedFonts.main);
-                        if (window._cachedFonts.nameFont) nameFont = await tempDoc.embedFont(window._cachedFonts.nameFont);
-                        if (window._cachedFonts.schoolFont) schoolFont = await tempDoc.embedFont(window._cachedFonts.schoolFont);
-                    } catch (e) { console.error('Font embed error', e); }
-
-                    mainFont = mainFont || fallback;
-                    nameFont = nameFont || mainFont;
-                    schoolFont = schoolFont || mainFont;
-
-                    const page = tempDoc.getPages()[0];
-                    const { width, height } = page.getSize();
+                    const { width, height } = targetPage.getSize();
                     const sf = width / A4W;
 
-                    // Spare paper info: subject and exam info filled, student fields empty
                     const spareInfo = {
                         subject: item.subject,
                         examNo: examNo,
@@ -2722,17 +2724,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                         seat: ''
                     };
 
-                    await window.renderStudentPDFHeader(tempDoc, page, spareInfo, {
-                        mainFont, nameFont, schoolFont, sf,
+                    await window.renderStudentPDFHeader(mergedPdf, targetPage, spareInfo, {
+                        mainFont: mMainFont, nameFont: mNameFont, schoolFont: mSchoolFont, sf,
                         session: ses,
                         metadata: { pdfHeaderDesign: designType, examNo },
                         designType
                     });
 
-                    // Copy all pages from temp into merged
-                    const copiedPages = await mergedPdf.copyPages(tempDoc, tempDoc.getPageIndices());
-                    copiedPages.forEach(p => mergedPdf.addPage(p));
-                    totalPages += copiedPages.length;
+                    totalPages++;
                 }
             }
 
