@@ -2683,15 +2683,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } catch (e) { console.error(`Failed to load: ${paperPath}`, e); }
                 }
 
-                // V3.0 REVOLUTION: Create ONE template page per subject, then CLONE it
+                // V3.1 REVOLUTION: Create ONE template per subject, then CLONE ALL its pages
                 let templateDoc;
                 try {
-                    if (paperBytes) templateDoc = await PDFLib.PDFDocument.load(paperBytes);
-                    else {
+                    if (paperBytes) {
+                        templateDoc = await PDFLib.PDFDocument.load(paperBytes);
+                    } else {
                         templateDoc = await PDFLib.PDFDocument.create();
                         templateDoc.addPage([A4W, A4H]);
                     }
                 } catch (e) {
+                    console.error("Template load failed, creating blank", e);
                     templateDoc = await PDFLib.PDFDocument.create();
                     templateDoc.addPage([A4W, A4H]);
                 }
@@ -2708,25 +2710,35 @@ document.addEventListener('DOMContentLoaded', async () => {
                 nameFont = nameFont || mainFont;
                 schoolFont = schoolFont || mainFont;
 
-                const page = templateDoc.getPages()[0];
-                const { width } = page.getSize();
-                const sf = width / A4W;
+                // Draw header ONLY on the first page of the template
+                const templatePages = templateDoc.getPages();
+                if (templatePages.length > 0) {
+                    const firstPage = templatePages[0];
+                    const { width } = firstPage.getSize();
+                    const sf = width / A4W;
 
-                await window.renderStudentPDFHeader(templateDoc, page, { subject: item.subject, examNo, name: '', class: '', no: '', room: '', seat: '' }, {
-                    mainFont, nameFont, schoolFont, sf,
-                    session: ses,
-                    metadata: { pdfHeaderDesign: designType, examNo },
-                    designType
-                });
+                    await window.renderStudentPDFHeader(templateDoc, firstPage, {
+                        subject: item.subject,
+                        examNo,
+                        name: '', class: '', no: '', room: '', seat: ''
+                    }, {
+                        mainFont, nameFont, schoolFont, sf,
+                        session: ses,
+                        metadata: { pdfHeaderDesign: designType, examNo },
+                        designType
+                    });
+                }
 
-                // Bake the template once
+                // Bake the template
                 const bakedBytes = await templateDoc.save();
                 const bakedTemplate = await PDFLib.PDFDocument.load(bakedBytes);
+                const bakedIndices = bakedTemplate.getPageIndices();
 
                 for (let copyIdx = 0; copyIdx < item.count; copyIdx++) {
-                    const [copiedPage] = await mergedPdf.copyPages(bakedTemplate, [0]);
-                    mergedPdf.addPage(copiedPage);
-                    totalPages++;
+                    // Copy ALL pages from the baked template
+                    const copiedPages = await mergedPdf.copyPages(bakedTemplate, bakedIndices);
+                    copiedPages.forEach(p => mergedPdf.addPage(p));
+                    totalPages += copiedPages.length;
                 }
                 templateDoc = null;
             }
