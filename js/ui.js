@@ -2573,33 +2573,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         let listHtml = subjectNames.map((sub, idx) => `
-            <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:${idx % 2 === 0 ? '#f8fafc' : '#fff'}; border-radius:8px; margin-bottom:4px;">
-                <i class="fa-solid fa-file-pdf" style="color:var(--primary); font-size:1.1rem; flex-shrink:0;"></i>
-                <span style="flex:1; font-weight:600; font-size:0.9rem; color:#1e293b; word-break:break-word;">${sub}</span>
-                <input type="number" class="spare-count-input" data-sub="${sub}" value="3" min="0" max="50"
-                    style="width:55px; height:34px; text-align:center; border:1.5px solid var(--gray-300); border-radius:8px; font-size:0.95rem; font-weight:700; color:var(--primary);">
-                <span style="font-size:0.75rem; color:var(--gray-500); font-weight:500;">adet</span>
+            <div style="display:flex; align-items:center; gap:12px; padding:12px; background:${idx % 2 === 0 ? 'rgba(79, 70, 229, 0.03)' : '#fff'}; border-radius:10px; margin-bottom:6px; border:1px solid rgba(0,0,0,0.03);">
+                <div style="width:36px; height:36px; background:var(--primary); color:white; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:1.1rem;">
+                    <i class="fa-solid fa-file-pdf"></i>
+                </div>
+                <div style="flex:1; text-align:left;">
+                    <div style="font-weight:700; font-size:0.95rem; color:#1e293b; line-height:1.2;">${sub}</div>
+                    <div style="font-size:0.75rem; color:var(--gray-500); margin-top:2px;">Yedek Kağıt Adedi</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <input type="number" class="spare-count-input" data-sub="${sub}" value="3" min="0" max="100"
+                        style="width:60px; height:38px; text-align:center; border:2px solid var(--gray-200); border-radius:8px; font-size:1.1rem; font-weight:800; color:var(--primary); background:white;">
+                    <span style="font-size:0.8rem; color:var(--gray-400); font-weight:600;">adet</span>
+                </div>
             </div>
         `).join('');
 
         Swal.fire({
-            title: '<i class="fa-solid fa-copy" style="color:var(--primary);margin-right:8px;"></i>Yedek Kağıt Yazdır',
-            customClass: { popup: 'swal2-responsive-popup' },
-            width: Math.min(480, window.innerWidth - 24),
+            title: '<div style="display:flex; align-items:center; gap:10px; justify-content:center;"><i class="fa-solid fa-copy" style="color:var(--primary);"></i> <span>Yedek Kağıt Yazdır (v5.0)</span></div>',
+            width: Math.min(520, window.innerWidth - 30),
+            padding: '1.5rem',
             html: `
-                <div style="text-align:left;">
-                    <p style="font-size:0.85rem; color:var(--gray-500); margin-bottom:12px;">
-                        Her ders için kaç adet <strong>yedek kağıt</strong> (öğrenci bilgisi olmadan sadece başlıklı) yazdırılacağını belirleyin.
-                    </p>
-                    <div style="max-height:50vh; overflow-y:auto; padding-right:4px;">
+                <div style="text-align:left; margin-top:10px;">
+                    <div style="background:var(--primary); color:white; padding:12px; border-radius:10px; margin-bottom:15px; font-size:0.85rem; line-height:1.4; display:flex; gap:10px; align-items:center;">
+                        <i class="fa-solid fa-circle-info" style="font-size:1.2rem;"></i>
+                        <span>Bu dökümanlarda <b>öğrenci bilgileri (Ad, Sınıf, No vb.) boş</b> bırakılacaktır. Sadece sınav bilgileri ve başlıklar yazdırılır.</span>
+                    </div>
+                    <div style="max-height:60vh; overflow-y:auto; padding-right:6px; margin-bottom:10px;" class="luxury-scroll">
                         ${listHtml}
                     </div>
                 </div>
+                <style>
+                    .luxury-scroll::-webkit-scrollbar { width: 6px; }
+                    .luxury-scroll::-webkit-scrollbar-track { background: transparent; }
+                    .luxury-scroll::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 10px; }
+                </style>
             `,
             showCancelButton: true,
-            confirmButtonText: '<i class="fa-solid fa-print"></i> Yazdır',
+            confirmButtonText: '<i class="fa-solid fa-print"></i> Yazdırmayı Başlat',
             cancelButtonText: 'İptal',
             confirmButtonColor: '#4f46e5',
+            reverseButtons: true,
             preConfirm: () => {
                 const items = [];
                 document.querySelectorAll('.spare-count-input').forEach(inp => {
@@ -2607,7 +2621,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (count > 0) items.push({ subject: inp.getAttribute('data-sub'), count });
                 });
                 if (items.length === 0) {
-                    Swal.showValidationMessage('En az bir ders için 1 veya daha fazla adet girin.');
+                    Swal.showValidationMessage('Lütfen en az bir ders için adet giriniz.');
                     return false;
                 }
                 return { sessionId, items };
@@ -2620,14 +2634,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     window.printSparePapers = async function (sessionId, items) {
-        const { PDFDocument, rgb, StandardFonts } = PDFLib;
+        const A4W = 595.28, A4H = 841.89;
+        const pdfLib = window.PDFLib;
+        const PDFDocument = pdfLib.PDFDocument;
         const sessions = DataManager.getExamSessions();
         const ses = sessions.find(s => s.id === sessionId);
         if (!ses) return;
 
         Swal.fire({
             title: 'Yedek Kağıtlar Hazırlanıyor...',
-            html: '<div id="spare-progress" style="font-size:0.9rem; color:var(--gray-600);">Başlatılıyor...</div>',
+            html: '<div id="spare-progress" style="font-size:0.9rem; color:var(--gray-600); font-weight:bold;">Motor Isınıyor...</div>',
             allowOutsideClick: false,
             showConfirmButton: false,
             didOpen: () => Swal.showLoading()
@@ -2635,44 +2651,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         try {
             const metadata = ses.subjectMetadata || {};
-            const school = DataManager.getSchoolSettings();
-
-            // Load fonts using same cache as main print system
-            if (!window._cachedFonts) window._cachedFonts = {};
-
-            if (!window._cachedFonts.main) {
-                try {
-                    const bytes = await window.getFileBytes('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf');
-                    if (bytes && bytes.byteLength > 1000) window._cachedFonts.main = bytes;
-                } catch (e) { console.warn('Main font fetch failed'); }
-            }
-            if (!window._cachedFonts.nameFont) {
-                try {
-                    const bytes = await window.getFileBytes('fonts/MonotypeCorsiva.ttf');
-                    if (bytes && bytes.byteLength > 1000) window._cachedFonts.nameFont = bytes;
-                } catch (e) { }
-            }
-            if (!window._cachedFonts.schoolFont) {
-                try {
-                    const bytes = await window.getFileBytes('fonts/SnapITC.ttf');
-                    if (bytes && bytes.byteLength > 1000) window._cachedFonts.schoolFont = bytes;
-                } catch (e) { }
-            }
-
-            const A4W = 595.28, A4H = 841.89;
-            const pdfLib = window.PDFLib;
-            const PDFDocument = pdfLib.PDFDocument;
             const mergedPdf = await PDFDocument.create();
 
-            // v4.1 PRE-EMBED FONTS into the FINAL document once
+            // v5.0 Font Embedding
             if (typeof fontkit !== 'undefined') mergedPdf.registerFontkit(fontkit);
             const fallbackFont = await mergedPdf.embedFont(pdfLib.StandardFonts.HelveticaBold);
             let mainFont = null, nameFont = null, schoolFont = null;
             try {
-                if (window._cachedFonts.main) mainFont = await mergedPdf.embedFont(window._cachedFonts.main);
-                if (window._cachedFonts.nameFont) nameFont = await mergedPdf.embedFont(window._cachedFonts.nameFont);
-                if (window._cachedFonts.schoolFont) schoolFont = await mergedPdf.embedFont(window._cachedFonts.schoolFont);
-            } catch (e) { }
+                if (window._cachedFonts?.main) mainFont = await mergedPdf.embedFont(window._cachedFonts.main);
+                if (window._cachedFonts?.nameFont) nameFont = await mergedPdf.embedFont(window._cachedFonts.nameFont);
+                if (window._cachedFonts?.schoolFont) schoolFont = await mergedPdf.embedFont(window._cachedFonts.schoolFont);
+            } catch (e) { /* Font embedding errors are non-critical, fallback will be used */ }
             mainFont = mainFont || fallbackFont;
             nameFont = nameFont || mainFont;
             schoolFont = schoolFont || mainFont;
@@ -2689,45 +2678,42 @@ document.addEventListener('DOMContentLoaded', async () => {
                     : '';
 
                 const progLine = document.getElementById('spare-progress');
-                if (progLine) progLine.textContent = `${item.subject} (${itemIdx + 1}/${items.length}) hazırlanıyor...`;
+                if (progLine) progLine.textContent = `${item.subject} (${itemIdx + 1}/${items.length}) işleniyor...`;
 
                 let paperBytes = null;
                 if (paperPath) {
                     try {
                         paperBytes = await window.getFileBytes(paperPath);
-                    } catch (e) { console.error(`Failed to load: ${paperPath}`, e); }
+                    } catch (e) { console.error(`Failed to load pdf for ${item.subject}`, e); }
                 }
 
-                let subjectDoc;
+                let sourceDoc;
                 try {
-                    if (paperBytes) subjectDoc = await PDFDocument.load(paperBytes);
+                    if (paperBytes) sourceDoc = await PDFDocument.load(paperBytes);
                     else {
-                        subjectDoc = await PDFDocument.create();
-                        subjectDoc.addPage([A4W, A4H]);
+                        sourceDoc = await PDFDocument.create();
+                        sourceDoc.addPage([A4W, A4H]);
                     }
                 } catch (e) {
-                    subjectDoc = await PDFDocument.create();
-                    subjectDoc.addPage([A4W, A4H]);
+                    console.error(`Failed to load or create PDF for ${item.subject}, creating blank page.`, e);
+                    sourceDoc = await PDFDocument.create();
+                    sourceDoc.addPage([A4W, A4H]);
                 }
 
-                // NOW CLONE the head-rendered subject doc into the merged PDF
-                const indicesToCopy = subjectDoc.getPageIndices();
+                const indicesToCopy = sourceDoc.getPageIndices();
                 for (let copyIdx = 0; copyIdx < item.count; copyIdx++) {
                     if (progLine) progLine.textContent = `${item.subject} (${itemIdx + 1}/${items.length}) - Kopya ${copyIdx + 1}/${item.count}...`;
 
-                    // 1. Copy pages to the merged PDF first
-                    const copiedPages = await mergedPdf.copyPages(subjectDoc, indicesToCopy);
-
-                    // 2. Identify the first page of this batch for header rendering
+                    const copiedPages = await mergedPdf.copyPages(sourceDoc, indicesToCopy);
                     const firstCopiedPage = copiedPages[0];
                     const { width } = firstCopiedPage.getSize();
                     const sf = width / A4W;
 
-                    // 3. DRAW HEADER DIRECTLY on the merged PDF's page (avoiding source->target loss)
+                    // v5.0 STERILE HEADER (No Student Data)
                     await window.renderStudentPDFHeader(mergedPdf, firstCopiedPage, {
                         subject: item.subject,
                         examNo,
-                        name: '', class: '', no: '', room: '', seat: ''
+                        name: '', class: '', no: '', room: '', seat: ''  // Explicitly EMPTY
                     }, {
                         mainFont, nameFont, schoolFont, sf,
                         session: ses,
@@ -2735,57 +2721,40 @@ document.addEventListener('DOMContentLoaded', async () => {
                         designType
                     });
 
-                    // 4. Add all copied (and now header-rendered) pages to the final PDF
                     copiedPages.forEach(p => mergedPdf.addPage(p));
                     totalPages += copiedPages.length;
                 }
-
-                // Cleanup subject memory
-                subjectDoc = null;
+                // Ensure sourceDoc is nullified after use to help with garbage collection
+                sourceDoc = null;
             }
 
-            // Save merged PDF and print once
-            const progEl = document.getElementById('spare-progress');
-            if (progEl) progEl.textContent = `${totalPages} sayfa yazdırılıyor...`;
-
-            const mergedBytes = await mergedPdf.save();
-            const blob = new Blob([mergedBytes], { type: 'application/pdf' });
-            const url = URL.createObjectURL(blob);
-
-            const iframe = document.createElement('iframe');
-            iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:0;height:0;';
-            iframe.src = url;
-            document.body.appendChild(iframe);
-
-            await new Promise(resolve => {
-                iframe.onload = () => {
-                    setTimeout(() => {
-                        try { iframe.contentWindow.print(); } catch (e) { console.error('Print error', e); }
-                        setTimeout(() => {
-                            document.body.removeChild(iframe);
-                            URL.revokeObjectURL(url);
-                            resolve();
-                        }, 2000);
-                    }, 500);
-                };
-            });
-
-            Swal.fire({
-                icon: 'success',
-                title: 'Yedek Kağıtlar Yazdırıldı',
-                text: `${items.reduce((sum, i) => sum + i.count, 0)} adet yedek kağıt yazdırma komutu gönderildi.`,
-                timer: 3000,
-                showConfirmButton: false
-            });
+            if (totalPages > 0) {
+                const pdfBytes = await mergedPdf.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const win = window.open(url, '_blank');
+                if (win) {
+                    win.onload = () => { setTimeout(() => win.print(), 500); };
+                } else {
+                    Swal.fire({
+                        title: 'Yedek Kağıtlar Hazır',
+                        text: 'Döküman yeni sekmede açıldı.',
+                        icon: 'success'
+                    });
+                }
+            }
+            Swal.close();
         } catch (err) {
             console.error('Yedek kağıt hatası:', err);
-            Swal.fire('Hata', 'Yedek kağıt yazdırılırken bir hata oluştu: ' + err.message, 'error');
+            Swal.fire('Hata', 'Yedek kağıtlar hazırlanırken bir sorun oluştu: ' + err.message, 'error');
         }
     };
 
     // Handle screen view checkbox toggle
     document.body.addEventListener('change', function (e) {
-        if (e.target && e.target.classList.contains('session-screen-check')) {
+        if (!e.target) return;
+
+        if (e.target.classList.contains('session-screen-check')) {
             const sid = e.target.getAttribute('data-id');
             const isChecked = e.target.checked;
             const sessions = DataManager.getExamSessions();
@@ -2804,7 +2773,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        if (e.target && e.target.classList.contains('session-screen-limit')) {
+        if (e.target.classList.contains('session-screen-limit')) {
             const sid = e.target.getAttribute('data-id');
             const limit = parseInt(e.target.value) || 20;
             const sessions = DataManager.getExamSessions();
