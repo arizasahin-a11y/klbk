@@ -2743,14 +2743,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
 
                     const bakedBytes = await tempDoc.save();
-                    const bakedDoc = await PDFDocument.load(bakedBytes);
-                    const copiedPages = await mergedPdf.copyPages(bakedDoc, bakedDoc.getPageIndices());
+                    const bakedDocForCopy = await PDFDocument.load(bakedBytes);
+                    const copiedPages = await mergedPdf.copyPages(bakedDocForCopy, bakedDocForCopy.getPageIndices());
                     copiedPages.forEach(p => mergedPdf.addPage(p));
                     totalPages += copiedPages.length;
 
                     // Clear memory references
                     tempDoc = null;
-                    bakedDoc = null;
                 }
             }
 
