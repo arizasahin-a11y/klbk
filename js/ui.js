@@ -3049,7 +3049,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentStep = "Yaz\u0131c\u0131ya gönderiliyor";
             const iframe = document.createElement('iframe');
             Object.assign(iframe.style, {
-                position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.01', pointerEvents: 'none'
+                position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
             });
             iframe.src = blobUrl;
             document.body.appendChild(iframe);
@@ -3062,7 +3062,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         URL.revokeObjectURL(blobUrl);
                         finalize(iframe);
                     }, 30000); // Wait 30s to allow printer spooling for many pages
-                }, 500);
+                }, 2000); // Wait 2s for layout/images in the PDF
             };
 
             return; // Successfully printed, prevent fallback mechanism
@@ -3099,7 +3099,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const iframe = document.createElement('iframe');
         iframe.src = printPath;
         Object.assign(iframe.style, {
-            position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.01', pointerEvents: 'none'
+            position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
         });
         document.body.appendChild(iframe);
 
@@ -3519,7 +3519,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     const printFrame = document.createElement('iframe');
                     Object.assign(printFrame.style, {
-                        position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.01', pointerEvents: 'none'
+                        position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
                     });
                     printFrame.src = sumUrl;
                     document.body.appendChild(printFrame);
@@ -3856,13 +3856,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         const startPrint = async (isPreview = false) => {
             // ── Sayfa CSS ──────────────────────────────────────────────────
             const pageCss = `
-                body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1e293b; margin: 0; padding: 0; background: #fff; }
                 @page { ${isSeating ? 'size: A4 landscape;' : 'size: A4 portrait;'} margin: 0; }
+                html, body { overflow: visible !important; height: auto !important; min-height: 0 !important; max-height: none !important; margin: 0; padding: 0; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1e293b; background: #fff; }
                 
                 .page { 
                     width: ${isSeating ? '297mm' : '210mm'}; 
-                    height: auto;
-                    min-height: ${isSeating ? '210mm' : '297mm'}; 
+                    height: auto !important;
+                    min-height: 0 !important;
+                    max-height: none !important;
                     padding: 12mm; 
                     box-sizing: border-box; 
                     page-break-after: always; 
