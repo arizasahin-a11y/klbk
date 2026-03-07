@@ -4676,10 +4676,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             subjectsHtml += `
                 <div class="meta-subject-row" style="padding:8px 10px; margin-bottom:6px;">
-                    <div class="meta-subject-header" style="display:flex; align-items:center; gap:8px; flex-wrap:nowrap;">
+                    <div class="meta-subject-header" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; width:100%;">
                         <input type="checkbox" class="meta-sub-check" checked data-sub="${sub}" style="width:18px; height:18px; flex-shrink:0;">
                         <strong style="color:var(--primary); font-size:0.9rem; white-space:nowrap;">${sub}</strong>
-                        <span style="font-size:0.7rem; color:var(--gray-400);">(${subjectStats[sub]?.count || 0})</span>
+                        <span style="font-size:0.7rem; color:var(--gray-400);">(${subjectStats[sub]?.count || 0} Öğrenci)</span>
                         <select class="swal2-select meta-header-design-select" data-sub="${sub}" style="margin:0; height:30px; font-size:0.75rem; width:130px; padding:0 4px; flex-shrink:0;">
                             <option value="1" ${subHeader === '1' ? 'selected' : ''}>Klasik</option>
                             <option value="2" ${subHeader === '2' ? 'selected' : ''}>Modern</option>
