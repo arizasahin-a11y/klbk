@@ -2562,9 +2562,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const ses = sessions.find(s => s.id === sessionId);
         if (!ses) return;
 
-        const subjectNames = ses.subjects
-            ? ses.subjects.map(s => typeof s === 'object' ? s.name : s)
-            : Object.keys(ses.subjectMetadata || {});
+        const metaKeys = Object.keys(ses.subjectMetadata || {});
+        const subjectNames = metaKeys.length > 0
+            ? metaKeys.sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }))
+            : (ses.subjects || []).map(s => typeof s === 'object' ? s.name : s);
 
         if (subjectNames.length === 0) {
             Swal.fire('Uyarı', 'Bu oturumda tanımlı ders bulunamadı.', 'warning');
