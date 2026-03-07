@@ -3033,15 +3033,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             const tx = ox, rx = ox + ow, ty = oy + oh, by = oy;
             const thkThin = 0.5 * sf, edgeThick = 1 * sf;
 
-            // 1) LEFT PROFILE (Facing Left)
-            const facePath = "M 81.1 276.7 C 58.7 278.4 53.7 277.1 49 275.5 C 42.8 273.4 40 268.4 40.2 261.9 C 40.3 259.2 40.8 256.5 41.3 253.8 C 42.4 248 41.9 242.3 38.4 237.4 C 34.6 231.8 33.2 225.7 32 219.2 C 31.8 218.3 31.5 217.4 31.3 216.5 C 27.9 70.4 25.9 71.8 16.1 71.2 C 9.5 70.8 1.8 75.9 0 82.1 C -0.8 84.8 -0.6 88.3 0.4 91.1 C 4.1 101.5 8.2 111.9 12.3 122.2 C 14.1 127 16.2 131.7 18 136.5 C 19.6 141.2 18.8 145.4 14.8 148.9 C 11.2 151.9 9.8 156 10.5 160.5 C 14.1 183.7 18.1 206.8 27.2 228.7 C 33.7 244.5 45.4 255.4 60.3 263.1 C 64.5 265.3 74 269.8 73.1 269.3 C 60.1 273.9 46.2 276.5 31.5 277";
-            const faceScale = oh / 277;
-            page.drawSvgPath(facePath, { x: tx + 5 * sf, y: ty, scale: faceScale, color: navy });
+            // 1) LEFT: Atatürk Profile Facing Left (viewBox 0 0 60 100)
+            const ataPath = "M 45 2 C 38 0, 28 0, 22 4 C 18 7, 16 12, 15 18 C 14 22, 13 26, 11 30 C 9 34, 7 36, 6 40 L 6 44 C 8 45, 9 46, 10 48 C 10 50, 9 53, 8 55 C 7 57, 7 59, 8 61 C 9 62, 10 63, 12 64 C 13 65, 14 67, 15 70 C 16 73, 18 76, 16 80 C 14 83, 12 85, 13 88 C 14 91, 17 93, 20 95 C 23 97, 28 99, 35 100 L 50 100 C 50 96, 50 92, 50 88 C 50 84, 52 80, 52 76 C 52 72, 50 68, 48 64 C 46 60, 46 56, 48 52 C 50 48, 52 44, 52 40 C 52 36, 52 30, 50 24 C 48 18, 48 12, 48 6 C 47 4, 46 3, 45 2 Z";
+            const ataH = oh;
+            const ataW = ataH * 0.6; // aspect ratio 60:100
+            const ataScale = ataH / 100;
+            page.drawSvgPath(ataPath, { x: tx, y: ty, scale: ataScale, color: navy });
 
-            // 2) RIGHT WALKER (Walking Right)
-            const walkPath = "M 55.4 147.1 C 53.4 147 53.4 145.8 55.5 144.2 C 55.8 144 56.5 144 57.3 144 C 57.8 145.4 56.9 146.1 56.2 147.1 Z M 49.2 146.3 C 49 145 49 143.9 49 142.7 C 48.6 141.5 50.4 141.3 50.8 142.2 C 51.7 143.9 51.7 145.1 51.3 145.5 Z M 42.1 145 C 43.8 141.9 45 140.1 47.2 138.2 C 48.8 137.8 49.7 137.3 49.7 135.7 C 48.5 129.5 47.4 128.9 46 128.9 C 45.4 130.7 45.8 131.8 43.3 133.9 C 40.7 133.3 39.8 128.6 38.7 128.6 C 37.2 129.9 35.6 131.8 34.3 132.2 C 34.8 131 36.4 127.9 38 126.3 C 38.3 124.8 35.9 124.6 34.5 123.6 C 34.3 119.3 36.6 118.6 38.7 119.1 C 41.6 122.8 42 124.3 40 127.4 C 41.4 127.6 45.6 126.8 46.8 126 C 54.6 127.6 59.6 129.8 60 130.8";
-            const walkScale = oh / 150 * 1.5;
-            page.drawSvgPath(walkPath, { x: rx - 50 * sf, y: by + 5 * sf, scale: walkScale, color: navy });
+            // 2) RIGHT: Kocatepe Walking Right (viewBox 0 0 70 100)
+            const kocPath = "M 38 4 C 36 2, 33 1, 31 2 C 29 3, 29 6, 30 9 C 31 11, 33 13, 34 14 L 34 16 C 31 18, 28 22, 27 26 C 26 30, 28 34, 30 37 C 32 40, 34 42, 36 46 L 36 50 C 34 52, 32 54, 30 56 C 28 58, 26 62, 24 66 L 20 72 C 18 76, 16 80, 12 84 L 6 92 C 4 95, 2 97, 0 100 L 8 100 C 10 96, 14 92, 18 88 C 22 84, 24 80, 26 76 C 28 72, 30 68, 32 64 L 34 60 C 36 62, 38 66, 38 70 C 38 74, 36 78, 34 82 C 32 86, 28 90, 24 94 L 20 100 L 30 100 C 32 96, 36 92, 38 88 C 40 84, 42 80, 42 76 C 42 72, 42 68, 40 64 L 40 58 C 42 54, 44 50, 44 46 C 44 42, 42 38, 40 35 C 38 32, 38 28, 40 24 C 42 20, 44 16, 42 12 C 41 9, 40 6, 38 4 Z M 50 80 C 45 84, 40 90, 40 94 L 40 100 L 70 100 C 68 96, 62 90, 56 86 C 53 83, 51 81, 50 80 Z";
+            const kocH = oh;
+            const kocW = kocH * 0.7; // aspect ratio 70:100
+            const kocScale = kocH / 100;
+            page.drawSvgPath(kocPath, { x: rx - kocW, y: ty, scale: kocScale, color: navy });
 
             // 3) BORDERS
             page.drawLine({ start: {x: tx, y: ty}, end: {x: rx, y: ty}, thickness: edgeThick, color: navy });
@@ -3049,12 +3053,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawLine({ start: {x: tx, y: ty}, end: {x: tx, y: by}, thickness: edgeThick, color: navy });
             page.drawLine({ start: {x: rx, y: ty}, end: {x: rx, y: by}, thickness: edgeThick, color: navy });
 
-            const startX = tx + 32 * sf, endX = rx - 55 * sf, contentW = endX - startX;
+            // Layout: leave space for silhouettes on edges
+            const silLeftW = ataW + 2 * sf;
+            const silRightW = kocW + 2 * sf;
+            const startX = tx + silLeftW;
+            const contentW = ow - silLeftW - silRightW;
             const sLw = 55 * sf, sMw = contentW - sLw;
-            page.drawLine({ start: { x: startX + sLw, y: by }, end: { x: startX + sLw, y: ty }, thickness: thkThin, color: navy });
-            page.drawLine({ start: { x: startX, y: by + row3H }, end: { x: rx, y: by + row3H }, thickness: thkThin, color: navy });
 
-            const c2 = 25 * sf, c4 = 25 * sf, c5 = 60 * sf, c6 = 25 * sf, c3 = contentW - sLw - c2 - c4 - c5 - c6;
+            page.drawLine({ start: { x: startX, y: by }, end: { x: startX, y: ty }, thickness: thkThin, color: navy });
+            page.drawLine({ start: { x: startX + sLw, y: by }, end: { x: startX + sLw, y: ty }, thickness: thkThin, color: navy });
+            page.drawLine({ start: { x: rx - silRightW, y: by }, end: { x: rx - silRightW, y: ty }, thickness: thkThin, color: navy });
+            page.drawLine({ start: { x: startX, y: by + row3H }, end: { x: rx - silRightW, y: by + row3H }, thickness: thkThin, color: navy });
+
+            const c2 = 25 * sf, c4 = 25 * sf, c5 = 60 * sf, c6 = 25 * sf;
+            const c3 = contentW - sLw - c2 - c4 - c5 - c6;
             const dInner = (bx, b1, b2, b3, b4, b5) => {
                 let x = bx + b1; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
                 x += b2; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
@@ -3079,7 +3091,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 page.drawText(lang.seat, { x: startX+sLw+c2+c3+c4+c5+2*sf, y: by+row3H-6.5*sf, size: 5.5*sf, font: mainFont, color: rgb(0.4,0.4,0.4) });
                 drawCenterText(info.seat||'', startX+sLw+c2+c3+c4+c5, by-2.5*sf, c6, row3H, 14, mainFont);
             }
-            page.drawText(lang.score, { x: rx - 50 * sf, y: ty - 10 * sf, size: 8 * sf, font: mainFont, color: navy });
+            page.drawText(lang.score, { x: rx - silRightW + 5 * sf, y: ty - 10 * sf, size: 8 * sf, font: mainFont, color: navy });
             await drawLogo(startX + (sLw - 28 * sf) / 2, by + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
         } else if (designType === '10') {
             // CLOUD THEME (FLATTER CURVES: 4x Length, Original Bulge)
