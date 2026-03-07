@@ -2711,7 +2711,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const { width, height } = page.getSize();
                     const sf = width / A4W;
 
-                    await window.renderStudentPDFHeader(tempDoc, page, null, {
+                    // Spare paper info: subject and exam info filled, student fields empty
+                    const spareInfo = {
+                        subject: item.subject,
+                        examNo: examNo,
+                        name: '',
+                        class: '',
+                        no: '',
+                        room: '',
+                        seat: ''
+                    };
+
+                    await window.renderStudentPDFHeader(tempDoc, page, spareInfo, {
                         mainFont, nameFont, schoolFont, sf,
                         session: ses,
                         metadata: { pdfHeaderDesign: designType, examNo },
