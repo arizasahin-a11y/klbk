@@ -3122,23 +3122,59 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (info) drawCommon(ix, iy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
             await drawLogo(ix + (leftW - 26 * sf) / 2, iy + row3H + (row2H + row1H - 26 * sf) / 2, 26 * sf);
         } else if (designType === '2') {
-            drawExplicitOppositeFrame(ox, oy, ow, oh, 0, 1 * sf);
-            const notch = 4 * sf;
-            page.drawRectangle({ x: ox - notch / 2, y: oy + oh / 2 - notch, width: notch, height: notch * 2, color: rgb(1, 1, 1), borderColor: rgb(0, 0, 0), borderWidth: 1 * sf });
-            page.drawRectangle({ x: ox + ow - notch / 2, y: oy + oh / 2 - notch, width: notch, height: notch * 2, color: rgb(1, 1, 1), borderColor: rgb(0, 0, 0), borderWidth: 1 * sf });
-            page.drawRectangle({ x: ox, y: oy + oh - 3 * sf, width: ow, height: 3 * sf, color: rgb(0.3, 0.3, 0.3) });
-            page.drawRectangle({ x: ox, y: oy, width: ow, height: oh - 3 * sf, color: rgb(0.97, 0.97, 0.97) });
+            // Atatürk Teması
+            const th = 0.8 * sf;
+            const col = rgb(0, 0, 0);
+            const midX = ox + ow / 2;
+            const lineY = oy + oh;
+
+            // 1. Atatürk Silüetlerini Çiz
+            try {
+                const faceBytes = await window.getFileBytes('ata_face.png');
+                if (faceBytes) {
+                    const faceImg = await pdfDoc.embedPng(faceBytes);
+                    const faceH = oh * 1.0;
+                    const faceW = (faceImg.width / faceImg.height) * faceH;
+                    page.drawImage(faceImg, { x: ox - 2 * sf, y: oy, width: faceW, height: faceH });
+                }
+            } catch (e) { console.warn("Ata face load failed", e); }
+
+            try {
+                const kocBytes = await window.getFileBytes('ata_kocatepe.png');
+                if (kocBytes) {
+                    const kocImg = await pdfDoc.embedPng(kocBytes);
+                    const kocH = oh * 1.0;
+                    const kocW = (kocImg.width / kocImg.height) * kocH;
+                    page.drawImage(kocImg, { x: ox + ow - kocW + 2 * sf, y: oy, width: kocW, height: kocH });
+                }
+            } catch (e) { console.warn("Ata kocatepe load failed", e); }
+
+            // 2. Üst ve Alt Çerçeve Çizgileri
+            const topText = "E N   H A K İ K İ   M Ü R Ş İ T   İ L İ M D İ R";
+            const topTextSize = 6.5 * sf;
+            const topTextW = mainFont.widthOfTextAtSize(topText, topTextSize);
+            const gapW = topTextW + 10 * sf;
+
+            page.drawLine({ start: { x: ox + 35 * sf, y: lineY }, end: { x: midX - gapW / 2, y: lineY }, thickness: th, color: col });
+            page.drawLine({ start: { x: midX + gapW / 2, y: lineY }, end: { x: ox + ow - 15 * sf, y: lineY }, thickness: th, color: col });
+            drawCenterText(topText, ox, lineY - topTextSize * 0.4, ow, topTextSize, 6.5, mainFont);
+
+            page.drawLine({ start: { x: ox + 25 * sf, y: oy }, end: { x: ox + ow - 15 * sf, y: oy }, thickness: th, color: col });
+
+            // 3. İçerik (Okul Adı ve Sınav Bilgisi)
+            const contentMidW = ow - 100 * sf;
+            const contentX = ox + 50 * sf;
+
+            drawCenterText(sName, contentX, oy + row3H + row2H, contentMidW, row1H, getFitSize(sName, contentMidW, 12, schoolFont), schoolFont);
+            drawCenterText(examText, contentX, oy + row3H, contentMidW, row2H, getFitSize(examText, contentMidW, 14), mainFont);
+
             const gc = rgb(0.8, 0.8, 0.8);
-            page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh - 3 * sf }, thickness: 1 * sf, color: gc });
-            page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh - 3 * sf }, thickness: 1 * sf, color: gc });
-            page.drawLine({ start: { x: ox + leftW, y: oy + row3H + row2H }, end: { x: ox + leftW + midW, y: oy + row3H + row2H }, thickness: 1 * sf, color: gc });
-            page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1 * sf, color: gc });
-            drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, gc, 1 * sf);
-            drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12, schoolFont), schoolFont);
-            drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 15), mainFont);
-            if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
-            page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-            await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+            if (info) {
+                // Bilgi kutuları (Daha şeffaf/gri çizgilerle)
+                drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, gc, 0.5 * sf);
+                drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
+            }
+            page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 15 * sf, size: 7 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
         } else if (designType === '3') {
             const ac = rgb(0.2, 0.3, 0.5);
             drawExplicitOppositeFrame(ox, oy, ow, oh, 10 * sf, 1 * sf, ac);
