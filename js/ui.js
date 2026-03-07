@@ -2548,6 +2548,199 @@ document.addEventListener('DOMContentLoaded', async () => {
         examSessionsList.innerHTML = tableHtml;
     }
 
+    // ===== YEDEK KAĞIT YAZDIRMA (Sağ tıklama) =====
+    document.body.addEventListener('contextmenu', function (e) {
+        const row = e.target.closest('.session-row');
+        if (!row) return;
+        e.preventDefault();
+        const id = row.id.replace('session-row-', '');
+        window.openSparePaperModal(id);
+    });
+
+    window.openSparePaperModal = function (sessionId) {
+        const sessions = DataManager.getExamSessions();
+        const ses = sessions.find(s => s.id === sessionId);
+        if (!ses) return;
+
+        const subjectNames = ses.subjects
+            ? ses.subjects.map(s => typeof s === 'object' ? s.name : s)
+            : Object.keys(ses.subjectMetadata || {});
+
+        if (subjectNames.length === 0) {
+            Swal.fire('Uyarı', 'Bu oturumda tanımlı ders bulunamadı.', 'warning');
+            return;
+        }
+
+        let listHtml = subjectNames.map((sub, idx) => `
+            <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:${idx % 2 === 0 ? '#f8fafc' : '#fff'}; border-radius:8px; margin-bottom:4px;">
+                <i class="fa-solid fa-file-pdf" style="color:var(--primary); font-size:1.1rem; flex-shrink:0;"></i>
+                <span style="flex:1; font-weight:600; font-size:0.9rem; color:#1e293b; word-break:break-word;">${sub}</span>
+                <input type="number" class="spare-count-input" data-sub="${sub}" value="3" min="0" max="50"
+                    style="width:55px; height:34px; text-align:center; border:1.5px solid var(--gray-300); border-radius:8px; font-size:0.95rem; font-weight:700; color:var(--primary);">
+                <span style="font-size:0.75rem; color:var(--gray-500); font-weight:500;">adet</span>
+            </div>
+        `).join('');
+
+        Swal.fire({
+            title: '<i class="fa-solid fa-copy" style="color:var(--primary);margin-right:8px;"></i>Yedek Kağıt Yazdır',
+            customClass: { popup: 'swal2-responsive-popup' },
+            width: Math.min(480, window.innerWidth - 24),
+            html: `
+                <div style="text-align:left;">
+                    <p style="font-size:0.85rem; color:var(--gray-500); margin-bottom:12px;">
+                        Her ders için kaç adet <strong>yedek kağıt</strong> (öğrenci bilgisi olmadan sadece başlıklı) yazdırılacağını belirleyin.
+                    </p>
+                    <div style="max-height:50vh; overflow-y:auto; padding-right:4px;">
+                        ${listHtml}
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fa-solid fa-print"></i> Yazdır',
+            cancelButtonText: 'İptal',
+            confirmButtonColor: '#4f46e5',
+            preConfirm: () => {
+                const items = [];
+                document.querySelectorAll('.spare-count-input').forEach(inp => {
+                    const count = parseInt(inp.value) || 0;
+                    if (count > 0) items.push({ subject: inp.getAttribute('data-sub'), count });
+                });
+                if (items.length === 0) {
+                    Swal.showValidationMessage('En az bir ders için 1 veya daha fazla adet girin.');
+                    return false;
+                }
+                return { sessionId, items };
+            }
+        }).then(result => {
+            if (result.isConfirmed && result.value) {
+                window.printSparePapers(result.value.sessionId, result.value.items);
+            }
+        });
+    };
+
+    window.printSparePapers = async function (sessionId, items) {
+        const { PDFDocument, rgb, StandardFonts } = PDFLib;
+        const sessions = DataManager.getExamSessions();
+        const ses = sessions.find(s => s.id === sessionId);
+        if (!ses) return;
+
+        Swal.fire({
+            title: 'Yedek Kağıtlar Hazırlanıyor...',
+            html: '<div id="spare-progress" style="font-size:0.9rem; color:var(--gray-600);">Başlatılıyor...</div>',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        try {
+            const metadata = ses.subjectMetadata || {};
+            const school = DataManager.getSchoolSettings();
+
+            // Load fonts
+            let mainFontBytes = null, nameFontBytes = null, schoolFontBytes = null;
+            try {
+                const resp1 = await fetch('fonts/NotoSans-Bold.ttf');
+                if (resp1.ok) mainFontBytes = await resp1.arrayBuffer();
+            } catch (e) { }
+            try {
+                const resp2 = await fetch('fonts/NotoSans-ExtraBold.ttf');
+                if (resp2.ok) nameFontBytes = await resp2.arrayBuffer();
+            } catch (e) { }
+            try {
+                const resp3 = await fetch('fonts/NotoSans-Black.ttf');
+                if (resp3.ok) schoolFontBytes = await resp3.arrayBuffer();
+            } catch (e) { }
+
+            const A4W = 595.28, A4H = 841.89;
+
+            for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
+                const item = items[itemIdx];
+                const subMeta = metadata[item.subject] || {};
+                const designType = subMeta.pdfHeaderDesign || '1';
+                const examNo = subMeta.examNo || subMeta.examNumber || '';
+                const paperPath = subMeta.papers
+                    ? (typeof subMeta.papers === 'string' ? subMeta.papers : (subMeta.papers['default'] || subMeta.papers['A'] || Object.values(subMeta.papers).find(p => p) || ''))
+                    : '';
+
+                const progEl = document.getElementById('spare-progress');
+                if (progEl) progEl.textContent = `${item.subject} (${itemIdx + 1}/${items.length})...`;
+
+                for (let copyIdx = 0; copyIdx < item.count; copyIdx++) {
+                    let pdfDoc;
+
+                    if (paperPath) {
+                        // Load existing PDF and add header
+                        try {
+                            const pdfBytes = await window.getFileBytes(paperPath);
+                            pdfDoc = await PDFDocument.load(pdfBytes);
+                        } catch (e) {
+                            // If paper can't be loaded, create empty page
+                            pdfDoc = await PDFDocument.create();
+                            pdfDoc.addPage([A4W, A4H]);
+                        }
+                    } else {
+                        // No paper defined, create empty A4 page
+                        pdfDoc = await PDFDocument.create();
+                        pdfDoc.addPage([A4W, A4H]);
+                    }
+
+                    pdfDoc.registerFontkit(fontkit);
+
+                    const fallback = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+                    const mainFont = mainFontBytes ? await pdfDoc.embedFont(mainFontBytes) : fallback;
+                    const nameFont = nameFontBytes ? await pdfDoc.embedFont(nameFontBytes) : mainFont;
+                    const schoolFont = schoolFontBytes ? await pdfDoc.embedFont(schoolFontBytes) : mainFont;
+
+                    const page = pdfDoc.getPages()[0];
+                    const { width, height } = page.getSize();
+                    const sf = width / A4W;
+
+                    // Render header WITHOUT student info (info = null)
+                    await window.renderStudentPDFHeader(pdfDoc, page, null, {
+                        mainFont, nameFont, schoolFont, sf,
+                        session: ses,
+                        metadata: { pdfHeaderDesign: designType, examNo },
+                        designType
+                    });
+
+                    // Save and open for print
+                    const pdfData = await pdfDoc.save();
+                    const blob = new Blob([pdfData], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+
+                    const iframe = document.createElement('iframe');
+                    iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:0;height:0;';
+                    iframe.src = url;
+                    document.body.appendChild(iframe);
+
+                    await new Promise(resolve => {
+                        iframe.onload = () => {
+                            setTimeout(() => {
+                                try { iframe.contentWindow.print(); } catch (e) { window.open(url, '_blank'); }
+                                setTimeout(() => {
+                                    document.body.removeChild(iframe);
+                                    URL.revokeObjectURL(url);
+                                    resolve();
+                                }, 1000);
+                            }, 500);
+                        };
+                    });
+                }
+            }
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Yedek Kağıtlar Yazdırıldı',
+                text: `${items.reduce((sum, i) => sum + i.count, 0)} adet yedek kağıt yazdırma komutu gönderildi.`,
+                timer: 3000,
+                showConfirmButton: false
+            });
+        } catch (err) {
+            console.error('Yedek kağıt hatası:', err);
+            Swal.fire('Hata', 'Yedek kağıt yazdırılırken bir hata oluştu: ' + err.message, 'error');
+        }
+    };
+
     // Handle screen view checkbox toggle
     document.body.addEventListener('change', function (e) {
         if (e.target && e.target.classList.contains('session-screen-check')) {
