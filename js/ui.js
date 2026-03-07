@@ -2660,6 +2660,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const A4W = 595.28, A4H = 841.89;
+            const { PDFLib, DataManager } = window;
+            const PDFDocument = PDFLib.PDFDocument; // Ensure we use the correct PDFLib instance
             const mergedPdf = await PDFDocument.create();
 
             let totalPages = 0;
@@ -2683,63 +2685,63 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } catch (e) { console.error(`Failed to load: ${paperPath}`, e); }
                 }
 
-                // V3.2 FINAL STABILITY: Fresh load per copy to avoid all async/memory issues
+                // V3.3 SUBJECT-BAKING: Create a mummified (baked) subject template once, then clone it.
+                // This is both fast AND extremely stable against async/resource issues.
+                let subjectTemplateDoc;
+                try {
+                    if (paperBytes) subjectTemplateDoc = await PDFDocument.load(paperBytes);
+                    else {
+                        subjectTemplateDoc = await PDFDocument.create();
+                        subjectTemplateDoc.addPage([A4W, A4H]);
+                    }
+                } catch (e) {
+                    console.error("Subject template load failed", e);
+                    subjectTemplateDoc = await PDFDocument.create();
+                    subjectTemplateDoc.addPage([A4W, A4H]);
+                }
+
+                if (typeof fontkit !== 'undefined') subjectTemplateDoc.registerFontkit(fontkit);
+                const fallback = await subjectTemplateDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+                let mainFont = null, nameFont = null, schoolFont = null;
+                try {
+                    if (window._cachedFonts.main) mainFont = await subjectTemplateDoc.embedFont(window._cachedFonts.main);
+                    if (window._cachedFonts.nameFont) nameFont = await subjectTemplateDoc.embedFont(window._cachedFonts.nameFont);
+                    if (window._cachedFonts.schoolFont) schoolFont = await subjectTemplateDoc.embedFont(window._cachedFonts.schoolFont);
+                } catch (e) { }
+                mainFont = mainFont || fallback;
+                nameFont = nameFont || mainFont;
+                schoolFont = schoolFont || mainFont;
+
+                // Mark the first page of the subject doc
+                const subjectPages = subjectTemplateDoc.getPages();
+                if (subjectPages.length > 0) {
+                    const firstPage = subjectPages[0];
+                    const { width } = firstPage.getSize();
+                    const sf = width / A4W;
+                    await window.renderStudentPDFHeader(subjectTemplateDoc, firstPage, { subject: item.subject, examNo, name: '', class: '', no: '', room: '', seat: '' }, {
+                        mainFont, nameFont, schoolFont, sf,
+                        session: ses,
+                        metadata: { pdfHeaderDesign: designType, examNo },
+                        designType
+                    });
+                }
+
+                // Bake the subject template to catch all async/drawing modifications
+                const bakedBytes = await subjectTemplateDoc.save();
+                const bakedDoc = await PDFDocument.load(bakedBytes);
+                const bakedIndices = bakedDoc.getPageIndices();
+
+                // Now clone for students/copies
                 for (let copyIdx = 0; copyIdx < item.count; copyIdx++) {
                     const progEl = document.getElementById('spare-progress');
                     if (progEl) progEl.textContent = `${item.subject} (${itemIdx + 1}/${items.length}) - Kopya ${copyIdx + 1}/${item.count}...`;
 
-                    let tempDoc;
-                    try {
-                        if (paperBytes) {
-                            tempDoc = await PDFLib.PDFDocument.load(paperBytes);
-                        } else {
-                            tempDoc = await PDFLib.PDFDocument.create();
-                            tempDoc.addPage([A4W, A4H]);
-                        }
-                    } catch (e) {
-                        tempDoc = await PDFLib.PDFDocument.create();
-                        tempDoc.addPage([A4W, A4H]);
-                    }
-
-                    if (typeof fontkit !== 'undefined') tempDoc.registerFontkit(fontkit);
-                    const fallback = await tempDoc.embedFont(StandardFonts.HelveticaBold);
-                    let mainFont = null, nameFont = null, schoolFont = null;
-                    try {
-                        if (window._cachedFonts.main) mainFont = await tempDoc.embedFont(window._cachedFonts.main);
-                        if (window._cachedFonts.nameFont) nameFont = await tempDoc.embedFont(window._cachedFonts.nameFont);
-                        if (window._cachedFonts.schoolFont) schoolFont = await tempDoc.embedFont(window._cachedFonts.schoolFont);
-                    } catch (e) { }
-                    mainFont = mainFont || fallback;
-                    nameFont = nameFont || mainFont;
-                    schoolFont = schoolFont || mainFont;
-
-                    const pages = tempDoc.getPages();
-                    if (pages.length > 0) {
-                        const firstPage = pages[0];
-                        const { width } = firstPage.getSize();
-                        const sf = width / A4W;
-
-                        await window.renderStudentPDFHeader(tempDoc, firstPage, {
-                            subject: item.subject,
-                            examNo,
-                            name: '', class: '', no: '', room: '', seat: ''
-                        }, {
-                            mainFont, nameFont, schoolFont, sf,
-                            session: ses,
-                            metadata: { pdfHeaderDesign: designType, examNo },
-                            designType
-                        });
-                    }
-
-                    // Copy ALL pages of this fresh doc to the merged PDF
-                    const indices = tempDoc.getPageIndices();
-                    const copiedPages = await mergedPdf.copyPages(tempDoc, indices);
+                    const copiedPages = await mergedPdf.copyPages(bakedDoc, bakedIndices);
                     copiedPages.forEach(p => mergedPdf.addPage(p));
                     totalPages += copiedPages.length;
-
-                    // Help GC
-                    tempDoc = null;
                 }
+                subjectTemplateDoc = null;
+                bakedDoc = null;
             }
 
             // Save merged PDF and print once
