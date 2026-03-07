@@ -2743,7 +2743,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
 
                     const bakedBytes = await tempDoc.save();
-                    const bakedDocForCopy = await PDFDocument.load(bakedBytes);
+                    const bakedDocForCopy = await PDFLib.PDFDocument.load(bakedBytes);
                     const copiedPages = await mergedPdf.copyPages(bakedDocForCopy, bakedDocForCopy.getPageIndices());
                     copiedPages.forEach(p => mergedPdf.addPage(p));
                     totalPages += copiedPages.length;
@@ -3278,26 +3278,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawLine({ start: { x: snX + 4 * sf, y: snY1 + 2 * sf }, end: { x: snX + 2 * sf, y: snY2 }, thickness: 1 * sf, color: emerald });
             page.drawCircle({ x: snX + 2 * sf, y: snY2, size: 0.8 * sf, color: gold }); // snake head
         } else if (designType === '9') {
-            // Atatürk Teması (Yeni v3 Görsel Çerçeve)
+            // Atatürk Teması (v3 Görsel Çerçeve - 3cm Yükseklik, +0.5cm Genişlik)
+            const cmToPt = 28.35;
+            const targetH = 3 * cmToPt * sf;
+            const extraW = 0.5 * cmToPt * sf;
+
+            const drawH = Math.max(oh, targetH);
+            const drawW = ow + extraW;
+            const drawX = ox - (extraW / 2);
+            const drawY = height - margin - strokeOffset - drawH;
+
             try {
                 const headerBytes = await window.getFileBytes('ata_header_v3.png');
                 if (headerBytes) {
                     const headerImg = await pdfDoc.embedPng(headerBytes);
-                    // Çerçeveyi tüm başlık alanına yay: ox, oy, ow, oh
-                    page.drawImage(headerImg, { x: ox, y: oy, width: ow, height: oh });
+                    page.drawImage(headerImg, { x: drawX, y: drawY, width: drawW, height: drawH });
                 }
             } catch (e) { console.warn("Ata header v3 load failed", e); }
 
-            // İçerik (Okul Adı ve Sınav Bilgisi) - Görselin içindeki boş alana göre konumlandır
             const contentMidW = ow - 100 * sf;
             const contentX = ox + 50 * sf;
+            const contentBaseY = drawY + (drawH * 0.15);
 
-            drawCenterText(sName.toUpperCase(), contentX, oy + row3H + row2H - 5 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
-            drawCenterText(examText, contentX, oy + row3H - 2 * sf, contentMidW, row2H, getFitSize(examText, contentMidW, 14), mainFont);
+            drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 22 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
+            drawCenterText(examText, contentX, contentBaseY, contentMidW, row2H, getFitSize(examText, contentMidW, 13), mainFont);
 
             const gc = rgb(0.8, 0.8, 0.8);
             if (info) {
-                // Bilgi kutuları çizgileri (Şeffaf/Gri)
                 drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, gc, 0.5 * sf);
                 drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
             }
