@@ -331,7 +331,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         page.drawLine({ start: { x: snX + 4 * sf, y: snY1 + 2 * sf }, end: { x: snX + 2 * sf, y: snY2 }, thickness: 1 * sf, color: emerald });
         page.drawCircle({ x: snX + 2 * sf, y: snY2, size: 0.8 * sf, color: gold }); // snake head
     } else if (designType === '9') {
-        // Atatürk Teması (v3 Görsel Çerçeve + Sağa 0.5cm Genişlik, Yazı 1cm Yukarı & 0.5cm Dar)
+        // Atatürk Teması (v3 Görsel Çerçeve + Düzenlemeler)
         const cmToPt = 28.35;
         const targetH = (3 * cmToPt + 2.835) * sf; // +1mm (2.835pt)
         const extraW = 1.0 * cmToPt * sf;          // +0.5cm extra (total 1cm beyond original ow)
@@ -350,24 +350,48 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             }
         } catch (e) { console.warn("Ata header v3 load failed", e); }
 
-        // Yazıları Ayarla: 1 cm yukarı, 0.5 cm dar
-        const textNarrow = 0.5 * cmToPt * sf;
+        // Yazıları Ayarla: sağdan soldan 1 cm daralt (toplam 2cm)
+        const textNarrow = 2.0 * cmToPt * sf;
         const textUp = 1 * cmToPt * sf;
         const contentMidW = ow - 100 * sf - textNarrow;
         const contentX = ox + 50 * sf + (textNarrow / 2);
         const contentBaseY = drawY + (drawH * 0.15) + textUp;
 
-        // Okul adını 3mm (8.5pt) aşağı indir (22 - 8.5 ~= 13.5)
-        drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 13.5 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
+        // Okul adını 3mm (8.5pt) yukarı taşı (13.5 + 8.5 ~= 22)
+        drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 22 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
         drawCenterText(examText, contentX, contentBaseY, contentMidW, row2H, getFitSize(examText, contentMidW, 13), mainFont);
+
+        // Yatay Çizgi: 2. satırın altına, kenarlardan 3cm uzaklıkta
+        const lineX1 = 3 * cmToPt * sf;
+        const lineX2 = width - 3 * cmToPt * sf;
+        const lineY = contentBaseY - 5 * sf;
+        page.drawLine({ start: { x: lineX1, y: lineY }, end: { x: lineX2, y: lineY }, thickness: 0.5 * sf, color: rgb(0, 0, 0) });
 
         const gc = rgb(0.8, 0.8, 0.8);
         if (info) {
+            // Kutunun dikey çizgilerini çiz (Consistent 0.5 thickness)
             drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, gc, 0.5 * sf);
-            drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
+
+            // Puan yazısının soluna dikey çizgi
+            const scoreDivX = ox + leftW + midW;
+            page.drawLine({ start: { x: scoreDivX, y: oy }, end: { x: scoreDivX, y: oy + row3H }, thickness: 0.5 * sf, color: gc });
+
+            // SINIF başlığını ve sınıfı sola yanaşık yaz
+            drawLeftText(lang.class, ox, oy + row3H - 8 * sf, leftW, 8 * sf, 6, mainFont);
+            drawLeftText(info.class || '', ox, oy - 2 * sf, leftW, row3H, 16, mainFont);
+
+            // Diğerlerini normal çiz (Class hariç manuel)
+            drawCenterText(lang.no, ox + leftW, oy + row3H - 8 * sf, midCol2W, 8 * sf, 6, mainFont);
+            drawCenterText(info.no || '', ox + leftW, oy - 2 * sf, midCol2W, row3H, 12, mainFont);
+            drawStudentName(ox + leftW + midCol2W, oy, midCol3W, row3H);
+            page.drawText(lang.room, { x: ox + leftW + midCol2W + midCol3W + 2 * sf, y: oy + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+            drawCenterText(info.room || '', ox + leftW + midCol2W + midCol3W, oy - 2.5 * sf, midCol4W, row3H, 11, mainFont);
+            page.drawText(lang.exam, { x: ox + leftW + midCol2W + midCol3W + midCol4W + 2 * sf, y: oy + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+            drawCenterText((info.subject || '').toUpperCase(), ox + leftW + midCol2W + midCol3W + midCol4W, oy - 2.5 * sf, midCol5W, row3H, 9.5, mainFont);
+            page.drawText(lang.seat, { x: ox + leftW + midCol2W + midCol3W + midCol4W + midCol5W + 2 * sf, y: oy + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+            drawCenterText(info.seat || '', ox + leftW + midCol2W + midCol3W + midCol4W + midCol5W, oy - 2.5 * sf, midCol6W, row3H, 14, mainFont);
         }
         page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 18 * sf, size: 7 * sf, font: mainFont, color: rgb(0.2, 0.2, 0.2) });
-        // Logo kaldırıldı (drawLogo silindi)
 
     } else if (designType === '10') {
         // CLOUD THEME (FLATTER CURVES: 4x Length, Original Bulge)
