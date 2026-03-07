@@ -2666,7 +2666,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
                 const item = items[itemIdx];
-                console.log(`Processing subject ${itemIdx + 1}/${items.length}: ${item.subject}`);
                 const subMeta = metadata[item.subject] || {};
                 const designType = subMeta.pdfHeaderDesign || '1';
                 const examNo = subMeta.examNo || subMeta.examNumber || '';
@@ -2680,77 +2679,56 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let paperBytes = null;
                 if (paperPath) {
                     try {
-                        console.log(`Loading paper PDF from: ${paperPath}`);
                         paperBytes = await window.getFileBytes(paperPath);
-                        if (!paperBytes) console.warn(`Paper bytes null for ${item.subject}`);
-                    } catch (e) { console.error(`Failed to load paper PDF for ${item.subject}:`, e); }
+                    } catch (e) { console.error(`Failed to load: ${paperPath}`, e); }
                 }
+
+                // V3.0 REVOLUTION: Create ONE template page per subject, then CLONE it
+                let templateDoc;
+                try {
+                    if (paperBytes) templateDoc = await PDFLib.PDFDocument.load(paperBytes);
+                    else {
+                        templateDoc = await PDFLib.PDFDocument.create();
+                        templateDoc.addPage([A4W, A4H]);
+                    }
+                } catch (e) {
+                    templateDoc = await PDFLib.PDFDocument.create();
+                    templateDoc.addPage([A4W, A4H]);
+                }
+
+                if (typeof fontkit !== 'undefined') templateDoc.registerFontkit(fontkit);
+                const fallback = await templateDoc.embedFont(StandardFonts.HelveticaBold);
+                let mainFont = null, nameFont = null, schoolFont = null;
+                try {
+                    if (window._cachedFonts.main) mainFont = await templateDoc.embedFont(window._cachedFonts.main);
+                    if (window._cachedFonts.nameFont) nameFont = await templateDoc.embedFont(window._cachedFonts.nameFont);
+                    if (window._cachedFonts.schoolFont) schoolFont = await templateDoc.embedFont(window._cachedFonts.schoolFont);
+                } catch (e) { }
+                mainFont = mainFont || fallback;
+                nameFont = nameFont || mainFont;
+                schoolFont = schoolFont || mainFont;
+
+                const page = templateDoc.getPages()[0];
+                const { width } = page.getSize();
+                const sf = width / A4W;
+
+                await window.renderStudentPDFHeader(templateDoc, page, { subject: item.subject, examNo, name: '', class: '', no: '', room: '', seat: '' }, {
+                    mainFont, nameFont, schoolFont, sf,
+                    session: ses,
+                    metadata: { pdfHeaderDesign: designType, examNo },
+                    designType
+                });
+
+                // Bake the template once
+                const bakedBytes = await templateDoc.save();
+                const bakedTemplate = await PDFLib.PDFDocument.load(bakedBytes);
 
                 for (let copyIdx = 0; copyIdx < item.count; copyIdx++) {
-                    console.log(`  Creating copy ${copyIdx + 1}/${item.count} for ${item.subject}`);
-                    let tempDoc;
-                    try {
-                        if (paperBytes) {
-                            tempDoc = await PDFDocument.load(paperBytes);
-                        } else {
-                            tempDoc = await PDFDocument.create();
-                            tempDoc.addPage([A4W, A4H]);
-                        }
-                    } catch (e) {
-                        console.error(`  TempDoc creation failed for ${item.subject}, index ${copyIdx}:`, e);
-                        tempDoc = await PDFDocument.create();
-                        tempDoc.addPage([A4W, A4H]);
-                    }
-
-                    if (typeof fontkit !== 'undefined') tempDoc.registerFontkit(fontkit);
-
-                    const fallback = await tempDoc.embedFont(StandardFonts.HelveticaBold);
-                    let mainFont = null, nameFont = null, schoolFont = null;
-                    try {
-                        if (window._cachedFonts.main) mainFont = await tempDoc.embedFont(window._cachedFonts.main);
-                        if (window._cachedFonts.nameFont) nameFont = await tempDoc.embedFont(window._cachedFonts.nameFont);
-                        if (window._cachedFonts.schoolFont) schoolFont = await tempDoc.embedFont(window._cachedFonts.schoolFont);
-                    } catch (e) { console.error('  Font embed error in copy:', e); }
-
-                    mainFont = mainFont || fallback;
-                    nameFont = nameFont || mainFont;
-                    schoolFont = schoolFont || mainFont;
-
-                    const pages = tempDoc.getPages();
-                    if (!pages.length) {
-                        console.error(`  No pages in tempDoc for ${item.subject}! Creating one.`);
-                        tempDoc.addPage([A4W, A4H]);
-                    }
-                    const page = tempDoc.getPages()[0];
-                    const { width } = page.getSize();
-                    const sf = width / A4W;
-
-                    const spareInfo = {
-                        subject: item.subject,
-                        examNo: examNo,
-                        name: '', class: '', no: '', room: '', seat: ''
-                    };
-
-                    try {
-                        await window.renderStudentPDFHeader(tempDoc, page, spareInfo, {
-                            mainFont, nameFont, schoolFont, sf,
-                            session: ses,
-                            metadata: { pdfHeaderDesign: designType, examNo },
-                            designType
-                        });
-                    } catch (e) {
-                        console.error(`  renderStudentPDFHeader failed for ${item.subject}:`, e);
-                    }
-
-                    const bakedBytes = await tempDoc.save();
-                    const bakedDocForCopy = await PDFLib.PDFDocument.load(bakedBytes);
-                    const copiedPages = await mergedPdf.copyPages(bakedDocForCopy, bakedDocForCopy.getPageIndices());
-                    copiedPages.forEach(p => mergedPdf.addPage(p));
-                    totalPages += copiedPages.length;
-
-                    // Clear memory references
-                    tempDoc = null;
+                    const [copiedPage] = await mergedPdf.copyPages(bakedTemplate, [0]);
+                    mergedPdf.addPage(copiedPage);
+                    totalPages++;
                 }
+                templateDoc = null;
             }
 
             // Save merged PDF and print once
@@ -3278,14 +3256,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawLine({ start: { x: snX + 4 * sf, y: snY1 + 2 * sf }, end: { x: snX + 2 * sf, y: snY2 }, thickness: 1 * sf, color: emerald });
             page.drawCircle({ x: snX + 2 * sf, y: snY2, size: 0.8 * sf, color: gold }); // snake head
         } else if (designType === '9') {
-            // Atatürk Teması (v3 Görsel Çerçeve - 3cm Yükseklik, +0.5cm Genişlik)
+            // Atatürk Teması (v3 Görsel Çerçeve + Sağa 0.5cm Genişlik, Yazı 1cm Yukarı & 0.5cm Dar)
             const cmToPt = 28.35;
             const targetH = 3 * cmToPt * sf;
             const extraW = 0.5 * cmToPt * sf;
 
             const drawH = Math.max(oh, targetH);
             const drawW = ow + extraW;
-            const drawX = ox - (extraW / 2);
+            const drawX = ox;
             const drawY = height - margin - strokeOffset - drawH;
 
             try {
@@ -3296,9 +3274,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } catch (e) { console.warn("Ata header v3 load failed", e); }
 
-            const contentMidW = ow - 100 * sf;
-            const contentX = ox + 50 * sf;
-            const contentBaseY = drawY + (drawH * 0.15);
+            // Yazıları Ayarla: 1 cm yukarı, 0.5 cm dar
+            const textNarrow = 0.5 * cmToPt * sf;
+            const textUp = 1 * cmToPt * sf;
+            const contentMidW = ow - 100 * sf - textNarrow;
+            const contentX = ox + 50 * sf + (textNarrow / 2);
+            const contentBaseY = drawY + (drawH * 0.15) + textUp;
 
             drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 22 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
             drawCenterText(examText, contentX, contentBaseY, contentMidW, row2H, getFitSize(examText, contentMidW, 13), mainFont);
@@ -3310,6 +3291,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 18 * sf, size: 7 * sf, font: mainFont, color: rgb(0.2, 0.2, 0.2) });
             await drawLogo(ox + (leftW - 22 * sf) / 2, oy + row3H + (row2H + row1H - 22 * sf) / 2, 22 * sf);
+
         } else if (designType === '10') {
             // CLOUD THEME (FLATTER CURVES: 4x Length, Original Bulge)
             const edgeColor = rgb(0.1, 0.1, 0.1);
