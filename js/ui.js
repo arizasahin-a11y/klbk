@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 1. Authentication Check ---
     const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn');
     if (!isLoggedIn) {
-        localStorage.removeItem('klbk_persistent_session');
+        sessionStorage.setItem('klbk_handshake', 'k9x7v2m4');
         window.location.href = 'index.html';
         return;
     }
@@ -3039,7 +3039,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const thkThin = 0.5 * sf, edgeThick = 1 * sf;
 
             // 1) LEFT PROFILE (Refined Line Art)
-            const facePath = "M 0 270 L 10 270 C 15 270 20 265 22 255 C 25 240 22 230 18 220 C 15 210 12 200 12 180 C 12 160 15 140 25 120 C 35 100 50 85 70 75 C 90 65 110 60 130 65 C 150 70 170 85 180 105 C 190 125 185 150 170 170 C 155 190 130 205 100 210 C 70 215 40 212 20 205 L 10 205 L 0 205 Z"; 
+            const facePath = "M 0 270 L 10 270 C 15 270 20 265 22 255 C 25 240 22 230 18 220 C 15 210 12 200 12 180 C 12 160 15 140 25 120 C 35 100 50 85 70 75 C 90 65 110 60 130 65 C 150 70 170 85 180 105 C 190 125 185 150 170 170 C 155 190 130 205 100 210 C 70 215 40 212 20 205 L 10 205 L 0 205 Z";
             const faceScale = oh / 280;
             page.drawSvgPath(facePath, { x: tx + 1 * sf, y: ty, scale: faceScale, color: navy });
 
@@ -3049,10 +3049,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawSvgPath(walkPath, { x: rx - 30 * sf, y: by + 2 * sf, scale: walkScale, color: navy });
 
             // 3) BORDERS
-            page.drawLine({ start: {x: tx, y: ty}, end: {x: rx, y: ty}, thickness: edgeThick, color: navy });
-            page.drawLine({ start: {x: tx, y: by}, end: {x: rx, y: by}, thickness: edgeThick, color: navy });
-            page.drawLine({ start: {x: tx, y: ty}, end: {x: tx, y: by}, thickness: edgeThick, color: navy });
-            page.drawLine({ start: {x: rx, y: ty}, end: {x: rx, y: by}, thickness: edgeThick, color: navy });
+            page.drawLine({ start: { x: tx, y: ty }, end: { x: rx, y: ty }, thickness: edgeThick, color: navy });
+            page.drawLine({ start: { x: tx, y: by }, end: { x: rx, y: by }, thickness: edgeThick, color: navy });
+            page.drawLine({ start: { x: tx, y: ty }, end: { x: tx, y: by }, thickness: edgeThick, color: navy });
+            page.drawLine({ start: { x: rx, y: ty }, end: { x: rx, y: by }, thickness: edgeThick, color: navy });
 
             const startX = tx + 20 * sf, endX = rx - 35 * sf, contentW = endX - startX;
             const sLw = 40 * sf, sMw = contentW - sLw;
@@ -3061,28 +3061,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const c2 = 40 * sf, c4 = 25 * sf, c5 = 60 * sf, c6 = 25 * sf, c3 = contentW - sLw - c2 - c4 - c5 - c6;
             const dInner = (bx, b1, b2, b3, b4, b5) => {
-                let x = bx + b1; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
-                x += b2; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
-                x += b3; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
-                x += b4; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
-                x += b5; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
+                let x = bx + b1; page.drawLine({ start: { x, y: by }, end: { x, y: by + row3H }, thickness: thkThin, color: navy });
+                x += b2; page.drawLine({ start: { x, y: by }, end: { x, y: by + row3H }, thickness: thkThin, color: navy });
+                x += b3; page.drawLine({ start: { x, y: by }, end: { x, y: by + row3H }, thickness: thkThin, color: navy });
+                x += b4; page.drawLine({ start: { x, y: by }, end: { x, y: by + row3H }, thickness: thkThin, color: navy });
+                x += b5; page.drawLine({ start: { x, y: by }, end: { x, y: by + row3H }, thickness: thkThin, color: navy });
             };
             dInner(startX, sLw, c2, c3, c4, c5);
 
             drawCenterText(sName.toUpperCase(), startX + sLw, by + row3H + row2H, sMw, row1H, getFitSize(sName.toUpperCase(), sMw, 11, schoolFont), schoolFont);
             drawCenterText(examText, startX + sLw, by + row3H, sMw, row2H, getFitSize(examText, sMw, 14), mainFont);
-            if(info) {
-                drawCenterText(lang.class, startX, by + row3H - 8*sf, sLw, 8*sf, 6, mainFont);
-                drawCenterText(info.class||'', startX, by - 2*sf, sLw, row3H, 16, mainFont);
-                drawCenterText(lang.no, startX+sLw, by + row3H - 8*sf, c2, 8*sf, 6, mainFont);
-                drawCenterText(info.no||'', startX+sLw, by - 2*sf, c2, row3H, 12, mainFont);
-                drawStudentName(startX+sLw+c2, by, c3, row3H);
-                page.drawText(lang.room, { x: startX+sLw+c2+c3+2*sf, y: by+row3H-6.5*sf, size: 5.5*sf, font: mainFont, color: rgb(0.4,0.4,0.4) });
-                drawCenterText(info.room||'', startX+sLw+c2+c3, by-2.5*sf, c4, row3H, 11, mainFont);
-                page.drawText(lang.exam, { x: startX+sLw+c2+c3+c4+2*sf, y: by+row3H-6.5*sf, size: 5.5*sf, font: mainFont, color: rgb(0.4,0.4,0.4) });
-                drawCenterText((info.subject||'').toUpperCase(), startX+sLw+c2+c3+c4, by-2.5*sf, c5, row3H, 9.5, mainFont);
-                page.drawText(lang.seat, { x: startX+sLw+c2+c3+c4+c5+2*sf, y: by+row3H-6.5*sf, size: 5.5*sf, font: mainFont, color: rgb(0.4,0.4,0.4) });
-                drawCenterText(info.seat||'', startX+sLw+c2+c3+c4+c5, by-2.5*sf, c6, row3H, 14, mainFont);
+            if (info) {
+                drawCenterText(lang.class, startX, by + row3H - 8 * sf, sLw, 8 * sf, 6, mainFont);
+                drawCenterText(info.class || '', startX, by - 2 * sf, sLw, row3H, 16, mainFont);
+                drawCenterText(lang.no, startX + sLw, by + row3H - 8 * sf, c2, 8 * sf, 6, mainFont);
+                drawCenterText(info.no || '', startX + sLw, by - 2 * sf, c2, row3H, 12, mainFont);
+                drawStudentName(startX + sLw + c2, by, c3, row3H);
+                page.drawText(lang.room, { x: startX + sLw + c2 + c3 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                drawCenterText(info.room || '', startX + sLw + c2 + c3, by - 2.5 * sf, c4, row3H, 11, mainFont);
+                page.drawText(lang.exam, { x: startX + sLw + c2 + c3 + c4 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                drawCenterText((info.subject || '').toUpperCase(), startX + sLw + c2 + c3 + c4, by - 2.5 * sf, c5, row3H, 9.5, mainFont);
+                page.drawText(lang.seat, { x: startX + sLw + c2 + c3 + c4 + c5 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                drawCenterText(info.seat || '', startX + sLw + c2 + c3 + c4 + c5, by - 2.5 * sf, c6, row3H, 14, mainFont);
             }
             page.drawText(lang.score, { x: rx - 50 * sf, y: ty - 10 * sf, size: 8 * sf, font: mainFont, color: navy });
             await drawLogo(startX + (sLw - 28 * sf) / 2, by + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
@@ -4734,18 +4734,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </div>
                     </div>
 
-                    <div class="modal-row" style="margin-bottom: 1.5rem;">
-                        <div class="modal-form-group">
+                    <div class="modal-row" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <div class="modal-form-group" style="flex: 1; min-width: 200px; max-width: 250px;">
                             <label style="font-weight:700;">Sınav Tarihi</label>
                             <input type="date" id="meta-date" class="swal2-input" style="width:100%; margin:0; height:40px;" value="${window.formatDateToInput(ses.date) || ''}">
                         </div>
-                        <div class="modal-form-group">
+                        <div class="modal-form-group" style="flex: 1; min-width: 200px; max-width: 250px;">
                             <label style="font-weight:700;">Sınav Saati / Ders</label>
                             ${(() => {
                     const school = DataManager.getSchoolSettings();
                     const dailyLessons = parseInt(school.dailyLessons) || 0;
                     if (dailyLessons > 0) {
-                        let options = '<option value="">-- Se\u00e7in --</option>';
+                        let options = '<option value="">-- Seçin --</option>';
                         for (let i = 1; i <= dailyLessons; i++) {
                             const val = `${i}. Ders`;
                             options += `<option value="${val}" ${ses.time === val ? 'selected' : ''}>${val}</option>`;
