@@ -3049,7 +3049,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentStep = "Yaz\u0131c\u0131ya gönderiliyor";
             const iframe = document.createElement('iframe');
             Object.assign(iframe.style, {
-                position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0', pointerEvents: 'none'
+                position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.01', pointerEvents: 'none'
             });
             iframe.src = blobUrl;
             document.body.appendChild(iframe);
@@ -3061,7 +3061,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     setTimeout(() => {
                         URL.revokeObjectURL(blobUrl);
                         finalize(iframe);
-                    }, 5000);
+                    }, 30000); // Wait 30s to allow printer spooling for many pages
                 }, 500);
             };
 
@@ -3099,7 +3099,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const iframe = document.createElement('iframe');
         iframe.src = printPath;
         Object.assign(iframe.style, {
-            position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0', pointerEvents: 'none'
+            position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.01', pointerEvents: 'none'
         });
         document.body.appendChild(iframe);
 
@@ -3117,7 +3117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     console.error("Window open fallback also failed", windowErr);
                 }
             }
-            setTimeout(() => finalize(iframe), 3000);
+            setTimeout(() => finalize(iframe), 30000);
         };
 
         iframe.onerror = () => {
@@ -3519,7 +3519,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     const printFrame = document.createElement('iframe');
                     Object.assign(printFrame.style, {
-                        position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0', pointerEvents: 'none'
+                        position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.01', pointerEvents: 'none'
                     });
                     printFrame.src = sumUrl;
                     document.body.appendChild(printFrame);
@@ -3530,7 +3530,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         setTimeout(() => {
                             URL.revokeObjectURL(sumUrl);
                             if (document.body.contains(printFrame)) document.body.removeChild(printFrame);
-                        }, 5000); // Wait long enough for print dialog
+                        }, 30000); // Wait 30s to allow printer spooling for many pages
                     };
                 }
 
@@ -3861,12 +3861,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 .page { 
                     width: ${isSeating ? '297mm' : '210mm'}; 
-                    height: ${isSeating ? '210mm' : '297mm'}; 
+                    height: auto;
+                    min-height: ${isSeating ? '210mm' : '297mm'}; 
                     padding: 12mm; 
                     box-sizing: border-box; 
                     page-break-after: always; 
-                    display: flex; 
-                    flex-direction: column;
+                    display: block; 
                     overflow: visible;
                     position: relative;
                 }
@@ -3892,7 +3892,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .msg-box .icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; background: #ef4444; color: white; border-radius: 50%; margin-right: 10px; font-size: 14px; }
 
                 /* Seating schema centering */
-                .schema-container { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 10px; overflow: visible; }
+                .schema-container { display: block; width: 100%; margin-top: 10px; overflow: visible; }
                 .classroom-walls { 
                     border: 4px solid #334155; padding: 35px; border-radius: 24px; background: #fff;
                     display: inline-block; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.08);

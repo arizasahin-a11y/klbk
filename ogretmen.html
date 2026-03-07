@@ -993,7 +993,7 @@
 
                 const iframe = document.createElement('iframe');
                 Object.assign(iframe.style, {
-                    position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0', pointerEvents: 'none'
+                    position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.01', pointerEvents: 'none'
                 });
                 iframe.src = blobUrl;
                 document.body.appendChild(iframe);
@@ -1002,7 +1002,7 @@
                     setTimeout(() => {
                         iframe.contentWindow.focus();
                         iframe.contentWindow.print();
-                        setTimeout(() => { URL.revokeObjectURL(blobUrl); finalize(iframe); }, 5000);
+                        setTimeout(() => { URL.revokeObjectURL(blobUrl); finalize(iframe); }, 30000);
                     }, 500);
                 };
             } catch (e) {
@@ -1093,7 +1093,7 @@
 
                 const iframe = document.createElement('iframe');
                 Object.assign(iframe.style, {
-                    position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0', pointerEvents: 'none'
+                    position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.01', pointerEvents: 'none'
                 });
                 iframe.src = blobUrl;
                 document.body.appendChild(iframe);
@@ -1101,7 +1101,7 @@
                     setTimeout(() => {
                         iframe.contentWindow.focus();
                         iframe.contentWindow.print();
-                        setTimeout(() => { URL.revokeObjectURL(blobUrl); if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 5000);
+                        setTimeout(() => { URL.revokeObjectURL(blobUrl); if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 30000);
                     }, 500);
                 };
             } catch (err) {
