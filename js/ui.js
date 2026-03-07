@@ -2666,6 +2666,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
                 const item = items[itemIdx];
+                console.log(`Processing subject ${itemIdx + 1}/${items.length}: ${item.subject}`);
                 const subMeta = metadata[item.subject] || {};
                 const designType = subMeta.pdfHeaderDesign || '1';
                 const examNo = subMeta.examNo || subMeta.examNumber || '';
@@ -2676,41 +2677,50 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const progEl = document.getElementById('spare-progress');
                 if (progEl) progEl.textContent = `${item.subject} (${itemIdx + 1}/${items.length})...`;
 
-                // Load paper PDF bytes once per subject
                 let paperBytes = null;
                 if (paperPath) {
-                    try { paperBytes = await window.getFileBytes(paperPath); } catch (e) { }
+                    try {
+                        console.log(`Loading paper PDF from: ${paperPath}`);
+                        paperBytes = await window.getFileBytes(paperPath);
+                        if (!paperBytes) console.warn(`Paper bytes null for ${item.subject}`);
+                    } catch (e) { console.error(`Failed to load paper PDF for ${item.subject}:`, e); }
                 }
 
                 for (let copyIdx = 0; copyIdx < item.count; copyIdx++) {
-                    // Create independent temp document for each page
+                    console.log(`  Creating copy ${copyIdx + 1}/${item.count} for ${item.subject}`);
                     let tempDoc;
-                    if (paperBytes) {
-                        try {
+                    try {
+                        if (paperBytes) {
                             tempDoc = await PDFDocument.load(paperBytes);
-                        } catch (e) {
+                        } else {
                             tempDoc = await PDFDocument.create();
                             tempDoc.addPage([A4W, A4H]);
                         }
-                    } else {
+                    } catch (e) {
+                        console.error(`  TempDoc creation failed for ${item.subject}, index ${copyIdx}:`, e);
                         tempDoc = await PDFDocument.create();
                         tempDoc.addPage([A4W, A4H]);
                     }
 
                     if (typeof fontkit !== 'undefined') tempDoc.registerFontkit(fontkit);
 
-                    // Embed fonts into this temp document
                     const fallback = await tempDoc.embedFont(StandardFonts.HelveticaBold);
                     let mainFont = null, nameFont = null, schoolFont = null;
                     try {
                         if (window._cachedFonts.main) mainFont = await tempDoc.embedFont(window._cachedFonts.main);
                         if (window._cachedFonts.nameFont) nameFont = await tempDoc.embedFont(window._cachedFonts.nameFont);
                         if (window._cachedFonts.schoolFont) schoolFont = await tempDoc.embedFont(window._cachedFonts.schoolFont);
-                    } catch (e) { console.error('Font embed error', e); }
+                    } catch (e) { console.error('  Font embed error in copy:', e); }
+
                     mainFont = mainFont || fallback;
                     nameFont = nameFont || mainFont;
                     schoolFont = schoolFont || mainFont;
 
+                    const pages = tempDoc.getPages();
+                    if (!pages.length) {
+                        console.error(`  No pages in tempDoc for ${item.subject}! Creating one.`);
+                        tempDoc.addPage([A4W, A4H]);
+                    }
                     const page = tempDoc.getPages()[0];
                     const { width } = page.getSize();
                     const sf = width / A4W;
@@ -2718,26 +2728,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const spareInfo = {
                         subject: item.subject,
                         examNo: examNo,
-                        name: '',
-                        class: '',
-                        no: '',
-                        room: '',
-                        seat: ''
+                        name: '', class: '', no: '', room: '', seat: ''
                     };
 
-                    await window.renderStudentPDFHeader(tempDoc, page, spareInfo, {
-                        mainFont, nameFont, schoolFont, sf,
-                        session: ses,
-                        metadata: { pdfHeaderDesign: designType, examNo },
-                        designType
-                    });
+                    try {
+                        await window.renderStudentPDFHeader(tempDoc, page, spareInfo, {
+                            mainFont, nameFont, schoolFont, sf,
+                            session: ses,
+                            metadata: { pdfHeaderDesign: designType, examNo },
+                            designType
+                        });
+                    } catch (e) {
+                        console.error(`  renderStudentPDFHeader failed for ${item.subject}:`, e);
+                    }
 
-                    // BAKE: save tempDoc to bytes, reload, then copy into merged
                     const bakedBytes = await tempDoc.save();
                     const bakedDoc = await PDFDocument.load(bakedBytes);
                     const copiedPages = await mergedPdf.copyPages(bakedDoc, bakedDoc.getPageIndices());
                     copiedPages.forEach(p => mergedPdf.addPage(p));
                     totalPages += copiedPages.length;
+
+                    // Clear memory references
+                    tempDoc = null;
+                    bakedDoc = null;
                 }
             }
 
@@ -3266,59 +3279,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawLine({ start: { x: snX + 4 * sf, y: snY1 + 2 * sf }, end: { x: snX + 2 * sf, y: snY2 }, thickness: 1 * sf, color: emerald });
             page.drawCircle({ x: snX + 2 * sf, y: snY2, size: 0.8 * sf, color: gold }); // snake head
         } else if (designType === '9') {
-            // Atatürk Teması (Yeni Görsel Tasarım)
-            const th = 0.8 * sf;
-            const col = rgb(0, 0, 0);
-            const midX = ox + ow / 2;
-            const lineY = oy + oh;
-
-            // 1. Atatürk Silüetlerini Çiz
+            // Atatürk Teması (Yeni v3 Görsel Çerçeve)
             try {
-                const faceBytes = await window.getFileBytes('ata_face.png');
-                if (faceBytes) {
-                    const faceImg = await pdfDoc.embedPng(faceBytes);
-                    const faceH = oh * 1.0;
-                    const faceW = (faceImg.width / faceImg.height) * faceH;
-                    page.drawImage(faceImg, { x: ox - 2 * sf, y: oy, width: faceW, height: faceH });
+                const headerBytes = await window.getFileBytes('ata_header_v3.png');
+                if (headerBytes) {
+                    const headerImg = await pdfDoc.embedPng(headerBytes);
+                    // Çerçeveyi tüm başlık alanına yay: ox, oy, ow, oh
+                    page.drawImage(headerImg, { x: ox, y: oy, width: ow, height: oh });
                 }
-            } catch (e) { console.warn("Ata face load failed", e); }
+            } catch (e) { console.warn("Ata header v3 load failed", e); }
 
-            try {
-                const kocBytes = await window.getFileBytes('ata_kocatepe.png');
-                if (kocBytes) {
-                    const kocImg = await pdfDoc.embedPng(kocBytes);
-                    const kocH = oh * 1.1;
-                    const kocW = (kocImg.width / kocImg.height) * kocH;
-                    page.drawImage(kocImg, { x: ox + ow - kocW + 2 * sf, y: oy, width: kocW, height: kocH });
-                }
-            } catch (e) { console.warn("Ata kocatepe load failed", e); }
-
-            // 2. Üst ve Alt Çerçeve Çizgileri
-            const topText = "E N   H A K İ K İ   M Ü R Ş İ T   İ L İ M D İ R";
-            const topTextSize = 6.5 * sf;
-            const topTextW = mainFont.widthOfTextAtSize(topText, topTextSize);
-            const gapW = topTextW + 10 * sf;
-
-            page.drawLine({ start: { x: ox + 35 * sf, y: lineY }, end: { x: midX - gapW / 2, y: lineY }, thickness: th, color: col });
-            page.drawLine({ start: { x: midX + gapW / 2, y: lineY }, end: { x: ox + ow - 15 * sf, y: lineY }, thickness: th, color: col });
-            drawCenterText(topText, ox, lineY - topTextSize * 0.4, ow, topTextSize, 6.5, mainFont);
-
-            page.drawLine({ start: { x: ox + 25 * sf, y: oy }, end: { x: ox + ow - 15 * sf, y: oy }, thickness: th, color: col });
-
-            // 3. İçerik (Okul Adı ve Sınav Bilgisi)
+            // İçerik (Okul Adı ve Sınav Bilgisi) - Görselin içindeki boş alana göre konumlandır
             const contentMidW = ow - 100 * sf;
             const contentX = ox + 50 * sf;
 
-            drawCenterText(sName.toUpperCase(), contentX, oy + row3H + row2H, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 12, schoolFont), schoolFont);
-            drawCenterText(examText, contentX, oy + row3H, contentMidW, row2H, getFitSize(examText, contentMidW, 14.5), mainFont);
+            drawCenterText(sName.toUpperCase(), contentX, oy + row3H + row2H - 5 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
+            drawCenterText(examText, contentX, oy + row3H - 2 * sf, contentMidW, row2H, getFitSize(examText, contentMidW, 14), mainFont);
 
             const gc = rgb(0.8, 0.8, 0.8);
             if (info) {
+                // Bilgi kutuları çizgileri (Şeffaf/Gri)
                 drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, gc, 0.5 * sf);
                 drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
             }
-            page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 15 * sf, size: 7 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-            await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+            page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 18 * sf, size: 7 * sf, font: mainFont, color: rgb(0.2, 0.2, 0.2) });
+            await drawLogo(ox + (leftW - 22 * sf) / 2, oy + row3H + (row2H + row1H - 22 * sf) / 2, 22 * sf);
         } else if (designType === '10') {
             // CLOUD THEME (FLATTER CURVES: 4x Length, Original Bulge)
             const edgeColor = rgb(0.1, 0.1, 0.1);
