@@ -2637,20 +2637,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             const metadata = ses.subjectMetadata || {};
             const school = DataManager.getSchoolSettings();
 
-            // Load fonts
-            let mainFontBytes = null, nameFontBytes = null, schoolFontBytes = null;
-            try {
-                const resp1 = await fetch('fonts/NotoSans-Bold.ttf');
-                if (resp1.ok) mainFontBytes = await resp1.arrayBuffer();
-            } catch (e) { }
-            try {
-                const resp2 = await fetch('fonts/NotoSans-ExtraBold.ttf');
-                if (resp2.ok) nameFontBytes = await resp2.arrayBuffer();
-            } catch (e) { }
-            try {
-                const resp3 = await fetch('fonts/NotoSans-Black.ttf');
-                if (resp3.ok) schoolFontBytes = await resp3.arrayBuffer();
-            } catch (e) { }
+            // Load fonts using same cache as main print system
+            if (!window._cachedFonts) window._cachedFonts = {};
+
+            if (!window._cachedFonts.main) {
+                try {
+                    const bytes = await window.getFileBytes('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf');
+                    if (bytes && bytes.byteLength > 1000) window._cachedFonts.main = bytes;
+                } catch (e) { console.warn('Main font fetch failed'); }
+            }
+            if (!window._cachedFonts.nameFont) {
+                try {
+                    const bytes = await window.getFileBytes('fonts/MonotypeCorsiva.ttf');
+                    if (bytes && bytes.byteLength > 1000) window._cachedFonts.nameFont = bytes;
+                } catch (e) { }
+            }
+            if (!window._cachedFonts.schoolFont) {
+                try {
+                    const bytes = await window.getFileBytes('fonts/SnapITC.ttf');
+                    if (bytes && bytes.byteLength > 1000) window._cachedFonts.schoolFont = bytes;
+                } catch (e) { }
+            }
 
             const A4W = 595.28, A4H = 841.89;
 
@@ -2670,27 +2677,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                     let pdfDoc;
 
                     if (paperPath) {
-                        // Load existing PDF and add header
                         try {
                             const pdfBytes = await window.getFileBytes(paperPath);
                             pdfDoc = await PDFDocument.load(pdfBytes);
                         } catch (e) {
-                            // If paper can't be loaded, create empty page
                             pdfDoc = await PDFDocument.create();
                             pdfDoc.addPage([A4W, A4H]);
                         }
                     } else {
-                        // No paper defined, create empty A4 page
                         pdfDoc = await PDFDocument.create();
                         pdfDoc.addPage([A4W, A4H]);
                     }
 
-                    pdfDoc.registerFontkit(fontkit);
+                    if (typeof fontkit !== 'undefined') pdfDoc.registerFontkit(fontkit);
 
                     const fallback = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-                    const mainFont = mainFontBytes ? await pdfDoc.embedFont(mainFontBytes) : fallback;
-                    const nameFont = nameFontBytes ? await pdfDoc.embedFont(nameFontBytes) : mainFont;
-                    const schoolFont = schoolFontBytes ? await pdfDoc.embedFont(schoolFontBytes) : mainFont;
+                    let mainFont = null, nameFont = null, schoolFont = null;
+                    try {
+                        if (window._cachedFonts.main) mainFont = await pdfDoc.embedFont(window._cachedFonts.main);
+                        if (window._cachedFonts.nameFont) nameFont = await pdfDoc.embedFont(window._cachedFonts.nameFont);
+                        if (window._cachedFonts.schoolFont) schoolFont = await pdfDoc.embedFont(window._cachedFonts.schoolFont);
+                    } catch (e) { console.error('Font embed error', e); }
+
+                    mainFont = mainFont || fallback;
+                    nameFont = nameFont || mainFont;
+                    schoolFont = schoolFont || mainFont;
 
                     const page = pdfDoc.getPages()[0];
                     const { width, height } = page.getSize();
