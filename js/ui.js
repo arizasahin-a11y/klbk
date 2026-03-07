@@ -3761,7 +3761,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const blob = new Blob([mergedBytes], { type: 'application/pdf' });
                 const blobUrl = URL.createObjectURL(blob);
                 Swal.close();
-                await window.printFile(blobUrl, {});
+
+                // If massive file (>20 students), open in new tab for reliability
+                if (targetStudents.length > 20) {
+                    const win = window.open(blobUrl, '_blank');
+                    if (win) {
+                        Swal.fire({
+                            title: 'Büyük Dosya Hazır',
+                            text: 'Dosya boyutu nedeniyle yeni sekmede açıldı. Lütfen oradan yazdırın.',
+                            icon: 'success',
+                            confirmButtonColor: '#4f46e5'
+                        });
+                    } else {
+                        Swal.fire('Uyarı', 'Pop-up engelleyici yeni sekmeyi engelledi. Lütfen izin verin.', 'warning');
+                    }
+                } else {
+                    await finalizeAndPrint(blobUrl);
+                }
+
+                // Clear temporary batch cache
+                window._pdfTemplateCache = {};
             } catch (err) {
                 console.error("Batch Merge Error:", err);
                 Swal.fire('Hata', 'Toplu PDF oluşturulurken hata: ' + err.message, 'error');
