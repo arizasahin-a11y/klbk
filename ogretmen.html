@@ -1504,6 +1504,252 @@
             win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${session.name}</title><style>${pageCss}</style></head><body>${body}</body></html>`);
             win.document.close();
         }
+
+        // ===== YEDEK KAĞIT YAZDIRMA (Shift + Sağ tıklama) =====
+        document.body.addEventListener('contextmenu', function (e) {
+            const card = e.target.closest('.exam-card');
+            if (card && e.shiftKey) {
+                e.preventDefault();
+                const sesId = card.getAttribute('data-ses-id');
+                window.openSparePaperModal(sesId);
+            }
+        });
+
+        window.openSparePaperModal = function (sessionId) {
+            const sessions = DataManager.getExamSessions();
+            const ses = sessions.find(s => s.id === sessionId);
+            if (!ses) return;
+
+            // Get matching subjects for this teacher (uses global myBranches)
+            const branchMatches = (sName) => {
+                if (!sName) return false;
+                const name = sName.toLowerCase().trim();
+                return myBranches.some(b => {
+                    const bn = b.toLowerCase().trim();
+                    return name === bn || name.startsWith(bn + " ");
+                });
+            };
+
+            const seenNames = new Set();
+            const subjectNames = [];
+
+            if (ses.results) {
+                ses.results.forEach(room => {
+                    Object.values(room.seats || {}).forEach(std => {
+                        const subName = std._matchedSubject || "";
+                        if (subName && branchMatches(subName) && !seenNames.has(subName)) {
+                            seenNames.add(subName);
+                            subjectNames.push(subName);
+                        }
+                    });
+                });
+            }
+
+            (ses.subjects || []).forEach(sub => {
+                const subName = (typeof sub === 'object' ? sub.name : sub);
+                if (branchMatches(subName) && !seenNames.has(subName)) {
+                    const hasGranular = Array.from(seenNames).some(n => n.startsWith(subName + " "));
+                    if (!hasGranular) {
+                        seenNames.add(subName);
+                        subjectNames.push(subName);
+                    }
+                }
+            });
+
+            if (subjectNames.length === 0) {
+                Swal.fire('Uyarı', 'Size ait tanımlı ders bulunamadı.', 'warning');
+                return;
+            }
+
+            subjectNames.sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }));
+
+            let listHtml = subjectNames.map((sub, idx) => `
+                <div style="display:flex; align-items:center; gap:12px; padding:12px; background:${idx % 2 === 0 ? 'rgba(79, 70, 229, 0.03)' : '#fff'}; border-radius:10px; margin-bottom:6px; border:1px solid rgba(0,0,0,0.03);">
+                    <div style="width:36px; height:36px; background:var(--primary); color:white; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:1.1rem;">
+                        <i class="fa-solid fa-file-pdf"></i>
+                    </div>
+                    <div style="flex:1; text-align:left;">
+                        <div style="font-weight:700; font-size:0.95rem; color:#1e293b; line-height:1.2;">${sub}</div>
+                        <div style="font-size:0.75rem; color:var(--gray-500); margin-top:2px;">Yedek Kağıt Adedi</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <input type="number" class="spare-count-input" data-sub="${sub}" value="3" min="0" max="100"
+                            style="width:60px; height:38px; text-align:center; border:2px solid var(--gray-200); border-radius:8px; font-size:1.1rem; font-weight:800; color:var(--primary); background:white;">
+                        <span style="font-size:0.8rem; color:var(--gray-400); font-weight:600;">adet</span>
+                    </div>
+                </div>
+            `).join('');
+
+            Swal.fire({
+                title: '<div style="display:flex; align-items:center; gap:10px; justify-content:center;"><i class="fa-solid fa-copy" style="color:var(--primary);"></i> <span>Yedek Kağıt Yazdır (v5.0)</span></div>',
+                width: Math.min(520, window.innerWidth - 30),
+                padding: '1.5rem',
+                html: `
+                    <div style="text-align:left; margin-top:10px;">
+                        <div style="background:var(--primary); color:white; padding:12px; border-radius:10px; margin-bottom:15px; font-size:0.85rem; line-height:1.4; display:flex; gap:10px; align-items:center;">
+                            <i class="fa-solid fa-circle-info" style="font-size:1.2rem;"></i>
+                            <span>Bu dökümanlarda <b>öğrenci bilgileri (Ad, Sınıf, No vb.) boş</b> bırakılacaktır. Sadece sınav bilgileri ve başlıklar yazdırılır.</span>
+                        </div>
+                        <div style="max-height:60vh; overflow-y:auto; padding-right:6px; margin-bottom:10px;" class="luxury-scroll">
+                            ${listHtml}
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-print"></i> Yazdırmayı Başlat',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#4f46e5',
+                reverseButtons: true,
+                preConfirm: () => {
+                    const items = [];
+                    document.querySelectorAll('.spare-count-input').forEach(inp => {
+                        const count = parseInt(inp.value) || 0;
+                        if (count > 0) items.push({ subject: inp.getAttribute('data-sub'), count });
+                    });
+                    if (items.length === 0) {
+                        Swal.showValidationMessage('Lütfen en az bir ders için adet giriniz.');
+                        return false;
+                    }
+                    return { sessionId, items };
+                }
+            }).then(result => {
+                if (result.isConfirmed && result.value) {
+                    window.printSparePapers(result.value.sessionId, result.value.items);
+                }
+            });
+        };
+
+        window.printSparePapers = async function (sessionId, items) {
+            const A4W = 595.28, A4H = 841.89;
+            const pdfLib = window.PDFLib;
+            const PDFDocument = pdfLib.PDFDocument;
+            const sessions = DataManager.getExamSessions();
+            const ses = sessions.find(s => s.id === sessionId);
+            if (!ses) return;
+
+            Swal.fire({
+                title: 'Yedek Kağıtlar Hazırlanıyor...',
+                html: '<div id="spare-progress" style="font-size:0.9rem; color:var(--gray-600); font-weight:bold;">Motor Isınıyor...</div>',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            try {
+                const metadata = ses.subjectMetadata || {};
+                const mergedPdf = await PDFDocument.create();
+
+                if (!window._cachedFonts) window._cachedFonts = {};
+                const fetchOrGet = async (key, urls) => {
+                    if (!window._cachedFonts[key]) {
+                        for (const url of urls) {
+                            try {
+                                const bytes = await window.getFileBytes(url);
+                                if (bytes && bytes.byteLength > 1000) { window._cachedFonts[key] = bytes; break; }
+                            } catch (e) {
+                                console.warn("Font fetch err for:", key, e);
+                            }
+                        }
+                    }
+                };
+
+                await fetchOrGet('main', ['https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf']);
+                await fetchOrGet('nameFont', ['fonts/MonotypeCorsiva.ttf']);
+                await fetchOrGet('schoolFont', ['fonts/SnapITC.ttf']);
+
+                if (typeof fontkit !== 'undefined') mergedPdf.registerFontkit(fontkit);
+                const fallbackFont = await mergedPdf.embedFont(pdfLib.StandardFonts.HelveticaBold);
+                let mainFont = null, nameFont = null, schoolFont = null;
+                try {
+                    if (window._cachedFonts?.main) mainFont = await mergedPdf.embedFont(window._cachedFonts.main);
+                    if (window._cachedFonts?.nameFont) nameFont = await mergedPdf.embedFont(window._cachedFonts.nameFont);
+                    if (window._cachedFonts?.schoolFont) schoolFont = await mergedPdf.embedFont(window._cachedFonts.schoolFont);
+                } catch (e) { }
+                mainFont = mainFont || fallbackFont;
+                nameFont = nameFont || mainFont;
+                schoolFont = schoolFont || mainFont;
+
+                let totalPages = 0;
+
+                for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
+                    const item = items[itemIdx];
+                    const subMeta = metadata[item.subject] || {};
+                    const designType = subMeta.pdfHeaderDesign || '1';
+                    const examNo = subMeta.examNo || subMeta.examNumber || '';
+                    const paperPath = subMeta.papers
+                        ? (typeof subMeta.papers === 'string' ? subMeta.papers : (subMeta.papers['default'] || subMeta.papers['A'] || Object.values(subMeta.papers).find(p => p) || ''))
+                        : '';
+
+                    const progLine = document.getElementById('spare-progress');
+                    if (progLine) progLine.textContent = `${item.subject} (${itemIdx + 1}/${items.length}) işleniyor...`;
+
+                    let paperBytes = null;
+                    if (paperPath) {
+                        try {
+                            paperBytes = await window.getFileBytes(paperPath);
+                        } catch (e) { console.error(`Failed to load pdf for ${item.subject}`, e); }
+                    }
+
+                    let sourceDoc;
+                    try {
+                        if (paperBytes) sourceDoc = await PDFDocument.load(paperBytes);
+                        else {
+                            sourceDoc = await PDFDocument.create();
+                            sourceDoc.addPage([A4W, A4H]);
+                        }
+                    } catch (e) {
+                        sourceDoc = await PDFDocument.create();
+                        sourceDoc.addPage([A4W, A4H]);
+                    }
+
+                    const indicesToCopy = sourceDoc.getPageIndices();
+                    for (let copyIdx = 0; copyIdx < item.count; copyIdx++) {
+                        if (progLine) progLine.textContent = `${item.subject} (${itemIdx + 1}/${items.length}) - Kopya ${copyIdx + 1}/${item.count}...`;
+
+                        const copiedPages = await mergedPdf.copyPages(sourceDoc, indicesToCopy);
+                        const firstCopiedPage = copiedPages[0];
+                        const { width } = firstCopiedPage.getSize();
+                        const sf = width / A4W;
+
+                        await window.renderStudentPDFHeader(mergedPdf, firstCopiedPage, {
+                            subject: item.subject,
+                            examNo,
+                            name: '', class: '', no: '', room: '', seat: ''
+                        }, {
+                            mainFont, nameFont, schoolFont, sf,
+                            session: ses,
+                            metadata: { pdfHeaderDesign: designType, examNo },
+                            designType
+                        });
+
+                        copiedPages.forEach(p => mergedPdf.addPage(p));
+                        totalPages += copiedPages.length;
+                    }
+                    sourceDoc = null;
+                }
+
+                if (totalPages > 0) {
+                    const pdfBytes = await mergedPdf.save();
+                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+                    const win = window.open(url, '_blank');
+                    if (win) {
+                        win.onload = () => { setTimeout(() => win.print(), 500); };
+                    } else {
+                        Swal.fire({
+                            title: 'Yedek Kağıtlar Hazır',
+                            text: 'Döküman yeni sekmede açıldı.',
+                            icon: 'success'
+                        });
+                    }
+                }
+                Swal.close();
+            } catch (err) {
+                console.error('Yedek kağıt hatası:', err);
+                Swal.fire('Hata', 'Yedek kağıtlar hazırlanırken bir sorun oluştu: ' + err.message, 'error');
+            }
+        };
+
     </script>
 </body>
 
