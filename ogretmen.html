@@ -1325,59 +1325,71 @@
                 page.drawLine({ start: { x: snX + 4 * sf, y: snY1 + 2 * sf }, end: { x: snX + 2 * sf, y: snY2 }, thickness: 1 * sf, color: emerald });
                 page.drawCircle({ x: snX + 2 * sf, y: snY2, size: 0.8 * sf, color: gold });
             } else if (designType === '9') {
+                const cmToPt = 28.35;
                 const navy = rgb(0.1, 0.15, 0.25);
                 page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: rgb(0.99, 0.99, 1) });
                 const tx = ox, rx = ox + ow, ty = oy + oh, by = oy;
-                const thkThin = 0.5 * sf, edgeThick = 1 * sf;
+                const thk = 1 * sf; // Tüm çizgiler eşit kalınlık
 
-                // 1) LEFT PROFILE (Refined Line Art)
+                // Atatürk Siluet (sol)
                 const facePath = "M 0 270 L 10 270 C 15 270 20 265 22 255 C 25 240 22 230 18 220 C 15 210 12 200 12 180 C 12 160 15 140 25 120 C 35 100 50 85 70 75 C 90 65 110 60 130 65 C 150 70 170 85 180 105 C 190 125 185 150 170 170 C 155 190 130 205 100 210 C 70 215 40 212 20 205 L 10 205 L 0 205 Z";
-                const faceScale = oh / 280;
-                page.drawSvgPath(facePath, { x: tx + 1 * sf, y: ty, scale: faceScale, color: navy });
-
-                // 2) KOCATEPE WALKER (Refined Line Art)
+                page.drawSvgPath(facePath, { x: tx + 1 * sf, y: ty, scale: oh / 280, color: navy });
                 const walkPath = "M 50 150 L 60 150 C 65 145 68 135 65 125 C 62 115 55 105 45 100 C 35 95 25 98 18 105 C 11 112 8 125 12 135 C 16 145 25 150 35 150 L 50 150 Z";
-                const walkScale = oh / 160 * 1.5;
-                page.drawSvgPath(walkPath, { x: rx - 30 * sf, y: by + 2 * sf, scale: walkScale, color: navy });
+                page.drawSvgPath(walkPath, { x: rx - 30 * sf, y: by + 2 * sf, scale: oh / 160 * 1.5, color: navy });
 
-                // 3) BORDERS
-                page.drawLine({ start: { x: tx, y: ty }, end: { x: rx, y: ty }, thickness: edgeThick, color: navy });
-                page.drawLine({ start: { x: tx, y: by }, end: { x: rx, y: by }, thickness: edgeThick, color: navy });
-                page.drawLine({ start: { x: tx, y: ty }, end: { x: tx, y: by }, thickness: edgeThick, color: navy });
-                page.drawLine({ start: { x: rx, y: ty }, end: { x: rx, y: by }, thickness: edgeThick, color: navy });
+                // Dış çerçeve (tutarlı kalınlık)
+                page.drawLine({ start: { x: tx, y: ty }, end: { x: rx, y: ty }, thickness: thk, color: navy });
+                page.drawLine({ start: { x: tx, y: by }, end: { x: rx, y: by }, thickness: thk, color: navy });
+                page.drawLine({ start: { x: tx, y: ty }, end: { x: tx, y: by }, thickness: thk, color: navy });
+                page.drawLine({ start: { x: rx, y: ty }, end: { x: rx, y: by }, thickness: thk, color: navy });
 
-                const startX = tx + 20 * sf, endX = rx - 35 * sf, contentW = endX - startX;
-                const sLw = 40 * sf, sMw = contentW - sLw;
-                page.drawLine({ start: { x: startX + sLw, y: by }, end: { x: startX + sLw, y: ty }, thickness: thkThin, color: navy });
-                page.drawLine({ start: { x: startX, y: by + row3H }, end: { x: rx, y: by + row3H }, thickness: thkThin, color: navy });
+                const startX = tx + 20 * sf;
+                const sLw = 40 * sf;
+                const atC2 = 48.5 * sf; // NO: 3mm genişletildi
+                const atC4 = 25 * sf, atC5 = 60 * sf, atC6 = 25 * sf;
+                const contentW = ow - 55 * sf;
+                const sMw = contentW - sLw;
+                const atC3 = sMw - atC2 - atC4 - atC5 - atC6;
 
-                const c2 = 40 * sf, c4 = 25 * sf, c5 = 60 * sf, c6 = 25 * sf, c3 = contentW - sLw - c2 - c4 - c5 - c6;
-                const dInner = (bx, b1, b2, b3, b4, b5) => {
-                    let x = bx + b1; page.drawLine({ start: { x, y: by }, end: { x, y: by + row3H }, thickness: thkThin, color: navy });
-                    x += b2; page.drawLine({ start: { x, y: by }, end: { x, y: by + row3H }, thickness: thkThin, color: navy });
-                    x += b3; page.drawLine({ start: { x, y: by }, end: { x, y: by + row3H }, thickness: thkThin, color: navy });
-                    x += b4; page.drawLine({ start: { x, y: by }, end: { x, y: by + row3H }, thickness: thkThin, color: navy });
-                    x += b5; page.drawLine({ start: { x, y: by }, end: { x, y: by + row3H }, thickness: thkThin, color: navy });
-                };
-                dInner(startX, sLw, c2, c3, c4, c5);
+                page.drawLine({ start: { x: startX + sLw, y: by }, end: { x: startX + sLw, y: ty }, thickness: thk, color: navy });
 
-                drawCenterText(sName.toUpperCase(), startX + sLw, by + row3H + row2H, sMw, row1H, getFitSize(sName.toUpperCase(), sMw, 11, schoolFont), schoolFont);
+                // 2. ve 3. satır arası çizgi: 3cm sayfa kenar boşluğu
+                const hrL = 3 * cmToPt * sf;
+                const hrR = width - 3 * cmToPt * sf;
+                page.drawLine({ start: { x: hrL, y: by + row3H }, end: { x: hrR, y: by + row3H }, thickness: thk, color: navy });
+
+                let cxA = startX + sLw;
+                [atC2, atC3, atC4, atC5].forEach(w => {
+                    cxA += w;
+                    page.drawLine({ start: { x: cxA, y: by }, end: { x: cxA, y: by + row3H }, thickness: thk, color: navy });
+                });
+
+                // Okul adı: 2cm dar, 1.5mm yukarı
+                const atSchoolW = sMw - 2 * cmToPt * sf;
+                const atSchoolX = startX + sLw + (sMw - atSchoolW) / 2;
+                drawCenterText(sName.toUpperCase(), atSchoolX, by + row3H + row2H + 4.25 * sf, atSchoolW, row1H, getFitSize(sName.toUpperCase(), atSchoolW, 11, schoolFont), schoolFont);
+
                 drawCenterText(examText, startX + sLw, by + row3H, sMw, row2H, getFitSize(examText, sMw, 14), mainFont);
+
                 if (info) {
-                    drawCenterText(lang.class, startX, by + row3H - 8 * sf, sLw, 8 * sf, 6, mainFont);
+                    // SINIF etiketi sağa hizalı
+                    const clStr = cleanTurkishChars(lang.class);
+                    const clSz = 6 * sf;
+                    const clW = mainFont.widthOfTextAtSize(clStr, clSz);
+                    page.drawText(clStr, { x: startX + sLw - clW - 3 * sf, y: by + row3H - 6 * sf, size: clSz, font: mainFont, color: navy });
                     drawCenterText(info.class || '', startX, by - 2 * sf, sLw, row3H, 16, mainFont);
-                    drawCenterText(lang.no, startX + sLw, by + row3H - 8 * sf, c2, 8 * sf, 6, mainFont);
-                    drawCenterText(info.no || '', startX + sLw, by - 2 * sf, c2, row3H, 12, mainFont);
-                    drawStudentName(startX + sLw + c2, by, c3, row3H);
-                    page.drawText(lang.room, { x: startX + sLw + c2 + c3 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                    drawCenterText(info.room || '', startX + sLw + c2 + c3, by - 2.5 * sf, c4, row3H, 11, mainFont);
-                    page.drawText(lang.exam, { x: startX + sLw + c2 + c3 + c4 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                    drawCenterText((info.subject || '').toUpperCase(), startX + sLw + c2 + c3 + c4, by - 2.5 * sf, c5, row3H, 9.5, mainFont);
-                    page.drawText(lang.seat, { x: startX + sLw + c2 + c3 + c4 + c5 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                    drawCenterText(info.seat || '', startX + sLw + c2 + c3 + c4 + c5, by - 2.5 * sf, c6, row3H, 14, mainFont);
+                    drawCenterText(lang.no, startX + sLw, by + row3H - 8 * sf, atC2, 8 * sf, 6, mainFont);
+                    drawCenterText(info.no || '', startX + sLw, by - 2 * sf, atC2, row3H, 12, mainFont);
+                    drawStudentName(startX + sLw + atC2, by, atC3, row3H);
+                    page.drawText(lang.room, { x: startX + sLw + atC2 + atC3 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                    drawCenterText(info.room || '', startX + sLw + atC2 + atC3, by - 2.5 * sf, atC4, row3H, 11, mainFont);
+                    page.drawText(lang.exam, { x: startX + sLw + atC2 + atC3 + atC4 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                    drawCenterText((info.subject || '').toUpperCase(), startX + sLw + atC2 + atC3 + atC4, by - 2.5 * sf, atC5, row3H, 9.5, mainFont);
+                    page.drawText(lang.seat, { x: startX + sLw + atC2 + atC3 + atC4 + atC5 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                    drawCenterText(info.seat || '', startX + sLw + atC2 + atC3 + atC4 + atC5, by - 2.5 * sf, atC6, row3H, 14, mainFont);
                 }
                 page.drawText(lang.score, { x: rx - 50 * sf, y: ty - 10 * sf, size: 8 * sf, font: mainFont, color: navy });
-                await drawLogo(startX + (sLw - 28 * sf) / 2, by + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+
             } else if (designType === '10') {
                 const skyBlue = rgb(0.2, 0.6, 0.86); const cloudWhite = rgb(1, 1, 1);
                 page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: cloudWhite });
