@@ -537,31 +537,27 @@
                         </div>
 
                         <!-- THE WIZARD MODAL (Hidden by default) -->
-                        <div id="examWizardModal" class="modal-overlay hidden"
-                            style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
-                            <div class="modal-content glass-panel"
-                                style="width: 90%; max-width: 550px; max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden;">
+                        <div id="examWizardModal" class="modal-overlay hidden">
+                            <div class="modal-content glass-panel" style="max-width: 550px;">
 
                                 <!-- Wizard Header -->
-                                <div
-                                    style="padding: 1.5rem; border-bottom: 1px solid var(--gray-200); background: var(--gray-50); display: flex; justify-content: space-between; align-items: center;">
-                                    <h2 style="margin: 0; color: var(--dark);">Yeni Sınav Oturumu Ekle</h2>
-                                    <button id="btnWizardClose" class="btn"
-                                        style="background: transparent; color: var(--gray-500); font-size: 1.5rem; padding: 0;"><i
-                                            class="fa-solid fa-xmark"></i></button>
+                                <div class="modal-header">
+                                    <h2>Yeni Sınav Oturumu Ekle</h2>
+                                    <button id="btnWizardClose" class="modal-close">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
                                 </div>
 
                                 <!-- Stepper -->
-                                <div
-                                    style="display: flex; justify-content: space-between; padding: 1rem 2rem; background: white; border-bottom: 1px solid var(--gray-200);">
+                                <div class="wizard-stepper">
                                     <div class="wizard-step active" data-step="1">1. Bilgiler</div>
-                                    <div class="wizard-step" data-step="2">2. Ders & Sınıf Seçimi</div>
+                                    <div class="wizard-step" data-step="2">2. Ders & Sınıf</div>
                                     <div class="wizard-step" data-step="3">3. Derslikler</div>
                                     <div class="wizard-step" data-step="4">4. Onay</div>
                                 </div>
 
                                 <!-- Wizard Body -->
-                                <div style="padding: 2rem; overflow-y: auto; flex: 1;">
+                                <div class="modal-body">
 
                                     <!-- STEP 1: Info -->
                                     <div id="wizardStep1" class="wizard-pane">
@@ -570,72 +566,58 @@
                                                 style="width: 60px; height: 60px; background: rgba(79, 70, 229, 0.1); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem;">
                                                 <i class="fa-solid fa-calendar-check"></i>
                                             </div>
-                                            <h3 style="margin-bottom: 0.5rem;">Oturum Bilgileri</h3>
+                                            <h3>Oturum Bilgileri</h3>
                                             <p style="color: var(--gray-500); font-size: 0.9rem;">Sınav oturumu için
                                                 temel tanımlamaları yapın.</p>
                                         </div>
 
-                                        <div class="form-group"
-                                            style="background: white; padding: 1.5rem; border: 1px solid var(--gray-200); border-radius: 12px; margin-bottom: 1.5rem; width: 100%;">
-                                            <label
-                                                style="font-weight: 700; color: var(--gray-700); font-size: 1.1rem; display: block; margin-bottom: 0.5rem;">Sınav
-                                                Adı</label>
-                                            <input type="text" id="wizSessionName"
-                                                style="border: 1px solid var(--gray-200); background: var(--gray-50); height: 55px; font-size: 1.2rem; padding: 0 1.25rem; width: 100%; border-radius: 8px;"
-                                                placeholder="Örn: 1. Dönem 1. Ortak Fizik Sınavı" required>
-                                        </div>
+                                        <div class="modal-form-card">
+                                            <div class="modal-form-group">
+                                                <label>Sınav Adı</label>
+                                                <input type="text" id="wizSessionName"
+                                                    placeholder="Örn: 1. Dönem 1. Ortak Fizik Sınavı" required>
+                                            </div>
 
-                                        <div style="display: flex; gap: 1.5rem;">
-                                            <div class="form-group"
-                                                style="flex: 1; background: white; padding: 1.5rem; border: 1px solid var(--gray-200); border-radius: 12px;">
-                                                <label
-                                                    style="font-weight: 700; color: var(--gray-700); font-size: 1.1rem; display: block; margin-bottom: 0.5rem;">Tarih</label>
-                                                <input type="date" id="wizSessionDate"
-                                                    style="border: 1px solid var(--gray-200); background: var(--gray-50); height: 55px; font-size: 1.2rem; padding: 0 1.25rem; width: 100%; border-radius: 8px;"
-                                                    required>
+                                            <div class="modal-row">
+                                                <div class="modal-form-group">
+                                                    <label>Tarih</label>
+                                                    <input type="date" id="wizSessionDate" required>
+                                                </div>
+                                                <div class="modal-form-group">
+                                                    <label>Sınav Saati</label>
+                                                    <select id="wizSessionTime" required>
+                                                        <option value="">-- Seçiniz --</option>
+                                                        <option value="1. Ders">1. Ders</option>
+                                                        <option value="2. Ders">2. Ders</option>
+                                                        <option value="3. Ders">3. Ders</option>
+                                                        <option value="4. Ders">4. Ders</option>
+                                                        <option value="5. Ders">5. Ders</option>
+                                                        <option value="6. Ders">6. Ders</option>
+                                                        <option value="7. Ders">7. Ders</option>
+                                                        <option value="8. Ders">8. Ders</option>
+                                                        <option value="9. Ders">9. Ders</option>
+                                                        <option value="10. Ders">10. Ders</option>
+                                                        <option value="11. Ders">11. Ders</option>
+                                                        <option value="12. Ders">12. Ders</option>
+                                                    </select>
+                                                </div>
                                             </div>
-                                            <div class="form-group"
-                                                style="flex: 1; background: white; padding: 1.5rem; border: 1px solid var(--gray-200); border-radius: 12px;">
-                                                <label
-                                                    style="font-weight: 700; color: var(--gray-700); font-size: 1.1rem; display: block; margin-bottom: 0.5rem;">Sınav
-                                                    Saati</label>
-                                                <select id="wizSessionTime"
-                                                    style="border: 1px solid var(--gray-200); background: var(--gray-50); height: 55px; font-size: 1.2rem; padding: 0 1.25rem; width: 100%; border-radius: 8px;"
-                                                    required>
-                                                    <option value="">-- Seçiniz --</option>
-                                                    <option value="1. Ders">1. Ders</option>
-                                                    <option value="2. Ders">2. Ders</option>
-                                                    <option value="3. Ders">3. Ders</option>
-                                                    <option value="4. Ders">4. Ders</option>
-                                                    <option value="5. Ders">5. Ders</option>
-                                                    <option value="6. Ders">6. Ders</option>
-                                                    <option value="7. Ders">7. Ders</option>
-                                                    <option value="8. Ders">8. Ders</option>
-                                                    <option value="9. Ders">9. Ders</option>
-                                                    <option value="10. Ders">10. Ders</option>
-                                                    <option value="11. Ders">11. Ders</option>
-                                                    <option value="12. Ders">12. Ders</option>
-                                                </select>
-                                            </div>
-                                        </div>
 
-                                        <div
-                                            style="display: flex; gap: 1.5rem; margin-top: 1.5rem; align-items: center; background: white; padding: 1.5rem; border: 1px solid var(--gray-200); border-radius: 12px;">
-                                            <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
-                                                <input type="checkbox" id="wizSessionHasGroups"
-                                                    style="width: 22px; height: 22px; cursor: pointer;">
-                                                <label for="wizSessionHasGroups"
-                                                    style="font-weight: 700; color: var(--gray-700); cursor: pointer; font-size: 1.1rem;">Bu
-                                                    sınavda grup var</label>
-                                            </div>
-                                            <div id="wizGroupCountContainer" class="hidden"
-                                                style="flex: 1; display: flex; align-items: center; gap: 0.75rem;">
-                                                <label
-                                                    style="font-weight: 700; color: var(--gray-700); white-space: nowrap; font-size: 1.1rem;">Grup
-                                                    Sayısı:</label>
-                                                <input type="number" id="wizSessionGroupCount" min="2" max="26"
-                                                    value="2"
-                                                    style="border: 1px solid var(--gray-200); background: var(--gray-50); height: 50px; font-size: 1.2rem; padding: 0 1rem; width: 100%; border-radius: 8px;">
+                                            <div class="modal-row" style="align-items: center; margin-top: 0.5rem;">
+                                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                                    <input type="checkbox" id="wizSessionHasGroups"
+                                                        style="width: 20px; height: 20px; cursor: pointer;">
+                                                    <label for="wizSessionHasGroups"
+                                                        style="font-weight: 700; color: var(--gray-700); cursor: pointer; margin-bottom:0;">Bu
+                                                        sınavda grup var</label>
+                                                </div>
+                                                <div id="wizGroupCountContainer" class="hidden"
+                                                    style="display: flex; align-items: center; gap: 0.75rem;">
+                                                    <label
+                                                        style="font-weight: 700; color: var(--gray-700); white-space: nowrap; margin-bottom:0;">Grup:</label>
+                                                    <input type="number" id="wizSessionGroupCount" min="2" max="26"
+                                                        value="2" style="height: 40px; width: 80px;">
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -643,55 +625,59 @@
                                     <!-- STEP 2: Subject & Classes -->
                                     <div id="wizardStep2" class="wizard-pane hidden">
                                         <h3>Ders ve Havuz Seçimi</h3>
-                                        <div class="form-group">
-                                            <label>Sınav Yapılacak Dersler</label>
-                                            <div style="display: flex; gap: 0.5rem;">
-                                                <select id="wizSubjectSelect" style="flex: 1;">
-                                                    <option value="">Lütfen Yüklü Öğrencilerden Bir Ders Seçin</option>
-                                                </select>
-                                                <button type="button" id="btnAddWizardSubject"
-                                                    class="btn btn-secondary">
-                                                    <i class="fa-solid fa-plus"></i> Ekle
-                                                </button>
-                                            </div>
-                                            <p id="wizNoStudentsMsg" class="hidden"
-                                                style="color:var(--danger); font-size:0.8rem; margin-top:0.3rem; font-weight: 500;">
-                                                <i class="fa-solid fa-circle-exclamation"></i> Başka bir dersin sınavına
-                                                atanacak öğrenci yok
-                                            </p>
-                                            <div id="wizSelectedSubjectsContainer"
-                                                style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem;">
-                                                <!-- Selected subjects tags will be here -->
+                                        <div class="modal-form-card">
+                                            <div class="modal-form-group">
+                                                <label>Sınav Yapılacak Dersler</label>
+                                                <div style="display: flex; gap: 0.5rem;">
+                                                    <select id="wizSubjectSelect" style="flex: 1; height: 45px;">
+                                                        <option value="">Lütfen Yüklü Öğrencilerden Bir Ders Seçin
+                                                        </option>
+                                                    </select>
+                                                    <button type="button" id="btnAddWizardSubject"
+                                                        class="btn btn-secondary"
+                                                        style="height: 45px; white-space: nowrap;">
+                                                        <i class="fa-solid fa-plus"></i> Ekle
+                                                    </button>
+                                                </div>
+                                                <p id="wizNoStudentsMsg" class="hidden"
+                                                    style="color:var(--danger); font-size:0.8rem; margin-top:0.5rem; font-weight: 500;">
+                                                    <i class="fa-solid fa-circle-exclamation"></i> Seçilecek öğrenci
+                                                    kalmadı
+                                                </p>
+                                                <div id="wizSelectedSubjectsContainer"
+                                                    style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;">
+                                                    <!-- Selected subjects tags -->
+                                                </div>
                                             </div>
                                         </div>
 
                                         <div id="wizClassesContainer"
-                                            style="margin-top: 1.5rem; border: 1px solid var(--gray-200); border-radius: 8px; padding: 1rem; background: var(--gray-50); min-height: 200px;">
-                                            <p style="text-align: center; color: var(--gray-500); margin-top: 2rem;">Bir
-                                                ders seçildiğinde, bu dersi listesinde barındıran tüm sınıflar burada
-                                                sıralanacaktır.</p>
+                                            style="border: 1px solid var(--gray-200); border-radius: 12px; padding: 1rem; background: var(--gray-50); min-height: 150px; overflow-y: auto; max-height: 300px;">
+                                            <p style="text-align: center; color: var(--gray-500); margin-top: 2rem;">
+                                                Ders seçildiğinde ilgili sınıflar burada listelenir.</p>
                                         </div>
                                     </div>
 
                                     <!-- STEP 3: Classrooms -->
                                     <div id="wizardStep3" class="wizard-pane hidden">
                                         <h3>Derslik Ataması</h3>
-                                        <p style="color: var(--gray-600); font-size: 0.9rem; margin-bottom: 1rem;">
-                                            Sistem, seçilen sınıflarla aynı isme sahip derslikleri otomatik
-                                            işaretlemiştir. İlave derslik veya salonları (Spor Salonu vb.) buradan
-                                            manuel işaretleyebilirsiniz.</p>
+                                        <p
+                                            style="color: var(--gray-600); font-size: 0.9rem; margin-bottom: 1.5rem; text-align: center;">
+                                            Sınavın yapılacağı derslikleri seçin. Sistem otomatik eşleşenleri
+                                            işaretlemiştir.
+                                        </p>
 
                                         <div id="wizClassroomsContainer"
-                                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
-                                            <!-- JS Injected checkbox list of all available rooms -->
+                                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem;">
+                                            <!-- JS Injected checkbox list -->
                                         </div>
                                     </div>
 
                                     <!-- STEP 4: Review -->
                                     <div id="wizardStep4" class="wizard-pane hidden">
                                         <h3>Özet ve Onay</h3>
-                                        <div id="wizSummaryBox"
-                                            style="background: var(--light); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--gray-200);">
+                                        <div id="wizSummaryBox" class="modal-form-card"
+                                            style="background: var(--gray-50); font-size: 0.95rem;">
                                             <!-- JS Injected Summary -->
                                         </div>
                                     </div>
@@ -699,15 +685,10 @@
                                 </div>
 
                                 <!-- Wizard Footer -->
-                                <div
-                                    style="padding: 1rem 1.5rem; border-top: 1px solid var(--gray-200); background: var(--gray-50); display: flex; justify-content: space-between;">
-                                    <button class="btn btn-secondary" id="btnWizardPrev"
-                                        style="visibility: hidden;">Geri</button>
-                                    <button class="btn btn-primary" id="btnWizardNext">İleri</button>
-                                    <button class="btn btn-success hidden" id="btnWizardFinish"
-                                        style="background: var(--secondary); border-color: var(--secondary);">
-                                        <i class="fa-solid fa-wand-magic-sparkles"></i> Dağıtımı Yap
-                                    </button>
+                                <div class="modal-footer">
+                                    <button id="btnWizardPrev" class="btn btn-secondary">Geri</button>
+                                    <button id="btnWizardNext" class="btn btn-primary">İleri</button>
+                                    <button id="btnWizardFinish" class="btn btn-success hidden">Oturumu Oluştur</button>
                                 </div>
                             </div>
                         </div>

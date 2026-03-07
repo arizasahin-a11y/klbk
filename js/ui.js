@@ -1837,20 +1837,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             wizardSessionData.subjects.forEach(subObj => {
                 const sub = subObj.name;
                 const tag = document.createElement('div');
-                tag.style = 'background: white; border: 1px solid var(--primary); color: var(--primary); padding: 0.5rem 1rem; border-radius: 12px; font-size: 0.9rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05);';
+                tag.className = 'subject-tag';
 
                 // Group Toggle for this specific subject
                 const groupToggle = `
-                <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.8rem; cursor:pointer; color:var(--gray-600); margin-left:1rem; border-left:1px solid var(--gray-200); padding-left:1rem;">
-                    <input type="checkbox" ${subObj.hasGroups ? 'checked' : ''} onchange="window.wizToggleSubjectGroup('${sub}', this.checked)" style="width:16px; height:16px;">
-                        Grup
-                    </label>
+                <label class="subject-tag-group">
+                    <input type="checkbox" ${subObj.hasGroups ? 'checked' : ''} onchange="window.wizToggleSubjectGroup('${sub}', this.checked)">
+                    Grup
+                </label>
             `;
 
                 tag.innerHTML = `
                 <span style="font-weight:600;">${sub}</span>
-                    ${groupToggle}
-            <i class="fa-solid fa-circle-xmark" style="cursor: pointer; color:var(--gray-400); font-size:1.1rem; margin-left:0.5rem;" onclick="window.wizRemoveSubject('${sub}')"></i>
+                ${groupToggle}
+                <i class="fa-solid fa-circle-xmark subject-tag-remove" onclick="window.wizRemoveSubject('${sub}')"></i>
             `;
                 subjectsContainer.appendChild(tag);
             });
@@ -2138,15 +2138,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const isChecked = wizardSessionData.selectedClasses.includes(inf.pid);
 
                 html += `
-                    <div style="background: white; border: 1px solid var(--gray-200); border-radius: 6px; padding: 0.5rem;">
+                    <div class="wizard-class-card">
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                             <input type="checkbox" class="wiz-class-cb" value="${inf.pid}" ${isChecked ? 'checked' : ''}>
                             <div style="flex:1;">
                                 <span style="font-weight:bold;">${inf.displayName}</span>
-                                <span style="font-size:0.8rem; color:var(--gray-500); display:block;">${inf.match} - ${inf.count} Öğrenci</span>
+                                <span style="font-size:0.8rem; color:var(--gray-500);"> ${inf.match}</span>
                             </div>
                         </label>
-                        <button type="button" class="btn btn-secondary btn-sm" style="width:100%; margin-top:0.5rem; font-size:0.7rem;" onclick="window.wizToggleStudents('${inf.pid.replace(/'/g, "\\'")}')">
+                        <button type="button" class="btn btn-secondary btn-sm" style="width:100%; margin-top:0.5rem; font-size:0.75rem;" onclick="window.wizToggleStudents('${inf.pid.replace(/'/g, "\\'")}')">
                             <i class="fa-solid fa-users"></i> Seçim Yap(${inf.count})
                         </button>
                     </div>
@@ -2176,18 +2176,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             subjectGroups.forEach(g => { const p = g.pools.find(p => p.pid === pid); if (p) inf = p; });
             if (!inf) return;
 
-            // Student selection modal logic
             let listHtml = `
-                <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
-                    <button class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.wiz-std-cb').forEach(cb => cb.checked = true)" style="flex:1;">Hepsini Seç</button>
-                    <button class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.wiz-std-cb').forEach(cb => cb.checked = false)" style="flex:1;">Hiçbirini Seç</button>
+                <div class="modal-row" style="margin-bottom:1rem;">
+                    <button class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.wiz-std-cb').forEach(cb => cb.checked = true)">Hepsini Seç</button>
+                    <button class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.wiz-std-cb').forEach(cb => cb.checked = false)">Hiçbirini Seç</button>
                 </div>
-                <div style="text-align:left; max-height:300px; overflow-y:auto; padding:1rem; border:1px solid var(--gray-200); border-radius:8px;">`;
+                <div style="text-align:left; max-height:300px; overflow-y:auto; padding:0.5rem;">`;
             inf.students.forEach(s => {
                 const isExcluded = wizardSessionData.excludedStudents.includes(s.no.toString());
                 listHtml += `
-                    <label style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem; cursor:pointer;">
-                        <input type="checkbox" class="wiz-std-cb" value="${s.no}" ${isExcluded ? '' : 'checked'}>
+                    <label style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem; cursor:pointer; padding: 0.5rem; border-bottom: 1px solid var(--gray-100);">
+                        <input type="checkbox" class="wiz-std-cb" value="${s.no}" ${isExcluded ? '' : 'checked'} style="width:18px; height:18px;">
                         <span><b>${s.no}</b> - ${s.name}</span>
                     </label>
                 `;
@@ -2234,15 +2233,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         wizardSessionData.selectedClassrooms = []; // reset array based on checkbox state
 
         allRooms.forEach(room => {
-            // Auto match heuristic: Does the room name exactly match ANY selected class name?
             const isAutoMatch = wizardSessionData.selectedClasses.includes(room.name);
             if (isAutoMatch) wizardSessionData.selectedClassrooms.push(room.name);
 
             html += `
-                <label style="display: flex; align-items: center; gap: 0.5rem; background: ${isAutoMatch ? 'var(--light-primary)' : 'white'}; padding: 0.75rem; border: 1px solid ${isAutoMatch ? 'var(--primary)' : 'var(--gray-200)'}; border-radius: 6px; cursor: pointer;">
+                <label class="wiz-room-label ${isAutoMatch ? 'active' : ''}">
                     <input type="checkbox" class="wiz-room-cb" value="${room.name}" ${isAutoMatch ? 'checked' : ''}>
                     <div style="flex:1;">
-                        <span style="font-weight:bold; color: ${isAutoMatch ? 'var(--primary)' : 'inherit'};">${room.name} Salonu</span>
+                        <span style="font-weight:bold;">${room.name} Salonu</span>
                     </div>
                 </label>
 `;
@@ -2258,8 +2256,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     wizardSessionData.selectedClassrooms = wizardSessionData.selectedClassrooms.filter(c => c !== e.target.value);
                 }
                 // Update parent style for viz
-                e.target.parentElement.style.background = e.target.checked ? 'var(--light-primary)' : 'white';
-                e.target.parentElement.style.borderColor = e.target.checked ? 'var(--primary)' : 'var(--gray-200)';
+                e.target.parentElement.classList.toggle('active', e.target.checked);
             });
         });
     }
@@ -2267,40 +2264,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Step 4 Logic: Review
     function prepareStep4Summary() {
         const box = document.getElementById('wizSummaryBox');
-
-        // Format class names for display
         const displayClasses = wizardSessionData.selectedClasses.map(c => c.includes('|') ? c.split('|')[0] + (c.split('|')[1] ? ` (${c.split('|')[1]})` : '') : c);
 
         const groupInfo = wizardSessionData.hasGroups
-            ? `<div style="margin-top:0.5rem; color:var(--primary); font-weight:bold;"><i class="fa-solid fa-layer-group"></i> ${wizardSessionData.groupCount} Gruplu Sınav (Gruplar: ${getGroupNames(wizardSessionData.groupCount)})</div>`
-            : `<div style="margin-top:0.5rem; color:var(--gray-500);"><i class="fa-solid fa-ban"></i> Grupsuz Sınav</div>`;
+            ? `<div class="modal-form-group" style="color:var(--primary); font-weight:700;"><i class="fa-solid fa-layer-group"></i> ${wizardSessionData.groupCount} Gruplu Sınav (${getGroupNames(wizardSessionData.groupCount)})</div>`
+            : `<div class="modal-form-group" style="color:var(--gray-500);"><i class="fa-solid fa-ban"></i> Grupsuz Sınav</div>`;
 
         let subjectsHtml = wizardSessionData.subjects.map(s => {
-            const gText = s.hasGroups ? `<span style="color:var(--success); font-size:0.75rem; margin-left:0.5rem;">[Gruplu]</span>` : '';
-            return `<li style="margin-bottom:0.25rem;">${s.name}${gText}</li>`;
+            const gText = s.hasGroups ? `<span class="badge badge-success" style="font-size:0.7rem; margin-left:0.5rem;">Grup</span>` : '';
+            return `<li style="margin-bottom:0.5rem; list-style:none; padding:0.5rem; background:white; border-radius:6px; border:1px solid var(--gray-100);">${s.name}${gText}</li>`;
         }).join('');
 
         box.innerHTML = `
-    <div style="margin-bottom: 1rem; border-bottom: 1px solid var(--gray-200); padding-bottom: 0.5rem;">
-                <h4 style="margin:0; color:var(--primary);">${wizardSessionData.name}</h4>
-                <div style="font-size:0.9rem; color:var(--gray-600);">${wizardSessionData.date} / ${wizardSessionData.time}</div>
+            <div style="margin-bottom: 1.5rem; border-bottom: 2px solid var(--gray-200); padding-bottom: 1rem;">
+                <h4 style="margin:0 0 0.5rem 0; color:var(--primary); font-size:1.2rem;">${wizardSessionData.name}</h4>
+                <div style="font-weight:600; color:var(--gray-700);">${wizardSessionData.date} / ${wizardSessionData.time}</div>
                 ${groupInfo}
             </div>
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; font-size:0.9rem;">
-        <div>
-            <strong style="display:block; margin-bottom:0.5rem;">Sınav Dersleri:</strong>
-            <ul style="margin:0; padding-left:1.2rem; color:var(--gray-700);">
-                ${subjectsHtml}
-            </ul>
-        </div>
-        <div>
-            <strong style="display:block; margin-bottom:0.5rem;">Sınava Girecek Sınıflar:</strong>
-            <div style="color:var(--gray-700);">${displayClasses.length} Havuz Seçildi</div>
-            <strong style="display:block; margin-top:1rem; margin-bottom:0.5rem;">Kullanılacak Salonlar:</strong>
-            <div style="color:var(--gray-700);">${wizardSessionData.selectedClassrooms.length} Salon Seçildi</div>
-        </div>
-    </div>
-`;
+            <div class="modal-row">
+                <div class="modal-form-group">
+                    <strong style="display:block; margin-bottom:0.75rem;"><i class="fa-solid fa-book"></i> Sınav Dersleri:</strong>
+                    <ul style="margin:0; padding:0;">
+                        ${subjectsHtml}
+                    </ul>
+                </div>
+                <div class="modal-form-group">
+                    <strong style="display:block; margin-bottom:0.75rem;"><i class="fa-solid fa-users"></i> Hedef Kitle:</strong>
+                    <div class="badge badge-primary" style="margin-bottom:0.5rem;">${displayClasses.length} Havuz Seçildi</div>
+                    <strong style="display:block; margin-top:1rem; margin-bottom:0.75rem;"><i class="fa-solid fa-school"></i> Salonlar:</strong>
+                    <div class="badge badge-secondary">${wizardSessionData.selectedClassrooms.length} Salon Ayrıldı</div>
+                </div>
+            </div>
+        `;
     }
 
     function getGroupNames(count) {
@@ -2437,19 +2432,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         examSessionsList.innerHTML = '';
 
         if (sessions.length === 0) {
-            examSessionsList.innerHTML = `<div style="text-align:center; padding: 2rem; border: 2px dashed var(--gray-300); border-radius: 8px; color: var(--gray-500);">Henüz bir sınav oturumu planlamadınız. Yukarıdan yeni oturum oluşturun.</div>`;
+            examSessionsList.innerHTML = `<div style="text-align:center; padding: 3rem; border: 2px dashed var(--gray-300); border-radius: 12px; color: var(--gray-500); background: var(--gray-50);">
+                <i class="fa-solid fa-calendar-plus" style="font-size: 2rem; display: block; margin-bottom: 1rem; opacity: 0.5;"></i>
+                Henüz oturum yok. Yeni oturum oluşturun.
+            </div>`;
             return;
         }
 
         let tableHtml = `
-            <div class="table-responsive">
-                <table class="data-table" style="width:100%; border-collapse:collapse; background:white; border-radius:12px; overflow:hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-                <thead style="background:var(--gray-50); border-bottom:2px solid var(--gray-200);">
+            <div class="session-table-container">
+                <table class="session-table">
+                <thead>
                     <tr>
-                        <th style="padding:1.25rem; text-align:left; font-weight:700; color:var(--gray-700);">Sınav Oturumu</th>
-                        <th style="padding:1.25rem; text-align:left; font-weight:700; color:var(--gray-700);">Tarih & Saat</th>
-                        <th style="padding:1.25rem; text-align:left; font-weight:700; color:var(--gray-700);">Görünüm Modu</th>
-                        <th style="padding:1.25rem; text-align:center; font-weight:700; color:var(--gray-700);">Aksiyom</th>
+                        <th>Sınav Oturumu</th>
+                        <th class="hide-mobile">Tarih & Saat</th>
+                        <th class="hide-mobile text-center">Görünüm</th>
+                        <th class="text-center">İşlem</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2463,35 +2461,38 @@ document.addEventListener('DOMContentLoaded', async () => {
             const titleText = ses.isPublished ? ses.name : `${ses.name} (Yayınlanmadı)`;
 
             tableHtml += `
-                <tr id="session-row-${ses.id}" style="border-bottom: 1px solid var(--gray-100); transition: background 0.2s; background: ${bgColor};">
-                    <td style="padding:1.25rem;">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <i class="fa-solid fa-chevron-right" id="arrow-${ses.id}" style="cursor:pointer; transition: transform 0.2s; padding:5px; color:var(--dark);" onclick="window.viewSessionDistribution('${ses.id}')"></i>
-                            <span onclick="window.toggleSessionPublish('${ses.id}')" style="font-weight:700; color:${titleColor}; text-decoration:none; display:block; cursor:pointer;" title="Yayın durumunu değiştirmek için tıklayın">
+                <tr id="session-row-${ses.id}" class="session-row" style="background: ${bgColor};">
+                    <td class="session-info-cell">
+                        <div class="session-title-wrapper">
+                            <i class="fa-solid fa-chevron-right session-arrow-icon" id="arrow-${ses.id}" onclick="window.viewSessionDistribution('${ses.id}')"></i>
+                            <span onclick="window.toggleSessionPublish('${ses.id}')" class="session-title" style="color:${titleColor};" title="Yayın durumunu değiştirmek için tıklayın">
                                 ${titleText}
                             </span>
                         </div>
-                        <div style="font-size:0.75rem; color:var(--gray-500); margin-top:0.25rem; padding-left:25px;">
+                        <div class="session-subjects">
                             ${ses.subjects ? ses.subjects.map(s => typeof s === 'object' ? s.name : s).join(', ') : (ses.subject || '')}
                         </div>
+                        <div class="session-datetime-mobile hide-desktop">
+                            <i class="fa-regular fa-clock"></i> ${ses.date || ''} - ${ses.time}
+                        </div>
                     </td>
-                    <td style="padding:1.25rem;">
-                        <div style="font-weight:600; color:var(--dark);">${ses.date || ''}</div>
-                        <div style="font-size:0.8rem; color:var(--gray-500);">${ses.time}</div>
+                    <td class="session-datetime-desktop hide-mobile">
+                        <div class="font-weight-bold text-dark">${ses.date || ''}</div>
+                        <div class="font-size-0-8 text-gray-500">${ses.time}</div>
                     </td>
-                    <td style="padding:1.25rem;">
-                        <div class="mode-selector-container" style="display:flex; gap:12px; background:var(--gray-50); padding:8px 12px; border-radius:30px; border:1px solid var(--gray-200); width:fit-content;">
-                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.85rem; font-weight:500;">
-                                <input type="radio" name="mode-${ses.id}" value="class" checked style="width:16px; height:16px;" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Sınıf
+                    <td class="session-view-options-cell hide-mobile">
+                        <div class="mode-selector-container">
+                            <label class="mode-selector-label">
+                                <input type="radio" name="mode-${ses.id}" value="class" checked class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Sınıf
                             </label>
-                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.85rem; font-weight:500;">
-                                <input type="radio" name="mode-${ses.id}" value="room" style="width:16px; height:16px;" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Salon
+                            <label class="mode-selector-label">
+                                <input type="radio" name="mode-${ses.id}" value="room" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Salon
                             </label>
-                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.85rem; font-weight:500;">
-                                <input type="radio" name="mode-${ses.id}" value="seating" style="width:16px; height:16px;" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Şema
+                            <label class="mode-selector-label">
+                                <input type="radio" name="mode-${ses.id}" value="seating" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Şema
                             </label>
-                            <div style="width:1px; height:20px; background:var(--gray-300); margin:0 5px;"></div>
-                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--primary);" title="${(() => {
+                            <div class="mode-selector-divider"></div>
+                            <label class="mode-selector-label text-primary font-weight-bold" title="${(() => {
                     const meta = ses.subjectMetadata || {};
                     const subjects = Object.keys(meta);
                     if (subjects.length === 0) return 'Soru kağıdı tanımlanmamış';
@@ -2499,8 +2500,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     subjects.forEach(s => { if (meta[s].papers && (typeof meta[s].papers === 'string' || Object.values(meta[s].papers).some(p => p))) count++; });
                     return `${count} / ${subjects.length} ders için kağıt tanımlı`;
                 })()}">
-                                <input type="checkbox" class="session-paper-check" data-id="${ses.id}" style="width:17px; height:17px;">
-                                <i class="fa-solid fa-file-pdf" style="margin-left:2px; ${(() => {
+                                <input type="checkbox" class="session-paper-check mode-selector-checkbox" data-id="${ses.id}">
+                                <i class="fa-solid fa-file-pdf mode-selector-icon" style="${(() => {
                     const meta = ses.subjectMetadata || {};
                     const subjects = Object.keys(meta);
                     let hasAny = subjects.some(s => meta[s].papers && (typeof meta[s].papers === 'string' || Object.values(meta[s].papers).some(p => p)));
@@ -3047,8 +3048,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             page.drawSvgPath(kocPath, { x: rx - kocW, y: ty, scale: kocScale, borderColor: navy, borderWidth: strokeW, color: rgb(0.99, 0.99, 1) });
 
             // 3) TOP & BOTTOM BORDERS (left/right edges are the silhouettes themselves)
-            page.drawLine({ start: {x: tx, y: ty}, end: {x: rx, y: ty}, thickness: edgeThick, color: navy });
-            page.drawLine({ start: {x: tx, y: by}, end: {x: rx, y: by}, thickness: edgeThick, color: navy });
+            page.drawLine({ start: { x: tx, y: ty }, end: { x: rx, y: ty }, thickness: edgeThick, color: navy });
+            page.drawLine({ start: { x: tx, y: by }, end: { x: rx, y: by }, thickness: edgeThick, color: navy });
 
             // Layout
             const silLeftW = ataW + 2 * sf;
@@ -3064,34 +3065,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             const c2 = 25 * sf, c4 = 25 * sf, c5 = 60 * sf, c6 = 25 * sf;
             const c3 = contentW - sLw - c2 - c4 - c5 - c6;
             const dInner = (bx, b1, b2, b3, b4, b5) => {
-                let x = bx + b1; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
-                x += b2; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
-                x += b3; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
-                x += b4; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
-                x += b5; page.drawLine({ start:{x,y:by}, end:{x,y:by+row3H}, thickness:thkThin, color:navy });
+                let x = bx + b1; page.drawLine({ start: { x, y: by }, end: { x, y: by + row3H }, thickness: thkThin, color: navy });
+                x += b2; page.drawLine({ start: { x, y: by }, end: { x, y: by + row3H }, thickness: thkThin, color: navy });
+                x += b3; page.drawLine({ start: { x, y: by }, end: { x, y: by + row3H }, thickness: thkThin, color: navy });
+                x += b4; page.drawLine({ start: { x, y: by }, end: { x, y: by + row3H }, thickness: thkThin, color: navy });
+                x += b5; page.drawLine({ start: { x, y: by }, end: { x, y: by + row3H }, thickness: thkThin, color: navy });
             };
             dInner(startX, sLw, c2, c3, c4, c5);
 
             drawCenterText(sName.toUpperCase(), startX + sLw, by + row3H + row2H, sMw, row1H, getFitSize(sName.toUpperCase(), sMw, 11, schoolFont), schoolFont);
             drawCenterText(examText, startX + sLw, by + row3H, sMw, row2H, getFitSize(examText, sMw, 14), mainFont);
-            if(info) {
-                drawCenterText(lang.class, startX, by + row3H - 8*sf, sLw, 8*sf, 6, mainFont);
-                drawCenterText(info.class||'', startX, by - 2*sf, sLw, row3H, 16, mainFont);
-                drawCenterText(lang.no, startX+sLw, by + row3H - 8*sf, c2, 8*sf, 6, mainFont);
-                drawCenterText(info.no||'', startX+sLw, by - 2*sf, c2, row3H, 12, mainFont);
-                drawStudentName(startX+sLw+c2, by, c3, row3H);
-                page.drawText(lang.room, { x: startX+sLw+c2+c3+2*sf, y: by+row3H-6.5*sf, size: 5.5*sf, font: mainFont, color: rgb(0.4,0.4,0.4) });
-                drawCenterText(info.room||'', startX+sLw+c2+c3, by-2.5*sf, c4, row3H, 11, mainFont);
-                page.drawText(lang.exam, { x: startX+sLw+c2+c3+c4+2*sf, y: by+row3H-6.5*sf, size: 5.5*sf, font: mainFont, color: rgb(0.4,0.4,0.4) });
-                drawCenterText((info.subject||'').toUpperCase(), startX+sLw+c2+c3+c4, by-2.5*sf, c5, row3H, 9.5, mainFont);
-                page.drawText(lang.seat, { x: startX+sLw+c2+c3+c4+c5+2*sf, y: by+row3H-6.5*sf, size: 5.5*sf, font: mainFont, color: rgb(0.4,0.4,0.4) });
-                drawCenterText(info.seat||'', startX+sLw+c2+c3+c4+c5, by-2.5*sf, c6, row3H, 14, mainFont);
+            if (info) {
+                drawCenterText(lang.class, startX, by + row3H - 8 * sf, sLw, 8 * sf, 6, mainFont);
+                drawCenterText(info.class || '', startX, by - 2 * sf, sLw, row3H, 16, mainFont);
+                drawCenterText(lang.no, startX + sLw, by + row3H - 8 * sf, c2, 8 * sf, 6, mainFont);
+                drawCenterText(info.no || '', startX + sLw, by - 2 * sf, c2, row3H, 12, mainFont);
+                drawStudentName(startX + sLw + c2, by, c3, row3H);
+                page.drawText(lang.room, { x: startX + sLw + c2 + c3 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                drawCenterText(info.room || '', startX + sLw + c2 + c3, by - 2.5 * sf, c4, row3H, 11, mainFont);
+                page.drawText(lang.exam, { x: startX + sLw + c2 + c3 + c4 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                drawCenterText((info.subject || '').toUpperCase(), startX + sLw + c2 + c3 + c4, by - 2.5 * sf, c5, row3H, 9.5, mainFont);
+                page.drawText(lang.seat, { x: startX + sLw + c2 + c3 + c4 + c5 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                drawCenterText(info.seat || '', startX + sLw + c2 + c3 + c4 + c5, by - 2.5 * sf, c6, row3H, 14, mainFont);
             }
             page.drawText(lang.score, { x: rx - silRightW + 5 * sf, y: ty - 10 * sf, size: 8 * sf, font: mainFont, color: navy });
             await drawLogo(startX + (sLw - 28 * sf) / 2, by + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
         } else if (designType === '10') {
             // CLOUD THEME (FLATTER CURVES: 4x Length, Original Bulge)
-            const edgeColor = rgb(0.1, 0.1, 0.1); 
+            const edgeColor = rgb(0.1, 0.1, 0.1);
             const cloudWhite = rgb(1, 1, 1);
             page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: cloudWhite });
 
