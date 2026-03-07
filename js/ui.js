@@ -2927,1017 +2927,933 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
 
-    const cloudWhite = rgb(1, 1, 1);
-    page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: cloudWhite });
-
-    // Geometry: R=20, Offset=12 -> Protrusion=8, Length=32 (~4x original 8-9)
-    const r = 20 * sf, offset = 12 * sf, segLen = 32 * sf;
-    const drawFlatterEdge = (x1, y1, x2, y2, isVert, isTopRight) => {
-        const dist = isVert ? Math.abs(y2 - y1) : Math.abs(x2 - x1);
-        const count = Math.max(1, Math.round(dist / segLen));
-        const step = dist / count;
-        const sign = isTopRight ? 1 : -1;
-        for (let i = 0; i < count; i++) {
-            const mid = (i + 0.5) * step;
-            const cx = isVert ? x1 + offset * sign : x1 + mid;
-            const cy = isVert ? y1 + mid : y1 + offset * sign;
-            page.drawCircle({ x: cx, y: cy, size: r, color: cloudWhite, borderColor: edgeColor, borderWidth: 1 * sf });
-        }
-    };
-    drawFlatterEdge(ox, oy + oh, ox + ow, oy + oh, false, false); // Top (center is below line)
-    drawFlatterEdge(ox, oy, ox + ow, oy, false, true);          // Bottom (center is above line)
-    drawFlatterEdge(ox, oy, ox, oy + oh, true, true);           // Left (center is to right)
-    drawFlatterEdge(ox + ow, oy, ox + ow, oy + oh, true, false); // Right (center is to left)
-
-    // Inner mask to clean up the interiors of the large circles
-    page.drawRectangle({ x: ox + 1 * sf, y: oy + 1 * sf, width: ow - 2 * sf, height: oh - 2 * sf, color: cloudWhite });
-
-    // Internal lines
-    page.drawLine({ start: { x: ox + leftW, y: oy }, end: { x: ox + leftW, y: oy + oh }, thickness: 0.5 * sf, color: edgeColor });
-    page.drawLine({ start: { x: ox + leftW + midW, y: oy }, end: { x: ox + leftW + midW, y: oy + oh }, thickness: 0.5 * sf, color: edgeColor });
-    page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 0.5 * sf, color: edgeColor });
-
-    drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, edgeColor, 0.5 * sf);
-    drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 11, schoolFont), schoolFont);
-    drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
-    if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W, 0);
-
-    page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: mainFont, color: edgeColor });
-    await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
-} else if (designType === '11') {
-    // SAWTOOTH THEME (TESTERE DİŞİ)
-    const darkMetal = rgb(0.2, 0.2, 0.2); const lightGray = rgb(0.96, 0.96, 0.96);
-    page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: lightGray });
-
-    // Sawtooth Path Generator
-    const stPts = [];
-    const toothD = 5 * sf;
-    const tCountW = Math.floor(ow / toothD);
-    const tCountH = Math.floor(oh / toothD);
-    const actW = ow / tCountW;
-    const actH = oh / tCountH;
-
-    // Top Edge (Left to Right)
-    for (let i = 0; i < tCountW; i++) { stPts.push({ x: ox + i * actW, y: oy + oh }); stPts.push({ x: ox + i * actW + actW / 2, y: oy + oh - toothD }); }
-    stPts.push({ x: ox + ow, y: oy + oh });
-    // Right Edge (Top to Bottom)
-    for (let i = 0; i < tCountH; i++) { stPts.push({ x: ox + ow, y: oy + oh - i * actH }); stPts.push({ x: ox + ow - toothD, y: oy + oh - i * actH - actH / 2 }); }
-    stPts.push({ x: ox + ow, y: oy });
-    // Bottom Edge (Right to Left)
-    for (let i = 0; i < tCountW; i++) { stPts.push({ x: ox + ow - i * actW, y: oy }); stPts.push({ x: ox + ow - i * actW - actW / 2, y: oy + toothD }); }
-    stPts.push({ x: ox, y: oy });
-    // Left Edge (Bottom to Top)
-    for (let i = 0; i < tCountH; i++) { stPts.push({ x: ox, y: oy + i * actH }); stPts.push({ x: ox + toothD, y: oy + i * actH + actH / 2 }); }
-    stPts.push({ x: ox, y: oy + oh });
-
-    for (let i = 0; i < stPts.length - 1; i++) {
-        page.drawLine({ start: stPts[i], end: stPts[i + 1], thickness: 1 * sf, color: darkMetal });
-    }
-
-    // Inner boundary constraints so content doesn't hit teeth
-    const tOff = toothD + 1 * sf;
-
-    page.drawLine({ start: { x: ox + leftW, y: oy + tOff }, end: { x: ox + leftW, y: oy + oh - tOff }, thickness: 1 * sf, color: darkMetal });
-    page.drawLine({ start: { x: ox + leftW + midW, y: oy + tOff }, end: { x: ox + leftW + midW, y: oy + oh - tOff }, thickness: 1 * sf, color: darkMetal });
-    page.drawLine({ start: { x: ox + tOff, y: oy + row3H }, end: { x: ox + leftW + midW, y: oy + row3H }, thickness: 1 * sf, color: darkMetal });
-
-    drawDivs(ox, oy + tOff, leftW, midCol2W, midCol3W, midCol4W, midCol5W, darkMetal, 0.75 * sf);
-    drawCenterText(sName.toUpperCase(), ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName.toUpperCase(), midW, 11, schoolFont), schoolFont);
-    drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
-    if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W, tOff);
-
-    page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: mainFont, color: darkMetal });
-    await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
-}
-    };
-
-window._processPrintQueue = async function () {
-    if (window._printQueue.length === 0) {
-        window._isProcessingPrint = false;
-        return;
-    }
-    window._isProcessingPrint = true;
-    let item = window._printQueue.shift();
-    let { path, info, resolve } = item;
-
-    // Clean & Format Path
-    let printPath = path;
-    if (printPath.match(/^[a-zA-Z]:\\/) || printPath.match(/^[a-zA-Z]:\//)) {
-        printPath = 'file:///' + printPath.replace(/\\/g, '/');
-    }
-
-    const finalize = (iframe) => {
-        if (iframe && document.body.contains(iframe)) document.body.removeChild(iframe);
-        if (resolve) resolve();
-        setTimeout(() => window._processPrintQueue(), 1000);
-    };
-
-    let currentStep = "Dosya haz\u0131rlan\u0131yor";
-    try {
-        // 1. Fetch PDF Bytes
-        currentStep = "Soru ka\u011f\u0131d\u0131 okunuyor (" + path.split(/[\\\/]/).pop() + ")";
-        const pdfBytes = await window.getFileBytes(printPath);
-
-        // 2. Load pdf-lib and Overlay
-        currentStep = "PDF i\u015fleniyor";
-        if (typeof PDFLib === 'undefined') throw new Error("PDF k\u00fct\u00fcphanesi (pdf-lib) yüklenemedi.");
-
-        const { PDFDocument, rgb, degrees } = PDFLib;
-        const pdfDoc = await PDFDocument.load(pdfBytes);
-
-        if (typeof fontkit !== 'undefined') {
-            pdfDoc.registerFontkit(fontkit);
-        } else {
-            console.warn("Fontkit yüklenemedi, Türkçe karakterler hatalı görünebilir.");
-        }
-
-        // Fetch Fonts if not cached with resilient CDNs
-        currentStep = "Yaz\u0131 tipleri yükleniyor";
-        if (!window._cachedFonts) window._cachedFonts = {};
-
-        const mainFontUrls = [
-            'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf'
-        ];
-        const nameFontUrls = [
-            'fonts/MonotypeCorsiva.ttf'
-        ];
-        const schoolFontUrls = [
-            'fonts/SnapITC.ttf'
-        ];
-
-        if (!window._cachedFonts.main) {
-            for (const url of mainFontUrls) {
-                try {
-                    const bytes = await getFileBytes(url);
-                    if (bytes && bytes.byteLength > 1000) { window._cachedFonts.main = bytes; break; }
-                } catch (e) { console.warn("Main font fetch failed", url); }
-            }
-        }
-
-        if (!window._cachedFonts.nameFont) {
-            for (const url of nameFontUrls) {
-                try {
-                    const bytes = await getFileBytes(url);
-                    if (bytes && bytes.byteLength > 1000) { window._cachedFonts.nameFont = bytes; break; }
-                } catch (e) { console.warn("Name font fetch failed", url); }
-            }
-        }
-
-        if (!window._cachedFonts.schoolFont) {
-            for (const url of schoolFontUrls) {
-                try {
-                    const bytes = await getFileBytes(url);
-                    if (bytes && bytes.byteLength > 1000) { window._cachedFonts.schoolFont = bytes; break; }
-                } catch (e) { console.warn("School font fetch failed", url); }
-            }
-        }
-
-        let mainFont = null;
-        let nameFont = null;
-        let schoolFont = null;
-        try {
-            if (window._cachedFonts.main) mainFont = await pdfDoc.embedFont(window._cachedFonts.main);
-            if (window._cachedFonts.nameFont) nameFont = await pdfDoc.embedFont(window._cachedFonts.nameFont);
-            if (window._cachedFonts.schoolFont) schoolFont = await pdfDoc.embedFont(window._cachedFonts.schoolFont);
-        } catch (e) { console.error("Font embedding error", e); }
-
-        // Absolute Fallback to prevent "null font" crashes
-        const fallbackPdfFont = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
-        const customFont = mainFont ? mainFont : null; // Flag used by cleanTurkishChars helper
-
-        mainFont = mainFont || fallbackPdfFont;
-        nameFont = nameFont || mainFont;
-        schoolFont = schoolFont || mainFont;
-
-
-        const school = DataManager.getSchoolSettings();
-        const pages = pdfDoc.getPages();
-
-        currentStep = "Bilgiler ekleniyor";
-        for (let i = 0; i < pages.length; i++) {
-            const page = pages[i];
-            const { width, height } = page.getSize();
-            const A4_W = 595.28, A4_H = 841.89;
-            const sf = 1 / Math.min(A4_W / width, A4_H / height);
-            if (i === 0 && info && Object.keys(info).length > 0) {
-                await window.renderStudentPDFHeader(pdfDoc, page, info, { mainFont, nameFont, schoolFont, sf });
-            }
-        }
-
-
-        const modifiedPdfBytes = await pdfDoc.save();
-        const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
-        const blobUrl = URL.createObjectURL(blob);
-
-        // 3. Print
-        currentStep = "Yaz\u0131c\u0131ya gönderiliyor";
-        const iframe = document.createElement('iframe');
-        Object.assign(iframe.style, {
-            position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0', visibility: 'hidden'
-        });
-        iframe.src = blobUrl;
-        document.body.appendChild(iframe);
-
-        iframe.onload = () => {
-            setTimeout(() => {
-                iframe.contentWindow.focus();
-                iframe.contentWindow.print();
-                setTimeout(() => {
-                    URL.revokeObjectURL(blobUrl);
-                    finalize(iframe);
-                }, 5000);
-            }, 500);
-        };
-
-        return; // Successfully printed, prevent fallback mechanism
-
-    } catch (e) {
-        console.error("PDF Overlay Error:", e);
-
-        let htmlMsg = `<div style="text-align:left; font-size:0.95rem;">
-                             <b>Adım:</b> ${currentStep}<br>
-                             <b>Hata:</b> ${e.message}<br><br>`;
-
-        if (printPath.includes("file://") || printPath.includes("C:") || printPath.includes("D:")) {
-            htmlMsg += `<b style="color:#e11d48;">UYARI:</b> Sistemi bir internet sunucusunda çalıştırırken, bilgisayarınızdaki yerel dosyalara (C:\\ veya D:\\) erişilemez. Güvenlik nedeniyle tarayıcılar buna izin vermez.<br><br>
-                 <b>ÇÖZÜM:</b> Soru kağıdı PDF'lerinizi OneDrive, Google Drive veya Supabase gibi bir buluta yükleyip <b>'Herkesin görebileceği' bir internet linkini (https://...)</b> buraya yapıştırmalısınız.`;
-        } else if (printPath.includes('supabase.co')) {
-            htmlMsg += `<b style="color:#e11d48;">UYARI:</b> Supabase dosya okuma formatında (CORS) veya isim/boşluk yapısında bir hata oluştu.<br><br>
-                 <b>ÇÖZÜM:</b> Sorunu aşmak için dosyayı "Yeni Sekmede" açarak manuel olarak yazdırabilirsiniz (Oturum Listesindeki yazdırma butonu bunu yapmaya çalışır)`;
-        } else {
-            htmlMsg += `<small><i>Dosya yolu hatalı olabilir veya internetten çektiğiniz linkin (CORS) indirme izni yoktur.</i></small>`;
-        }
-        htmlMsg += `</div>`;
-
-        Swal.fire({
-            title: 'Dosya Okuma uyarısı',
-            html: htmlMsg,
-            icon: 'warning',
-            width: 600
-        });
-
-        console.warn("Attempting fallback print mechanism...");
-    }
-
-    // Fallback or Original Print
-    const iframe = document.createElement('iframe');
-    iframe.src = printPath;
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-
-    let fallbackResolved = false;
-
-    iframe.onload = () => {
-        if (fallbackResolved) return; fallbackResolved = true;
-        try {
-            iframe.contentWindow.print();
-        } catch (err) {
-            console.warn("Iframe Print failed, attempting window.open...", err);
-            try {
-                window.open(printPath, '_blank');
-            } catch (windowErr) {
-                console.error("Window open fallback also failed", windowErr);
-            }
-        }
-        setTimeout(() => finalize(iframe), 3000);
-    };
-
-    iframe.onerror = () => {
-        if (fallbackResolved) return; fallbackResolved = true;
-        console.error("Iframe failed to load.");
-        finalize(iframe);
-    };
-
-    // Safety timeout in case both fail to fire
-    setTimeout(() => {
-        if (!fallbackResolved) {
-            fallbackResolved = true;
-            console.error("Iframe load timed out.");
-            finalize(iframe);
-        }
-    }, 6000);
-};
-
-// ─── Toplu Soru Kağıdı ZIP İhracı ───────────────────────────────────────────
-window.exportBatchPDFs = async function (session, mode, filterValue) {
-    try {
-        if (typeof JSZip === 'undefined') {
-            Swal.fire('Hata', 'JSZip kütüphanesi yüklenemedi. Lütfen sayfayı ctrl+f5 ile yenileyin.', 'error');
+    window._processPrintQueue = async function () {
+        if (window._printQueue.length === 0) {
+            window._isProcessingPrint = false;
             return;
         }
+        window._isProcessingPrint = true;
+        let item = window._printQueue.shift();
+        let { path, info, resolve } = item;
 
-        const metadata = session.subjectMetadata || {};
+        // Clean & Format Path
+        let printPath = path;
+        if (printPath.match(/^[a-zA-Z]:\\/) || printPath.match(/^[a-zA-Z]:\//)) {
+            printPath = 'file:///' + printPath.replace(/\\/g, '/');
+        }
 
-        // Extract flat list of students from session.results (which is an array of Rooms)
-        let allStudentsInSession = [];
-        (session.results || []).forEach(room => {
+        const finalize = (iframe) => {
+            if (iframe && document.body.contains(iframe)) document.body.removeChild(iframe);
+            if (resolve) resolve();
+            setTimeout(() => window._processPrintQueue(), 1000);
+        };
 
-            let ctr = 1;
-            const seatToNum = {};
-            for (let g = 1; g <= room.groups; g++) {
-                const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
-                for (let r = 1; r <= cf.rows; r++) {
-                    for (let c = 1; c <= cf.cols; c++) {
-                        const sid = `G${g}-S${r}-C${c}`;
-                        if (!(room.disabledSeats || []).includes(sid)) {
-                            seatToNum[sid] = ctr++;
-                        }
-                    }
-                }
-            }
+        let currentStep = "Dosya haz\u0131rlan\u0131yor";
+        try {
+            // 1. Fetch PDF Bytes
+            currentStep = "Soru ka\u011f\u0131d\u0131 okunuyor (" + path.split(/[\\\/]/).pop() + ")";
+            const pdfBytes = await window.getFileBytes(printPath);
 
-            Object.keys(room.seats || {}).forEach(seatId => {
-                const std = room.seats[seatId];
-                if (std) {
-                    allStudentsInSession.push({
-                        ...std,
-                        room: room.name,
-                        seatNum: seatToNum[seatId] || '-'
-                    });
-                }
-            });
-        });
+            // 2. Load pdf-lib and Overlay
+            currentStep = "PDF i\u015fleniyor";
+            if (typeof PDFLib === 'undefined') throw new Error("PDF k\u00fct\u00fcphanesi (pdf-lib) yüklenemedi.");
 
-        const studentsToExport = allStudentsInSession.filter(s => {
-            if (!filterValue) return true;
-            if (mode === 'class') return s.class === filterValue;
-            if (mode === 'room') return s.room === filterValue;
-            return true;
-        });
+            const { PDFDocument, rgb, degrees } = PDFLib;
+            const pdfDoc = await PDFDocument.load(pdfBytes);
 
-        if (studentsToExport.length === 0) return;
-
-        let validStudents = [];
-        let errors = new Set();
-
-        studentsToExport.forEach(s => {
-            const subName = s._matchedSubject || '-';
-            const group = s._groupLabel || s.group || 'default';
-            const meta = metadata[subName] || {};
-            const papers = meta.papers || {};
-
-            let path = '';
-            if (typeof papers === 'string') path = papers;
-            else path = papers[group] || papers['default'] || '';
-
-            if (path) {
-                validStudents.push({
-                    path: path,
-                    info: {
-                        no: s.no,
-                        name: s.name,
-                        class: s.class,
-                        room: s.room,
-                        seat: s.seatNum || '-',
-                        subject: subName,
-                        group: group,
-                        examNo: meta.examNo || meta.examNumber || ''
-                    }
-                });
+            if (typeof fontkit !== 'undefined') {
+                pdfDoc.registerFontkit(fontkit);
             } else {
-                errors.add(subName);
+                console.warn("Fontkit yüklenemedi, Türkçe karakterler hatalı görünebilir.");
             }
-        });
 
-        if (errors.size > 0) {
-            Swal.fire({
-                title: 'Eksik Soru Kağıdı Adresi',
-                html: `Şu dersler atlanacak (Soru kağıdı ayarlanmamış):<br><br><b>${[...errors].join('<br>')}</b>`,
-                icon: 'warning',
-                toast: true,
-                position: 'top-end',
-                timer: 5000
-            });
-        }
+            // Fetch Fonts if not cached with resilient CDNs
+            currentStep = "Yaz\u0131 tipleri yükleniyor";
+            if (!window._cachedFonts) window._cachedFonts = {};
 
-        if (validStudents.length === 0) {
-            Swal.fire('Hata', 'Dışa aktarılacak geçerli soru kağıdı bulunamadı!', 'error');
-            return;
-        }
+            const mainFontUrls = [
+                'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf'
+            ];
+            const nameFontUrls = [
+                'fonts/MonotypeCorsiva.ttf'
+            ];
+            const schoolFontUrls = [
+                'fonts/SnapITC.ttf'
+            ];
 
-        const zip = new JSZip();
-        const school = DataManager.getSchoolSettings();
-
-        // Prepare fonts
-        if (!window._cachedFonts) window._cachedFonts = {};
-        const fetchOrGet = async (key, urls) => {
-            if (!window._cachedFonts[key]) {
-                for (const url of urls) {
+            if (!window._cachedFonts.main) {
+                for (const url of mainFontUrls) {
                     try {
-                        const bytes = await window.getFileBytes(url);
-                        if (bytes && bytes.byteLength > 1000) { window._cachedFonts[key] = bytes; break; }
-                    } catch (e) {
-                        console.warn("Font fetch err for:", key, e);
-                    }
+                        const bytes = await getFileBytes(url);
+                        if (bytes && bytes.byteLength > 1000) { window._cachedFonts.main = bytes; break; }
+                    } catch (e) { console.warn("Main font fetch failed", url); }
                 }
             }
-        };
 
-        // Initialize combined PDF document for immediate printing
-        let combinedPdfDoc = null;
-        if (typeof PDFLib !== 'undefined') {
-            combinedPdfDoc = await PDFLib.PDFDocument.create();
-        }
+            if (!window._cachedFonts.nameFont) {
+                for (const url of nameFontUrls) {
+                    try {
+                        const bytes = await getFileBytes(url);
+                        if (bytes && bytes.byteLength > 1000) { window._cachedFonts.nameFont = bytes; break; }
+                    } catch (e) { console.warn("Name font fetch failed", url); }
+                }
+            }
 
-        Swal.fire({
-            title: 'Soru Kağıtları Hazırlanıyor',
-            html: `Fontlar yükleniyor...`,
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading() }
-        });
+            if (!window._cachedFonts.schoolFont) {
+                for (const url of schoolFontUrls) {
+                    try {
+                        const bytes = await getFileBytes(url);
+                        if (bytes && bytes.byteLength > 1000) { window._cachedFonts.schoolFont = bytes; break; }
+                    } catch (e) { console.warn("School font fetch failed", url); }
+                }
+            }
 
-        await fetchOrGet('main', ['https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf']);
-        await fetchOrGet('nameFont', ['fonts/MonotypeCorsiva.ttf']);
-        await fetchOrGet('schoolFont', ['fonts/SnapITC.ttf']);
-
-        const sessDom = window.currentRenderedSession || {};
-        let termDom = '';
-        try { const el = document.getElementById('academicTerm'); if (el) termDom = el.value; } catch (e) { }
-
-        let successCount = 0;
-        let lastError = null;
-        let hadLocalFileError = false;
-
-        // Process each student
-        for (let i = 0; i < validStudents.length; i++) {
-            const req = validStudents[i];
-            Swal.update({ html: `Öğrenci işleniyor: <b>${i + 1} / ${validStudents.length}</b><br><small>${req.info.name}</small>` });
-
+            let mainFont = null;
+            let nameFont = null;
+            let schoolFont = null;
             try {
-                let printPath = req.path;
-                if (printPath.match(/^[a-zA-Z]:\\/) || printPath.match(/^[a-zA-Z]:\//)) {
-                    printPath = 'file:///' + printPath.replace(/\\/g, '/');
-                }
-                if (printPath.includes("file://") || printPath.includes("C:") || printPath.includes("D:")) {
-                    hadLocalFileError = true;
-                }
-
-                Swal.update({ html: `Öğrenci işleniyor: <b>${i + 1} / ${validStudents.length}</b><br><small>${req.info.name} - PDF İndiriliyor...</small>` });
-                const pdfBytes = await window.getFileBytes(printPath);
-                if (typeof PDFLib === 'undefined') continue;
-
-                Swal.update({ html: `Öğrenci işleniyor: <b>${i + 1} / ${validStudents.length}</b><br><small>${req.info.name} - PDFLib Yükleniyor...</small>` });
-                const { PDFDocument, rgb } = PDFLib;
-                const pdfDoc = await PDFDocument.load(pdfBytes);
-                if (typeof fontkit !== 'undefined') pdfDoc.registerFontkit(fontkit);
-
-                Swal.update({ html: `Öğrenci işleniyor: <b>${i + 1} / ${validStudents.length}</b><br><small>${req.info.name} - Fontlar Gömülüyor...</small>` });
-                let mainFont = null, nameFont = null, schoolFont = null;
                 if (window._cachedFonts.main) mainFont = await pdfDoc.embedFont(window._cachedFonts.main);
                 if (window._cachedFonts.nameFont) nameFont = await pdfDoc.embedFont(window._cachedFonts.nameFont);
                 if (window._cachedFonts.schoolFont) schoolFont = await pdfDoc.embedFont(window._cachedFonts.schoolFont);
+            } catch (e) { console.error("Font embedding error", e); }
 
-                const fallbackPdfFont = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
-                const customFont = mainFont ? mainFont : null;
-                mainFont = mainFont || fallbackPdfFont;
-                nameFont = nameFont || mainFont;
-                schoolFont = schoolFont || mainFont;
+            // Absolute Fallback to prevent "null font" crashes
+            const fallbackPdfFont = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+            const customFont = mainFont ? mainFont : null; // Flag used by cleanTurkishChars helper
 
-                Swal.update({ html: `Öğrenci işleniyor: <b>${i + 1} / ${validStudents.length}</b><br><small>${req.info.name} - Düzenleniyor...</small>` });
-                const pages = pdfDoc.getPages();
-                for (let pg = 0; pg < (pages.length > 0 ? 1 : 0); pg++) { // Only Page 1
-                    const page = pages[pg];
-                    const { width, height } = page.getSize();
+            mainFont = mainFont || fallbackPdfFont;
+            nameFont = nameFont || mainFont;
+            schoolFont = schoolFont || mainFont;
 
-                    const cleanTurkishChars = (text) => {
-                        if (!text) return '';
-                        if (customFont) return text;
-                        return text.replace(/\u0130/g, 'I').replace(/\u0131/g, 'i')
-                            .replace(/\u011e/g, 'G').replace(/\u011f/g, 'g').replace(/\u015e/g, 'S').replace(/\u015f/g, 's')
-                            .replace(/\u00c7/g, 'C').replace(/\u00e7/g, 'c').replace(/\u00d6/g, 'O').replace(/\u00f6/g, 'o')
-                            .replace(/\u00dc/g, 'U').replace(/\u00fc/g, 'u');
-                    };
-                    const drawCenterText = (str, cx, cy, cw, ch, sz, fnt) => {
-                        if (!str) return;
-                        const cl = cleanTurkishChars(str).toString();
-                        const tw = fnt ? fnt.widthOfTextAtSize(cl, sz) : cl.length * (sz * 0.6);
-                        const tx = cx + Math.max(0, (cw - tw) / 2);
-                        const ty = cy + (ch / 2) - (sz * 0.35);
-                        page.drawText(cl, { x: tx, y: ty, size: sz, font: fnt || undefined, color: rgb(0, 0, 0) });
-                    };
-                    const drawLeftText = (str, cx, cy, cw, ch, sz, fnt) => {
-                        if (!str) return;
-                        const cl = cleanTurkishChars(str).toString();
-                        const tx = cx + 5;
-                        const ty = cy + (ch / 2) - (sz * 0.35);
-                        page.drawText(cl, { x: tx, y: ty, size: sz, font: fnt || undefined, color: rgb(0, 0, 0) });
-                    };
 
-                    const margin = 14.17; const limitY = 85.04; const outerStroke = 1.6; const strokeOffset = outerStroke / 2 + 1;
-                    const ox = margin + strokeOffset; const oy = height - limitY + strokeOffset;
-                    const ow = width - (margin * 2) - (strokeOffset * 2); const oh = limitY - margin - (strokeOffset * 2);
-                    const gap = 2; const ix = ox + gap; const iy = oy + gap; const iw = ow - (gap * 2); const ih = oh - (gap * 2);
-                    const leftW = 65; const rightW = 85; const midW = iw - leftW - rightW;
-                    const row3H = 25; const row2H = 19; const row1H = ih - row3H - row2H;
-                    const midCol2W = 30; const midCol4W = 30; const midCol5W = 75; const midCol6W = 30;
-                    const midCol3W = midW - midCol2W - midCol4W - midCol5W - midCol6W;
+            const school = DataManager.getSchoolSettings();
+            const pages = pdfDoc.getPages();
 
-                    const gradTopY = iy + row3H + row2H;
-                    const strips = [{ c: 0.82, h: 4 }, { c: 0.94, h: 4 }, { c: 1.0, h: row1H - 15 }, { c: 0.94, h: 4 }, { c: 0.82, h: 3 }];
-                    let curStripY = gradTopY;
-                    for (let s of strips) { page.drawRectangle({ x: ix + leftW, y: curStripY, width: midW, height: s.h, color: rgb(s.c, s.c, s.c) }); curStripY += s.h; }
-                    page.drawRectangle({ x: ix + leftW + midCol2W, y: iy, width: midCol3W, height: row3H, color: rgb(0.96, 0.96, 0.96) });
-                    page.drawRectangle({ x: ix + leftW + midCol2W + midCol3W, y: iy, width: midW - (midCol2W + midCol3W), height: row3H, color: rgb(0.88, 0.88, 0.88) });
-
-                    page.drawLine({ start: { x: ix + leftW, y: iy }, end: { x: ix + leftW, y: iy + ih }, thickness: 0.75 });
-                    page.drawLine({ start: { x: ix + leftW + midW, y: iy }, end: { x: ix + leftW + midW, y: iy + ih }, thickness: 0.75 });
-                    let curX = ix + leftW + midCol2W;
-                    page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: 0.75 }); curX += midCol3W;
-                    page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: 0.75 }); curX += midCol4W;
-                    page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: 0.75 }); curX += midCol5W;
-                    page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: 0.75 });
-                    page.drawLine({ start: { x: ix + leftW, y: iy + row3H + row2H }, end: { x: ix + leftW + midW, y: iy + row3H + row2H }, thickness: 0.75 });
-                    page.drawLine({ start: { x: ix, y: iy + row3H }, end: { x: ix + leftW + midW, y: iy + row3H }, thickness: 0.75 });
-
-                    const drawExplicitOppositeFrame = (x, y, w, h, r, thickness) => {
-                        page.drawLine({ start: { x: x + r, y: y + h }, end: { x: x + w, y: y + h }, thickness });
-                        page.drawLine({ start: { x: x + w, y: y + h }, end: { x: x + w, y: y + r }, thickness });
-                        page.drawLine({ start: { x: x + w - r, y: y }, end: { x: x, y: y }, thickness });
-                        page.drawLine({ start: { x: x, y: y }, end: { x: x, y: y + h - r }, thickness });
-                        const segments = 12;
-                        for (let j = 0; j < segments; j++) {
-                            const a1 = Math.PI / 2 + (Math.PI / 2) * (j / segments); const a2 = Math.PI / 2 + (Math.PI / 2) * ((j + 1) / segments);
-                            page.drawLine({ start: { x: x + r + r * Math.cos(a1), y: y + h - r + r * Math.sin(a1) }, end: { x: x + r + r * Math.cos(a2), y: y + h - r + r * Math.sin(a2) }, thickness });
-                        }
-                        for (let j = 0; j < segments; j++) {
-                            const a1 = -Math.PI / 2 + (Math.PI / 2) * (j / segments); const a2 = -Math.PI / 2 + (Math.PI / 2) * ((j + 1) / segments);
-                            page.drawLine({ start: { x: x + w - r + r * Math.cos(a1), y: y + r + r * Math.sin(a1) }, end: { x: x + w - r + r * Math.cos(a2), y: y + r + r * Math.sin(a2) }, thickness });
-                        }
-                    };
-                    drawExplicitOppositeFrame(ox, oy, ow, oh, 6, 1.5);
-                    drawExplicitOppositeFrame(ix, iy, iw, ih, 4, 0.5);
-
-                    let sName = (school.name || '').replace(/i/g, 'İ').toUpperCase().split('').join(' ');
-                    drawCenterText(sName, ix + leftW, iy + row3H + row2H, midW, row1H, 11, schoolFont);
-
-                    let termStr = (sessDom.academicTerm || termDom || '').toUpperCase();
-                    if (termStr === '1. DÖNEM' || termStr === '1 DÖNEM' || termStr === '1. DONEM') termStr = 'I. DÖNEM';
-                    else if (termStr === '2. DÖNEM' || termStr === '2 DÖNEM' || termStr === '2. DONEM') termStr = 'II. DÖNEM';
-                    else termStr = termStr.replace('1.', '1.').replace('2.', '2.');
-                    if (termStr && !termStr.includes('DÖNEM') && !termStr.includes('DONEM')) termStr += ' DÖNEM';
-
-                    const examNoStr = req.info.examNo || '';
-                    const examText = `${school.academicYear || ''} ÖĞRETİM YILI ${termStr} ${req.info.subject || ''} DERSİ ${examNoStr ? `${examNoStr}. ` : ''}YAZILI SINAVI`.trim().toUpperCase();
-
-                    let row2Sz = 14;
-                    let examTextWidth = mainFont ? mainFont.widthOfTextAtSize(cleanTurkishChars(examText), row2Sz) : examText.length * (row2Sz * 0.6);
-                    while (examTextWidth > (midW - 10) && row2Sz > 5) {
-                        row2Sz -= 0.5; examTextWidth = mainFont ? mainFont.widthOfTextAtSize(cleanTurkishChars(examText), row2Sz) : examText.length * (row2Sz * 0.6);
-                    }
-                    drawCenterText(examText, ix + leftW, iy + row3H, midW, row2H, row2Sz, mainFont);
-
-                    drawCenterText(req.info.class, ix, iy, leftW, row3H, 16, mainFont);
-                    drawCenterText(req.info.no, ix + leftW, iy, midCol2W, row3H, 12, mainFont);
-
-                    let nameStr = req.info.name.replace(/i/g, 'İ').toUpperCase();
-                    let nameSz = 28;
-                    let nameWidth = nameFont ? nameFont.widthOfTextAtSize(cleanTurkishChars(nameStr), nameSz) : nameStr.length * (nameSz * 0.5);
-                    while (nameWidth > (midCol3W - 15) && nameSz > 8) {
-                        nameSz -= 0.5; nameWidth = nameFont ? nameFont.widthOfTextAtSize(cleanTurkishChars(nameStr), nameSz) : nameStr.length * (nameSz * 0.5);
-                    }
-                    if (nameSz > 24) nameSz = 24;
-                    drawLeftText(nameStr, ix + leftW + midCol2W, iy, midCol3W, row3H, nameSz, nameFont);
-                    drawLeftText(nameStr, ix + leftW + midCol2W + 0.3, iy, midCol3W, row3H, nameSz, nameFont);
-                    drawLeftText(nameStr, ix + leftW + midCol2W + 0.6, iy, midCol3W, row3H, nameSz, nameFont);
-
-                    page.drawText("DERSLİK", { x: ix + leftW + midCol2W + midCol3W + 2, y: iy + row3H - 6.5, size: 5.5, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                    page.drawText("SINAV", { x: ix + leftW + midCol2W + midCol3W + midCol4W + 2, y: iy + row3H - 6.5, size: 5.5, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-                    page.drawText("YER", { x: ix + leftW + midCol2W + midCol3W + midCol4W + midCol5W + 2, y: iy + row3H - 6.5, size: 5.5, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-
-                    drawCenterText(req.info.room, ix + leftW + midCol2W + midCol3W, iy - 2.5, midCol4W, row3H, 11, mainFont);
-                    drawCenterText((req.info.subject || '').toUpperCase(), ix + leftW + midCol2W + midCol3W + midCol4W, iy - 2.5, midCol5W, row3H, 9.5, mainFont);
-                    drawCenterText(req.info.seat, ix + leftW + midCol2W + midCol3W + midCol4W + midCol5W, iy - 2.5, midCol6W, row3H, 14, mainFont);
-                    page.drawText("PUAN", { x: ix + leftW + midW + 5, y: iy + ih - 10, size: 7, font: mainFont, color: rgb(0.5, 0.5, 0.5) });
-
-                    // 5. LOGO
-                    if (school.logo) {
-                        try {
-                            const logoBytes = await window.getFileBytes(school.logo);
-                            let logoImage;
-                            if (school.logo.includes('image/png') || school.logo.toLowerCase().endsWith('.png')) logoImage = await pdfDoc.embedPng(logoBytes);
-                            else logoImage = await pdfDoc.embedJpg(logoBytes);
-                            const logoDim = 26; const lx = ix + (leftW - logoDim) / 2; const ly = iy + row3H + (row2H + row1H - logoDim) / 2;
-                            page.drawImage(logoImage, { x: lx, y: ly, width: logoDim, height: logoDim });
-                        } catch (e) { }
-                    }
-                }
-
-                const outBytes = await pdfDoc.save();
-                const fileName = `${req.info.class} ${req.info.no} ${req.info.name}.pdf`.replace(/[\/\\]/g, '-');
-                zip.file(fileName, outBytes);
-                successCount++;
-
-                // Add to combined document for immediate printing
-                if (combinedPdfDoc) {
-                    const copiedPages = await combinedPdfDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
-                    copiedPages.forEach((page) => combinedPdfDoc.addPage(page));
-
-                    // DEUBL-SIDED PRINTING FIX: If odd pages, add a blank page so next student starts on a new sheet
-                    if (copiedPages.length % 2 !== 0) {
-                        combinedPdfDoc.addPage();
-                    }
-                }
-
-            } catch (e) {
-                console.error("Batch PDF err:", req.info.name, e);
-                lastError = e;
-            }
-        }
-
-        if (successCount === 0) {
-            let errorHtml = `<div style="text-align:left; font-size:0.95rem;">`;
-            if (hadLocalFileError) {
-                errorHtml += `<b style="color:#e11d48;">UYARI:</b> Sistemi Vercel gibi bir internet sunucusunda çalıştırırken, bilgisayarınızdaki yerel dosyalara (C:\\ veya D:\\ vb.) erişilemez. Tarayıcı internet üzerindeki bir sitenin sizin yerel diskinize sızmasını engeller.<br><br>
-                 <b>ÇÖZÜM:</b> Soru kağıdı PDF'lerinizi OneDrive, Google Drive veya Supabase depolama sistemine yükleyip, herkesin erişebileceği (https:// ile başlayan) linkleri ayarlardaki Soru Kağıdı bölümüne yapıştırmalısınız.`;
-            } else {
-                errorHtml += `Hiçbir soru kağıdı indirilemedi. Dosya yolu hatalı, internet linkiniz kopuk veya (CORS) indirme izni ayarlanmamış olabilir.<br><br><b>Detay:</b> ${lastError ? lastError.message : 'Bilinmeyen Hata'}`;
-            }
-            errorHtml += `</div>`;
-
-            Swal.fire({
-                title: 'Soru Kağıtları İndirilemedi',
-                html: errorHtml,
-                icon: 'error',
-                width: 600
-            });
-            return;
-        }
-
-        Swal.update({ html: `ZIP Dosyası Sıkıştırılıyor... Lütfen Bekleyin.` });
-        try {
-            const content = await zip.generateAsync({ type: "blob" });
-            let modeSuffix = '';
-            if (filterValue) {
-                if (mode === 'class') modeSuffix = ' Sınıfı';
-                if (mode === 'room') modeSuffix = ' Salonu';
-            }
-            const finalName = filterValue ? `Soru_Kagitlari_${filterValue.replace(/[\/\\]/g, '-')}${modeSuffix}.zip` : `Soru_Kagitlari_Tumu.zip`;
-
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(content);
-            link.download = finalName;
-            document.body.appendChild(link);
-            link.click();
-            setTimeout(() => document.body.removeChild(link), 100);
-
-            let successMsg = `${successCount} adet soru kağıdı '${finalName}' olarak indirildi. Yazdırılıyor...`;
-            if (successCount < validStudents.length) {
-                successMsg += `<br><br><small style="color:#e11d48;">Dikkat: ${validStudents.length - successCount} adet kağıt bağlantı hatası nedeniyle atlandı.</small>`;
-            }
-
-            Swal.fire({
-                title: 'Başarılı!',
-                html: successMsg,
-                icon: 'success',
-                timer: 4000,
-                showConfirmButton: false
-            });
-
-            // Trigger direct print of the combined PDF
-            if (combinedPdfDoc && combinedPdfDoc.getPageCount() > 0) {
-                const combinedBytes = await combinedPdfDoc.save();
-                const sumBlob = new Blob([combinedBytes], { type: 'application/pdf' });
-                const sumUrl = URL.createObjectURL(sumBlob);
-
-                const printFrame = document.createElement('iframe');
-                Object.assign(printFrame.style, {
-                    position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0', visibility: 'hidden'
-                });
-                printFrame.src = sumUrl;
-                document.body.appendChild(printFrame);
-
-                printFrame.onload = () => {
-                    printFrame.contentWindow.focus();
-                    printFrame.contentWindow.print();
-                    setTimeout(() => {
-                        URL.revokeObjectURL(sumUrl);
-                        if (document.body.contains(printFrame)) document.body.removeChild(printFrame);
-                    }, 5000); // Wait long enough for print dialog
-                };
-            }
-
-        } catch (globalErr) {
-            console.error("Global JSZip err:", globalErr);
-            Swal.fire({
-                title: 'Kritik İhracat Hatası',
-                html: `Toplu indirme işleminde beklenmeyen bir hata oluştu:<br><br><b>${globalErr.message}</b><br><br><small>Tarayıcı konsolunu kontrol edin.</small>`,
-                icon: 'error'
-            });
-        }
-    } catch (setupErr) {
-        console.error(setupErr);
-        Swal.fire('Hata', setupErr.message, 'error');
-    }
-};
-
-// ─── Oturumu Yazdır ────────────────────────────────────────────────────────
-window.printSessionDistribution = async function (id, filterValue = null, forcePrintPapers = false) {
-    const session = DataManager.getExamSessions().find(s => s.id === id);
-    if (!session || !session.results) {
-        Swal.fire('Bilgi', 'Bu oturum için dağıtım henüz yapılmamış.', 'info');
-        return;
-    }
-
-    // Seçili modu DOM'dan oku
-    const modeEl = document.querySelector(`input[name="mode-${id}"]:checked`);
-    const mode = modeEl ? modeEl.value : 'class';
-
-    // SESSION-WIDE BATCH PRINT DETECTION
-    const sessionPaperCb = document.querySelector(`.session-paper-check[data-id="${id}"]`);
-    const isSessionWideBatch = !filterValue && sessionPaperCb && sessionPaperCb.checked;
-
-    if (isSessionWideBatch) {
-        // 1. Get List of Groups
-        let groups = [];
-        if (mode === 'class') {
-            const classSet = new Set();
-            session.results.forEach(r => Object.values(r.seats || {}).forEach(s => classSet.add(s.class)));
-            groups = Array.from(classSet).sort(sortByNum);
-        } else if (mode === 'room') {
-            groups = session.results.map(r => r.name).sort(sortByNum);
-        }
-
-        if (groups.length === 0) {
-            Swal.fire('Hata', 'Yazdırılacak grup (Sınıf/Salon) bulunamadı.', 'error');
-            return;
-        }
-
-        // 2. Ask for Mode
-        const result = await Swal.fire({
-            title: 'Toplu Yazdırma Başlatılsın mı?',
-            html: `<b>${groups.length}</b> adet ${mode === 'class' ? 'sınıf' : 'salon'} grubu sırayla yazdırılacak.<br><br>Yazdırma yöntemini seçin:`,
-            icon: 'question',
-            showDenyButton: true,
-            showCancelButton: true,
-            confirmButtonText: 'Sürekli (Otomatik)',
-            denyButtonText: 'Duraklamalı (Onaylı)',
-            cancelButtonText: 'İptal',
-            confirmButtonColor: '#4f46e5',
-            denyButtonColor: '#6366f1'
-        });
-
-        if (result.isDismissed) return;
-
-        const isPaused = result.isDenied;
-
-        // 3. Process Each Group
-        for (let i = 0; i < groups.length; i++) {
-            const groupName = groups[i];
-
-            if (!isPaused) {
-                // Small toast for continuous progress
-                Swal.fire({
-                    title: 'Toplu Yazdırma',
-                    html: `İşleniyor: <b>${groupName}</b> (${i + 1} / ${groups.length})`,
-                    timer: 1500,
-                    showConfirmButton: false,
-                    toast: true,
-                    position: 'top-end'
-                });
-                await new Promise(r => setTimeout(r, 1000));
-            }
-
-            // Call self for individual group with forcePrintPapers enabled
-            await window.printSessionDistribution(id, groupName, true);
-
-            if (isPaused && i < groups.length - 1) {
-                const nextG = groups[i + 1];
-                const confirmNext = await Swal.fire({
-                    title: `Sıradaki: ${nextG}`,
-                    html: `<b>${groupName}</b> tamamlandı.<br>Sonraki gruba geçilsin mi?<br><br><small>${i + 2} / ${groups.length}</small>`,
-                    icon: 'info',
-                    showCancelButton: true,
-                    confirmButtonText: 'Evet, Devam',
-                    cancelButtonText: 'Durdur'
-                });
-                if (!confirmNext.isConfirmed) break;
-            }
-        }
-        return; // Exit session-wide flow
-    }
-
-    // BATCH EXPORT INTERCEPT
-    let isBulkExportChecked = false;
-    if (filterValue) {
-        const cbClass = document.querySelector(`.class-paper-check[data-class="${filterValue}"]`);
-        const cbRoom = document.querySelector(`.room-paper-check[data-room="${filterValue}"]`);
-        if (cbClass && cbClass.checked) isBulkExportChecked = true;
-        if (cbRoom && cbRoom.checked) isBulkExportChecked = true;
-    }
-
-    // If bulk export (Class/Room level paper check) is on, ask for Print vs ZIP
-    if (isBulkExportChecked && !forcePrintPapers) {
-        const choiceResult = await Swal.fire({
-            title: 'Yazdırma Seçeneği',
-            html: `<b>${filterValue}</b> için soru kağıtları ne yapılsın?`,
-            icon: 'question',
-            showDenyButton: true,
-            showCancelButton: true,
-            confirmButtonText: '<i class="fa-solid fa-print"></i> Sırayla Yazdır',
-            denyButtonText: '<i class="fa-solid fa-file-zipper"></i> ZIP İndir',
-            cancelButtonText: 'İptal',
-            confirmButtonColor: '#4f46e5',
-            denyButtonColor: '#10b981'
-        });
-
-        if (choiceResult.isConfirmed) {
-            forcePrintPapers = true;
-        } else if (choiceResult.isDenied) {
-            setTimeout(() => window.exportBatchPDFs(session, mode, filterValue), 100);
-            return; // Exit, as user chose ZIP
-        } else {
-            return; // User cancelled
-        }
-    }
-
-    const loadRequiredFonts = async (pdfDoc) => {
-        const { getFileBytes } = window;
-        if (!window._cachedFonts) window._cachedFonts = {};
-        const urls = {
-            main: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf',
-            nameFont: 'fonts/MonotypeCorsiva.ttf',
-            schoolFont: 'fonts/SnapITC.ttf'
-        };
-        for (const key in urls) {
-            if (!window._cachedFonts[key]) {
-                try {
-                    const bytes = await getFileBytes(urls[key]);
-                    if (bytes && bytes.byteLength > 1000) window._cachedFonts[key] = bytes;
-                } catch (e) { console.warn(`Font fetch failed: ${key}`, e); }
-            }
-        }
-        const fonts = {};
-        const fallback = await pdfDoc.embedFont(window.PDFLib.StandardFonts.HelveticaBold);
-        fonts.mainFont = window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback;
-        fonts.nameFont = window._cachedFonts.nameFont ? await pdfDoc.embedFont(window._cachedFonts.nameFont) : (window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback);
-        fonts.schoolFont = window._cachedFonts.schoolFont ? await pdfDoc.embedFont(window._cachedFonts.schoolFont) : (window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback);
-        return fonts;
-    };
-
-    const printPapersForGroupBatch = async (targetStudents, metadata, groupLabel) => {
-        const { PDFLib, fontkit } = window;
-        const { PDFDocument } = PDFLib;
-        Swal.fire({
-            title: `${groupLabel} Hazırlanıyor...`,
-            html: `Öğrenci kağıtları birleştiriliyor, lütfen bekleyin.<br><br><div id="batch-progress" style="font-weight:bold; font-size:1.2rem;">0 / ${targetStudents.length}</div>`,
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
-        });
-        try {
-            const mergedPdf = await PDFDocument.create();
-            if (fontkit) mergedPdf.registerFontkit(fontkit);
-            const fonts = await loadRequiredFonts(mergedPdf);
-            for (let i = 0; i < targetStudents.length; i++) {
-                const s = targetStudents[i];
-                const progressEl = document.getElementById('batch-progress');
-                if (progressEl) progressEl.innerText = `${i + 1} / ${targetStudents.length}`;
-                const subName = s._matchedSubject || '-';
-                const groupLabel_s = s._groupLabel || s.group || 'default';
-                const meta = metadata[subName] || {};
-                const papers = meta.papers || {};
-                let path = typeof papers === 'string' ? papers : (papers[groupLabel_s] || papers['default'] || '');
-                if (!path) continue;
-                let printPath = path;
-                if (printPath.match(/^[a-zA-Z]:\\/) || printPath.match(/^[a-zA-Z]:\//)) printPath = 'file:///' + printPath.replace(/\\/g, '/');
-                const bytes = await window.getFileBytes(printPath);
-                const studentPdf = await PDFDocument.load(bytes);
-                const pages = await mergedPdf.copyPages(studentPdf, studentPdf.getPageIndices());
-                const studentInfo = {
-                    no: s.no, name: s.name, class: s.class, room: s.room,
-                    seat: s.seatNum || s.seat || '-', subject: subName, group: groupLabel_s,
-                    examNo: meta.examNo || meta.examNumber || ''
-                };
-                const firstPage = pages[0];
-                const { width, height } = firstPage.getSize();
+            currentStep = "Bilgiler ekleniyor";
+            for (let i = 0; i < pages.length; i++) {
+                const page = pages[i];
+                const { width, height } = page.getSize();
                 const A4_W = 595.28, A4_H = 841.89;
                 const sf = 1 / Math.min(A4_W / width, A4_H / height);
-                await window.renderStudentPDFHeader(mergedPdf, firstPage, studentInfo, { ...fonts, sf, metadata: meta });
-                pages.forEach(p => mergedPdf.addPage(p));
+                if (i === 0 && info && Object.keys(info).length > 0) {
+                    await window.renderStudentPDFHeader(pdfDoc, page, info, { mainFont, nameFont, schoolFont, sf });
+                }
             }
-            const mergedBytes = await mergedPdf.save();
-            const blob = new Blob([mergedBytes], { type: 'application/pdf' });
+
+
+            const modifiedPdfBytes = await pdfDoc.save();
+            const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
             const blobUrl = URL.createObjectURL(blob);
-            Swal.close();
-            await window.printFile(blobUrl, {});
-        } catch (err) {
-            console.error("Batch Merge Error:", err);
-            Swal.fire('Hata', 'Toplu PDF oluşturulurken hata: ' + err.message, 'error');
+
+            // 3. Print
+            currentStep = "Yaz\u0131c\u0131ya gönderiliyor";
+            const iframe = document.createElement('iframe');
+            Object.assign(iframe.style, {
+                position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0', visibility: 'hidden'
+            });
+            iframe.src = blobUrl;
+            document.body.appendChild(iframe);
+
+            iframe.onload = () => {
+                setTimeout(() => {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                    setTimeout(() => {
+                        URL.revokeObjectURL(blobUrl);
+                        finalize(iframe);
+                    }, 5000);
+                }, 500);
+            };
+
+            return; // Successfully printed, prevent fallback mechanism
+
+        } catch (e) {
+            console.error("PDF Overlay Error:", e);
+
+            let htmlMsg = `<div style="text-align:left; font-size:0.95rem;">
+                             <b>Adım:</b> ${currentStep}<br>
+                             <b>Hata:</b> ${e.message}<br><br>`;
+
+            if (printPath.includes("file://") || printPath.includes("C:") || printPath.includes("D:")) {
+                htmlMsg += `<b style="color:#e11d48;">UYARI:</b> Sistemi bir internet sunucusunda çalıştırırken, bilgisayarınızdaki yerel dosyalara (C:\\ veya D:\\) erişilemez. Güvenlik nedeniyle tarayıcılar buna izin vermez.<br><br>
+                 <b>ÇÖZÜM:</b> Soru kağıdı PDF'lerinizi OneDrive, Google Drive veya Supabase gibi bir buluta yükleyip <b>'Herkesin görebileceği' bir internet linkini (https://...)</b> buraya yapıştırmalısınız.`;
+            } else if (printPath.includes('supabase.co')) {
+                htmlMsg += `<b style="color:#e11d48;">UYARI:</b> Supabase dosya okuma formatında (CORS) veya isim/boşluk yapısında bir hata oluştu.<br><br>
+                 <b>ÇÖZÜM:</b> Sorunu aşmak için dosyayı "Yeni Sekmede" açarak manuel olarak yazdırabilirsiniz (Oturum Listesindeki yazdırma butonu bunu yapmaya çalışır)`;
+            } else {
+                htmlMsg += `<small><i>Dosya yolu hatalı olabilir veya internetten çektiğiniz linkin (CORS) indirme izni yoktur.</i></small>`;
+            }
+            htmlMsg += `</div>`;
+
+            Swal.fire({
+                title: 'Dosya Okuma uyarısı',
+                html: htmlMsg,
+                icon: 'warning',
+                width: 600
+            });
+
+            console.warn("Attempting fallback print mechanism...");
+        }
+
+        // Fallback or Original Print
+        const iframe = document.createElement('iframe');
+        iframe.src = printPath;
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+
+        let fallbackResolved = false;
+
+        iframe.onload = () => {
+            if (fallbackResolved) return; fallbackResolved = true;
+            try {
+                iframe.contentWindow.print();
+            } catch (err) {
+                console.warn("Iframe Print failed, attempting window.open...", err);
+                try {
+                    window.open(printPath, '_blank');
+                } catch (windowErr) {
+                    console.error("Window open fallback also failed", windowErr);
+                }
+            }
+            setTimeout(() => finalize(iframe), 3000);
+        };
+
+        iframe.onerror = () => {
+            if (fallbackResolved) return; fallbackResolved = true;
+            console.error("Iframe failed to load.");
+            finalize(iframe);
+        };
+
+        // Safety timeout in case both fail to fire
+        setTimeout(() => {
+            if (!fallbackResolved) {
+                fallbackResolved = true;
+                console.error("Iframe load timed out.");
+                finalize(iframe);
+            }
+        }, 6000);
+    };
+
+    // ─── Toplu Soru Kağıdı ZIP İhracı ───────────────────────────────────────────
+    window.exportBatchPDFs = async function (session, mode, filterValue) {
+        try {
+            if (typeof JSZip === 'undefined') {
+                Swal.fire('Hata', 'JSZip kütüphanesi yüklenemedi. Lütfen sayfayı ctrl+f5 ile yenileyin.', 'error');
+                return;
+            }
+
+            const metadata = session.subjectMetadata || {};
+
+            // Extract flat list of students from session.results (which is an array of Rooms)
+            let allStudentsInSession = [];
+            (session.results || []).forEach(room => {
+
+                let ctr = 1;
+                const seatToNum = {};
+                for (let g = 1; g <= room.groups; g++) {
+                    const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
+                    for (let r = 1; r <= cf.rows; r++) {
+                        for (let c = 1; c <= cf.cols; c++) {
+                            const sid = `G${g}-S${r}-C${c}`;
+                            if (!(room.disabledSeats || []).includes(sid)) {
+                                seatToNum[sid] = ctr++;
+                            }
+                        }
+                    }
+                }
+
+                Object.keys(room.seats || {}).forEach(seatId => {
+                    const std = room.seats[seatId];
+                    if (std) {
+                        allStudentsInSession.push({
+                            ...std,
+                            room: room.name,
+                            seatNum: seatToNum[seatId] || '-'
+                        });
+                    }
+                });
+            });
+
+            const studentsToExport = allStudentsInSession.filter(s => {
+                if (!filterValue) return true;
+                if (mode === 'class') return s.class === filterValue;
+                if (mode === 'room') return s.room === filterValue;
+                return true;
+            });
+
+            if (studentsToExport.length === 0) return;
+
+            let validStudents = [];
+            let errors = new Set();
+
+            studentsToExport.forEach(s => {
+                const subName = s._matchedSubject || '-';
+                const group = s._groupLabel || s.group || 'default';
+                const meta = metadata[subName] || {};
+                const papers = meta.papers || {};
+
+                let path = '';
+                if (typeof papers === 'string') path = papers;
+                else path = papers[group] || papers['default'] || '';
+
+                if (path) {
+                    validStudents.push({
+                        path: path,
+                        info: {
+                            no: s.no,
+                            name: s.name,
+                            class: s.class,
+                            room: s.room,
+                            seat: s.seatNum || '-',
+                            subject: subName,
+                            group: group,
+                            examNo: meta.examNo || meta.examNumber || ''
+                        }
+                    });
+                } else {
+                    errors.add(subName);
+                }
+            });
+
+            if (errors.size > 0) {
+                Swal.fire({
+                    title: 'Eksik Soru Kağıdı Adresi',
+                    html: `Şu dersler atlanacak (Soru kağıdı ayarlanmamış):<br><br><b>${[...errors].join('<br>')}</b>`,
+                    icon: 'warning',
+                    toast: true,
+                    position: 'top-end',
+                    timer: 5000
+                });
+            }
+
+            if (validStudents.length === 0) {
+                Swal.fire('Hata', 'Dışa aktarılacak geçerli soru kağıdı bulunamadı!', 'error');
+                return;
+            }
+
+            const zip = new JSZip();
+            const school = DataManager.getSchoolSettings();
+
+            // Prepare fonts
+            if (!window._cachedFonts) window._cachedFonts = {};
+            const fetchOrGet = async (key, urls) => {
+                if (!window._cachedFonts[key]) {
+                    for (const url of urls) {
+                        try {
+                            const bytes = await window.getFileBytes(url);
+                            if (bytes && bytes.byteLength > 1000) { window._cachedFonts[key] = bytes; break; }
+                        } catch (e) {
+                            console.warn("Font fetch err for:", key, e);
+                        }
+                    }
+                }
+            };
+
+            // Initialize combined PDF document for immediate printing
+            let combinedPdfDoc = null;
+            if (typeof PDFLib !== 'undefined') {
+                combinedPdfDoc = await PDFLib.PDFDocument.create();
+            }
+
+            Swal.fire({
+                title: 'Soru Kağıtları Hazırlanıyor',
+                html: `Fontlar yükleniyor...`,
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading() }
+            });
+
+            await fetchOrGet('main', ['https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf']);
+            await fetchOrGet('nameFont', ['fonts/MonotypeCorsiva.ttf']);
+            await fetchOrGet('schoolFont', ['fonts/SnapITC.ttf']);
+
+            const sessDom = window.currentRenderedSession || {};
+            let termDom = '';
+            try { const el = document.getElementById('academicTerm'); if (el) termDom = el.value; } catch (e) { }
+
+            let successCount = 0;
+            let lastError = null;
+            let hadLocalFileError = false;
+
+            // Process each student
+            for (let i = 0; i < validStudents.length; i++) {
+                const req = validStudents[i];
+                Swal.update({ html: `Öğrenci işleniyor: <b>${i + 1} / ${validStudents.length}</b><br><small>${req.info.name}</small>` });
+
+                try {
+                    let printPath = req.path;
+                    if (printPath.match(/^[a-zA-Z]:\\/) || printPath.match(/^[a-zA-Z]:\//)) {
+                        printPath = 'file:///' + printPath.replace(/\\/g, '/');
+                    }
+                    if (printPath.includes("file://") || printPath.includes("C:") || printPath.includes("D:")) {
+                        hadLocalFileError = true;
+                    }
+
+                    Swal.update({ html: `Öğrenci işleniyor: <b>${i + 1} / ${validStudents.length}</b><br><small>${req.info.name} - PDF İndiriliyor...</small>` });
+                    const pdfBytes = await window.getFileBytes(printPath);
+                    if (typeof PDFLib === 'undefined') continue;
+
+                    Swal.update({ html: `Öğrenci işleniyor: <b>${i + 1} / ${validStudents.length}</b><br><small>${req.info.name} - PDFLib Yükleniyor...</small>` });
+                    const { PDFDocument, rgb } = PDFLib;
+                    const pdfDoc = await PDFDocument.load(pdfBytes);
+                    if (typeof fontkit !== 'undefined') pdfDoc.registerFontkit(fontkit);
+
+                    Swal.update({ html: `Öğrenci işleniyor: <b>${i + 1} / ${validStudents.length}</b><br><small>${req.info.name} - Fontlar Gömülüyor...</small>` });
+                    let mainFont = null, nameFont = null, schoolFont = null;
+                    if (window._cachedFonts.main) mainFont = await pdfDoc.embedFont(window._cachedFonts.main);
+                    if (window._cachedFonts.nameFont) nameFont = await pdfDoc.embedFont(window._cachedFonts.nameFont);
+                    if (window._cachedFonts.schoolFont) schoolFont = await pdfDoc.embedFont(window._cachedFonts.schoolFont);
+
+                    const fallbackPdfFont = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+                    const customFont = mainFont ? mainFont : null;
+                    mainFont = mainFont || fallbackPdfFont;
+                    nameFont = nameFont || mainFont;
+                    schoolFont = schoolFont || mainFont;
+
+                    Swal.update({ html: `Öğrenci işleniyor: <b>${i + 1} / ${validStudents.length}</b><br><small>${req.info.name} - Düzenleniyor...</small>` });
+                    const pages = pdfDoc.getPages();
+                    for (let pg = 0; pg < (pages.length > 0 ? 1 : 0); pg++) { // Only Page 1
+                        const page = pages[pg];
+                        const { width, height } = page.getSize();
+
+                        const cleanTurkishChars = (text) => {
+                            if (!text) return '';
+                            if (customFont) return text;
+                            return text.replace(/\u0130/g, 'I').replace(/\u0131/g, 'i')
+                                .replace(/\u011e/g, 'G').replace(/\u011f/g, 'g').replace(/\u015e/g, 'S').replace(/\u015f/g, 's')
+                                .replace(/\u00c7/g, 'C').replace(/\u00e7/g, 'c').replace(/\u00d6/g, 'O').replace(/\u00f6/g, 'o')
+                                .replace(/\u00dc/g, 'U').replace(/\u00fc/g, 'u');
+                        };
+                        const drawCenterText = (str, cx, cy, cw, ch, sz, fnt) => {
+                            if (!str) return;
+                            const cl = cleanTurkishChars(str).toString();
+                            const tw = fnt ? fnt.widthOfTextAtSize(cl, sz) : cl.length * (sz * 0.6);
+                            const tx = cx + Math.max(0, (cw - tw) / 2);
+                            const ty = cy + (ch / 2) - (sz * 0.35);
+                            page.drawText(cl, { x: tx, y: ty, size: sz, font: fnt || undefined, color: rgb(0, 0, 0) });
+                        };
+                        const drawLeftText = (str, cx, cy, cw, ch, sz, fnt) => {
+                            if (!str) return;
+                            const cl = cleanTurkishChars(str).toString();
+                            const tx = cx + 5;
+                            const ty = cy + (ch / 2) - (sz * 0.35);
+                            page.drawText(cl, { x: tx, y: ty, size: sz, font: fnt || undefined, color: rgb(0, 0, 0) });
+                        };
+
+                        const margin = 14.17; const limitY = 85.04; const outerStroke = 1.6; const strokeOffset = outerStroke / 2 + 1;
+                        const ox = margin + strokeOffset; const oy = height - limitY + strokeOffset;
+                        const ow = width - (margin * 2) - (strokeOffset * 2); const oh = limitY - margin - (strokeOffset * 2);
+                        const gap = 2; const ix = ox + gap; const iy = oy + gap; const iw = ow - (gap * 2); const ih = oh - (gap * 2);
+                        const leftW = 65; const rightW = 85; const midW = iw - leftW - rightW;
+                        const row3H = 25; const row2H = 19; const row1H = ih - row3H - row2H;
+                        const midCol2W = 30; const midCol4W = 30; const midCol5W = 75; const midCol6W = 30;
+                        const midCol3W = midW - midCol2W - midCol4W - midCol5W - midCol6W;
+
+                        const gradTopY = iy + row3H + row2H;
+                        const strips = [{ c: 0.82, h: 4 }, { c: 0.94, h: 4 }, { c: 1.0, h: row1H - 15 }, { c: 0.94, h: 4 }, { c: 0.82, h: 3 }];
+                        let curStripY = gradTopY;
+                        for (let s of strips) { page.drawRectangle({ x: ix + leftW, y: curStripY, width: midW, height: s.h, color: rgb(s.c, s.c, s.c) }); curStripY += s.h; }
+                        page.drawRectangle({ x: ix + leftW + midCol2W, y: iy, width: midCol3W, height: row3H, color: rgb(0.96, 0.96, 0.96) });
+                        page.drawRectangle({ x: ix + leftW + midCol2W + midCol3W, y: iy, width: midW - (midCol2W + midCol3W), height: row3H, color: rgb(0.88, 0.88, 0.88) });
+
+                        page.drawLine({ start: { x: ix + leftW, y: iy }, end: { x: ix + leftW, y: iy + ih }, thickness: 0.75 });
+                        page.drawLine({ start: { x: ix + leftW + midW, y: iy }, end: { x: ix + leftW + midW, y: iy + ih }, thickness: 0.75 });
+                        let curX = ix + leftW + midCol2W;
+                        page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: 0.75 }); curX += midCol3W;
+                        page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: 0.75 }); curX += midCol4W;
+                        page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: 0.75 }); curX += midCol5W;
+                        page.drawLine({ start: { x: curX, y: iy }, end: { x: curX, y: iy + row3H }, thickness: 0.75 });
+                        page.drawLine({ start: { x: ix + leftW, y: iy + row3H + row2H }, end: { x: ix + leftW + midW, y: iy + row3H + row2H }, thickness: 0.75 });
+                        page.drawLine({ start: { x: ix, y: iy + row3H }, end: { x: ix + leftW + midW, y: iy + row3H }, thickness: 0.75 });
+
+                        const drawExplicitOppositeFrame = (x, y, w, h, r, thickness) => {
+                            page.drawLine({ start: { x: x + r, y: y + h }, end: { x: x + w, y: y + h }, thickness });
+                            page.drawLine({ start: { x: x + w, y: y + h }, end: { x: x + w, y: y + r }, thickness });
+                            page.drawLine({ start: { x: x + w - r, y: y }, end: { x: x, y: y }, thickness });
+                            page.drawLine({ start: { x: x, y: y }, end: { x: x, y: y + h - r }, thickness });
+                            const segments = 12;
+                            for (let j = 0; j < segments; j++) {
+                                const a1 = Math.PI / 2 + (Math.PI / 2) * (j / segments); const a2 = Math.PI / 2 + (Math.PI / 2) * ((j + 1) / segments);
+                                page.drawLine({ start: { x: x + r + r * Math.cos(a1), y: y + h - r + r * Math.sin(a1) }, end: { x: x + r + r * Math.cos(a2), y: y + h - r + r * Math.sin(a2) }, thickness });
+                            }
+                            for (let j = 0; j < segments; j++) {
+                                const a1 = -Math.PI / 2 + (Math.PI / 2) * (j / segments); const a2 = -Math.PI / 2 + (Math.PI / 2) * ((j + 1) / segments);
+                                page.drawLine({ start: { x: x + w - r + r * Math.cos(a1), y: y + r + r * Math.sin(a1) }, end: { x: x + w - r + r * Math.cos(a2), y: y + r + r * Math.sin(a2) }, thickness });
+                            }
+                        };
+                        drawExplicitOppositeFrame(ox, oy, ow, oh, 6, 1.5);
+                        drawExplicitOppositeFrame(ix, iy, iw, ih, 4, 0.5);
+
+                        let sName = (school.name || '').replace(/i/g, 'İ').toUpperCase().split('').join(' ');
+                        drawCenterText(sName, ix + leftW, iy + row3H + row2H, midW, row1H, 11, schoolFont);
+
+                        let termStr = (sessDom.academicTerm || termDom || '').toUpperCase();
+                        if (termStr === '1. DÖNEM' || termStr === '1 DÖNEM' || termStr === '1. DONEM') termStr = 'I. DÖNEM';
+                        else if (termStr === '2. DÖNEM' || termStr === '2 DÖNEM' || termStr === '2. DONEM') termStr = 'II. DÖNEM';
+                        else termStr = termStr.replace('1.', '1.').replace('2.', '2.');
+                        if (termStr && !termStr.includes('DÖNEM') && !termStr.includes('DONEM')) termStr += ' DÖNEM';
+
+                        const examNoStr = req.info.examNo || '';
+                        const examText = `${school.academicYear || ''} ÖĞRETİM YILI ${termStr} ${req.info.subject || ''} DERSİ ${examNoStr ? `${examNoStr}. ` : ''}YAZILI SINAVI`.trim().toUpperCase();
+
+                        let row2Sz = 14;
+                        let examTextWidth = mainFont ? mainFont.widthOfTextAtSize(cleanTurkishChars(examText), row2Sz) : examText.length * (row2Sz * 0.6);
+                        while (examTextWidth > (midW - 10) && row2Sz > 5) {
+                            row2Sz -= 0.5; examTextWidth = mainFont ? mainFont.widthOfTextAtSize(cleanTurkishChars(examText), row2Sz) : examText.length * (row2Sz * 0.6);
+                        }
+                        drawCenterText(examText, ix + leftW, iy + row3H, midW, row2H, row2Sz, mainFont);
+
+                        drawCenterText(req.info.class, ix, iy, leftW, row3H, 16, mainFont);
+                        drawCenterText(req.info.no, ix + leftW, iy, midCol2W, row3H, 12, mainFont);
+
+                        let nameStr = req.info.name.replace(/i/g, 'İ').toUpperCase();
+                        let nameSz = 28;
+                        let nameWidth = nameFont ? nameFont.widthOfTextAtSize(cleanTurkishChars(nameStr), nameSz) : nameStr.length * (nameSz * 0.5);
+                        while (nameWidth > (midCol3W - 15) && nameSz > 8) {
+                            nameSz -= 0.5; nameWidth = nameFont ? nameFont.widthOfTextAtSize(cleanTurkishChars(nameStr), nameSz) : nameStr.length * (nameSz * 0.5);
+                        }
+                        if (nameSz > 24) nameSz = 24;
+                        drawLeftText(nameStr, ix + leftW + midCol2W, iy, midCol3W, row3H, nameSz, nameFont);
+                        drawLeftText(nameStr, ix + leftW + midCol2W + 0.3, iy, midCol3W, row3H, nameSz, nameFont);
+                        drawLeftText(nameStr, ix + leftW + midCol2W + 0.6, iy, midCol3W, row3H, nameSz, nameFont);
+
+                        page.drawText("DERSLİK", { x: ix + leftW + midCol2W + midCol3W + 2, y: iy + row3H - 6.5, size: 5.5, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                        page.drawText("SINAV", { x: ix + leftW + midCol2W + midCol3W + midCol4W + 2, y: iy + row3H - 6.5, size: 5.5, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+                        page.drawText("YER", { x: ix + leftW + midCol2W + midCol3W + midCol4W + midCol5W + 2, y: iy + row3H - 6.5, size: 5.5, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+
+                        drawCenterText(req.info.room, ix + leftW + midCol2W + midCol3W, iy - 2.5, midCol4W, row3H, 11, mainFont);
+                        drawCenterText((req.info.subject || '').toUpperCase(), ix + leftW + midCol2W + midCol3W + midCol4W, iy - 2.5, midCol5W, row3H, 9.5, mainFont);
+                        drawCenterText(req.info.seat, ix + leftW + midCol2W + midCol3W + midCol4W + midCol5W, iy - 2.5, midCol6W, row3H, 14, mainFont);
+                        page.drawText("PUAN", { x: ix + leftW + midW + 5, y: iy + ih - 10, size: 7, font: mainFont, color: rgb(0.5, 0.5, 0.5) });
+
+                        // 5. LOGO
+                        if (school.logo) {
+                            try {
+                                const logoBytes = await window.getFileBytes(school.logo);
+                                let logoImage;
+                                if (school.logo.includes('image/png') || school.logo.toLowerCase().endsWith('.png')) logoImage = await pdfDoc.embedPng(logoBytes);
+                                else logoImage = await pdfDoc.embedJpg(logoBytes);
+                                const logoDim = 26; const lx = ix + (leftW - logoDim) / 2; const ly = iy + row3H + (row2H + row1H - logoDim) / 2;
+                                page.drawImage(logoImage, { x: lx, y: ly, width: logoDim, height: logoDim });
+                            } catch (e) { }
+                        }
+                    }
+
+                    const outBytes = await pdfDoc.save();
+                    const fileName = `${req.info.class} ${req.info.no} ${req.info.name}.pdf`.replace(/[\/\\]/g, '-');
+                    zip.file(fileName, outBytes);
+                    successCount++;
+
+                    // Add to combined document for immediate printing
+                    if (combinedPdfDoc) {
+                        const copiedPages = await combinedPdfDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
+                        copiedPages.forEach((page) => combinedPdfDoc.addPage(page));
+
+                        // DEUBL-SIDED PRINTING FIX: If odd pages, add a blank page so next student starts on a new sheet
+                        if (copiedPages.length % 2 !== 0) {
+                            combinedPdfDoc.addPage();
+                        }
+                    }
+
+                } catch (e) {
+                    console.error("Batch PDF err:", req.info.name, e);
+                    lastError = e;
+                }
+            }
+
+            if (successCount === 0) {
+                let errorHtml = `<div style="text-align:left; font-size:0.95rem;">`;
+                if (hadLocalFileError) {
+                    errorHtml += `<b style="color:#e11d48;">UYARI:</b> Sistemi Vercel gibi bir internet sunucusunda çalıştırırken, bilgisayarınızdaki yerel dosyalara (C:\\ veya D:\\ vb.) erişilemez. Tarayıcı internet üzerindeki bir sitenin sizin yerel diskinize sızmasını engeller.<br><br>
+                 <b>ÇÖZÜM:</b> Soru kağıdı PDF'lerinizi OneDrive, Google Drive veya Supabase depolama sistemine yükleyip, herkesin erişebileceği (https:// ile başlayan) linkleri ayarlardaki Soru Kağıdı bölümüne yapıştırmalısınız.`;
+                } else {
+                    errorHtml += `Hiçbir soru kağıdı indirilemedi. Dosya yolu hatalı, internet linkiniz kopuk veya (CORS) indirme izni ayarlanmamış olabilir.<br><br><b>Detay:</b> ${lastError ? lastError.message : 'Bilinmeyen Hata'}`;
+                }
+                errorHtml += `</div>`;
+
+                Swal.fire({
+                    title: 'Soru Kağıtları İndirilemedi',
+                    html: errorHtml,
+                    icon: 'error',
+                    width: 600
+                });
+                return;
+            }
+
+            Swal.update({ html: `ZIP Dosyası Sıkıştırılıyor... Lütfen Bekleyin.` });
+            try {
+                const content = await zip.generateAsync({ type: "blob" });
+                let modeSuffix = '';
+                if (filterValue) {
+                    if (mode === 'class') modeSuffix = ' Sınıfı';
+                    if (mode === 'room') modeSuffix = ' Salonu';
+                }
+                const finalName = filterValue ? `Soru_Kagitlari_${filterValue.replace(/[\/\\]/g, '-')}${modeSuffix}.zip` : `Soru_Kagitlari_Tumu.zip`;
+
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = finalName;
+                document.body.appendChild(link);
+                link.click();
+                setTimeout(() => document.body.removeChild(link), 100);
+
+                let successMsg = `${successCount} adet soru kağıdı '${finalName}' olarak indirildi. Yazdırılıyor...`;
+                if (successCount < validStudents.length) {
+                    successMsg += `<br><br><small style="color:#e11d48;">Dikkat: ${validStudents.length - successCount} adet kağıt bağlantı hatası nedeniyle atlandı.</small>`;
+                }
+
+                Swal.fire({
+                    title: 'Başarılı!',
+                    html: successMsg,
+                    icon: 'success',
+                    timer: 4000,
+                    showConfirmButton: false
+                });
+
+                // Trigger direct print of the combined PDF
+                if (combinedPdfDoc && combinedPdfDoc.getPageCount() > 0) {
+                    const combinedBytes = await combinedPdfDoc.save();
+                    const sumBlob = new Blob([combinedBytes], { type: 'application/pdf' });
+                    const sumUrl = URL.createObjectURL(sumBlob);
+
+                    const printFrame = document.createElement('iframe');
+                    Object.assign(printFrame.style, {
+                        position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0', visibility: 'hidden'
+                    });
+                    printFrame.src = sumUrl;
+                    document.body.appendChild(printFrame);
+
+                    printFrame.onload = () => {
+                        printFrame.contentWindow.focus();
+                        printFrame.contentWindow.print();
+                        setTimeout(() => {
+                            URL.revokeObjectURL(sumUrl);
+                            if (document.body.contains(printFrame)) document.body.removeChild(printFrame);
+                        }, 5000); // Wait long enough for print dialog
+                    };
+                }
+
+            } catch (globalErr) {
+                console.error("Global JSZip err:", globalErr);
+                Swal.fire({
+                    title: 'Kritik İhracat Hatası',
+                    html: `Toplu indirme işleminde beklenmeyen bir hata oluştu:<br><br><b>${globalErr.message}</b><br><br><small>Tarayıcı konsolunu kontrol edin.</small>`,
+                    icon: 'error'
+                });
+            }
+        } catch (setupErr) {
+            console.error(setupErr);
+            Swal.fire('Hata', setupErr.message, 'error');
         }
     };
 
-    // AUTOMATIC PAPER PRINTING HELPER
-    const printPapersForGroup = async (fVal) => {
-        const metadata = session.subjectMetadata || {};
-        let allStudentsInSession = [];
-        (session.results || []).forEach(room => {
-            let ctr = 1; const seatToNum = {};
-            for (let g = 1; g <= room.groups; g++) {
-                const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
-                for (let r = 1; r <= cf.rows; r++)
-                    for (let c = 1; c <= cf.cols; c++) {
-                        const sid = `G${g}-S${r}-C${c}`;
-                        if (!(room.disabledSeats || []).includes(sid)) seatToNum[sid] = ctr++;
-                    }
-            }
-            Object.entries(room.seats).forEach(([sid, s]) => {
-                allStudentsInSession.push({ ...s, room: room.name, seat: seatToNum[sid] || '-' });
-            });
-        });
+    // ─── Oturumu Yazdır ────────────────────────────────────────────────────────
+    window.printSessionDistribution = async function (id, filterValue = null, forcePrintPapers = false) {
+        const session = DataManager.getExamSessions().find(s => s.id === id);
+        if (!session || !session.results) {
+            Swal.fire('Bilgi', 'Bu oturum için dağıtım henüz yapılmamış.', 'info');
+            return;
+        }
 
-        const targetStudents = allStudentsInSession.filter(s => {
-            if (mode === 'class') return s.class === fVal;
-            if (mode === 'room') return s.room === fVal;
+        // Seçili modu DOM'dan oku
+        const modeEl = document.querySelector(`input[name="mode-${id}"]:checked`);
+        const mode = modeEl ? modeEl.value : 'class';
+
+        // SESSION-WIDE BATCH PRINT DETECTION
+        const sessionPaperCb = document.querySelector(`.session-paper-check[data-id="${id}"]`);
+        const isSessionWideBatch = !filterValue && sessionPaperCb && sessionPaperCb.checked;
+
+        if (isSessionWideBatch) {
+            // 1. Get List of Groups
+            let groups = [];
+            if (mode === 'class') {
+                const classSet = new Set();
+                session.results.forEach(r => Object.values(r.seats || {}).forEach(s => classSet.add(s.class)));
+                groups = Array.from(classSet).sort(sortByNum);
+            } else if (mode === 'room') {
+                groups = session.results.map(r => r.name).sort(sortByNum);
+            }
+
+            if (groups.length === 0) {
+                Swal.fire('Hata', 'Yazdırılacak grup (Sınıf/Salon) bulunamadı.', 'error');
+                return;
+            }
+
+            // 2. Ask for Mode
+            const result = await Swal.fire({
+                title: 'Toplu Yazdırma Başlatılsın mı?',
+                html: `<b>${groups.length}</b> adet ${mode === 'class' ? 'sınıf' : 'salon'} grubu sırayla yazdırılacak.<br><br>Yazdırma yöntemini seçin:`,
+                icon: 'question',
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonText: 'Sürekli (Otomatik)',
+                denyButtonText: 'Duraklamalı (Onaylı)',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#4f46e5',
+                denyButtonColor: '#6366f1'
+            });
+
+            if (result.isDismissed) return;
+
+            const isPaused = result.isDenied;
+
+            // 3. Process Each Group
+            for (let i = 0; i < groups.length; i++) {
+                const groupName = groups[i];
+
+                if (!isPaused) {
+                    // Small toast for continuous progress
+                    Swal.fire({
+                        title: 'Toplu Yazdırma',
+                        html: `İşleniyor: <b>${groupName}</b> (${i + 1} / ${groups.length})`,
+                        timer: 1500,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end'
+                    });
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+
+                // Call self for individual group with forcePrintPapers enabled
+                await window.printSessionDistribution(id, groupName, true);
+
+                if (isPaused && i < groups.length - 1) {
+                    const nextG = groups[i + 1];
+                    const confirmNext = await Swal.fire({
+                        title: `Sıradaki: ${nextG}`,
+                        html: `<b>${groupName}</b> tamamlandı.<br>Sonraki gruba geçilsin mi?<br><br><small>${i + 2} / ${groups.length}</small>`,
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Evet, Devam',
+                        cancelButtonText: 'Durdur'
+                    });
+                    if (!confirmNext.isConfirmed) break;
+                }
+            }
+            return; // Exit session-wide flow
+        }
+
+        // BATCH EXPORT INTERCEPT
+        let isBulkExportChecked = false;
+        if (filterValue) {
+            const cbClass = document.querySelector(`.class-paper-check[data-class="${filterValue}"]`);
+            const cbRoom = document.querySelector(`.room-paper-check[data-room="${filterValue}"]`);
+            if (cbClass && cbClass.checked) isBulkExportChecked = true;
+            if (cbRoom && cbRoom.checked) isBulkExportChecked = true;
+        }
+
+        // If bulk export (Class/Room level paper check) is on, ask for Print vs ZIP
+        if (isBulkExportChecked && !forcePrintPapers) {
+            const choiceResult = await Swal.fire({
+                title: 'Yazdırma Seçeneği',
+                html: `<b>${filterValue}</b> için soru kağıtları ne yapılsın?`,
+                icon: 'question',
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-print"></i> Sırayla Yazdır',
+                denyButtonText: '<i class="fa-solid fa-file-zipper"></i> ZIP İndir',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#4f46e5',
+                denyButtonColor: '#10b981'
+            });
+
+            if (choiceResult.isConfirmed) {
+                forcePrintPapers = true;
+            } else if (choiceResult.isDenied) {
+                setTimeout(() => window.exportBatchPDFs(session, mode, filterValue), 100);
+                return; // Exit, as user chose ZIP
+            } else {
+                return; // User cancelled
+            }
+        }
+
+        const loadRequiredFonts = async (pdfDoc) => {
+            const { getFileBytes } = window;
+            if (!window._cachedFonts) window._cachedFonts = {};
+            const urls = {
+                main: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf',
+                nameFont: 'fonts/MonotypeCorsiva.ttf',
+                schoolFont: 'fonts/SnapITC.ttf'
+            };
+            for (const key in urls) {
+                if (!window._cachedFonts[key]) {
+                    try {
+                        const bytes = await getFileBytes(urls[key]);
+                        if (bytes && bytes.byteLength > 1000) window._cachedFonts[key] = bytes;
+                    } catch (e) { console.warn(`Font fetch failed: ${key}`, e); }
+                }
+            }
+            const fonts = {};
+            const fallback = await pdfDoc.embedFont(window.PDFLib.StandardFonts.HelveticaBold);
+            fonts.mainFont = window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback;
+            fonts.nameFont = window._cachedFonts.nameFont ? await pdfDoc.embedFont(window._cachedFonts.nameFont) : (window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback);
+            fonts.schoolFont = window._cachedFonts.schoolFont ? await pdfDoc.embedFont(window._cachedFonts.schoolFont) : (window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback);
+            return fonts;
+        };
+
+        const printPapersForGroupBatch = async (targetStudents, metadata, groupLabel) => {
+            const { PDFLib, fontkit } = window;
+            const { PDFDocument } = PDFLib;
+            Swal.fire({
+                title: `${groupLabel} Hazırlanıyor...`,
+                html: `Öğrenci kağıtları birleştiriliyor, lütfen bekleyin.<br><br><div id="batch-progress" style="font-weight:bold; font-size:1.2rem;">0 / ${targetStudents.length}</div>`,
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+            try {
+                const mergedPdf = await PDFDocument.create();
+                if (fontkit) mergedPdf.registerFontkit(fontkit);
+                const fonts = await loadRequiredFonts(mergedPdf);
+                for (let i = 0; i < targetStudents.length; i++) {
+                    const s = targetStudents[i];
+                    const progressEl = document.getElementById('batch-progress');
+                    if (progressEl) progressEl.innerText = `${i + 1} / ${targetStudents.length}`;
+                    const subName = s._matchedSubject || '-';
+                    const groupLabel_s = s._groupLabel || s.group || 'default';
+                    const meta = metadata[subName] || {};
+                    const papers = meta.papers || {};
+                    let path = typeof papers === 'string' ? papers : (papers[groupLabel_s] || papers['default'] || '');
+                    if (!path) continue;
+                    let printPath = path;
+                    if (printPath.match(/^[a-zA-Z]:\\/) || printPath.match(/^[a-zA-Z]:\//)) printPath = 'file:///' + printPath.replace(/\\/g, '/');
+                    const bytes = await window.getFileBytes(printPath);
+                    const studentPdf = await PDFDocument.load(bytes);
+                    const pages = await mergedPdf.copyPages(studentPdf, studentPdf.getPageIndices());
+                    const studentInfo = {
+                        no: s.no, name: s.name, class: s.class, room: s.room,
+                        seat: s.seatNum || s.seat || '-', subject: subName, group: groupLabel_s,
+                        examNo: meta.examNo || meta.examNumber || ''
+                    };
+                    const firstPage = pages[0];
+                    const { width, height } = firstPage.getSize();
+                    const A4_W = 595.28, A4_H = 841.89;
+                    const sf = 1 / Math.min(A4_W / width, A4_H / height);
+                    await window.renderStudentPDFHeader(mergedPdf, firstPage, studentInfo, { ...fonts, sf, metadata: meta });
+                    pages.forEach(p => mergedPdf.addPage(p));
+                }
+                const mergedBytes = await mergedPdf.save();
+                const blob = new Blob([mergedBytes], { type: 'application/pdf' });
+                const blobUrl = URL.createObjectURL(blob);
+                Swal.close();
+                await window.printFile(blobUrl, {});
+            } catch (err) {
+                console.error("Batch Merge Error:", err);
+                Swal.fire('Hata', 'Toplu PDF oluşturulurken hata: ' + err.message, 'error');
+            }
+        };
+
+        // AUTOMATIC PAPER PRINTING HELPER
+        const printPapersForGroup = async (fVal) => {
+            const metadata = session.subjectMetadata || {};
+            let allStudentsInSession = [];
+            (session.results || []).forEach(room => {
+                let ctr = 1; const seatToNum = {};
+                for (let g = 1; g <= room.groups; g++) {
+                    const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
+                    for (let r = 1; r <= cf.rows; r++)
+                        for (let c = 1; c <= cf.cols; c++) {
+                            const sid = `G${g}-S${r}-C${c}`;
+                            if (!(room.disabledSeats || []).includes(sid)) seatToNum[sid] = ctr++;
+                        }
+                }
+                Object.entries(room.seats).forEach(([sid, s]) => {
+                    allStudentsInSession.push({ ...s, room: room.name, seat: seatToNum[sid] || '-' });
+                });
+            });
+
+            const targetStudents = allStudentsInSession.filter(s => {
+                if (mode === 'class') return s.class === fVal;
+                if (mode === 'room') return s.room === fVal;
+                return true;
+            });
+
+            // QUICK VALIDATION
+            let hasValidPaper = false;
+            targetStudents.forEach(s => {
+                const subName = s._matchedSubject || '-';
+                const group = s._groupLabel || s.group || 'default';
+                const meta = metadata[subName] || {};
+                const papers = meta.papers || {};
+                let path = typeof papers === 'string' ? papers : (papers[group] || papers['default'] || '');
+                if (path) hasValidPaper = true;
+            });
+
+            if (!hasValidPaper) {
+                Swal.fire({
+                    title: 'Eksik Soru Kağıdı Adresi',
+                    html: `Bu listedeki sınavlar için soru kağıdı adresi girilmemiş veya dizin bulunamadı!`,
+                    icon: 'error'
+                });
+                return;
+            }
+
+            // USE BATCH PRINTING INSTEAD OF INDIVIDUAL
+            await printPapersForGroupBatch(targetStudents, metadata, `${mode === 'class' ? 'Sınıf' : 'Salon'}: ${fVal}`);
+        };
+
+
+        const modeLabels = { class: 'Sınıf', room: 'Salon', seating: 'Şema' };
+        const modeLabel = modeLabels[mode];
+        const isSeating = mode === 'seating';
+
+        // ─────── SORU KAĞIDI YAZDIRMA (MANUEL SEÇİM INTERCEPT) ─────────
+        // Eğer öğrenci checkboxları seçiliyse listeyi değil, kağıtları yazdır/aç. (Batch export harici manuel seçimler)
+        const checkedStudents = Array.from(document.querySelectorAll('.student-paper-check:checked')).filter(cb => {
+            if (!filterValue) return true; // Genel liste, hepsini al
+            const currentMode = modeEl ? modeEl.value : 'class';
+            if (currentMode === 'class') return cb.dataset.class === filterValue;
+            if (currentMode === 'room') return cb.dataset.room === filterValue;
             return true;
         });
 
-        // QUICK VALIDATION
-        let hasValidPaper = false;
-        targetStudents.forEach(s => {
-            const subName = s._matchedSubject || '-';
-            const group = s._groupLabel || s.group || 'default';
-            const meta = metadata[subName] || {};
-            const papers = meta.papers || {};
-            let path = typeof papers === 'string' ? papers : (papers[group] || papers['default'] || '');
-            if (path) hasValidPaper = true;
-        });
+        if (checkedStudents.length > 0 && !isBulkExportChecked && !forcePrintPapers) {
+            const metadata = session.subjectMetadata || {};
+            let foundCount = 0;
+            let errors = [];
 
-        if (!hasValidPaper) {
-            Swal.fire({
-                title: 'Eksik Soru Kağıdı Adresi',
-                html: `Bu listedeki sınavlar için soru kağıdı adresi girilmemiş veya dizin bulunamadı!`,
-                icon: 'error'
+            checkedStudents.forEach(cb => {
+                const subName = cb.dataset.sub;
+                const group = cb.dataset.group || 'default';
+                const meta = metadata[subName] || {};
+                const papers = meta.papers || {};
+
+                let path = '';
+                if (typeof papers === 'string') path = papers;
+                else path = papers[group] || papers['default'] || '';
+
+                if (path) {
+                    const studentInfo = {
+                        no: cb.dataset.studentNo,
+                        name: cb.dataset.studentName,
+                        class: cb.dataset.class,
+                        room: cb.dataset.room,
+                        seat: cb.dataset.seat || '-',
+                        subject: subName,
+                        group: group,
+                        examNo: meta.examNo || meta.examNumber || ''
+                    };
+
+                    window.printFile(path, studentInfo);
+                    foundCount++;
+                } else {
+                    errors.push(subName);
+                }
             });
-            return;
-        }
 
-        // USE BATCH PRINTING INSTEAD OF INDIVIDUAL
-        await printPapersForGroupBatch(targetStudents, metadata, `${mode === 'class' ? 'Sınıf' : 'Salon'}: ${fVal}`);
-    };
-
-
-    const modeLabels = { class: 'Sınıf', room: 'Salon', seating: 'Şema' };
-    const modeLabel = modeLabels[mode];
-    const isSeating = mode === 'seating';
-
-    // ─────── SORU KAĞIDI YAZDIRMA (MANUEL SEÇİM INTERCEPT) ─────────
-    // Eğer öğrenci checkboxları seçiliyse listeyi değil, kağıtları yazdır/aç. (Batch export harici manuel seçimler)
-    const checkedStudents = Array.from(document.querySelectorAll('.student-paper-check:checked')).filter(cb => {
-        if (!filterValue) return true; // Genel liste, hepsini al
-        const currentMode = modeEl ? modeEl.value : 'class';
-        if (currentMode === 'class') return cb.dataset.class === filterValue;
-        if (currentMode === 'room') return cb.dataset.room === filterValue;
-        return true;
-    });
-
-    if (checkedStudents.length > 0 && !isBulkExportChecked && !forcePrintPapers) {
-        const metadata = session.subjectMetadata || {};
-        let foundCount = 0;
-        let errors = [];
-
-        checkedStudents.forEach(cb => {
-            const subName = cb.dataset.sub;
-            const group = cb.dataset.group || 'default';
-            const meta = metadata[subName] || {};
-            const papers = meta.papers || {};
-
-            let path = '';
-            if (typeof papers === 'string') path = papers;
-            else path = papers[group] || papers['default'] || '';
-
-            if (path) {
-                const studentInfo = {
-                    no: cb.dataset.studentNo,
-                    name: cb.dataset.studentName,
-                    class: cb.dataset.class,
-                    room: cb.dataset.room,
-                    seat: cb.dataset.seat || '-',
-                    subject: subName,
-                    group: group,
-                    examNo: meta.examNo || meta.examNumber || ''
-                };
-
-                window.printFile(path, studentInfo);
-                foundCount++;
-            } else {
-                errors.push(subName);
+            if (errors.length > 0) {
+                const uniqueErrors = [...new Set(errors)];
+                Swal.fire({
+                    title: 'Soru Kağıdı Hatası',
+                    html: `Aşağıdaki dersler için soru kağıdı adresi yok ya da yanlış:<br><br><b>${uniqueErrors.join('<br>')}</b>`,
+                    icon: 'error'
+                });
             }
-        });
-
-        if (errors.length > 0) {
-            const uniqueErrors = [...new Set(errors)];
-            Swal.fire({
-                title: 'Soru Kağıdı Hatası',
-                html: `Aşağıdaki dersler için soru kağıdı adresi yok ya da yanlış:<br><br><b>${uniqueErrors.join('<br>')}</b>`,
-                icon: 'error'
-            });
+            if (errors.length > 0 || foundCount > 0) return; // Liste yazdırmayı durdur
         }
-        if (errors.length > 0 || foundCount > 0) return; // Liste yazdırmayı durdur
-    }
 
-    // Filtre varsa direkt yazdır, yoksa onay al
-    const startPrint = async (isPreview = false) => {
-        // ── Sayfa CSS ──────────────────────────────────────────────────
-        const pageCss = `
+        // Filtre varsa direkt yazdır, yoksa onay al
+        const startPrint = async (isPreview = false) => {
+            // ── Sayfa CSS ──────────────────────────────────────────────────
+            const pageCss = `
                 body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1e293b; margin: 0; padding: 0; background: #fff; }
                 @page { ${isSeating ? 'size: A4 landscape;' : 'size: A4 portrait;'} margin: 0; }
                 
@@ -4003,13 +3919,13 @@ window.printSessionDistribution = async function (id, filterValue = null, forceP
                            box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
             `;
 
-        const formatDate = (d) => {
-            if (!d) return '';
-            const parts = d.split('-');
-            return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : d;
-        };
+            const formatDate = (d) => {
+                if (!d) return '';
+                const parts = d.split('-');
+                return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : d;
+            };
 
-        const hdr = (title) => `
+            const hdr = (title) => `
                 <div class="page-header">
                     <h2>${title}</h2>
                     <div class="info">
@@ -4020,61 +3936,61 @@ window.printSessionDistribution = async function (id, filterValue = null, forceP
                     </div>
                 </div>`;
 
-        const abbr = (n) => {
-            if (!n || n === '-') return n;
-            return n.replace(/Matematik/gi, 'Mat.').replace(/Edebiyat/gi, 'Edb.').replace(/İngilizce/gi, 'İng.').replace(/Fizik/gi, 'Fiz.').replace(/Kimya/gi, 'Kim.').replace(/Biyoloji/gi, 'Biyo.').replace(/Tarih/gi, 'Tar.').replace(/Coğrafya/gi, 'Coğ.').replace(/Felsefe/gi, 'Fel.').replace(/Din Kültürü/gi, 'Din.').replace(/Almanca/gi, 'Alm.').replace(/Görsel Sanatlar/gi, 'Grs.').replace(/Müzik/gi, 'Müz.').replace(/Beden Eğitimi/gi, 'Bed.').replace(/Bilişim/gi, 'Biliş.');
-        };
+            const abbr = (n) => {
+                if (!n || n === '-') return n;
+                return n.replace(/Matematik/gi, 'Mat.').replace(/Edebiyat/gi, 'Edb.').replace(/İngilizce/gi, 'İng.').replace(/Fizik/gi, 'Fiz.').replace(/Kimya/gi, 'Kim.').replace(/Biyoloji/gi, 'Biyo.').replace(/Tarih/gi, 'Tar.').replace(/Coğrafya/gi, 'Coğ.').replace(/Felsefe/gi, 'Fel.').replace(/Din Kültürü/gi, 'Din.').replace(/Almanca/gi, 'Alm.').replace(/Görsel Sanatlar/gi, 'Grs.').replace(/Müzik/gi, 'Müz.').replace(/Beden Eğitimi/gi, 'Bed.').replace(/Bilişim/gi, 'Biliş.');
+            };
 
-        let body = '';
+            let body = '';
 
-        // ─────── SINIF MODU ───────────────────────────────────────────
-        if (mode === 'class') {
-            const flatList = [];
-            session.results.forEach(room => {
-                let ctr = 1; const seatToNum = {};
-                for (let g = 1; g <= room.groups; g++) {
-                    const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
-                    for (let r = 1; r <= cf.rows; r++)
-                        for (let c = 1; c <= cf.cols; c++) {
-                            const sid = `G${g}-S${r}-C${c}`;
-                            if (!(room.disabledSeats || []).includes(sid)) seatToNum[sid] = ctr++;
-                        }
-                }
-                Object.entries(room.seats).forEach(([sid, std]) =>
-                    flatList.push({ ...std, room: room.name, seatNum: seatToNum[sid] || '-' }));
-            });
-            const byClass = {};
-            flatList.forEach(s => {
-                if (filterValue && s.class !== filterValue) return;
-                (byClass[s.class] = byClass[s.class] || []).push(s);
-            });
+            // ─────── SINIF MODU ───────────────────────────────────────────
+            if (mode === 'class') {
+                const flatList = [];
+                session.results.forEach(room => {
+                    let ctr = 1; const seatToNum = {};
+                    for (let g = 1; g <= room.groups; g++) {
+                        const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
+                        for (let r = 1; r <= cf.rows; r++)
+                            for (let c = 1; c <= cf.cols; c++) {
+                                const sid = `G${g}-S${r}-C${c}`;
+                                if (!(room.disabledSeats || []).includes(sid)) seatToNum[sid] = ctr++;
+                            }
+                    }
+                    Object.entries(room.seats).forEach(([sid, std]) =>
+                        flatList.push({ ...std, room: room.name, seatNum: seatToNum[sid] || '-' }));
+                });
+                const byClass = {};
+                flatList.forEach(s => {
+                    if (filterValue && s.class !== filterValue) return;
+                    (byClass[s.class] = byClass[s.class] || []).push(s);
+                });
 
-            const sorted = Object.keys(byClass).sort(sortByNum);
-            const studentMsg = (session.studentMsg || '').trim();
+                const sorted = Object.keys(byClass).sort(sortByNum);
+                const studentMsg = (session.studentMsg || '').trim();
 
-            sorted.forEach(cls => {
-                const students = byClass[cls].sort((a, b) => parseInt(a.no) - parseInt(b.no));
-                const PAGE_SIZE = 50;
-                for (let p = 0; p < students.length; p += PAGE_SIZE) {
-                    const chunk = students.slice(p, p + PAGE_SIZE);
-                    const pageNum = Math.floor(p / PAGE_SIZE) + 1;
-                    const totalPages = Math.ceil(students.length / PAGE_SIZE);
+                sorted.forEach(cls => {
+                    const students = byClass[cls].sort((a, b) => parseInt(a.no) - parseInt(b.no));
+                    const PAGE_SIZE = 50;
+                    for (let p = 0; p < students.length; p += PAGE_SIZE) {
+                        const chunk = students.slice(p, p + PAGE_SIZE);
+                        const pageNum = Math.floor(p / PAGE_SIZE) + 1;
+                        const totalPages = Math.ceil(students.length / PAGE_SIZE);
 
-                    const rows = chunk.map(s => {
-                        const meta = (session.subjectMetadata || {})[s._matchedSubject] || {};
-                        const examNo = meta.examNo || meta.examNumber || '';
-                        const eNum = examNo ? ` <small>(${examNo})</small>` : '';
+                        const rows = chunk.map(s => {
+                            const meta = (session.subjectMetadata || {})[s._matchedSubject] || {};
+                            const examNo = meta.examNo || meta.examNumber || '';
+                            const eNum = examNo ? ` <small>(${examNo})</small>` : '';
 
 
-                        return `<tr>
+                            return `<tr>
                                 <td style="width:10%;"><b>${s.no}</b></td>
                                 <td style="width:40%;">${s.name}</td>
                                 <td style="width:30%;">${s._matchedSubject || '-'}${eNum}</td>
                                 <td style="width:12%;">${s.room}</td>
                                 <td style="width:8%; text-align:center;"><b>${s.seatNum}</b></td></tr>`;
-                    }).join('');
+                        }).join('');
 
-                    body += `<div class="page">
+                        body += `<div class="page">
                             ${hdr(`${cls} Sınıf Listesi ${totalPages > 1 ? `(Sayfa ${pageNum}/${totalPages})` : ''}`)}
                             <table>
                                 <thead><tr>
@@ -4086,69 +4002,69 @@ window.printSessionDistribution = async function (id, filterValue = null, forceP
                             </table>
                             ${(studentMsg && (p + PAGE_SIZE >= students.length)) ? `<div class="msg-box"><strong><span class="icon">!</span> Lütfen Dikkat!!!</strong>${studentMsg}</div>` : ""}
                         </div>`;
-                }
-            });
-
-            // ─────── SALON MODU ───────────────────────────────────────────
-        } else if (mode === 'room') {
-            const sortedRooms = [...session.results].filter(r => !filterValue || r.name === filterValue).sort((a, b) => sortByNum(a.name, b.name));
-            sortedRooms.forEach(room => {
-                let ctr = 1; const seatToNum = {};
-                const seatIds = [];
-                for (let g = 1; g <= room.groups; g++) {
-                    const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
-                    for (let r = 1; r <= cf.rows; r++)
-                        for (let c = 1; c <= cf.cols; c++) {
-                            const sid = `G${g}-S${r}-C${c}`;
-                            if (!(room.disabledSeats || []).includes(sid)) { seatToNum[sid] = ctr++; seatIds.push(sid); }
-                        }
-                }
-                const sortedSeatIds = seatIds.sort((a, b) => {
-                    const pa = a.match(/\d+/g).map(Number), pb = b.match(/\d+/g).map(Number);
-                    for (let i = 0; i < pa.length; i++) if (pa[i] !== pb[i]) return pa[i] - pb[i];
-                    return 0;
+                    }
                 });
-                const PAGE_SIZE = 50;
-                for (let p = 0; p < sortedSeatIds.length; p += PAGE_SIZE) {
-                    const chunk = sortedSeatIds.slice(p, p + PAGE_SIZE);
-                    const pageNum = Math.floor(p / PAGE_SIZE) + 1;
-                    const totalPages = Math.ceil(sortedSeatIds.length / PAGE_SIZE);
 
-                    const rows = chunk.map(sid => {
-                        const s = room.seats[sid];
-                        if (s) {
-                            return `<tr><td style="text-align:center;"><b>${seatToNum[sid] || '-'}</b></td>
+                // ─────── SALON MODU ───────────────────────────────────────────
+            } else if (mode === 'room') {
+                const sortedRooms = [...session.results].filter(r => !filterValue || r.name === filterValue).sort((a, b) => sortByNum(a.name, b.name));
+                sortedRooms.forEach(room => {
+                    let ctr = 1; const seatToNum = {};
+                    const seatIds = [];
+                    for (let g = 1; g <= room.groups; g++) {
+                        const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
+                        for (let r = 1; r <= cf.rows; r++)
+                            for (let c = 1; c <= cf.cols; c++) {
+                                const sid = `G${g}-S${r}-C${c}`;
+                                if (!(room.disabledSeats || []).includes(sid)) { seatToNum[sid] = ctr++; seatIds.push(sid); }
+                            }
+                    }
+                    const sortedSeatIds = seatIds.sort((a, b) => {
+                        const pa = a.match(/\d+/g).map(Number), pb = b.match(/\d+/g).map(Number);
+                        for (let i = 0; i < pa.length; i++) if (pa[i] !== pb[i]) return pa[i] - pb[i];
+                        return 0;
+                    });
+                    const PAGE_SIZE = 50;
+                    for (let p = 0; p < sortedSeatIds.length; p += PAGE_SIZE) {
+                        const chunk = sortedSeatIds.slice(p, p + PAGE_SIZE);
+                        const pageNum = Math.floor(p / PAGE_SIZE) + 1;
+                        const totalPages = Math.ceil(sortedSeatIds.length / PAGE_SIZE);
+
+                        const rows = chunk.map(sid => {
+                            const s = room.seats[sid];
+                            if (s) {
+                                return `<tr><td style="text-align:center;"><b>${seatToNum[sid] || '-'}</b></td>
                                     <td>${s.class}</td><td style="text-align:center;"><b>${s.no}</b></td>
                                     <td>${s.name}</td><td>${abbr(s._matchedSubject || '-')}</td>
                                     <td style="border-bottom:1px solid #eee;"></td></tr>`;
-                        } else {
-                            return `<tr style="color: #64748b; background: #fff5f5;"><td style="text-align:center;"><b>${seatToNum[sid] || '-'}</b></td>
+                            } else {
+                                return `<tr style="color: #64748b; background: #fff5f5;"><td style="text-align:center;"><b>${seatToNum[sid] || '-'}</b></td>
                                     <td colspan="4" style="text-align:center; font-weight: bold; letter-spacing: 2px;">BOŞ BIRAKILDI</td>
                                     <td></td></tr>`;
-                        }
-                    }).join('');
+                            }
+                        }).join('');
 
-                    const studentsInRoom = Object.values(room.seats || {});
-                    const roomClasses = [...new Set(studentsInRoom.map(s => s.class))].sort(sortByNum);
-                    const teacherMsg = (session.teacherMsg || '').trim();
+                        const studentsInRoom = Object.values(room.seats || {});
+                        const roomClasses = [...new Set(studentsInRoom.map(s => s.class))].sort(sortByNum);
+                        const teacherMsg = (session.teacherMsg || '').trim();
 
-                    let summaryListHtml = ''; let roomTotal = 0;
-                    roomClasses.forEach(cls => {
-                        const classStudents = studentsInRoom.filter(s => s.class === cls);
-                        const classExams = [...new Set(classStudents.map(s => s._matchedSubject || '-'))].sort();
-                        classExams.forEach(ex => {
-                            const count = classStudents.filter(s => (s._matchedSubject || '-') === ex).length;
-                            summaryListHtml += `<div style="padding: 2px 0; border-bottom: 1px dashed #e2e8f0; font-size: 8.5pt;"><b>${cls}</b> ${abbr(ex)} => <b>${count}</b> Öğrenci</div>`;
-                            roomTotal += count;
+                        let summaryListHtml = ''; let roomTotal = 0;
+                        roomClasses.forEach(cls => {
+                            const classStudents = studentsInRoom.filter(s => s.class === cls);
+                            const classExams = [...new Set(classStudents.map(s => s._matchedSubject || '-'))].sort();
+                            classExams.forEach(ex => {
+                                const count = classStudents.filter(s => (s._matchedSubject || '-') === ex).length;
+                                summaryListHtml += `<div style="padding: 2px 0; border-bottom: 1px dashed #e2e8f0; font-size: 8.5pt;"><b>${cls}</b> ${abbr(ex)} => <b>${count}</b> Öğrenci</div>`;
+                                roomTotal += count;
+                            });
                         });
-                    });
-                    const examsInRoom = [...new Set(studentsInRoom.map(s => s._matchedSubject || '-'))].sort();
-                    let examSummaryRows = examsInRoom.map(ex => {
-                        const count = studentsInRoom.filter(s => (s._matchedSubject || '-') === ex).length;
-                        return `<tr><td>${ex}</td><td style="text-align:center; font-weight:bold;">${count}</td></tr>`;
-                    }).join('');
+                        const examsInRoom = [...new Set(studentsInRoom.map(s => s._matchedSubject || '-'))].sort();
+                        let examSummaryRows = examsInRoom.map(ex => {
+                            const count = studentsInRoom.filter(s => (s._matchedSubject || '-') === ex).length;
+                            return `<tr><td>${ex}</td><td style="text-align:center; font-weight:bold;">${count}</td></tr>`;
+                        }).join('');
 
-                    const summaryContent = (p + PAGE_SIZE >= sortedSeatIds.length) ? `
+                        const summaryContent = (p + PAGE_SIZE >= sortedSeatIds.length) ? `
                             <div style="flex-shrink:0; width:45mm; margin-left:10px;">
                                 <div style="background:#f8fafc; padding:6px; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:10px;">
                                     <div style="font-size:8.5pt; font-weight:900; color:#4f46e5; border-bottom:2px solid #6366f1; padding-bottom:3px; margin-bottom:6px;">DERSLİK ÖZETİ</div>
@@ -4163,7 +4079,7 @@ window.printSessionDistribution = async function (id, filterValue = null, forceP
                                 </div>
                             </div>` : '';
 
-                    body += `<div class="page">${hdr(`${room.name} Salonu - Oturma Listesi ${totalPages > 1 ? `(Sayfa ${pageNum}/${totalPages})` : ''}`)}
+                        body += `<div class="page">${hdr(`${room.name} Salonu - Oturma Listesi ${totalPages > 1 ? `(Sayfa ${pageNum}/${totalPages})` : ''}`)}
                             <div style="display:flex; gap:0; align-items:flex-start; flex:1;">
                                 <div style="flex:1;">
                                     <table style="table-layout:fixed;">
@@ -4179,65 +4095,65 @@ window.printSessionDistribution = async function (id, filterValue = null, forceP
                             </div>
                             ${(teacherMsg && (p + PAGE_SIZE >= sortedSeatIds.length)) ? `<div class="msg-box" style="border-color:#ca8a04; background:#fffaf0;"><strong><span class="icon" style="background:#ea580c;">!</span> Lütfen Dikkat!!!</strong>${teacherMsg}</div>` : ""}
                         </div>`;
-                }
-            });
+                    }
+                });
 
-            // ─────── ŞEMA MODU ────────────────────────────────────────────
-        } else {
-            session.results.filter(r => !filterValue || r.name === filterValue).forEach(room => {
-                let ctr = 1; const seatToNum = {};
-                for (let g = 1; g <= room.groups; g++) {
-                    const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
-                    for (let r = 1; r <= cf.rows; r++)
-                        for (let c = 1; c <= cf.cols; c++) {
-                            const sid = `G${g}-S${r}-C${c}`;
-                            if (!(room.disabledSeats || []).includes(sid)) seatToNum[sid] = ctr++;
-                        }
-                }
-                let groupsHtml = '<div class="groups-row">';
-                for (let g = 1; g <= room.groups; g++) {
-                    const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
-                    groupsHtml += `<div class="desk-group" style="grid-template-columns:repeat(${cf.cols},1fr)">`;
-                    for (let r = cf.rows; r >= 1; r--) {
-                        for (let c = 1; c <= cf.cols; c++) {
-                            const sid = `G${g}-S${r}-C${c}`;
-                            const isDisabled = (room.disabledSeats || []).includes(sid);
-                            const student = room.seats?.[sid];
-                            const num = seatToNum[sid] || '-';
-                            let bg = '';
-                            if (student) {
-                                const sub = student._matchedSubject || '-';
-                                let hasStrict = false, hasVertical = false;
-                                const neighbors = [{ dr: 0, dc: -1, type: 'h' }, { dr: 0, dc: 1, type: 'h' }, { dr: -1, dc: -1, type: 'd' }, { dr: -1, dc: 1, type: 'd' }, { dr: 1, dc: -1, type: 'd' }, { dr: 1, dc: 1, type: 'd' }, { dr: -1, dc: 0, type: 'v' }, { dr: 1, dc: 0, type: 'v' }];
-                                neighbors.forEach(n => {
-                                    const nstd = room.seats[`G${g}-S${r + n.dr}-C${c + n.dc}`];
-                                    if (nstd && (nstd._matchedSubject || '-') === sub) { if (n.type === 'v') hasVertical = true; else hasStrict = true; }
-                                });
-                                if (hasStrict) bg = 'background-color:#fee2e2;'; else if (hasVertical) bg = 'background-color:#fef9c3;';
+                // ─────── ŞEMA MODU ────────────────────────────────────────────
+            } else {
+                session.results.filter(r => !filterValue || r.name === filterValue).forEach(room => {
+                    let ctr = 1; const seatToNum = {};
+                    for (let g = 1; g <= room.groups; g++) {
+                        const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
+                        for (let r = 1; r <= cf.rows; r++)
+                            for (let c = 1; c <= cf.cols; c++) {
+                                const sid = `G${g}-S${r}-C${c}`;
+                                if (!(room.disabledSeats || []).includes(sid)) seatToNum[sid] = ctr++;
                             }
-                            if (isDisabled) { groupsHtml += `<div class="desk" style="opacity:0.3; border-color:#ccc; border-style:dotted;">KAPALI</div>`; }
-                            else if (student) {
-                                groupsHtml += `<div class="desk" style="${bg} border:1px solid #cbd5e1; border-radius:6px;">
+                    }
+                    let groupsHtml = '<div class="groups-row">';
+                    for (let g = 1; g <= room.groups; g++) {
+                        const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
+                        groupsHtml += `<div class="desk-group" style="grid-template-columns:repeat(${cf.cols},1fr)">`;
+                        for (let r = cf.rows; r >= 1; r--) {
+                            for (let c = 1; c <= cf.cols; c++) {
+                                const sid = `G${g}-S${r}-C${c}`;
+                                const isDisabled = (room.disabledSeats || []).includes(sid);
+                                const student = room.seats?.[sid];
+                                const num = seatToNum[sid] || '-';
+                                let bg = '';
+                                if (student) {
+                                    const sub = student._matchedSubject || '-';
+                                    let hasStrict = false, hasVertical = false;
+                                    const neighbors = [{ dr: 0, dc: -1, type: 'h' }, { dr: 0, dc: 1, type: 'h' }, { dr: -1, dc: -1, type: 'd' }, { dr: -1, dc: 1, type: 'd' }, { dr: 1, dc: -1, type: 'd' }, { dr: 1, dc: 1, type: 'd' }, { dr: -1, dc: 0, type: 'v' }, { dr: 1, dc: 0, type: 'v' }];
+                                    neighbors.forEach(n => {
+                                        const nstd = room.seats[`G${g}-S${r + n.dr}-C${c + n.dc}`];
+                                        if (nstd && (nstd._matchedSubject || '-') === sub) { if (n.type === 'v') hasVertical = true; else hasStrict = true; }
+                                    });
+                                    if (hasStrict) bg = 'background-color:#fee2e2;'; else if (hasVertical) bg = 'background-color:#fef9c3;';
+                                }
+                                if (isDisabled) { groupsHtml += `<div class="desk" style="opacity:0.3; border-color:#ccc; border-style:dotted;">KAPALI</div>`; }
+                                else if (student) {
+                                    groupsHtml += `<div class="desk" style="${bg} border:1px solid #cbd5e1; border-radius:6px;">
                                         <div style="font-size:6.5pt;color:#64748b;font-weight:700;border-bottom:0.1pt solid #eee;margin-bottom:2pt;padding-bottom:1pt;width:100%;">${student.class} / ${student.no}</div>
                                         <div style="font-weight:700;font-size:7.5pt;line-height:1.1; color:#0f172a; flex:1; display:flex; align-items:center; justify-content:center;">${student.name}</div>
                                         <div class="desk-num">${num}</div></div>`;
-                            } else {
-                                groupsHtml += `<div class="desk empty">
+                                } else {
+                                    groupsHtml += `<div class="desk empty">
                                             <div style="font-weight:900; font-size:6pt; color:#dc2626; letter-spacing:0.5px; line-height:1.2;">BOŞ<br>BIRAKINIZ</div>
                                             <div class="desk-num" style="background:#fee2e2; color:#ef4444; border-color:#fecaca;">${num}</div></div>`;
+                                }
                             }
                         }
+                        groupsHtml += '</div>';
                     }
                     groupsHtml += '</div>';
-                }
-                groupsHtml += '</div>';
-                body += `<div class="page">${hdr(`${room.name} Salonu - Oturma Şeması`)}
+                    body += `<div class="page">${hdr(`${room.name} Salonu - Oturma Şeması`)}
                         <div class="schema-container"><div class="classroom-walls">${groupsHtml}
                             <div class="front-side">${room.teacherDeskPos === 'left' ? `<div class="teacher-desk">ÖĞRETMEN<br>MASASI</div><div class="board">Y A Z I &nbsp; T A H T A S I</div><div style="width:130px;"></div>` : `<div style="width:130px;"></div><div class="board">Y A Z I &nbsp; T A H T A S I</div><div class="teacher-desk">ÖĞRETMEN<br>MASASI</div>`}</div>
                         </div></div></div>`;
-            });
+                });
 
-            body += `<script>
+                body += `<script>
                     window.addEventListener('load', () => {
                         document.querySelectorAll('.schema-container').forEach(wrap => {
                             const wall = wrap.querySelector('.classroom-walls');
@@ -4247,137 +4163,137 @@ window.printSessionDistribution = async function (id, filterValue = null, forceP
                         });
                     });
                 </script>`;
-        }
+            }
 
-        const win = window.open('', '_blank');
-        win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${session.name} - ${modeLabel}</title><style>${pageCss}</style></head><body>${body}<script>window.onload=()=>setTimeout(()=>{if(!${isPreview}){window.focus();window.print();}},500);</script></body></html>`);
-        win.document.close();
+            const win = window.open('', '_blank');
+            win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${session.name} - ${modeLabel}</title><style>${pageCss}</style></head><body>${body}<script>window.onload=()=>setTimeout(()=>{if(!${isPreview}){window.focus();window.print();}},500);</script></body></html>`);
+            win.document.close();
 
-        // Interleaved Paper Printing Trigger
-        if (forcePrintPapers && filterValue) {
-            await printPapersForGroup(filterValue);
+            // Interleaved Paper Printing Trigger
+            if (forcePrintPapers && filterValue) {
+                await printPapersForGroup(filterValue);
+            }
+        };
+
+        if (filterValue) {
+            await startPrint(false);
+        } else {
+            Swal.fire({
+                title: 'Yazdır',
+                html: `<div style="text-align: left; font-size: 10.5pt; color: #1e293b; line-height: 1.5;">Tüm <b>${modeLabel}</b> listeleri yazdırılacaktır.<br>Onaylıyor musunuz?<div style="margin-top: 15px; padding: 10px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;"><label style="display: flex; align-items: center; cursor: pointer; font-weight: 600;"><input type="checkbox" id="print-view-check" style="width: 17px; height: 17px; margin-right: 8px; cursor: pointer;"> Yazdırmadan önce önizle</label></div></div>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-print"></i> Evet, Yazdır',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#6366f1',
+                preConfirm: () => ({ preview: document.getElementById('print-view-check')?.checked || false })
+            }).then(res => { if (res && res.isConfirmed) startPrint(res.value.preview); });
         }
     };
 
-    if (filterValue) {
-        await startPrint(false);
-    } else {
-        Swal.fire({
-            title: 'Yazdır',
-            html: `<div style="text-align: left; font-size: 10.5pt; color: #1e293b; line-height: 1.5;">Tüm <b>${modeLabel}</b> listeleri yazdırılacaktır.<br>Onaylıyor musunuz?<div style="margin-top: 15px; padding: 10px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;"><label style="display: flex; align-items: center; cursor: pointer; font-weight: 600;"><input type="checkbox" id="print-view-check" style="width: 17px; height: 17px; margin-right: 8px; cursor: pointer;"> Yazdırmadan önce önizle</label></div></div>`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: '<i class="fa-solid fa-print"></i> Evet, Yazdır',
-            cancelButtonText: 'İptal',
-            confirmButtonColor: '#6366f1',
-            preConfirm: () => ({ preview: document.getElementById('print-view-check')?.checked || false })
-        }).then(res => { if (res && res.isConfirmed) startPrint(res.value.preview); });
-    }
-};
 
 
+    // ─────── METADATA HELPERS ─────────────────────────────────────
+    window.pasteToInput = async function (btn) {
+        try {
+            let text = await navigator.clipboard.readText();
+            if (text) {
+                // Clean text: remove only quotes and commas as per user request
+                text = text.replace(/[",]/g, '').trim();
 
-// ─────── METADATA HELPERS ─────────────────────────────────────
-window.pasteToInput = async function (btn) {
-    try {
-        let text = await navigator.clipboard.readText();
-        if (text) {
-            // Clean text: remove only quotes and commas as per user request
-            text = text.replace(/[",]/g, '').trim();
-
-            const input = btn.closest('.input-group').querySelector('input');
-            if (input) {
-                input.value = text;
-                Swal.showValidationMessage(''); // Clear any previous errors if in Swal
+                const input = btn.closest('.input-group').querySelector('input');
+                if (input) {
+                    input.value = text;
+                    Swal.showValidationMessage(''); // Clear any previous errors if in Swal
+                }
             }
+        } catch (err) {
+            console.error('Paste failed:', err);
         }
-    } catch (err) {
-        console.error('Paste failed:', err);
-    }
-};
+    };
 
-window.browseToInput = function (btn) {
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'application/pdf';
-    fileInput.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            if (file.type !== "application/pdf") {
-                Swal.fire("Sadece PDF türünde dosyalar yükleyebilirsiniz.", "", "warning");
+    window.browseToInput = function (btn) {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'application/pdf';
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.type !== "application/pdf") {
+                    Swal.fire("Sadece PDF türünde dosyalar yükleyebilirsiniz.", "", "warning");
+                    return;
+                }
+
+                // Show loading spinner
+                const originalBtnHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                btn.disabled = true;
+
+                try {
+                    const publicUrl = await DataManager.uploadFileToSupabase(file);
+                    // More robust way to find the input within the same group
+                    const inputGroup = btn.closest('.input-group');
+                    const input = inputGroup ? inputGroup.querySelector('input.meta-paper-input') : null;
+
+                    if (input) {
+                        input.value = publicUrl;
+                        // Force UI refresh and ensure it's picked up by any listeners
+                        input.setAttribute('value', publicUrl);
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+
+                    // Button success state
+                    const originalColor = btn.style.backgroundColor;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Yüklendi';
+                    btn.style.backgroundColor = '#10b981';
+                    btn.style.color = '#fff';
+
+                    setTimeout(() => {
+                        btn.innerHTML = originalBtnHtml;
+                        btn.style.backgroundColor = '';
+                        btn.style.color = '';
+                        btn.disabled = false;
+                    }, 3000);
+
+                } catch (err) {
+                    console.error("Yükleme Hatası:", err);
+                    btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Hata!';
+                    btn.style.backgroundColor = '#ef4444';
+                    btn.style.color = '#fff';
+                    setTimeout(() => {
+                        btn.innerHTML = originalBtnHtml;
+                        btn.style.backgroundColor = '';
+                        btn.style.color = '';
+                        btn.disabled = false;
+                    }, 3000);
+                }
+            }
+        };
+        fileInput.click();
+    };
+
+    window.showCloudFiles = async function (btn) {
+        const inputGroup = btn.closest('.input-group');
+        const input = inputGroup ? inputGroup.querySelector('input.meta-paper-input') : null;
+        if (!input) return;
+
+        try {
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+            const files = await DataManager.listSupabaseFiles();
+            btn.innerHTML = '<i class="fa-solid fa-cloud"></i> Buluttan Seç';
+            btn.disabled = false;
+
+            if (files.length === 0) {
+                alert('Bulut Boş: Henüz hiç dosya yüklenmemiş.');
                 return;
             }
 
-            // Show loading spinner
-            const originalBtnHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-            btn.disabled = true;
-
-            try {
-                const publicUrl = await DataManager.uploadFileToSupabase(file);
-                // More robust way to find the input within the same group
-                const inputGroup = btn.closest('.input-group');
-                const input = inputGroup ? inputGroup.querySelector('input.meta-paper-input') : null;
-
-                if (input) {
-                    input.value = publicUrl;
-                    // Force UI refresh and ensure it's picked up by any listeners
-                    input.setAttribute('value', publicUrl);
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                    input.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-
-                // Button success state
-                const originalColor = btn.style.backgroundColor;
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> Yüklendi';
-                btn.style.backgroundColor = '#10b981';
-                btn.style.color = '#fff';
-
-                setTimeout(() => {
-                    btn.innerHTML = originalBtnHtml;
-                    btn.style.backgroundColor = '';
-                    btn.style.color = '';
-                    btn.disabled = false;
-                }, 3000);
-
-            } catch (err) {
-                console.error("Yükleme Hatası:", err);
-                btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Hata!';
-                btn.style.backgroundColor = '#ef4444';
-                btn.style.color = '#fff';
-                setTimeout(() => {
-                    btn.innerHTML = originalBtnHtml;
-                    btn.style.backgroundColor = '';
-                    btn.style.color = '';
-                    btn.disabled = false;
-                }, 3000);
-            }
-        }
-    };
-    fileInput.click();
-};
-
-window.showCloudFiles = async function (btn) {
-    const inputGroup = btn.closest('.input-group');
-    const input = inputGroup ? inputGroup.querySelector('input.meta-paper-input') : null;
-    if (!input) return;
-
-    try {
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-        btn.disabled = true;
-        const files = await DataManager.listSupabaseFiles();
-        btn.innerHTML = '<i class="fa-solid fa-cloud"></i> Buluttan Seç';
-        btn.disabled = false;
-
-        if (files.length === 0) {
-            alert('Bulut Boş: Henüz hiç dosya yüklenmemiş.');
-            return;
-        }
-
-        let listHtml = '<div style="max-height: 400px; overflow-y: auto;"><table class="table table-sm"><thead><tr><th>Dosya Adı</th><th>Tarih</th><th>İşlem</th></tr></thead><tbody>';
-        files.forEach(f => {
-            const date = new Date(f.created_at).toLocaleString('tr-TR');
-            listHtml += `
+            let listHtml = '<div style="max-height: 400px; overflow-y: auto;"><table class="table table-sm"><thead><tr><th>Dosya Adı</th><th>Tarih</th><th>İşlem</th></tr></thead><tbody>';
+            files.forEach(f => {
+                const date = new Date(f.created_at).toLocaleString('tr-TR');
+                listHtml += `
                     <tr id="cloud-row-${f.name.replace(/[^a-zA-Z0-9]/g, '_')}">
                         <td style="font-size:0.8rem; text-align:left; word-break:break-all;">${f.name}</td>
                         <td style="font-size:0.7rem;">${date}</td>
@@ -4387,52 +4303,52 @@ window.showCloudFiles = async function (btn) {
                         </td>
                     </tr>
                 `;
-        });
-        listHtml += '</tbody></table></div>';
+            });
+            listHtml += '</tbody></table></div>';
 
-        window.deleteCloudFile = async (name, btnEl) => {
-            if (!confirm(`'${name}' dosyasını buluttan silmek istediğinize emin misiniz?`)) return;
-            try {
-                btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-                btnEl.disabled = true;
-                await DataManager.deleteSupabaseFile(name);
-                const row = btnEl.closest('tr');
-                if (row) row.remove();
-            } catch (e) {
-                alert('Silme hatası: ' + e.message);
-                btnEl.innerHTML = '<i class="fa-solid fa-trash"></i>';
-                btnEl.disabled = false;
-            }
-        };
+            window.deleteCloudFile = async (name, btnEl) => {
+                if (!confirm(`'${name}' dosyasını buluttan silmek istediğinize emin misiniz?`)) return;
+                try {
+                    btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                    btnEl.disabled = true;
+                    await DataManager.deleteSupabaseFile(name);
+                    const row = btnEl.closest('tr');
+                    if (row) row.remove();
+                } catch (e) {
+                    alert('Silme hatası: ' + e.message);
+                    btnEl.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                    btnEl.disabled = false;
+                }
+            };
 
-        window.selectCloudFile = (url, pickBtn) => {
-            input.value = url;
-            input.setAttribute('value', url);
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-            const dialog = pickBtn.closest('dialog');
-            if (dialog) {
-                dialog.close();
-                dialog.remove();
-            }
-        };
+            window.selectCloudFile = (url, pickBtn) => {
+                input.value = url;
+                input.setAttribute('value', url);
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                const dialog = pickBtn.closest('dialog');
+                if (dialog) {
+                    dialog.close();
+                    dialog.remove();
+                }
+            };
 
-        const dialog = document.createElement('dialog');
-        dialog.className = 'custom-modal';
-        dialog.style.padding = '0';
-        dialog.style.border = 'none';
-        dialog.style.borderRadius = '16px';
-        dialog.style.boxShadow = '0 20px 50px rgba(0,0,0,0.3)';
-        dialog.style.maxWidth = '90%';
-        dialog.style.width = '500px';
-        dialog.style.zIndex = '9999';
-        dialog.style.position = 'fixed';
-        dialog.style.top = '50%';
-        dialog.style.left = '50%';
-        dialog.style.transform = 'translate(-50%, -50%)';
-        dialog.style.margin = '0';
-        dialog.style.overflow = 'hidden';
-        dialog.innerHTML = `
+            const dialog = document.createElement('dialog');
+            dialog.className = 'custom-modal';
+            dialog.style.padding = '0';
+            dialog.style.border = 'none';
+            dialog.style.borderRadius = '16px';
+            dialog.style.boxShadow = '0 20px 50px rgba(0,0,0,0.3)';
+            dialog.style.maxWidth = '90%';
+            dialog.style.width = '500px';
+            dialog.style.zIndex = '9999';
+            dialog.style.position = 'fixed';
+            dialog.style.top = '50%';
+            dialog.style.left = '50%';
+            dialog.style.transform = 'translate(-50%, -50%)';
+            dialog.style.margin = '0';
+            dialog.style.overflow = 'hidden';
+            dialog.innerHTML = `
                 <div style="background:linear-gradient(135deg, var(--primary), var(--primary-dark)); color:white; padding:1.25rem; display:flex; justify-content:space-between; align-items:center;">
                     <h3 style="margin:0; font-size:1.1rem; font-weight:700;"><i class="fa-solid fa-cloud"></i> Buluttaki Dosyalar</h3>
                     <button type="button" onclick="this.closest('dialog').close(); this.closest('dialog').remove();" style="background:rgba(255,255,255,0.2); border:none; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
@@ -4443,59 +4359,59 @@ window.showCloudFiles = async function (btn) {
                     </div>
                 </div>
             `;
-        document.body.appendChild(dialog);
-        dialog.showModal();
+            document.body.appendChild(dialog);
+            dialog.showModal();
 
-    } catch (err) {
-        alert('Hata: ' + err.message);
-        btn.innerHTML = '<i class="fa-solid fa-cloud"></i> Buluttan Seç';
-        btn.disabled = false;
-    }
-};
+        } catch (err) {
+            alert('Hata: ' + err.message);
+            btn.innerHTML = '<i class="fa-solid fa-cloud"></i> Buluttan Seç';
+            btn.disabled = false;
+        }
+    };
 
 
-window.openSessionMetadataEditor = function (id) {
-    const sessions = DataManager.getExamSessions();
-    const ses = sessions.find(s => s.id === id);
-    if (!ses) return;
+    window.openSessionMetadataEditor = function (id) {
+        const sessions = DataManager.getExamSessions();
+        const ses = sessions.find(s => s.id === id);
+        if (!ses) return;
 
-    // Extract ALL unique full subject names (e.g., "Matematik 10") present in the results
-    // Extract ALL unique full subject names (e.g., "Matematik 10") and map them to student counts
-    const subjectStats = {};
-    if (ses.results) {
-        ses.results.forEach(room => {
-            Object.values(room.seats || {}).forEach(std => {
-                const sub = std._matchedSubject;
-                if (sub) {
-                    if (!subjectStats[sub]) subjectStats[sub] = { count: 0, classes: new Set() };
-                    subjectStats[sub].count++;
-                    subjectStats[sub].classes.add(std.class);
-                }
+        // Extract ALL unique full subject names (e.g., "Matematik 10") present in the results
+        // Extract ALL unique full subject names (e.g., "Matematik 10") and map them to student counts
+        const subjectStats = {};
+        if (ses.results) {
+            ses.results.forEach(room => {
+                Object.values(room.seats || {}).forEach(std => {
+                    const sub = std._matchedSubject;
+                    if (sub) {
+                        if (!subjectStats[sub]) subjectStats[sub] = { count: 0, classes: new Set() };
+                        subjectStats[sub].count++;
+                        subjectStats[sub].classes.add(std.class);
+                    }
+                });
             });
-        });
-    }
+        }
 
-    const subjectNames = Object.keys(subjectStats).length > 0
-        ? Object.keys(subjectStats).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
-        : (ses.subjects || []).map(s => typeof s === 'object' ? s.name : s).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+        const subjectNames = Object.keys(subjectStats).length > 0
+            ? Object.keys(subjectStats).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
+            : (ses.subjects || []).map(s => typeof s === 'object' ? s.name : s).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 
-    const metadata = ses.subjectMetadata || {};
-    const hasGroups = ses.hasGroups;
-    const groupCount = ses.groupCount || 2;
-    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const metadata = ses.subjectMetadata || {};
+        const hasGroups = ses.hasGroups;
+        const groupCount = ses.groupCount || 2;
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-    let subjectsHtml = '';
-    subjectNames.forEach((sub, idx) => {
-        const data = metadata[sub] || {};
-        const subExamNum = data.examNo || data.examNumber || '';
-        const subPapers = data.papers || {};
-        const subHeader = data.pdfHeaderDesign || '1'; // Inject subHeader variable
+        let subjectsHtml = '';
+        subjectNames.forEach((sub, idx) => {
+            const data = metadata[sub] || {};
+            const subExamNum = data.examNo || data.examNumber || '';
+            const subPapers = data.papers || {};
+            const subHeader = data.pdfHeaderDesign || '1'; // Inject subHeader variable
 
-        let paperInputs = '';
-        if (hasGroups) {
-            for (let i = 0; i < groupCount; i++) {
-                const groupLetter = alphabet[i];
-                paperInputs += `
+            let paperInputs = '';
+            if (hasGroups) {
+                for (let i = 0; i < groupCount; i++) {
+                    const groupLetter = alphabet[i];
+                    paperInputs += `
                         <div style="display:flex; align-items:center; gap:3px; margin-top:4px;">
                             <span style="font-size:0.7rem; font-weight:700; color:var(--gray-500); min-width:18px;">${groupLetter}</span>
                             <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-group="${groupLetter}" style="flex:1; margin:0; height:30px; font-size:0.8rem; padding:0 6px;" value="${subPapers[groupLetter] || ''}" placeholder="PDF yol / URL">
@@ -4503,18 +4419,18 @@ window.openSessionMetadataEditor = function (id) {
                             <button type="button" class="btn btn-info btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
                             <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
                         </div>`;
-            }
-        } else {
-            paperInputs = `
+                }
+            } else {
+                paperInputs = `
                     <div style="display:flex; align-items:center; gap:3px; margin-top:4px;">
                         <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" style="flex:1; margin:0; height:30px; font-size:0.8rem; padding:0 6px;" value="${typeof subPapers === 'string' ? subPapers : (subPapers['default'] || '')}" placeholder="PDF yol / URL">
                         <button type="button" class="btn btn-secondary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Test Et"><i class="fa-solid fa-external-link"></i></button>
                         <button type="button" class="btn btn-info btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
                         <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
                     </div>`;
-        }
+            }
 
-        subjectsHtml += `
+            subjectsHtml += `
                 <div class="meta-subject-row" style="padding:8px 10px; margin-bottom:6px;">
                     <div class="meta-subject-header" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; width:100%;">
                         <input type="checkbox" class="meta-sub-check" checked data-sub="${sub}" style="width:18px; height:18px; flex-shrink:0;">
@@ -4541,15 +4457,15 @@ window.openSessionMetadataEditor = function (id) {
                     ${paperInputs}
                 </div>
     `;
-    });
+        });
 
-    Swal.fire({
-        title: 'Oturum Bilgilerini Düzenle',
-        customClass: { popup: 'swal2-responsive-popup' },
-        width: 'auto',
-        allowOutsideClick: false,
-        backdrop: true,
-        html: `
+        Swal.fire({
+            title: 'Oturum Bilgilerini Düzenle',
+            customClass: { popup: 'swal2-responsive-popup' },
+            width: 'auto',
+            allowOutsideClick: false,
+            backdrop: true,
+            html: `
                 <div class="modal-body-wrapper" style="text-align: left;">
                     <div class="modal-form-card" style="margin-bottom: 1.5rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
                         <div style="display:flex; align-items:center; gap:1rem; flex:1;">
@@ -4573,19 +4489,19 @@ window.openSessionMetadataEditor = function (id) {
                         <div class="modal-form-group" style="flex: 1; min-width: 200px; max-width: 250px;">
                             <label style="font-weight:700;">Sınav Saati / Ders</label>
                             ${(() => {
-                const school = DataManager.getSchoolSettings();
-                const dailyLessons = parseInt(school.dailyLessons) || 0;
-                if (dailyLessons > 0) {
-                    let options = '<option value="">-- Seçin --</option>';
-                    for (let i = 1; i <= dailyLessons; i++) {
-                        const val = `${i}. Ders`;
-                        options += `<option value="${val}" ${ses.time === val ? 'selected' : ''}>${val}</option>`;
+                    const school = DataManager.getSchoolSettings();
+                    const dailyLessons = parseInt(school.dailyLessons) || 0;
+                    if (dailyLessons > 0) {
+                        let options = '<option value="">-- Seçin --</option>';
+                        for (let i = 1; i <= dailyLessons; i++) {
+                            const val = `${i}. Ders`;
+                            options += `<option value="${val}" ${ses.time === val ? 'selected' : ''}>${val}</option>`;
+                        }
+                        return `<select id="meta-time" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem; padding:0 10px;">${options}</select>`;
+                    } else {
+                        return `<input type="text" id="meta-time" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem;" value="${ses.time || ''}" placeholder="10:00">`;
                     }
-                    return `<select id="meta-time" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem; padding:0 10px;">${options}</select>`;
-                } else {
-                    return `<input type="text" id="meta-time" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem;" value="${ses.time || ''}" placeholder="10:00">`;
-                }
-            })()}
+                })()}
                         </div>
                     </div>
 
@@ -4619,271 +4535,271 @@ window.openSessionMetadataEditor = function (id) {
                     </div>
                 </div>
 `,
-        showCancelButton: true,
-        confirmButtonText: 'Tümünü Kaydet',
-        cancelButtonText: 'İptal',
-        didOpen: () => {
-            // Ensure values are selected even if template literal had issues
-            const dateInp = document.getElementById('meta-date');
-            const timeInp = document.getElementById('meta-time');
-            if (dateInp && ses.date) dateInp.value = window.formatDateToInput(ses.date);
-            if (timeInp && ses.time) timeInp.value = ses.time;
-        },
-        preConfirm: () => {
-            const newMetadata = {};
-            subjectNames.forEach(sub => {
-                const examNumInput = document.querySelector(`.meta-exam-num-input[data-sub="${sub}"]`);
-                const examNum = examNumInput ? examNumInput.value.trim() : '';
-                const papers = {};
-                const paperInputs = document.querySelectorAll(`.meta-paper-input[data-sub="${sub}"]`);
+            showCancelButton: true,
+            confirmButtonText: 'Tümünü Kaydet',
+            cancelButtonText: 'İptal',
+            didOpen: () => {
+                // Ensure values are selected even if template literal had issues
+                const dateInp = document.getElementById('meta-date');
+                const timeInp = document.getElementById('meta-time');
+                if (dateInp && ses.date) dateInp.value = window.formatDateToInput(ses.date);
+                if (timeInp && ses.time) timeInp.value = ses.time;
+            },
+            preConfirm: () => {
+                const newMetadata = {};
+                subjectNames.forEach(sub => {
+                    const examNumInput = document.querySelector(`.meta-exam-num-input[data-sub="${sub}"]`);
+                    const examNum = examNumInput ? examNumInput.value.trim() : '';
+                    const papers = {};
+                    const paperInputs = document.querySelectorAll(`.meta-paper-input[data-sub="${sub}"]`);
 
-                if (hasGroups) {
-                    paperInputs.forEach(inp => {
-                        const group = inp.dataset.group;
-                        papers[group] = inp.value.trim();
-                    });
-                } else if (paperInputs[0]) {
-                    papers['default'] = paperInputs[0].value.trim();
-                }
+                    if (hasGroups) {
+                        paperInputs.forEach(inp => {
+                            const group = inp.dataset.group;
+                            papers[group] = inp.value.trim();
+                        });
+                    } else if (paperInputs[0]) {
+                        papers['default'] = paperInputs[0].value.trim();
+                    }
 
-                const headerSelect = document.querySelector(`.meta-header-design-select[data-sub="${sub}"]`);
-                const headerDesign = headerSelect ? headerSelect.value : '1';
+                    const headerSelect = document.querySelector(`.meta-header-design-select[data-sub="${sub}"]`);
+                    const headerDesign = headerSelect ? headerSelect.value : '1';
 
-                newMetadata[sub] = {
-                    examNo: examNum,
-                    pdfHeaderDesign: headerDesign,
-                    papers: papers
+                    newMetadata[sub] = {
+                        examNo: examNum,
+                        pdfHeaderDesign: headerDesign,
+                        papers: papers
+                    };
+
+                });
+
+                return {
+                    subjectMetadata: newMetadata,
+                    date: window.formatDateToStandard(document.getElementById('meta-date').value),
+                    time: document.getElementById('meta-time').value.trim(),
+                    studentMsg: document.getElementById('meta-std-msg').value.trim(),
+                    teacherMsg: document.getElementById('meta-tch-msg').value.trim()
                 };
-
-            });
-
-            return {
-                subjectMetadata: newMetadata,
-                date: window.formatDateToStandard(document.getElementById('meta-date').value),
-                time: document.getElementById('meta-time').value.trim(),
-                studentMsg: document.getElementById('meta-std-msg').value.trim(),
-                teacherMsg: document.getElementById('meta-tch-msg').value.trim()
-            };
-        }
-    })
-        .then((result) => {
-            if (result.isConfirmed) {
-                const updatedSes = { ...ses, ...result.value };
-                DataManager.addExamSession(updatedSes);
-                renderExamSessionsList();
-                Swal.fire('Kaydedildi', 'Tüm ders bilgileri başarıyla güncellendi.', 'success');
             }
-        });
-};
+        })
+            .then((result) => {
+                if (result.isConfirmed) {
+                    const updatedSes = { ...ses, ...result.value };
+                    DataManager.addExamSession(updatedSes);
+                    renderExamSessionsList();
+                    Swal.fire('Kaydedildi', 'Tüm ders bilgileri başarıyla güncellendi.', 'success');
+                }
+            });
+    };
 
-// ─── Oturumu Tekrar Dağıt ──────────────────────────────────────────────
-window.redistributeSession = function (id) {
-    Swal.fire({
-        title: 'Tekrar Dağıt',
-        html: 'Bu işlem mevcut oturumu <b>sıfırdan</b> dağıtır.<br>Mevcut koltuk atamaları silinir. Devam etmek için şifreyi girin:',
-        icon: 'warning',
-        input: 'password',
-        inputPlaceholder: 'Şifre (1234)',
-        showCancelButton: true,
-        confirmButtonText: '<i class="fa-solid fa-arrows-rotate"></i> Doğrula ve Dağıt',
-        cancelButtonText: 'İptal',
-        confirmButtonColor: '#6366f1',
-        inputValidator: (value) => {
-            if (!value) return 'Şifre girmelisiniz!';
-            if (value !== '1234') return 'Hatalı şifre!';
-        }
-    }).then(res => {
-        if (!res.isConfirmed) return;
+    // ─── Oturumu Tekrar Dağıt ──────────────────────────────────────────────
+    window.redistributeSession = function (id) {
+        Swal.fire({
+            title: 'Tekrar Dağıt',
+            html: 'Bu işlem mevcut oturumu <b>sıfırdan</b> dağıtır.<br>Mevcut koltuk atamaları silinir. Devam etmek için şifreyi girin:',
+            icon: 'warning',
+            input: 'password',
+            inputPlaceholder: 'Şifre (1234)',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fa-solid fa-arrows-rotate"></i> Doğrula ve Dağıt',
+            cancelButtonText: 'İptal',
+            confirmButtonColor: '#6366f1',
+            inputValidator: (value) => {
+                if (!value) return 'Şifre girmelisiniz!';
+                if (value !== '1234') return 'Hatalı şifre!';
+            }
+        }).then(res => {
+            if (!res.isConfirmed) return;
 
-        const sessions = DataManager.getExamSessions();
-        const session = sessions.find(s => s.id === id);
-        if (!session) return;
+            const sessions = DataManager.getExamSessions();
+            const session = sessions.find(s => s.id === id);
+            if (!session) return;
 
-        const allRooms = DataManager.getClassrooms();
+            const allRooms = DataManager.getClassrooms();
 
-        // ── Öğrencileri session.results'ten çıkar ──────────────────────
-        // Bu yöntem selectedClasses/selectedClassrooms'a BAĞIMLI DEĞİL.
-        let targetStudents = [];
-        let targetRooms = [];
+            // ── Öğrencileri session.results'ten çıkar ──────────────────────
+            // Bu yöntem selectedClasses/selectedClassrooms'a BAĞIMLI DEĞİL.
+            let targetStudents = [];
+            let targetRooms = [];
 
-        if (session.results && session.results.length) {
-            // Öğrencileri mevcut dağıtımdan al (_matchedSubject zaten var)
-            const seen = new Set();
-            session.results.forEach(room => {
-                Object.values(room.seats || {}).forEach(student => {
-                    if (student && !seen.has(student.no)) {
-                        seen.add(student.no);
-                        targetStudents.push({ ...student });
-                    }
+            if (session.results && session.results.length) {
+                // Öğrencileri mevcut dağıtımdan al (_matchedSubject zaten var)
+                const seen = new Set();
+                session.results.forEach(room => {
+                    Object.values(room.seats || {}).forEach(student => {
+                        if (student && !seen.has(student.no)) {
+                            seen.add(student.no);
+                            targetStudents.push({ ...student });
+                        }
+                    });
                 });
-            });
-            // Derslik isimlerini sonuçlardan al, DataManager'dan eşleştir
-            const resultRoomNames = session.results.map(r => r.name);
-            targetRooms = allRooms.filter(r => resultRoomNames.includes(r.name));
+                // Derslik isimlerini sonuçlardan al, DataManager'dan eşleştir
+                const resultRoomNames = session.results.map(r => r.name);
+                targetRooms = allRooms.filter(r => resultRoomNames.includes(r.name));
 
-            // Eşleşen derslik bulunamadıysa tüm dersliklerden sonuç adıyla ara
-            if (!targetRooms.length) {
-                targetRooms = allRooms.filter(r =>
-                    resultRoomNames.some(n => n === r.name || r.name.includes(n) || n.includes(r.name))
-                );
-            }
-        }
-
-        // ── Fallback: DataManager üzerinden filtrele ───────────────────
-        if (!targetStudents.length || !targetRooms.length) {
-            const allStudents = DataManager.getStudents();
-
-            // Dersleri hem obje hem string formatını destekle
-            const sessionSubjects = (session.subjects || []).map(s =>
-                typeof s === 'object' ? s.name : s
-            ).filter(Boolean);
-            if (!sessionSubjects.length && session.subject) sessionSubjects.push(session.subject);
-
-            targetStudents = allStudents.filter(s => {
-                if (session.excludedStudents?.includes(s.no?.toString())) return false;
-                if (!s.dersler?.length) return false;
-                let matched = null;
-                const ok = s.dersler.some(d => {
-                    const dt = d.trim();
-                    const hit = sessionSubjects.some(base =>
-                        dt === base || dt.startsWith(base + ' ') || dt.startsWith(base + '-')
+                // Eşleşen derslik bulunamadıysa tüm dersliklerden sonuç adıyla ara
+                if (!targetRooms.length) {
+                    targetRooms = allRooms.filter(r =>
+                        resultRoomNames.some(n => n === r.name || r.name.includes(n) || n.includes(r.name))
                     );
-                    if (hit) matched = dt;
-                    return hit;
-                });
-                if (ok) s._matchedSubject = matched;
-                return ok;
-            });
-
-            // Derslikler
-            if (session.selectedClassrooms?.length) {
-                targetRooms = allRooms.filter(r => session.selectedClassrooms.includes(r.name));
-            }
-            if (!targetRooms.length) targetRooms = allRooms;
-        }
-
-        if (!targetStudents.length || !targetRooms.length) {
-            Swal.fire('Eksik Bilgi',
-                `Dağıtım verisi bulunamadı. (Öğrenci: ${targetStudents.length}, Derslik: ${targetRooms.length})`,
-                'error');
-            return;
-        }
-
-        distributeWithRetry([...targetStudents], targetRooms, session, (res) => {
-            if (!res) { Swal.fire('Hata', 'Dağıtım sonucu alınamadı.', 'error'); return; }
-            session.results = res;
-            DataManager.addExamSession(session);
-            window._currentExamResults = res;
-            window.currentRenderedSession = session;
-            renderExamSessionsList();
-            renderExamResults(res);
-            setTimeout(() => {
-                if (typeof window.viewSessionDistribution === 'function') {
-                    window.viewSessionDistribution(id, null, true);
                 }
-            }, 100);
-        });
-    });
-};
-
-window.viewSessionDistribution = function (id, forceMode = null, isModeSwitch = false) {
-
-    try {
-        const sessions = DataManager.getExamSessions();
-        const session = sessions.find(s => s.id === id);
-        if (!session) return;
-
-        const accordionBody = document.getElementById(`accordion-body-${id}`);
-        const resultsContainer = document.getElementById(`results-container-${id}`);
-        const arrow = document.getElementById(`arrow-${id}`);
-
-        // Toggle logic ONLY if it's NOT a mode switch
-        if (!isModeSwitch) {
-            const isCurrentlyHidden = accordionBody.classList.contains('hidden');
-
-            // Close others
-            document.querySelectorAll('[id^="accordion-body-"]').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('[id^="arrow-"]').forEach(el => el.style.transform = 'rotate(0deg)');
-
-            if (isCurrentlyHidden) {
-                accordionBody.classList.remove('hidden');
-                if (arrow) arrow.style.transform = 'rotate(90deg)';
-            } else {
-                accordionBody.classList.add('hidden');
-                if (arrow) arrow.style.transform = 'rotate(0deg)';
-                return; // Just closed it
             }
-        } else {
-            // If it's a mode switch but the accordion is closed (shouldn't happen but safe-guard)
-            if (accordionBody.classList.contains('hidden')) return;
+
+            // ── Fallback: DataManager üzerinden filtrele ───────────────────
+            if (!targetStudents.length || !targetRooms.length) {
+                const allStudents = DataManager.getStudents();
+
+                // Dersleri hem obje hem string formatını destekle
+                const sessionSubjects = (session.subjects || []).map(s =>
+                    typeof s === 'object' ? s.name : s
+                ).filter(Boolean);
+                if (!sessionSubjects.length && session.subject) sessionSubjects.push(session.subject);
+
+                targetStudents = allStudents.filter(s => {
+                    if (session.excludedStudents?.includes(s.no?.toString())) return false;
+                    if (!s.dersler?.length) return false;
+                    let matched = null;
+                    const ok = s.dersler.some(d => {
+                        const dt = d.trim();
+                        const hit = sessionSubjects.some(base =>
+                            dt === base || dt.startsWith(base + ' ') || dt.startsWith(base + '-')
+                        );
+                        if (hit) matched = dt;
+                        return hit;
+                    });
+                    if (ok) s._matchedSubject = matched;
+                    return ok;
+                });
+
+                // Derslikler
+                if (session.selectedClassrooms?.length) {
+                    targetRooms = allRooms.filter(r => session.selectedClassrooms.includes(r.name));
+                }
+                if (!targetRooms.length) targetRooms = allRooms;
+            }
+
+            if (!targetStudents.length || !targetRooms.length) {
+                Swal.fire('Eksik Bilgi',
+                    `Dağıtım verisi bulunamadı. (Öğrenci: ${targetStudents.length}, Derslik: ${targetRooms.length})`,
+                    'error');
+                return;
+            }
+
+            distributeWithRetry([...targetStudents], targetRooms, session, (res) => {
+                if (!res) { Swal.fire('Hata', 'Dağıtım sonucu alınamadı.', 'error'); return; }
+                session.results = res;
+                DataManager.addExamSession(session);
+                window._currentExamResults = res;
+                window.currentRenderedSession = session;
+                renderExamSessionsList();
+                renderExamResults(res);
+                setTimeout(() => {
+                    if (typeof window.viewSessionDistribution === 'function') {
+                        window.viewSessionDistribution(id, null, true);
+                    }
+                }, 100);
+            });
+        });
+    };
+
+    window.viewSessionDistribution = function (id, forceMode = null, isModeSwitch = false) {
+
+        try {
+            const sessions = DataManager.getExamSessions();
+            const session = sessions.find(s => s.id === id);
+            if (!session) return;
+
+            const accordionBody = document.getElementById(`accordion-body-${id}`);
+            const resultsContainer = document.getElementById(`results-container-${id}`);
+            const arrow = document.getElementById(`arrow-${id}`);
+
+            // Toggle logic ONLY if it's NOT a mode switch
+            if (!isModeSwitch) {
+                const isCurrentlyHidden = accordionBody.classList.contains('hidden');
+
+                // Close others
+                document.querySelectorAll('[id^="accordion-body-"]').forEach(el => el.classList.add('hidden'));
+                document.querySelectorAll('[id^="arrow-"]').forEach(el => el.style.transform = 'rotate(0deg)');
+
+                if (isCurrentlyHidden) {
+                    accordionBody.classList.remove('hidden');
+                    if (arrow) arrow.style.transform = 'rotate(90deg)';
+                } else {
+                    accordionBody.classList.add('hidden');
+                    if (arrow) arrow.style.transform = 'rotate(0deg)';
+                    return; // Just closed it
+                }
+            } else {
+                // If it's a mode switch but the accordion is closed (shouldn't happen but safe-guard)
+                if (accordionBody.classList.contains('hidden')) return;
+            }
+
+            const modeEl = document.querySelector(`input[name="mode-${id}"]:checked`);
+            const mode = forceMode || (modeEl ? modeEl.value : 'class');
+
+            if (!session.results) {
+                return window.startSessionDistribution(id);
+            }
+
+            window.currentRenderedSession = session;
+
+            resultsContainer.innerHTML = '';
+
+            if (mode === 'class') {
+                renderClasswiseList(session, resultsContainer, true);
+            } else if (mode === 'room') {
+                renderRoomwiseList(session, resultsContainer, true);
+            } else {
+                window._currentExamResults = session.results;
+                renderExamResults(session, resultsContainer, true);
+            }
+
+
+
+        } catch (err) {
+            console.error("Error in viewSessionDistribution:", err);
+            Swal.fire('Görüntüleme Hatası', err.message, 'error');
         }
+    };
 
-        const modeEl = document.querySelector(`input[name="mode-${id}"]:checked`);
-        const mode = forceMode || (modeEl ? modeEl.value : 'class');
+    function renderRoomwiseList(session, targetContainer = null, appendMode = false) {
+        const view = targetContainer || document.getElementById('examClassroomsView');
+        if (!appendMode) view.innerHTML = '';
 
-        if (!session.results) {
-            return window.startSessionDistribution(id);
-        }
+        session.results.forEach((room, idx) => {
+            const roomId = `nested-room-list-${idx}-${Math.random().toString(36).substr(2, 5)}`;
+            const roomPanel = document.createElement('div');
+            roomPanel.style.marginBottom = '1rem';
 
-        window.currentRenderedSession = session;
-
-        resultsContainer.innerHTML = '';
-
-        if (mode === 'class') {
-            renderClasswiseList(session, resultsContainer, true);
-        } else if (mode === 'room') {
-            renderRoomwiseList(session, resultsContainer, true);
-        } else {
-            window._currentExamResults = session.results;
-            renderExamResults(session, resultsContainer, true);
-        }
-
-
-
-    } catch (err) {
-        console.error("Error in viewSessionDistribution:", err);
-        Swal.fire('Görüntüleme Hatası', err.message, 'error');
-    }
-};
-
-function renderRoomwiseList(session, targetContainer = null, appendMode = false) {
-    const view = targetContainer || document.getElementById('examClassroomsView');
-    if (!appendMode) view.innerHTML = '';
-
-    session.results.forEach((room, idx) => {
-        const roomId = `nested-room-list-${idx}-${Math.random().toString(36).substr(2, 5)}`;
-        const roomPanel = document.createElement('div');
-        roomPanel.style.marginBottom = '1rem';
-
-        // Assign visual Sequence Nos consistently (Rule: Bottom-Left = 1)
-        let roomSeatCounter = 1;
-        const seatToNum = {};
-        for (let g = 1; g <= room.groups; g++) {
-            const conf = room.groupConfigs ? room.groupConfigs[g - 1] : { rows: room.rows || 1, cols: room.cols || 1 };
-            // Sequence from Front to Back: 1 to rows
-            for (let r = 1; r <= conf.rows; r++) {
-                for (let c = 1; c <= conf.cols; c++) {
-                    const sid = `G${g}-S${r}-C${c}`;
-                    if (!(room.disabledSeats && room.disabledSeats.includes(sid))) {
-                        seatToNum[sid] = roomSeatCounter++;
+            // Assign visual Sequence Nos consistently (Rule: Bottom-Left = 1)
+            let roomSeatCounter = 1;
+            const seatToNum = {};
+            for (let g = 1; g <= room.groups; g++) {
+                const conf = room.groupConfigs ? room.groupConfigs[g - 1] : { rows: room.rows || 1, cols: room.cols || 1 };
+                // Sequence from Front to Back: 1 to rows
+                for (let r = 1; r <= conf.rows; r++) {
+                    for (let c = 1; c <= conf.cols; c++) {
+                        const sid = `G${g}-S${r}-C${c}`;
+                        if (!(room.disabledSeats && room.disabledSeats.includes(sid))) {
+                            seatToNum[sid] = roomSeatCounter++;
+                        }
                     }
                 }
             }
-        }
 
-        // Extract students from seats and sort by seat ID (G..S..C..)
-        const sortedSeats = Object.keys(room.seats).sort((a, b) => {
-            const partsA = a.match(/\d+/g).map(Number);
-            const partsB = b.match(/\d+/g).map(Number);
-            for (let i = 0; i < partsA.length; i++) {
-                if (partsA[i] !== partsB[i]) return partsA[i] - partsB[i];
-            }
-            return 0;
-        });
+            // Extract students from seats and sort by seat ID (G..S..C..)
+            const sortedSeats = Object.keys(room.seats).sort((a, b) => {
+                const partsA = a.match(/\d+/g).map(Number);
+                const partsB = b.match(/\d+/g).map(Number);
+                for (let i = 0; i < partsA.length; i++) {
+                    if (partsA[i] !== partsB[i]) return partsA[i] - partsB[i];
+                }
+                return 0;
+            });
 
-        let tableRows = sortedSeats.map(seatId => {
-            const s = room.seats[seatId];
-            return `
+            let tableRows = sortedSeats.map(seatId => {
+                const s = room.seats[seatId];
+                return `
                     <tr>
                         <td style="padding:8px; border-bottom:1px solid #eee;"><b>${seatToNum[seatId] || '-'}</b></td>
                         <td style="padding:8px; border-bottom:1px solid #eee;">${s.class}</td>
@@ -4903,9 +4819,9 @@ function renderRoomwiseList(session, targetContainer = null, appendMode = false)
                         </td>
                     </tr>
 `;
-        }).join('');
+            }).join('');
 
-        roomPanel.innerHTML = `
+            roomPanel.innerHTML = `
                 <div class="nested-accordion-header" onclick="toggleNestedAccordion('${roomId}')" style="background:var(--gray-50); padding:1rem; border:1px solid var(--gray-200); border-radius:8px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                     <h3 style="margin:0; font-size:1.1rem;"><i class="fa-solid fa-door-open" style="color:var(--secondary);"></i> ${room.name} Salonu</h3>
                     <div style="display:flex; align-items:center; gap:15px;">
@@ -4934,64 +4850,64 @@ function renderRoomwiseList(session, targetContainer = null, appendMode = false)
         </table>
     </div>
 `;
-        view.appendChild(roomPanel);
-    });
-}
+            view.appendChild(roomPanel);
+        });
+    }
 
-function renderClasswiseList(session, targetContainer = null, appendMode = false) {
-    const view = targetContainer || document.getElementById('examClassroomsView');
-    if (!appendMode) view.innerHTML = '';
+    function renderClasswiseList(session, targetContainer = null, appendMode = false) {
+        const view = targetContainer || document.getElementById('examClassroomsView');
+        if (!appendMode) view.innerHTML = '';
 
-    // Flatten with sequence numbers
-    const flatList = [];
-    session.results.forEach(room => {
-        // Re-calculate visual numbers for this room (Rule: Bottom-Left = 1)
-        let roomSeatCounter = 1;
-        const seatToNum = {};
-        for (let g = 1; g <= room.groups; g++) {
-            const conf = room.groupConfigs ? room.groupConfigs[g - 1] : { rows: room.rows || 1, cols: room.cols || 1 };
-            // Sequence from Front to Back: 1 to rows
-            for (let r = 1; r <= conf.rows; r++) {
-                for (let c = 1; c <= conf.cols; c++) {
-                    const sid = `G${g}-S${r}-C${c}`;
-                    if (!(room.disabledSeats && room.disabledSeats.includes(sid))) {
-                        seatToNum[sid] = roomSeatCounter++;
+        // Flatten with sequence numbers
+        const flatList = [];
+        session.results.forEach(room => {
+            // Re-calculate visual numbers for this room (Rule: Bottom-Left = 1)
+            let roomSeatCounter = 1;
+            const seatToNum = {};
+            for (let g = 1; g <= room.groups; g++) {
+                const conf = room.groupConfigs ? room.groupConfigs[g - 1] : { rows: room.rows || 1, cols: room.cols || 1 };
+                // Sequence from Front to Back: 1 to rows
+                for (let r = 1; r <= conf.rows; r++) {
+                    for (let c = 1; c <= conf.cols; c++) {
+                        const sid = `G${g}-S${r}-C${c}`;
+                        if (!(room.disabledSeats && room.disabledSeats.includes(sid))) {
+                            seatToNum[sid] = roomSeatCounter++;
+                        }
                     }
                 }
             }
-        }
 
-        Object.entries(room.seats).forEach(([seatId, std]) => {
-            flatList.push({
-                ...std,
-                room: room.name,
-                seatNum: seatToNum[seatId] || '-'
+            Object.entries(room.seats).forEach(([seatId, std]) => {
+                flatList.push({
+                    ...std,
+                    room: room.name,
+                    seatNum: seatToNum[seatId] || '-'
+                });
             });
         });
-    });
 
-    // Group by class
-    const byClass = {};
-    flatList.forEach(s => {
-        if (!byClass[s.class]) byClass[s.class] = [];
-        byClass[s.class].push(s);
-    });
+        // Group by class
+        const byClass = {};
+        flatList.forEach(s => {
+            if (!byClass[s.class]) byClass[s.class] = [];
+            byClass[s.class].push(s);
+        });
 
-    const sortedClasses = Object.keys(byClass).sort((a, b) => {
-        const numA = parseInt(a) || 0;
-        const numB = parseInt(b) || 0;
-        if (numA !== numB) return numA - numB;
-        return a.localeCompare(b);
-    });
+        const sortedClasses = Object.keys(byClass).sort((a, b) => {
+            const numA = parseInt(a) || 0;
+            const numB = parseInt(b) || 0;
+            if (numA !== numB) return numA - numB;
+            return a.localeCompare(b);
+        });
 
-    sortedClasses.forEach((className, idx) => {
-        const classId = `nested-class-list-${idx}-${Math.random().toString(36).substr(2, 5)}`;
-        const classPanel = document.createElement('div');
-        classPanel.style.marginBottom = '1rem';
+        sortedClasses.forEach((className, idx) => {
+            const classId = `nested-class-list-${idx}-${Math.random().toString(36).substr(2, 5)}`;
+            const classPanel = document.createElement('div');
+            classPanel.style.marginBottom = '1rem';
 
-        let tableRows = byClass[className]
-            .sort((a, b) => parseInt(a.no) - parseInt(b.no))
-            .map(s => `
+            let tableRows = byClass[className]
+                .sort((a, b) => parseInt(a.no) - parseInt(b.no))
+                .map(s => `
                     <tr>
                         <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}${s._groupLabel ? ` (${s._groupLabel})` : ''}</b></td>
                         <td style="padding:8px; border-bottom:1px solid #eee;">${s.name}</td>
@@ -5012,7 +4928,7 @@ function renderClasswiseList(session, targetContainer = null, appendMode = false
                     </tr>
 `).join('');
 
-        classPanel.innerHTML = `
+            classPanel.innerHTML = `
                 <div class="nested-accordion-header" onclick="toggleNestedAccordion('${classId}')" style="background:var(--gray-50); padding:1rem; border:1px solid var(--gray-200); border-radius:8px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                     <h3 style="margin:0; font-size:1.1rem;"><i class="fa-solid fa-users" style="color:var(--primary);"></i> ${className} Sınıf Listesi</h3>
                     <div style="display:flex; align-items:center; gap:15px;">
@@ -5041,262 +4957,262 @@ function renderClasswiseList(session, targetContainer = null, appendMode = false
         </table>
     </div>
 `;
-        view.appendChild(classPanel);
-    });
-}
-
-window.startSessionDistribution = function (id) {
-    const session = DataManager.getExamSessions().find(s => s.id === id);
-    if (!session) return;
-
-    // 1. Filter Classrooms
-    const allRooms = DataManager.getClassrooms();
-    const targetRooms = allRooms.filter(r => session.selectedClassrooms.includes(r.name));
-
-    // 2. Filter Students
-    const allStudents = DataManager.getStudents();
-    const sessionSubjects = session.subjects || [session.subject];
-
-    const targetStudents = allStudents.filter(s => {
-        const poolId = `${s.class}| ${s.alan || ""} `;
-        if (!session.selectedClasses.includes(poolId) && !session.selectedClasses.includes(s.class)) return false;
-
-        let matchedSubject = null;
-        const hasSub = s.dersler && s.dersler.some(d => {
-            const found = sessionSubjects.some(base => d.trim() === base || d.trim().startsWith(base + " "));
-            if (found) matchedSubject = d.trim();
-            return found;
+            view.appendChild(classPanel);
         });
-        if (!hasSub) return false;
-
-        if (session.excludedStudents && session.excludedStudents.includes(s.no.toString())) return false;
-
-        s._matchedSubject = matchedSubject;
-        return true;
-    });
-
-    if (targetStudents.length === 0 || targetRooms.length === 0) {
-        Swal.fire('Eksik Bilgi', 'Oturum için yeterli hedef öğrenci veya onaylı derslik bulunamadı!', 'error');
-        return;
     }
 
-    distributeWithRetry([...targetStudents], targetRooms, session, (res) => {
-        if (!res) { Swal.fire('Hata', 'Dağıtım sonucu alınamadı.', 'error'); return; }
-        session.results = res;
-        DataManager.addExamSession(session);
-        window._currentExamResults = res;
-        document.getElementById('examSetupPanel').classList.add('hidden');
-        document.getElementById('examResultsPanel').classList.remove('hidden');
-        window.currentRenderedSession = session;
-        renderExamResults(res);
-    });
-};
+    window.startSessionDistribution = function (id) {
+        const session = DataManager.getExamSessions().find(s => s.id === id);
+        if (!session) return;
 
-// --- End Exam Session Wizard Logic ---
+        // 1. Filter Classrooms
+        const allRooms = DataManager.getClassrooms();
+        const targetRooms = allRooms.filter(r => session.selectedClassrooms.includes(r.name));
 
-// Init Calls (kept here for backward compatibility, primary init is near top)
-updateDashboardStats();
-updateClassesList();
-updateClassroomsList();
-renderExamSessionsList();
+        // 2. Filter Students
+        const allStudents = DataManager.getStudents();
+        const sessionSubjects = session.subjects || [session.subject];
 
-// --- 11. Custom Global Class Bulk Assignment Methods ---
-window.assignSubjectsToClass = function (className) {
-    const settings = DataManager.getSchoolSettings();
-    const students = DataManager.getStudents();
+        const targetStudents = allStudents.filter(s => {
+            const poolId = `${s.class}| ${s.alan || ""} `;
+            if (!session.selectedClasses.includes(poolId) && !session.selectedClasses.includes(s.class)) return false;
 
-    if (!settings.subjects || settings.subjects.length === 0) {
-        Swal.fire('Hata', 'Önce Genel Ayarlar sekmesinden okul derslerini tanımlamalısınız.', 'error');
-        return;
-    }
+            let matchedSubject = null;
+            const hasSub = s.dersler && s.dersler.some(d => {
+                const found = sessionSubjects.some(base => d.trim() === base || d.trim().startsWith(base + " "));
+                if (found) matchedSubject = d.trim();
+                return found;
+            });
+            if (!hasSub) return false;
 
-    // Find grade for this class
-    let gradeMatch = className.match(/\d+/);
-    let grade = gradeMatch ? gradeMatch[0] : "";
+            if (session.excludedStudents && session.excludedStudents.includes(s.no.toString())) return false;
 
-    // Determine existing subjects in this class & find unique fields (alanlar)
-    window._currentSubjectsByField = {};
-    window._currentClassSubjects = new Set();
-    let uniqueFields = new Set();
+            s._matchedSubject = matchedSubject;
+            return true;
+        });
 
-    students.forEach(s => {
-        if (s.class === className) {
-            const f = s.alan && s.alan.trim() !== '' ? s.alan.trim() : '_NOFIELD_';
-            if (f !== '_NOFIELD_') uniqueFields.add(f);
-
-            if (!window._currentSubjectsByField[f]) {
-                window._currentSubjectsByField[f] = new Set();
-            }
-
-            if (s.dersler) {
-                s.dersler.forEach(d => {
-                    settings.subjects.forEach(sub => {
-                        let expected = grade ? `${sub} ${grade}` : sub;
-                        if (d.trim() === expected) {
-                            window._currentSubjectsByField[f].add(sub);
-                            window._currentClassSubjects.add(sub);
-                        }
-                    });
-                });
-            }
+        if (targetStudents.length === 0 || targetRooms.length === 0) {
+            Swal.fire('Eksik Bilgi', 'Oturum için yeterli hedef öğrenci veya onaylı derslik bulunamadı!', 'error');
+            return;
         }
-    });
 
-    // Global updater function for the SweetAlert modal checkboxes
-    window.updateSwalSubjects = function () {
-        const checkedFields = Array.from(document.querySelectorAll('.swal-field-filter-checkbox:checked')).map(cb => cb.value);
-        let activeSubjects = new Set();
-
-        checkedFields.forEach(f => {
-            if (window._currentSubjectsByField[f]) {
-                window._currentSubjectsByField[f].forEach(sub => activeSubjects.add(sub));
-            }
-        });
-
-        document.querySelectorAll('.swal-subject-checkbox').forEach(cb => {
-            cb.checked = activeSubjects.has(cb.value);
+        distributeWithRetry([...targetStudents], targetRooms, session, (res) => {
+            if (!res) { Swal.fire('Hata', 'Dağıtım sonucu alınamadı.', 'error'); return; }
+            session.results = res;
+            DataManager.addExamSession(session);
+            window._currentExamResults = res;
+            document.getElementById('examSetupPanel').classList.add('hidden');
+            document.getElementById('examResultsPanel').classList.remove('hidden');
+            window.currentRenderedSession = session;
+            renderExamResults(res);
         });
     };
 
-    let initialChecked = new Set();
-    if (uniqueFields.size > 0) {
-        uniqueFields.forEach(f => {
-            if (window._currentSubjectsByField[f]) {
-                window._currentSubjectsByField[f].forEach(sub => initialChecked.add(sub));
+    // --- End Exam Session Wizard Logic ---
+
+    // Init Calls (kept here for backward compatibility, primary init is near top)
+    updateDashboardStats();
+    updateClassesList();
+    updateClassroomsList();
+    renderExamSessionsList();
+
+    // --- 11. Custom Global Class Bulk Assignment Methods ---
+    window.assignSubjectsToClass = function (className) {
+        const settings = DataManager.getSchoolSettings();
+        const students = DataManager.getStudents();
+
+        if (!settings.subjects || settings.subjects.length === 0) {
+            Swal.fire('Hata', 'Önce Genel Ayarlar sekmesinden okul derslerini tanımlamalısınız.', 'error');
+            return;
+        }
+
+        // Find grade for this class
+        let gradeMatch = className.match(/\d+/);
+        let grade = gradeMatch ? gradeMatch[0] : "";
+
+        // Determine existing subjects in this class & find unique fields (alanlar)
+        window._currentSubjectsByField = {};
+        window._currentClassSubjects = new Set();
+        let uniqueFields = new Set();
+
+        students.forEach(s => {
+            if (s.class === className) {
+                const f = s.alan && s.alan.trim() !== '' ? s.alan.trim() : '_NOFIELD_';
+                if (f !== '_NOFIELD_') uniqueFields.add(f);
+
+                if (!window._currentSubjectsByField[f]) {
+                    window._currentSubjectsByField[f] = new Set();
+                }
+
+                if (s.dersler) {
+                    s.dersler.forEach(d => {
+                        settings.subjects.forEach(sub => {
+                            let expected = grade ? `${sub} ${grade}` : sub;
+                            if (d.trim() === expected) {
+                                window._currentSubjectsByField[f].add(sub);
+                                window._currentClassSubjects.add(sub);
+                            }
+                        });
+                    });
+                }
             }
         });
-    } else {
-        initialChecked = window._currentClassSubjects;
-    }
 
-    let html = '<div style="text-align:left; max-height:200px; overflow-y:auto; padding:10px; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:1rem;">';
-    html += '<p style="font-size:0.9rem; font-weight:600; margin-top:0; margin-bottom:10px;">Dersleri Seçin:</p>';
-    const subjectsToShow = settings.subjects || [];
-    subjectsToShow.forEach(sub => {
-        let isChecked = initialChecked.has(sub.trim()) ? 'checked' : '';
-        html += `<label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer;">
+        // Global updater function for the SweetAlert modal checkboxes
+        window.updateSwalSubjects = function () {
+            const checkedFields = Array.from(document.querySelectorAll('.swal-field-filter-checkbox:checked')).map(cb => cb.value);
+            let activeSubjects = new Set();
+
+            checkedFields.forEach(f => {
+                if (window._currentSubjectsByField[f]) {
+                    window._currentSubjectsByField[f].forEach(sub => activeSubjects.add(sub));
+                }
+            });
+
+            document.querySelectorAll('.swal-subject-checkbox').forEach(cb => {
+                cb.checked = activeSubjects.has(cb.value);
+            });
+        };
+
+        let initialChecked = new Set();
+        if (uniqueFields.size > 0) {
+            uniqueFields.forEach(f => {
+                if (window._currentSubjectsByField[f]) {
+                    window._currentSubjectsByField[f].forEach(sub => initialChecked.add(sub));
+                }
+            });
+        } else {
+            initialChecked = window._currentClassSubjects;
+        }
+
+        let html = '<div style="text-align:left; max-height:200px; overflow-y:auto; padding:10px; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:1rem;">';
+        html += '<p style="font-size:0.9rem; font-weight:600; margin-top:0; margin-bottom:10px;">Dersleri Seçin:</p>';
+        const subjectsToShow = settings.subjects || [];
+        subjectsToShow.forEach(sub => {
+            let isChecked = initialChecked.has(sub.trim()) ? 'checked' : '';
+            html += `<label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer;">
     <input type="checkbox" class="swal-subject-checkbox" value="${sub.trim()}" style="width:18px; height:18px; cursor:pointer;" ${isChecked}>
         <span style="font-size:1rem; color:var(--dark);">${sub.trim()}</span>
     </label>`;
-    });
-    html += '</div>';
+        });
+        html += '</div>';
 
-    // If the class has fields, let user select which fields to assign to
-    if (uniqueFields.size > 0) {
-        html += '<div style="text-align:left; max-height:150px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; padding:10px; margin-bottom:1rem;">';
-        html += '<p style="font-size:0.9rem; font-weight:600; margin-top:0; margin-bottom:10px;">Hangi alanlara tanımlansın? (Seçime göre üstteki dersler güncellenir):</p>';
-        uniqueFields.forEach(f => {
-            html += `<label style="display:inline-flex; align-items:center; gap:5px; margin-right:15px; margin-bottom:8px; cursor:pointer;">
+        // If the class has fields, let user select which fields to assign to
+        if (uniqueFields.size > 0) {
+            html += '<div style="text-align:left; max-height:150px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; padding:10px; margin-bottom:1rem;">';
+            html += '<p style="font-size:0.9rem; font-weight:600; margin-top:0; margin-bottom:10px;">Hangi alanlara tanımlansın? (Seçime göre üstteki dersler güncellenir):</p>';
+            uniqueFields.forEach(f => {
+                html += `<label style="display:inline-flex; align-items:center; gap:5px; margin-right:15px; margin-bottom:8px; cursor:pointer;">
     <input type="checkbox" class="swal-field-filter-checkbox" value="${f}" style="cursor:pointer;" checked onchange="window.updateSwalSubjects()">
         <span style="font-size:0.9rem;">${f}</span>
     </label>`;
+            });
+            html += '</div>';
+        }
+
+        // Copy to other classes section
+        let allClasses = new Set();
+        students.forEach(s => { if (s.class && s.class !== className) allClasses.add(s.class); });
+        const sortedClasses = Array.from(allClasses).sort((a, b) => {
+            const numA = (a.match(/\d+/) || [0])[0];
+            const numB = (b.match(/\d+/) || [0])[0];
+            if (numA !== numB) return numA - numB;
+            return a.replace(/\d+/g, '').trim().localeCompare(b.replace(/\d+/g, '').trim());
         });
-        html += '</div>';
-    }
 
-    // Copy to other classes section
-    let allClasses = new Set();
-    students.forEach(s => { if (s.class && s.class !== className) allClasses.add(s.class); });
-    const sortedClasses = Array.from(allClasses).sort((a, b) => {
-        const numA = (a.match(/\d+/) || [0])[0];
-        const numB = (b.match(/\d+/) || [0])[0];
-        if (numA !== numB) return numA - numB;
-        return a.replace(/\d+/g, '').trim().localeCompare(b.replace(/\d+/g, '').trim());
-    });
-
-    if (sortedClasses.length > 0) {
-        html += '<div style="text-align:left; max-height:150px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">';
-        html += '<p style="font-size:0.9rem; font-weight:600; margin-top:0; margin-bottom:10px;">Şu sınıflara da kopyala (İsteğe bağlı):</p>';
-        sortedClasses.forEach(c => {
-            html += `<label style="display:inline-flex; align-items:center; gap:5px; margin-right:15px; margin-bottom:8px; cursor:pointer;">
+        if (sortedClasses.length > 0) {
+            html += '<div style="text-align:left; max-height:150px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">';
+            html += '<p style="font-size:0.9rem; font-weight:600; margin-top:0; margin-bottom:10px;">Şu sınıflara da kopyala (İsteğe bağlı):</p>';
+            sortedClasses.forEach(c => {
+                html += `<label style="display:inline-flex; align-items:center; gap:5px; margin-right:15px; margin-bottom:8px; cursor:pointer;">
     <input type="checkbox" class="swal-copy-class-checkbox" value="${c}" style="cursor:pointer;">
         <span style="font-size:0.9rem;">${c}</span>
     </label>`;
-        });
-        html += '</div>';
-    }
-
-    Swal.fire({
-        title: `${className} Sınıfı İşlemleri`,
-        html: html,
-        showCancelButton: true,
-        confirmButtonText: 'Kaydet',
-        cancelButtonText: 'İptal',
-        width: 500,
-        preConfirm: () => {
-            const checkedSubs = Array.from(document.querySelectorAll('.swal-subject-checkbox:checked')).map(cb => cb.value);
-            const copyClasses = Array.from(document.querySelectorAll('.swal-copy-class-checkbox:checked')).map(cb => cb.value);
-            const targetFields = Array.from(document.querySelectorAll('.swal-field-filter-checkbox:checked')).map(cb => cb.value);
-
-            // If the field checkboxes exist but none are checked, we could optionally warn. But we'll just respect the selection.
-            return { checkedSubs, targetClasses: [className, ...copyClasses], targetFields, hasFieldFilters: uniqueFields.size > 0 };
+            });
+            html += '</div>';
         }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const { checkedSubs, targetClasses, targetFields, hasFieldFilters } = result.value;
-            let updatedStudentsCount = 0;
 
-            targetClasses.forEach(targetClass => {
-                let tGradeMatch = targetClass.match(/\d+/);
-                let tGrade = tGradeMatch ? tGradeMatch[0] : "";
+        Swal.fire({
+            title: `${className} Sınıfı İşlemleri`,
+            html: html,
+            showCancelButton: true,
+            confirmButtonText: 'Kaydet',
+            cancelButtonText: 'İptal',
+            width: 500,
+            preConfirm: () => {
+                const checkedSubs = Array.from(document.querySelectorAll('.swal-subject-checkbox:checked')).map(cb => cb.value);
+                const copyClasses = Array.from(document.querySelectorAll('.swal-copy-class-checkbox:checked')).map(cb => cb.value);
+                const targetFields = Array.from(document.querySelectorAll('.swal-field-filter-checkbox:checked')).map(cb => cb.value);
 
-                // Construct new subjects list appending the target's grade level
-                const newSubjects = checkedSubs.map(sub => tGrade ? `${sub} ${tGrade}` : sub);
-                // All possible settings subjects customized to this target class's grade
-                const possibleSettingsSubjects = settings.subjects.map(sub => tGrade ? `${sub} ${tGrade}` : sub);
+                // If the field checkboxes exist but none are checked, we could optionally warn. But we'll just respect the selection.
+                return { checkedSubs, targetClasses: [className, ...copyClasses], targetFields, hasFieldFilters: uniqueFields.size > 0 };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const { checkedSubs, targetClasses, targetFields, hasFieldFilters } = result.value;
+                let updatedStudentsCount = 0;
 
-                // If we copy to other classes, do we apply the field filter assuming the other class has those fields? 
-                // The prompt says: "Seçilirse seçilen dersler seçilen alanlara tanımlanır diğerlerine tanımklanmaz". 
-                // This logic implies this applies mainly to the CURRENT class, and if copied, to the matching fields in the target class.
-                // We will only assign to students whose field is included in targetFields if field filters were selected
-                // Fetch fresh students inside the target loop just in case
-                const currentStudents = DataManager.getStudents();
-                currentStudents.forEach(s => {
-                    if (s.class === targetClass) {
+                targetClasses.forEach(targetClass => {
+                    let tGradeMatch = targetClass.match(/\d+/);
+                    let tGrade = tGradeMatch ? tGradeMatch[0] : "";
 
-                        // Check field filtering logic
-                        let shouldAssign = true;
-                        if (hasFieldFilters && targetFields.length > 0) {
-                            // Only assign if the student has one of the selected fields
-                            shouldAssign = s.alan && targetFields.includes(s.alan.trim());
-                        } else if (hasFieldFilters && targetFields.length === 0) {
-                            // Checked boxes existed but user unchecked all of them -> essentially "assign to none" or "assign to those without field"?
-                            // For safety, let's treat "no fields selected" as assigning to the whole class if you meant "skip filtering",
-                            // but usually if checkboxes exist and none are checked, it means don't assign.
-                            // The user said: "Seçilirse seçilen dersler seçilen alanlara tanımlanır diğerlerine tanımklanmaz".
-                            shouldAssign = false;
+                    // Construct new subjects list appending the target's grade level
+                    const newSubjects = checkedSubs.map(sub => tGrade ? `${sub} ${tGrade}` : sub);
+                    // All possible settings subjects customized to this target class's grade
+                    const possibleSettingsSubjects = settings.subjects.map(sub => tGrade ? `${sub} ${tGrade}` : sub);
+
+                    // If we copy to other classes, do we apply the field filter assuming the other class has those fields? 
+                    // The prompt says: "Seçilirse seçilen dersler seçilen alanlara tanımlanır diğerlerine tanımklanmaz". 
+                    // This logic implies this applies mainly to the CURRENT class, and if copied, to the matching fields in the target class.
+                    // We will only assign to students whose field is included in targetFields if field filters were selected
+                    // Fetch fresh students inside the target loop just in case
+                    const currentStudents = DataManager.getStudents();
+                    currentStudents.forEach(s => {
+                        if (s.class === targetClass) {
+
+                            // Check field filtering logic
+                            let shouldAssign = true;
+                            if (hasFieldFilters && targetFields.length > 0) {
+                                // Only assign if the student has one of the selected fields
+                                shouldAssign = s.alan && targetFields.includes(s.alan.trim());
+                            } else if (hasFieldFilters && targetFields.length === 0) {
+                                // Checked boxes existed but user unchecked all of them -> essentially "assign to none" or "assign to those without field"?
+                                // For safety, let's treat "no fields selected" as assigning to the whole class if you meant "skip filtering",
+                                // but usually if checkboxes exist and none are checked, it means don't assign.
+                                // The user said: "Seçilirse seçilen dersler seçilen alanlara tanımlanır diğerlerine tanımklanmaz".
+                                shouldAssign = false;
+                            }
+
+                            if (shouldAssign) {
+                                // Remove previously assigned school settings subjects for this grade
+                                let filtered = (s.dersler || []).filter(d => !possibleSettingsSubjects.includes(d));
+                                // Assign the new selections
+                                s.dersler = Array.from(new Set([...filtered, ...newSubjects]));
+                                updatedStudentsCount++;
+                            }
                         }
+                    });
 
-                        if (shouldAssign) {
-                            // Remove previously assigned school settings subjects for this grade
-                            let filtered = (s.dersler || []).filter(d => !possibleSettingsSubjects.includes(d));
-                            // Assign the new selections
-                            s.dersler = Array.from(new Set([...filtered, ...newSubjects]));
-                            updatedStudentsCount++;
-                        }
-                    }
+                    // Update students for each class
+                    const liveData = DataManager._getData();
+                    liveData.students = currentStudents;
+                    DataManager._saveData(liveData);
                 });
 
-                // Update students for each class
-                const liveData = DataManager._getData();
-                liveData.students = currentStudents;
-                DataManager._saveData(liveData);
-            });
+                document.querySelector('[data-tab="classLists"]').click();
+                Swal.fire('Başarılı', `Seçilen dersler, ${targetClasses.length} sınıftaki ilgili ${updatedStudentsCount} öğrenciye başarıyla tanımlandı.`, 'success');
+            }
+        });
+    };
 
-            document.querySelector('[data-tab="classLists"]').click();
-            Swal.fire('Başarılı', `Seçilen dersler, ${targetClasses.length} sınıftaki ilgili ${updatedStudentsCount} öğrenciye başarıyla tanımlandı.`, 'success');
-        }
-    });
-};
+    window.assignFieldToClass = function (className) {
+        const data = DataManager._getData();
+        let classStudents = data.students.filter(s => s.class === className);
 
-window.assignFieldToClass = function (className) {
-    const data = DataManager._getData();
-    let classStudents = data.students.filter(s => s.class === className);
+        // Sort students by number just to be neat
+        classStudents.sort((a, b) => parseInt(a.no) - parseInt(b.no));
 
-    // Sort students by number just to be neat
-    classStudents.sort((a, b) => parseInt(a.no) - parseInt(b.no));
-
-    let html = `
+        let html = `
     <div style="text-align:left; font-size:0.95rem;">
             <div style="margin-bottom:1rem;">
                 <label style="display:block; font-weight:600; margin-bottom:5px;">Alan Adı</label>
@@ -5312,81 +5228,81 @@ window.assignFieldToClass = function (className) {
             <div id="swal-students-list" style="display:none; max-height:200px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
     `;
 
-    classStudents.forEach(std => {
-        let currentField = std.alan ? ` <span style="font-size:0.8rem; color:#888;">(${std.alan})</span>` : '';
-        html += `
+        classStudents.forEach(std => {
+            let currentField = std.alan ? ` <span style="font-size:0.8rem; color:#888;">(${std.alan})</span>` : '';
+            html += `
             <label style="display:flex; align-items:center; gap:8px; margin-bottom:6px; cursor:pointer;">
                 <input type="checkbox" class="swal-student-cb" value="${std.no}" style="width:16px; height:16px; cursor:pointer;" checked>
                 <span><b>${std.no}</b> - ${std.name}${currentField}</span>
             </label>
         `;
-    });
+        });
 
-    html += `</div></div>`;
+        html += `</div></div>`;
 
-    Swal.fire({
-        title: `${className} Sınıfına Alan Tanımla`,
-        html: html,
-        showCancelButton: true,
-        confirmButtonText: 'Alanı Kaydet',
-        cancelButtonText: 'İptal',
-        width: 500,
-        preConfirm: () => {
-            const fieldName = document.getElementById('swal-field-name').value.trim();
-            if (!fieldName) {
-                Swal.showValidationMessage('Lütfen bir alan adı giriniz.');
-                return false;
-            }
-
-            const isSpecific = document.getElementById('swal-specific-students-toggle').checked;
-            let targetNos = [];
-
-            if (isSpecific) {
-                targetNos = Array.from(document.querySelectorAll('.swal-student-cb:checked')).map(cb => cb.value);
-                if (targetNos.length === 0) {
-                    Swal.showValidationMessage('Lütfen en az bir öğrenci seçiniz.');
+        Swal.fire({
+            title: `${className} Sınıfına Alan Tanımla`,
+            html: html,
+            showCancelButton: true,
+            confirmButtonText: 'Alanı Kaydet',
+            cancelButtonText: 'İptal',
+            width: 500,
+            preConfirm: () => {
+                const fieldName = document.getElementById('swal-field-name').value.trim();
+                if (!fieldName) {
+                    Swal.showValidationMessage('Lütfen bir alan adı giriniz.');
                     return false;
                 }
-            } else {
-                // If not specific, map all student numbers in this class
-                targetNos = classStudents.map(s => s.no);
-            }
 
-            return { fieldName, targetNos };
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const { fieldName, targetNos } = result.value;
-            const liveData = DataManager._getData();
-            let count = 0;
+                const isSpecific = document.getElementById('swal-specific-students-toggle').checked;
+                let targetNos = [];
 
-            liveData.students.forEach(s => {
-                if (s.class === className && targetNos.includes(s.no)) {
-                    s.alan = fieldName;
-                    count++;
+                if (isSpecific) {
+                    targetNos = Array.from(document.querySelectorAll('.swal-student-cb:checked')).map(cb => cb.value);
+                    if (targetNos.length === 0) {
+                        Swal.showValidationMessage('Lütfen en az bir öğrenci seçiniz.');
+                        return false;
+                    }
+                } else {
+                    // If not specific, map all student numbers in this class
+                    targetNos = classStudents.map(s => s.no);
                 }
-            });
-            DataManager._saveData(liveData);
 
-            // Refresh Dashboard UI
-            document.querySelector('[data-tab="classLists"]').click();
-            Swal.fire('Başarılı', `"${fieldName}" alanı ${count} öğrenciye tanımlandı.`, 'success');
+                return { fieldName, targetNos };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const { fieldName, targetNos } = result.value;
+                const liveData = DataManager._getData();
+                let count = 0;
+
+                liveData.students.forEach(s => {
+                    if (s.class === className && targetNos.includes(s.no)) {
+                        s.alan = fieldName;
+                        count++;
+                    }
+                });
+                DataManager._saveData(liveData);
+
+                // Refresh Dashboard UI
+                document.querySelector('[data-tab="classLists"]').click();
+                Swal.fire('Başarılı', `"${fieldName}" alanı ${count} öğrenciye tanımlandı.`, 'success');
+            }
+        });
+    };
+
+    window.editStudentDetails = function (studentNo) {
+        const data = DataManager._getData();
+        const studentIndex = data.students.findIndex(s => s.no == studentNo);
+
+        if (studentIndex === -1) {
+            Swal.fire('Hata', 'Öğrenci bulunamadı', 'error');
+            return;
         }
-    });
-};
 
-window.editStudentDetails = function (studentNo) {
-    const data = DataManager._getData();
-    const studentIndex = data.students.findIndex(s => s.no == studentNo);
+        const std = data.students[studentIndex];
 
-    if (studentIndex === -1) {
-        Swal.fire('Hata', 'Öğrenci bulunamadı', 'error');
-        return;
-    }
-
-    const std = data.students[studentIndex];
-
-    let html = `
+        let html = `
     <div style="text-align:left; font-size:0.9rem;">
             <div class="modal-row" style="margin-bottom:10px;">
                 <div class="modal-form-group">
@@ -5470,122 +5386,122 @@ window.editStudentDetails = function (studentNo) {
         </div>
 `;
 
-    Swal.fire({
-        title: 'Öğrenci Kartı Düzenle',
-        html: html,
-        width: 600,
-        showCancelButton: true,
-        confirmButtonText: 'Kaydet',
-        cancelButtonText: 'İptal',
-        didOpen: () => {
-            const guide = document.getElementById('edit-code-guide');
-            const input = document.getElementById('edit-std-kodu');
-            const chkC = document.getElementById('edit-chk-c');
-            const chkH = document.getElementById('edit-chk-h');
+        Swal.fire({
+            title: 'Öğrenci Kartı Düzenle',
+            html: html,
+            width: 600,
+            showCancelButton: true,
+            confirmButtonText: 'Kaydet',
+            cancelButtonText: 'İptal',
+            didOpen: () => {
+                const guide = document.getElementById('edit-code-guide');
+                const input = document.getElementById('edit-std-kodu');
+                const chkC = document.getElementById('edit-chk-c');
+                const chkH = document.getElementById('edit-chk-h');
 
-            window.toggleEditCodeGuide = () => {
-                guide.style.display = guide.style.display === 'none' ? 'block' : 'none';
-            };
+                window.toggleEditCodeGuide = () => {
+                    guide.style.display = guide.style.display === 'none' ? 'block' : 'none';
+                };
 
-            const updateCheckboxes = () => {
-                const tags = input.value.split(/[,\s]+/).map(t => t.trim().toUpperCase());
-                chkC.checked = tags.includes('C');
-                chkH.checked = tags.includes('H');
-            };
+                const updateCheckboxes = () => {
+                    const tags = input.value.split(/[,\s]+/).map(t => t.trim().toUpperCase());
+                    chkC.checked = tags.includes('C');
+                    chkH.checked = tags.includes('H');
+                };
 
-            updateCheckboxes();
+                updateCheckboxes();
 
-            const updateInput = (code, checked) => {
-                let tags = input.value.split(/[,\s]+/).map(t => t.trim().toUpperCase()).filter(t => t);
-                if (checked) {
-                    if (!tags.includes(code)) tags.push(code);
-                } else {
-                    tags = tags.filter(t => t !== code);
+                const updateInput = (code, checked) => {
+                    let tags = input.value.split(/[,\s]+/).map(t => t.trim().toUpperCase()).filter(t => t);
+                    if (checked) {
+                        if (!tags.includes(code)) tags.push(code);
+                    } else {
+                        tags = tags.filter(t => t !== code);
+                    }
+                    input.value = tags.join(', ');
+                };
+
+                chkC.addEventListener('change', (e) => updateInput('C', e.target.checked));
+                chkH.addEventListener('change', (e) => updateInput('H', e.target.checked));
+                input.addEventListener('input', updateCheckboxes);
+            },
+            preConfirm: () => {
+                const no = document.getElementById('edit-std-no').value.trim();
+                const name = document.getElementById('edit-std-name').value.trim();
+                const cls = document.getElementById('edit-std-class').value.trim();
+
+                if (!no || !name || !cls) {
+                    Swal.showValidationMessage('Öğrenci No, Adı Soyadı ve Sınıfı zorunludur.');
+                    return false;
                 }
-                input.value = tags.join(', ');
-            };
 
-            chkC.addEventListener('change', (e) => updateInput('C', e.target.checked));
-            chkH.addEventListener('change', (e) => updateInput('H', e.target.checked));
-            input.addEventListener('input', updateCheckboxes);
-        },
-        preConfirm: () => {
-            const no = document.getElementById('edit-std-no').value.trim();
-            const name = document.getElementById('edit-std-name').value.trim();
-            const cls = document.getElementById('edit-std-class').value.trim();
+                if (no != studentNo && data.students.some(s => s.no == no)) {
+                    Swal.showValidationMessage('Bu numaraya sahip başka bir öğrenci zaten var.');
+                    return false;
+                }
 
-            if (!no || !name || !cls) {
-                Swal.showValidationMessage('Öğrenci No, Adı Soyadı ve Sınıfı zorunludur.');
-                return false;
+                const derslerStr = document.getElementById('edit-std-dersler').value.trim();
+                const derslerArr = derslerStr ? derslerStr.split(/[,\n;]/).map(d => d.trim()).filter(d => d) : [];
+
+                return {
+                    no: no,
+                    name: name,
+                    class: cls,
+                    alan: document.getElementById('edit-std-alan').value.trim(),
+                    ogrenciKodu: document.getElementById('edit-std-kodu').value.trim(),
+                    dersler: derslerArr,
+                    extra1: document.getElementById('edit-std-ex1').value.trim(),
+                    extra2: document.getElementById('edit-std-ex2').value.trim(),
+                    extra3: document.getElementById('edit-std-ex3').value.trim(),
+                    extra4: document.getElementById('edit-std-ex4').value.trim(),
+                    extra5: document.getElementById('edit-std-ex5').value.trim(),
+                };
             }
-
-            if (no != studentNo && data.students.some(s => s.no == no)) {
-                Swal.showValidationMessage('Bu numaraya sahip başka bir öğrenci zaten var.');
-                return false;
+        }).then((result) => {
+            if (result.isConfirmed) {
+                data.students[studentIndex] = { ...data.students[studentIndex], ...result.value };
+                DataManager._saveData(data);
+                document.querySelector('[data-tab="classLists"]').click();
+                Swal.fire('Başarılı', 'Öğrenci bilgileri güncellendi.', 'success');
             }
+        });
+    };
 
-            const derslerStr = document.getElementById('edit-std-dersler').value.trim();
-            const derslerArr = derslerStr ? derslerStr.split(/[,\n;]/).map(d => d.trim()).filter(d => d) : [];
+    window.updateDeskPos = function (roomName, pos) {
+        const room = DataManager.getClassrooms().find(r => r.name === roomName);
+        if (!room) return;
+        room.teacherDeskPos = pos;
+        DataManager.addClassroom(room);
+        window.updateClassroomsList();
+    };
 
-            return {
-                no: no,
-                name: name,
-                class: cls,
-                alan: document.getElementById('edit-std-alan').value.trim(),
-                ogrenciKodu: document.getElementById('edit-std-kodu').value.trim(),
-                dersler: derslerArr,
-                extra1: document.getElementById('edit-std-ex1').value.trim(),
-                extra2: document.getElementById('edit-std-ex2').value.trim(),
-                extra3: document.getElementById('edit-std-ex3').value.trim(),
-                extra4: document.getElementById('edit-std-ex4').value.trim(),
-                extra5: document.getElementById('edit-std-ex5').value.trim(),
-            };
+    window.toggleSeat = function (roomName, seatId) {
+        const room = DataManager.getClassrooms().find(r => r.name === roomName);
+        if (!room) return;
+        if (!room.disabledSeats) room.disabledSeats = [];
+        if (room.disabledSeats.includes(seatId)) {
+            room.disabledSeats = room.disabledSeats.filter(id => id !== seatId);
+        } else {
+            room.disabledSeats.push(seatId);
         }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            data.students[studentIndex] = { ...data.students[studentIndex], ...result.value };
-            DataManager._saveData(data);
-            document.querySelector('[data-tab="classLists"]').click();
-            Swal.fire('Başarılı', 'Öğrenci bilgileri güncellendi.', 'success');
-        }
-    });
-};
+        DataManager.addClassroom(room);
+        window.updateClassroomsList();
+    };
 
-window.updateDeskPos = function (roomName, pos) {
-    const room = DataManager.getClassrooms().find(r => r.name === roomName);
-    if (!room) return;
-    room.teacherDeskPos = pos;
-    DataManager.addClassroom(room);
-    window.updateClassroomsList();
-};
+    window.updateClassroomsList = updateClassroomsList;
 
-window.toggleSeat = function (roomName, seatId) {
-    const room = DataManager.getClassrooms().find(r => r.name === roomName);
-    if (!room) return;
-    if (!room.disabledSeats) room.disabledSeats = [];
-    if (room.disabledSeats.includes(seatId)) {
-        room.disabledSeats = room.disabledSeats.filter(id => id !== seatId);
-    } else {
-        room.disabledSeats.push(seatId);
-    }
-    DataManager.addClassroom(room);
-    window.updateClassroomsList();
-};
+    // --- 13. Student Code Guide ---
+    window.showStudentCodeGuide = function (targetInputId) {
+        const inputEl = document.getElementById(targetInputId);
+        if (!inputEl) return;
 
-window.updateClassroomsList = updateClassroomsList;
+        const currentVal = inputEl.value.toUpperCase();
+        const hasC = currentVal.split(/[,\s]+/).includes('C');
+        const hasH = currentVal.split(/[,\s]+/).includes('H');
 
-// --- 13. Student Code Guide ---
-window.showStudentCodeGuide = function (targetInputId) {
-    const inputEl = document.getElementById(targetInputId);
-    if (!inputEl) return;
-
-    const currentVal = inputEl.value.toUpperCase();
-    const hasC = currentVal.split(/[,\s]+/).includes('C');
-    const hasH = currentVal.split(/[,\s]+/).includes('H');
-
-    Swal.fire({
-        title: 'Öğrenci Kod Rehberi',
-        html: `
+        Swal.fire({
+            title: 'Öğrenci Kod Rehberi',
+            html: `
     <div style="text-align: left; padding: 1rem;">
                     <p style="margin-bottom: 1.5rem; color: var(--gray-600);">Özel durumları hızlıca eklemek için yanlarındaki kutucukları işaretleyebilirsiniz:</p>
                     
@@ -5617,31 +5533,31 @@ window.showStudentCodeGuide = function (targetInputId) {
                     </div>
                 </div>
     `,
-        didOpen: () => {
-            const chkC = document.getElementById('guide-chk-c');
-            const chkH = document.getElementById('guide-chk-h');
+            didOpen: () => {
+                const chkC = document.getElementById('guide-chk-c');
+                const chkH = document.getElementById('guide-chk-h');
 
-            const updateInput = (code, checked) => {
-                let tags = inputEl.value.split(/[,\s]+/).map(t => t.trim().toUpperCase()).filter(t => t);
-                if (checked) {
-                    if (!tags.includes(code)) tags.push(code);
-                } else {
-                    tags = tags.filter(t => t !== code);
-                }
-                inputEl.value = tags.join(', ');
-            };
+                const updateInput = (code, checked) => {
+                    let tags = inputEl.value.split(/[,\s]+/).map(t => t.trim().toUpperCase()).filter(t => t);
+                    if (checked) {
+                        if (!tags.includes(code)) tags.push(code);
+                    } else {
+                        tags = tags.filter(t => t !== code);
+                    }
+                    inputEl.value = tags.join(', ');
+                };
 
-            chkC.addEventListener('change', (e) => updateInput('C', e.target.checked));
-            chkH.addEventListener('change', (e) => updateInput('H', e.target.checked));
-        },
-        confirmButtonText: 'Tamam',
-        confirmButtonColor: 'var(--primary)',
-        showCloseButton: true,
-        width: '500px'
-    });
-};
+                chkC.addEventListener('change', (e) => updateInput('C', e.target.checked));
+                chkH.addEventListener('change', (e) => updateInput('H', e.target.checked));
+            },
+            confirmButtonText: 'Tamam',
+            confirmButtonColor: 'var(--primary)',
+            showCloseButton: true,
+            width: '500px'
+        });
+    };
 
-initializeNavigation();
+    initializeNavigation();
 
 });
 
