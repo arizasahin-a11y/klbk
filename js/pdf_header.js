@@ -349,8 +349,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const drawH = Math.max(oh, targetH);
         const drawW = ow + extraW;
         const drawX = ox;
-        // Başlık 2 mm aşağı (5.67 pt)
-        const drawY = height - margin - strokeOffset - (drawH - 2.835 * sf) - (5.67 * sf);
+        // Başlık 2 mm yukarı (Original was 2mm down, so we remove the -5.67 offset)
+        const drawY = height - margin - strokeOffset - (drawH - 2.835 * sf);
 
         try {
             const headerBytes = await window.getFileBytes('ata_header_v3.png');
@@ -360,21 +360,22 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             }
         } catch (e) { console.warn("Ata header v3 load failed", e); }
 
-        // Yazıları Ayarla: sağdan soldan 1 cm daralt (toplam 2cm)
-        const textNarrow = 2.0 * cmToPt * sf;
+        // Yazıları Ayarla: sağdan soldan yarımşar cm daha daralt (Toplam 3 cm daraltılmış alan)
+        const textNarrow = 3.0 * cmToPt * sf;
         const textUp = 1 * cmToPt * sf;
         const contentMidW = ow - 100 * sf - textNarrow;
         const contentX = ox + 50 * sf + (textNarrow / 2);
-        const contentBaseY = drawY + (drawH * 0.15) + textUp;
+        // İçerikleri (2. satır vb) 2 mm daha yukarı (5.67 pt) taşı
+        const contentBaseY = drawY + (drawH * 0.15) + textUp + (5.67 * sf);
 
-        // Okul adını 3mm (8.5pt) yukarı taşı (13.5 + 8.5 ~= 22)
+        // Okul adını yukarı taşı (Baseline + offset)
         drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 22 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
         drawCenterText(examText, contentX, contentBaseY, contentMidW, row2H, getFitSize(examText, contentMidW, 13), mainFont);
 
         // Yatay Çizgi: 2. satırın altına, kenarlardan 3cm uzaklıkta
         const lineX1 = 3 * cmToPt * sf;
         const lineX2 = width - 3 * cmToPt * sf;
-        const lineY = contentBaseY - 5 * sf + (5.67 * sf);
+        const lineY = contentBaseY - 5 * sf;
         page.drawLine({ start: { x: lineX1, y: lineY }, end: { x: lineX2, y: lineY }, thickness: 0.5 * sf, color: rgb(0, 0, 0) });
 
         const gc = rgb(0.8, 0.8, 0.8);
