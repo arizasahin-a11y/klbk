@@ -2653,7 +2653,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             const metadata = ses.subjectMetadata || {};
             const mergedPdf = await PDFDocument.create();
 
-            // v5.0 Font Embedding
+            // v5.0 Font Embedding & Fetching
+            if (!window._cachedFonts) window._cachedFonts = {};
+            if (!window._cachedFonts.main) {
+                try {
+                    const bytes = await window.getFileBytes('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf');
+                    if (bytes && bytes.byteLength > 1000) window._cachedFonts.main = bytes;
+                } catch (e) { console.warn('Main font fetch failed'); }
+            }
+            if (!window._cachedFonts.nameFont || !window._cachedFonts.schoolFont) {
+                try {
+                    const bytes = await window.getFileBytes('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf');
+                    if (bytes && bytes.byteLength > 1000) {
+                        if (!window._cachedFonts.nameFont) window._cachedFonts.nameFont = bytes;
+                        if (!window._cachedFonts.schoolFont) window._cachedFonts.schoolFont = bytes;
+                    }
+                } catch (e) { }
+            }
+
             if (typeof fontkit !== 'undefined') mergedPdf.registerFontkit(fontkit);
             const fallbackFont = await mergedPdf.embedFont(pdfLib.StandardFonts.HelveticaBold);
             let mainFont = null, nameFont = null, schoolFont = null;
@@ -2917,9 +2934,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const sf = options.sf || 1;
 
         const customFont = mainFont;
+        const reflectsStandard = (f) => f && (f.name === 'Helvetica' || f.name === 'Helvetica-Bold' || f.name === 'Times-Roman' || f.name === 'Times-Bold' || f.name === 'Courier' || f.name === 'Courier-Bold');
         const cleanTurkishChars = (text) => {
             if (!text) return '';
-            if (customFont) return text;
+            // Only skip cleaning if we have a non-standard (embedded) font
+            if (customFont && !reflectsStandard(customFont)) return text;
             return text
                 .replace(/\u0130/g, 'I').replace(/\u0131/g, 'i')
                 .replace(/\u011e/g, 'G').replace(/\u011f/g, 'g')
