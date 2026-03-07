@@ -966,6 +966,26 @@
             }
         };
 
+        const finalizeAndPrint = (blobUrl, finalize, resolve) => {
+            const iframe = document.createElement('iframe');
+            Object.assign(iframe.style, {
+                position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
+            });
+            iframe.src = blobUrl;
+            document.body.appendChild(iframe);
+
+            iframe.onload = () => {
+                setTimeout(() => {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                    setTimeout(() => {
+                        if (blobUrl.startsWith('blob:')) URL.revokeObjectURL(blobUrl);
+                        finalize(iframe);
+                    }, 30000);
+                }, 3000); // 3s delay for safety
+            };
+        };
+
         window.printFile = function (path, studentInfo = null, session = null, options = {}) {
             if (!path) return Promise.resolve();
             return new Promise((resolve) => {
@@ -996,6 +1016,12 @@
 
             try {
                 const pdfBytes = await window.getFileBytes(printPath);
+
+                // Skip processing if already blob and no info
+                if (printPath.startsWith('blob:') && (!info || Object.keys(info).length === 0)) {
+                    return finalizeAndPrint(printPath, finalize, resolve);
+                }
+
                 const { PDFDocument } = PDFLib;
                 const pdfDoc = await PDFDocument.load(pdfBytes);
 
@@ -1018,24 +1044,23 @@
                 const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
                 const blobUrl = URL.createObjectURL(blob);
 
+                finalizeAndPrint(blobUrl, finalize, resolve);
+            } catch (e) {
+                console.error("PDF Overlay Error:", e);
+                // Fallback
                 const iframe = document.createElement('iframe');
                 Object.assign(iframe.style, {
                     position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
                 });
-                iframe.src = blobUrl;
+                iframe.src = printPath;
                 document.body.appendChild(iframe);
-
                 iframe.onload = () => {
                     setTimeout(() => {
                         iframe.contentWindow.focus();
                         iframe.contentWindow.print();
-                        setTimeout(() => { URL.revokeObjectURL(blobUrl); finalize(iframe); }, 30000);
+                        setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); finalize(null); }, 30000);
                     }, 3000); // 3s delay for safety
                 };
-            } catch (e) {
-                console.error("PDF Overlay Error:", e);
-                window.open(printPath, '_blank');
-                finalize(null);
             }
         };
 
@@ -1095,8 +1120,18 @@
                     if (printPath.match(/^[a-zA-Z]:\\/) || printPath.match(/^[a-zA-Z]:\//)) printPath = 'file:///' + printPath.replace(/\\/g, '/');
 
                     try {
-                        const bytes = await window.getFileBytes(printPath);
-                        const studentPdf = await PDFDocument.load(bytes);
+                        if (!window._pdfTemplateCache) window._pdfTemplateCache = {};
+                        let studentPdf;
+                        try {
+                            if (window._pdfTemplateCache[printPath]) {
+                                studentPdf = await PDFDocument.load(window._pdfTemplateCache[printPath]);
+                            } else {
+                                const bytes = await window.getFileBytes(printPath);
+                                window._pdfTemplateCache[printPath] = bytes;
+                                studentPdf = await PDFDocument.load(bytes);
+                            }
+                        } catch (e) { console.error("PDF Template Load Error:", printPath, e); continue; }
+
                         const pages = await mergedPdf.copyPages(studentPdf, studentPdf.getPageIndices());
 
                         const studentInfo = {
@@ -1119,19 +1154,9 @@
                 const blobUrl = URL.createObjectURL(blob);
                 Swal.close();
 
-                const iframe = document.createElement('iframe');
-                Object.assign(iframe.style, {
-                    position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
-                });
-                iframe.src = blobUrl;
-                document.body.appendChild(iframe);
-                iframe.onload = () => {
-                    setTimeout(() => {
-                        iframe.contentWindow.focus();
-                        iframe.contentWindow.print();
-                        setTimeout(() => { URL.revokeObjectURL(blobUrl); if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 30000);
-                    }, 3000); // 3s delay for safety
-                };
+                finalizeAndPrint(blobUrl, (ifrm) => {
+                    if (document.body.contains(ifrm)) document.body.removeChild(ifrm);
+                }, null);
             } catch (err) {
                 console.error("Batch Merge Error:", err);
                 Swal.fire('Hata', 'Toplu PDF oluşturulurken hata: ' + err.message, 'error');

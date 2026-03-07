@@ -2949,11 +2949,37 @@ document.addEventListener('DOMContentLoaded', async () => {
             setTimeout(() => window._processPrintQueue(), 1000);
         };
 
+        const finalizeAndPrint = (blobUrl) => {
+            currentStep = "Yaz\u0131c\u0131ya gönderiliyor";
+            const iframe = document.createElement('iframe');
+            Object.assign(iframe.style, {
+                position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
+            });
+            iframe.src = blobUrl;
+            document.body.appendChild(iframe);
+
+            iframe.onload = () => {
+                setTimeout(() => {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                    setTimeout(() => {
+                        if (blobUrl.startsWith('blob:')) URL.revokeObjectURL(blobUrl);
+                        finalize(iframe);
+                    }, 30000); // Wait 30s to allow printer spooling
+                }, 3000); // Wait 3s for layout/images safety
+            };
+        };
+
         let currentStep = "Dosya haz\u0131rlan\u0131yor";
         try {
             // 1. Fetch PDF Bytes
             currentStep = "Soru ka\u011f\u0131d\u0131 okunuyor (" + path.split(/[\\\/]/).pop() + ")";
             const pdfBytes = await window.getFileBytes(printPath);
+
+            // OPTIMIZATION: If we already have a blob and NO info to overlay, skip processing
+            if (path.startsWith('blob:') && (!info || Object.keys(info).length === 0)) {
+                return await finalizeAndPrint(path);
+            }
 
             // 2. Load pdf-lib and Overlay
             currentStep = "PDF i\u015fleniyor";
@@ -3046,29 +3072,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
             const blobUrl = URL.createObjectURL(blob);
 
-            // 3. Print
-            currentStep = "Yaz\u0131c\u0131ya gönderiliyor";
-            const iframe = document.createElement('iframe');
-            Object.assign(iframe.style, {
-                position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
-            });
-            iframe.src = blobUrl;
-            document.body.appendChild(iframe);
-
-            iframe.onload = () => {
-                setTimeout(() => {
-                    iframe.contentWindow.focus();
-                    iframe.contentWindow.print();
-                    setTimeout(() => {
-                        URL.revokeObjectURL(blobUrl);
-                        finalize(iframe);
-                    }, 30000); // Wait 30s to allow printer spooling for many pages
-                }, 3000); // Wait 3s for layout/images in the PDF (increased for safety)
-            };
-
-            return; // Successfully printed, prevent fallback mechanism
+            return await finalizeAndPrint(blobUrl);
 
         } catch (e) {
+            // ... (rest of error handler)
             console.error("PDF Overlay Error:", e);
 
             let htmlMsg = `<div style="text-align:left; font-size:0.95rem;">
@@ -3109,7 +3116,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         iframe.onload = () => {
             if (fallbackResolved) return; fallbackResolved = true;
             try {
-                iframe.contentWindow.print();
+                setTimeout(() => {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                }, 3000); // Wait 3s for layout safety (Consistent with main flow)
             } catch (err) {
                 console.warn("Iframe Print failed, attempting window.open...", err);
                 try {
@@ -3720,9 +3730,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (!path) continue;
                     let printPath = path;
                     if (printPath.match(/^[a-zA-Z]:\\/) || printPath.match(/^[a-zA-Z]:\//)) printPath = 'file:///' + printPath.replace(/\\/g, '/');
-                    const bytes = await window.getFileBytes(printPath);
-                    const studentPdf = await PDFDocument.load(bytes);
+
+                    if (!window._pdfTemplateCache) window._pdfTemplateCache = {};
+                    let studentPdf;
+                    try {
+                        if (window._pdfTemplateCache[printPath]) {
+                            studentPdf = await PDFDocument.load(window._pdfTemplateCache[printPath]);
+                        } else {
+                            const bytes = await window.getFileBytes(printPath);
+                            window._pdfTemplateCache[printPath] = bytes;
+                            studentPdf = await PDFDocument.load(bytes);
+                        }
+                    } catch (e) { console.error("PDF Template Load Error:", printPath, e); continue; }
+
                     const pages = await mergedPdf.copyPages(studentPdf, studentPdf.getPageIndices());
+
                     const studentInfo = {
                         no: s.no, name: s.name, class: s.class, room: s.room,
                         seat: s.seatNum || s.seat || '-', subject: subName, group: groupLabel_s,
