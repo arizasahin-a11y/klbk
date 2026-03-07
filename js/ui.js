@@ -2874,49 +2874,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     window._cachedFont = null;
 
     // Robust file fetcher for local file:/// stability
+    // Robust file fetcher with caching
     window.getFileBytes = async function (url) {
-        // Bypass browser cache for Supabase to avoid CORS blocking from cached incomplete headers
+        if (!window._fileBytesCache) window._fileBytesCache = {};
+        if (window._fileBytesCache[url]) return window._fileBytesCache[url];
+
+        // Bypass browser cache ONLY for Supabase if needed, but we prefer our own internal cache for efficiency
         let fetchUrl = url;
         if (url.includes('supabase.co')) {
             fetchUrl += (url.includes('?') ? '&' : '?') + 'cb=' + Date.now();
         }
 
-        try {
-            const res = await fetch(fetchUrl, { mode: 'cors', cache: 'no-store' });
-            if (res.ok) {
-                return await res.arrayBuffer();
-            } else {
-                console.warn(`Fetch returned ${res.status} for ${fetchUrl}`);
-            }
-        } catch (e) {
-            console.warn("Fetch failed (likely CORS), trying XHR for", fetchUrl);
-        }
-
-        return new Promise((resolve, reject) => {
+        const fetchAndStore = async () => {
             try {
+                const res = await fetch(fetchUrl, { mode: 'cors', cache: 'no-store' });
+                if (res.ok) {
+                    const buffer = await res.arrayBuffer();
+                    window._fileBytesCache[url] = buffer;
+                    return buffer;
+                }
+            } catch (e) { }
+
+            return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 xhr.open('GET', fetchUrl, true);
                 xhr.responseType = 'arraybuffer';
-                // Try to force cache bypass on XHR too
-                xhr.setRequestHeader('Cache-Control', 'no-cache');
-                xhr.onload = function () {
-                    if (this.status === 200 || (this.status === 0 && this.response && this.response.byteLength > 0)) {
-                        resolve(this.response);
-                    } else {
-                        reject(new Error(`Okuma hatası: ${this.status}`));
-                    }
+                xhr.onload = () => {
+                    if (xhr.status === 200) {
+                        window._fileBytesCache[url] = xhr.response;
+                        resolve(xhr.response);
+                    } else reject(new Error("XHR failed"));
                 };
-                xhr.onerror = () => {
-                    if (url.includes('http')) {
-                        reject(new Error("CORS Hatası: Sunucu PDF dosyasının okunmasına izin vermiyor. Lütfen yeni sekmede açarak yazdırın."));
-                    } else {
-                        reject(new Error("Bağlantı/Güvenlik hatası. Tarayıcı yerel dosyaya erişimi engelliyor olabilir."));
-                    }
-                };
+                xhr.onerror = () => reject(new Error("XHR error"));
                 xhr.send();
-            } catch (e) { reject(e); }
-        });
+            });
+        };
+
+        try {
+            return await fetchAndStore();
+        } catch (err) {
+            console.error("getFileBytes failed for", url, err);
+            return null;
+        }
     };
+
 
     window.printFile = function (path, studentInfo = null) {
         if (!path) return Promise.resolve();
@@ -3062,7 +3063,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         URL.revokeObjectURL(blobUrl);
                         finalize(iframe);
                     }, 30000); // Wait 30s to allow printer spooling for many pages
-                }, 2000); // Wait 2s for layout/images in the PDF
+                }, 3000); // Wait 3s for layout/images in the PDF (increased for safety)
             };
 
             return; // Successfully printed, prevent fallback mechanism
@@ -3705,6 +3706,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const mergedPdf = await PDFDocument.create();
                 if (fontkit) mergedPdf.registerFontkit(fontkit);
                 const fonts = await loadRequiredFonts(mergedPdf);
+                const imageCache = {}; // Local image cache for this merged document
+
                 for (let i = 0; i < targetStudents.length; i++) {
                     const s = targetStudents[i];
                     const progressEl = document.getElementById('batch-progress');
@@ -3729,7 +3732,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const { width, height } = firstPage.getSize();
                     const A4_W = 595.28, A4_H = 841.89;
                     const sf = 1 / Math.min(A4_W / width, A4_H / height);
-                    await window.renderStudentPDFHeader(mergedPdf, firstPage, studentInfo, { ...fonts, sf, metadata: meta });
+                    await window.renderStudentPDFHeader(mergedPdf, firstPage, studentInfo, { ...fonts, sf, metadata: meta, imageCache });
                     pages.forEach(p => mergedPdf.addPage(p));
                 }
                 const mergedBytes = await mergedPdf.save();

@@ -146,7 +146,13 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         try {
             const bytes = await window.getFileBytes(school.logo);
             if (!bytes) return;
-            const img = school.logo.toLowerCase().endsWith('.png') ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
+            let img;
+            if (options.imageCache && options.imageCache[school.logo]) {
+                img = options.imageCache[school.logo];
+            } else {
+                img = school.logo.toLowerCase().endsWith('.png') ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
+                if (options.imageCache) options.imageCache[school.logo] = img;
+            }
             page.drawImage(img, { x: lx, y: ly, width: dim, height: dim });
         } catch (e) { }
     };
@@ -353,9 +359,16 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const drawY = height - margin - strokeOffset - (drawH - 2.835 * sf);
 
         try {
-            const headerBytes = await window.getFileBytes('ata_header_v3.png');
+            const headerUrl = 'ata_header_v3.png';
+            const headerBytes = await window.getFileBytes(headerUrl);
             if (headerBytes) {
-                const headerImg = await pdfDoc.embedPng(headerBytes);
+                let headerImg;
+                if (options.imageCache && options.imageCache[headerUrl]) {
+                    headerImg = options.imageCache[headerUrl];
+                } else {
+                    headerImg = await pdfDoc.embedPng(headerBytes);
+                    if (options.imageCache) options.imageCache[headerUrl] = headerImg;
+                }
                 page.drawImage(headerImg, { x: drawX, y: drawY, width: drawW, height: drawH });
             }
         } catch (e) { console.warn("Ata header v3 load failed", e); }

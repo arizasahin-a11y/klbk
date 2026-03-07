@@ -923,20 +923,47 @@
         window._isProcessingPrint = false;
         window._cachedFonts = {};
 
+        // Robust file fetcher with caching
         window.getFileBytes = async function (url) {
-            return new Promise((resolve, reject) => {
+            if (!window._fileBytesCache) window._fileBytesCache = {};
+            if (window._fileBytesCache[url]) return window._fileBytesCache[url];
+
+            let fetchUrl = url;
+            if (url.includes('supabase.co')) {
+                fetchUrl += (url.includes('?') ? '&' : '?') + 'cb=' + Date.now();
+            }
+
+            const fetchAndStore = async () => {
                 try {
+                    const res = await fetch(fetchUrl, { mode: 'cors', cache: 'no-store' });
+                    if (res.ok) {
+                        const buffer = await res.arrayBuffer();
+                        window._fileBytesCache[url] = buffer;
+                        return buffer;
+                    }
+                } catch (e) { }
+
+                return new Promise((resolve, reject) => {
                     const xhr = new XMLHttpRequest();
-                    xhr.open("GET", url, true);
-                    xhr.responseType = "arraybuffer";
+                    xhr.open('GET', fetchUrl, true);
+                    xhr.responseType = 'arraybuffer';
                     xhr.onload = () => {
-                        if (xhr.status === 200) resolve(new Uint8Array(xhr.response));
-                        else reject(new Error(`HTTP ${xhr.status}: ${url}`));
+                        if (xhr.status === 200) {
+                            window._fileBytesCache[url] = xhr.response;
+                            resolve(xhr.response);
+                        } else reject(new Error("XHR failed"));
                     };
-                    xhr.onerror = () => reject(new Error(`Network error: ${url}`));
+                    xhr.onerror = () => reject(new Error("XHR error"));
                     xhr.send();
-                } catch (e) { reject(e); }
-            });
+                });
+            };
+
+            try {
+                return await fetchAndStore();
+            } catch (err) {
+                console.error("getFileBytes failed for", url, err);
+                return null;
+            }
         };
 
         window.printFile = function (path, studentInfo = null, session = null, options = {}) {
@@ -1003,7 +1030,7 @@
                         iframe.contentWindow.focus();
                         iframe.contentWindow.print();
                         setTimeout(() => { URL.revokeObjectURL(blobUrl); finalize(iframe); }, 30000);
-                    }, 2000);
+                    }, 3000); // 3s delay for safety
                 };
             } catch (e) {
                 console.error("PDF Overlay Error:", e);
@@ -1049,6 +1076,7 @@
                 const mergedPdf = await PDFDocument.create();
                 if (typeof fontkit !== 'undefined') mergedPdf.registerFontkit(fontkit);
                 const fonts = await loadRequiredFonts(mergedPdf);
+                const imageCache = {}; // Local image cache
                 const metadata = session.subjectMetadata || {};
 
                 for (let i = 0; i < targetStudents.length; i++) {
@@ -1080,7 +1108,7 @@
                         const { width, height } = firstPage.getSize();
                         const A4_W = 595.28, A4_H = 841.89;
                         const sf = 1 / Math.min(A4_W / width, A4_H / height);
-                        await window.renderStudentPDFHeader(mergedPdf, firstPage, studentInfo, { ...fonts, sf, session, metadata: meta });
+                        await window.renderStudentPDFHeader(mergedPdf, firstPage, studentInfo, { ...fonts, sf, session, metadata: meta, imageCache });
 
                         pages.forEach(p => mergedPdf.addPage(p));
                     } catch (e) { console.error("Paper load error", path, e); }
@@ -1093,7 +1121,7 @@
 
                 const iframe = document.createElement('iframe');
                 Object.assign(iframe.style, {
-                    position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.01', pointerEvents: 'none'
+                    position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
                 });
                 iframe.src = blobUrl;
                 document.body.appendChild(iframe);
@@ -1102,7 +1130,7 @@
                         iframe.contentWindow.focus();
                         iframe.contentWindow.print();
                         setTimeout(() => { URL.revokeObjectURL(blobUrl); if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 30000);
-                    }, 2000);
+                    }, 3000); // 3s delay for safety
                 };
             } catch (err) {
                 console.error("Batch Merge Error:", err);
