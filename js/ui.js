@@ -3049,7 +3049,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentStep = "Yaz\u0131c\u0131ya gönderiliyor";
             const iframe = document.createElement('iframe');
             Object.assign(iframe.style, {
-                position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0', visibility: 'hidden'
+                position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0', pointerEvents: 'none'
             });
             iframe.src = blobUrl;
             document.body.appendChild(iframe);
@@ -3098,7 +3098,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Fallback or Original Print
         const iframe = document.createElement('iframe');
         iframe.src = printPath;
-        iframe.style.display = 'none';
+        Object.assign(iframe.style, {
+            position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0', pointerEvents: 'none'
+        });
         document.body.appendChild(iframe);
 
         let fallbackResolved = false;
@@ -3517,7 +3519,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     const printFrame = document.createElement('iframe');
                     Object.assign(printFrame.style, {
-                        position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0', visibility: 'hidden'
+                        position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0', pointerEvents: 'none'
                     });
                     printFrame.src = sumUrl;
                     document.body.appendChild(printFrame);
@@ -3865,7 +3867,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     page-break-after: always; 
                     display: flex; 
                     flex-direction: column;
-                    overflow: hidden;
+                    overflow: visible;
                     position: relative;
                 }
                 .page:last-child { page-break-after: avoid; }
@@ -3890,7 +3892,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .msg-box .icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; background: #ef4444; color: white; border-radius: 50%; margin-right: 10px; font-size: 14px; }
 
                 /* Seating schema centering */
-                .schema-container { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 10px; overflow: hidden; }
+                .schema-container { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 10px; overflow: visible; }
                 .classroom-walls { 
                     border: 4px solid #334155; padding: 35px; border-radius: 24px; background: #fff;
                     display: inline-block; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.08);

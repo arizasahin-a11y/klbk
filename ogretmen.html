@@ -992,7 +992,9 @@
                 const blobUrl = URL.createObjectURL(blob);
 
                 const iframe = document.createElement('iframe');
-                Object.assign(iframe.style, { position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0', visibility: 'hidden' });
+                Object.assign(iframe.style, {
+                    position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0', pointerEvents: 'none'
+                });
                 iframe.src = blobUrl;
                 document.body.appendChild(iframe);
 
@@ -1090,7 +1092,9 @@
                 Swal.close();
 
                 const iframe = document.createElement('iframe');
-                Object.assign(iframe.style, { position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0', visibility: 'hidden' });
+                Object.assign(iframe.style, {
+                    position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0', pointerEvents: 'none'
+                });
                 iframe.src = blobUrl;
                 document.body.appendChild(iframe);
                 iframe.onload = () => {

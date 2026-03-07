@@ -463,9 +463,13 @@
 }
 
 @media print {
+
+    html,
     body {
         background: white !important;
         font-size: 10pt;
+        overflow: visible !important;
+        height: auto !important;
     }
 
     .sidebar,
@@ -481,15 +485,20 @@
         display: block !important;
         height: auto !important;
         padding: 0 !important;
+        overflow: visible !important;
     }
 
     .main-content {
+        display: block !important;
+        height: auto !important;
         padding: 0 !important;
         gap: 0 !important;
         overflow: visible !important;
     }
 
     .views-wrapper {
+        display: block !important;
+        height: auto !important;
         overflow: visible !important;
     }
 
