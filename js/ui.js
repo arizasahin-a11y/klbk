@@ -3638,10 +3638,35 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
+            // PAPER STATUS CHECK
+            const metadata = session.subjectMetadata || {};
+            const missing = new Set();
+            const loaded = new Set();
+            session.results.forEach(room => {
+                Object.values(room.seats || {}).forEach(s => {
+                    const sub = s._matchedSubject || '-';
+                    if (sub === '-') return;
+                    const meta = metadata[sub] || {};
+                    const papers = meta.papers || {};
+                    const hasPaper = typeof papers === 'string' ? papers.trim().length > 0 : Object.values(papers).some(p => p && p.trim().length > 0);
+                    if (hasPaper) loaded.add(sub);
+                    else missing.add(sub);
+                });
+            });
+
+            let statusHtml = '';
+            if (missing.size > 0 || loaded.size > 0) {
+                statusHtml = '<div style="text-align:left; font-size:0.85rem; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0; margin:10px 0;">';
+                statusHtml += '<div style="font-weight:900; color:var(--primary); margin-bottom:8px; border-bottom:1px solid #e2e8f0; padding-bottom:4px;">Soru Kağıdı Durumu:</div>';
+                if (loaded.size > 0) statusHtml += `<div><b style="color:#16a34a;">Yüklü:</b> ${Array.from(loaded).sort().join(', ')}</div>`;
+                if (missing.size > 0) statusHtml += `<div style="margin-top:5px;"><b style="color:var(--danger);">EKSİK:</b> ${Array.from(missing).sort().join(', ')}</div>`;
+                statusHtml += '</div>';
+            }
+
             // 2. Ask for Mode
             const result = await Swal.fire({
                 title: 'Toplu Yazdırma Başlatılsın mı?',
-                html: `<b>${groups.length}</b> adet ${mode === 'class' ? 'sınıf' : 'salon'} grubu sırayla yazdırılacak.<br><br>Yazdırma yöntemini seçin:`,
+                html: `<b>${groups.length}</b> adet ${mode === 'class' ? 'sınıf' : 'salon'} grubu sırayla yazdırılacak.${statusHtml ? statusHtml : ''}<br>Yazdırma yöntemini seçin:`,
                 icon: 'question',
                 showDenyButton: true,
                 showCancelButton: true,
@@ -3703,9 +3728,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // If bulk export (Class/Room level paper check) is on, ask for Print vs ZIP
         if (isBulkExportChecked && !forcePrintPapers) {
+            // PAPER STATUS CHECK for this group
+            const metadata = session.subjectMetadata || {};
+            const missing = new Set();
+            const loaded = new Set();
+            session.results.forEach(room => {
+                Object.values(room.seats || {}).forEach(s => {
+                    if (mode === 'class' && s.class !== filterValue) return;
+                    if (mode === 'room' && room.name !== filterValue) return;
+                    const sub = s._matchedSubject || '-';
+                    if (sub === '-') return;
+                    const meta = metadata[sub] || {};
+                    const papers = meta.papers || {};
+                    const hasPaper = typeof papers === 'string' ? papers.trim().length > 0 : Object.values(papers).some(p => p && p.trim().length > 0);
+                    if (hasPaper) loaded.add(sub);
+                    else missing.add(sub);
+                });
+            });
+
+            let statusHtml = '';
+            if (missing.size > 0 || loaded.size > 0) {
+                statusHtml = '<div style="text-align:left; font-size:0.85rem; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0; margin:10px 0;">';
+                if (loaded.size > 0) statusHtml += `<div><b style="color:#16a34a;">Yüklü:</b> ${Array.from(loaded).sort().join(', ')}</div>`;
+                if (missing.size > 0) statusHtml += `<div style="margin-top:5px;"><b style="color:var(--danger);">EKSİK:</b> ${Array.from(missing).sort().join(', ')}</div>`;
+                statusHtml += '</div>';
+            }
+
             const choiceResult = await Swal.fire({
                 title: 'Yazdırma Seçeneği',
-                html: `<b>${filterValue}</b> için soru kağıtları ne yapılsın?`,
+                html: `<b>${filterValue}</b> için soru kağıtları ne yapılsın?${statusHtml}`,
                 icon: 'question',
                 showDenyButton: true,
                 showCancelButton: true,

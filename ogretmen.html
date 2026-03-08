@@ -1272,6 +1272,53 @@
                     return;
                 }
 
+                // PAPER STATUS CHECK
+                const metadata = session.subjectMetadata || {};
+                const missing = new Set();
+                const loaded = new Set();
+                allStudents.forEach(s => {
+                    const sub = s._matchedSubject || '-';
+                    if (sub === '-') return;
+                    const meta = metadata[sub] || {};
+                    const papers = meta.papers || {};
+                    const hasPaper = typeof papers === 'string' ? papers.trim().length > 0 : Object.values(papers).some(p => p && p.trim().length > 0);
+                    if (hasPaper) loaded.add(sub);
+                    else missing.add(sub);
+                });
+
+                if (missing.size > 0 || loaded.size > 0) {
+                    let statusHtml = '<div style="text-align:left; font-size:0.9rem; background:#f8fafc; padding:15px; border-radius:10px; border:1px solid #e2e8f0; margin-top:10px;">';
+                    statusHtml += '<div style="font-weight:900; color:var(--primary); margin-bottom:10px; border-bottom:1px solid #e2e8f0; padding-bottom:5px;">Soru Kağıdı Yüklenme Durumu:</div>';
+
+                    if (loaded.size > 0) {
+                        statusHtml += '<div style="margin-bottom:8px;"><b>Hazır Olanlar:</b><br>';
+                        Array.from(loaded).sort().forEach(sub => {
+                            statusHtml += `<div style="color:#16a34a; margin-left:5px;"><i class="fa-solid fa-check-circle"></i> ${sub}</div>`;
+                        });
+                        statusHtml += '</div>';
+                    }
+
+                    if (missing.size > 0) {
+                        statusHtml += '<div><b style="color:var(--danger);">EKSİK OLANLAR:</b><br>';
+                        Array.from(missing).sort().forEach(sub => {
+                            statusHtml += `<div style="color:var(--danger); margin-left:5px;"><i class="fa-solid fa-triangle-exclamation"></i> ${sub}</div>`;
+                        });
+                        statusHtml += '</div>';
+                    }
+                    statusHtml += '</div><div style="margin-top:15px; font-weight:600;">Toplu yazdırma başlatılsın mı?</div>';
+
+                    const confirm = await Swal.fire({
+                        title: 'Soru Kağıdı Kontrolü',
+                        html: statusHtml,
+                        icon: missing.size > 0 ? 'warning' : 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Evet, Yazdır',
+                        cancelButtonText: 'İptal',
+                        confirmButtonColor: missing.size > 0 ? '#ea580c' : '#4f46e5'
+                    });
+                    if (!confirm.isConfirmed) return;
+                }
+
                 await printPapersForGroupBatch(allStudents, session, "Soru Kağıtları");
                 return; // Exit, don't print normal lists
             }
