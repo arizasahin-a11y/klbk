@@ -1163,21 +1163,8 @@
                 const blobUrl = URL.createObjectURL(blob);
                 Swal.close();
 
-                if (targetStudents.length > 20) {
-                    const win = window.open(blobUrl, '_blank');
-                    if (win) {
-                        Swal.fire({
-                            title: 'Büyük Dosya Hazır',
-                            text: 'Dosya boyutu nedeniyle yeni sekmede açıldı. Lütfen oradan yazdırın.',
-                            icon: 'success',
-                            confirmButtonColor: '#4f46e5'
-                        });
-                    } else {
-                        Swal.fire('Uyarı', 'Pop-up engelleyici yeni sekmeyi engelledi.', 'warning');
-                    }
-                } else {
-                    window.finalizeAndPrint(blobUrl);
-                }
+                // Always open in new tab for maximum speed and browser compatibility
+                window.finalizeAndPrint(blobUrl);
 
                 // Clear template cache
                 window._pdfTemplateCache = {};

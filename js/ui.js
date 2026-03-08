@@ -2954,24 +2954,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     window.finalizeAndPrint = (blobUrl, onFinalize = null) => {
-        const iframe = document.createElement('iframe');
-        Object.assign(iframe.style, {
-            position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
-        });
-        iframe.src = blobUrl;
-        document.body.appendChild(iframe);
-
-        iframe.onload = () => {
-            setTimeout(() => {
-                iframe.contentWindow.focus();
-                iframe.contentWindow.print();
-                setTimeout(() => {
-                    if (blobUrl.startsWith('blob:')) URL.revokeObjectURL(blobUrl);
-                    if (iframe && document.body.contains(iframe)) document.body.removeChild(iframe);
-                    if (onFinalize) onFinalize();
-                }, 30000); // Wait 30s to allow printer spooling
-            }, 800); // Wait 0.8s for layout/images safety
-        };
+        const win = window.open(blobUrl, '_blank');
+        if (win) {
+            // New tab opened successfully
+            if (onFinalize) onFinalize();
+        } else {
+            Swal.fire({
+                title: 'Pop-up Engellendi',
+                text: 'Yazdırma sayfası yeni sekmede açılamadı. Lütfen tarayıcı ayarlarınızdan bu siteye pop-up izni verin.',
+                icon: 'warning',
+                confirmButtonColor: '#4f46e5'
+            });
+        }
     };
 
 
@@ -3752,22 +3746,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const blobUrl = URL.createObjectURL(blob);
                 Swal.close();
 
-                // If massive file (>20 students), open in new tab for reliability
-                if (targetStudents.length > 20) {
-                    const win = window.open(blobUrl, '_blank');
-                    if (win) {
-                        Swal.fire({
-                            title: 'Büyük Dosya Hazır',
-                            text: 'Dosya boyutu nedeniyle yeni sekmede açıldı. Lütfen oradan yazdırın.',
-                            icon: 'success',
-                            confirmButtonColor: '#4f46e5'
-                        });
-                    } else {
-                        Swal.fire('Uyarı', 'Pop-up engelleyici yeni sekmeyi engelledi. Lütfen izin verin.', 'warning');
-                    }
-                } else {
-                    window.finalizeAndPrint(blobUrl);
-                }
+                // Always open in new tab for maximum speed and browser compatibility
+                window.finalizeAndPrint(blobUrl);
 
                 // Clear temporary batch cache
                 window._pdfTemplateCache = {};
