@@ -349,14 +349,16 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     } else if (designType === '9') {
         // Atatürk Teması (v3 Görsel Çerçeve + Düzenlemeler)
         const cmToPt = 28.35;
-        const targetH = (3 * cmToPt + 2.835) * sf; // +1mm (2.835pt)
-        const extraW = 1.0 * cmToPt * sf;          // +0.5cm extra (total 1cm beyond original ow)
+        const targetH = (3 * cmToPt + 5.67) * sf; // +1mm extra height (Total 2mm above original)
+        const extraW = 1.0 * cmToPt * sf;
+        const shiftLeft = 5.67 * sf; // 2mm move to left
 
         const drawH = Math.max(oh, targetH);
-        const drawW = ow + extraW;
-        const drawX = ox;
-        // Başlık 2 mm yukarı (Original was 2mm down, so we remove the -5.67 offset)
-        const drawY = height - margin - strokeOffset - (drawH - 2.835 * sf);
+        const drawW = ow + extraW + shiftLeft;
+        const drawX = ox - shiftLeft;
+
+        // Keep bottom border at the previously adjusted position, expand top upward
+        const drawY = height - margin - strokeOffset - (drawH - 8.505 * sf);
 
         try {
             const headerUrl = 'ata_header_v3.png';
@@ -373,43 +375,41 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             }
         } catch (e) { console.warn("Ata header v3 load failed", e); }
 
-        // Yazıları Ayarla: sağdan soldan yarımşar cm daha daralt (Toplam 3 cm daraltılmış alan)
         const textNarrow = 3.0 * cmToPt * sf;
         const textUp = 1 * cmToPt * sf;
         const contentMidW = ow - 100 * sf - textNarrow;
         const contentX = ox + 50 * sf + (textNarrow / 2);
-        // İçerikleri (2. satır vb) 2 mm daha yukarı (5.67 pt) taşı
-        const contentBaseY = drawY + (drawH * 0.15) + textUp + (5.67 * sf);
 
-        // Okul adını 2mm aşağı indir (22 - 5.67 = 16.33)
-        drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 16.33 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
+        // Stabilized contentBaseY to keep text fixed while header grows up
+        const contentBaseY = drawY + (oh * 0.15) + textUp + (5.67 * sf);
+
+        // School name position: 1mm down relative to the content base
+        drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 13.5 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
         drawCenterText(examText, contentX, contentBaseY, contentMidW, row2H, getFitSize(examText, contentMidW, 13), mainFont);
 
-        // Yatay Çizgi: 2. satırın altına, kenarlardan 3cm uzaklıkta
-        const lineX1 = 3 * cmToPt * sf;
-        const lineX2 = width - 3 * cmToPt * sf;
+        // Yatay Çizgi: 1cm sola kaydır
+        const lineX1 = 2 * cmToPt * sf;
+        const lineX2 = width - 4 * cmToPt * sf;
         const lineY = contentBaseY - 5 * sf;
         page.drawLine({ start: { x: lineX1, y: lineY }, end: { x: lineX2, y: lineY }, thickness: 0.5 * sf, color: rgb(0, 0, 0) });
 
         const gc = rgb(0.8, 0.8, 0.8);
         if (info) {
-            // No kutusu sağa doğru küçültülsün (leftW artsın, midCol2W azalsın)
             const d9LeftW = leftW + 15 * sf;
             const d9MidCol2W = midCol2W - 15 * sf;
             const d9MidCol3W = midCol3W;
 
-            // Kutunun dikey çizgilerini çiz (Consistent 0.5 thickness)
+            // Kutunun dış sınırlarını ve iç çizgilerini aynı kalınlıkta (0.5) yap
+            page.drawRectangle({ x: ox, y: oy, width: ow, height: row3H, borderColor: gc, borderWidth: 0.5 * sf });
             drawDivs(ox, oy, d9LeftW, d9MidCol2W, d9MidCol3W, midCol4W, midCol5W, gc, 0.5 * sf);
 
-            // Puan yazısının soluna dikey çizgi
+            // Puan yazısının soluna dikey çizgi (YER kutusu sağındaki çizgi) - En üst sınıra kadar uzatıldı
             const scoreDivX = ox + leftW + midW;
-            page.drawLine({ start: { x: scoreDivX, y: oy }, end: { x: scoreDivX, y: oy + row3H }, thickness: 0.5 * sf, color: gc });
+            page.drawLine({ start: { x: scoreDivX, y: oy }, end: { x: scoreDivX, y: drawY + drawH }, thickness: 0.5 * sf, color: gc });
 
-            // SINIF başlığını ve sınıfı sağa yanaşık yaz
             drawRightText(lang.class, ox, oy + row3H - 8 * sf, d9LeftW, 8 * sf, 6, mainFont);
             drawRightText(info.class || '', ox, oy - 2 * sf, d9LeftW, row3H, 16, mainFont);
 
-            // Diğerlerini çiz (Class hariç manuel, d9LeftW/d9MidCol2W kullan)
             drawCenterText(lang.no, ox + d9LeftW, oy + row3H - 8 * sf, d9MidCol2W, 8 * sf, 6, mainFont);
             drawCenterText(info.no || '', ox + d9LeftW, oy - 2 * sf, d9MidCol2W, row3H, 12, mainFont);
             drawStudentName(ox + d9LeftW + d9MidCol2W, oy, d9MidCol3W, row3H);
