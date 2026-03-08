@@ -387,9 +387,9 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 13.5 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
         drawCenterText(examText, contentX, contentBaseY, contentMidW, row2H, getFitSize(examText, contentMidW, 13), mainFont);
 
-        // Yatay Çizgi: 1cm sola kaydır
-        const lineX1 = 2 * cmToPt * sf;
-        const lineX2 = width - 4 * cmToPt * sf;
+        // Yatay Çizgi: 1cm soldan + 3mm sağa kaydırılmış
+        const lineX1 = (2 * cmToPt + 8.505) * sf;
+        const lineX2 = (width - 4 * cmToPt + 8.505) * sf;
         const lineY = contentBaseY - 5 * sf;
         page.drawLine({ start: { x: lineX1, y: lineY }, end: { x: lineX2, y: lineY }, thickness: 0.5 * sf, color: rgb(0, 0, 0) });
 
@@ -399,13 +399,13 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             const d9MidCol2W = midCol2W - 15 * sf;
             const d9MidCol3W = midCol3W;
 
-            // Kutunun dış sınırlarını ve iç çizgilerini aynı kalınlıkta (0.5) yap
-            page.drawRectangle({ x: ox, y: oy, width: ow, height: row3H, borderColor: gc, borderWidth: 0.5 * sf });
+            // Alttaki boydan boya dikdörtgen kutuyu kaldırdık (drawRectangle silindi)
             drawDivs(ox, oy, d9LeftW, d9MidCol2W, d9MidCol3W, midCol4W, midCol5W, gc, 0.5 * sf);
 
-            // Puan yazısının soluna dikey çizgi (YER kutusu sağındaki çizgi) - En üst sınıra kadar uzatıldı
+            // Puan yazısının soluna dikey çizgi (YER kutusu sağındaki çizgi) - Üstten 3mm (8.5pt) kısaltıldı
             const scoreDivX = ox + leftW + midW;
-            page.drawLine({ start: { x: scoreDivX, y: oy }, end: { x: scoreDivX, y: drawY + drawH }, thickness: 0.5 * sf, color: gc });
+            const lineTopY = (drawY + drawH) - 8.505 * sf;
+            page.drawLine({ start: { x: scoreDivX, y: oy }, end: { x: scoreDivX, y: lineTopY }, thickness: 0.5 * sf, color: gc });
 
             drawRightText(lang.class, ox, oy + row3H - 8 * sf, d9LeftW, 8 * sf, 6, mainFont);
             drawRightText(info.class || '', ox, oy - 2 * sf, d9LeftW, row3H, 16, mainFont);
