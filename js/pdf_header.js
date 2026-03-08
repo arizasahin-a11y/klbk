@@ -160,7 +160,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const drawStudentName = (tx, ty, tw, th) => {
         if (!info) return;
         let n = info.name.replace(/i/g, 'İ').toUpperCase();
-        let sz = Math.min(24, getFitSize(n, tw - 10 * sf, 28, nameFont));
+        // Küçültülmüş boyutlar (%15 civarı: 24->20.4, 28->23.8)
+        let sz = Math.min(20.4, getFitSize(n, tw - 10 * sf, 23.8, nameFont));
         drawLeftText(n, tx, ty, tw, th, sz, nameFont);
         drawLeftText(n, tx + 0.3 * sf, ty, tw, th, sz, nameFont);
     };
@@ -399,7 +400,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             const d9MidCol2W = midCol2W - 15 * sf;
             const d9MidCol3W = midCol3W;
 
-            // Alttaki boydan boya dikdörtgen kutuyu kaldırdık (drawRectangle silindi)
+            // Bilgi kutusunun dış çerçevesini ve iç çizgilerini aynı kalınlıkta (0.5) yaparak üniformalık sağladık
+            page.drawRectangle({ x: ox, y: oy, width: ow, height: row3H, borderColor: gc, borderWidth: 0.5 * sf });
             drawDivs(ox, oy, d9LeftW, d9MidCol2W, d9MidCol3W, midCol4W, midCol5W, gc, 0.5 * sf);
 
             // Puan yazısının soluna dikey çizgi (YER kutusu sağındaki çizgi) - Üstten 3mm (8.5pt) kısaltıldı
