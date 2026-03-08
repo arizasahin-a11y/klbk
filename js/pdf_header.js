@@ -357,7 +357,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const drawH = Math.max(oh, targetH);
         const drawW = ow + extraW + shiftLeft;
         const drawX = ox - shiftLeft;
-        
+
         // Expand bottom downward by 1mm (drawY decreases) while keeping top fixed
         const drawY = height - margin - strokeOffset - (drawH - 5.67 * sf);
 
@@ -382,7 +382,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const contentX = ox + 50 * sf + (textNarrow / 2);
 
         // Stabilized contentBaseY to keep text fixed while header grows up
-        const contentBaseY = drawY + (oh * 0.15) + textUp + (5.67 * sf);
+        const contentBaseY = drawY + (oh * 0.15) + textUp + (9.92 * sf); // Moved 1.5mm up (+4.25pt) from original 2mm (5.67pt) offset
 
         // School name position: 1mm down relative to the content base
         drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 13.5 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
