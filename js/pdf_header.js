@@ -350,16 +350,16 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     } else if (designType === '9') {
         // Atatürk Teması (v3 Görsel Çerçeve + Düzenlemeler)
         const cmToPt = 28.35;
-        const targetH = (3 * cmToPt + 5.67) * sf; // +1mm extra height (Total 2mm above original)
+        const targetH = (3 * cmToPt + 8.505) * sf; // +1mm extra height from bottom (Total +3mm)
         const extraW = 1.0 * cmToPt * sf;
         const shiftLeft = 5.67 * sf; // 2mm move to left
 
         const drawH = Math.max(oh, targetH);
         const drawW = ow + extraW + shiftLeft;
         const drawX = ox - shiftLeft;
-
-        // Keep bottom border at the previously adjusted position, expand top upward
-        const drawY = height - margin - strokeOffset - (drawH - 8.505 * sf);
+        
+        // Expand bottom downward by 1mm (drawY decreases) while keeping top fixed
+        const drawY = height - margin - strokeOffset - (drawH - 5.67 * sf);
 
         try {
             const headerUrl = 'ata_header_v3.png';
