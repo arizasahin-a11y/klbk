@@ -3717,6 +3717,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (fontkit) mergedPdf.registerFontkit(fontkit);
                 const fonts = await loadRequiredFonts(mergedPdf);
                 const imageCache = {}; // Local image cache for this merged document
+                const docCache = {}; // Local document object cache for this batch
 
                 for (let i = 0; i < targetStudents.length; i++) {
                     const s = targetStudents[i];
@@ -3731,17 +3732,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                     let printPath = path;
                     if (printPath.match(/^[a-zA-Z]:\\/) || printPath.match(/^[a-zA-Z]:\//)) printPath = 'file:///' + printPath.replace(/\\/g, '/');
 
-                    if (!window._pdfTemplateCache) window._pdfTemplateCache = {};
                     let studentPdf;
                     try {
-                        if (window._pdfTemplateCache[printPath]) {
-                            studentPdf = await PDFDocument.load(window._pdfTemplateCache[printPath]);
+                        if (docCache[printPath]) {
+                            studentPdf = docCache[printPath];
                         } else {
-                            const bytes = await window.getFileBytes(printPath);
-                            window._pdfTemplateCache[printPath] = bytes;
-                            studentPdf = await PDFDocument.load(bytes);
+                            if (!window._pdfTemplateCache) window._pdfTemplateCache = {};
+                            let bytes;
+                            if (window._pdfTemplateCache[printPath]) {
+                                bytes = window._pdfTemplateCache[printPath];
+                            } else {
+                                bytes = await window.getFileBytes(printPath);
+                                window._pdfTemplateCache[printPath] = bytes;
+                            }
+                            if (bytes) {
+                                studentPdf = await PDFDocument.load(bytes);
+                                docCache[printPath] = studentPdf;
+                            }
                         }
                     } catch (e) { console.error("PDF Template Load Error:", printPath, e); continue; }
+                    if (!studentPdf) continue;
 
                     const pages = await mergedPdf.copyPages(studentPdf, studentPdf.getPageIndices());
 
@@ -3856,6 +3866,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             let foundCount = 0;
             let errors = [];
 
+            const targetStudents = [];
             checkedStudents.forEach(cb => {
                 const subName = cb.dataset.sub;
                 const group = cb.dataset.group || 'default';
@@ -3867,23 +3878,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 else path = papers[group] || papers['default'] || '';
 
                 if (path) {
-                    const studentInfo = {
+                    targetStudents.push({
                         no: cb.dataset.studentNo,
                         name: cb.dataset.studentName,
                         class: cb.dataset.class,
                         room: cb.dataset.room,
-                        seat: cb.dataset.seat || '-',
-                        subject: subName,
-                        group: group,
+                        seat: cb.dataset.seat || cb.dataset.seatNum || '-',
+                        _matchedSubject: subName,
+                        _groupLabel: group,
                         examNo: meta.examNo || meta.examNumber || ''
-                    };
-
-                    window.printFile(path, studentInfo);
+                    });
                     foundCount++;
                 } else {
                     errors.push(subName);
                 }
             });
+
+            if (targetStudents.length > 0) {
+                // Call batch printer for selected students - MUCH FASTER than sequential printFile calls
+                await printPapersForGroupBatch(targetStudents, metadata, 'Seçili Öğrenciler');
+            }
 
             if (errors.length > 0) {
                 const uniqueErrors = [...new Set(errors)];

@@ -1102,6 +1102,7 @@
                 if (typeof fontkit !== 'undefined') mergedPdf.registerFontkit(fontkit);
                 const fonts = await loadRequiredFonts(mergedPdf);
                 const imageCache = {}; // Local image cache
+                const docCache = {}; // Local document object cache for this batch
                 const metadata = session.subjectMetadata || {};
 
                 for (let i = 0; i < targetStudents.length; i++) {
@@ -1120,17 +1121,24 @@
                     if (printPath.match(/^[a-zA-Z]:\\/) || printPath.match(/^[a-zA-Z]:\//)) printPath = 'file:///' + printPath.replace(/\\/g, '/');
 
                     try {
-                        if (!window._pdfTemplateCache) window._pdfTemplateCache = {};
                         let studentPdf;
-                        try {
+                        if (docCache[printPath]) {
+                            studentPdf = docCache[printPath];
+                        } else {
+                            if (!window._pdfTemplateCache) window._pdfTemplateCache = {};
+                            let bytes;
                             if (window._pdfTemplateCache[printPath]) {
-                                studentPdf = await PDFDocument.load(window._pdfTemplateCache[printPath]);
+                                bytes = window._pdfTemplateCache[printPath];
                             } else {
-                                const bytes = await window.getFileBytes(printPath);
+                                bytes = await window.getFileBytes(printPath);
                                 window._pdfTemplateCache[printPath] = bytes;
-                                studentPdf = await PDFDocument.load(bytes);
                             }
-                        } catch (e) { console.error("PDF Template Load Error:", printPath, e); continue; }
+                            if (bytes) {
+                                studentPdf = await PDFDocument.load(bytes);
+                                docCache[printPath] = studentPdf;
+                            }
+                        }
+                        if (!studentPdf) continue;
 
                         const pages = await mergedPdf.copyPages(studentPdf, studentPdf.getPageIndices());
 
