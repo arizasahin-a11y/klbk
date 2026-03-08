@@ -2468,12 +2468,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <tr id="session-row-${ses.id}" class="session-row" style="background: ${bgColor};">
                     <td class="session-info-cell">
                         <div class="session-title-wrapper">
-                            <i class="fa-solid fa-chevron-right session-arrow-icon" id="arrow-${ses.id}" onclick="window.viewSessionDistribution('${ses.id}')"></i>
                             <label class="klbk-switch" title="${ses.isPublished ? 'Yayından Kaldır' : 'Yayınla'}">
                                 <input type="checkbox" ${ses.isPublished ? 'checked' : ''} onchange="window.toggleSessionPublish('${ses.id}')">
                                 <span class="klbk-slider"></span>
                             </label>
-                            <span class="session-title" style="color:${titleColor}; cursor: default;">
+                            <i class="fa-solid fa-chevron-right session-arrow-icon" id="arrow-${ses.id}" onclick="window.viewSessionDistribution('${ses.id}')"></i>
+                            <span onclick="window.viewSessionDistribution('${ses.id}')" class="session-title" style="color:${titleColor}; cursor: pointer;">
                                 ${titleText}
                             </span>
                         </div>
