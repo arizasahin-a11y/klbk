@@ -400,8 +400,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             const d9MidCol2W = midCol2W - 15 * sf;
             const d9MidCol3W = midCol3W;
 
-            // Bilgi kutusunun dış çerçevesini ve iç çizgilerini aynı kalınlıkta (0.5) yaparak üniformalık sağladık
-            page.drawRectangle({ x: ox, y: oy, width: ow, height: row3H, borderColor: gc, borderWidth: 0.5 * sf });
+            // Alttaki boydan boya kutu kaldırıldı, sadece dikey ayraçlar bırakıldı
             drawDivs(ox, oy, d9LeftW, d9MidCol2W, d9MidCol3W, midCol4W, midCol5W, gc, 0.5 * sf);
 
             // Puan yazısının soluna dikey çizgi (YER kutusu sağındaki çizgi) - Üstten 3mm (8.5pt) kısaltıldı
