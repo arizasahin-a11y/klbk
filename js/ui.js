@@ -2462,14 +2462,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             const hue = sessions.length > 1 ? 280 - (idx / (sessions.length - 1)) * 280 : 280;
             const bgColor = ses.isPublished ? `hsla(${hue}, 70%, 97%, 1)` : '#f3f4f6'; // Gray for unpublished
             const titleColor = ses.isPublished ? 'var(--primary)' : 'var(--gray-500)';
-            const titleText = ses.isPublished ? ses.name : `${ses.name} (Yayınlanmadı)`;
+            const titleText = ses.name;
 
             tableHtml += `
                 <tr id="session-row-${ses.id}" class="session-row" style="background: ${bgColor};">
                     <td class="session-info-cell">
                         <div class="session-title-wrapper">
                             <i class="fa-solid fa-chevron-right session-arrow-icon" id="arrow-${ses.id}" onclick="window.viewSessionDistribution('${ses.id}')"></i>
-                            <span onclick="window.toggleSessionPublish('${ses.id}')" class="session-title" style="color:${titleColor};" title="Yayın durumunu değiştirmek için tıklayın">
+                            <label class="klbk-switch" title="${ses.isPublished ? 'Yayından Kaldır' : 'Yayınla'}">
+                                <input type="checkbox" ${ses.isPublished ? 'checked' : ''} onchange="window.toggleSessionPublish('${ses.id}')">
+                                <span class="klbk-slider"></span>
+                            </label>
+                            <span class="session-title" style="color:${titleColor}; cursor: default;">
                                 ${titleText}
                             </span>
                         </div>
