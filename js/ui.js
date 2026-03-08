@@ -2918,6 +2918,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    window.finalizeAndPrint = (blobUrl, onFinalize = null) => {
+        const iframe = document.createElement('iframe');
+        Object.assign(iframe.style, {
+            position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
+        });
+        iframe.src = blobUrl;
+        document.body.appendChild(iframe);
+
+        iframe.onload = () => {
+            setTimeout(() => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                setTimeout(() => {
+                    if (blobUrl.startsWith('blob:')) URL.revokeObjectURL(blobUrl);
+                    if (iframe && document.body.contains(iframe)) document.body.removeChild(iframe);
+                    if (onFinalize) onFinalize();
+                }, 30000); // Wait 30s to allow printer spooling
+            }, 3000); // Wait 3s for layout/images safety
+        };
+    };
+
 
     window.printFile = function (path, studentInfo = null) {
         if (!path) return Promise.resolve();
@@ -2949,26 +2970,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             setTimeout(() => window._processPrintQueue(), 1000);
         };
 
-        const finalizeAndPrint = (blobUrl) => {
-            currentStep = "Yaz\u0131c\u0131ya gönderiliyor";
-            const iframe = document.createElement('iframe');
-            Object.assign(iframe.style, {
-                position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
-            });
-            iframe.src = blobUrl;
-            document.body.appendChild(iframe);
-
-            iframe.onload = () => {
-                setTimeout(() => {
-                    iframe.contentWindow.focus();
-                    iframe.contentWindow.print();
-                    setTimeout(() => {
-                        if (blobUrl.startsWith('blob:')) URL.revokeObjectURL(blobUrl);
-                        finalize(iframe);
-                    }, 30000); // Wait 30s to allow printer spooling
-                }, 3000); // Wait 3s for layout/images safety
-            };
-        };
 
         let currentStep = "Dosya haz\u0131rlan\u0131yor";
         try {
@@ -2978,7 +2979,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // OPTIMIZATION: If we already have a blob and NO info to overlay, skip processing
             if (path.startsWith('blob:') && (!info || Object.keys(info).length === 0)) {
-                return await finalizeAndPrint(path);
+                return window.finalizeAndPrint(path, () => finalize(null));
             }
 
             // 2. Load pdf-lib and Overlay
@@ -3072,7 +3073,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
             const blobUrl = URL.createObjectURL(blob);
 
-            return await finalizeAndPrint(blobUrl);
+            return window.finalizeAndPrint(blobUrl, () => finalize(null));
 
         } catch (e) {
             // ... (rest of error handler)
@@ -3786,7 +3787,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         Swal.fire('Uyarı', 'Pop-up engelleyici yeni sekmeyi engelledi. Lütfen izin verin.', 'warning');
                     }
                 } else {
-                    await finalizeAndPrint(blobUrl);
+                    window.finalizeAndPrint(blobUrl);
                 }
 
                 // Clear temporary batch cache
@@ -3894,8 +3895,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
-            if (targetStudents.length > 0) {
-                // Call batch printer for selected students - MUCH FASTER than sequential printFile calls
+            if (targetStudents.length === 1) {
+                // For a single student, use the standard printFile path - much faster and most reliable
+                const s = targetStudents[0];
+                const meta = metadata[s._matchedSubject] || {};
+                const papers = meta.papers || {};
+                let path = typeof papers === 'string' ? papers : (papers[s._groupLabel] || papers['default'] || '');
+                if (path) {
+                    window.printFile(path, {
+                        no: s.no,
+                        name: s.name,
+                        class: s.class,
+                        room: s.room,
+                        seat: s.seat,
+                        subject: s._matchedSubject,
+                        group: s._groupLabel,
+                        examNo: s.examNo
+                    });
+                }
+            } else if (targetStudents.length > 1) {
+                // Call batch printer for multiple students
                 await printPapersForGroupBatch(targetStudents, metadata, 'Seçili Öğrenciler');
             }
 

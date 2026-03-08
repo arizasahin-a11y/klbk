@@ -966,7 +966,7 @@
             }
         };
 
-        const finalizeAndPrint = (blobUrl, finalize, resolve) => {
+        window.finalizeAndPrint = (blobUrl, onFinalize = null) => {
             const iframe = document.createElement('iframe');
             Object.assign(iframe.style, {
                 position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
@@ -980,7 +980,8 @@
                     iframe.contentWindow.print();
                     setTimeout(() => {
                         if (blobUrl.startsWith('blob:')) URL.revokeObjectURL(blobUrl);
-                        finalize(iframe);
+                        if (iframe && document.body.contains(iframe)) document.body.removeChild(iframe);
+                        if (onFinalize) onFinalize();
                     }, 30000);
                 }, 3000); // 3s delay for safety
             };
@@ -1019,7 +1020,7 @@
 
                 // Skip processing if already blob and no info
                 if (printPath.startsWith('blob:') && (!info || Object.keys(info).length === 0)) {
-                    return finalizeAndPrint(printPath, finalize, resolve);
+                    return window.finalizeAndPrint(printPath, () => finalize(null));
                 }
 
                 const { PDFDocument } = PDFLib;
@@ -1044,7 +1045,7 @@
                 const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
                 const blobUrl = URL.createObjectURL(blob);
 
-                finalizeAndPrint(blobUrl, finalize, resolve);
+                window.finalizeAndPrint(blobUrl, () => finalize(null));
             } catch (e) {
                 console.error("PDF Overlay Error:", e);
                 // Fallback
@@ -1175,9 +1176,7 @@
                         Swal.fire('Uyarı', 'Pop-up engelleyici yeni sekmeyi engelledi.', 'warning');
                     }
                 } else {
-                    finalizeAndPrint(blobUrl, (ifrm) => {
-                        if (document.body.contains(ifrm)) document.body.removeChild(ifrm);
-                    }, null);
+                    window.finalizeAndPrint(blobUrl);
                 }
 
                 // Clear template cache
