@@ -2432,7 +2432,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const examSessionsList = document.getElementById('examSessionsList');
     function renderExamSessionsList() {
         if (!examSessionsList) return;
-        const sessions = DataManager.getExamSessions();
+        const sessions = DataManager.getSortedExamSessions();
         examSessionsList.innerHTML = '';
 
         if (sessions.length === 0) {

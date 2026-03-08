@@ -429,6 +429,105 @@ const DataManager = {
         this._saveData(data);
     },
 
+    // --- Sorted Exam Sessions for UI ---
+    getSortedExamSessions: function () {
+        const sessions = this.getExamSessions();
+        if (!sessions || sessions.length === 0) return [];
+
+        const now = new Date();
+        const school = this.getSchoolSettings();
+        const lessonTimes = school.lessonTimes || {};
+
+        // Helper to get a stable sortable score
+        const getSessionScore = (ses) => {
+            const start = this.parseSessionDateTime(ses.date, ses.time);
+            const end = this.getSessionEndDateTime(ses.date, ses.time);
+
+            const isFinished = now > end;
+
+            // Score components:
+            // 1. Finished status (0 for upcoming/ongoing, 1 for finished)
+            // 2. Date/Time difference (Absolute value for future/past?)
+            // We want: 
+            // - Upcoming/Ongoing: Sorted by Date ASC (nearest first)
+            // - Finished: Sorted by Date DESC (most recent first) and placed at the bottom
+
+            return {
+                isFinished,
+                startTime: start.getTime(),
+                endTime: end.getTime()
+            };
+        };
+
+        return [...sessions].sort((a, b) => {
+            const scoreA = getSessionScore(a);
+            const scoreB = getSessionScore(b);
+
+            // 1. Not finished comes first
+            if (scoreA.isFinished !== scoreB.isFinished) {
+                return scoreA.isFinished ? 1 : -1;
+            }
+
+            if (!scoreA.isFinished) {
+                // Upcoming/Ongoing: Nearest start time first (ASC)
+                return scoreA.startTime - scoreB.startTime;
+            } else {
+                // Finished: Most recently finished first (DESC)
+                return scoreB.endTime - scoreA.endTime;
+            }
+        });
+    },
+
+    parseSessionDateTime: function (dateStr, timeStr) {
+        if (!dateStr) return new Date(0);
+        let ds = dateStr;
+        if (ds.includes('.')) {
+            const parts = ds.split('.');
+            if (parts.length === 3 && parts[0].length === 2) {
+                ds = `${parts[2]}-${parts[1]}-${parts[0]}`; // DD.MM.YYYY to YYYY-MM-DD
+            }
+        }
+
+        let ts = timeStr || "00:00";
+        if (ts.includes('. Ders')) {
+            const lessonNum = parseInt(ts);
+            const school = this.getSchoolSettings();
+            const lessonTimes = school.lessonTimes || {};
+            const startTime = lessonTimes[`${lessonNum}_start`];
+            ts = startTime || "08:00"; // Default to 08:00 if not set
+        } else if (ts.includes(':')) {
+            const [h, m] = ts.split(':');
+            ts = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+        }
+
+        const d = new Date(`${ds}T${ts}:00`);
+        // If invalid date, return epoch
+        return isNaN(d.getTime()) ? new Date(0) : d;
+    },
+
+    getSessionEndDateTime: function (dateStr, timeStr) {
+        const start = this.parseSessionDateTime(dateStr, timeStr);
+        let duration = 40; // Default 40 mins
+
+        if (timeStr && timeStr.includes('. Ders')) {
+            const lessonNum = parseInt(timeStr);
+            const school = this.getSchoolSettings();
+            const lessonTimes = school.lessonTimes || {};
+            const endStr = lessonTimes[`${lessonNum}_end`];
+            if (endStr) {
+                let ds = dateStr;
+                if (ds.includes('.')) {
+                    const parts = ds.split('.');
+                    if (parts.length === 3 && parts[0].length === 2) { ds = `${parts[2]}-${parts[1]}-${parts[0]}`; }
+                }
+                const d = new Date(`${ds}T${endStr}:00`);
+                if (!isNaN(d.getTime())) return d;
+            }
+        }
+
+        return new Date(start.getTime() + duration * 60000);
+    },
+
     // --- Dashboard Specific Computed Data ---
     getStats: function () {
         const data = this._getData();

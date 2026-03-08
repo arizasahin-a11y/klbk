@@ -717,7 +717,7 @@
 
         function renderExams() {
             if (!currentStudent) return;
-            const sessions = DataManager.getExamSessions().filter(s => s.isPublished);
+            const sessions = DataManager.getSortedExamSessions().filter(s => s.isPublished);
             const listContainer = document.getElementById('examsList');
             const now = getNow();
 
@@ -833,8 +833,8 @@
             sessions.forEach(ses => {
                 const card = document.querySelector(`.exam-card[data-ses-id="${ses.id}"]`);
                 if (!card) return;
-                const targetTime = parseDateTime(ses.date, ses.time);
-                const endTime = getExamEndTime(ses.date, ses.time);
+                const targetTime = DataManager.parseSessionDateTime(ses.date, ses.time);
+                const endTime = DataManager.getSessionEndDateTime(ses.date, ses.time);
                 const diffMs = targetTime - now;
                 const diffMins = diffMs / 1000 / 60;
                 const diffEndMins = (endTime - now) / 1000 / 60;
@@ -875,60 +875,6 @@
 
         function getSchoolSettings() {
             return DataManager.getSchoolSettings();
-        }
-
-        function parseDateTime(dateStr, timeStr) {
-            // Standardize Date (DD.MM.YYYY -> YYYY-MM-DD)
-            if (dateStr.includes('.')) {
-                const parts = dateStr.split('.');
-                if (parts.length === 3 && parts[0].length === 2) {
-                    dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                }
-            }
-
-            if (timeStr.includes('. Ders')) {
-                const lessonNum = parseInt(timeStr);
-                const school = getSchoolSettings();
-                const lessonTimes = school.lessonTimes || {};
-                const startTime = lessonTimes[`${lessonNum}_start`];
-
-                if (startTime) {
-                    timeStr = startTime;
-                } else {
-                    // Fallback to previous hardcoded logic if no specific time is set
-                    const h = 8 + Math.floor((40 + (lessonNum - 1) * 50) / 60);
-                    const m = (40 + (lessonNum - 1) * 50) % 60;
-                    timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-                }
-            } else if (timeStr.includes(':')) {
-                const [h, m] = timeStr.split(':');
-                timeStr = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
-            }
-            return new Date(`${dateStr}T${timeStr}:00`);
-        }
-
-        function getExamEndTime(dateStr, timeStr) {
-            const startTime = parseDateTime(dateStr, timeStr);
-            let endTime = new Date(startTime.getTime() + 40 * 60000); // Varsayılan 40 dk
-
-            if (timeStr.includes('. Ders')) {
-                const lessonNum = parseInt(timeStr);
-                const school = getSchoolSettings();
-                const lessonTimes = school.lessonTimes || {};
-                const endStr = lessonTimes[`${lessonNum}_end`];
-
-                if (endStr) {
-                    let ds = dateStr;
-                    if (ds.includes('.')) {
-                        const parts = ds.split('.');
-                        if (parts.length === 3 && parts[0].length === 2) {
-                            ds = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                        }
-                    }
-                    endTime = new Date(`${ds}T${endStr}:00`);
-                }
-            }
-            return endTime;
         }
 
         function formatCountdown(ms) {
@@ -1368,7 +1314,7 @@
 
         function checkFullScreenTriggers() {
             if (!currentStudent) return;
-            const sessions = DataManager.getExamSessions();
+            const sessions = DataManager.getSortedExamSessions();
             const now = getNow();
             const classMappings = DataManager.getClassRoomMappings() || {};
             const myRoomName = classMappings[currentStudent.class];
@@ -1381,8 +1327,8 @@
             for (let ses of sessions) {
                 if (!ses.screenViewEnabled || !ses.results) continue;
 
-                const targetTime = parseDateTime(ses.date, ses.time);
-                const endTime = getExamEndTime(ses.date, ses.time);
+                const targetTime = DataManager.parseSessionDateTime(ses.date, ses.time);
+                const endTime = DataManager.getSessionEndDateTime(ses.date, ses.time);
                 const diffMins = (targetTime - now) / 1000 / 60;
                 const diffEndMins = (endTime - now) / 1000 / 60;
 

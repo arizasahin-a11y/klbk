@@ -255,7 +255,7 @@
 
         function renderExams() {
             try {
-                const sessions = DataManager.getExamSessions().filter(s => s.isPublished);
+                const sessions = DataManager.getSortedExamSessions().filter(s => s.isPublished);
                 const listContainer = document.getElementById('examsList');
                 const now = getNow();
 
@@ -322,8 +322,8 @@
                 targetSessions.forEach(item => {
                     const ses = item.session;
                     const subjectsObj = item.matchingSubjects;
-                    const targetTime = parseDateTime(ses.date, ses.time);
-                    const endTime = getExamEndTime(ses.date, ses.time);
+                    const targetTime = DataManager.parseSessionDateTime(ses.date, ses.time);
+                    const endTime = DataManager.getSessionEndDateTime(ses.date, ses.time);
                     const diffMs = targetTime - now;
                     const diffMins = diffMs / 1000 / 60;
                     const diffEndMins = (endTime - now) / 1000 / 60;
@@ -487,8 +487,8 @@
             sessions.forEach(ses => {
                 const el = document.getElementById(`cd-${ses.id}`);
                 if (el) {
-                    const targetTime = parseDateTime(ses.date, ses.time);
-                    const endTime = getExamEndTime(ses.date, ses.time);
+                    const targetTime = DataManager.parseSessionDateTime(ses.date, ses.time);
+                    const endTime = DataManager.getSessionEndDateTime(ses.date, ses.time);
                     const diffMs = targetTime - now;
                     const diffMins = diffMs / 1000 / 60;
                     const diffEndMins = (endTime - now) / 1000 / 60;
@@ -634,47 +634,6 @@
 
         // Helper functions
         function getSchoolSettings() { return DataManager.getSchoolSettings(); }
-
-        function parseDateTime(dateStr, timeStr) {
-            if (dateStr.includes('.')) {
-                const parts = dateStr.split('.');
-                if (parts.length === 3 && parts[0].length === 2) {
-                    dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                }
-            }
-            if (timeStr.includes('. Ders')) {
-                const lessonNum = parseInt(timeStr);
-                const school = getSchoolSettings();
-                const lessonTimes = school.lessonTimes || {};
-                const startTime = lessonTimes[`${lessonNum}_start`];
-                if (startTime) timeStr = startTime;
-                else timeStr = `08:40`;
-            } else if (timeStr.includes(':')) {
-                const [h, m] = timeStr.split(':');
-                timeStr = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
-            }
-            return new Date(`${dateStr}T${timeStr}:00`);
-        }
-
-        function getExamEndTime(dateStr, timeStr) {
-            const startTime = parseDateTime(dateStr, timeStr);
-            let endTime = new Date(startTime.getTime() + 40 * 60000); // 40 dk varsayılan
-            if (timeStr.includes('. Ders')) {
-                const lessonNum = parseInt(timeStr);
-                const school = getSchoolSettings();
-                const lessonTimes = school.lessonTimes || {};
-                const endStr = lessonTimes[`${lessonNum}_end`];
-                if (endStr) {
-                    let ds = dateStr;
-                    if (ds.includes('.')) {
-                        const parts = ds.split('.');
-                        if (parts.length === 3 && parts[0].length === 2) { ds = `${parts[2]}-${parts[1]}-${parts[0]}`; }
-                    }
-                    endTime = new Date(`${ds}T${endStr}:00`);
-                }
-            }
-            return endTime;
-        }
 
         function formatCountdown(ms) {
             if (ms < 0) return "00:00:00:00";
