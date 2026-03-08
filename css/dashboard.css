@@ -1415,10 +1415,12 @@ small {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: var(--gray-300);
+    background-color: #ef4444;
+    /* Soft red for visibility when off */
     transition: .3s;
     border-radius: 20px;
 }
+
 
 .klbk-slider:before {
     position: absolute;
