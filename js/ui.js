@@ -4444,6 +4444,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                         input.setAttribute('value', publicUrl);
                         input.dispatchEvent(new Event('input', { bubbles: true }));
                         input.dispatchEvent(new Event('change', { bubbles: true }));
+                    } else {
+                        // Fallback: try finding ANY input in the same row
+                        const parentRow = btn.closest('.meta-subject-row');
+                        if (parentRow) {
+                            const sub = btn.dataset.sub;
+                            const group = btn.dataset.group;
+                            const selector = group ? `input.meta-paper-input[data-sub="${sub}"][data-group="${group}"]` : `input.meta-paper-input[data-sub="${sub}"]`;
+                            const altInput = parentRow.querySelector(selector);
+                            if (altInput) {
+                                altInput.value = publicUrl;
+                                altInput.setAttribute('value', publicUrl);
+                                altInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                altInput.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }
                     }
 
                     // Button success state
@@ -4477,9 +4492,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     window.showCloudFiles = async function (btn) {
-        const inputGroup = btn.closest('.input-group');
+        const inputGroup = btn.closest('.input-group') || btn.parentElement;
         const input = inputGroup ? inputGroup.querySelector('input.meta-paper-input') : null;
-        if (!input) return;
+        if (!input) {
+            console.error("Target input not found for cloud selection");
+            btn.innerHTML = '<i class="fa-solid fa-cloud"></i> Buluttan Seç';
+            btn.disabled = false;
+            return;
+        }
 
         try {
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
@@ -4615,7 +4635,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 for (let i = 0; i < groupCount; i++) {
                     const groupLetter = alphabet[i];
                     paperInputs += `
-                        <div style="display:flex; align-items:center; gap:3px; margin-top:4px;">
+                    <div class="input-group" style="display:flex; align-items:center; gap:3px; margin-top:4px;">
                             <span style="font-size:0.7rem; font-weight:700; color:var(--gray-500); min-width:18px;">${groupLetter}</span>
                             <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-group="${groupLetter}" style="flex:1; margin:0; height:30px; font-size:0.8rem; padding:0 6px;" value="${subPapers[groupLetter] || ''}" placeholder="PDF yol / URL">
                             <button type="button" class="btn btn-secondary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Test Et"><i class="fa-solid fa-external-link"></i></button>
@@ -4625,7 +4645,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } else {
                 paperInputs = `
-                    <div style="display:flex; align-items:center; gap:3px; margin-top:4px;">
+                    <div class="input-group" style="display:flex; align-items:center; gap:3px; margin-top:4px;">
                         <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" style="flex:1; margin:0; height:30px; font-size:0.8rem; padding:0 6px;" value="${typeof subPapers === 'string' ? subPapers : (subPapers['default'] || '')}" placeholder="PDF yol / URL">
                         <button type="button" class="btn btn-secondary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Test Et"><i class="fa-solid fa-external-link"></i></button>
                         <button type="button" class="btn btn-info btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>

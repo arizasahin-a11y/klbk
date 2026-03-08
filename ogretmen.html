@@ -412,7 +412,7 @@
                         const renderActions = (targetSuffix) => `
                             <div style="display: flex; gap: 5px; margin-top: 8px;">
                                  <button class="btn btn-secondary btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="pasteLink('${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-paste"></i> Yapıştır</button>
-                                 <button class="btn btn-secondary btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="openCloudBrowser('${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-cloud"></i> Bulut</button>
+                                 <button class="btn btn-secondary btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="openCloudBrowser(this, '${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-cloud"></i> Bulut</button>
                                  <input type="file" id="file-${ses.id}-${encodedSub}${targetSuffix ? '-' + targetSuffix : ''}" style="display:none;" accept="application/pdf" onchange="uploadPdf(this, '${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})">
                                  <button class="btn btn-info btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="document.getElementById('file-${ses.id}-${encodedSub}${targetSuffix ? '-' + targetSuffix : ''}').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Yükle</button>
                                  <button class="btn btn-success btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="testPdfLink('${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-vial"></i> Test</button>
@@ -531,14 +531,20 @@
                 const text = await navigator.clipboard.readText();
                 const inputId = groupLetter ? `pdfLink-${sesId}-${encodedSub}-${groupLetter}` : `pdfLink-${sesId}-${encodedSub}`;
                 const el = document.getElementById(inputId);
-                if (el) el.value = text;
+                if (el) {
+                    el.value = text;
+                    savePdfLink(sesId, encodedSub, groupLetter, text);
+                    Swal.fire({
+                        toast: true, position: 'top-end', icon: 'success', title: 'Bağlantı yapıştırıldı ve kaydedildi!', showConfirmButton: false, timer: 1500
+                    });
+                }
             } catch (err) {
                 Swal.fire('Hata', 'Panodan yapıştırılamadı. Lütfen manuel yapıştırın.', 'error');
             }
         }
 
-        async function uploadPdf(input, sesId, encodedSub, groupLetter = null) {
-            const file = input.files[0];
+        async function uploadPdf(inputEl, sesId, encodedSub, groupLetter = null) {
+            const file = inputEl.files[0];
             const subName = decodeURIComponent(encodedSub);
             if (!file) return;
 
@@ -552,26 +558,32 @@
 
             try {
                 const url = await DataManager.uploadFileToSupabase(file);
+                // Update UI input
                 const inputId = groupLetter ? `pdfLink-${sesId}-${encodedSub}-${groupLetter}` : `pdfLink-${sesId}-${encodedSub}`;
                 const el = document.getElementById(inputId);
                 if (el) el.value = url;
+
+                // Automatically save to database
+                savePdfLink(sesId, encodedSub, groupLetter, url);
+
                 Swal.close();
                 Swal.fire({
-                    toast: true, position: 'top-end', icon: 'success', title: 'Dosya yüklendi!', showConfirmButton: false, timer: 1500
+                    toast: true, position: 'top-end', icon: 'success', title: 'Dosya yüklendi ve kaydedildi!', showConfirmButton: false, timer: 1500
                 });
             } catch (err) {
                 console.error(err);
                 Swal.fire('Hata', 'Dosya yüklenemedi: ' + err.message, 'error');
             }
-            input.value = '';
+            inputEl.value = '';
         }
 
-        function savePdfLink(sesId, encodedSub, groupLetter = null) {
+        function savePdfLink(sesId, encodedSub, groupLetter = null, directUrl = null) {
             const subName = decodeURIComponent(encodedSub);
             const inputId = groupLetter ? `pdfLink-${sesId}-${encodedSub}-${groupLetter}` : `pdfLink-${sesId}-${encodedSub}`;
             const linkInput = document.getElementById(inputId);
-            if (!linkInput) return;
-            const link = linkInput.value.trim();
+
+            const link = directUrl || (linkInput ? linkInput.value.trim() : '');
+            if (!link && !directUrl) return;
 
             const sessions = DataManager.getExamSessions();
             const session = sessions.find(s => s.id === sesId);
@@ -596,9 +608,12 @@
                 }
 
                 DataManager.addExamSession(session);
-                Swal.fire({
-                    toast: true, position: 'top-end', icon: 'success', title: `${subName}${groupLetter ? ' (' + groupLetter + ')' : ''} Soru Kağıdı Kaydedildi`, showConfirmButton: false, timer: 1500
-                });
+
+                if (!directUrl) {
+                    Swal.fire({
+                        toast: true, position: 'top-end', icon: 'success', title: `${subName}${groupLetter ? ' (' + groupLetter + ')' : ''} Soru Kağıdı Kaydedildi`, showConfirmButton: false, timer: 1500
+                    });
+                }
                 renderExams();
             }
         }
@@ -730,9 +745,7 @@
             });
         }
 
-        async function selectCloudFile(sesId, encodedSub, url, groupLetter = null) {
-            await savePdfLink(sesId, encodedSub, groupLetter, url);
-        }
+        // Removed redundant selectCloudFile definition here.
 
         async function openSessionSettings(id) {
             const sessions = DataManager.getExamSessions();
@@ -837,7 +850,7 @@
             }
         }
 
-        async function openCloudBrowser(sesId, encodedSub, groupLetter = null) {
+        async function openCloudBrowser(btn, sesId, encodedSub, groupLetter = null) {
             Swal.fire({
                 title: 'Buluttaki Dosyalar',
                 html: '<div id="cloudFilesList" style="max-height: 400px; overflow-y: auto; text-align: left;"><i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...</div>',
@@ -873,7 +886,14 @@
         window.selectCloudFile = function (sesId, encodedSub, url, groupLetter = null) {
             const inputId = groupLetter ? `pdfLink-${sesId}-${encodedSub}-${groupLetter}` : `pdfLink-${sesId}-${encodedSub}`;
             const el = document.getElementById(inputId);
-            if (el) el.value = url;
+            if (el) {
+                el.value = url;
+                // Automatically save it too
+                savePdfLink(sesId, encodedSub, groupLetter, url);
+            } else {
+                // Better fallback: if ID fails (encoding issues), we can still save by data
+                savePdfLink(sesId, encodedSub, groupLetter, url);
+            }
             Swal.close();
         }
 
