@@ -2935,7 +2935,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (iframe && document.body.contains(iframe)) document.body.removeChild(iframe);
                     if (onFinalize) onFinalize();
                 }, 30000); // Wait 30s to allow printer spooling
-            }, 3000); // Wait 3s for layout/images safety
+            }, 1200); // Wait 1.2s for layout/images safety (down from 3s)
         };
     };
 
@@ -2972,6 +2972,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
         let currentStep = "Dosya haz\u0131rlan\u0131yor";
+
+        // Show a non-blocking loader for queue processing if not already showing one
+        if (!Swal.isVisible()) {
+            Swal.fire({
+                title: 'Yazdırmaya Hazırlanıyor...',
+                text: 'Lütfen bekleyin...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+        }
+
         try {
             // 1. Fetch PDF Bytes
             currentStep = "Soru ka\u011f\u0131d\u0131 okunuyor (" + path.split(/[\\\/]/).pop() + ")";
@@ -3073,6 +3084,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
             const blobUrl = URL.createObjectURL(blob);
 
+            if (Swal.isVisible()) {
+                const title = Swal.getTitle();
+                if (title && title.innerText === 'Yazdırmaya Hazırlanıyor...') Swal.close();
+            }
             return window.finalizeAndPrint(blobUrl, () => finalize(null));
 
         } catch (e) {
@@ -3895,26 +3910,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
-            if (targetStudents.length === 1) {
-                // For a single student, use the standard printFile path - much faster and most reliable
-                const s = targetStudents[0];
-                const meta = metadata[s._matchedSubject] || {};
-                const papers = meta.papers || {};
-                let path = typeof papers === 'string' ? papers : (papers[s._groupLabel] || papers['default'] || '');
-                if (path) {
-                    window.printFile(path, {
-                        no: s.no,
-                        name: s.name,
-                        class: s.class,
-                        room: s.room,
-                        seat: s.seat,
-                        subject: s._matchedSubject,
-                        group: s._groupLabel,
-                        examNo: s.examNo
-                    });
-                }
-            } else if (targetStudents.length > 1) {
-                // Call batch printer for multiple students
+            if (targetStudents.length > 0) {
+                // ALWAYS use batch printer even for 1 student. 
+                // It shows a progress loader, uses docCache/imageCache, and is more consistent.
                 await printPapersForGroupBatch(targetStudents, metadata, 'Seçili Öğrenciler');
             }
 
