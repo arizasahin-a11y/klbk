@@ -3663,16 +3663,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 statusHtml += '</div>';
             }
 
+            const hasAnyLoaded = loaded.size > 0;
             // 2. Ask for Mode
             const result = await Swal.fire({
                 title: 'Toplu Yazdırma Başlatılsın mı?',
-                html: `<b>${groups.length}</b> adet ${mode === 'class' ? 'sınıf' : 'salon'} grubu sırayla yazdırılacak.${statusHtml ? statusHtml : ''}<br>Yazdırma yöntemini seçin:`,
-                icon: 'question',
-                showDenyButton: true,
+                html: hasAnyLoaded
+                    ? `<b>${groups.length}</b> adet ${mode === 'class' ? 'sınıf' : 'salon'} grubu sırayla yazdırılacak.${statusHtml ? statusHtml : ''}<br>Yazdırma yöntemini seçin:`
+                    : `<div style="color:var(--danger); font-weight:bold; margin-bottom:10px;">UYARI: Bu oturum için hiçbir soru kağıdı yüklenmemiş.</div>${statusHtml}`,
+                icon: hasAnyLoaded ? 'question' : 'error',
+                showConfirmButton: hasAnyLoaded,
+                showDenyButton: hasAnyLoaded,
                 showCancelButton: true,
                 confirmButtonText: 'Sürekli (Otomatik)',
                 denyButtonText: 'Duraklamalı (Onaylı)',
-                cancelButtonText: 'İptal',
+                cancelButtonText: hasAnyLoaded ? 'İptal' : 'Kapat',
                 confirmButtonColor: '#4f46e5',
                 denyButtonColor: '#6366f1'
             });
@@ -3754,15 +3758,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 statusHtml += '</div>';
             }
 
+            const hasAnyLoaded = loaded.size > 0;
             const choiceResult = await Swal.fire({
                 title: 'Yazdırma Seçeneği',
-                html: `<b>${filterValue}</b> için soru kağıtları ne yapılsın?${statusHtml}`,
-                icon: 'question',
-                showDenyButton: true,
+                html: hasAnyLoaded
+                    ? `<b>${filterValue}</b> için soru kağıtları ne yapılsın?${statusHtml}`
+                    : `<div style="color:var(--danger); font-weight:bold; margin-bottom:10px;">UYARI: Bu grup için henüz hiçbir soru kağıdı yüklenmemiş.</div>${statusHtml}`,
+                icon: hasAnyLoaded ? 'question' : 'error',
+                showConfirmButton: hasAnyLoaded,
+                showDenyButton: hasAnyLoaded,
                 showCancelButton: true,
                 confirmButtonText: '<i class="fa-solid fa-print"></i> Sırayla Yazdır',
                 denyButtonText: '<i class="fa-solid fa-file-zipper"></i> ZIP İndir',
-                cancelButtonText: 'İptal',
+                cancelButtonText: hasAnyLoaded ? 'İptal' : 'Kapat',
                 confirmButtonColor: '#4f46e5',
                 denyButtonColor: '#10b981'
             });

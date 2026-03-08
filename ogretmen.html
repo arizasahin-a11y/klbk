@@ -1307,13 +1307,15 @@
                     }
                     statusHtml += '</div><div style="margin-top:15px; font-weight:600;">Toplu yazdırma başlatılsın mı?</div>';
 
+                    const hasAnyLoaded = loaded.size > 0;
                     const confirm = await Swal.fire({
                         title: 'Soru Kağıdı Kontrolü',
                         html: statusHtml,
-                        icon: missing.size > 0 ? 'warning' : 'info',
+                        icon: !hasAnyLoaded ? 'error' : (missing.size > 0 ? 'warning' : 'info'),
+                        showConfirmButton: hasAnyLoaded,
                         showCancelButton: true,
                         confirmButtonText: 'Evet, Yazdır',
-                        cancelButtonText: 'İptal',
+                        cancelButtonText: hasAnyLoaded ? 'İptal' : 'Kapat',
                         confirmButtonColor: missing.size > 0 ? '#ea580c' : '#4f46e5'
                     });
                     if (!confirm.isConfirmed) return;
