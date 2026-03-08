@@ -2879,21 +2879,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!window._fileBytesCache) window._fileBytesCache = {};
         if (window._fileBytesCache[url]) return window._fileBytesCache[url];
 
+        const isLocal = url.startsWith('file:///') || url.includes(':\\') || url.includes(':/');
+
         // Bypass browser cache ONLY for Supabase if needed, but we prefer our own internal cache for efficiency
         let fetchUrl = url;
-        if (url.includes('supabase.co')) {
-            fetchUrl += (url.includes('?') ? '&' : '?') + 'cb=' + Date.now();
-        }
+        // Only add cache buster if explicitly requested or if it's NOT a PDF (since papers shouldn't change mid-session)
+        // Actually, we'll remove it entirely to respect browser and local caching.
 
         const fetchAndStore = async () => {
-            try {
-                const res = await fetch(fetchUrl, { mode: 'cors', cache: 'no-store' });
-                if (res.ok) {
-                    const buffer = await res.arrayBuffer();
-                    window._fileBytesCache[url] = buffer;
-                    return buffer;
-                }
-            } catch (e) { }
+            // Priority 1: Browser Fetch (Fastest for remote) - Skip for local due to security/hangs
+            if (!isLocal) {
+                try {
+                    const isFont = url.toLowerCase().includes('.ttf') || url.toLowerCase().includes('.woff');
+                    const fetchOptions = { mode: 'cors' };
+                    if (!isFont && url.includes('supabase.co')) fetchOptions.cache = 'no-store';
+
+                    const res = await fetch(fetchUrl, fetchOptions);
+                    if (res.ok) {
+                        const buffer = await res.arrayBuffer();
+                        window._fileBytesCache[url] = buffer;
+                        return buffer;
+                    }
+                } catch (e) { }
+            }
 
             return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
@@ -2935,7 +2943,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (iframe && document.body.contains(iframe)) document.body.removeChild(iframe);
                     if (onFinalize) onFinalize();
                 }, 30000); // Wait 30s to allow printer spooling
-            }, 1200); // Wait 1.2s for layout/images safety (down from 3s)
+            }, 800); // Wait 0.8s for layout/images safety
         };
     };
 
@@ -3006,63 +3014,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.warn("Fontkit yüklenemedi, Türkçe karakterler hatalı görünebilir.");
             }
 
-            // Fetch Fonts if not cached with resilient CDNs
-            currentStep = "Yaz\u0131 tipleri yükleniyor";
-            if (!window._cachedFonts) window._cachedFonts = {};
-
-            const mainFontUrls = [
-                'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf'
-            ];
-            const nameFontUrls = [
-                'fonts/MonotypeCorsiva.ttf'
-            ];
-            const schoolFontUrls = [
-                'fonts/SnapITC.ttf'
-            ];
-
-            if (!window._cachedFonts.main) {
-                for (const url of mainFontUrls) {
-                    try {
-                        const bytes = await getFileBytes(url);
-                        if (bytes && bytes.byteLength > 1000) { window._cachedFonts.main = bytes; break; }
-                    } catch (e) { console.warn("Main font fetch failed", url); }
-                }
-            }
-
-            if (!window._cachedFonts.nameFont) {
-                for (const url of nameFontUrls) {
-                    try {
-                        const bytes = await getFileBytes(url);
-                        if (bytes && bytes.byteLength > 1000) { window._cachedFonts.nameFont = bytes; break; }
-                    } catch (e) { console.warn("Name font fetch failed", url); }
-                }
-            }
-
-            if (!window._cachedFonts.schoolFont) {
-                for (const url of schoolFontUrls) {
-                    try {
-                        const bytes = await getFileBytes(url);
-                        if (bytes && bytes.byteLength > 1000) { window._cachedFonts.schoolFont = bytes; break; }
-                    } catch (e) { console.warn("School font fetch failed", url); }
-                }
-            }
-
-            let mainFont = null;
-            let nameFont = null;
-            let schoolFont = null;
-            try {
-                if (window._cachedFonts.main) mainFont = await pdfDoc.embedFont(window._cachedFonts.main);
-                if (window._cachedFonts.nameFont) nameFont = await pdfDoc.embedFont(window._cachedFonts.nameFont);
-                if (window._cachedFonts.schoolFont) schoolFont = await pdfDoc.embedFont(window._cachedFonts.schoolFont);
-            } catch (e) { console.error("Font embedding error", e); }
-
-            // Absolute Fallback to prevent "null font" crashes
-            const fallbackPdfFont = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
-            const customFont = mainFont ? mainFont : null; // Flag used by cleanTurkishChars helper
-
-            mainFont = mainFont || fallbackPdfFont;
-            nameFont = nameFont || mainFont;
-            schoolFont = schoolFont || mainFont;
+            // Fetch and embed required fonts (Optimized via shared helper)
+            currentStep = "Yaz\u0131 tipleri haz\u0131rlan\u0131yor";
+            const fonts = await loadRequiredFonts(pdfDoc);
+            let { mainFont, nameFont, schoolFont } = fonts;
+            const customFont = mainFont; // Used by cleanTurkishChars helper fallback check
 
 
             const school = DataManager.getSchoolSettings();
@@ -3075,7 +3031,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const A4_W = 595.28, A4_H = 841.89;
                 const sf = 1 / Math.min(A4_W / width, A4_H / height);
                 if (i === 0 && info && Object.keys(info).length > 0) {
-                    await window.renderStudentPDFHeader(pdfDoc, page, info, { mainFont, nameFont, schoolFont, sf });
+                    if (!window._pdfImageCache) window._pdfImageCache = {};
+                    await window.renderStudentPDFHeader(pdfDoc, page, info, {
+                        mainFont, nameFont, schoolFont, sf,
+                        imageCache: window._pdfImageCache
+                    });
                 }
             }
 
@@ -3703,16 +3663,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 nameFont: 'fonts/MonotypeCorsiva.ttf',
                 schoolFont: 'fonts/SnapITC.ttf'
             };
-            for (const key in urls) {
+
+            // Parallel fetch for speed
+            const keys = Object.keys(urls);
+            await Promise.all(keys.map(async (key) => {
                 if (!window._cachedFonts[key]) {
                     try {
                         const bytes = await getFileBytes(urls[key]);
                         if (bytes && bytes.byteLength > 1000) window._cachedFonts[key] = bytes;
-                    } catch (e) { console.warn(`Font fetch failed: ${key}`, e); }
+                    } catch (e) { }
                 }
-            }
+            }));
+
             const fonts = {};
             const fallback = await pdfDoc.embedFont(window.PDFLib.StandardFonts.HelveticaBold);
+
+            // Embedding is CPU intensive, but necessary per document
             fonts.mainFont = window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback;
             fonts.nameFont = window._cachedFonts.nameFont ? await pdfDoc.embedFont(window._cachedFonts.nameFont) : (window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback);
             fonts.schoolFont = window._cachedFonts.schoolFont ? await pdfDoc.embedFont(window._cachedFonts.schoolFont) : (window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback);
@@ -3910,9 +3876,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
+            if (targetStudents.length === 1) {
+                // DIRECT PATH for single student: Much faster
+                const s = targetStudents[0];
+                const meta = metadata[s._matchedSubject] || {};
+                const papers = meta.papers || {};
+                let path = typeof papers === 'string' ? papers : (papers[s._groupLabel] || papers['default'] || '');
+                if (path) {
+                    window.printFile(path, {
+                        no: s.no, name: s.name, class: s.class, room: s.room,
+                        seat: s.seat, subject: s._matchedSubject, group: s._groupLabel, examNo: s.examNo
+                    });
+                    return;
+                }
+            }
+
             if (targetStudents.length > 0) {
-                // ALWAYS use batch printer even for 1 student. 
-                // It shows a progress loader, uses docCache/imageCache, and is more consistent.
                 await printPapersForGroupBatch(targetStudents, metadata, 'Seçili Öğrenciler');
             }
 
@@ -5638,6 +5617,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initializeNavigation();
 
+    // --- Font Pre-fetching for Speed ---
+    (async function preFetchFonts() {
+        const fonts = ['https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf', 'fonts/MonotypeCorsiva.ttf', 'fonts/SnapITC.ttf'];
+        fonts.forEach(url => window.getFileBytes(url));
+    })();
 });
 
 // ══════════════════════════════════════════════════════════════
