@@ -2144,7 +2144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 html += `
                     <div class="wizard-class-card">
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                            <input type="checkbox" class="wiz-class-cb" value="${inf.pid}" ${isChecked ? 'checked' : ''}>
+                            <input type="checkbox" class="wiz-class-cb" value="${inf.pid}" data-class="${inf.class}" ${isChecked ? 'checked' : ''}>
                             <div style="flex:1;">
                                 <span style="font-weight:bold;">${inf.displayName}</span>
                                 <span style="font-size:0.8rem; color:var(--gray-500);"> ${inf.match}</span>
@@ -2234,20 +2234,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         let html = '';
-        wizardSessionData.selectedClassrooms = []; // reset array based on checkbox state
+        const mappings = DataManager.getClassRoomMappings() || {};
+        const selectedClasses = new Set();
+        document.querySelectorAll('.wiz-class-cb:checked').forEach(cb => {
+            selectedClasses.add(cb.getAttribute('data-class'));
+        });
 
         allRooms.forEach(room => {
-            const isAutoMatch = wizardSessionData.selectedClasses.includes(room.name);
-            if (isAutoMatch) wizardSessionData.selectedClassrooms.push(room.name);
+            const isAutoMatch = Array.from(selectedClasses).some(cls => mappings[cls] === room.name);
+            if (isAutoMatch && !wizardSessionData.selectedClassrooms.includes(room.name)) {
+                wizardSessionData.selectedClassrooms.push(room.name);
+            }
 
+            const isChecked = wizardSessionData.selectedClassrooms.includes(room.name);
             html += `
-                <label class="wiz-room-label ${isAutoMatch ? 'active' : ''}">
-                    <input type="checkbox" class="wiz-room-cb" value="${room.name}" ${isAutoMatch ? 'checked' : ''}>
+                <label class="wiz-room-label ${isChecked ? 'active' : ''}">
+                    <input type="checkbox" class="wiz-room-cb" value="${room.name}" ${isChecked ? 'checked' : ''}>
                     <div style="flex:1;">
                         <span style="font-weight:bold;">${room.name} Salonu</span>
                     </div>
                 </label>
-`;
+            `;
         });
         container.innerHTML = html;
 
@@ -2268,7 +2275,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Step 4 Logic: Review
     function prepareStep4Summary() {
         const box = document.getElementById('wizSummaryBox');
-        const displayClasses = wizardSessionData.selectedClasses.map(c => c.includes('|') ? c.split('|')[0] + (c.split('|')[1] ? ` (${c.split('|')[1]})` : '') : c);
+        const displayClasses = wizardSessionData.selectedClasses.map(pid => {
+            const parts = pid.split('_');
+            if (parts.length >= 2) {
+                const sub = parts[0];
+                const cls = parts[1];
+                const aln = (parts[2] && parts[2] !== "GENEL") ? ` (${parts[2]})` : "";
+                return `${cls}${aln} [${sub}]`;
+            }
+            return pid;
+        });
 
         const groupInfo = wizardSessionData.hasGroups
             ? `<div class="modal-form-group" style="color:var(--primary); font-weight:700;"><i class="fa-solid fa-layer-group"></i> ${wizardSessionData.groupCount} Gruplu Sınav (${getGroupNames(wizardSessionData.groupCount)})</div>`
@@ -2352,33 +2368,45 @@ document.addEventListener('DOMContentLoaded', async () => {
             const sessionSubjects = wizardSessionData.subjects.map(s => s.name);
 
             const targetStudents = allStudents.filter(s => {
-                const poolId = `${s.class}|${s.alan || ""}`;
-                if (!wizardSessionData.selectedClasses.includes(poolId) && !wizardSessionData.selectedClasses.includes(s.class)) return false;
+                const sCls = s.class || "Bilinmeyen";
+                const sAlan = (s.alan || "Genel").trim().toLocaleUpperCase('tr-TR');
+                const sDersler = (s.dersler || []).map(d => d.trim().toLocaleUpperCase('tr-TR'));
 
-                let matchedSubject = null;
-                const hasSub = s.dersler && s.dersler.some(d => {
-                    const dName = d.trim();
-                    const found = sessionSubjects.some(base => dName === base || dName.startsWith(base + " "));
-                    if (found) {
-                        if (/\d+$/.test(dName)) {
-                            matchedSubject = dName;
-                        } else {
-                            const gradeMatch = s.class.match(/^\d+/);
-                            if (gradeMatch) {
-                                matchedSubject = dName + " " + gradeMatch[0];
+                let matchingPoolSelected = false;
+                let matchedSubjectName = null;
+
+                for (const subObj of wizardSessionData.subjects) {
+                    const subNameNorm = subObj.name.toLocaleUpperCase('tr-TR');
+                    const sitsForThis = sDersler.some(dn =>
+                        dn === subNameNorm || dn.startsWith(subNameNorm + " ") || subNameNorm.startsWith(dn + " ")
+                    );
+
+                    if (sitsForThis) {
+                        const pid1 = `${subNameNorm}_${sCls}`;
+                        const pid2 = `${subNameNorm}_${sCls}_${sAlan}`;
+
+                        if (wizardSessionData.selectedClasses.includes(pid1) || wizardSessionData.selectedClasses.includes(pid2)) {
+                            matchingPoolSelected = true;
+                            const originalDers = (s.dersler || []).find(d => {
+                                const dn = d.trim().toLocaleUpperCase('tr-TR');
+                                return dn === subNameNorm || dn.startsWith(subNameNorm + " ") || subNameNorm.startsWith(dn + " ");
+                            }).trim();
+
+                            if (/\d+$/.test(originalDers)) {
+                                matchedSubjectName = originalDers;
                             } else {
-                                matchedSubject = dName;
+                                const gradeMatch = sCls.match(/^\d+/);
+                                matchedSubjectName = gradeMatch ? originalDers + " " + gradeMatch[0] : originalDers;
                             }
+                            break;
                         }
                     }
-                    return found;
-                });
+                }
 
-                if (!hasSub) return false;
+                if (!matchingPoolSelected) return false;
                 if (wizardSessionData.excludedStudents && wizardSessionData.excludedStudents.includes(s.no.toString())) return false;
 
-                // Attach matched subject for the list view
-                s._matchedSubject = matchedSubject;
+                s._matchedSubject = matchedSubjectName;
                 return true;
             });
 
