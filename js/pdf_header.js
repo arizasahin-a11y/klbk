@@ -391,7 +391,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         // Yatay Çizgi: 1cm soldan + 3mm sağa kaydırılmış
         const lineX1 = (2 * cmToPt + 8.505) * sf;
         const lineX2 = (width - 4 * cmToPt + 8.505) * sf;
-        const lineY = contentBaseY - 3.583 * sf; // Moved 0.5mm more up (-1.417pt) from original -5pt offset
+        const lineY = contentBaseY - 0.75 * sf; // Moved significantly up to ensure visibility (approx 1.5mm higher than the previous 0.5mm attempt)
         page.drawLine({ start: { x: lineX1, y: lineY }, end: { x: lineX2, y: lineY }, thickness: 0.5 * sf, color: rgb(0, 0, 0) });
 
         const gc = rgb(0.8, 0.8, 0.8);
