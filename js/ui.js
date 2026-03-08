@@ -2926,6 +2926,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    window.loadRequiredFonts = async (pdfDoc) => {
+        const { getFileBytes } = window;
+        if (!window._cachedFonts) window._cachedFonts = {};
+        const urls = {
+            main: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf',
+            nameFont: 'fonts/MonotypeCorsiva.ttf',
+            schoolFont: 'fonts/SnapITC.ttf'
+        };
+
+        const keys = Object.keys(urls);
+        await Promise.all(keys.map(async (key) => {
+            if (!window._cachedFonts[key]) {
+                try {
+                    const bytes = await getFileBytes(urls[key]);
+                    if (bytes && bytes.byteLength > 1000) window._cachedFonts[key] = bytes;
+                } catch (e) { }
+            }
+        }));
+
+        const fonts = {};
+        const fallback = await pdfDoc.embedFont(window.PDFLib.StandardFonts.HelveticaBold);
+        fonts.mainFont = window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback;
+        fonts.nameFont = window._cachedFonts.nameFont ? await pdfDoc.embedFont(window._cachedFonts.nameFont) : (window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback);
+        fonts.schoolFont = window._cachedFonts.schoolFont ? await pdfDoc.embedFont(window._cachedFonts.schoolFont) : (window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback);
+        return fonts;
+    };
+
     window.finalizeAndPrint = (blobUrl, onFinalize = null) => {
         const iframe = document.createElement('iframe');
         Object.assign(iframe.style, {
@@ -3016,7 +3043,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Fetch and embed required fonts (Optimized via shared helper)
             currentStep = "Yaz\u0131 tipleri haz\u0131rlan\u0131yor";
-            const fonts = await loadRequiredFonts(pdfDoc);
+            const fonts = await window.loadRequiredFonts(pdfDoc);
             let { mainFont, nameFont, schoolFont } = fonts;
             const customFont = mainFont; // Used by cleanTurkishChars helper fallback check
 
@@ -3655,35 +3682,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        const loadRequiredFonts = async (pdfDoc) => {
-            const { getFileBytes } = window;
-            if (!window._cachedFonts) window._cachedFonts = {};
-            const urls = {
-                main: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf',
-                nameFont: 'fonts/MonotypeCorsiva.ttf',
-                schoolFont: 'fonts/SnapITC.ttf'
-            };
-
-            // Parallel fetch for speed
-            const keys = Object.keys(urls);
-            await Promise.all(keys.map(async (key) => {
-                if (!window._cachedFonts[key]) {
-                    try {
-                        const bytes = await getFileBytes(urls[key]);
-                        if (bytes && bytes.byteLength > 1000) window._cachedFonts[key] = bytes;
-                    } catch (e) { }
-                }
-            }));
-
-            const fonts = {};
-            const fallback = await pdfDoc.embedFont(window.PDFLib.StandardFonts.HelveticaBold);
-
-            // Embedding is CPU intensive, but necessary per document
-            fonts.mainFont = window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback;
-            fonts.nameFont = window._cachedFonts.nameFont ? await pdfDoc.embedFont(window._cachedFonts.nameFont) : (window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback);
-            fonts.schoolFont = window._cachedFonts.schoolFont ? await pdfDoc.embedFont(window._cachedFonts.schoolFont) : (window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback);
-            return fonts;
-        };
 
         const printPapersForGroupBatch = async (targetStudents, metadata, groupLabel) => {
             const { PDFLib, fontkit } = window;
@@ -3697,7 +3695,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const mergedPdf = await PDFDocument.create();
                 if (fontkit) mergedPdf.registerFontkit(fontkit);
-                const fonts = await loadRequiredFonts(mergedPdf);
+                const fonts = await window.loadRequiredFonts(mergedPdf);
                 const imageCache = {}; // Local image cache for this merged document
                 const docCache = {}; // Local document object cache for this batch
 
