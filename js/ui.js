@@ -2641,6 +2641,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         const ses = sessions.find(s => s.id === sessionId);
         if (!ses) return;
 
+        const metadata = ses.subjectMetadata || {};
+        const missingSubjects = [];
+        const validItems = [];
+
+        items.forEach(item => {
+            const subMeta = metadata[item.subject] || {};
+            const paperPath = subMeta.papers
+                ? (typeof subMeta.papers === 'string' ? subMeta.papers : (subMeta.papers['default'] || subMeta.papers['A'] || Object.values(subMeta.papers).find(p => p) || ''))
+                : '';
+
+            if (paperPath) {
+                validItems.push({ ...item, paperPath });
+            } else {
+                missingSubjects.push(item.subject);
+            }
+        });
+
+        if (missingSubjects.length > 0) {
+            if (validItems.length === 0) {
+                Swal.fire({
+                    title: 'Soru Kağıdı Bulunamadı',
+                    html: `Seçilen derslerin hiçbirinde soru kağıdı yüklenmemiş:<br><br><b>${missingSubjects.join('<br>')}</b>`,
+                    icon: 'error'
+                });
+                return;
+            } else {
+                const result = await Swal.fire({
+                    title: 'Eksik Soru Kağıtları',
+                    html: `Aşağıdaki dersler için soru kağıdı yüklü değil ve <b>atlanacak</b>:<br><br><b>${missingSubjects.join('<br>')}</b><br><br>Geri kalan <b>${validItems.length}</b> ders için yazdırmaya devam edilsin mi?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, Devam Et',
+                    cancelButtonText: 'İptal',
+                    confirmButtonColor: '#4f46e5'
+                });
+                if (!result.isConfirmed) return;
+            }
+        }
+
+        // Use validItems from now on
+        const finalItems = validItems;
+
         Swal.fire({
             title: 'Yedek Kağıtlar Hazırlanıyor...',
             html: '<div id="spare-progress" style="font-size:0.9rem; color:var(--gray-600); font-weight:bold;">Motor Isınıyor...</div>',
@@ -2650,7 +2692,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         try {
-            const metadata = ses.subjectMetadata || {};
             const mergedPdf = await PDFDocument.create();
 
             // v5.0 Font Embedding & Fetching
@@ -2685,17 +2726,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             let totalPages = 0;
 
-            for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
-                const item = items[itemIdx];
+            for (let itemIdx = 0; itemIdx < finalItems.length; itemIdx++) {
+                const item = finalItems[itemIdx];
                 const subMeta = metadata[item.subject] || {};
                 const designType = subMeta.pdfHeaderDesign || '1';
                 const examNo = subMeta.examNo || subMeta.examNumber || '';
-                const paperPath = subMeta.papers
-                    ? (typeof subMeta.papers === 'string' ? subMeta.papers : (subMeta.papers['default'] || subMeta.papers['A'] || Object.values(subMeta.papers).find(p => p) || ''))
-                    : '';
+                const paperPath = item.paperPath;
 
                 const progLine = document.getElementById('spare-progress');
-                if (progLine) progLine.textContent = `${item.subject} (${itemIdx + 1}/${items.length}) işleniyor...`;
+                if (progLine) progLine.textContent = `${item.subject} (${itemIdx + 1}/${finalItems.length}) işleniyor...`;
 
                 let paperBytes = null;
                 if (paperPath) {
@@ -2719,7 +2758,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const indicesToCopy = sourceDoc.getPageIndices();
                 for (let copyIdx = 0; copyIdx < item.count; copyIdx++) {
-                    if (progLine) progLine.textContent = `${item.subject} (${itemIdx + 1}/${items.length}) - Kopya ${copyIdx + 1}/${item.count}...`;
+                    if (progLine) progLine.textContent = `${item.subject} (${itemIdx + 1}/${finalItems.length}) - Kopya ${copyIdx + 1}/${item.count}...`;
 
                     const copiedPages = await mergedPdf.copyPages(sourceDoc, indicesToCopy);
                     const firstCopiedPage = copiedPages[0];
@@ -2970,7 +3009,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     window.printFile = function (path, studentInfo = null) {
-        if (!path) return Promise.resolve();
+        if (!path) {
+            Swal.fire({
+                title: 'Soru Kağıdı Bulunamadı',
+                text: `${studentInfo?.name ? studentInfo.name + ' için ' : ''}soru kağıdı PDF adresi girilmemiş. Lütfen ayarlardan soru kağıdı linkini ekleyin.`,
+                icon: 'warning'
+            });
+            return Promise.resolve();
+        }
         return new Promise((resolve) => {
             window._printQueue.push({ path: path.trim(), info: studentInfo, resolve });
             if (!window._isProcessingPrint) window._processPrintQueue();
@@ -3776,34 +3822,52 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
             });
 
-            const targetStudents = allStudentsInSession.filter(s => {
+            const studentsInFilter = allStudentsInSession.filter(s => {
                 if (mode === 'class') return s.class === fVal;
                 if (mode === 'room') return s.room === fVal;
                 return true;
             });
 
             // QUICK VALIDATION
-            let hasValidPaper = false;
-            targetStudents.forEach(s => {
+            const validStudents = [];
+            const missingExams = new Set();
+            studentsInFilter.forEach(s => {
                 const subName = s._matchedSubject || '-';
                 const group = s._groupLabel || s.group || 'default';
                 const meta = metadata[subName] || {};
                 const papers = meta.papers || {};
                 let path = typeof papers === 'string' ? papers : (papers[group] || papers['default'] || '');
-                if (path) hasValidPaper = true;
+                if (path) {
+                    validStudents.push(s);
+                } else {
+                    missingExams.add(subName);
+                }
             });
 
-            if (!hasValidPaper) {
+            if (validStudents.length === 0) {
                 Swal.fire({
-                    title: 'Eksik Soru Kağıdı Adresi',
-                    html: `Bu listedeki sınavlar için soru kağıdı adresi girilmemiş veya dizin bulunamadı!`,
+                    title: 'Soru Kağıdı Bulunamadı',
+                    html: `Bu listedeki hiçbir sınav için soru kağıdı yüklenmemiş!<br><br>Eksik Dersler:<br><b>${Array.from(missingExams).join('<br>')}</b>`,
                     icon: 'error'
                 });
                 return;
             }
 
+            if (missingExams.size > 0) {
+                const result = await Swal.fire({
+                    title: 'Eksik Soru Kağıtları',
+                    html: `Bazı sınavlar için soru kağıdı adresi girilmemiş ve <b>atlanacak</b>:<br><br><b>${Array.from(missingExams).join('<br>')}</b><br><br>Geri kalan <b>${validStudents.length}</b> öğrenci için yazdırmaya devam edilsin mi?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, Devam Et',
+                    cancelButtonText: 'İptal',
+                    confirmButtonColor: '#4f46e5'
+                });
+                if (!result.isConfirmed) return;
+            }
+
             // USE BATCH PRINTING INSTEAD OF INDIVIDUAL
-            await printPapersForGroupBatch(targetStudents, metadata, `${mode === 'class' ? 'Sınıf' : 'Salon'}: ${fVal}`);
+            await printPapersForGroupBatch(validStudents, metadata, `${mode === 'class' ? 'Sınıf' : 'Salon'}: ${fVal}`);
         };
 
 
@@ -3823,10 +3887,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (checkedStudents.length > 0 && !isBulkExportChecked && !forcePrintPapers) {
             const metadata = session.subjectMetadata || {};
-            let foundCount = 0;
             let errors = [];
-
             const targetStudents = [];
+
             checkedStudents.forEach(cb => {
                 const subName = cb.dataset.sub;
                 const group = cb.dataset.group || 'default';
@@ -3848,11 +3911,33 @@ document.addEventListener('DOMContentLoaded', async () => {
                         _groupLabel: group,
                         examNo: meta.examNo || meta.examNumber || ''
                     });
-                    foundCount++;
                 } else {
                     errors.push(subName);
                 }
             });
+
+            if (errors.length > 0) {
+                const uniqueErrors = [...new Set(errors)];
+                if (targetStudents.length === 0) {
+                    Swal.fire({
+                        title: 'Soru Kağıdı Hatası',
+                        html: `Seçilen öğrenciler için soru kağıdı adresi yok ya da yanlış:<br><br><b>${uniqueErrors.join('<br>')}</b>`,
+                        icon: 'error'
+                    });
+                    return;
+                } else {
+                    const result = await Swal.fire({
+                        title: 'Eksik Soru Kağıtları',
+                        html: `Bazı seçilen öğrenciler için soru kağıdı yüklü değil ve <b>atlanacak</b>:<br><br><b>${uniqueErrors.join('<br>')}</b><br><br>Geri kalan <b>${targetStudents.length}</b> öğrenci için yazdırmaya devam edilsin mi?`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Evet, Devam Et',
+                        cancelButtonText: 'İptal',
+                        confirmButtonColor: '#4f46e5'
+                    });
+                    if (!result.isConfirmed) return;
+                }
+            }
 
             if (targetStudents.length === 1) {
                 // DIRECT PATH for single student: Much faster
@@ -3871,17 +3956,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (targetStudents.length > 0) {
                 await printPapersForGroupBatch(targetStudents, metadata, 'Seçili Öğrenciler');
+                return;
             }
-
-            if (errors.length > 0) {
-                const uniqueErrors = [...new Set(errors)];
-                Swal.fire({
-                    title: 'Soru Kağıdı Hatası',
-                    html: `Aşağıdaki dersler için soru kağıdı adresi yok ya da yanlış:<br><br><b>${uniqueErrors.join('<br>')}</b>`,
-                    icon: 'error'
-                });
-            }
-            if (errors.length > 0 || foundCount > 0) return; // Liste yazdırmayı durdur
         }
 
         // Filtre varsa direkt yazdır, yoksa onay al
