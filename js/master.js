@@ -234,12 +234,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (uname === "_NEW_USER_") {
             resetUserFormFields();
             usernameNewGroup.classList.remove('hidden');
+            const labelEl = document.querySelector('#usernameNewGroup label');
+            if (labelEl) labelEl.textContent = 'Yeni Kullanıcı Adı';
             regUsernameInput.required = true;
             btnDeleteUser.classList.add('hidden');
             updateSubmitButton(false);
         } else if (uname) {
-            usernameNewGroup.classList.add('hidden');
-            regUsernameInput.required = false;
+            usernameNewGroup.classList.remove('hidden');
+            const labelEl = document.querySelector('#usernameNewGroup label');
+            if (labelEl) labelEl.innerHTML = 'Kullanıcı Adı <small>(Düzenlenebilir)</small>';
+            regUsernameInput.value = uname;
+            regUsernameInput.required = true;
             btnDeleteUser.classList.remove('hidden');
             updateSubmitButton(true);
 
@@ -432,10 +437,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const usersDb = await getCloudUsers();
 
             const isEdit = regUsernameSelect.value && regUsernameSelect.value !== "_NEW_USER_";
-            const finalUsername = isEdit ? regUsernameSelect.value : username;
+            const originalUsername = isEdit ? regUsernameSelect.value : null;
+            const finalUsername = regUsernameInput.value.trim(); // Always use input
 
-            // Check if user already exists (only for new users)
-            if (!isEdit && usersDb[finalUsername]) {
+            // Check if user already exists
+            if (isEdit && finalUsername !== originalUsername) {
+                if (usersDb[finalUsername]) {
+                    showMessage(`'${finalUsername}' kullanıcı adı zaten kullanılıyor. Lütfen başka bir tane seçin.`, 'error');
+                    shakeForm();
+                    btnSubmitMaster.innerHTML = originalHtml;
+                    btnSubmitMaster.disabled = false;
+                    return;
+                }
+            } else if (!isEdit && usersDb[finalUsername]) {
                 showMessage(`'${finalUsername}' kullanıcı adı zaten kullanılıyor. Lütfen başka bir tane seçin.`, 'error');
                 shakeForm();
                 btnSubmitMaster.innerHTML = originalHtml;
@@ -447,11 +461,17 @@ document.addEventListener('DOMContentLoaded', () => {
             usersDb[finalUsername] = {
                 password: password,
                 schoolName: schoolNameToUse,
-                storeKey: storeKeyToUse,
+                storeKey: isEdit ? usersDb[originalUsername].storeKey : storeKeyToUse,
                 email: email,
                 role: role,
                 branch: branch
             };
+
+            // If username changed, delete the old one
+            if (isEdit && finalUsername !== originalUsername) {
+                delete usersDb[originalUsername];
+            }
+
             await saveToCloud('klbk_users', usersDb);
 
             // Pre-seed default settings for the new school logic
@@ -476,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 // Keep same school, just refresh user data
                 globalUsersDb = usersDb;
-                updateUsersList(storeKeyToUse);
+                updateUsersList(usersDb[finalUsername].storeKey);
                 regUsernameSelect.value = finalUsername;
                 regUsernameSelect.dispatchEvent(new Event('change'));
             }
