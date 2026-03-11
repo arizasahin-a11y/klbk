@@ -388,6 +388,21 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 13.5 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
         drawCenterText(examText, contentX, contentBaseY, contentMidW, row2H, getFitSize(examText, contentMidW, 13), mainFont);
 
+        const sNameStr = sName.toUpperCase();
+        const sSize = getFitSize(sNameStr, contentMidW, 11, schoolFont);
+        const twName = schoolFont ? schoolFont.widthOfTextAtSize(cleanTurkishChars(sNameStr), sSize * sf) : cleanTurkishChars(sNameStr).length * (sSize * sf * 0.6);
+        
+        const examSize = getFitSize(examText, contentMidW, 13);
+        const twExam = mainFont ? mainFont.widthOfTextAtSize(cleanTurkishChars(examText), examSize * sf) : cleanTurkishChars(examText).length * (examSize * sf * 0.6);
+        
+        const widestText = Math.max(twName, twExam);
+        const startX = contentX + Math.max(0, (contentMidW - widestText) / 2);
+
+        const logoDim = 26 * sf;
+        const logoX = startX - logoDim - (8 * sf);
+        const logoY = contentBaseY + (13.5 * sf + row1H - logoDim) / 2;
+        await drawLogo(logoX, logoY, logoDim);
+
         // Yatay Çizgi: 1cm soldan + 3mm sağa kaydırılmış
         const lineX1 = (2 * cmToPt + 8.505) * sf;
         const lineX2 = (width - 4 * cmToPt + 8.505) * sf;
