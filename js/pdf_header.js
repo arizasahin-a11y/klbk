@@ -153,7 +153,21 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                 img = school.logo.toLowerCase().endsWith('.png') ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
                 if (options.imageCache) options.imageCache[school.logo] = img;
             }
-            page.drawImage(img, { x: lx, y: ly, width: dim, height: dim });
+            const imgAR = img.width / img.height;
+            let drawW = dim;
+            let drawH = dim;
+            let drawX = lx;
+            let drawY = ly;
+            if (imgAR > 1) {
+                // Wider than tall
+                drawH = dim / imgAR;
+                drawY = ly + (dim - drawH) / 2;
+            } else if (imgAR < 1) {
+                // Taller than wide
+                drawW = dim * imgAR;
+                drawX = lx + (dim - drawW) / 2;
+            }
+            page.drawImage(img, { x: drawX, y: drawY, width: drawW, height: drawH });
         } catch (e) { }
     };
 
@@ -350,16 +364,35 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     } else if (designType === '9') {
         // Atatürk Teması (v3 Görsel Çerçeve + Düzenlemeler)
         const cmToPt = 28.35;
-        const targetH = (3 * cmToPt + 8.505) * sf; // +1mm extra height from bottom (Total +3mm)
+        const targetH = (3 * cmToPt + 8.505) * sf; // Orjinal yüksekliği tutalım (metin baz noktası için)
         const extraW = 1.0 * cmToPt * sf;
         const shiftLeft = 5.67 * sf; // 2mm move to left
 
-        const drawH = Math.max(oh, targetH);
+        // Eski sınırları metin hizalamalarını korumak için referans alıyoruz
+        const refDrawH = Math.max(oh, targetH);
+        const refDrawY = height - margin - strokeOffset - (refDrawH - 5.67 * sf);
+        
+        // Metin yüksekliklerini stabil tut
+        const textNarrow = 3.0 * cmToPt * sf;
+        const textUp = 1 * cmToPt * sf;
+        const contentMidW = ow - 100 * sf - textNarrow;
+        const contentX = ox + 50 * sf + (textNarrow / 2);
+
+        // Stabilized contentBaseY to keep text fixed (moved 1.5mm up previously)
+        const contentBaseY = refDrawY + (oh * 0.15) + textUp + (9.92 * sf); 
+        const lineY = contentBaseY - 0.75 * sf;
+
+        // Başlık Kutusunun ("Alttaki Fazla Alanı" kestiğimiz nokta) yeni alt sınırı
+        // Alt çizginin sadece 8 point (yaklaşık 3mm) aşağısında bitsin
+        const newDrawY = lineY - 8 * sf; 
+        
+        // Üst kısmı sabit tutarak yeni yüksekliği (drawH) hesapla
+        const fixedTopEdge = refDrawY + refDrawH; 
+        const drawH = fixedTopEdge - newDrawY; 
+        const drawY = newDrawY;
+
         const drawW = ow + extraW + shiftLeft;
         const drawX = ox - shiftLeft;
-
-        // Expand bottom downward by 1mm (drawY decreases) while keeping top fixed
-        const drawY = height - margin - strokeOffset - (drawH - 5.67 * sf);
 
         try {
             const headerUrl = 'ata_header_v3.png';
@@ -376,14 +409,6 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             }
         } catch (e) { console.warn("Ata header v3 load failed", e); }
 
-        const textNarrow = 3.0 * cmToPt * sf;
-        const textUp = 1 * cmToPt * sf;
-        const contentMidW = ow - 100 * sf - textNarrow;
-        const contentX = ox + 50 * sf + (textNarrow / 2);
-
-        // Stabilized contentBaseY to keep text fixed while header grows up
-        const contentBaseY = drawY + (oh * 0.15) + textUp + (9.92 * sf); // Moved 1.5mm up (+4.25pt) from original 2mm (5.67pt) offset
-
         // School name position: 1mm down relative to the content base
         drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 13.5 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
         drawCenterText(examText, contentX, contentBaseY, contentMidW, row2H, getFitSize(examText, contentMidW, 13), mainFont);
@@ -398,16 +423,26 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const widestText = Math.max(twName, twExam);
         const startX = contentX + Math.max(0, (contentMidW - widestText) / 2);
 
-        const logoDim = 26 * sf;
-        const logoX = startX - logoDim - (8 * sf);
-        const logoY = contentBaseY + (13.5 * sf + row1H - logoDim) / 2;
-        await drawLogo(logoX, logoY, logoDim);
-
         // Yatay Çizgi: 1cm soldan + 3mm sağa kaydırılmış
         const lineX1 = (2 * cmToPt + 8.505) * sf;
         const lineX2 = (width - 4 * cmToPt + 8.505) * sf;
-        const lineY = contentBaseY - 0.75 * sf; // Moved significantly up to ensure visibility (approx 1.5mm higher than the previous 0.5mm attempt)
+        // lineY already calculated above
         page.drawLine({ start: { x: lineX1, y: lineY }, end: { x: lineX2, y: lineY }, thickness: 0.5 * sf, color: rgb(0, 0, 0) });
+
+        // Logo Placement
+        const logoDim = 24 * sf;
+        const logoX = startX - logoDim - (8 * sf);
+        
+        // Exact vertical alignment with the text block
+        // Text goes from approx contentBaseY to contentBaseY + 24.5. Center is contentBaseY + 12.25
+        let logoY = contentBaseY + 12.25 * sf - (logoDim / 2); // contentBaseY + 0.25 (1 pt above lineY)
+        
+        // Failsafe: keep it completely out of lineY's space to prevent overlapping or creating blank "boşluk" below it
+        if (logoY < lineY + 0.5 * sf) {
+            logoY = lineY + 0.5 * sf;
+        }
+
+        await drawLogo(logoX, logoY, logoDim);
 
         const gc = rgb(0.8, 0.8, 0.8);
         if (info) {
