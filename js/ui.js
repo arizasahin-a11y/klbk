@@ -2434,6 +2434,42 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
                 }
 
+                // Auto-assign PDF header designs based on grade and field
+                if (!wizardSessionData.subjectMetadata) wizardSessionData.subjectMetadata = {};
+                
+                wizardSessionData.subjects.forEach(subObj => {
+                    const subName = subObj.name;
+                    if (!wizardSessionData.subjectMetadata[subName]) {
+                        wizardSessionData.subjectMetadata[subName] = { papers: {}, examNo: '' };
+                    }
+                    
+                    // Already set manually?
+                    if (wizardSessionData.subjectMetadata[subName].pdfHeaderDesign) return;
+
+                    // Find first student in this session taking this subject to decide design
+                    const sampleStudent = targetStudents.find(s => s._matchedSubject === subName);
+                    if (sampleStudent) {
+                        const sCls = (sampleStudent.class || "").trim();
+                        const sAlan = (sampleStudent.alan || "").toLocaleUpperCase('tr-TR').replace(/I/g, 'İ').trim();
+                        let design = "1"; // Default Classic
+                        
+                        if (sCls.startsWith("9")) {
+                            design = "9"; // Atatürk
+                        } else if (sCls.startsWith("10")) {
+                            design = "1"; // Klasik
+                        } else if (sCls.startsWith("11")) {
+                            if (sAlan === "FEN" || sAlan === "MF" || sAlan.includes("SAYISAL")) design = "3"; // Köşe Zarif
+                            else if (sAlan === "TM" || sAlan === "EA" || sAlan.includes("EŞİT")) design = "4"; // Osmanlı
+                        } else if (sCls.startsWith("12")) {
+                            if (sAlan === "FEN" || sAlan === "MF" || sAlan.includes("SAYISAL")) design = "6"; // Seddülbahir
+                            else if (sAlan === "TM" || sAlan === "EA" || sAlan.includes("EŞİT")) design = "10"; // Bulut
+                        }
+                        
+                        wizardSessionData.subjectMetadata[subName].pdfHeaderDesign = design;
+                    }
+                });
+
+
                 // Save Session
                 DataManager.addExamSession(wizardSessionData);
                 examWizardModal.classList.add('hidden');
