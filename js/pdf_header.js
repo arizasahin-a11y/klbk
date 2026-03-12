@@ -98,10 +98,21 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
 
     const getTranslations = (subject) => {
         const sub = (subject || '').toLowerCase();
-        if (sub.includes('ingilizce') || sub.includes('english')) return { year: 'ACADEMIC YEAR', term: 'TERM', class: 'CLASS', no: 'NO', name: 'NAME SURNAME', room: 'ROOM', exam: 'EXAM', seat: 'SEAT', score: 'SCORE', written: 'WRITTEN EXAM', subject: 'ENGLISH' };
-        if (sub.includes('almanca') || sub.includes('deutsch')) return { year: 'SCHULJAHR', term: 'HALBJAHR', class: 'KLASSE', no: 'NR', name: 'NAME VORNAME', room: 'RAUM', exam: 'PRÜFUNG', seat: 'PLATZ', score: 'PUNKTE', written: 'SCHRIFTLICHE PRÜFUNG', subject: 'DEUTSCH' };
-        if (sub.includes('fransızca') || sub.includes('français')) return { year: 'ANNÉE SCOLAIRE', term: 'SEMESTRE', class: 'CLASSE', no: 'N°', name: 'NOM PRÉNOM', room: 'SALLE', exam: 'EXAMEN', seat: 'PLACE', score: 'NOTE', written: 'EXAMEN ÉCRIT', subject: 'FRANÇAIS' };
-        return { year: 'ÖĞRETİM YILI', term: 'DÖNEM', class: 'SINIFI', no: 'NO', name: 'ADI SOYADI', room: 'DERSLİK', exam: 'SINAV', seat: 'YER', score: 'PUAN', written: 'YAZILI SINAVI', subject: (subject || '').toUpperCase() };
+        let upSub = (subject || '').replace(/i/g, 'İ').toUpperCase();
+        
+        let translatedSubject = upSub;
+        if (sub.includes('ingilizce')) {
+            translatedSubject = upSub.replace(/İNGİLİZCE/g, 'ENGLISH').replace(/INGILIZCE/g, 'ENGLISH');
+        } else if (sub.includes('almanca')) {
+            translatedSubject = upSub.replace(/ALMANCA/g, 'DEUTSCH');
+        } else if (sub.includes('fransızca')) {
+            translatedSubject = upSub.replace(/FRANSIZCA/g, 'FRANÇAIS');
+        }
+
+        if (sub.includes('ingilizce') || sub.includes('english')) return { year: 'ACADEMIC YEAR', term: 'TERM', class: 'CLASS', no: 'NO', name: 'NAME SURNAME', room: 'ROOM', exam: 'EXAM', seat: 'SEAT', score: 'SCORE', written: 'WRITTEN EXAM', subject: translatedSubject };
+        if (sub.includes('almanca') || sub.includes('deutsch')) return { year: 'SCHULJAHR', term: 'HALBJAHR', class: 'KLASSE', no: 'NR', name: 'NAME VORNAME', room: 'RAUM', exam: 'PRÜFUNG', seat: 'PLATZ', score: 'PUNKTE', written: 'SCHRIFTLICHE PRÜFUNG', subject: translatedSubject };
+        if (sub.includes('fransızca') || sub.includes('français')) return { year: 'ANNÉE SCOLAIRE', term: 'SEMESTRE', class: 'CLASSE', no: 'N°', name: 'NOM PRÉNOM', room: 'SALLE', exam: 'EXAMEN', seat: 'PLACE', score: 'NOTE', written: 'EXAMEN ÉCRIT', subject: translatedSubject };
+        return { year: 'ÖĞRETİM YILI', term: 'DÖNEM', class: 'SINIFI', no: 'NO', name: 'ADI SOYADI', room: 'DERSLİK', exam: 'SINAV', seat: 'YER', score: 'PUAN', written: 'YAZILI SINAVI', subject: translatedSubject };
     };
 
     const lang = getTranslations(info?.subject);
