@@ -240,7 +240,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(examText, ix + leftW, iy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
         page.drawText(lang.score, { x: ix + leftW + midW + 5 * sf, y: iy + ih - 10 * sf, size: 7 * sf, font: mainFont, color: rgb(0.5, 0.5, 0.5) });
         if (info) drawCommon(ix, iy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
-        await drawLogo(ix + (leftW - 26 * sf) / 2, iy + row3H + (row2H + row1H - 26 * sf) / 2, 26 * sf);
+        const lDim = 26 * sf;
+        await drawLogo(ix + 5 * sf, iy + ih - lDim - 5 * sf, lDim);
     } else if (designType === '2') {
         // Modern Tasarım
         drawExplicitOppositeFrame(ox, oy, ow, oh, 0, 1 * sf);
@@ -259,7 +260,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 15), mainFont);
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
         page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-        await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+        const lDim = 28 * sf;
+        await drawLogo(ox + 5 * sf, oy + oh - lDim - 5 * sf, lDim);
     } else if (designType === '3') {
         const ac = rgb(0.2, 0.3, 0.5);
         drawExplicitOppositeFrame(ox, oy, ow, oh, 10 * sf, 1 * sf, ac);
@@ -275,7 +277,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 13), mainFont);
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
         page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: mainFont, color: ac });
-        await drawLogo(ox + (leftW - 25 * sf) / 2, oy + row3H + (row2H + row1H - 25 * sf) / 2, 25 * sf);
+        const lDim = 25 * sf;
+        await drawLogo(ox + 5 * sf, oy + oh - lDim - 5 * sf, lDim);
     } else if (designType === '4') {
         const dr = rgb(0.45, 0.08, 0.08); const gd = rgb(0.72, 0.53, 0.04);
         page.drawRectangle({ x: ox, y: oy, width: ow, height: oh, color: rgb(0.99, 0.98, 0.94) });
@@ -292,7 +295,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
         page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: mainFont, color: dr });
-        await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+        const lDim = 28 * sf;
+        await drawLogo(ox + 5 * sf, oy + oh - lDim - 5 * sf, lDim);
 
         // Ottoman Icon: Dagger (Hancer)
         const hx = ox + 4 * sf, hy = oy + oh - 8 * sf;
@@ -311,7 +315,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12, schoolFont), schoolFont);
         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
-        await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+        const lDim = 28 * sf;
+        await drawLogo(ox + 5 * sf, oy + oh - lDim - 5 * sf, lDim);
 
         // Japanese Icon: Sword (Kilic/Katana)
         const sx = ox + 5 * sf, sy = oy + oh - 6 * sf;
@@ -334,7 +339,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
         page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: mainFont, color: ed });
-        await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+        const lDim = 28 * sf;
+        await drawLogo(ox + 5 * sf, oy + oh - lDim - 5 * sf, lDim);
     } else if (designType === '7') {
         // LATIN THEME
         const stone = rgb(0.29, 0.29, 0.29); const paper = rgb(0.98, 0.98, 0.94);
@@ -353,7 +359,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 11, schoolFont), schoolFont);
         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
-        await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+        const lDim = 28 * sf;
+        await drawLogo(ox + 5 * sf, oy + oh - lDim - 5 * sf, lDim);
 
         // Latin Icon: Chili Pepper (Aci Biber)
         const cx_ = ox + 6 * sf, cy_ = oy + oh - 7 * sf;
@@ -378,7 +385,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(spacedName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(spacedName, midW, 10.5, schoolFont), schoolFont);
         drawCenterText(examText, ox + leftW, oy + row3H + 2 * sf, midW, row2H - 4 * sf, getFitSize(examText, midW, 13.5), mainFont);
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
-        await drawLogo(ox + (leftW - 30 * sf) / 2, oy + row3H + (row2H + row1H - 30 * sf) / 2, 30 * sf);
+        const lDim = 30 * sf;
+        await drawLogo(ox + 5 * sf, oy + oh - lDim - 5 * sf, lDim);
 
         // Arabic Icon: Snake (Yilan)
         const snX = ox + 8 * sf, snY1 = oy + oh - 8 * sf, snY2 = oy + oh - 4 * sf;
@@ -516,7 +524,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W, 0);
 
         page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: mainFont, color: edgeColor });
-        await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+        const lDim = 28 * sf;
+        await drawLogo(ox + 5 * sf, oy + oh - lDim - 5 * sf, lDim);
     } else if (designType === '11') {
         // SAWTOOTH THEME (TESTERE DİŞİ)
         const darkMetal = rgb(0.2, 0.2, 0.2); const lightGray = rgb(0.96, 0.96, 0.96);
@@ -560,6 +569,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W, tOff);
 
         page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: mainFont, color: darkMetal });
-        await drawLogo(ox + (leftW - 28 * sf) / 2, oy + row3H + (row2H + row1H - 28 * sf) / 2, 28 * sf);
+        const lDim = 28 * sf;
+        await drawLogo(ox + 5 * sf, oy + oh - lDim - 5 * sf, lDim);
     }
 };;
