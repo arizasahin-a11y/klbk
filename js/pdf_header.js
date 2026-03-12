@@ -113,7 +113,21 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         termStr = `I. ${lang.term}`;
     }
     const examNoStr = info?.examNo || metadata?.examNo || '';
-    const examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} DERSİ ${examNoStr ? `${examNoStr}. ` : ''}SINAVI`.toUpperCase();
+    
+    // Yabancı dil sınavlarında dil ayarlarına uygun "YAZILI SINAVI" çevirisi (lang.written) gelir. 
+    // Yabancı dil değilse (veya default Türkçe ise), özel bir formata zorlarız ("X DERSİ Y. SINAVI" gibi).
+    const sub = (info?.subject || '').toLowerCase();
+    let examText = '';
+    if (sub.includes('ingilizce') || sub.includes('english') || 
+        sub.includes('almanca') || sub.includes('deutsch') || 
+        sub.includes('fransızca') || sub.includes('français')) {
+        // Yabancı dilde: "2023-2024 ACADEMIC YEAR I. TERM ENGLISH 1. WRITTEN EXAM" formatı
+        examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} ${examNoStr ? `${examNoStr}. ` : ''}${lang.written}`.toUpperCase();
+    } else {
+        // Türkçe sınavlarda: "2023-2024 ÖĞRETİM YILI I. DÖNEM FİZİK 9 DERSİ 1. SINAVI" formatı
+        examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} DERSİ ${examNoStr ? `${examNoStr}. ` : ''}SINAVI`.toUpperCase();
+    }
+    
     const rawSchoolName = (school.name || '').replace(/i/g, 'İ').toUpperCase();
     let sName = rawSchoolName.split('').join(' ');
     if (schoolFont.widthOfTextAtSize(cleanTurkishChars(sName), 9 * sf) > midW) sName = rawSchoolName;
