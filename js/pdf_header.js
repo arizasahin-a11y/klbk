@@ -107,9 +107,13 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const lang = getTranslations(info?.subject);
     let termDom = ''; try { const el = document.getElementById('academicTerm'); if (el) termDom = el.value; } catch (e) { }
     let termStr = (sess.academicTerm || termDom || '').toUpperCase();
-    if (termStr.includes('1.') || termStr.includes('I. ')) termStr = `I. ${lang.term}`; else if (termStr.includes('2.') || termStr.includes('II.')) termStr = `II. ${lang.term}`;
+    if (termStr.includes('2.') || termStr.includes('II.')) {
+        termStr = `II. ${lang.term}`;
+    } else if (termStr.includes('1.') || termStr.includes('I.')) {
+        termStr = `I. ${lang.term}`;
+    }
     const examNoStr = info?.examNo || metadata?.examNo || '';
-    const examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} ${examNoStr ? `${examNoStr}. ` : ''}${lang.written}`.toUpperCase();
+    const examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} DERSİ ${examNoStr ? `${examNoStr}. ` : ''}SINAVI`.toUpperCase();
     const rawSchoolName = (school.name || '').replace(/i/g, 'İ').toUpperCase();
     let sName = rawSchoolName.split('').join(' ');
     if (schoolFont.widthOfTextAtSize(cleanTurkishChars(sName), 9 * sf) > midW) sName = rawSchoolName;
