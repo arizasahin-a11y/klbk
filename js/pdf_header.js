@@ -160,8 +160,17 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const drawStudentName = (tx, ty, tw, th) => {
         if (!info) return;
         let n = info.name.replace(/i/g, 'İ').toUpperCase();
-        // Küçültülmüş boyutlar (%15 civarı: 24->20.4, 28->23.8)
-        let sz = Math.min(20.4, getFitSize(n, tw - 10 * sf, 23.8, nameFont));
+        
+        let sz;
+        if (designType === '9') {
+            // Atatürk teması için mevcut boyut (önceden %15 küçültülmüş)
+            sz = Math.min(20.4, getFitSize(n, tw - 10 * sf, 23.8, nameFont));
+        } else {
+            // Diğer temalar için mevcut boyuttan ilave %15 daha küçültülmüş değerler
+            // 20.4 * 0.85 = 17.34, 23.8 * 0.85 = 20.23
+            sz = Math.min(17.34, getFitSize(n, tw - 10 * sf, 20.23, nameFont));
+        }
+
         drawLeftText(n, tx, ty, tw, th, sz, nameFont);
         drawLeftText(n, tx + 0.3 * sf, ty, tw, th, sz, nameFont);
     };
