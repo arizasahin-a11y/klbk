@@ -2858,7 +2858,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const url = URL.createObjectURL(blob);
                 const win = window.open(url, '_blank');
                 if (win) {
-                    win.onload = () => { setTimeout(() => win.print(), 500); };
+                    // Opened in new tab
                 } else {
                     Swal.fire({
                         title: 'Yedek Kağıtlar Hazır',
@@ -3214,48 +3214,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.warn("Attempting fallback print mechanism...");
         }
 
-        // Fallback or Original Print
-        const iframe = document.createElement('iframe');
-        iframe.src = printPath;
-        Object.assign(iframe.style, {
-            position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
-        });
-        document.body.appendChild(iframe);
-
-        let fallbackResolved = false;
-
-        iframe.onload = () => {
-            if (fallbackResolved) return; fallbackResolved = true;
-            try {
-                setTimeout(() => {
-                    iframe.contentWindow.focus();
-                    iframe.contentWindow.print();
-                }, 3000); // Wait 3s for layout safety (Consistent with main flow)
-            } catch (err) {
-                console.warn("Iframe Print failed, attempting window.open...", err);
-                try {
-                    window.open(printPath, '_blank');
-                } catch (windowErr) {
-                    console.error("Window open fallback also failed", windowErr);
-                }
-            }
-            setTimeout(() => finalize(iframe), 30000);
-        };
-
-        iframe.onerror = () => {
-            if (fallbackResolved) return; fallbackResolved = true;
-            console.error("Iframe failed to load.");
-            finalize(iframe);
-        };
-
-        // Safety timeout in case both fail to fire
-        setTimeout(() => {
-            if (!fallbackResolved) {
-                fallbackResolved = true;
-                console.error("Iframe load timed out.");
-                finalize(iframe);
-            }
-        }, 6000);
+        // Fallback: Open in new window instead of hidden iframe print
+        window.open(printPath, '_blank');
+        finalize(null);
     };
 
     // ─── Toplu Soru Kağıdı ZIP İhracı ───────────────────────────────────────────
@@ -3639,21 +3600,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const sumBlob = new Blob([combinedBytes], { type: 'application/pdf' });
                     const sumUrl = URL.createObjectURL(sumBlob);
 
-                    const printFrame = document.createElement('iframe');
-                    Object.assign(printFrame.style, {
-                        position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
-                    });
-                    printFrame.src = sumUrl;
-                    document.body.appendChild(printFrame);
-
-                    printFrame.onload = () => {
-                        printFrame.contentWindow.focus();
-                        printFrame.contentWindow.print();
-                        setTimeout(() => {
-                            URL.revokeObjectURL(sumUrl);
-                            if (document.body.contains(printFrame)) document.body.removeChild(printFrame);
-                        }, 30000); // Wait 30s to allow printer spooling for many pages
-                    };
+                    const newWin = window.open(sumUrl, '_blank');
+                    if (!newWin) {
+                        Swal.fire('Hata', 'Yeni sekme açılamadı! Lütfen tarayıcı ayarlarından açılır pencerelere izin verin.', 'error');
+                    }
                 }
 
             } catch (globalErr) {
@@ -4405,7 +4355,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const win = window.open('', '_blank');
-            win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${session.name} - ${modeLabel}</title><style>${pageCss}</style></head><body>${body}<script>window.onload=()=>setTimeout(()=>{if(!${isPreview}){window.focus();window.print();}},500);</script></body></html>`);
+            win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${session.name} - ${modeLabel}</title><style>${pageCss}</style></head><body>${body}<script>window.onload=()=>setTimeout(()=>{if(!${isPreview}){window.focus(); /* window.print(); removed to avoid skipping pages */}},500);</script></body></html>`);
             win.document.close();
 
             // Interleaved Paper Printing Trigger

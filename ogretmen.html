@@ -946,24 +946,11 @@
         };
 
         window.finalizeAndPrint = (blobUrl, onFinalize = null) => {
-            const iframe = document.createElement('iframe');
-            Object.assign(iframe.style, {
-                position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
-            });
-            iframe.src = blobUrl;
-            document.body.appendChild(iframe);
-
-            iframe.onload = () => {
-                setTimeout(() => {
-                    iframe.contentWindow.focus();
-                    iframe.contentWindow.print();
-                    setTimeout(() => {
-                        if (blobUrl.startsWith('blob:')) URL.revokeObjectURL(blobUrl);
-                        if (iframe && document.body.contains(iframe)) document.body.removeChild(iframe);
-                        if (onFinalize) onFinalize();
-                    }, 30000);
-                }, 1200); // 1.2s delay for safety
-            };
+            const newWin = window.open(blobUrl, '_blank');
+            if (!newWin) {
+                Swal.fire('Hata', 'Yeni sekme açılamadı! Lütfen tarayıcı ayarlarından açılır pencerelere izin verin.', 'error');
+            }
+            if (onFinalize) onFinalize();
         };
 
         window.printFile = function (path, studentInfo = null, session = null, options = {}) {
@@ -1027,20 +1014,9 @@
                 window.finalizeAndPrint(blobUrl, () => finalize(null));
             } catch (e) {
                 console.error("PDF Overlay Error:", e);
-                // Fallback
-                const iframe = document.createElement('iframe');
-                Object.assign(iframe.style, {
-                    position: 'fixed', left: '-5000px', top: '-5000px', width: '1000px', height: '1000px', border: '0', opacity: '0.05', pointerEvents: 'none'
-                });
-                iframe.src = printPath;
-                document.body.appendChild(iframe);
-                iframe.onload = () => {
-                    setTimeout(() => {
-                        iframe.contentWindow.focus();
-                        iframe.contentWindow.print();
-                        setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); finalize(null); }, 30000);
-                    }, 3000); // 3s delay for safety
-                };
+                // Fallback: Open in new window instead of hidden iframe print
+                window.open(printPath, '_blank');
+                finalize(null);
             }
         };
 
@@ -1592,7 +1568,6 @@
                             const scale = Math.min(wrapW / wall.offsetWidth, wrapH / wall.offsetHeight, 1.4); 
                             wall.style.transform = "scale(" + scale + ")"; 
                         }); 
-                        window.print();
                     }, 250); 
                 });<\/script>`;
             }
@@ -1830,7 +1805,7 @@
                     const url = URL.createObjectURL(blob);
                     const win = window.open(url, '_blank');
                     if (win) {
-                        win.onload = () => { setTimeout(() => win.print(), 500); };
+                        // Opened in new tab
                     } else {
                         Swal.fire({
                             title: 'Yedek Kağıtlar Hazır',
