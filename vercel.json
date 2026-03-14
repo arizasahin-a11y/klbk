@@ -3,69 +3,79 @@
   "rewrites": [
     {
       "source": "/k9x7v2m4",
-      "destination": "/_index.html"
+      "destination": "/index.html"
     },
     {
       "source": "/r1p5s8q3",
-      "destination": "/_dashboard.html"
+      "destination": "/dashboard.html"
     },
     {
       "source": "/n4b9v1c7",
-      "destination": "/_master.html"
+      "destination": "/master.html"
     },
     {
       "source": "/j2k5l0p8",
-      "destination": "/_ogrenci_sorgu.html"
+      "destination": "/ogrenci_sorgu.html"
     },
     {
       "source": "/h6t3y9w1",
-      "destination": "/_ogretmen.html"
+      "destination": "/ogretmen.html"
     },
     {
       "source": "/",
-      "destination": "/_index.html"
+      "destination": "/index.html"
     }
   ],
   "redirects": [
     {
       "source": "/index.html",
-      "destination": "/security_error.html"
+      "destination": "/security_error.html",
+      "permanent": false
     },
     {
       "source": "/dashboard.html",
-      "destination": "/security_error.html"
+      "destination": "/security_error.html",
+      "permanent": false
     },
     {
       "source": "/master.html",
-      "destination": "/security_error.html"
+      "destination": "/security_error.html",
+      "permanent": false
     },
     {
       "source": "/ogrenci_sorgu.html",
-      "destination": "/security_error.html"
+      "destination": "/security_error.html",
+      "permanent": false
     },
     {
       "source": "/ogretmen.html",
-      "destination": "/security_error.html"
+      "destination": "/security_error.html",
+      "permanent": false
     },
     {
       "source": "/index",
-      "destination": "/security_error.html"
+      "destination": "/security_error.html",
+      "permanent": false
     },
     {
       "source": "/dashboard",
-      "destination": "/security_error.html"
+      "destination": "/security_error.html",
+      "permanent": false
     },
     {
       "source": "/master",
-      "destination": "/security_error.html"
+      "destination": "/security_error.html",
+      "permanent": false
     },
     {
       "source": "/ogrenci_sorgu",
-      "destination": "/security_error.html"
+      "destination": "/security_error.html",
+      "permanent": false
     },
     {
       "source": "/ogretmen",
-      "destination": "/security_error.html"
+      "destination": "/security_error.html",
+      "permanent": false
     }
   ]
 }
