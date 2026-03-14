@@ -1,6 +1,6 @@
 Sayfa Adı	Tam Erişim URL'si
-Giriş Sayfası (Login)	https://klbk-five.vercel.app/k9x7v2m4.html
-Öğretmen Paneli	https://klbk-five.vercel.app/h6t3y9w1.html
-Yönetici Paneli (Dashboard)	https://klbk-five.vercel.app/r1p5s8q3.html
-Sistem Yönetimi (Master)	https://klbk-five.vercel.app/n4b9v1c7.html
-Öğrenci Sınav Sorgu	https://klbk-five.vercel.app/j2k5l0p8.html
+Giriş Sayfası (Login)	https://klbk-five.vercel.app/k9x7v2m4
+Öğretmen Paneli	https://klbk-five.vercel.app/h6t3y9w1
+Yönetici Paneli (Dashboard)	https://klbk-five.vercel.app/r1p5s8q3
+Sistem Yönetimi (Master)	https://klbk-five.vercel.app/n4b9v1c7
+Öğrenci Sınav Sorgu	https://klbk-five.vercel.app/j2k5l0p8
