@@ -107,7 +107,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Form Submissions ---
 
-    // Handle Login
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -118,65 +117,83 @@ document.addEventListener('DOMContentLoaded', () => {
             // Loading state
             const btn = loginForm.querySelector('button[type="submit"]');
             const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Bilgiler Doğrulanıyor...';
-            btn.disabled = true;
+            
+            try {
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Bilgiler Doğrulanıyor...';
+                btn.disabled = true;
 
-            const usersDb = await getCloudUsers();
+                const usersDb = await getCloudUsers();
 
-            // Validate credentials against usersDb
-            if (usersDb[username] && usersDb[username].password === password) {
-                showMessage(loginMessageBox, 'Giriş başarılı! Yönlendiriliyorsunuz...', 'success');
+                // Validate credentials against usersDb
+                if (usersDb[username] && usersDb[username].password === password) {
+                    showMessage(loginMessageBox, 'Giriş başarılı! Yönlendiriliyorsunuz...', 'success');
 
-                // Handle Remember Me (Persistent Session)
-                if (rememberMeCheckbox && rememberMeCheckbox.checked) {
-                    localStorage.setItem('klbk_rememberedUser', username);
+                    // Handle Remember Me (Persistent Session)
+                    if (rememberMeCheckbox && rememberMeCheckbox.checked) {
+                        localStorage.setItem('klbk_rememberedUser', username);
 
-                    // Save full session to localStorage for persistence (Except students)
-                    const role = usersDb[username].role || 'admin';
-                    if (role !== 'student' && role !== 'ogrenci') {
-                        const sessionData = {
-                            klbk_currentUser: username,
-                            klbk_schoolName: usersDb[username].schoolName || '',
-                            klbk_storeKey: usersDb[username].storeKey || (`klbk_data_${username}`),
-                            klbk_role: role,
-                            klbk_loginTime: new Date().toISOString()
-                        };
-                        if (usersDb[username].branch) {
-                            sessionData.klbk_branch = usersDb[username].branch;
+                        // Save full session to localStorage for persistence (Except students)
+                        const role = usersDb[username].role || 'admin';
+                        if (role !== 'student' && role !== 'ogrenci') {
+                            const sessionData = {
+                                klbk_currentUser: username,
+                                klbk_schoolName: usersDb[username].schoolName || '',
+                                klbk_storeKey: usersDb[username].storeKey || (`klbk_data_${username}`),
+                                klbk_role: role,
+                                klbk_loginTime: new Date().toISOString()
+                            };
+                            if (usersDb[username].branch) {
+                                sessionData.klbk_branch = usersDb[username].branch;
+                            }
+                            localStorage.setItem('klbk_persistent_session', JSON.stringify(sessionData));
                         }
-                        localStorage.setItem('klbk_persistent_session', JSON.stringify(sessionData));
-                    }
-                } else {
-                    localStorage.removeItem('klbk_rememberedUser');
-                    localStorage.removeItem('klbk_persistent_session');
-                }
-
-                // Setup session
-                sessionStorage.setItem('klbk_isLoggedIn', 'true');
-                sessionStorage.setItem('klbk_currentUser', username);
-                sessionStorage.setItem('klbk_schoolName', usersDb[username].schoolName || '');
-                sessionStorage.setItem('klbk_storeKey', usersDb[username].storeKey || (`klbk_data_${username}`));
-                sessionStorage.setItem('klbk_role', usersDb[username].role || 'admin');
-                if (usersDb[username].branch) {
-                    sessionStorage.setItem('klbk_branch', usersDb[username].branch);
-                }
-                sessionStorage.setItem('klbk_loginTime', new Date().toISOString());
-
-                // Redirect logic
-                setTimeout(() => {
-                    if (usersDb[username].role === 'ogretmen') {
-                        window.location.href = 'h6t3y9w1';
                     } else {
-                        window.location.href = 'r1p5s8q3';
+                        localStorage.removeItem('klbk_rememberedUser');
+                        localStorage.removeItem('klbk_persistent_session');
                     }
-                }, 1000);
-            } else {
-                showMessage(loginMessageBox, 'Hatalı kullanıcı adı veya şifre.', 'error');
-                shakeForm();
+
+                    // Setup session
+                    sessionStorage.setItem('klbk_isLoggedIn', 'true');
+                    sessionStorage.setItem('klbk_currentUser', username);
+                    sessionStorage.setItem('klbk_schoolName', usersDb[username].schoolName || '');
+                    sessionStorage.setItem('klbk_storeKey', usersDb[username].storeKey || (`klbk_data_${username}`));
+                    sessionStorage.setItem('klbk_role', usersDb[username].role || 'admin');
+                    if (usersDb[username].branch) {
+                        sessionStorage.setItem('klbk_branch', usersDb[username].branch);
+                    }
+                    sessionStorage.setItem('klbk_loginTime', new Date().toISOString());
+
+                    // Redirect logic
+                    setTimeout(() => {
+                        if (usersDb[username].role === 'ogretmen') {
+                            window.location.href = 'h6t3y9w1';
+                        } else {
+                            window.location.href = 'r1p5s8q3';
+                        }
+                    }, 1000);
+                } else {
+                    showMessage(loginMessageBox, 'Hatalı kullanıcı adı veya şifre.', 'error');
+                    if (typeof shakeForm === 'function') shakeForm();
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error("Giriş sırasında hata:", err);
+                showMessage(loginMessageBox, 'Sistem hatası oluştu. Lütfen tekrar deneyin.', 'error');
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
             }
         });
+    }
+
+    // Helper: Shake Form on Error
+    function shakeForm() {
+        const card = document.querySelector('.login-card');
+        if (card) {
+            card.style.animation = 'none';
+            card.offsetHeight; // trigger reflow
+            card.style.animation = 'shake 0.4s ease-in-out';
+        }
     }
 
     // Helper: Show Message Blocks
