@@ -1509,6 +1509,13 @@
                 target.style.transform = `scale(${scale})`;
             }
         }
+        function parseDateTime(dateStr, timeStr) {
+            return DataManager.parseSessionDateTime(dateStr, timeStr);
+        }
+
+        function getExamEndTime(dateStr, timeStr) {
+            return DataManager.getSessionEndDateTime(dateStr, timeStr);
+        }
     </script>
 </body>
 
