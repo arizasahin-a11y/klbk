@@ -946,10 +946,49 @@
         };
 
         window.finalizeAndPrint = (blobUrl, onFinalize = null) => {
-            const newWin = window.open(blobUrl, '_blank');
+            const newWin = window.open('', '_blank');
             if (!newWin) {
                 Swal.fire('Hata', 'Yeni sekme açılamadı! Lütfen tarayıcı ayarlarından açılır pencerelere izin verin.', 'error');
+                return;
             }
+            newWin.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Sınav Kağıtları</title>
+                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+                    <style>
+                        body { margin: 0; padding: 0; overflow: hidden; background: #525659; }
+                        iframe { width: 100%; height: 100vh; border: none; }
+                        .floating-print-btn {
+                            position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px;
+                            background: #4f46e5; color: white; border: none; border-radius: 50%;
+                            cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                            display: flex; align-items: center; justify-content: center;
+                            font-size: 24px; z-index: 10000; transition: all 0.3s;
+                        }
+                        .floating-print-btn:hover { background: #4338ca; transform: scale(1.1); }
+                        @media print { .floating-print-btn { display: none; } }
+                    </style>
+                </head>
+                <body>
+                    <iframe src="${blobUrl}" name="printFrame"></iframe>
+                    <button class="floating-print-btn" onclick="try { window.frames['printFrame'].focus(); window.frames['printFrame'].print(); } catch(e) { window.print(); }" title="Yazdır">
+                        <i class="fas fa-print"></i>
+                    </button>
+                    <script>
+                        // PDF focus for print
+                        window.onload = function() {
+                            setTimeout(() => {
+                                try { window.frames[0].focus(); } catch(e) {}
+                            }, 500);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+            newWin.document.close();
             if (onFinalize) onFinalize();
         };
 
@@ -1572,8 +1611,15 @@
                 });<\/script>`;
             }
             const win = window.open('', '_blank');
-            win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${session.name}</title><style>${pageCss}</style></head><body>${body}</body></html>`);
-            win.document.close();
+            const doc = win.document;
+            doc.open();
+            doc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + session.name + '</title>');
+            doc.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">');
+            doc.write('<style>' + pageCss + ' .floating-print-btn { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #4f46e5; color: white; border: none; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 24px; z-index: 10000; transition: all 0.3s; } .floating-print-btn:hover { background: #4338ca; transform: scale(1.1); } @media print { .floating-print-btn { display: none !important; } }</style>');
+            doc.write('</head><body>' + body);
+            doc.write('<button class="floating-print-btn" onclick="window.print()" title="Yazdır"><i class="fas fa-print"></i></button>');
+            doc.write('</body></html>');
+            doc.close();
         }
 
         // ===== YEDEK KAĞIT YAZDIRMA (Shift + Sağ tıklama) =====
@@ -1803,16 +1849,7 @@
                     const pdfBytes = await mergedPdf.save();
                     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
                     const url = URL.createObjectURL(blob);
-                    const win = window.open(url, '_blank');
-                    if (win) {
-                        // Opened in new tab
-                    } else {
-                        Swal.fire({
-                            title: 'Yedek Kağıtlar Hazır',
-                            text: 'Döküman yeni sekmede açıldı.',
-                            icon: 'success'
-                        });
-                    }
+                    window.finalizeAndPrint(url);
                 }
                 Swal.close();
             } catch (err) {
