@@ -12,8 +12,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.formatDateToStandard = (val) => DataManager.formatDateToStandard(val);
     window.formatDateToInput = (val) => DataManager.formatDateToInput(val);
 
-    // --- 1. Authentication Check ---
+    // --- 1. Authentication & Path enforcement ---
     const path = window.location.pathname;
+
+    // Doğrudan dosya ismini yazanları engelle
+    if (path.endsWith('/dashboard.html') || path.endsWith('/dashboard')) {
+        window.location.href = '/security_error';
+        return;
+    }
+
     const isLoginPage = path.includes('k9x7v2m4');
     
     if (!isLoginPage) {

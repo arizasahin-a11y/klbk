@@ -148,6 +148,11 @@
     <script src="js/data.js?v=5.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        // Path Enforcement: Doğrudan dosya ismini (ogretmen.html) yazanları engelle
+        if (window.location.pathname.endsWith('/ogretmen.html') || window.location.pathname.endsWith('/ogretmen')) {
+            window.location.href = '/security_error';
+        }
+
         // Check Auth
         const currentRole = (sessionStorage.getItem('klbk_role') || '').toLowerCase().trim();
         if (sessionStorage.getItem('klbk_isLoggedIn') !== 'true' || (currentRole !== 'ogretmen' && currentRole !== 'idareci')) {

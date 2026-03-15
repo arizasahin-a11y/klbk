@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Path Enforcement: Sadece doğrudan .html ismiyle geliniyorsa engelle
+    const path = window.location.pathname;
+    if (path.endsWith('/index.html') || path.endsWith('/index')) {
+        window.location.href = '/security_error';
+        return;
+    }
 
     const loginForm = document.getElementById('loginForm');
 
