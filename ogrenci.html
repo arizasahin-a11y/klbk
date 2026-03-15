@@ -583,8 +583,11 @@
             const q = urlParams.get('school');
             if (q) return `klbk_data_${q}`;
 
-            // Check if we are on a protected page that is NOT the student query page
+            // Path Enforcement: Block direct access to ogrenci.html
             const path = window.location.pathname;
+            if (path.includes('ogrenci.html')) {
+                window.location.href = '/security_error';
+            }
             const isStudentPage = path.includes('ogrenci') || path.includes('j2k5l0p8');
             
             // If not student page and not logged in, this shouldn't be accessible directly

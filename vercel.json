@@ -1,26 +1,11 @@
 {
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/k9x7v2m4", "destination": "/index.html" },
-    { "source": "/k9x7v2m4.html", "destination": "/index.html" },
-    { "source": "/h6t3y9w1", "destination": "/ogretmen.html" },
-    { "source": "/h6t3y9w1.html", "destination": "/ogretmen.html" },
-    { "source": "/r1p5s8q3", "destination": "/dashboard.html" },
-    { "source": "/r1p5s8q3.html", "destination": "/dashboard.html" },
-    { "source": "/n4b9v1c7", "destination": "/master.html" },
-    { "source": "/n4b9v1c7.html", "destination": "/master.html" },
-    { "source": "/j2k5l0p8", "destination": "/ogrenci.html" },
-    { "source": "/j2k5l0p8.html", "destination": "/ogrenci.html" },
+    { "source": "/k9x7v2m4(|.html)", "destination": "/index.html" },
+    { "source": "/h6t3y9w1(|.html)", "destination": "/ogretmen.html" },
+    { "source": "/r1p5s8q3(|.html)", "destination": "/dashboard.html" },
+    { "source": "/n4b9v1c7(|.html)", "destination": "/master.html" },
+    { "source": "/j2k5l0p8(|.html)", "destination": "/ogrenci.html" },
     { "source": "/security_error", "destination": "/404.html" }
-  ],
-  "redirects": [
-    { "source": "/ogretmen", "destination": "/security_error", "permanent": false },
-    { "source": "/ogretmen.html", "destination": "/security_error", "permanent": false },
-    { "source": "/dashboard", "destination": "/security_error", "permanent": false },
-    { "source": "/dashboard.html", "destination": "/security_error", "permanent": false },
-    { "source": "/master", "destination": "/security_error", "permanent": false },
-    { "source": "/master.html", "destination": "/security_error", "permanent": false },
-    { "source": "/ogrenci", "destination": "/security_error", "permanent": false },
-    { "source": "/ogrenci.html", "destination": "/security_error", "permanent": false }
   ]
 }

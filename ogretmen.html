@@ -148,6 +148,12 @@
     <script src="js/data.js?v=5.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        // Path Enforcement: Block direct access to ogretmen.html
+        const path = window.location.pathname;
+        if (path.includes('ogretmen.html')) {
+            window.location.href = '/security_error';
+        }
+
         // Check Auth
         const currentRole = (sessionStorage.getItem('klbk_role') || '').toLowerCase().trim();
         if (sessionStorage.getItem('klbk_isLoggedIn') !== 'true' || (currentRole !== 'ogretmen' && currentRole !== 'idareci')) {

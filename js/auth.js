@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Path Enforcement: Block direct access to index.html
+    const path = window.location.pathname;
+    if (path.includes('index.html')) {
+        window.location.href = '/security_error';
+        return;
+    }
 
     const loginForm = document.getElementById('loginForm');
 
@@ -180,7 +186,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     setTimeout(() => {
                         const rawRole = usersDb[username].role || 'admin';
                         const role = rawRole.toLowerCase().trim();
-                        console.log("Logged in user:", username, "Detected role:", role);
                         
                         if (role === 'ogretmen' || role === 'idareci') {
                             window.location.href = '/h6t3y9w1';

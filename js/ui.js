@@ -12,9 +12,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.formatDateToStandard = (val) => DataManager.formatDateToStandard(val);
     window.formatDateToInput = (val) => DataManager.formatDateToInput(val);
 
-    // --- 1. Authentication Check ---
+    // --- 1. Authentication & Path Enforcement ---
     const path = window.location.pathname;
-    const isLoginPage = path.includes('k9x7v2m4') || path === '/' || path.includes('index');
+    const isLoginPage = path.includes('k9x7v2m4');
+    const isDashboardCode = path.includes('r1p5s8q3');
+
+    // Block direct access to dashboard.html
+    if (path.includes('dashboard.html')) {
+        window.location.href = '/security_error';
+        return;
+    }
     
     if (!isLoginPage) {
         const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn');
