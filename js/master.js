@@ -1,12 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Path Enforcement: Block direct access to master.html
-    const path = window.location.pathname;
-    if (path.includes('master.html')) {
-        window.location.href = '/security_error';
-        return;
-    }
-
     const masterForm = document.getElementById('masterForm');
 
     // Form Elements

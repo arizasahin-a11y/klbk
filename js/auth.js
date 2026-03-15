@@ -1,10 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Path Enforcement: Block direct access to index.html
-    const path = window.location.pathname;
-    if (path.includes('index.html')) {
-        window.location.href = '/security_error';
-        return;
-    }
 
     const loginForm = document.getElementById('loginForm');
 
