@@ -50,9 +50,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return defaultUsers;
     }
 
-    // --- Persistent Session Check ---
+    // Check for logout request via URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('logout') === 'true') {
+        sessionStorage.clear();
+        localStorage.removeItem('klbk_persistent_session');
+        // Clean the URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // Restore persistent session
     const persistentSession = localStorage.getItem('klbk_persistent_session');
-    if (persistentSession) {
+    if (persistentSession && urlParams.get('logout') !== 'true') {
         try {
             const data = JSON.parse(persistentSession);
             const loginDate = new Date(data.klbk_loginTime);
@@ -67,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sessionStorage.setItem('klbk_isLoggedIn', 'true');
 
                 // Auto-redirect
-                if (data.klbk_role === 'ogretmen') {
+                if (data.klbk_role === 'ogretmen' || data.klbk_role === 'idareci') {
                     window.location.href = 'h6t3y9w1';
                 } else if (data.klbk_role === 'master' || data.klbk_role === 'admin' || data.klbk_role === 'dashboard') {
                     window.location.href = 'r1p5s8q3';
@@ -167,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Redirect logic
                     setTimeout(() => {
-                        if (usersDb[username].role === 'ogretmen') {
+                        if (usersDb[username].role === 'ogretmen' || usersDb[username].role === 'idareci') {
                             window.location.href = 'h6t3y9w1';
                         } else if (usersDb[username].role === 'master' || usersDb[username].role === 'admin' || usersDb[username].role === 'dashboard') {
                             window.location.href = 'r1p5s8q3';

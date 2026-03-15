@@ -149,8 +149,9 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Check Auth
-        if (sessionStorage.getItem('klbk_isLoggedIn') !== 'true' || sessionStorage.getItem('klbk_role') !== 'ogretmen') {
-            window.location.href = 'k9x7v2m4';
+        const currentRole = sessionStorage.getItem('klbk_role');
+        if (sessionStorage.getItem('klbk_isLoggedIn') !== 'true' || (currentRole !== 'ogretmen' && currentRole !== 'idareci')) {
+            window.location.href = 'k9x7v2m4?logout=true';
         }
 
         const currentUser = sessionStorage.getItem('klbk_currentUser');
@@ -237,7 +238,7 @@
             sessionStorage.clear();
             localStorage.removeItem('klbk_student_session');
             localStorage.removeItem('klbk_persistent_session');
-            window.location.href = 'k9x7v2m4';
+            window.location.href = 'k9x7v2m4?logout=true';
         }
 
         function toggleSession(id) {

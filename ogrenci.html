@@ -585,7 +585,7 @@
 
             // Check if we are on a protected page that is NOT the student query page
             const path = window.location.pathname;
-            const isStudentPage = path.includes('j2k5l0p8');
+            const isStudentPage = path.includes('ogrenci') || path.includes('j2k5l0p8');
             
             // If not student page and not logged in, this shouldn't be accessible directly
             if (!isStudentPage) {
