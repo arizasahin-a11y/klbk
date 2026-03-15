@@ -719,6 +719,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 7. Students & Classes UI Helpers ---
     window.assignRoomToClass = function (className, roomName) {
         DataManager.saveClassRoomMapping(className, roomName);
+        updateClassesList(); // Listeyi yenileyerek seçilen dersliği diğerlerinden gizle
         Swal.fire({
             toast: true,
             position: 'top-end',
@@ -734,7 +735,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const container = document.getElementById('classesGridContainer');
         const recentWidget = document.getElementById('recentClassesList');
         const classrooms = DataManager.getClassrooms();
-        const classRoomMappings = DataManager.getClassRoomMappings();
+        const classRoomMappings = DataManager.getClassRoomMappings() || {};
+        const assignedRoomNames = Object.values(classRoomMappings);
 
         // Group students by class
         const classGroups = {};
@@ -776,15 +778,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="accordion-header" style="padding:1.5rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="this.nextElementSibling.classList.toggle('hidden');">
                         <div style="display:flex; align-items:center; gap:1rem;">
                             <h2 style="color:var(--primary); font-size:1.5rem; margin:0;">${cls} Sınıfı</h2>
-                            <button class="btn btn-secondary btn-sm" style="padding:0.3rem 0.75rem; font-size:0.85rem;" onclick="event.stopPropagation(); window.assignSubjectsToClass('${cls}')">
+                            <button class="btn btn-secondary btn-sm" style="padding:0.4rem 0.85rem; font-size:0.95rem; font-weight:600; border-radius: 8px;" onclick="event.stopPropagation(); window.assignSubjectsToClass('${cls}')">
                                 <i class="fa-solid fa-book"></i> Ders Tanımla
                             </button>
-                            <button class="btn btn-secondary btn-sm" style="padding:0.3rem 0.75rem; font-size:0.85rem;" onclick="event.stopPropagation(); window.assignFieldToClass('${cls}')">
+                            <button class="btn btn-secondary btn-sm" style="padding:0.4rem 0.85rem; font-size:0.95rem; font-weight:600; border-radius: 8px;" onclick="event.stopPropagation(); window.assignFieldToClass('${cls}')">
                                 <i class="fa-solid fa-layer-group"></i> Alan Tanımla
                             </button>
-                            <select class="form-control" style="width: auto; display: inline-block; padding: 0.2rem 0.5rem; font-size: 0.85rem; border: 1px solid var(--gray-300); border-radius: 4px; background-color: white; color: var(--dark);" onchange="window.assignRoomToClass('${cls}', this.value)" onclick="event.stopPropagation();">
-                                <option value="">Derslik Tanımla</option>
-                                ${classrooms.map(room => `<option value="${room.name}" ${assignedRoom === room.name ? 'selected' : ''}>${room.name}</option>`).join('')}
+                            <select class="form-control" style="width: auto; display: inline-block; padding: 0.4rem 0.85rem; font-size: 0.95rem; font-weight: 600; border: 1px solid #e2e8f0; border-radius: 8px; background-color: white; color: var(--primary); cursor: pointer; transition: all 0.2s;" onchange="window.assignRoomToClass('${cls}', this.value)" onclick="event.stopPropagation();">
+                                <option value="">Derslik Atayın</option>
+                                ${classrooms.filter(room => room.name === assignedRoom || !assignedRoomNames.includes(room.name)).map(room => `<option value="${room.name}" ${assignedRoom === room.name ? 'selected' : ''}>${room.name}</option>`).join('')}
                             </select>
                         </div>
                         <span style="background:var(--secondary); color:#fff; padding:0.25rem 0.75rem; border-radius:1rem; font-size:0.9rem;">
