@@ -149,7 +149,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Check Auth
-        const currentRole = sessionStorage.getItem('klbk_role');
+        const currentRole = (sessionStorage.getItem('klbk_role') || '').toLowerCase().trim();
         if (sessionStorage.getItem('klbk_isLoggedIn') !== 'true' || (currentRole !== 'ogretmen' && currentRole !== 'idareci')) {
             window.location.href = '/k9x7v2m4?logout=true';
         }
