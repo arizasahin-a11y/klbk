@@ -55,8 +55,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (urlParams.get('logout') === 'true') {
         sessionStorage.clear();
         localStorage.removeItem('klbk_persistent_session');
-        // Clean the URL
-        window.history.replaceState({}, document.title, window.location.pathname);
+        // Clean the URL to avoid loop
+        const newUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
     }
 
     // Restore persistent session
@@ -76,12 +77,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 sessionStorage.setItem('klbk_isLoggedIn', 'true');
 
                 // Auto-redirect
-                if (data.klbk_role === 'ogretmen' || data.klbk_role === 'idareci') {
-                    window.location.href = 'h6t3y9w1';
-                } else if (data.klbk_role === 'master' || data.klbk_role === 'admin' || data.klbk_role === 'dashboard') {
-                    window.location.href = 'r1p5s8q3';
+                const role = (data.klbk_role || '').toLowerCase().trim();
+                if (role === 'ogretmen' || role === 'idareci') {
+                    window.location.href = '/h6t3y9w1';
+                } else if (role === 'master' || role === 'admin' || role === 'dashboard') {
+                    window.location.href = '/r1p5s8q3';
                 } else {
-                    window.location.href = 'j2k5l0p8';
+                    window.location.href = '/j2k5l0p8';
                 }
                 return; // Stop further processing
             } else {
@@ -176,12 +178,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Redirect logic
                     setTimeout(() => {
-                        if (usersDb[username].role === 'ogretmen' || usersDb[username].role === 'idareci') {
-                            window.location.href = 'h6t3y9w1';
-                        } else if (usersDb[username].role === 'master' || usersDb[username].role === 'admin' || usersDb[username].role === 'dashboard') {
-                            window.location.href = 'r1p5s8q3';
+                        const rawRole = usersDb[username].role || 'admin';
+                        const role = rawRole.toLowerCase().trim();
+                        console.log("Logged in user:", username, "Detected role:", role);
+                        
+                        if (role === 'ogretmen' || role === 'idareci') {
+                            window.location.href = '/h6t3y9w1';
+                        } else if (role === 'master' || role === 'admin' || role === 'dashboard') {
+                            window.location.href = '/r1p5s8q3';
                         } else {
-                            window.location.href = 'j2k5l0p8';
+                            window.location.href = '/j2k5l0p8';
                         }
                     }, 1000);
                 } else {

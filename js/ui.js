@@ -13,10 +13,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.formatDateToInput = (val) => DataManager.formatDateToInput(val);
 
     // --- 1. Authentication Check ---
-    const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn');
-    if (!isLoggedIn) {
-        window.location.href = 'security_error';
-        return;
+    const path = window.location.pathname;
+    const isLoginPage = path.includes('k9x7v2m4') || path === '/' || path.includes('index');
+    
+    if (!isLoginPage) {
+        const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn');
+        if (!isLoggedIn) {
+            window.location.href = '/security_error';
+            return;
+        }
     }
 
     // --- Cloud Sync ---
@@ -40,7 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('logoutBtn').addEventListener('click', () => {
         sessionStorage.clear();
         localStorage.removeItem('klbk_persistent_session');
-        window.location.href = 'index.html';
+        window.location.href = '/k9x7v2m4?logout=true';
     });
 
     // --- Global Reset Rules Action ---
