@@ -1149,6 +1149,12 @@
         let userClosedFullScreen = false;
 
         let activeMessages = new Map(); // Store active message windows
+        let pdfTabs = []; // To track opened PDF tabs for automatic closing
+
+        window.openPdfTab = function (url) {
+            const win = window.open(url, '_blank');
+            if (win) pdfTabs.push(win);
+        };
 
         function checkLiveMessages() {
             if (!currentStudent) return;
@@ -1353,6 +1359,11 @@
 
             if (activeSession && activeRoomData) {
                 if (currentFullScreenSessionId !== activeSession.id && !userClosedFullScreen) {
+                    // Close previous session's PDF tabs if switching
+                    if (pdfTabs.length > 0) {
+                        pdfTabs.forEach(win => { try { win.close(); } catch (e) { } });
+                        pdfTabs = [];
+                    }
                     currentFullScreenSessionId = activeSession.id;
                     renderFullScreenPlan(activeRoomData, activeSession);
 
@@ -1363,6 +1374,11 @@
                     }
                 }
             } else {
+                // Exam ended or no active session for this classroom
+                if (pdfTabs.length > 0) {
+                    pdfTabs.forEach(win => { try { win.close(); } catch (e) { } });
+                    pdfTabs = [];
+                }
                 closeFullScreenPlan();
             }
         }
@@ -1388,6 +1404,35 @@
         }
 
         function renderFullScreenPlan(roomData, sessionData) {
+            // Calculate timing for PDF links (2 minutes after start)
+            let pdfLinksHtml = '';
+            const nowTime = getNow();
+            const examStartTime = DataManager.parseSessionDateTime(sessionData.date, sessionData.time);
+            const diffMs = nowTime - examStartTime;
+
+            if (diffMs >= 2 * 60 * 1000) {
+                const roomSubjects = new Set();
+                Object.values(roomData.seats).forEach(seat => {
+                    if (seat._matchedSubject) roomSubjects.add(seat._matchedSubject);
+                });
+
+                Array.from(roomSubjects).sort().forEach(subj => {
+                    const meta = sessionData.subjectMetadata ? sessionData.subjectMetadata[subj] : null;
+                    if (meta && meta.papers) {
+                        // Extract link (support both string and object formats)
+                        let link = typeof meta.papers === 'string' ? meta.papers : (meta.papers.default || Object.values(meta.papers)[0]);
+                        if (link && link.trim()) {
+                            pdfLinksHtml += `
+                                <a href="javascript:void(0)" onclick="openPdfTab('${link}')" class="btn btn-outline-light" 
+                                   style="margin-left: 10px; font-size: 0.8rem; font-weight: 700; border-color: rgba(255,255,255,0.3); padding: 0.4rem 0.8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; background: rgba(255,255,255,0.1);">
+                                    <i class="fa-solid fa-file-pdf"></i> ${subj.toUpperCase()}
+                                </a>
+                            `;
+                        }
+                    }
+                });
+            }
+
             let overlay = document.getElementById('fullScreenPlanOverlay');
             if (!overlay) {
                 overlay = document.createElement('div');
@@ -1413,9 +1458,14 @@
             // Close button Header
             let html = `
                 <div style="background: var(--dark); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                    <div>
-                        <h2 style="margin: 0; font-weight: 800;">${sessionData.name}</h2>
-                        <div style="font-size: 0.9rem; color: var(--gray-400);">${currentStudent.class} Sınıfı - ${roomData.name} Salonu Oturma Planı</div>
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <div>
+                            <h2 style="margin: 0; font-weight: 800; font-size: 1.25rem;">${sessionData.name}</h2>
+                            <div style="font-size: 0.85rem; color: var(--gray-400);">${currentStudent.class} Sınıfı - ${roomData.name} Salonu Oturma Planı</div>
+                        </div>
+                        <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                            ${pdfLinksHtml}
+                        </div>
                     </div>
                     <button onclick="closeFullScreenPlan(true)" class="btn btn-danger" style="padding: 0.5rem 1rem; border-radius: 8px;">✕ Kapat</button>
                 </div>
