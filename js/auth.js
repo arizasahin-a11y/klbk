@@ -69,8 +69,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Auto-redirect
                 if (data.klbk_role === 'ogretmen') {
                     window.location.href = 'h6t3y9w1';
-                } else {
+                } else if (data.klbk_role === 'master' || data.klbk_role === 'admin' || data.klbk_role === 'dashboard') {
                     window.location.href = 'r1p5s8q3';
+                } else {
+                    window.location.href = 'j2k5l0p8';
                 }
                 return; // Stop further processing
             } else {
@@ -167,8 +169,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     setTimeout(() => {
                         if (usersDb[username].role === 'ogretmen') {
                             window.location.href = 'h6t3y9w1';
-                        } else {
+                        } else if (usersDb[username].role === 'master' || usersDb[username].role === 'admin' || usersDb[username].role === 'dashboard') {
                             window.location.href = 'r1p5s8q3';
+                        } else {
+                            window.location.href = 'j2k5l0p8';
                         }
                     }, 1000);
                 } else {

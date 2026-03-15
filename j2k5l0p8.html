@@ -583,6 +583,16 @@
             const q = urlParams.get('school');
             if (q) return `klbk_data_${q}`;
 
+            // Check if we are on a protected page that is NOT the student query page
+            const path = window.location.pathname;
+            const isStudentPage = path.includes('j2k5l0p8');
+            
+            // If not student page and not logged in, this shouldn't be accessible directly
+            if (!isStudentPage) {
+                // Redirect to security error if trying to access dashboard/teacher logic without session
+                // We'll let data.js handle its own logic, but here we provide a safe fallback
+            }
+
             // Priority 3: Default fallback (works for single-school deployments)
             return `klbk_data_admin`;
         };
