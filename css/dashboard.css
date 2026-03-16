@@ -1350,6 +1350,19 @@ small {
     border-radius: 30px;
     border: 1px solid var(--gray-200);
     width: fit-content;
+    flex-wrap: wrap; /* Allow wrapping on small mobile screens */
+    justify-content: center;
+}
+
+@media (max-width: 600px) {
+    .mode-selector-container {
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 12px; /* Less rounded on mobile for space */
+    }
+    .session-view-options-cell {
+        padding: 0.5rem !important;
+    }
 }
 
 .mode-selector-label {

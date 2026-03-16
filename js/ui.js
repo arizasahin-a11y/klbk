@@ -2581,7 +2581,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <tr>
                         <th>Sınav Oturumu</th>
                         <th class="hide-mobile">Tarih & Saat</th>
-                        <th class="hide-mobile text-center">Görünüm</th>
+                        <th class="text-center">Görünüm</th>
                         <th class="text-center">İşlem</th>
                     </tr>
                 </thead>
@@ -2619,7 +2619,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="font-weight-bold text-dark">${ses.date || ''}</div>
                         <div class="font-size-0-8 text-gray-500">${ses.time}</div>
                     </td>
-                    <td class="session-view-options-cell hide-mobile">
+                    <td class="session-view-options-cell">
                         <div class="mode-selector-container">
                             <label class="mode-selector-label">
                                 <input type="radio" name="mode-${ses.id}" value="class" checked class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Sınıf
