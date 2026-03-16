@@ -12,6 +12,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.formatDateToStandard = (val) => DataManager.formatDateToStandard(val);
     window.formatDateToInput = (val) => DataManager.formatDateToInput(val);
 
+    window.shortenSubject = function (n) {
+        if (!n || n === '-') return n;
+        // Exact overrides
+        const exacts = {
+            "Türk Dili ve Edebiyatı": "TDE",
+            "Din Kültürü ve Ahlak Bilgisi": "DKAB",
+            "Beden Eğitimi ve Spor": "BES",
+            "T.C. İnkılap Tarihi ve Atatürkçülük": "İNK",
+            "Sağlık Bilgisi ve Trafik Kültürü": "SB"
+        };
+        for (let k in exacts) if (n.toLowerCase().includes(k.toLowerCase())) return exacts[k];
+
+        let res = n.replace(/Matematik/gi, 'Mat.')
+            .replace(/Edebiyat/gi, 'Edb.')
+            .replace(/İngilizce/gi, 'İng.')
+            .replace(/Fizik/gi, 'Fiz.')
+            .replace(/Kimya/gi, 'Kim.')
+            .replace(/Biyoloji/gi, 'Biyo.')
+            .replace(/Tarih/gi, 'Tar.')
+            .replace(/Coğrafya/gi, 'Coğ.')
+            .replace(/Felsefe/gi, 'Fel.')
+            .replace(/Din Kültürü/gi, 'Din.')
+            .replace(/Almanca/gi, 'Alm.')
+            .replace(/Görsel Sanatlar/gi, 'Grs.')
+            .replace(/Müzik/gi, 'Müz.')
+            .replace(/Beden Eğitimi/gi, 'Bed.')
+            .replace(/Bilişim/gi, 'Biliş.')
+            .replace(/Seçmeli/gi, 'S.');
+        
+        // If still multi-word and long, take initials
+        if (res.length > 20) {
+            const words = res.split(' ').filter(w => w.length > 1 && !['ve', 'ile'].includes(w.toLowerCase()));
+            if (words.length >= 2) return words.map(w => w[0].toUpperCase()).join('');
+        }
+        return res;
+    };
+
     // --- 1. Authentication & Path enforcement ---
     const path = window.location.pathname;
 
@@ -4149,10 +4186,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 </div>`;
 
-            const abbr = (n) => {
-                if (!n || n === '-') return n;
-                return n.replace(/Matematik/gi, 'Mat.').replace(/Edebiyat/gi, 'Edb.').replace(/İngilizce/gi, 'İng.').replace(/Fizik/gi, 'Fiz.').replace(/Kimya/gi, 'Kim.').replace(/Biyoloji/gi, 'Biyo.').replace(/Tarih/gi, 'Tar.').replace(/Coğrafya/gi, 'Coğ.').replace(/Felsefe/gi, 'Fel.').replace(/Din Kültürü/gi, 'Din.').replace(/Almanca/gi, 'Alm.').replace(/Görsel Sanatlar/gi, 'Grs.').replace(/Müzik/gi, 'Müz.').replace(/Beden Eğitimi/gi, 'Bed.').replace(/Bilişim/gi, 'Biliş.');
-            };
+            const abbr = (n) => window.shortenSubject(n);
 
             let body = '';
 
@@ -4198,7 +4232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             return `<tr>
                                 <td style="width:10%;"><b>${s.no}</b></td>
                                 <td style="width:40%;">${s.name}</td>
-                                <td style="width:30%;">${s._matchedSubject || '-'}${eNum}</td>
+                                <td style="width:30%;">${window.shortenSubject(s._matchedSubject || '-')}${eNum}</td>
                                 <td style="width:12%;">${s.room}</td>
                                 <td style="width:8%; text-align:center;"><b>${s.seatNum}</b></td></tr>`;
                         }).join('');
@@ -5044,7 +5078,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <td style="padding:8px; border-bottom:1px solid #eee;">${s.class}</td>
                         <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}${s._groupLabel ? ` (${s._groupLabel})` : ''}</b></td>
                         <td style="padding:8px; border-bottom:1px solid #eee;">${s.name}</td>
-                        <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${s._matchedSubject || '-'}</td>
+                        <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${window.shortenSubject(s._matchedSubject || '-')}</td>
                         <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">
                             <input type="checkbox" class="student-paper-check" 
                                 data-student-no="${s.no}" 
@@ -5150,7 +5184,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <tr>
                         <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}${s._groupLabel ? ` (${s._groupLabel})` : ''}</b></td>
                         <td style="padding:8px; border-bottom:1px solid #eee;">${s.name}</td>
-                        <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${s._matchedSubject || '-'}</td>
+                        <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${window.shortenSubject(s._matchedSubject || '-')}</td>
                         <td style="padding:8px; border-bottom:1px solid #eee;">${s.room}</td>
                         <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.seatNum}</b></td>
                         <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">
