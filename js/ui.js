@@ -14,6 +14,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.shortenSubject = function (n) {
         if (!n || n === '-') return n;
+        
+        // Extract trailing number if exists (e.g., "9" in "Matematik 9")
+        let grade = "";
+        const gradeMatch = n.match(/\s+(\d+)$/);
+        if (gradeMatch) {
+            grade = " " + gradeMatch[1];
+            n = n.replace(/\s+(\d+)$/, '').trim();
+        }
+
         // Exact overrides
         const exacts = {
             "Türk Dili ve Edebiyatı": "TDE",
@@ -22,9 +31,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             "T.C. İnkılap Tarihi ve Atatürkçülük": "İNK",
             "Sağlık Bilgisi ve Trafik Kültürü": "SB"
         };
-        for (let k in exacts) if (n.toLowerCase().includes(k.toLowerCase())) return exacts[k];
+        
+        let foundAbbr = null;
+        for (let k in exacts) {
+            if (n.toLowerCase().includes(k.toLowerCase())) {
+                foundAbbr = exacts[k];
+                break;
+            }
+        }
 
-        let res = n.replace(/Matematik/gi, 'Mat.')
+        let res = foundAbbr || n.replace(/Matematik/gi, 'Mat.')
             .replace(/Edebiyat/gi, 'Edb.')
             .replace(/İngilizce/gi, 'İng.')
             .replace(/Fizik/gi, 'Fiz.')
@@ -41,12 +57,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             .replace(/Bilişim/gi, 'Biliş.')
             .replace(/Seçmeli/gi, 'S.');
         
-        // If still multi-word and long, take initials
-        if (res.length > 20) {
+        // If still multi-word and long, take initials (only if not an exact match abbreviation)
+        if (!foundAbbr && res.length > 20) {
             const words = res.split(' ').filter(w => w.length > 1 && !['ve', 'ile'].includes(w.toLowerCase()));
-            if (words.length >= 2) return words.map(w => w[0].toUpperCase()).join('');
+            if (words.length >= 2) res = words.map(w => w[0].toUpperCase()).join('');
         }
-        return res;
+        
+        return res + grade;
     };
 
     // --- 1. Authentication & Path enforcement ---
