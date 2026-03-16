@@ -4119,6 +4119,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                            display: flex; align-items: center; justify-content: center; 
                            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); background: white; z-index: 10;
                            box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+                .print-fab {
+                    position: fixed; top: 30px; right: 30px; width: 64px; height: 64px;
+                    background: #4f46e5; color: white; border-radius: 50%; border: none;
+                    display: flex; align-items: center; justify-content: center;
+                    box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4); cursor: pointer;
+                    z-index: 10000; transition: transform 0.2s;
+                }
+                .print-fab:hover { transform: scale(1.1); background: #4338ca; }
+                .print-fab i { font-size: 28px; }
+                @media print { .no-print { display: none !important; } }
             `;
 
             const formatDate = (d) => {
@@ -4368,7 +4379,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const win = window.open('', '_blank');
-            win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${session.name} - ${modeLabel}</title><style>${pageCss}</style></head><body>${body}<script>window.onload=()=>setTimeout(()=>{if(!${isPreview}){window.focus(); /* window.print(); removed to avoid skipping pages */}},500);</script></body></html>`);
+            win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${session.name} - ${modeLabel}</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>${pageCss}</style></head><body>
+                <button class="print-fab no-print" onclick="window.print()" title="Yazdır">
+                    <i class="fa-solid fa-print"></i>
+                </button>
+                ${body}
+                <script>window.onload=()=>setTimeout(()=>{if(!${isPreview}){window.focus();}},500);</script>
+            </body></html>`);
             win.document.close();
 
             // Interleaved Paper Printing Trigger
