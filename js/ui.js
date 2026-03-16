@@ -4325,7 +4325,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const examsInRoom = [...new Set(studentsInRoom.map(s => s._matchedSubject || '-'))].sort();
                         let examSummaryRows = examsInRoom.map(ex => {
                             const count = studentsInRoom.filter(s => (s._matchedSubject || '-') === ex).length;
-                            return `<tr><td>${ex}</td><td style="text-align:center; font-weight:bold;">${count}</td></tr>`;
+                            return `<tr><td>${abbr(ex)}</td><td style="text-align:center; font-weight:bold;">${count}</td></tr>`;
                         }).join('');
 
                         const summaryContent = (p + PAGE_SIZE >= sortedSeatIds.length) ? `
