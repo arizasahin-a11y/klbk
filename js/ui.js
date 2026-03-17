@@ -2630,29 +2630,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <label class="mode-selector-label">
                                 <input type="radio" name="mode-${ses.id}" value="seating" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Şema
                             </label>
-                            <div class="mode-selector-divider"></div>
-                            <label class="mode-selector-label text-primary font-weight-bold" title="${(() => {
-                    const meta = ses.subjectMetadata || {};
-                    const subjects = Object.keys(meta);
-                    if (subjects.length === 0) return 'Soru kağıdı tanımlanmamış';
-                    let count = 0;
-                    subjects.forEach(s => { if (meta[s].papers && (typeof meta[s].papers === 'string' || Object.values(meta[s].papers).some(p => p))) count++; });
-                    return `${count} / ${subjects.length} ders için kağıt tanımlı`;
-                })()}">
-                                <input type="checkbox" class="session-paper-check mode-selector-checkbox" data-id="${ses.id}">
-                                <i class="fa-solid fa-file-pdf mode-selector-icon" style="${(() => {
-                    const meta = ses.subjectMetadata || {};
-                    const subjects = Object.keys(meta);
-                    let hasAny = subjects.some(s => meta[s].papers && (typeof meta[s].papers === 'string' || Object.values(meta[s].papers).some(p => p)));
-                    return hasAny ? 'color: var(--secondary);' : 'color: var(--gray-400);';
-                })()}"></i> Soru Kağıdı
-                            </label>
-                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer;" title="Ekran Görünümü">
-                                <input type="checkbox" class="session-screen-check" data-id="${ses.id}" ${ses.screenViewEnabled ? 'checked' : ''} style="width:17px; height:17px;">
-                                <i class="fa-solid fa-desktop" style="font-size:0.85rem; color:var(--info);"></i>
-                                <input type="number" class="session-screen-limit" data-id="${ses.id}" value="${ses.screenViewLimit || 8}" min="1" max="180" style="width:45px; padding:2px 4px; border:1px solid var(--gray-300); border-radius:4px; font-size:0.75rem; font-weight:bold; color:var(--info);">
-                                <span style="font-size:0.7rem; color:var(--gray-500); font-weight:600;">dk</span>
-                            </label>
                         </div>
                     </td>
                     <td style="padding:1.25rem; text-align:center; display:flex; gap:0.5rem; justify-content:center;">
@@ -3700,8 +3677,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const mode = modeEl ? modeEl.value : 'class';
 
         // SESSION-WIDE BATCH PRINT DETECTION
-        const sessionPaperCb = document.querySelector(`.session-paper-check[data-id="${id}"]`);
-        const isSessionWideBatch = !filterValue && sessionPaperCb && sessionPaperCb.checked;
+        const isSessionWideBatch = !filterValue && session.batchPaperPrintEnabled;
 
         if (isSessionWideBatch) {
             // 1. Get List of Groups
@@ -4448,16 +4424,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (filterValue) {
             await startPrint(false);
         } else {
-            Swal.fire({
-                title: 'Yazdır',
-                html: `<div style="text-align: left; font-size: 10.5pt; color: #1e293b; line-height: 1.5;">Tüm <b>${modeLabel}</b> listeleri yazdırılacaktır.<br>Onaylıyor musunuz?<div style="margin-top: 15px; padding: 10px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;"><label style="display: flex; align-items: center; cursor: pointer; font-weight: 600;"><input type="checkbox" id="print-view-check" style="width: 17px; height: 17px; margin-right: 8px; cursor: pointer;"> Yazdırmadan önce önizle</label></div></div>`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: '<i class="fa-solid fa-print"></i> Evet, Yazdır',
-                cancelButtonText: 'İptal',
-                confirmButtonColor: '#6366f1',
-                preConfirm: () => ({ preview: document.getElementById('print-view-check')?.checked || false })
-            }).then(res => { if (res && res.isConfirmed) startPrint(res.value.preview); });
+            await startPrint(false);
         }
     };
 
@@ -4793,6 +4760,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 })()}
                         </div>
+                        <div class="modal-form-group" style="flex: 1; min-width: 250px; display:flex; align-items:center; gap:0.4rem; padding-top:20px;">
+                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer;" title="Toplu Soru Kağıdı Yazdır">
+                                <input type="checkbox" id="meta-batch-paper" ${ses.batchPaperPrintEnabled ? 'checked' : ''} style="width:18px; height:18px;">
+                                <i class="fa-solid fa-file-pdf" style="color:var(--secondary);"></i> Soru Kağıdı
+                            </label>
+                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer; margin-left:10px;" title="Öğrenci Panelinde oturma planını göster">
+                                <input type="checkbox" id="meta-screen-check" ${ses.screenViewEnabled ? 'checked' : ''} style="width:18px; height:18px;">
+                                <i class="fa-solid fa-desktop" style="color:var(--info);"></i>
+                                <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit || 8}" min="1" max="180" style="width:40px; padding:2px; text-align:center; border:1px solid var(--gray-300); border-radius:4px;">
+                                <span style="font-size:0.75rem;">dk</span>
+                            </label>
+                        </div>
                     </div>
 
                     <div id="meta-subjects-list" style="max-height: 400px; overflow-y: auto; padding-right:0.5rem;">
@@ -4868,7 +4847,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     date: window.formatDateToStandard(document.getElementById('meta-date').value),
                     time: document.getElementById('meta-time').value.trim(),
                     studentMsg: document.getElementById('meta-std-msg').value.trim(),
-                    teacherMsg: document.getElementById('meta-tch-msg').value.trim()
+                    teacherMsg: document.getElementById('meta-tch-msg').value.trim(),
+                    batchPaperPrintEnabled: document.getElementById('meta-batch-paper').checked,
+                    screenViewEnabled: document.getElementById('meta-screen-check').checked,
+                    screenViewLimit: parseInt(document.getElementById('meta-screen-limit').value) || 8
                 };
             }
         })
