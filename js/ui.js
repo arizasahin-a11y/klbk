@@ -3203,6 +3203,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const school = DataManager.getSchoolSettings();
             const pages = pdfDoc.getPages();
 
+            const docImageCache = {}; // Cache PDFImages only for THIS pdfDoc
+
             currentStep = "Bilgiler ekleniyor";
             for (let i = 0; i < pages.length; i++) {
                 const page = pages[i];
@@ -3210,11 +3212,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const A4_W = 595.28, A4_H = 841.89;
                 const sf = 1 / Math.min(A4_W / width, A4_H / height);
                 if (i === 0 && info && Object.keys(info).length > 0) {
-                    if (!window._pdfImageCache) window._pdfImageCache = {};
                     await window.renderStudentPDFHeader(pdfDoc, page, info, {
                         mainFont, nameFont, schoolFont, sf,
                         metadata: info.metadata,
-                        imageCache: window._pdfImageCache
+                        imageCache: docImageCache
                     });
                 }
             }
