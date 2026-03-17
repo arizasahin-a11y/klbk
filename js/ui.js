@@ -2650,7 +2650,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <label style="display:flex; align-items:center; gap:5px; cursor:pointer;" title="Ekran Görünümü">
                                 <input type="checkbox" class="session-screen-check" data-id="${ses.id}" ${ses.screenViewEnabled ? 'checked' : ''} style="width:17px; height:17px;">
                                 <i class="fa-solid fa-desktop" style="font-size:0.85rem; color:var(--info);"></i>
-                                <input type="number" class="session-screen-limit" data-id="${ses.id}" value="${ses.screenViewLimit || 20}" min="1" max="180" style="width:45px; padding:2px 4px; border:1px solid var(--gray-300); border-radius:4px; font-size:0.75rem; font-weight:bold; color:var(--info);">
+                                <input type="number" class="session-screen-limit" data-id="${ses.id}" value="${ses.screenViewLimit || 8}" min="1" max="180" style="width:45px; padding:2px 4px; border:1px solid var(--gray-300); border-radius:4px; font-size:0.75rem; font-weight:bold; color:var(--info);">
                                 <span style="font-size:0.7rem; color:var(--gray-500); font-weight:600;">dk</span>
                             </label>
                         </div>
@@ -2966,7 +2966,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (e.target.classList.contains('session-screen-limit')) {
             const sid = e.target.getAttribute('data-id');
-            const limit = parseInt(e.target.value) || 20;
+            const limit = parseInt(e.target.value) || 8;
             const sessions = DataManager.getExamSessions();
             const session = sessions.find(s => s.id === sid);
             if (session) {
