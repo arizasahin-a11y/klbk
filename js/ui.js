@@ -3688,7 +3688,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div style="padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
                             <label style="display: flex; align-items: center; gap:10px; cursor: pointer; font-weight: 700; color:var(--primary);">
                                 <input type="checkbox" id="meta-batch-paper-print" style="width: 20px; height: 20px;">
-                                <i class="fa-solid fa-file-pdf" style="font-size:1.2rem; color:var(--secondary);"></i> Soru Kağıdı Dağıt (Toplu)
+                                <i class="fa-solid fa-file-pdf" style="font-size:1.2rem; color:var(--secondary);"></i> Soru Kağıdı Yazdır (Toplu)
                             </label>
                         </div>
                        </div>`,
