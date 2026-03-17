@@ -2620,14 +2620,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="font-size-0-8 text-gray-500">${ses.time}</div>
                     </td>
                     <td class="session-view-options-cell">
-                        <div class="mode-selector-container">
-                            <label class="mode-selector-label">
+                        <div class="mode-selector-container" style="display: flex; gap: 8px; justify-content: flex-start; align-items: center; white-space: nowrap;">
+                            <label class="mode-selector-label" style="display: flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
                                 <input type="radio" name="mode-${ses.id}" value="class" checked class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Sınıf
                             </label>
-                            <label class="mode-selector-label">
+                            <label class="mode-selector-label" style="display: flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
                                 <input type="radio" name="mode-${ses.id}" value="room" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Salon
                             </label>
-                            <label class="mode-selector-label">
+                            <label class="mode-selector-label" style="display: flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
                                 <input type="radio" name="mode-${ses.id}" value="seating" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Şema
                             </label>
                         </div>
@@ -3677,6 +3677,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         const mode = modeEl ? modeEl.value : 'class';
 
         // SESSION-WIDE BATCH PRINT DETECTION
+        // Ask for Print options if general print (no filterValue)
+        if (!filterValue) {
+            const result = await Swal.fire({
+                title: 'Yazdırma Seçenekleri',
+                html: `<div style="text-align: left; font-size: 10.5pt; color: #1e293b; line-height: 1.5;">
+                        Tüm <b>${modeLabels[mode]}</b> listeleri yazdırılacaktır.<br>
+                        Onaylıyor musunuz?<br><br>
+                        <div style="padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                            <label style="display: flex; align-items: center; gap:10px; cursor: pointer; font-weight: 700; color:var(--primary);">
+                                <input type="checkbox" id="meta-batch-paper-print" ${session.batchPaperPrintEnabled ? 'checked' : ''} style="width: 20px; height: 20px;">
+                                <i class="fa-solid fa-file-pdf" style="font-size:1.2rem; color:var(--secondary);"></i> Soru Kağıdı Dağıt (Toplu)
+                            </label>
+                        </div>
+                       </div>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-print"></i> Evet, Yazdır',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#6366f1',
+                preConfirm: () => {
+                    return {
+                        batchPaperPrint: document.getElementById('meta-batch-paper-print').checked
+                    }
+                }
+            });
+
+            if (!result.isConfirmed) return;
+
+            // Update session and local flag
+            session.batchPaperPrintEnabled = result.value.batchPaperPrint;
+            DataManager.addExamSession(session);
+        }
+
         const isSessionWideBatch = !filterValue && session.batchPaperPrintEnabled;
 
         if (isSessionWideBatch) {
@@ -4761,11 +4794,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 })()}
                         </div>
                         <div class="modal-form-group" style="flex: 1; min-width: 250px; display:flex; align-items:center; gap:0.4rem; padding-top:20px;">
-                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer;" title="Toplu Soru Kağıdı Yazdır">
-                                <input type="checkbox" id="meta-batch-paper" ${ses.batchPaperPrintEnabled ? 'checked' : ''} style="width:18px; height:18px;">
-                                <i class="fa-solid fa-file-pdf" style="color:var(--secondary);"></i> Soru Kağıdı
-                            </label>
-                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer; margin-left:10px;" title="Öğrenci Panelinde oturma planını göster">
+                            <label style="display:flex; align-items:center; gap:5px; cursor:pointer;" title="Öğrenci Panelinde oturma planını göster">
                                 <input type="checkbox" id="meta-screen-check" ${ses.screenViewEnabled ? 'checked' : ''} style="width:18px; height:18px;">
                                 <i class="fa-solid fa-desktop" style="color:var(--info);"></i>
                                 <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit || 8}" min="1" max="180" style="width:40px; padding:2px; text-align:center; border:1px solid var(--gray-300); border-radius:4px;">
@@ -4848,7 +4877,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     time: document.getElementById('meta-time').value.trim(),
                     studentMsg: document.getElementById('meta-std-msg').value.trim(),
                     teacherMsg: document.getElementById('meta-tch-msg').value.trim(),
-                    batchPaperPrintEnabled: document.getElementById('meta-batch-paper').checked,
                     screenViewEnabled: document.getElementById('meta-screen-check').checked,
                     screenViewLimit: parseInt(document.getElementById('meta-screen-limit').value) || 8
                 };
