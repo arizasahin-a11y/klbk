@@ -3213,6 +3213,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (!window._pdfImageCache) window._pdfImageCache = {};
                     await window.renderStudentPDFHeader(pdfDoc, page, info, {
                         mainFont, nameFont, schoolFont, sf,
+                        metadata: info.metadata,
                         imageCache: window._pdfImageCache
                     });
                 }
@@ -4103,7 +4104,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (path) {
                     window.printFile(path, {
                         no: s.no, name: s.name, class: s.class, room: s.room,
-                        seat: s.seat, subject: s._matchedSubject, group: s._groupLabel, examNo: s.examNo
+                        seat: s.seat, subject: s._matchedSubject, group: s._groupLabel, examNo: s.examNo,
+                        metadata: meta
                     });
                     return;
                 }
