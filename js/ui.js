@@ -4802,7 +4802,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <input type="checkbox" id="meta-screen-check" ${ses.screenViewEnabled ? 'checked' : ''} style="width:18px; height:18px;">
                                     <i class="fa-solid fa-desktop" style="color:var(--info);"></i>
                                 </label>
-                                <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit || 8}" min="1" max="180" style="width:50px; height:35px; text-align:center; border:1px solid var(--gray-300); border-radius:6px; font-weight:bold;">
+                                <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit || 8}" min="1" max="9999" style="width:85px; height:35px; text-align:center; border:1px solid var(--gray-300); border-radius:6px; font-weight:bold;">
                                 <span style="font-size:0.85rem; font-weight:600; color:var(--gray-500);">dk</span>
                             </div>
                         </div>
