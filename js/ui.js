@@ -2622,10 +2622,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td class="session-view-options-cell">
                         <div class="mode-selector-container" style="display: flex; gap: 5px; justify-content: flex-start; align-items: center; white-space: nowrap; flex-wrap: nowrap;">
                             <label class="mode-selector-label" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
-                                <input type="radio" name="mode-${ses.id}" value="class" checked class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Sınıf
+                                <input type="radio" name="mode-${ses.id}" value="class" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Sınıf
                             </label>
                             <label class="mode-selector-label" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
-                                <input type="radio" name="mode-${ses.id}" value="room" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Salon
+                                <input type="radio" name="mode-${ses.id}" value="room" checked class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Salon
                             </label>
                             <label class="mode-selector-label" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
                                 <input type="radio" name="mode-${ses.id}" value="seating" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Şema
@@ -3687,7 +3687,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         Onaylıyor musunuz?<br><br>
                         <div style="padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
                             <label style="display: flex; align-items: center; gap:10px; cursor: pointer; font-weight: 700; color:var(--primary);">
-                                <input type="checkbox" id="meta-batch-paper-print" ${session.batchPaperPrintEnabled ? 'checked' : ''} style="width: 20px; height: 20px;">
+                                <input type="checkbox" id="meta-batch-paper-print" style="width: 20px; height: 20px;">
                                 <i class="fa-solid fa-file-pdf" style="font-size:1.2rem; color:var(--secondary);"></i> Soru Kağıdı Dağıt (Toplu)
                             </label>
                         </div>
