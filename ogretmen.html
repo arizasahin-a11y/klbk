@@ -952,11 +952,31 @@
         };
 
         window.finalizeAndPrint = (blobUrl, onFinalize = null) => {
-            const newWin = window.open('', '_blank');
-            if (!newWin) {
-                Swal.fire('Hata', 'Yeni sekme açılamadı! Lütfen tarayıcı ayarlarından açılır pencerelere izin verin.', 'error');
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                // Mobile browsers (especially iOS) struggle with PDFs in iframes.
+                // Best approach for mobile is a direct window.open(blobUrl) or redirect.
+                const newWin = window.open(blobUrl, '_blank');
+                if (!newWin || newWin.closed || typeof newWin.closed == 'undefined') {
+                    // Fallback to current window if popup blocked or failing
+                    window.location.href = blobUrl;
+                }
+                if (onFinalize) onFinalize();
                 return;
             }
+
+            const newWin = window.open('', '_blank');
+            if (!newWin) {
+                // Try a direct popup of the blob as fallback for PC if window.open('') failed
+                const fallbackWin = window.open(blobUrl, '_blank');
+                if (!fallbackWin) {
+                    Swal.fire('Hata', 'Yeni sekme açılamadı! Lütfen tarayıcı ayarlarından açılır pencerelere izin verin.', 'error');
+                }
+                if (onFinalize) onFinalize();
+                return;
+            }
+
             newWin.document.write(`
                 <!DOCTYPE html>
                 <html>
@@ -975,7 +995,7 @@
                             font-size: 24px; z-index: 10000; transition: all 0.3s;
                         }
                         .floating-print-btn:hover { background: #4338ca; transform: scale(1.1); }
-                        @media print { .floating-print-btn { display: none; } }
+                        @media print { .floating-print-btn { display: none !important; } }
                     </style>
                 </head>
                 <body>
@@ -1617,6 +1637,10 @@
                 });<\/script>`;
             }
             const win = window.open('', '_blank');
+            if (!win) {
+                Swal.fire('Hata', 'Yeni sekme açılamadı! Lütfen tarayıcı ayarlarından açılır pencerelere izin verin.', 'error');
+                return;
+            }
             const doc = win.document;
             doc.open();
             doc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + session.name + '</title>');
