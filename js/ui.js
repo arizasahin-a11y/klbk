@@ -5096,6 +5096,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             // Extract students from seats and sort by seat ID (G..S..C..)
+            let allHavePdf = true;
             const sortedSeats = Object.keys(room.seats).sort((a, b) => {
                 const partsA = a.match(/\d+/g).map(Number);
                 const partsB = b.match(/\d+/g).map(Number);
@@ -5105,37 +5106,54 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return 0;
             });
 
-            let tableRows = sortedSeats.map(seatId => {
-                const s = room.seats[seatId];
-                return `
-                    <tr>
-                        <td style="padding:8px; border-bottom:1px solid #eee;"><b>${seatToNum[seatId] || '-'}</b></td>
-                        <td style="padding:8px; border-bottom:1px solid #eee;">${s.class}</td>
-                        <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}${s._groupLabel ? ` (${s._groupLabel})` : ''}</b></td>
-                        <td style="padding:8px; border-bottom:1px solid #eee;">${s.name}</td>
-                        <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${window.shortenSubject(s._matchedSubject || '-')}</td>
-                        <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">
-                            <input type="checkbox" class="student-paper-check" 
-                                data-student-no="${s.no}" 
-                                data-student-name="${s.name}"
-                                data-sub="${s._matchedSubject || '-'}" 
-                                data-group="${s._groupLabel || ''}" 
-                                data-room="${room.name}"
-                                data-class="${s.class}"
-                                data-seat="${seatToNum[seatId] || '-'}"
-                                style="width:15px; height:15px;">
-                        </td>
-                    </tr>
+        const metadata = session.subjectMetadata || {};
+
+        let tableRows = sortedSeats.map(seatId => {
+            const s = room.seats[seatId];
+            
+            const subName = s._matchedSubject || '-';
+            const group = s._groupLabel || s.group || 'default';
+            const meta = metadata[subName] || {};
+            const papers = meta.papers || {};
+            let path = typeof papers === 'string' ? papers : (papers[group] || papers['default'] || '');
+            const hasPdf = path && path.trim().length > 0;
+            
+            if (!hasPdf) allHavePdf = false;
+            
+            let checkboxHtml = '';
+            if (hasPdf) {
+                checkboxHtml = `<input type="checkbox" class="student-paper-check" 
+                            data-student-no="${s.no}" 
+                            data-student-name="${s.name}"
+                            data-sub="${s._matchedSubject || '-'}" 
+                            data-group="${s._groupLabel || ''}" 
+                            data-room="${room.name}"
+                            data-class="${s.class}"
+                            data-seat="${seatToNum[seatId] || '-'}"
+                            style="width:15px; height:15px;">`;
+            }
+
+            return `
+                <tr>
+                    <td style="padding:8px; border-bottom:1px solid #eee;"><b>${seatToNum[seatId] || '-'}</b></td>
+                    <td style="padding:8px; border-bottom:1px solid #eee;">${s.class}</td>
+                    <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}${s._groupLabel ? ` (${s._groupLabel})` : ''}</b></td>
+                    <td style="padding:8px; border-bottom:1px solid #eee;">${s.name}</td>
+                    <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${window.shortenSubject(s._matchedSubject || '-')}</td>
+                    <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">
+                        ${checkboxHtml}
+                    </td>
+                </tr>
 `;
-            }).join('');
+        }).join('');
 
             roomPanel.innerHTML = `
                 <div class="nested-accordion-header" onclick="toggleNestedAccordion('${roomId}')" style="background:var(--gray-50); padding:1rem; border:1px solid var(--gray-200); border-radius:8px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                     <h3 style="margin:0; font-size:1.1rem;"><i class="fa-solid fa-door-open" style="color:var(--secondary);"></i> ${room.name} Salonu</h3>
                     <div style="display:flex; align-items:center; gap:15px;">
-                        <label style="display:flex; align-items:center; gap:5px; margin:0; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--primary);" onclick="event.stopPropagation();">
+                        ${allHavePdf ? `<label style="display:flex; align-items:center; gap:5px; margin:0; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--primary);" onclick="event.stopPropagation();">
                             <input type="checkbox" class="room-paper-check" data-room="${room.name}" style="width:16px; height:16px;"> Soru Kağıdı
-                        </label>
+                        </label>` : ''}
                         <i class="fa-solid fa-print" style="color:var(--gray-400); cursor:pointer;" title="Bu Salonu Yazdır" onclick="event.stopPropagation(); window.printSessionDistribution('${session.id}', '${room.name}')"></i>
                         <i id="icon-${roomId}" class="fa-solid fa-chevron-right" style="color:var(--gray-400);"></i>
                     </div>
@@ -5213,17 +5231,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             const classPanel = document.createElement('div');
             classPanel.style.marginBottom = '1rem';
 
+            const metadata = session.subjectMetadata || {};
+            let allHavePdf = true;
             let tableRows = byClass[className]
                 .sort((a, b) => parseInt(a.no) - parseInt(b.no))
-                .map(s => `
-                    <tr>
-                        <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}${s._groupLabel ? ` (${s._groupLabel})` : ''}</b></td>
-                        <td style="padding:8px; border-bottom:1px solid #eee;">${s.name}</td>
-                        <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${window.shortenSubject(s._matchedSubject || '-')}</td>
-                        <td style="padding:8px; border-bottom:1px solid #eee;">${s.room}</td>
-                        <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.seatNum}</b></td>
-                        <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">
-                            <input type="checkbox" class="student-paper-check" 
+                .map(s => {
+                    const subName = s._matchedSubject || '-';
+                    const group = s._groupLabel || s.group || 'default';
+                    const meta = metadata[subName] || {};
+                    const papers = meta.papers || {};
+                    let path = typeof papers === 'string' ? papers : (papers[group] || papers['default'] || '');
+                    const hasPdf = path && path.trim().length > 0;
+                    
+                    if (!hasPdf) allHavePdf = false;
+                    
+                    let checkboxHtml = '';
+                    if (hasPdf) {
+                        checkboxHtml = `<input type="checkbox" class="student-paper-check" 
                                 data-student-no="${s.no}" 
                                 data-student-name="${s.name}"
                                 data-sub="${s._matchedSubject || '-'}" 
@@ -5231,18 +5255,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 data-room="${s.room}"
                                 data-class="${className}"
                                 data-seat="${s.seatNum}"
-                                style="width:15px; height:15px;">
+                                style="width:15px; height:15px;">`;
+                    }
+                    
+                    return `
+                    <tr>
+                        <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}${s._groupLabel ? ` (${s._groupLabel})` : ''}</b></td>
+                        <td style="padding:8px; border-bottom:1px solid #eee;">${s.name}</td>
+                        <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${window.shortenSubject(s._matchedSubject || '-')}</td>
+                        <td style="padding:8px; border-bottom:1px solid #eee;">${s.room}</td>
+                        <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.seatNum}</b></td>
+                        <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">
+                            ${checkboxHtml}
                         </td>
                     </tr>
-`).join('');
+`;
+                }).join('');
 
             classPanel.innerHTML = `
                 <div class="nested-accordion-header" onclick="toggleNestedAccordion('${classId}')" style="background:var(--gray-50); padding:1rem; border:1px solid var(--gray-200); border-radius:8px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                     <h3 style="margin:0; font-size:1.1rem;"><i class="fa-solid fa-users" style="color:var(--primary);"></i> ${className} Sınıf Listesi</h3>
                     <div style="display:flex; align-items:center; gap:15px;">
-                        <label style="display:flex; align-items:center; gap:5px; margin:0; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--primary);" onclick="event.stopPropagation();">
+                        ${allHavePdf ? `<label style="display:flex; align-items:center; gap:5px; margin:0; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--primary);" onclick="event.stopPropagation();">
                             <input type="checkbox" class="class-paper-check" data-class="${className}" style="width:16px; height:16px;"> Soru Kağıdı
-                        </label>
+                        </label>` : ''}
                         <i class="fa-solid fa-print" style="color:var(--gray-400); cursor:pointer;" title="Bu Sınıfı Yazdır" onclick="event.stopPropagation(); window.printSessionDistribution('${session.id}', '${className}')"></i>
                         <i id="icon-${classId}" class="fa-solid fa-chevron-right" style="color:var(--gray-400);"></i>
                     </div>
