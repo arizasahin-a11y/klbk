@@ -2608,8 +2608,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 ${titleText}
                             </span>
                         </div>
-                        <div class="session-subjects">
-                            ${ses.subjects ? ses.subjects.map(s => typeof s === 'object' ? s.name : s).join(', ') : (ses.subject || '')}
+                        <div class="session-subjects" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:4px;">
+                            ${(ses.subjects ? ses.subjects.map(s => typeof s === 'object' ? s.name : s) : (ses.subject ? [ses.subject] : [])).map(subName => {
+                                const meta = (ses.subjectMetadata || {})[subName] || {};
+                                const papers = meta.papers || {};
+                                let hasPdf = false;
+                                if (typeof papers === 'string' && papers.trim().length > 0) hasPdf = true;
+                                else if (typeof papers === 'object' && papers !== null) {
+                                    hasPdf = Object.values(papers).some(p => typeof p === 'string' && p.trim().length > 0);
+                                }
+                                
+                                if (hasPdf) {
+                                    return '<span style="color: #10b981; font-weight: 700; font-size: 0.85rem; display:inline-flex; align-items:center; gap:4px;">' + subName + ' <span style="background:#10b981; color:white; padding:2px 5px; border-radius:4px; font-size:0.65rem; line-height:1; font-weight:bold;">PDF</span></span>';
+                                } else {
+                                    return '<span style="color: var(--gray-500); font-size: 0.85rem;">' + subName + '</span>';
+                                }
+                            }).join('<span style="color:var(--gray-300); font-size:0.8rem;">•</span>')}
                         </div>
                         <div class="session-datetime-mobile hide-desktop">
                             <i class="fa-regular fa-clock"></i> ${ses.date || ''} - ${ses.time}
