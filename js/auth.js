@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const username = usernameInput.value.trim();
+            let username = usernameInput.value.trim();
             const password = passwordInput.value;
 
             // Loading state
@@ -142,9 +142,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.disabled = true;
 
                 const usersDb = await getCloudUsers();
+                
+                let matchedUsername = null;
+                if (usersDb[username]) {
+                    matchedUsername = username;
+                } else {
+                    for (const [uname, data] of Object.entries(usersDb)) {
+                        if (data.email && data.email.toLowerCase() === username.toLowerCase()) {
+                            matchedUsername = uname;
+                            break;
+                        }
+                    }
+                }
 
                 // Validate credentials against usersDb
-                if (usersDb[username] && usersDb[username].password === password) {
+                if (matchedUsername && usersDb[matchedUsername].password === password) {
+                    username = matchedUsername;
                     showMessage(loginMessageBox, 'Giriş başarılı! Yönlendiriliyorsunuz...', 'success');
 
                     // Handle Remember Me (Persistent Session)

@@ -138,6 +138,16 @@
                 </div>
 
                 <div id="masterMessage" class="message-box hidden"></div>
+                
+                <div class="form-group hidden" id="excelUploadGroup" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--gray-300);">
+                    <label for="regExcelUpload" style="color: var(--primary);"><i class="fa-solid fa-file-excel"></i> Excel'den Toplu Hesap Oluştur</label>
+                    <p style="font-size: 0.8rem; color: var(--gray-500); margin-bottom: 8px;">
+                        Excel Sütunları: <br>1. Ad Soyad (Zorunlu) | 2. Kullanıcı Adı | 3. E-Posta | 4. Şifre
+                    </p>
+                    <input type="file" id="regExcelUpload" accept=".xlsx, .xls" style="font-size: 0.85rem; width: 100%;">
+                    <button type="button" id="btnUploadExcel" class="btn btn-secondary btn-sm hidden" style="margin-top: 10px; width: 100%;"><i class="fa-solid fa-upload"></i> Excel'i İçeri Aktar</button>
+                    <div id="excelMessage" style="font-size: 0.85rem; margin-top: 5px; font-weight: bold;"></div>
+                </div>
 
                 <button type="submit" id="btnSubmitMaster" class="btn btn-primary btn-block btn-lg">
                     <i class="fa-solid fa-plus-circle"></i>
@@ -157,6 +167,7 @@
     </div>
 
     <!-- Custom JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="js/master.js"></script>
 </body>
 

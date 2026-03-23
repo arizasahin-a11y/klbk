@@ -20,6 +20,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const regEmailInput = document.getElementById('regEmail');
     const messageBox = document.getElementById('masterMessage');
 
+    const excelUploadGroup = document.getElementById('excelUploadGroup');
+    const regExcelUpload = document.getElementById('regExcelUpload');
+    const btnUploadExcel = document.getElementById('btnUploadExcel');
+    const excelMessage = document.getElementById('excelMessage');
+
     // Supabase Configuration
     const supabaseUrl = "https://esdttjvkqyeaosdcsskr.supabase.co";
     const supabaseKey = "sb_publishable_Rdl1xQ10AjWVZPxLwL_O_A_x4NYDxl6";
@@ -238,6 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (labelEl) labelEl.textContent = 'Yeni Kullanıcı Adı';
             regUsernameInput.required = true;
             btnDeleteUser.classList.add('hidden');
+            if (excelUploadGroup) excelUploadGroup.classList.remove('hidden');
             updateSubmitButton(false);
         } else if (uname) {
             usernameNewGroup.classList.remove('hidden');
@@ -246,6 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
             regUsernameInput.value = uname;
             regUsernameInput.required = true;
             btnDeleteUser.classList.remove('hidden');
+            if (excelUploadGroup) excelUploadGroup.classList.add('hidden');
             updateSubmitButton(true);
 
             // Populate user data
@@ -286,6 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
         regRoleSelect.value = "ogretmen";
         regRoleSelect.dispatchEvent(new Event('change'));
         btnDeleteUser.classList.add('hidden');
+        if (excelUploadGroup) excelUploadGroup.classList.add('hidden');
     }
 
     function updateSubmitButton(isEdit) {
@@ -507,6 +515,121 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 initMasterPage();
             }, 1000);
+        });
+    }
+
+    if (regExcelUpload && btnUploadExcel) {
+        regExcelUpload.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                btnUploadExcel.classList.remove('hidden');
+            } else {
+                btnUploadExcel.classList.add('hidden');
+            }
+            if (excelMessage) excelMessage.innerText = '';
+        });
+
+        btnUploadExcel.addEventListener('click', async () => {
+            const isNewSchool = regSchoolSelect.value === '_NEW_';
+            let storeKeyToUse = isNewSchool ? `klbk_data_${Date.now()}` : regSchoolSelect.value;
+            let schoolNameToUse = isNewSchool ? regSchoolNewInput.value.trim() : regSchoolSelect.options[regSchoolSelect.selectedIndex].text;
+
+            if (!schoolNameToUse || (isNewSchool && !regSchoolNewInput.value.trim())) {
+                excelMessage.style.color = "var(--danger)";
+                excelMessage.innerText = "Lütfen önce kurum adını belirtin!";
+                return;
+            }
+
+            const file = regExcelUpload.files[0];
+            if (!file) return;
+
+            btnUploadExcel.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> İşleniyor...';
+            btnUploadExcel.disabled = true;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = window.XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+                    const json = window.XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                    const usersDb = await getCloudUsers();
+                    let addedCount = 0;
+                    let errorCount = 0;
+
+                    for (let i = 1; i < json.length; i++) {
+                        const row = json[i];
+                        if (!row || row.length === 0) continue;
+                        
+                        let adSoyad = (row[0] || '').toString().trim();
+                        let unameVal = (row[1] || '').toString().trim();
+                        let emailVal = (row[2] || '').toString().trim();
+                        let passVal = (row[3] || '').toString().trim();
+
+                        if (!adSoyad && !unameVal) continue;
+
+                        if (!unameVal) {
+                            unameVal = adSoyad.toLowerCase().replace(/[^a-z0-9]/g, '');
+                            if (usersDb[unameVal]) unameVal += Math.floor(Math.random() * 1000);
+                        }
+                        if (!passVal) passVal = "123456";
+
+                        if (usersDb[unameVal]) {
+                            errorCount++;
+                            continue;
+                        }
+
+                        usersDb[unameVal] = {
+                            name: adSoyad,
+                            password: passVal,
+                            schoolName: schoolNameToUse,
+                            storeKey: storeKeyToUse,
+                            email: emailVal,
+                            role: 'ogretmen',
+                            branch: []
+                        };
+                        addedCount++;
+                    }
+
+                    if (addedCount > 0) {
+                        await saveToCloud('klbk_users', usersDb);
+
+                        if (isNewSchool) {
+                            const initialData = {
+                                school: {
+                                    name: schoolNameToUse,
+                                    academicYear: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1),
+                                    principal: '', vicePrincipal: '', gradeLevels: [], subjects: []
+                                },
+                                students: [], classrooms: [], examSessions: []
+                            };
+                            await saveToCloud(storeKeyToUse, initialData);
+                        }
+
+                        excelMessage.style.color = "green";
+                        excelMessage.innerText = `${addedCount} öğretmen başarıyla eklendi. ${errorCount > 0 ? '(' + errorCount + ' mevcut)' : ''}`;
+                        globalUsersDb = usersDb;
+                        
+                        setTimeout(() => {
+                            initMasterPage();
+                            btnUploadExcel.classList.add('hidden');
+                            regExcelUpload.value = '';
+                        }, 2000);
+                    } else {
+                        excelMessage.style.color = "var(--danger)";
+                        excelMessage.innerText = "Eklenecek geçerli kayıt bulunamadı veya kullanıcılar zaten mevcut.";
+                    }
+                } catch (err) {
+                    console.error(err);
+                    excelMessage.style.color = "var(--danger)";
+                    excelMessage.innerText = "Excel okunurken hata oluştu!";
+                }
+                
+                btnUploadExcel.innerHTML = `<i class="fa-solid fa-upload"></i> Excel'i İçeri Aktar`;
+                btnUploadExcel.disabled = false;
+            };
+            reader.readAsArrayBuffer(file);
         });
     }
 
