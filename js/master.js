@@ -210,6 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
             regRoleSelect.value = 'admin';
             regRoleSelect.disabled = false;
             if (editSchoolNameBtn) editSchoolNameBtn.classList.add('hidden');
+            if (excelUploadGroup) excelUploadGroup.classList.remove('hidden');
 
             // New school implies new user
             regUsernameSelect.innerHTML = '<option value="_NEW_USER_">+ Yeni Kullanıcı Ekle</option>';
@@ -220,6 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
             regSchoolNewInput.required = false;
             regSchoolNewInput.value = '';
             if (editSchoolNameBtn) editSchoolNameBtn.classList.remove('hidden');
+            if (excelUploadGroup) excelUploadGroup.classList.remove('hidden');
 
             updateUsersList(val);
             if (regRoleSelect.value === 'ogretmen') {
@@ -230,6 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             regSchoolNewInput.required = false;
             regUsernameSelect.innerHTML = '<option value="">Lütfen Önce Okul Seçin</option>';
             if (editSchoolNameBtn) editSchoolNameBtn.classList.add('hidden');
+            if (excelUploadGroup) excelUploadGroup.classList.add('hidden');
         }
     });
 
@@ -243,7 +246,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (labelEl) labelEl.textContent = 'Yeni Kullanıcı Adı';
             regUsernameInput.required = true;
             btnDeleteUser.classList.add('hidden');
-            if (excelUploadGroup) excelUploadGroup.classList.remove('hidden');
             updateSubmitButton(false);
         } else if (uname) {
             usernameNewGroup.classList.remove('hidden');
@@ -252,7 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
             regUsernameInput.value = uname;
             regUsernameInput.required = true;
             btnDeleteUser.classList.remove('hidden');
-            if (excelUploadGroup) excelUploadGroup.classList.add('hidden');
             updateSubmitButton(true);
 
             // Populate user data
@@ -293,7 +294,6 @@ document.addEventListener('DOMContentLoaded', () => {
         regRoleSelect.value = "ogretmen";
         regRoleSelect.dispatchEvent(new Event('change'));
         btnDeleteUser.classList.add('hidden');
-        if (excelUploadGroup) excelUploadGroup.classList.add('hidden');
     }
 
     function updateSubmitButton(isEdit) {
