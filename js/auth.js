@@ -167,13 +167,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Save full session to localStorage for persistence (Except students)
                         const role = usersDb[username].role || 'admin';
                         if (role !== 'student' && role !== 'ogrenci') {
-                            const sessionData = {
-                                klbk_currentUser: username,
-                                klbk_schoolName: usersDb[username].schoolName || '',
-                                klbk_storeKey: usersDb[username].storeKey || (`klbk_data_${username}`),
-                                klbk_role: role,
-                                klbk_loginTime: new Date().toISOString()
-                            };
+                                const sessionData = {
+                                    klbk_currentUser: username,
+                                    klbk_name: usersDb[username].name || username,
+                                    klbk_schoolName: usersDb[username].schoolName || '',
+                                    klbk_storeKey: usersDb[username].storeKey || (`klbk_data_${username}`),
+                                    klbk_role: role,
+                                    klbk_loginTime: new Date().toISOString()
+                                };
                             if (usersDb[username].branch) {
                                 sessionData.klbk_branch = usersDb[username].branch;
                             }
@@ -187,6 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Setup session
                     sessionStorage.setItem('klbk_isLoggedIn', 'true');
                     sessionStorage.setItem('klbk_currentUser', username);
+                    sessionStorage.setItem('klbk_name', usersDb[username].name || username);
                     sessionStorage.setItem('klbk_schoolName', usersDb[username].schoolName || '');
                     sessionStorage.setItem('klbk_storeKey', usersDb[username].storeKey || (`klbk_data_${username}`));
                     sessionStorage.setItem('klbk_role', usersDb[username].role || 'admin');

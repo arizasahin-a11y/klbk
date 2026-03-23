@@ -160,6 +160,7 @@
         }
 
         const currentUser = sessionStorage.getItem('klbk_currentUser');
+        const currentName = sessionStorage.getItem('klbk_name') || currentUser;
         const rawBranch = sessionStorage.getItem('klbk_branch') || '';
         let myBranches = [];
         try {
@@ -170,7 +171,7 @@
             myBranches = rawBranch.split(',').map(b => b.trim());
         }
 
-        document.getElementById('teacherNameDisplay').textContent = currentUser;
+        document.getElementById('teacherNameDisplay').textContent = currentName;
         document.getElementById('teacherBranchDisplay').textContent = "Branş(lar): " + myBranches.join(', ');
 
         const sortByNum = (a, b) => {
@@ -639,7 +640,7 @@
                 session.liveMessages.push({
                     text: text,
                     subject: subName,
-                    author: currentUser,
+                    author: currentName,
                     timestamp: Date.now(),
                     expireAt: Date.now() + (10 * 60 * 1000)
                 });
