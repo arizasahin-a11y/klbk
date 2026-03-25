@@ -567,6 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         let emailVal = (row[2] || '').toString().trim();
                         let passVal = (row[3] || '').toString().trim();
                         let branchesStr = (row[4] || '').toString().trim();
+                        let roleVal = (row[5] || '').toString().trim();
 
                         if (!adSoyad && !unameVal) continue;
 
@@ -581,6 +582,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             continue;
                         }
 
+                        let finalRole = roleVal || 'ogretmen';
+
                         let branches = branchesStr ? branchesStr.split(',').map(b => b.trim()).filter(b => b.length > 0) : [];
 
                         usersDb[unameVal] = {
@@ -589,7 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             schoolName: schoolNameToUse,
                             storeKey: storeKeyToUse,
                             email: emailVal,
-                            role: 'ogretmen',
+                            role: finalRole,
                             branch: branches
                         };
                         addedCount++;
