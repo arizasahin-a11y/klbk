@@ -239,8 +239,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Mobile Sidebar Toggle
     document.getElementById('mobileMenuBtn').addEventListener('click', () => {
-        const sidebar = document.querySelector('.sidebar');
-        sidebar.style.left = sidebar.style.left === '0px' ? '-300px' : '0px';
+        document.querySelector('.sidebar').classList.toggle('open');
     });
 
 

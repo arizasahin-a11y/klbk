@@ -111,6 +111,157 @@
             border-bottom-left-radius: 16px;
             border-bottom-right-radius: 16px;
         }
+        /* Mobile Responsive Adjustments */
+        @media (max-width: 768px) {
+            .query-container {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 10px !important;
+                overflow-x: hidden !important;
+                box-sizing: border-box !important;
+            }
+
+            .student-top-banner {
+                flex-direction: column !important;
+                text-align: center !important;
+                gap: 15px !important;
+                padding: 1.5rem 1rem !important;
+                align-items: center !important;
+                border-radius: 0 0 20px 20px !important;
+            }
+
+            .student-top-banner h2 {
+                font-size: 1.25rem !important;
+                justify-content: center !important;
+                flex-wrap: wrap !important;
+                gap: 15px !important;
+            }
+
+            .student-top-banner .btn {
+                width: 100% !important;
+            }
+
+            .exam-card {
+                padding: 15px !important;
+                margin-bottom: 15px !important;
+                border-radius: 12px !important;
+            }
+
+            .exam-header {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+                width: 100% !important;
+            }
+
+            .exam-header > div:first-child {
+                width: 100% !important;
+            }
+
+            .exam-header > div:nth-child(2) {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 15px !important;
+                width: 100% !important;
+            }
+
+            .print-tools-header {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 10px !important;
+                padding: 12px !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+
+            .print-tools-header > div {
+                flex-wrap: wrap !important;
+                justify-content: flex-start !important;
+                gap: 8px !important;
+                padding-bottom: 12px !important;
+                border-bottom: 1px solid var(--gray-200) !important;
+                width: 100% !important;
+            }
+
+            .print-tools-header label {
+                padding: 8px 10px !important;
+                background: white !important;
+                border: 1px solid var(--gray-200) !important;
+                border-radius: 8px !important;
+                flex: 1 1 calc(50% - 10px) !important; /* Allow 2 per row on small phones */
+                min-width: 100px !important;
+                justify-content: flex-start !important;
+                font-size: 0.8rem !important;
+                display: flex !important;
+                align-items: center !important;
+            }
+
+            .print-tools-header > div > div {
+                display: none !important; /* Hide separator */
+            }
+
+            .print-tools-header > .btn {
+                width: 100% !important;
+                margin-top: 5px !important;
+            }
+
+            .print-tools-header .btn {
+                width: 100% !important;
+                padding: 12px !important;
+                font-size: 0.9rem !important;
+                justify-content: center !important;
+            }
+
+            .countdown {
+                width: 100% !important;
+                text-align: center !important;
+                padding: 12px !important;
+                font-size: 1.1rem !important;
+                box-sizing: border-box !important;
+            }
+
+            .exam-header .fa-chevron-down {
+                align-self: center !important;
+                margin-top: 5px !important;
+            }
+
+            .nested-header {
+                padding: 1.25rem 1rem !important;
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 12px !important;
+            }
+
+            .nested-header > i {
+                align-self: flex-end !important;
+                margin-top: -20px !important;
+            }
+
+            .nested-content {
+                padding: 1rem !important;
+            }
+
+            .nested-content .form-control {
+                font-size: 1rem !important;
+                padding: 0.8rem !important;
+            }
+
+            .nested-content .btn {
+                padding: 0.8rem !important;
+                font-size: 0.9rem !important;
+            }
+
+            /* Fix for live message input row */
+            .nested-content > div > div[style*="display: flex"] {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+
+            .nested-content > div > div[style*="display: flex"] .btn {
+                width: 100% !important;
+            }
+        }
     </style>
 </head>
 

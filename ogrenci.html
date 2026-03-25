@@ -352,12 +352,29 @@
                 max-width: 100%;
                 margin: 0;
                 padding: 10px;
+                overflow-x: hidden;
+                box-sizing: border-box;
             }
 
             .student-top-banner {
                 flex-direction: column;
                 text-align: center;
+                gap: 15px;
+                padding: 1.5rem 1rem;
+                align-items: center;
                 border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+            }
+
+            .student-top-banner h2 {
+                font-size: 1.25rem;
+                justify-content: center !important;
+                display: flex !important;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .student-top-banner .btn {
+                width: 100%;
             }
 
             .student-top-banner .avatar {
@@ -365,19 +382,24 @@
             }
 
             .exam-card {
-                padding: 1rem;
+                padding: 15px !important;
+                margin-bottom: 15px !important;
+                border-radius: 12px !important;
             }
 
             .exam-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+                width: 100% !important;
             }
 
             .countdown {
-                width: 100%;
-                text-align: center;
-                font-size: 1.1rem;
+                width: 100% !important;
+                text-align: center !important;
+                padding: 12px !important;
+                font-size: 1.1rem !important;
+                box-sizing: border-box !important;
             }
 
             /* Horizontal Scrolling for Data Tables on Mobile */
