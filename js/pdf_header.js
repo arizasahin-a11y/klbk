@@ -156,7 +156,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         // Capitalize first letter (e.g. english -> English)
         subjectClean = subjectClean.charAt(0).toUpperCase() + subjectClean.slice(1).trim();
 
-        examText = `${school.academicYear || ''} ${lang.year} ${engTerm} Term ${engExamNo} ${subjectClean} Exam${gradeStr}`;
+        examText = `${school.academicYear || ''} ${lang.year} ${engTerm} Term ${engExamNo} ${subjectClean} Exam${gradeStr}`.toUpperCase();
     } else if (normalizedSubForHeader.includes('almanca') || normalizedSubForHeader.includes('deutsch') || 
                normalizedSubForHeader.includes('fransizca') || normalizedSubForHeader.includes('francais')) {
         // Other foreign languages remain in standard format
