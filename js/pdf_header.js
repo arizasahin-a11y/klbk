@@ -141,6 +141,10 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         return n + (s[(v - 20) % 10] || s[v] || s[0]);
     };
 
+    const rawSchoolName = (school.name || '').replace(/i/g, 'İ').toUpperCase();
+    let sName = rawSchoolName.split('').join(' ');
+    if (schoolFont.widthOfTextAtSize(cleanTurkishChars(sName), 9 * sf) > midW) sName = rawSchoolName;
+
     let examText = '';
     if (normalizedSubForHeader.includes('ingilizce') || normalizedSubForHeader.includes('english')) {
         // English specific format: "2025-2026 ACADEMIC YEAR 2nd Term 1st English Exam for 9th Graders"
@@ -166,9 +170,6 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} DERSİ ${examNoStr ? `${examNoStr}. ` : ''}SINAVI`.toUpperCase();
     }
     
-    const rawSchoolName = (school.name || '').replace(/i/g, 'İ').toUpperCase();
-    let sName = rawSchoolName.split('').join(' ');
-    if (schoolFont.widthOfTextAtSize(cleanTurkishChars(sName), 9 * sf) > midW) sName = rawSchoolName;
 
     const drawExplicitOppositeFrame = (x, y, w, h, r, th, rColor) => {
         const col = rColor || rgb(0, 0, 0);
