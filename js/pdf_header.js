@@ -395,9 +395,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         page.drawCircle({ x: snX + 2 * sf, y: snY2, size: 0.8 * sf, color: gold }); // snake head
     } else if (designType === '9') {
         // Atatürk Teması (v3 Görsel Çerçeve + Düzenlemeler)
-        const cmToPt = 28.35;
-        const cropBottom = 0.5 * cmToPt * sf;
-        const targetH = (3 * cmToPt - 1.5) * sf - cropBottom; // Adjusted to stay within 3cm (approx 85pt) from top
+        const mmToPt = 2.835;
+        const targetH = (3 * cmToPt + 1.335) * sf - cropBottom; // Increased by approx 1mm (2.835pt) to expand frame downwards 
         const extraW = 1.0 * cmToPt * sf;
         const shiftLeft = 5.67 * sf; // 2mm move to left
 
@@ -405,8 +404,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const drawW = ow + extraW + shiftLeft;
         const drawX = ox - shiftLeft;
 
-        // Expand bottom downward by 1mm (drawY decreases) while keeping top fixed
-        const drawY = height - margin - strokeOffset - (drawH - 7.5 * sf); // Moved up slightly to ensure bottom limit < 3cm
+        // Expand bottom downward by moving drawY down (decreasing Y)
+        const drawY = height - margin - strokeOffset - (drawH - 4.665 * sf); // Moved 2.835pt (1mm) further down from previous 7.5pt offset
 
         try {
             const headerUrl = 'ata_header_v4.png';
@@ -429,9 +428,9 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const contentX = ox + 50 * sf + (textNarrow / 2);
 
         // Stabilized contentBaseY to keep text fixed while header grows up
-        const d9LowTextShift = 5.67 * sf; // 2mm downward shift requested
+        const d9LowTextShift = 4.2 * sf; // Reduced downward shift slightly to compensate for larger frame
         const contentBaseY = drawY - cropBottom + (oh * 0.15) + textUp + (10.5 * sf) - d9LowTextShift; 
-        const d9Oy = drawY + 1.5 * sf; // Moved student info box UP to align with image bottom limit
+        const d9Oy = drawY + 1.25 * sf; // Re-centered info box within new frame height
 
         // School name position: 1mm down relative to the content base
         drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 13.5 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
