@@ -494,7 +494,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             page.drawText(lang.seat, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + midCol5W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
             drawCenterText(info.seat || '', ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + midCol5W, d9Oy - 2.5 * sf, midCol6W, row3H, 14, mainFont);
         }
-        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: d9Oy + row3H - 12 * sf, size: 7 * sf, font: mainFont, color: rgb(0.2, 0.2, 0.2) });
+        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: lineTopY - 10 * sf, size: 7 * sf, font: mainFont, color: rgb(0.2, 0.2, 0.2) });
 
     } else if (designType === '10') {
         // CLOUD THEME (FLATTER CURVES: 4x Length, Original Bulge)
