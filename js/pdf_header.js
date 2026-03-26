@@ -429,7 +429,9 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const contentX = ox + 50 * sf + (textNarrow / 2);
 
         // Stabilized contentBaseY to keep text fixed while header grows up
-        const contentBaseY = drawY - cropBottom + (oh * 0.15) + textUp + (10.5 * sf); // Adjusted vertical offset for text alignment
+        const d9LowTextShift = 5.67 * sf; // 2mm downward shift requested
+        const contentBaseY = drawY - cropBottom + (oh * 0.15) + textUp + (10.5 * sf) - d9LowTextShift; 
+        const d9Oy = drawY + 1.5 * sf; // Moved student info box UP to align with image bottom limit
 
         // School name position: 1mm down relative to the content base
         drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 13.5 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
@@ -463,27 +465,27 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             const d9MidCol3W = midCol3W;
 
             // Alttaki boydan boya kutu kaldırıldı, sadece dikey ayraçlar bırakıldı
-            drawDivs(ox, oy, d9LeftW, d9MidCol2W, d9MidCol3W, midCol4W, midCol5W, gc, 0.5 * sf);
+            drawDivs(ox, d9Oy, d9LeftW, d9MidCol2W, d9MidCol3W, midCol4W, midCol5W, gc, 0.5 * sf);
 
             // Puan yazısının soluna dikey çizgi (YER kutusu sağındaki çizgi) - Üstten 3mm (8.5pt) kısaltıldı
             const scoreDivX = ox + leftW + midW;
             const lineTopY = (drawY + drawH) - 8.505 * sf;
-            page.drawLine({ start: { x: scoreDivX, y: oy }, end: { x: scoreDivX, y: lineTopY }, thickness: 0.5 * sf, color: gc });
+            page.drawLine({ start: { x: scoreDivX, y: d9Oy }, end: { x: scoreDivX, y: lineTopY }, thickness: 0.5 * sf, color: gc });
 
-            drawRightText(lang.class, ox, oy + row3H - 8 * sf, d9LeftW, 8 * sf, 6, mainFont);
-            drawRightText(info.class || '', ox, oy - 2 * sf, d9LeftW, row3H, 16, mainFont);
+            drawRightText(lang.class, ox, d9Oy + row3H - 8 * sf, d9LeftW, 8 * sf, 6, mainFont);
+            drawRightText(info.class || '', ox, d9Oy - 2 * sf, d9LeftW, row3H, 16, mainFont);
 
-            drawCenterText(lang.no, ox + d9LeftW, oy + row3H - 8 * sf, d9MidCol2W, 8 * sf, 6, mainFont);
-            drawCenterText(info.no || '', ox + d9LeftW, oy - 2 * sf, d9MidCol2W, row3H, 12, mainFont);
-            drawStudentName(ox + d9LeftW + d9MidCol2W, oy, d9MidCol3W, row3H);
-            page.drawText(lang.room, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + 2 * sf, y: oy + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-            drawCenterText(info.room || '', ox + d9LeftW + d9MidCol2W + d9MidCol3W, oy - 2.5 * sf, midCol4W, row3H, 11, mainFont);
-            page.drawText(lang.exam, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + 2 * sf, y: oy + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-            drawCenterText((info.subject || '').toUpperCase(), ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W, oy - 2.5 * sf, midCol5W, row3H, 9.5, mainFont);
-            page.drawText(lang.seat, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + midCol5W + 2 * sf, y: oy + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-            drawCenterText(info.seat || '', ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + midCol5W, oy - 2.5 * sf, midCol6W, row3H, 14, mainFont);
+            drawCenterText(lang.no, ox + d9LeftW, d9Oy + row3H - 8 * sf, d9MidCol2W, 8 * sf, 6, mainFont);
+            drawCenterText(info.no || '', ox + d9LeftW, d9Oy - 2 * sf, d9MidCol2W, row3H, 12, mainFont);
+            drawStudentName(ox + d9LeftW + d9MidCol2W, d9Oy, d9MidCol3W, row3H);
+            page.drawText(lang.room, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+            drawCenterText(info.room || '', ox + d9LeftW + d9MidCol2W + d9MidCol3W, d9Oy - 2.5 * sf, midCol4W, row3H, 11, mainFont);
+            page.drawText(lang.exam, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+            drawCenterText((info.subject || '').toUpperCase(), ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W, d9Oy - 2.5 * sf, midCol5W, row3H, 9.5, mainFont);
+            page.drawText(lang.seat, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + midCol5W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+            drawCenterText(info.seat || '', ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + midCol5W, d9Oy - 2.5 * sf, midCol6W, row3H, 14, mainFont);
         }
-        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 18 * sf, size: 7 * sf, font: mainFont, color: rgb(0.2, 0.2, 0.2) });
+        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: d9Oy + row3H - 12 * sf, size: 7 * sf, font: mainFont, color: rgb(0.2, 0.2, 0.2) });
 
     } else if (designType === '10') {
         // CLOUD THEME (FLATTER CURVES: 4x Length, Original Bulge)
