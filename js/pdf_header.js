@@ -467,6 +467,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         page.drawLine({ start: { x: lineX1, y: lineY }, end: { x: lineX2, y: lineY }, thickness: 0.5 * sf, color: rgb(0, 0, 0) });
 
         const gc = rgb(0.8, 0.8, 0.8);
+        const lineTopY = (drawY + drawH) - 8.505 * sf;
         if (info) {
             const d9LeftW = leftW + 15 * sf;
             const d9MidCol2W = midCol2W - 15 * sf;
@@ -478,7 +479,6 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
 
             // Puan yazısının soluna dikey çizgi (YER kutusu sağındaki çizgi) - Üstten 3mm (8.5pt) kısaltıldı
             const scoreDivX = ox + leftW + midW;
-            const lineTopY = (drawY + drawH) - 8.505 * sf;
             page.drawLine({ start: { x: scoreDivX, y: d9Oy }, end: { x: scoreDivX, y: lineTopY }, thickness: 0.5 * sf, color: gc });
 
             drawRightText(lang.class, ox, d9Oy + row3H - 8 * sf, d9LeftW, 8 * sf, 6, mainFont);
