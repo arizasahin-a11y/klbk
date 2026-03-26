@@ -396,6 +396,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     } else if (designType === '9') {
         // Atatürk Teması (v3 Görsel Çerçeve + Düzenlemeler)
         const cmToPt = 28.35;
+        const cropBottom = 0.5 * cmToPt * sf;
         const targetH = (3 * cmToPt + 1.335) * sf - cropBottom; // Increased by approx 1mm (2.835pt) to expand frame downwards 
         const extraW = 1.0 * cmToPt * sf;
         const shiftLeft = 5.67 * sf; // 2mm move to left
