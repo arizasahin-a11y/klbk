@@ -397,7 +397,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         // Atatürk Teması (v3 Görsel Çerçeve + Düzenlemeler)
         const cmToPt = 28.35;
         const cropBottom = 0.5 * cmToPt * sf;
-        const targetH = (3 * cmToPt + 1.335) * sf - cropBottom; // Increased by approx 1mm (2.835pt) to expand frame downwards 
+        const targetH = (3 * cmToPt + 4.17) * sf - cropBottom; // Expansion +1mm (Total +4.17 points from base)
         const extraW = 1.0 * cmToPt * sf;
         const shiftLeft = 5.67 * sf; // 2mm move to left
 
@@ -405,8 +405,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const drawW = ow + extraW + shiftLeft;
         const drawX = ox - shiftLeft;
 
-        // Expand bottom downward by moving drawY down (decreasing Y)
-        const drawY = height - margin - strokeOffset - (drawH - 4.665 * sf); // Moved 2.835pt (1mm) further down from previous 7.5pt offset
+        // Move bottom limit to precisely 3cm (height - 85.05pt) from top
+        const drawY = height - (3 * cmToPt * sf); 
 
         try {
             const headerUrl = 'ata_header_v4.png';
@@ -429,9 +429,9 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const contentX = ox + 50 * sf + (textNarrow / 2);
 
         // Stabilized contentBaseY to keep text fixed while header grows up
-        const d9LowTextShift = 3.6 * sf; // Adjusted shift for better centering
+        const d9LowTextShift = 4.8 * sf; // Adjusted shift for 3cm height
         const contentBaseY = drawY - cropBottom + (oh * 0.15) + textUp + (10.5 * sf) - d9LowTextShift; 
-        const d9Oy = drawY + 1.0 * sf; // Moved slightly lower to make room for bottom line
+        const d9Oy = drawY; // Re-aligned info box precisely to 3cm bottom boundary
 
         // School name position: 1mm down relative to the content base
         drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 13.5 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
@@ -464,9 +464,9 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             const d9MidCol2W = midCol2W - 15 * sf;
             const d9MidCol3W = midCol3W;
 
-            // Alttaki dikey ayraçlar ve Çerçevenin alt yatay çizgisini belirginleştir
+            // Alttaki dikey ayraçlar (Yatay çizgi kullanıcı isteğiyle kaldırıldı)
             drawDivs(ox, d9Oy, d9LeftW, d9MidCol2W, d9MidCol3W, midCol4W, midCol5W, gc, 0.5 * sf);
-            page.drawLine({ start: { x: ox, y: d9Oy }, end: { x: ox + ow, y: d9Oy }, thickness: 0.5 * sf, color: gc }); // ALT ÇİZGİ EKLENDİ 
+            // ALT ÇİZGİ KALDIRILDI
 
             // Puan yazısının soluna dikey çizgi (YER kutusu sağındaki çizgi) - Üstten 3mm (8.5pt) kısaltıldı
             const scoreDivX = ox + leftW + midW;
