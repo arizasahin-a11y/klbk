@@ -431,7 +431,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         // Stabilized contentBaseY to keep text fixed while header grows up
         const d9LowTextShift = 4.8 * sf; // Adjusted shift for 3cm height
         const contentBaseY = drawY - cropBottom + (oh * 0.15) + textUp + (10.5 * sf) - d9LowTextShift; 
-        const d9Oy = drawY; // Re-aligned info box precisely to 3cm bottom boundary
+        const d9Oy = drawY + 2.835 * sf; // Moved student info box 1mm (2.835pt) UP from bottom limit
 
         // School name position: 1mm down relative to the content base
         drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 13.5 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
