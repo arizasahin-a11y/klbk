@@ -97,16 +97,18 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const midCol3W = midW - midCol2W - midCol4W - midCol5W - midCol6W;
     const getTranslations = (subject) => {
         const rawSub = (subject || '');
-        const sub = rawSub.toLowerCase();
-        const hasTrI = rawSub.includes('İ') || rawSub.includes('ı');
+        // Normalize for comparison: Remove tr-specific casing issues by converting everything to a standard form
+        const normalized = rawSub.replace(/İ/g, 'i').replace(/I/g, 'ı').replace(/ı/g, 'i').replace(/İ/g, 'i').toLowerCase();
         
+        const isEnglish = normalized.includes('ingilizce') || normalized.includes('english');
+        const isGerman = normalized.includes('almanca') || normalized.includes('deutsch');
+        const isFrench = normalized.includes('fransizca') || normalized.includes('francais');
+
         let translatedSubject = rawSub.replace(/i/g, 'İ').toUpperCase();
-        const isEnglish = sub.includes('ingilizce') || sub.includes('english') || (hasTrI && rawSub.toUpperCase().includes('İNGİLİZCE'));
-        const isGerman = sub.includes('almanca') || sub.includes('deutsch') || (hasTrI && rawSub.toUpperCase().includes('ALMANCA'));
-        const isFrench = sub.includes('fransızca') || sub.includes('français') || (hasTrI && rawSub.toUpperCase().includes('FRANSIZCA'));
 
         if (isEnglish) {
-            translatedSubject = translatedSubject.replace(/İNGİLİZCE/g, 'ENGLISH').replace(/INGILIZCE/g, 'ENGLISH');
+            if (translatedSubject.includes('İNGİLİZCE')) translatedSubject = translatedSubject.replace(/İNGİLİZCE/g, 'ENGLISH');
+            else if (translatedSubject.includes('INGILIZCE')) translatedSubject = translatedSubject.replace(/INGILIZCE/g, 'ENGLISH');
             return { year: 'ACADEMIC YEAR', term: 'TERM', class: 'CLASS', no: 'NO', name: 'NAME SURNAME', room: 'ROOM', exam: 'EXAM', seat: 'SEAT', score: 'SCORE', written: 'WRITTEN EXAM', subject: translatedSubject };
         }
         if (isGerman) {
