@@ -397,7 +397,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         // Atatürk Teması (v3 Görsel Çerçeve + Düzenlemeler)
         const cmToPt = 28.35;
         const cropBottom = 0.5 * cmToPt * sf;
-        const targetH = (3 * cmToPt + 8.505) * sf - cropBottom; // +1mm extra height from bottom (Total +3mm) -> crop bottom 0.5cm
+        const targetH = (3 * cmToPt - 1.5) * sf - cropBottom; // Adjusted to stay within 3cm (approx 85pt) from top
         const extraW = 1.0 * cmToPt * sf;
         const shiftLeft = 5.67 * sf; // 2mm move to left
 
@@ -406,7 +406,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const drawX = ox - shiftLeft;
 
         // Expand bottom downward by 1mm (drawY decreases) while keeping top fixed
-        const drawY = height - margin - strokeOffset - (drawH - 5.67 * sf);
+        const drawY = height - margin - strokeOffset - (drawH - 7.5 * sf); // Moved up slightly to ensure bottom limit < 3cm
 
         try {
             const headerUrl = 'ata_header_v4.png';
@@ -429,7 +429,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const contentX = ox + 50 * sf + (textNarrow / 2);
 
         // Stabilized contentBaseY to keep text fixed while header grows up
-        const contentBaseY = drawY - cropBottom + (oh * 0.15) + textUp + (9.92 * sf); // Moved 1.5mm up (+4.25pt) from original 2mm (5.67pt) offset
+        const contentBaseY = drawY - cropBottom + (oh * 0.15) + textUp + (10.5 * sf); // Adjusted vertical offset for text alignment
 
         // School name position: 1mm down relative to the content base
         drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 13.5 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
