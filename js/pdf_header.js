@@ -124,6 +124,9 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
 
 
     const lang = getTranslations(info?.subject);
+    // Use an ultra-robust normalized string for language detection throughout header construction
+    const normalizedSubForHeader = (info?.subject || '').replace(/İ/g, 'i').replace(/I/g, 'ı').replace(/ı/g, 'i').replace(/İ/g, 'i').toLowerCase();
+    
     let termDom = ''; try { const el = document.getElementById('academicTerm'); if (el) termDom = el.value; } catch (e) { }
     let termStr = (sess.academicTerm || termDom || '').toUpperCase();
     if (termStr.includes('2.') || termStr.includes('II.')) {
@@ -133,13 +136,10 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     }
     const examNoStr = info?.examNo || metadata?.examNo || '';
     
-    // Yabancı dil sınavlarında dil ayarlarına uygun "YAZILI SINAVI" çevirisi (lang.written) gelir. 
-    // Yabancı dil değilse (veya default Türkçe ise), özel bir formata zorlarız ("X DERSİ Y. SINAVI" gibi).
-    const sub = (info?.subject || '').toLowerCase();
     let examText = '';
-    if (sub.includes('ingilizce') || sub.includes('english') || 
-        sub.includes('almanca') || sub.includes('deutsch') || 
-        sub.includes('fransızca') || sub.includes('français')) {
+    if (normalizedSubForHeader.includes('ingilizce') || normalizedSubForHeader.includes('english') || 
+        normalizedSubForHeader.includes('almanca') || normalizedSubForHeader.includes('deutsch') || 
+        normalizedSubForHeader.includes('fransizca') || normalizedSubForHeader.includes('francais')) {
         // Yabancı dilde: "2023-2024 ACADEMIC YEAR I. TERM ENGLISH 1. WRITTEN EXAM" formatı
         examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} ${examNoStr ? `${examNoStr}. ` : ''}${lang.written}`.toUpperCase();
     } else {
