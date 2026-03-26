@@ -429,9 +429,9 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const contentX = ox + 50 * sf + (textNarrow / 2);
 
         // Stabilized contentBaseY to keep text fixed while header grows up
-        const d9LowTextShift = 4.2 * sf; // Reduced downward shift slightly to compensate for larger frame
+        const d9LowTextShift = 3.6 * sf; // Adjusted shift for better centering
         const contentBaseY = drawY - cropBottom + (oh * 0.15) + textUp + (10.5 * sf) - d9LowTextShift; 
-        const d9Oy = drawY + 1.25 * sf; // Re-centered info box within new frame height
+        const d9Oy = drawY + 1.0 * sf; // Moved slightly lower to make room for bottom line
 
         // School name position: 1mm down relative to the content base
         drawCenterText(sName.toUpperCase(), contentX, contentBaseY + 13.5 * sf, contentMidW, row1H, getFitSize(sName.toUpperCase(), contentMidW, 11, schoolFont), schoolFont);
@@ -464,8 +464,9 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             const d9MidCol2W = midCol2W - 15 * sf;
             const d9MidCol3W = midCol3W;
 
-            // Alttaki boydan boya kutu kaldırıldı, sadece dikey ayraçlar bırakıldı
+            // Alttaki dikey ayraçlar ve Çerçevenin alt yatay çizgisini belirginleştir
             drawDivs(ox, d9Oy, d9LeftW, d9MidCol2W, d9MidCol3W, midCol4W, midCol5W, gc, 0.5 * sf);
+            page.drawLine({ start: { x: ox, y: d9Oy }, end: { x: ox + ow, y: d9Oy }, thickness: 0.5 * sf, color: gc }); // ALT ÇİZGİ EKLENDİ 
 
             // Puan yazısının soluna dikey çizgi (YER kutusu sağındaki çizgi) - Üstten 3mm (8.5pt) kısaltıldı
             const scoreDivX = ox + leftW + midW;
