@@ -4155,14 +4155,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 .page { 
                     width: ${isSeating ? '297mm' : '210mm'}; 
-                    height: auto !important;
-                    min-height: 0 !important;
-                    max-height: none !important;
-                    padding: 12mm; 
+                    height: ${isSeating ? '210mm' : '297mm'};
+                    padding: 8mm; 
                     box-sizing: border-box; 
                     page-break-after: always; 
-                    display: block; 
-                    overflow: visible;
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
                     position: relative;
                 }
                 .page:last-child { page-break-after: avoid; }
@@ -4189,22 +4188,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 /* Seating schema centering */
                 .schema-container { display: block; width: 100%; margin-top: 10px; overflow: visible; }
                 .classroom-walls { 
-                    border: 4px solid #334155; padding: 35px; border-radius: 24px; background: #fff;
-                    display: inline-block; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+                    border: 3px solid #334155; padding: 15px; border-radius: 16px; background: #fff;
+                    display: inline-block; position: relative; box-shadow: 0 5px 20px rgba(0,0,0,0.06);
                     transform-origin: center;
                 }
-                .front-side { display: flex; justify-content: space-around; align-items: flex-start; margin-top: 40px; width: 100%; border-top: 3px solid #334155; padding-top: 20px; }
+                .front-side { display: flex; justify-content: space-around; align-items: flex-start; margin-top: 15px; width: 100%; border-top: 2px solid #334155; padding-top: 10px; }
                 .teacher-desk { 
-                    width: 130px; height: 70px; border: 3px solid #475569; background: #f1f5f9;
-                    display: flex; align-items: center; justify-content: center; font-size: 9pt; font-weight: bold; color: #1e293b;
-                    border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                    width: 110px; height: 50px; border: 2px solid #475569; background: #f1f5f9;
+                    display: flex; align-items: center; justify-content: center; font-size: 8pt; font-weight: bold; color: #1e293b;
+                    border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                 }
                 .board { 
-                    background: #0f172a; color: white; padding: 12px 70px; border-radius: 6px; font-size: 11pt;
-                    font-weight: bold; letter-spacing: 4px; border: 4px solid #475569; box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+                    background: #0f172a; color: white; padding: 8px 50px; border-radius: 4px; font-size: 10pt;
+                    font-weight: bold; letter-spacing: 3px; border: 3px solid #475569; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
                 }
-                .groups-row { display: flex; gap: 50px; justify-content: center; flex-wrap: wrap; }
-                .desk-group { display: grid; gap: 8px; padding: 12px; border: 1.5px dashed #cbd5e1; border-radius: 10px; background: #fafafa; }
+                .groups-row { display: flex; gap: 30px; justify-content: center; flex-wrap: wrap; }
+                .desk-group { display: grid; gap: 8px; padding: 8px; border: 1.5px dashed #cbd5e1; border-radius: 10px; background: #fafafa; }
                 .desk { width: 95px; height: 80px; border: 1.8px solid #6366f1; border-radius: 8px;
                         display: flex; flex-direction: column; align-items: center; justify-content: center;
                         font-size: 8pt; text-align: center; background: white; padding: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.04);
@@ -4454,7 +4453,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     groupsHtml += '</div>';
                     body += `<div class="page">${hdr(`${room.name} Salonu - Oturma Şeması`)}
                         <div class="schema-container"><div class="classroom-walls">${groupsHtml}
-                            <div class="front-side">${room.teacherDeskPos === 'left' ? `<div class="teacher-desk">ÖĞRETMEN<br>MASASI</div><div class="board">Y A Z I &nbsp; T A H T A S I</div><div style="width:130px;"></div>` : `<div style="width:130px;"></div><div class="board">Y A Z I &nbsp; T A H T A S I</div><div class="teacher-desk">ÖĞRETMEN<br>MASASI</div>`}</div>
+                            <div class="front-side">${room.teacherDeskPos === 'left' ? `<div class="teacher-desk">ÖĞRETMEN<br>MASASI</div><div class="board">Y A Z I &nbsp; T A H T A S I</div><div style="width:110px;"></div>` : `<div style="width:110px;"></div><div class="board">Y A Z I &nbsp; T A H T A S I</div><div class="teacher-desk">ÖĞRETMEN<br>MASASI</div>`}</div>
                         </div></div></div>`;
                 });
 
@@ -4463,8 +4462,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         document.querySelectorAll('.schema-container').forEach(wrap => {
                             const wall = wrap.querySelector('.classroom-walls');
                             if (!wall) return;
-                            const scale = Math.min((wrap.clientWidth-20)/wall.offsetWidth, (wrap.clientHeight-20)/wall.offsetHeight);
-                            wall.style.transform = "scale(" + Math.min(scale, 1.8) + ")";
+                            const scale = Math.min((wrap.clientWidth - 20) / wall.offsetWidth, (wrap.clientHeight - 20) / wall.offsetHeight);
+                            wall.style.transform = "scale(" + Math.min(scale, 2.5) + ")";
                         });
                     });
                 </script>`;
