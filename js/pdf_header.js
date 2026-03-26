@@ -136,11 +136,30 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     }
     const examNoStr = info?.examNo || metadata?.examNo || '';
     
+    const getOrdinal = (n) => {
+        const s = ["th", "st", "nd", "rd"], v = n % 100;
+        return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    };
+
     let examText = '';
-    if (normalizedSubForHeader.includes('ingilizce') || normalizedSubForHeader.includes('english') || 
-        normalizedSubForHeader.includes('almanca') || normalizedSubForHeader.includes('deutsch') || 
-        normalizedSubForHeader.includes('fransizca') || normalizedSubForHeader.includes('francais')) {
-        // Yabancı dilde: "2023-2024 ACADEMIC YEAR I. TERM ENGLISH 1. WRITTEN EXAM" formatı
+    if (normalizedSubForHeader.includes('ingilizce') || normalizedSubForHeader.includes('english')) {
+        // English specific format: "2025-2026 ACADEMIC YEAR 2nd Term 1st English Exam for 9th Graders"
+        let engTerm = termStr.includes('2') || termStr.includes('II') ? '2nd' : '1st';
+        let engExamNo = getOrdinal(parseInt(examNoStr) || 1);
+        
+        let gradeLevel = (info?.subject || '').match(/\d+/);
+        let gradeStr = gradeLevel ? ` for ${getOrdinal(parseInt(gradeLevel[0]))} Graders` : '';
+        
+        // Remove grade numbers from subject name for the "English Exam" part
+        let displaySubject = rawSchoolName.includes('FEN') ? 'English' : 'English'; // Placeholder if needed
+        let subjectClean = (lang.subject || '').replace(/\d+/g, '').replace(/İ/g,'i').toLowerCase();
+        // Capitalize first letter (e.g. english -> English)
+        subjectClean = subjectClean.charAt(0).toUpperCase() + subjectClean.slice(1).trim();
+
+        examText = `${school.academicYear || ''} ${lang.year} ${engTerm} Term ${engExamNo} ${subjectClean} Exam${gradeStr}`;
+    } else if (normalizedSubForHeader.includes('almanca') || normalizedSubForHeader.includes('deutsch') || 
+               normalizedSubForHeader.includes('fransizca') || normalizedSubForHeader.includes('francais')) {
+        // Other foreign languages remain in standard format
         examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} ${examNoStr ? `${examNoStr}. ` : ''}${lang.written}`.toUpperCase();
     } else {
         // Türkçe sınavlarda: "2023-2024 ÖĞRETİM YILI I. DÖNEM FİZİK 9 DERSİ 1. SINAVI" formatı
