@@ -3201,6 +3201,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             // 1. Fetch PDF Bytes
             currentStep = "Soru ka\u011f\u0131d\u0131 okunuyor (" + path.split(/[\\\/]/).pop() + ")";
             const pdfBytes = await window.getFileBytes(printPath);
+            if (!pdfBytes) {
+                Swal.fire({ icon: 'error', title: 'Hata', text: 'Soru kağıdı verdiğiniz adreste bulunamadı' });
+                if (typeof finalize === 'function') finalize(null);
+                return;
+            }
 
             // OPTIMIZATION: If we already have a blob and NO info to overlay, skip processing
             if (path.startsWith('blob:') && (!info || Object.keys(info).length === 0)) {

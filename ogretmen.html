@@ -1200,6 +1200,11 @@
 
             try {
                 const pdfBytes = await window.getFileBytes(printPath);
+                if (!pdfBytes) {
+                    Swal.fire({ icon: 'error', title: 'Hata', text: 'Soru kağıdı verdiğiniz adreste bulunamadı' });
+                    if (finalize) finalize(null);
+                    return;
+                }
 
                 // Skip processing if already blob and no info
                 if (printPath.startsWith('blob:') && (!info || Object.keys(info).length === 0)) {
@@ -1311,7 +1316,11 @@
                                 docCache[printPath] = studentPdf;
                             }
                         }
-                        if (!studentPdf) continue;
+                        if (!studentPdf) {
+                            if (!window._missingPapers) window._missingPapers = new Set();
+                            window._missingPapers.add(path);
+                            continue;
+                        }
 
                         const pages = await mergedPdf.copyPages(studentPdf, studentPdf.getPageIndices());
 
@@ -1327,7 +1336,22 @@
                         await window.renderStudentPDFHeader(mergedPdf, firstPage, studentInfo, { ...fonts, sf, session, metadata: meta, imageCache });
 
                         pages.forEach(p => mergedPdf.addPage(p));
-                    } catch (e) { console.error("Paper load error", path, e); }
+                    } catch (e) {
+                        console.error("Paper load error", path, e);
+                        if (!window._missingPapers) window._missingPapers = new Set();
+                        window._missingPapers.add(path);
+                    }
+                }
+
+                if (window._missingPapers && window._missingPapers.size > 0) {
+                    const failedList = Array.from(window._missingPapers).join('\n');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Eksik Soru Kağıtları',
+                        text: 'Bazı soru kağıtları adreste bulunamadı veya hatalı. Bu öğrenciler atlandı.\n\nHata: Soru kağıdı verdiğiniz adreste bulunamadı',
+                        footer: '<pre style="text-align:left; font-size:10px;">' + failedList + '</pre>'
+                    });
+                    delete window._missingPapers;
                 }
 
                 const mergedBytes = await mergedPdf.save();
