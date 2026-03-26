@@ -4186,11 +4186,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .msg-box .icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; background: #ef4444; color: white; border-radius: 50%; margin-right: 10px; font-size: 14px; }
 
                 /* Seating schema centering */
-                .schema-container { display: block; width: 100%; margin-top: 10px; overflow: visible; }
+                .schema-container { display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 10px; overflow: hidden; flex: 1; }
                 .classroom-walls { 
                     border: 3px solid #334155; padding: 15px; border-radius: 16px; background: #fff;
                     display: inline-block; position: relative; box-shadow: 0 5px 20px rgba(0,0,0,0.06);
-                    transform-origin: center;
+                    transform-origin: center; margin: auto;
                 }
                 .front-side { display: flex; justify-content: space-around; align-items: flex-start; margin-top: 15px; width: 100%; border-top: 2px solid #334155; padding-top: 10px; }
                 .teacher-desk { 

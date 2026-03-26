@@ -129,7 +129,7 @@ async function executePrintSession(id, mode, filterArray) {
                 .classroom-walls { 
                     border: 3px solid #334155; padding: 15px; border-radius: 16px; background: #fff;
                     display: inline-block; position: relative; box-shadow: 0 5px 20px rgba(0,0,0,0.06);
-                    transform-origin: center;
+                    transform-origin: center; margin: auto;
                 }
                 .front-side { display: flex; justify-content: space-around; align-items: flex-start; margin-top: 15px; width: 100%; border-top: 2px solid #334155; padding-top: 10px; }
                 .teacher-desk { 
