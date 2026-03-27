@@ -1558,6 +1558,47 @@
                     if (!confirm.isConfirmed) return;
                 }
 
+                if (filterArray.length > 1) {
+                    const printModeChoice = await Swal.fire({
+                        title: 'Yazdırma Tercihi',
+                        text: `${filterArray.length} farklı grup seçildi. Lütfen yazdırma modunu seçin:`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fa-solid fa-pause"></i> DURAKLAMALI (Onaylı)',
+                        denyButtonText: '<i class="fa-solid fa-bolt"></i> SÜREKLİ (Tümü Bir Arada)',
+                        showDenyButton: true,
+                        cancelButtonText: 'İptal',
+                        confirmButtonColor: '#4f46e5',
+                        denyButtonColor: '#10b981',
+                        footer: '<div style="font-size:0.8rem; text-align:center;"><b>Duraklamalı:</b> Her gruptan önce onay istenir, ayrı ayrı sekmelerde açılır.<br><b>Sürekli:</b> Tüm gruplar tek bir PDF olarak tek sekmede açılır.</div>'
+                    });
+
+                    if (printModeChoice.isDismissed) return;
+
+                    if (printModeChoice.isConfirmed) {
+                        // DURAKLAMALI MOD: Her grup için ayrı ayrı dön ve onay iste
+                        for (const item of filterArray) {
+                            const groupStudents = allStudents.filter(s => (mode === 'class' ? s.class : s.room) === item);
+                            if (groupStudents.length === 0) continue;
+
+                            const confirmEach = await Swal.fire({
+                                title: 'Onay Bekleniyor',
+                                text: `"${item}" grubu için ${groupStudents.length} adet soru kağıdı hazır. Yazdırmak için onay verin.`,
+                                icon: 'info',
+                                showCancelButton: true,
+                                confirmButtonText: 'Yazdır',
+                                cancelButtonText: 'Atla'
+                            });
+
+                            if (confirmEach.isConfirmed) {
+                                await printPapersForGroupBatch(groupStudents, session, `Soru Kağıtları - ${item}`);
+                            }
+                        }
+                        return;
+                    }
+                }
+
+                // SÜREKLİ MOD (Varsayılan veya Denied seçimi): Tümünü tek seferde yazdır
                 await printPapersForGroupBatch(allStudents, session, "Soru Kağıtları");
                 return; // Exit, don't print normal lists
             }
