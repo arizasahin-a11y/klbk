@@ -246,17 +246,19 @@ const ExamAlgorithm = {
                 }
             }
             if (!placed) {
-                // FALLBACK: Sınıf kotasına veya Seviye kotasına/Slotuna bakmadan herhangi bir boş koltuğa yerleştir
+                // FALLBACK: Sınıf/Seviye kotasına bakmadan herhangi bir boş koltuğa yerleştir
+                // AMA: Yan ve Çapraz çakışma yasağına (hasCollision6) hala uymalıdır!
                 for (let ri = 0; ri < numRooms; ri++) {
                     const node = roomNodes[(roomIdx + ri) % numRooms];
                     const lv = s._matchedSubject || 'Unknown';
                     const targetSlot = levelSlot[lv] ?? 0;
                     const otherSlot = 1 - targetSlot;
 
-                    // 1. Önce asıl slotunda boşluk ara (Kotasız)
-                    let seat = node.slotSeats[targetSlot].find(st => !node.assigned[st.id]);
-                    // 2. Yoksa diğer slotta boşluk ara (Slot kısıtlamasını kır — kapasite her şeyden önemlidir)
-                    if (!seat) seat = node.slotSeats[otherSlot].find(st => !node.assigned[st.id]);
+                    // 1. Önce asıl slotunda boşluk ara (Kotasız, ama çakışmasız)
+                    let seat = node.slotSeats[targetSlot].find(st => !node.assigned[st.id] && !hasCollision6(node, s, st));
+                    
+                    // 2. Yoksa diğer slotta boşluk ara (Slot kısıtlamasını kır, ancak çakışma kuralını ASLA kırma)
+                    if (!seat) seat = node.slotSeats[otherSlot].find(st => !node.assigned[st.id] && !hasCollision6(node, s, st));
 
                     if (seat) { 
                         node.assigned[seat.id] = s; 
