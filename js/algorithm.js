@@ -235,10 +235,23 @@ const ExamAlgorithm = {
                 }
             }
             if (!placed) {
+                // FALLBACK: Sınıf kotasına veya Seviye kotasına/Slotuna bakmadan herhangi bir boş koltuğa yerleştir
                 for (let ri = 0; ri < numRooms; ri++) {
                     const node = roomNodes[(roomIdx + ri) % numRooms];
-                    const seat = findSafe(node, s);
-                    if (seat) { node.assigned[seat.id] = s; roomIdx = (roomIdx + ri + 1) % numRooms; break; }
+                    const lv = s._matchedSubject || 'Unknown';
+                    const targetSlot = levelSlot[lv] ?? 0;
+                    const otherSlot = 1 - targetSlot;
+
+                    // 1. Önce asıl slotunda boşluk ara (Kotasız)
+                    let seat = node.slotSeats[targetSlot].find(st => !node.assigned[st.id]);
+                    // 2. Yoksa diğer slotta boşluk ara (Slot kısıtlamasını kır — kapasite her şeyden önemlidir)
+                    if (!seat) seat = node.slotSeats[otherSlot].find(st => !node.assigned[st.id]);
+
+                    if (seat) { 
+                        node.assigned[seat.id] = s; 
+                        roomIdx = (roomIdx + ri + 1) % numRooms; 
+                        placed = true; break; 
+                    }
                 }
             }
         });
