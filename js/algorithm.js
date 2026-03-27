@@ -174,11 +174,10 @@ const ExamAlgorithm = {
                 const hasVertical = (node.assigned[prevId]?._matchedSubject === lv) || (node.assigned[nextId]?._matchedSubject === lv);
                 
                 // User Rule: Yan (lateral) ve Çapraz (diagonal) ASLA olmamalı.
-                // Arka arkaya (Vertical) gelebilir (Daha düşük ceza puanı: 1000)
+                // Arka arkaya (Vertical) gelebilir (Ceza yok)
                 const collisionScore = hasCollision6(node, student, seat) ? 100000 : 0;
-                const verticalScore = hasVertical ? 1000 : 0;
 
-                return { seat, score: seat.priority + collisionScore + verticalScore + (seat.isEdge ? 50 : 0) };
+                return { seat, score: seat.priority + collisionScore + (seat.isEdge ? 50 : 0) };
             });
             candidates.sort((a, b) => a.score - b.score);
             return (candidates.length > 0 && candidates[0].score < 100000) ? candidates[0].seat : null;
@@ -333,37 +332,10 @@ const ExamAlgorithm = {
                 const emptyInCol = allInCol.filter(x => !x.student);
 
                 if (nonPrioInCol.length > 1) {
-                    const subjects = {};
-                    nonPrioInCol.forEach(({ student: st }) => {
-                        const lv = st._matchedSubject || 'Unknown';
-                        if (!subjects[lv]) subjects[lv] = [];
-                        subjects[lv].push(st);
-                    });
-
-                    // Randomize among equal-count subjects to make retries explore different paths
-                    const sortedSubs = Object.keys(subjects)
-                        .sort((a, b) => subjects[b].length - subjects[a].length ||
-                            (Math.random() < 0.5 ? -1 : 1));
-                    const interleaved = [];
-                    let lastSub = null;
-
-                    while (interleaved.length < nonPrioInCol.length) {
-                        let placed = false;
-                        for (const sub of sortedSubs) {
-                            if (sub !== lastSub && subjects[sub].length > 0) {
-                                interleaved.push(subjects[sub].pop());
-                                lastSub = sub; placed = true; break;
-                            }
-                        }
-                        if (!placed) {
-                            for (const sub of sortedSubs) {
-                                if (subjects[sub].length > 0) {
-                                    interleaved.push(subjects[sub].pop());
-                                    lastSub = sub; break;
-                                }
-                            }
-                        }
-                    }
+                    // Kullanıcı İsteği: Bir sütun arka arkaya hep aynı ders olsun.
+                    // Karıştırma (interleave) yerine, sütundaki öğrencileri ders ismine göre gruplayarak sıralıyoruz.
+                    const groupedInCol = nonPrioInCol.map(x => x.student);
+                    groupedInCol.sort((a, b) => (a._matchedSubject || '').localeCompare(b._matchedSubject || '', 'tr'));
 
                     // Temizle ve baştan ata: mutation-while-iterating bug'ını önler
                     // Non-priority seats are cleared first, then refilled in row order
@@ -373,9 +345,9 @@ const ExamAlgorithm = {
                     // Step 1: clear all non-priority seats in this column
                     freeSeats.forEach(s => { delete node.assigned[s.id]; });
 
-                    // Step 2: assign interleaved students to free seats from Row 1 upward
+                    // Step 2: assign grouped students to free seats from Row 1 upward
                     let fsIdx = 0;
-                    for (const st of interleaved) {
+                    for (const st of groupedInCol) {
                         while (fsIdx < freeSeats.length && node.assigned[freeSeats[fsIdx].id]) fsIdx++;
                         if (fsIdx < freeSeats.length) {
                             node.assigned[freeSeats[fsIdx].id] = st;
