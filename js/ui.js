@@ -609,8 +609,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     let normalizedClass = stdClass.replace(/[\/\-\s]+/g, '');
                                     parsedStudents.push({
                                         no, name, class: normalizedClass,
-                                        alan: '', ogrenciKodu: '', dersler: [],
-                                        extra1: '', extra2: '', extra3: '', extra4: '', extra5: '',
                                         status: 'Aktif'
                                     });
                                     detectedMode = 'simple';
@@ -674,8 +672,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     let fullName = (stdAd + " " + stdSoyad).replace(/\s+/g, ' ').trim();
                                     parsedStudents.push({
                                         no: stdNo, name: fullName, class: currentClass,
-                                        alan: '', ogrenciKodu: '', dersler: [],
-                                        extra1: '', extra2: '', extra3: '', extra4: '', extra5: '',
                                         status: 'Aktif'
                                     });
                                 }

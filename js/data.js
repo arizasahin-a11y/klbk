@@ -282,7 +282,7 @@ const DataManager = {
         // Check if exists
         const exists = data.students.findIndex(s => s.no === studentObj.no);
         if (exists !== -1) {
-            data.students[exists] = studentObj; // Update
+            data.students[exists] = { ...data.students[exists], ...studentObj }; // Merge update
         } else {
             data.students.push(studentObj);
         }
