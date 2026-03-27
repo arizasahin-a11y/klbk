@@ -2002,7 +2002,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const studentsAssignedToASubject = new Set();
 
         currentSubjects.forEach(subObj => {
-            const subNameNorm = (subObj.name || "").trim().toLocaleUpperCase('tr-TR');
+            const subNameNorm = (subObj.name || "").trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
 
             // Target students who REALLY take this specific subject 
             // AND are NOT already sitting for a previously parsed subject in this session
@@ -2011,49 +2011,36 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (studentsAssignedToASubject.has(sno)) return false; // Already taking another exam!
 
                 return (s.dersler || []).some(d => {
-                    const dn = (d || "").trim().toLocaleUpperCase('tr-TR');
+                    const dn = (d || "").trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
                     return dn === subNameNorm || dn.startsWith(subNameNorm + " ") || subNameNorm.startsWith(dn + " ");
                 });
             });
 
             if (targetStudents.length === 0) return;
 
-            // Separate by Class
-            const classGroups = {};
+            // Separate by Class and Alan
+            const classAlanGroups = {};
             targetStudents.forEach(s => {
-                const clsName = (s.class || "Bilinmeyen");
-                if (!classGroups[clsName]) classGroups[clsName] = [];
-                classGroups[clsName].push(s);
+                const clsName = (s.class || "Bilinmeyen").trim();
+                const alanName = (s.alan || "Genel").trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
+                const groupKey = `${clsName}|${alanName}`;
+                if (!classAlanGroups[groupKey]) classAlanGroups[groupKey] = [];
+                classAlanGroups[groupKey].push(s);
             });
 
             const pools = [];
-            Object.entries(classGroups).forEach(([cls, stds]) => {
-                const alans = new Set(stds.map(s => (s.alan || "Genel").trim().toLocaleUpperCase('tr-TR')));
-                if (alans.size === 1) {
-                    const alanName = stds[0].alan || "Genel";
-                    pools.push({
-                        pid: `${subNameNorm}_${cls}`,
-                        class: cls,
-                        alan: alanName,
-                        students: stds,
-                        count: stds.length,
-                        match: subObj.name,
-                        displayName: (alanName && alanName !== "Genel") ? `${cls} (${alanName})` : cls
-                    });
-                } else {
-                    alans.forEach(aln => {
-                        const filtered = stds.filter(s => (s.alan || "Genel").trim().toLocaleUpperCase('tr-TR') === aln);
-                        pools.push({
-                            pid: `${subNameNorm}_${cls}_${aln}`,
-                            class: cls,
-                            alan: aln,
-                            students: filtered,
-                            count: filtered.length,
-                            match: subObj.name,
-                            displayName: `${cls} (${aln})`
-                        });
-                    });
-                }
+            Object.entries(classAlanGroups).forEach(([key, stds]) => {
+                const [cls, aln] = key.split('|');
+                const originalAlan = stds[0].alan || "Genel";
+                pools.push({
+                    pid: `${subNameNorm}_${cls}_${aln}`,
+                    class: cls,
+                    alan: aln,
+                    students: stds,
+                    count: stds.length,
+                    match: subObj.name,
+                    displayName: (aln && aln !== "GENEL") ? `${cls} (${originalAlan})` : cls
+                });
             });
 
             subjectGroups.push({ subject: subObj, pools });
@@ -2430,35 +2417,35 @@ document.addEventListener('DOMContentLoaded', async () => {
             const sessionSubjects = wizardSessionData.subjects.map(s => s.name);
 
             const targetStudents = allStudents.filter(s => {
-                const sCls = s.class || "Bilinmeyen";
-                const sAlan = (s.alan || "Genel").trim().toLocaleUpperCase('tr-TR');
-                const sDersler = (s.dersler || []).map(d => d.trim().toLocaleUpperCase('tr-TR'));
+                const sCls = (s.class || "Bilinmeyen").trim();
+                const sAlan = (s.alan || "Genel").trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
+                const sDersler = (s.dersler || []).map(d => d.trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ'));
 
                 let matchingPoolSelected = false;
                 let matchedSubjectName = null;
 
                 for (const subObj of wizardSessionData.subjects) {
-                    const subNameNorm = subObj.name.toLocaleUpperCase('tr-TR');
+                    const subNameNorm = subObj.name.toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
                     const sitsForThis = sDersler.some(dn =>
                         dn === subNameNorm || dn.startsWith(subNameNorm + " ") || subNameNorm.startsWith(dn + " ")
                     );
 
                     if (sitsForThis) {
-                        const pid1 = `${subNameNorm}_${sCls}`;
-                        const pid2 = `${subNameNorm}_${sCls}_${sAlan}`;
-
-                        if (wizardSessionData.selectedClasses.includes(pid1) || wizardSessionData.selectedClasses.includes(pid2)) {
+                        const pid = `${subNameNorm}_${sCls.toLocaleUpperCase('tr-TR')}_${sAlan}`;
+                        if (wizardSessionData.selectedClasses.includes(pid)) {
                             matchingPoolSelected = true;
                             const originalDers = (s.dersler || []).find(d => {
-                                const dn = d.trim().toLocaleUpperCase('tr-TR');
+                                const dn = d.trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
                                 return dn === subNameNorm || dn.startsWith(subNameNorm + " ") || subNameNorm.startsWith(dn + " ");
                             }).trim();
 
-                            if (/\d+$/.test(originalDers)) {
-                                matchedSubjectName = originalDers;
-                            } else {
+                            // Use the actual subject name from student data to preserve its level
+                            matchedSubjectName = originalDers;
+                            
+                            // If the subject name doesn't end with a grade level, append it from class
+                            if (!/\d+$/.test(originalDers)) {
                                 const gradeMatch = sCls.match(/^\d+/);
-                                matchedSubjectName = gradeMatch ? originalDers + " " + gradeMatch[0] : originalDers;
+                                if (gradeMatch) matchedSubjectName += " " + gradeMatch[0];
                             }
                             break;
                         }
