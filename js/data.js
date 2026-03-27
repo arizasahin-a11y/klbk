@@ -299,8 +299,9 @@ const DataManager = {
             classChangedCount: 0
         };
 
-        // Helper for student identification (Number + Name)
-        const getId = s => `${String(s.no).trim()}|${(s.name || '').trim().toUpperCase()}`;
+        // Helper for student identification (Number + Name) - Robust against Turkish casing
+        const normalizeName = (n) => (n || '').trim().replace(/i/g, 'İ').toUpperCase();
+        const getId = s => `${String(s.no).trim()}|${normalizeName(s.name)}`;
 
         if (mode === 'fresh') {
             const classesSet = new Set();
@@ -309,17 +310,21 @@ const DataManager = {
             stats.totalClasses = classesSet.size;
             data.students = studentList;
         } else {
-            // mode === 'update' (Sync operation)
+            // mode === 'update' (Sync operation - Class aware)
             const existingStudents = data.students || [];
             const existingMap = new Map();
             existingStudents.forEach(s => existingMap.set(getId(s), s));
 
             const newStudentsMap = new Map();
             studentList.forEach(s => newStudentsMap.set(getId(s), s));
+            
+            // Classes present in the new Excel list
+            const classesInExcel = new Set();
+            studentList.forEach(s => classesInExcel.add(s.class));
 
             const finalStudents = [];
 
-            // 1. Process new students and updates
+            // 1. Process new students and updates from Excel
             studentList.forEach(newStd => {
                 const id = getId(newStd);
                 if (existingMap.has(id)) {
@@ -328,7 +333,7 @@ const DataManager = {
                     if (existingStd.class !== newStd.class) {
                         stats.classChangedCount++;
                     }
-                    // Merge data, keeping local-only fields if they exist (status, etc.)
+                    // Merge data, keeping existing student's extra data but updating Excel fields
                     finalStudents.push({ ...existingStd, ...newStd });
                 } else {
                     // New student
@@ -337,11 +342,18 @@ const DataManager = {
                 }
             });
 
-            // 2. Count deleted (those in existing but NOT in new list)
+            // 2. Decide what to do with existing students NOT in the Excel file
             existingStudents.forEach(oldStd => {
                 const id = getId(oldStd);
                 if (!newStudentsMap.has(id)) {
-                    stats.deletedCount++;
+                    // This student is NOT in the new list.
+                    // If their class IS in the Excel file, it means they are intentional deletions for that class.
+                    // If their class IS NOT in the Excel file, we KEEP them (Partial update support).
+                    if (classesInExcel.has(oldStd.class)) {
+                        stats.deletedCount++;
+                    } else {
+                        finalStudents.push(oldStd);
+                    }
                 }
             });
 
