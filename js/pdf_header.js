@@ -480,9 +480,11 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const logoY = contentBaseY + (13.5 * sf + row1H - logoDim) / 2;
         await drawLogo(logoX, logoY, logoDim);
 
-        // Yatay Çizgi: 1cm soldan + 3mm sağa kaydırılmış
-        const lineX1 = (2 * cmToPt + 8.505) * sf;
-        const lineX2 = (width - 4 * cmToPt + 8.505) * sf;
+        const scoreDivX = ox + leftW + midW;
+
+        // Yatay Çizgi: Sol sütun bitişinden Puan sütunu başlangıcına kadar
+        const lineX1 = (ox + leftW);
+        const lineX2 = (scoreDivX);
         const lineY = contentBaseY - 0.75 * sf; // Moved significantly up to ensure visibility (approx 1.5mm higher than the previous 0.5mm attempt)
         page.drawLine({ start: { x: lineX1, y: lineY }, end: { x: lineX2, y: lineY }, thickness: 0.5 * sf, color: rgb(0, 0, 0) });
 
@@ -498,7 +500,6 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             // ALT ÇİZGİ KALDIRILDI
 
             // Puan yazısının soluna dikey çizgi (YER kutusu sağındaki çizgi) - Üstten 3mm (8.5pt) kısaltıldı
-            const scoreDivX = ox + leftW + midW;
             page.drawLine({ start: { x: scoreDivX, y: d9Oy }, end: { x: scoreDivX, y: lineTopY }, thickness: 0.5 * sf, color: gc });
 
             drawRightText(lang.class, ox, d9Oy + row3H - 8 * sf, d9LeftW, 8 * sf, 6, mainFont);
