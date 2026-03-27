@@ -172,26 +172,38 @@ const ExamAlgorithm = {
                 const prevId = `G${seat.g}-S${seat.r - 1}-C${seat.c}`;
                 const nextId = `G${seat.g}-S${seat.r + 1}-C${seat.c}`;
                 const hasVertical = (node.assigned[prevId]?._matchedSubject === lv) || (node.assigned[nextId]?._matchedSubject === lv);
-                return { seat, score: seat.priority + (hasVertical ? 10000 : 0) + (seat.isEdge ? 50 : 0) };
+                
+                // User Rule: Yan (lateral) ve Çapraz (diagonal) ASLA olmamalı.
+                // Arka arkaya (Vertical) gelebilir (Daha düşük ceza puanı: 1000)
+                const collisionScore = hasCollision6(node, student, seat) ? 100000 : 0;
+                const verticalScore = hasVertical ? 1000 : 0;
+
+                return { seat, score: seat.priority + collisionScore + verticalScore + (seat.isEdge ? 50 : 0) };
             });
             candidates.sort((a, b) => a.score - b.score);
-            return candidates[0]?.seat || null;
+            return (candidates.length > 0 && candidates[0].score < 100000) ? candidates[0].seat : null;
         };
 
         const hasCollision6 = (node, student, seat) => {
             const lv = student._matchedSubject || 'Unknown';
             const { g, r, c } = seat;
             const forbidden = [
+                // Lateral (Yanlar)
                 `G${g}-S${r}-C${c - 1}`, `G${g}-S${r}-C${c + 1}`,
+                // Diagonal (Çaprazlar)
                 `G${g}-S${r - 1}-C${c - 1}`, `G${g}-S${r - 1}-C${c + 1}`,
                 `G${g}-S${r + 1}-C${c - 1}`, `G${g}-S${r + 1}-C${c + 1}`
             ];
-            if (c === 1 && g > 1) {
+            
+            // Grup sınırları arası kontrol
+            const curGroupCols = node.original.groupConfigs?.[g-1]?.cols || node.original.cols || 1;
+            if (c === 1 && g > 1) { // Sol sınır
                 const prevCols = node.original.groupConfigs?.[g - 2]?.cols || node.original.cols || 1;
-                forbidden.push(`G${g - 1}-S${r}-C${prevCols}`, `G${g - 1}-S${r - 1}-C${prevCols}`, `G${g - 1}-S${r + 1}-C${prevCols}`);
-            } else if (c === (node.original.groupConfigs?.[g - 1]?.cols || node.original.cols || 1) && g < node.original.groups) {
-                forbidden.push(`G${g + 1}-S${r}-C1`, `G${g + 1}-S${r - 1}-C1`, `G${g + 1}-S${r + 1}-C1`);
+                forbidden.push(`G${g-1}-S${r}-C${prevCols}`, `G${g-1}-S${r-1}-C${prevCols}`, `G${g-1}-S${r+1}-C${prevCols}`);
+            } else if (c === curGroupCols && g < node.original.groups) { // Sağ sınır
+                forbidden.push(`G${g+1}-S${r}-C1`, `G${g+1}-S${r-1}-C1`, `G${g+1}-S${r+1}-C1`);
             }
+            
             return forbidden.some(id => node.assigned[id]?._matchedSubject === lv);
         };
 
