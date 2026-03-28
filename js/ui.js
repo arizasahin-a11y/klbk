@@ -3043,138 +3043,99 @@ document.addEventListener('DOMContentLoaded', async () => {
         let fetchUrl = url;
         let driveId = null;
 
-        // Handle Google Drive links
         if (url.includes('drive.google.com')) {
             const parts = url.match(/\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/) || url.match(/\/file\/d\/([^/]+)/);
             driveId = parts ? parts[1].split(/[/?#&]/)[0] : null;
             if (driveId) {
                 fetchUrl = "https://drive.usercontent.google.com/download?id=" + driveId + "&export=download";
             }
-        } else if (url.includes('supabase.co')) {
-            fetchUrl += (url.includes('?') ? '&' : '?') + 'cb=' + Date.now();
         }
 
-        const isLocal = url.startsWith('file:///') || url.includes(':\\') || url.includes(':/');
+        const decodeB64 = (b64) => {
+            const bin = atob(b64);
+            const len = bin.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) bytes[i] = bin.charCodeAt(i);
+            return bytes.buffer;
+        };
 
         const validateBuffer = (buffer) => {
             if (!buffer || buffer.byteLength < 5) return false;
             const arr = new Uint8Array(buffer.slice(0, 8));
             const sig = String.fromCharCode(...arr.slice(0, 5));
-            if (sig === '%PDF-') return true;
-            if (sig.startsWith('OTTO') || sig.startsWith('true') || (arr[0] === 0 && arr[1] === 1)) return true;
-            if (arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4E && arr[3] === 0x47) return true;
-            if (arr[0] === 0xFF && arr[1] === 0xD8 && arr[2] === 0xFF) return true;
-            return sig.includes('<svg') || sig.includes('<?xml');
+            return sig === '%PDF-' || sig.startsWith('OTTO') || sig.startsWith('true') || (arr[0] === 0 && arr[1] === 1) || (arr[0] === 0x89 && arr[1] === 0x50) || (arr[0] === 0xFF && arr[1] === 0xD8) || sig.includes('<svg');
         };
 
-        const fetchWithTimeout = async (target, opts = {}, timeout = 8000) => {
-            const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), timeout);
+        const fetchWithRetry = async (target, retryCount = 0) => {
             try {
-                const response = await fetch(target, { ...opts, signal: controller.signal });
-                clearTimeout(id);
-                return response;
-            } catch (e) {
-                clearTimeout(id);
-                throw e;
-            }
-        };
-
-        const fetchAndStore = async (targetUrl, retryCount = 0) => {
-            let buffer = null;
-            if (!isLocal) {
-                try {
-                    const res = await fetchWithTimeout(targetUrl, { mode: 'cors', cache: 'no-store' });
-                    if (res.ok) {
-                        const contentType = res.headers.get('content-type') || '';
-                        if (contentType.includes('text/html')) {
-                            const htmlText = await res.text();
-                            const confirmMatch = htmlText.match(/confirm=([a-zA-Z0-9_-]+)/);
-                            if (confirmMatch && retryCount === 0) {
-                                return await fetchAndStore(targetUrl + "&confirm=" + confirmMatch[1], 1);
-                            }
-                            throw new Error("HTML_RECEIVED");
-                        }
-                        buffer = await res.arrayBuffer();
-                    } else if (res.status === 404) throw new Error("404_NOT_FOUND");
-                    else throw new Error("HTTP_" + res.status);
-                } catch (e) {
-                    if (["HTML_RECEIVED", "404_NOT_FOUND"].includes(e.message)) throw e;
+                const res = await fetch(target, { mode: 'cors', cache: 'no-store' });
+                if (res.ok) {
+                    const ct = res.headers.get('content-type') || '';
+                    if (ct.includes('text/html')) {
+                        const html = await res.text();
+                        const confirm = html.match(/confirm=([a-zA-Z0-9_-]+)/);
+                        if (confirm && retryCount === 0) return await fetchWithRetry(target + "&confirm=" + confirm[1], 1);
+                        throw new Error("HTML_RECEIVED");
+                    }
+                    return await res.arrayBuffer();
                 }
-            }
-
-            if (!buffer) {
-                buffer = await new Promise((resolve, reject) => {
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('GET', targetUrl, true);
-                    xhr.responseType = 'arraybuffer';
-                    xhr.timeout = 8000;
-                    xhr.onload = () => {
-                        if (xhr.status === 200) {
-                            const ct = xhr.getResponseHeader('content-type') || '';
-                            if (ct.includes('text/html')) {
-                                const decoder = new TextDecoder('utf-8');
-                                const html = decoder.decode(xhr.response);
-                                const cm = html.match(/confirm=([a-zA-Z0-9_-]+)/);
-                                if (cm && retryCount === 0) {
-                                    fetchAndStore(targetUrl + "&confirm=" + cm[1], 1).then(resolve).catch(reject);
-                                } else reject(new Error("HTML_RECEIVED"));
-                            } else resolve(xhr.response);
-                        } else reject(new Error("HTTP_" + xhr.status));
-                    };
-                    xhr.onerror = () => reject(new Error("CORS_OR_NETWORK_ERROR"));
-                    xhr.ontimeout = () => reject(new Error("TIMEOUT"));
-                    xhr.send();
-                });
-            }
-
-            if (validateBuffer(buffer)) {
-                window._fileBytesCache[url] = buffer;
-                return buffer;
-            } else throw new Error("INVALID_CONTENT");
+                throw new Error("HTTP_" + res.status);
+            } catch (e) { throw e; }
         };
-
-        const proxyList = [
-            (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
-            (u) => "https://corsproxy.io/?" + encodeURIComponent(u),
-            (u) => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u)
-        ];
 
         try {
-            return await fetchAndStore(fetchUrl);
-        } catch (err) {
-            console.warn("Direct fetch failed, starting automated multi-proxy recovery...", err.message);
-            
-            // Stage 2: Legacy UC fallback
+            // Stage 0: Custom Google Apps Script Proxy (PRIORITY)
             if (driveId) {
                 try {
-                    const legacyUrl = "https://drive.google.com/uc?export=download&id=" + driveId;
-                    return await fetchAndStore(legacyUrl, 0);
-                } catch (e2) { console.warn("Legacy fallback failed, proceeding to Stage 3 Proxy Pool."); }
+                    console.log("Using Custom GAS Proxy for ID:", driveId);
+                    const gasUrl = "https://script.google.com/macros/s/AKfycbzzq1WBvSNmM5yGVH49vt2EOkTA83sFFSiysuqg4x54L3Cn9DEOmixlHW8fd_bLJ_du/exec" + "?id=" + driveId;
+                    const res = await fetch(gasUrl);
+                    const b64 = await res.text();
+                    if (b64 && !b64.startsWith("Hata") && b64.length > 100) {
+                        const buf = decodeB64(b64);
+                        if (validateBuffer(buf)) {
+                            window._fileBytesCache[url] = buf;
+                            return buf;
+                        }
+                    }
+                } catch (e) { console.warn("Custom Proxy failed, trying alternatives...", e); }
             }
 
-            // Stage 3: Multi-Proxy Pool
+            // Stage 1: Direct Fetch
+            let result = await fetchWithRetry(fetchUrl);
+            if (validateBuffer(result)) {
+                window._fileBytesCache[url] = result;
+                return result;
+            }
+        } catch (err) {
+            console.warn("Direct fetch failed, trying Proxy Pool...", err.message);
+            const proxyList = [
+                (u) => "https://corsproxy.io/?" + encodeURIComponent(u),
+                (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+                (u) => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u)
+            ];
+
             for (let i = 0; i < proxyList.length; i++) {
                 try {
-                    const proxyUrl = proxyList[i](fetchUrl);
-                    console.log("Attempting Proxy #" + (i + 1) + ": " + proxyUrl);
-                    return await fetchAndStore(proxyUrl, 0);
-                } catch (pxErr) {
-                    console.warn("Proxy #" + (i + 1) + " failed: " + pxErr.message);
-                }
+                    const pUrl = proxyList[i](fetchUrl);
+                    const res = await fetch(pUrl);
+                    const buf = await res.arrayBuffer();
+                    if (validateBuffer(buf)) {
+                        window._fileBytesCache[url] = buf;
+                        return buf;
+                    }
+                } catch (pe) { console.warn("Proxy #" + (i+1) + " failed"); }
             }
 
-            // All attempts failed
-            console.error("Technical debug info:", { url, fetchUrl, err: err.message, proto: window.location.protocol });
-            
-            let msg = 'Dosya indirilemedi. Bağlantı hatalı veya erişim kısıtlı.';
-            if (isFileProtocol) {
-                msg = '<b>KRİTİK UYARI:</b> Uygulamayı klasörden çift tıklayarak (file://) açtığınız için tarayıcınız Google Drive erişimine izin vermiyor.';
-                msg += '<br><br>Lütfen VS Code sağ alt köşesindeki <b>"Go Live" (Live Server)</b> butonuna basarak uygulamayı çalıştırın.';
-            } else if (err.message === "HTML_RECEIVED" || err.message === "INVALID_CONTENT") {
-                msg = 'Google Drive dosyası kısıtlı veya paylaşıma açık değil. Lütfen "Bağlantıya sahip olan herkes görüntüleyebilir" olarak güncelleyin.';
-            }
-
+            Swal.fire({
+                icon: isFileProtocol ? 'warning' : 'error',
+                title: 'Dosya İndirilemedi',
+                html: isFileProtocol ? 'Yerel sunucu gerekli.' : 'Google Drive erişimi engellendi. Proxy sunucuları da yanıt vermiyor.',
+                footer: "<details><summary>Teknik Detay</summary>URL: " + url + "<br>ID: " + driveId + "</details>"
+            });
+            return null;
+        }
+    };
             Swal.fire({
                 icon: isFileProtocol ? 'warning' : 'error',
                 title: isFileProtocol ? 'Yerel Sunucu Gerekli' : 'Dosya Hatası',
