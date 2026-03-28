@@ -6205,4 +6205,4 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
     };
-}());
+});
