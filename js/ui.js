@@ -3137,6 +3137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
     window.loadRequiredFonts = async (pdfDoc) => {
+        pdfDoc.registerFontkit(window.fontkit);
         const { getFileBytes } = window;
         if (!window._cachedFonts) window._cachedFonts = {};
         const urls = {
