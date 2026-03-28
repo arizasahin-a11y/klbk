@@ -3136,21 +3136,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return null;
         }
     };
-            Swal.fire({
-                icon: isFileProtocol ? 'warning' : 'error',
-                title: isFileProtocol ? 'Yerel Sunucu Gerekli' : 'Dosya Hatası',
-                html: msg,
-                footer: "<details style='text-align:left; font-size:11px;'><summary>Teknik Detay (F12)</summary><br>URL: " + url + "<br>Hata: " + err.message + "<br>Protokol: " + window.location.protocol + "</details>"
-            });
-            return null;
-        }
-    };
-                footer: `<details style="text-align:left; font-size:11px;"><summary>Teknik Detay (F12)</summary><br>URL: ${url}<br>Hata: ${err.message}<br>Protokol: ${window.location.protocol}</details>`
-            });
-            return null;
-        }
-    };
-
     window.loadRequiredFonts = async (pdfDoc) => {
         const { getFileBytes } = window;
         if (!window._cachedFonts) window._cachedFonts = {};
