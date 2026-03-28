@@ -6186,7 +6186,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ...fonts,
                 sf: sf,
                 session: { date: new Date().toLocaleDateString('tr-TR'), time: new Date().toLocaleTimeString('tr-TR') },
-                metadata: { designId: designId }
+                designType: designId
             });
 
             const modifiedPdfBytes = await pdfDoc.save();
@@ -6212,3 +6212,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         window.testDashboardPdf(input.value.trim(), select.value, subTitle);
     };
+
