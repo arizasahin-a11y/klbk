@@ -6174,20 +6174,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 examNo: '1'
             };
 
-            const fontBytes = await window.getFileBytes('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf');
-            if (fontBytes) {
-                pdfDoc.registerFontkit(fontkit);
-                const mainFont = await pdfDoc.embedFont(fontBytes);
-                const A4_W = 595.28, A4_H = 841.89;
-                const sf = 1 / Math.min(A4_W / width, A4_H / height);
+            // Font loading using shared utility
+            const fonts = await window.loadRequiredFonts(pdfDoc);
+            
+            const A4_W = 595.28, A4_H = 841.89;
+            const sf = 1 / Math.min(A4_W / width, A4_H / height);
 
-                await window.renderStudentPDFHeader(pdfDoc, firstPage, mockStudent, { 
-                    mainFont, 
-                    sf: sf,
-                    session: { date: new Date().toLocaleDateString('tr-TR'), time: new Date().toLocaleTimeString('tr-TR') },
-                    metadata: { designId: designId }
-                });
-            }
+            // Render header
+            await window.renderStudentPDFHeader(pdfDoc, firstPage, mockStudent, { 
+                ...fonts,
+                sf: sf,
+                session: { date: new Date().toLocaleDateString('tr-TR'), time: new Date().toLocaleTimeString('tr-TR') },
+                metadata: { designId: designId }
+            });
 
             const modifiedPdfBytes = await pdfDoc.save();
             const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
