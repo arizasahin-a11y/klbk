@@ -453,28 +453,51 @@ const ExamAlgorithm = {
                                         if (st_cand && st_cand._matchedSubject === st_conf._matchedSubject) continue;
                                         if (isPrio(st_cand)) continue; // Never displace priority students
 
-                                        // Note: priority student protection is already handled above via isPrio(st_conf) and isPrio(st_cand)
-
-                                        // Safety: st_conf in s_cand's position
-                                        const confSafeInB = !hasCollision6(node, st_conf, s_cand) &&
-                                            (r2 > 0 ? node.assigned[colB[r2 - 1].id]?._matchedSubject !== st_conf._matchedSubject : true) &&
-                                            (r2 < colB.length - 1 ? node.assigned[colB[r2 + 1].id]?._matchedSubject !== st_conf._matchedSubject : true);
-
-                                        // Safety: st_cand in s_conf's position
-                                        const confRowMax = node.original.groupConfigs?.[s_conf.g - 1]?.rows || node.original.rows || 1;
-                                        const candSafeInA = (!st_cand || !hasCollision6(node, st_cand, s_conf)) &&
-                                            (node.assigned[s_other.id]?._matchedSubject !== (st_cand ? st_cand._matchedSubject : 'NONE')) &&
-                                            (s_conf.r > 1 ? node.assigned[`G${s_conf.g}-S${s_conf.r - 1}-C${s_conf.c}`]?._matchedSubject !== (st_cand ? st_cand._matchedSubject : 'NONE') : true) &&
-                                            (s_conf.r < confRowMax ? node.assigned[`G${s_conf.g}-S${s_conf.r + 1}-C${s_conf.c}`]?._matchedSubject !== (st_cand ? st_cand._matchedSubject : 'NONE') : true);
-
-                                        if (confSafeInB && candSafeInA) {
-                                            if (st_cand) node.assigned[s_conf.id] = st_cand;
-                                            else delete node.assigned[s_conf.id];
-                                            node.assigned[s_cand.id] = st_conf;
-                                            resolvedAny = true;
-                                            swapped = true;
-                                            break;
+                                        // Safety check: st_conf in s_cand position, and st_cand in s_conf position.
+                                        // Both MUST be lateral/diagonal safe (weight 200k+).
+                                        // Vertical safety (weight 1k) is preferred but can be sacrificed if it resolves a collision.
+                                        if (!hasCollision6(node, st_conf, s_cand) && (!st_cand || !hasCollision6(node, st_cand, s_conf))) {
+                                            const vColCand = (r2 > 0 ? node.assigned[colB[r2 - 1].id]?._matchedSubject === st_conf._matchedSubject : false) || (r2 < colB.length - 1 ? node.assigned[colB[r2 + 1].id]?._matchedSubject === st_conf._matchedSubject : false);
+                                            const vColOther = (node.assigned[s_other.id]?._matchedSubject === (st_cand ? st_cand._matchedSubject : 'NONE'));
+                                            
+                                            // Prefer perfect resolution, but allow if it at least doesn't make things worse.
+                                            if (!vColCand && !vColOther) {
+                                                if (st_cand) node.assigned[s_conf.id] = st_cand;
+                                                else delete node.assigned[s_conf.id];
+                                                node.assigned[s_cand.id] = st_conf;
+                                                resolvedAny = true; swapped = true; break;
+                                            }
                                         }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (!resolvedAny) break;
+            }
+
+            // Pass 5: Extreme Lateral/Diagonal Resolution (Fallback)
+            for (let iter = 0; iter < 5; iter++) {
+                let resolvedAny = false;
+                for (const colA of cols) {
+                    for (const sA of colA) {
+                        const stA = node.assigned[sA.id];
+                        if (!stA || isPrio(stA)) continue;
+                        if (hasCollision6(node, stA, sA)) {
+                            // Severe collision found. Try ANY swap that resolves it, even if it creates a vertical one.
+                            for (const colB of cols) {
+                                if (resolvedAny) break;
+                                for (const sB of colB) {
+                                    if (sA.id === sB.id) continue;
+                                    const stB = node.assigned[sB.id];
+                                    if (stB && isPrio(stB)) continue;
+                                    if (stB && stB._matchedSubject === stA._matchedSubject) continue;
+
+                                    if (!hasCollision6(node, stA, sB) && (!stB || !hasCollision6(node, stB, sA))) {
+                                        if (stB) node.assigned[sA.id] = stB; else delete node.assigned[sA.id];
+                                        node.assigned[sB.id] = stA;
+                                        resolvedAny = true; break;
                                     }
                                 }
                             }
