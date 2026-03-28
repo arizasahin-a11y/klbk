@@ -3039,16 +3039,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!window._fileBytesCache) window._fileBytesCache = {};
         if (window._fileBytesCache[url]) return window._fileBytesCache[url];
 
-        if (window.location.protocol === 'file:') {
-            console.warn("FILE PROTOCOL DETECTED: Fetching external resources like Google Drive might be blocked by browser security (CORS).");
-        }
+        const isFileProtocol = window.location.protocol === 'file:';
 
         let fetchUrl = url;
+        let driveId = null;
 
         // Handle Google Drive links: convert various formats to "direct download"
         if (url.includes('drive.google.com')) {
             const parts = url.match(/\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/) || url.match(/\/file\/d\/([^/]+)/);
-            const driveId = parts ? parts[1].split(/[/?#&]/)[0] : null;
+            driveId = parts ? parts[1].split(/[/?#&]/)[0] : null;
 
             if (driveId) {
                 fetchUrl = `https://drive.usercontent.google.com/download?id=${driveId}&export=download`;
@@ -3082,6 +3081,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (res.ok) {
                         const contentType = res.headers.get('content-type') || '';
                         if (contentType.includes('text/html')) {
+                            // Stage 2: Check for Google Drive "Too large to scan" confirm token
                             const htmlText = await res.text();
                             const confirmMatch = htmlText.match(/confirm=([a-zA-Z0-9_-]+)/);
                             if (confirmMatch && retryCount === 0) {
@@ -3091,9 +3091,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                             throw new Error("HTML_RECEIVED");
                         }
                         buffer = await res.arrayBuffer();
-                    }
+                    } else if (res.status === 404) throw new Error("404_NOT_FOUND");
+                    else throw new Error(`HTTP_${res.status}`);
                 } catch (e) {
-                    if (e.message === "HTML_RECEIVED") throw e;
+                    if (e.message === "HTML_RECEIVED" || e.message === "404_NOT_FOUND") throw e;
                 }
             }
 
@@ -3116,7 +3117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     reject(new Error("HTML_RECEIVED"));
                                 }
                             } else resolve(xhr.response);
-                        } else reject(new Error("NETWORK_ERROR"));
+                        } else reject(new Error(`HTTP_${xhr.status}`));
                     };
                     xhr.onerror = () => reject(new Error("CORS_OR_NETWORK_ERROR"));
                     xhr.send();
@@ -3132,28 +3133,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             let result = await fetchAndStore(fetchUrl);
             // Fallback for Google Drive
-            if (!result && url.includes('drive.google.com')) {
-                const parts = url.match(/\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/) || url.match(/\/file\/d\/([^/]+)/);
-                const driveId = parts ? parts[1].split(/[/?#&]/)[0] : null;
-                if (driveId) {
-                    const fallbackUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
-                    result = await fetchAndStore(fallbackUrl, 0);
-                }
+            if (!result && driveId) {
+                const fallbackUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
+                result = await fetchAndStore(fallbackUrl, 0);
             }
             return result;
         } catch (err) {
-            console.warn("getFileBytes technical detail:", url, err);
-            if (url.includes('drive.google.com')) {
-                let msg = 'Google Drive dosyası okunamadı. Lütfen paylaşım ayarlarını kontrol edin.';
-                if (err.message === "HTML_RECEIVED" || err.message === "INVALID_CONTENT") {
-                    msg = 'Google Drive dosyası kısıtlı veya paylaşıma açık değil. Lütfen "Bağlantıyı bilen herkes görüntüleyebilir" olarak güncelleyin.';
-                } else if (err.message === "CORS_OR_NETWORK_ERROR") {
-                    msg = window.location.protocol === 'file:' ? 
-                        'Tarayıcı güvenlik engeli (CORS). Lütfen uygulamayı VS Code üzerinden (Live Server/Go Live) çalıştırın.' : 
-                        'Ağ hatası veya Google Drive bağlantısındaki erişim engeli.';
-                }
-                Swal.fire({ icon: 'error', title: 'Dosya Hatası', text: msg, footer: `<a href="${url}" target="_blank">Dosyayı Google Drive'da Aç</a>` });
+            console.error("Technical debug info:", { url, fetchUrl, err: err.message, protocol: window.location.protocol });
+            
+            let msg = 'Dosya indirilemedi. Bağlantı hatalı veya erişim kısıtlı.';
+            let icon = 'error';
+
+            if (isFileProtocol) {
+                msg = '<b>KRİTİK UYARI:</b> Uygulamayı klasörden çift tıklayarak (file://) açtığınız için tarayıcınız Google Drive erişimine izin vermiyor.';
+                msg += '<br><br>Lütfen VS Code sağ alt köşesindeki <b>"Go Live" (Live Server)</b> butonuna basarak uygulamayı çalıştırın.';
+            } else if (err.message === "HTML_RECEIVED" || err.message === "INVALID_CONTENT") {
+                msg = 'Google Drive dosyası kısıtlı veya paylaşıma açık değil. Lütfen "Bağlantıya sahip olan herkes görüntüleyebilir" olarak güncelleyin.';
+            } else if (err.message === "404_NOT_FOUND") {
+                msg = 'Soru kağıdı bu adreste bulunamadı (404). Lütfen bağlantıyı kontrol edin.';
             }
+
+            Swal.fire({
+                icon: isFileProtocol ? 'warning' : 'error',
+                title: isFileProtocol ? 'Yerel Sunucu Gerekli' : 'Dosya Hatası',
+                html: msg,
+                footer: `<details style="text-align:left; font-size:11px;"><summary>Teknik Detay (F12)</summary><br>URL: ${url}<br>Hata: ${err.message}<br>Protokol: ${window.location.protocol}</details>`
+            });
             return null;
         }
     };
