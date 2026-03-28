@@ -1,0 +1,5 @@
+- [x] Update `findSafe` and `hasCollision6` for strict neighbor isolation (per-subject)
+- [x] Update `AŞAMA 1` to prioritize Row 1 & 2 for priority students
+- [x] Implement Interleaving logic in `OPT-V` Pass 1
+- [x] Strengthen `OPT-V` Pass 4 and `OPT-V-CrossRoom` for aggressive swapping
+- [x] Final verification and testing
