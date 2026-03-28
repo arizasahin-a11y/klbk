@@ -1066,18 +1066,18 @@
         window._isProcessingPrint = false;
         window._cachedFonts = {};
 
-        // Robust file fetcher with caching and link correction
+        // Robust file fetcher with caching, link correction, and binary validation
         window.getFileBytes = async function (url) {
             if (!window._fileBytesCache) window._fileBytesCache = {};
             if (window._fileBytesCache[url]) return window._fileBytesCache[url];
 
             let fetchUrl = url;
 
-            // Handle Google Drive links: convert "view" to "direct download"
+            // Handle Google Drive links: convert various formats to "direct download"
             if (url.includes('drive.google.com')) {
-                const driveIdMatch = url.match(/\/d\/([^/]+)/);
-                const driveIdMatchAlt = url.match(/[?&]id=([^&]+)/);
-                const driveId = (driveIdMatch && driveIdMatch[1]) || (driveIdMatchAlt && driveIdMatchAlt[1]);
+                const parts = url.match(/\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/) || url.match(/\/file\/d\/([^/]+)/);
+                const driveId = parts ? parts[1].split(/[/?#&]/)[0] : null;
+
                 if (driveId) {
                     // Using drive.usercontent.google.com which is more robust against HTML redirects
                     fetchUrl = `https://drive.usercontent.google.com/download?id=${driveId}&export=download`;
@@ -1087,35 +1087,82 @@
                 fetchUrl += (url.includes('?') ? '&' : '?') + 'cb=' + Date.now();
             }
 
+            // Binary validation: Check for PDF, Fonts, or Images
+            const validateBuffer = (buffer) => {
+                if (!buffer || buffer.byteLength < 5) return false;
+                const arr = new Uint8Array(buffer.slice(0, 8));
+                const sig = String.fromCharCode(...arr.slice(0, 5));
+                
+                // %PDF- (PDF)
+                if (sig === '%PDF-') return true;
+                // OTTO/true (Fonts)
+                if (sig.startsWith('OTTO') || sig.startsWith('true') || (arr[0] === 0 && arr[1] === 1)) return true;
+                // PNG: 89 50 4E 47 0D 0A 1A 0A
+                if (arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4E && arr[3] === 0x47) return true;
+                // JPG: FF D8 FF
+                if (arr[0] === 0xFF && arr[1] === 0xD8 && arr[2] === 0xFF) return true;
+                // SVG/XML: <svg or <?xml
+                if (sig.includes('<svg') || sig.includes('<?xml')) return true;
+                
+                return false;
+            };
+
             const fetchAndStore = async () => {
+                let buffer = null;
                 try {
                     const res = await fetch(fetchUrl, { mode: 'cors', cache: 'no-store' });
                     if (res.ok) {
-                        const buffer = await res.arrayBuffer();
-                        window._fileBytesCache[url] = buffer;
-                        return buffer;
+                        const contentType = res.headers.get('content-type') || '';
+                        // If Google returns HTML instead of direct binary, it's often a permission/login page
+                        if (contentType.includes('text/html')) {
+                             throw new Error("HTML_RECEIVED");
+                        }
+                        buffer = await res.arrayBuffer();
                     }
-                } catch (e) { }
+                } catch (e) {
+                    if (e.message === "HTML_RECEIVED") throw e;
+                }
 
-                return new Promise((resolve, reject) => {
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('GET', fetchUrl, true);
-                    xhr.responseType = 'arraybuffer';
-                    xhr.onload = () => {
-                        if (xhr.status === 200) {
-                            window._fileBytesCache[url] = xhr.response;
-                            resolve(xhr.response);
-                        } else reject(new Error("XHR failed"));
-                    };
-                    xhr.onerror = () => reject(new Error("XHR error"));
-                    xhr.send();
-                });
+                if (!buffer) {
+                    buffer = await new Promise((resolve, reject) => {
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('GET', fetchUrl, true);
+                        xhr.responseType = 'arraybuffer';
+                        xhr.onload = () => {
+                            if (xhr.status === 200) {
+                                const ct = xhr.getResponseHeader('content-type') || '';
+                                if (ct.includes('text/html')) reject(new Error("HTML_RECEIVED"));
+                                else resolve(xhr.response);
+                            } else reject(new Error("XHR failed"));
+                        };
+                        xhr.onerror = () => reject(new Error("XHR error"));
+                        xhr.send();
+                    });
+                }
+
+                if (validateBuffer(buffer)) {
+                    window._fileBytesCache[url] = buffer; // Store only VALID content
+                    return buffer;
+                } else {
+                    throw new Error("INVALID_CONTENT");
+                }
             };
 
             try {
                 return await fetchAndStore();
             } catch (err) {
                 console.error("getFileBytes failed for", url, err);
+                // Specific diagnostic for Google Drive issues
+                if (err.message === "HTML_RECEIVED" || err.message === "INVALID_CONTENT") {
+                    if (url.includes('drive.google.com')) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Paylaşım Hatası',
+                            text: 'Google Drive dosyası okunamadı. Lütfen dosyanın Google Drive üzerinde "BAĞLANTIYA SAHİP OLAN HERKES GÖRÜNTÜLEYEBİLİR" şeklinde paylaşıldığından emin olun.',
+                            footer: `<a href="${url}" target="_blank" style="color:var(--primary); font-weight:bold;">Dosyanın Paylaşım Ayarlarını Denetle</a>`
+                        });
+                    }
+                }
                 return null;
             }
         };
