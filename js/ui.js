@@ -3050,7 +3050,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             driveId = parts ? parts[1].split(/[/?#&]/)[0] : null;
 
             if (driveId) {
-                fetchUrl = `https://drive.usercontent.google.com/download?id=${driveId}&export=download`;
+                fetchUrl = "https://drive.usercontent.google.com/download?id=" + driveId + "&export=download";
             }
         } 
         else if (url.includes('supabase.co')) {
@@ -3081,18 +3081,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (res.ok) {
                         const contentType = res.headers.get('content-type') || '';
                         if (contentType.includes('text/html')) {
-                            // Stage 2: Check for Google Drive "Too large to scan" confirm token
                             const htmlText = await res.text();
                             const confirmMatch = htmlText.match(/confirm=([a-zA-Z0-9_-]+)/);
                             if (confirmMatch && retryCount === 0) {
-                                const newUrl = targetUrl + `&confirm=${confirmMatch[1]}`;
+                                const newUrl = targetUrl + "&confirm=" + confirmMatch[1];
                                 return await fetchAndStore(newUrl, 1);
                             }
                             throw new Error("HTML_RECEIVED");
                         }
                         buffer = await res.arrayBuffer();
                     } else if (res.status === 404) throw new Error("404_NOT_FOUND");
-                    else throw new Error(`HTTP_${res.status}`);
+                    else throw new Error("HTTP_" + res.status);
                 } catch (e) {
                     if (e.message === "HTML_RECEIVED" || e.message === "404_NOT_FOUND") throw e;
                 }
@@ -3111,13 +3110,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 const html = decoder.decode(xhr.response);
                                 const confirmMatch = html.match(/confirm=([a-zA-Z0-9_-]+)/);
                                 if (confirmMatch && retryCount === 0) {
-                                    const newUrl = targetUrl + `&confirm=${confirmMatch[1]}`;
+                                    const newUrl = targetUrl + "&confirm=" + confirmMatch[1];
                                     fetchAndStore(newUrl, 1).then(resolve).catch(reject);
                                 } else {
                                     reject(new Error("HTML_RECEIVED"));
                                 }
                             } else resolve(xhr.response);
-                        } else reject(new Error(`HTTP_${xhr.status}`));
+                        } else reject(new Error("HTTP_" + xhr.status));
                     };
                     xhr.onerror = () => reject(new Error("CORS_OR_NETWORK_ERROR"));
                     xhr.send();
@@ -3131,32 +3130,51 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         try {
+            // Stage 1: Try Direct Fetch
             let result = await fetchAndStore(fetchUrl);
-            // Fallback for Google Drive
-            if (!result && driveId) {
-                const fallbackUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
-                result = await fetchAndStore(fallbackUrl, 0);
-            }
             return result;
         } catch (err) {
-            console.error("Technical debug info:", { url, fetchUrl, err: err.message, protocol: window.location.protocol });
+            console.warn("Direct fetch failed, trying Stage 2 fallbacks...", err.message);
             
-            let msg = 'Dosya indirilemedi. Bağlantı hatalı veya erişim kısıtlı.';
-            let icon = 'error';
+            try {
+                // Stage 2: Fallback for Google Drive
+                if (driveId) {
+                    const fallbackUrl = "https://drive.google.com/uc?export=download&id=" + driveId;
+                    return await fetchAndStore(fallbackUrl, 0);
+                } else throw err;
+            } catch (err2) {
+                console.warn("Stage 2 legacy fetch failed, trying Stage 3 (CORS Proxy)...", err2.message);
+                
+                try {
+                    // Stage 3: CORS Proxy Fallback (Ultimate bypass)
+                    if (fetchUrl.startsWith('http')) {
+                        const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(fetchUrl);
+                        return await fetchAndStore(proxyUrl, 0);
+                    } else throw err2;
+                } catch (err3) {
+                    console.error("Technical debug info:", { url, fetchUrl, err: err3.message, protocol: window.location.protocol });
+                    
+                    let msg = 'Dosya indirilemedi. Bağlantı hatalı veya erişim kısıtlı.';
+                    if (isFileProtocol) {
+                        msg = '<b>KRİTİK UYARI:</b> Uygulamayı klasörden çift tıklayarak (file://) açtığınız için tarayıcınız Google Drive erişimine izin vermiyor.';
+                        msg += '<br><br>Lütfen VS Code sağ alt köşesindeki <b>"Go Live" (Live Server)</b> butonuna basarak uygulamayı çalıştırın.';
+                    } else if (err3.message === "HTML_RECEIVED" || err3.message === "INVALID_CONTENT") {
+                        msg = 'Google Drive dosyası kısıtlı veya paylaşıma açık değil. Lütfen "Bağlantıya sahip olan herkes görüntüleyebilir" olarak güncelleyin.';
+                    } else if (err3.message === "404_NOT_FOUND") {
+                        msg = 'Soru kağıdı bu adreste bulunamadı (404). Lütfen bağlantıyı kontrol edin.';
+                    }
 
-            if (isFileProtocol) {
-                msg = '<b>KRİTİK UYARI:</b> Uygulamayı klasörden çift tıklayarak (file://) açtığınız için tarayıcınız Google Drive erişimine izin vermiyor.';
-                msg += '<br><br>Lütfen VS Code sağ alt köşesindeki <b>"Go Live" (Live Server)</b> butonuna basarak uygulamayı çalıştırın.';
-            } else if (err.message === "HTML_RECEIVED" || err.message === "INVALID_CONTENT") {
-                msg = 'Google Drive dosyası kısıtlı veya paylaşıma açık değil. Lütfen "Bağlantıya sahip olan herkes görüntüleyebilir" olarak güncelleyin.';
-            } else if (err.message === "404_NOT_FOUND") {
-                msg = 'Soru kağıdı bu adreste bulunamadı (404). Lütfen bağlantıyı kontrol edin.';
+                    Swal.fire({
+                        icon: isFileProtocol ? 'warning' : 'error',
+                        title: isFileProtocol ? 'Yerel Sunucu Gerekli' : 'Dosya Hatası',
+                        html: msg,
+                        footer: "<details style='text-align:left; font-size:11px;'><summary>Teknik Detay (F12)</summary><br>URL: " + url + "<br>Hata: " + err3.message + "<br>Protokol: " + window.location.protocol + "</details>"
+                    });
+                    return null;
+                }
             }
-
-            Swal.fire({
-                icon: isFileProtocol ? 'warning' : 'error',
-                title: isFileProtocol ? 'Yerel Sunucu Gerekli' : 'Dosya Hatası',
-                html: msg,
+        }
+    };
                 footer: `<details style="text-align:left; font-size:11px;"><summary>Teknik Detay (F12)</summary><br>URL: ${url}<br>Hata: ${err.message}<br>Protokol: ${window.location.protocol}</details>`
             });
             return null;

@@ -569,11 +569,11 @@
 
                         const renderActions = (targetSuffix) => `
                             <div style="display: flex; gap: 5px; margin-top: 8px;">
-                                 <button class="btn btn-secondary btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="pasteLink('${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-paste"></i> Yapıştır</button>
-                                 <button class="btn btn-secondary btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="openCloudBrowser(this, '${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-cloud"></i> Bulut</button>
+                                 <button type="button" class="btn btn-secondary btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="pasteLink('${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-paste"></i> Yapıştır</button>
+                                 <button type="button" class="btn btn-secondary btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="openCloudBrowser(this, '${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-cloud"></i> Bulut</button>
                                  <input type="file" id="file-${ses.id}-${encodedSub}${targetSuffix ? '-' + targetSuffix : ''}" style="display:none;" accept="application/pdf" onchange="uploadPdf(this, '${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})">
-                                 <button class="btn btn-info btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="document.getElementById('file-${ses.id}-${encodedSub}${targetSuffix ? '-' + targetSuffix : ''}').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Yükle</button>
-                                 <button class="btn btn-success btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="testPdfLink('${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-vial"></i> Test</button>
+                                 <button type="button" class="btn btn-info btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="document.getElementById('file-${ses.id}-${encodedSub}${targetSuffix ? '-' + targetSuffix : ''}').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Yükle</button>
+                                 <button type="button" class="btn btn-success btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="testPdfLink('${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-vial"></i> Test</button>
                             </div>`;
 
                         if (hasGroups) {
@@ -1155,35 +1155,50 @@
             };
 
             try {
+                // Stage 1: Try Direct Fetch
                 let result = await fetchAndStore(fetchUrl);
-                // Fallback attempt for Google Drive
-                if (!result && driveId) {
-                    const fallbackUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
-                    result = await fetchAndStore(fallbackUrl, 0);
-                }
                 return result;
             } catch (err) {
-                console.error("Technical debug info:", { url, fetchUrl, err: err.message, protocol: window.location.protocol });
+                console.warn("Direct fetch failed, trying Stage 2 fallbacks...", err.message);
                 
-                let msg = 'Dosya indirilemedi. Bağlantı hatalı veya erişim kısıtlı.';
-                let icon = 'error';
+                try {
+                    // Stage 2: Fallback for Google Drive Legacy
+                    if (driveId) {
+                        const fallbackUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
+                        return await fetchAndStore(fallbackUrl, 0);
+                    } else throw err;
+                } catch (err2) {
+                    console.warn("Stage 2 legacy fetch failed, trying Stage 3 (CORS Proxy)...", err2.message);
+                    
+                    try {
+                        // Stage 3: CORS Proxy Fallback (Ultimate bypass)
+                        if (fetchUrl.startsWith('http')) {
+                            console.log("Using CORS Proxy for:", fetchUrl);
+                            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(fetchUrl)}`;
+                            return await fetchAndStore(proxyUrl, 0);
+                        } else throw err2;
+                    } catch (err3) {
+                        console.error("Technical debugging details:", { url, fetchUrl, err: err3.message, protocol: window.location.protocol });
+                        
+                        let msg = 'Dosya indirilemedi. Bağlantı hatalı veya erişim kısıtlı.';
+                        if (isFileProtocol) {
+                            msg = '<b>KRİTİK UYARI:</b> Uygulamayı klasörden çift tıklayarak (file://) açtığınız için tarayıcınız Google Drive erişimine izin vermiyor.';
+                            msg += '<br><br>Lütfen VS Code sağ alt köşesindeki <b>"Go Live" (Live Server)</b> butonuna basarak uygulamayı çalıştırın.';
+                        } else if (err3.message === "HTML_RECEIVED" || err3.message === "INVALID_CONTENT") {
+                            msg = 'Google Drive dosyası kısıtlı veya paylaşıma açık değil. Lütfen "Bağlantıya sahip olan herkes görüntüleyebilir" olarak güncelleyin.';
+                        } else if (err3.message === "404_NOT_FOUND") {
+                            msg = 'Soru kağıdı bu adreste bulunamadı (404). Lütfen bağlantıyı kontrol edin.';
+                        }
 
-                if (isFileProtocol) {
-                    msg = '<b>KRİTİK UYARI:</b> Uygulamayı klasörden çift tıklayarak (file://) açtığınız için tarayıcınız Google Drive erişimine izin vermiyor.';
-                    msg += '<br><br>Lütfen VS Code sağ alt köşesindeki <b>"Go Live" (Live Server)</b> butonuna basarak uygulamayı çalıştırın.';
-                } else if (err.message === "HTML_RECEIVED" || err.message === "INVALID_CONTENT") {
-                    msg = 'Google Drive dosyası kısıtlı veya paylaşıma açık değil. Lütfen "Bağlantıya sahip olan herkes görüntüleyebilir" olarak güncelleyin.';
-                } else if (err.message === "404_NOT_FOUND") {
-                    msg = 'Soru kağıdı bu adreste bulunamadı (404). Lütfen bağlantıyı kontrol edin.';
+                        Swal.fire({
+                            icon: isFileProtocol ? 'warning' : 'error',
+                            title: isFileProtocol ? 'Yerel Sunucu Gerekli' : 'Dosya Hatası',
+                            html: msg,
+                            footer: `<details style="text-align:left; font-size:11px;"><summary>Teknik Detay (F12)</summary><br>URL: ${url}<br>Hata: ${err3.message}<br>Protokol: ${window.location.protocol}</details>`
+                        });
+                        return null;
+                    }
                 }
-
-                Swal.fire({
-                    icon: isFileProtocol ? 'warning' : 'error',
-                    title: isFileProtocol ? 'Yerel Sunucu Gerekli' : 'Dosya Hatası',
-                    html: msg,
-                    footer: `<details style="text-align:left; font-size:11px;"><summary>Teknik Detay (F12)</summary><br>URL: ${url}<br>Hata: ${err.message}<br>Protokol: ${window.location.protocol}</details>`
-                });
-                return null;
             }
         };
 
@@ -1472,8 +1487,9 @@
             });
 
             try {
+                // Perform the fetch WITHOUT showing an internal alert immediately if it's handled by testPdfLink
                 const pdfBytes = await window.getFileBytes(url);
-                if (!pdfBytes) throw new Error("Dosya içeriği boş veya hatalı.");
+                if (!pdfBytes) return; // If null, getFileBytes already showed the technical modal. Stop here.
 
                 const { PDFDocument } = PDFLib;
                 const pdfDoc = await PDFDocument.load(pdfBytes);
