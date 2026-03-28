@@ -1071,6 +1071,10 @@
             if (!window._fileBytesCache) window._fileBytesCache = {};
             if (window._fileBytesCache[url]) return window._fileBytesCache[url];
 
+            if (window.location.protocol === 'file:') {
+                console.warn("FILE PROTOCOL DETECTED: Fetching external resources like Google Drive might be blocked by browser security (CORS).");
+            }
+
             let fetchUrl = url;
 
             // Handle Google Drive links: convert various formats to "direct download"
@@ -1079,7 +1083,6 @@
                 const driveId = parts ? parts[1].split(/[/?#&]/)[0] : null;
 
                 if (driveId) {
-                    // Using drive.usercontent.google.com which is more robust against HTML redirects
                     fetchUrl = `https://drive.usercontent.google.com/download?id=${driveId}&export=download`;
                 }
             } 
@@ -1087,35 +1090,33 @@
                 fetchUrl += (url.includes('?') ? '&' : '?') + 'cb=' + Date.now();
             }
 
-            // Binary validation: Check for PDF, Fonts, or Images
             const validateBuffer = (buffer) => {
                 if (!buffer || buffer.byteLength < 5) return false;
                 const arr = new Uint8Array(buffer.slice(0, 8));
                 const sig = String.fromCharCode(...arr.slice(0, 5));
-                
-                // %PDF- (PDF)
                 if (sig === '%PDF-') return true;
-                // OTTO/true (Fonts)
                 if (sig.startsWith('OTTO') || sig.startsWith('true') || (arr[0] === 0 && arr[1] === 1)) return true;
-                // PNG: 89 50 4E 47 0D 0A 1A 0A
                 if (arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4E && arr[3] === 0x47) return true;
-                // JPG: FF D8 FF
                 if (arr[0] === 0xFF && arr[1] === 0xD8 && arr[2] === 0xFF) return true;
-                // SVG/XML: <svg or <?xml
                 if (sig.includes('<svg') || sig.includes('<?xml')) return true;
-                
                 return false;
             };
 
-            const fetchAndStore = async () => {
+            const fetchAndStore = async (targetUrl, retryCount = 0) => {
                 let buffer = null;
                 try {
-                    const res = await fetch(fetchUrl, { mode: 'cors', cache: 'no-store' });
+                    const res = await fetch(targetUrl, { mode: 'cors', cache: 'no-store' });
                     if (res.ok) {
                         const contentType = res.headers.get('content-type') || '';
-                        // If Google returns HTML instead of direct binary, it's often a permission/login page
                         if (contentType.includes('text/html')) {
-                             throw new Error("HTML_RECEIVED");
+                            // Stage 2: Check for Google Drive "Too large to scan" confirm token
+                            const htmlText = await res.text();
+                            const confirmMatch = htmlText.match(/confirm=([a-zA-Z0-9_-]+)/);
+                            if (confirmMatch && retryCount === 0) {
+                                const newUrl = targetUrl + `&confirm=${confirmMatch[1]}`;
+                                return await fetchAndStore(newUrl, 1);
+                            }
+                            throw new Error("HTML_RECEIVED");
                         }
                         buffer = await res.arrayBuffer();
                     }
@@ -1126,42 +1127,49 @@
                 if (!buffer) {
                     buffer = await new Promise((resolve, reject) => {
                         const xhr = new XMLHttpRequest();
-                        xhr.open('GET', fetchUrl, true);
+                        xhr.open('GET', targetUrl, true);
                         xhr.responseType = 'arraybuffer';
                         xhr.onload = () => {
                             if (xhr.status === 200) {
                                 const ct = xhr.getResponseHeader('content-type') || '';
-                                if (ct.includes('text/html')) reject(new Error("HTML_RECEIVED"));
-                                else resolve(xhr.response);
-                            } else reject(new Error("XHR failed"));
+                                if (ct.includes('text/html')) {
+                                    const decoder = new TextDecoder('utf-8');
+                                    const html = decoder.decode(xhr.response);
+                                    const confirmMatch = html.match(/confirm=([a-zA-Z0-9_-]+)/);
+                                    if (confirmMatch && retryCount === 0) {
+                                        const newUrl = targetUrl + `&confirm=${confirmMatch[1]}`;
+                                        fetchAndStore(newUrl, 1).then(resolve).catch(reject);
+                                    } else {
+                                        reject(new Error("HTML_RECEIVED"));
+                                    }
+                                } else resolve(xhr.response);
+                            } else reject(new Error("NETWORK_ERROR"));
                         };
-                        xhr.onerror = () => reject(new Error("XHR error"));
+                        xhr.onerror = () => reject(new Error("CORS_OR_NETWORK_ERROR"));
                         xhr.send();
                     });
                 }
 
                 if (validateBuffer(buffer)) {
-                    window._fileBytesCache[url] = buffer; // Store only VALID content
+                    window._fileBytesCache[url] = buffer;
                     return buffer;
-                } else {
-                    throw new Error("INVALID_CONTENT");
-                }
+                } else throw new Error("INVALID_CONTENT");
             };
 
             try {
-                return await fetchAndStore();
+                return await fetchAndStore(fetchUrl);
             } catch (err) {
-                console.error("getFileBytes failed for", url, err);
-                // Specific diagnostic for Google Drive issues
-                if (err.message === "HTML_RECEIVED" || err.message === "INVALID_CONTENT") {
-                    if (url.includes('drive.google.com')) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Paylaşım Hatası',
-                            text: 'Google Drive dosyası okunamadı. Lütfen dosyanın Google Drive üzerinde "BAĞLANTIYA SAHİP OLAN HERKES GÖRÜNTÜLEYEBİLİR" şeklinde paylaşıldığından emin olun.',
-                            footer: `<a href="${url}" target="_blank" style="color:var(--primary); font-weight:bold;">Dosyanın Paylaşım Ayarlarını Denetle</a>`
-                        });
+                console.warn("getFileBytes technical detail:", url, err);
+                if (url.includes('drive.google.com')) {
+                    let msg = 'Google Drive dosyası okunamadı. Lütfen paylaşım ayarlarını kontrol edin.';
+                    if (err.message === "HTML_RECEIVED" || err.message === "INVALID_CONTENT") {
+                        msg = 'Google Drive dosyası kısıtlı veya paylaşıma açık değil. Lütfen "Bağlantıyı bilen herkes görüntüleyebilir" olarak güncelleyin.';
+                    } else if (err.message === "CORS_OR_NETWORK_ERROR") {
+                        msg = window.location.protocol === 'file:' ? 
+                            'Tarayıcı güvenlik engeli (CORS). Lütfen uygulamayı bir sunucu (Vercel/Live Server) üzerinden çalıştırın.' : 
+                            'Ağ hatası veya Google Drive bağlantısındaki erişim engeli.';
                     }
+                    Swal.fire({ icon: 'error', title: 'Dosya Hatası', text: msg, footer: `<a href="${url}" target="_blank">Dosyayı Google Drive'da Aç</a>` });
                 }
                 return null;
             }
@@ -1434,15 +1442,75 @@
             }
         }
 
-        window.testPdfLink = function (sesId, encodedSub, groupLetter = null) {
+        window.testPdfLink = async function (sesId, encodedSub, groupLetter = null) {
             const inputId = groupLetter ? `pdfLink-${sesId}-${encodedSub}-${groupLetter}` : `pdfLink-${sesId}-${encodedSub}`;
             const el = document.getElementById(inputId);
-            if (el && el.value.trim().length > 0) {
-                window.open(el.value.trim(), '_blank');
-            } else {
+            const url = el ? el.value.trim() : "";
+            
+            if (!url) {
                 Swal.fire('Uyarı', 'Test edilecek bir bağlantı bulunamadı. Lütfen önce geçerli bir PDF bağlantısı girin.', 'warning');
+                return;
             }
-        }
+
+            Swal.fire({
+                title: 'Test Hazırlanıyor...',
+                text: 'PDF indiriliyor ve başlık taslağı ekleniyor. Lütfen bekleyin...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            try {
+                const pdfBytes = await window.getFileBytes(url);
+                if (!pdfBytes) throw new Error("Dosya içeriği boş veya hatalı.");
+
+                const { PDFDocument } = PDFLib;
+                const pdfDoc = await PDFDocument.load(pdfBytes);
+                if (typeof fontkit !== 'undefined') pdfDoc.registerFontkit(fontkit);
+
+                const fonts = await loadRequiredFonts(pdfDoc);
+                const page = pdfDoc.getPages()[0];
+                if (!page) throw new Error("PDF sayfası bulunamadı.");
+
+                const { width, height } = page.getSize();
+                const A4_W = 595.28, A4_H = 841.89;
+                const sf = 1 / Math.min(A4_W / width, A4_H / height);
+
+                const subName = decodeURIComponent(encodedSub);
+                const mockStudent = {
+                    no: '123', 
+                    name: 'ÖRNEK ÖĞRENCİ', 
+                    class: '9-A', 
+                    room: 'Derslik 1',
+                    seat: '1', 
+                    subject: subName.toUpperCase(),
+                    examNo: '1'
+                };
+
+                const sessions = DataManager.getExamSessions();
+                const session = sessions.find(s => s.id === sesId) || {};
+                const metadata = session.subjectMetadata || {};
+                const meta = metadata[subName] || {};
+
+                // Render header using the shared logic
+                await window.renderStudentPDFHeader(pdfDoc, page, mockStudent, { ...fonts, sf, session, metadata: meta });
+
+                const modifiedPdfBytes = await pdfDoc.save();
+                const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
+                const blobUrl = URL.createObjectURL(blob);
+                
+                Swal.close();
+                window.open(blobUrl, '_blank');
+            } catch (err) {
+                console.error("Test PDF Rendering Error:", err);
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Başlık Eklenemedi',
+                    text: 'PDF indirildi ancak başlık şablonu uygulanamadı. Dosya doğrudan açılıyor. Hata: ' + err.message,
+                });
+                // Fallback attempt to at least open the original file
+                window.open(url, '_blank');
+            }
+        };
 
         window.printSession = async function (id) {
             const sessions = DataManager.getExamSessions();

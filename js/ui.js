@@ -3039,6 +3039,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!window._fileBytesCache) window._fileBytesCache = {};
         if (window._fileBytesCache[url]) return window._fileBytesCache[url];
 
+        if (window.location.protocol === 'file:') {
+            console.warn("FILE PROTOCOL DETECTED: Fetching external resources like Google Drive might be blocked by browser security (CORS).");
+        }
+
         let fetchUrl = url;
 
         // Handle Google Drive links: convert various formats to "direct download"
@@ -3047,7 +3051,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const driveId = parts ? parts[1].split(/[/?#&]/)[0] : null;
 
             if (driveId) {
-                // Using drive.usercontent.google.com which is more robust against HTML redirects
                 fetchUrl = `https://drive.usercontent.google.com/download?id=${driveId}&export=download`;
             }
         } 
@@ -3062,31 +3065,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!buffer || buffer.byteLength < 5) return false;
             const arr = new Uint8Array(buffer.slice(0, 8));
             const sig = String.fromCharCode(...arr.slice(0, 5));
-            
-            // %PDF- (PDF)
             if (sig === '%PDF-') return true;
-            // OTTO/true (Fonts)
             if (sig.startsWith('OTTO') || sig.startsWith('true') || (arr[0] === 0 && arr[1] === 1)) return true;
-            // PNG: 89 50 4E 47 0D 0A 1A 0A
             if (arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4E && arr[3] === 0x47) return true;
-            // JPG: FF D8 FF
             if (arr[0] === 0xFF && arr[1] === 0xD8 && arr[2] === 0xFF) return true;
-            // SVG/XML: <svg or <?xml
             if (sig.includes('<svg') || sig.includes('<?xml')) return true;
-            
             return false;
         };
 
-        const fetchAndStore = async () => {
+        const fetchAndStore = async (targetUrl, retryCount = 0) => {
             let buffer = null;
-            // Priority 1: Browser Fetch (Fastest for remote)
+            // Priority 1: Browser Fetch
             if (!isLocal) {
                 try {
-                    const res = await fetch(fetchUrl, { mode: 'cors', cache: 'no-store' });
+                    const res = await fetch(targetUrl, { mode: 'cors', cache: 'no-store' });
                     if (res.ok) {
                         const contentType = res.headers.get('content-type') || '';
                         if (contentType.includes('text/html')) {
-                             throw new Error("HTML_RECEIVED");
+                            // Stage 2: Check for Google Drive "Too large to scan" confirm token
+                            const htmlText = await res.text();
+                            const confirmMatch = htmlText.match(/confirm=([a-zA-Z0-9_-]+)/);
+                            if (confirmMatch && retryCount === 0) {
+                                const newUrl = targetUrl + `&confirm=${confirmMatch[1]}`;
+                                return await fetchAndStore(newUrl, 1);
+                            }
+                            throw new Error("HTML_RECEIVED");
                         }
                         buffer = await res.arrayBuffer();
                     }
@@ -3098,16 +3101,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!buffer) {
                 buffer = await new Promise((resolve, reject) => {
                     const xhr = new XMLHttpRequest();
-                    xhr.open('GET', fetchUrl, true);
+                    xhr.open('GET', targetUrl, true);
                     xhr.responseType = 'arraybuffer';
                     xhr.onload = () => {
                         if (xhr.status === 200) {
                             const ct = xhr.getResponseHeader('content-type') || '';
-                            if (ct.includes('text/html')) reject(new Error("HTML_RECEIVED"));
-                            else resolve(xhr.response);
-                        } else reject(new Error("XHR failed"));
+                            if (ct.includes('text/html')) {
+                                const decoder = new TextDecoder('utf-8');
+                                const html = decoder.decode(xhr.response);
+                                const confirmMatch = html.match(/confirm=([a-zA-Z0-9_-]+)/);
+                                if (confirmMatch && retryCount === 0) {
+                                    const newUrl = targetUrl + `&confirm=${confirmMatch[1]}`;
+                                    fetchAndStore(newUrl, 1).then(resolve).catch(reject);
+                                } else {
+                                    reject(new Error("HTML_RECEIVED"));
+                                }
+                            } else resolve(xhr.response);
+                        } else reject(new Error("NETWORK_ERROR"));
                     };
-                    xhr.onerror = () => reject(new Error("XHR error"));
+                    xhr.onerror = () => reject(new Error("CORS_OR_NETWORK_ERROR"));
                     xhr.send();
                 });
             }
@@ -3115,24 +3127,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (validateBuffer(buffer)) {
                 window._fileBytesCache[url] = buffer;
                 return buffer;
-            } else {
-                throw new Error("INVALID_CONTENT");
-            }
+            } else throw new Error("INVALID_CONTENT");
         };
 
         try {
-            return await fetchAndStore();
+            return await fetchAndStore(fetchUrl);
         } catch (err) {
-            console.error("getFileBytes failed", url, err);
-            if (err.message === "HTML_RECEIVED" || err.message === "INVALID_CONTENT") {
-                if (url.includes('drive.google.com')) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Paylaşım Hatası',
-                        text: 'Google Drive dosyası okunamadı. Lütfen dosyanın Google Drive üzerinde "BAĞLANTIYA SAHİP OLAN HERKES GÖRÜNTÜLEYEBİLİR" şeklinde paylaşıldığından emin olun.',
-                        footer: `<a href="${url}" target="_blank" style="color:var(--primary); font-weight:bold;">Paylaşım Ayarlarını Denetle</a>`
-                    });
+            console.warn("getFileBytes technical detail:", url, err);
+            if (url.includes('drive.google.com')) {
+                let msg = 'Google Drive dosyası okunamadı. Lütfen paylaşım ayarlarını kontrol edin.';
+                if (err.message === "HTML_RECEIVED" || err.message === "INVALID_CONTENT") {
+                    msg = 'Google Drive dosyası kısıtlı veya paylaşıma açık değil. Lütfen "Bağlantıyı bilen herkes görüntüleyebilir" olarak güncelleyin.';
+                } else if (err.message === "CORS_OR_NETWORK_ERROR") {
+                    msg = window.location.protocol === 'file:' ? 
+                        'Tarayıcı güvenlik engeli (CORS). Lütfen uygulamayı bir sunucu (Vercel/Live Server) üzerinden çalıştırın.' : 
+                        'Ağ hatası veya Google Drive bağlantısındaki erişim engeli.';
                 }
+                Swal.fire({ icon: 'error', title: 'Dosya Hatası', text: msg, footer: `<a href="${url}" target="_blank">Dosyayı Google Drive'da Aç</a>` });
             }
             return null;
         }
