@@ -173,14 +173,18 @@ const ExamAlgorithm = {
                 const nextId = `G${seat.g}-S${seat.r + 1}-C${seat.c}`;
                 const hasVertical = (node.assigned[prevId]?._matchedSubject === lv) || (node.assigned[nextId]?._matchedSubject === lv);
                 
-                // User Rule: Yan (lateral) ve Çapraz (diagonal) ASLA olmamalı.
-                // Arka arkaya (Vertical) gelebilir (Ceza yok)
-                const collisionScore = hasCollision6(node, student, seat) ? 100000 : 0;
+                // Lateral (Yan) ve Çapraz (diagonal) ASLA olmamalı (Ağır Ceza)
+                // Arka arkaya (Vertical) istenmez ama son çare olabilir (Hafif Ceza)
+                const lateralDiagCollision = hasCollision6(node, student, seat);
+                const collisionScore = (lateralDiagCollision ? 200000 : 0) + (hasVertical ? 1000 : 0);
 
-                return { seat, score: seat.priority + collisionScore + (seat.isEdge ? 50 : 0) };
+                // Priority students: prioritize front rows (r=1, r=2) even more
+                const rowPenalty = isPrio(student) ? (seat.r > 2 ? 5000 : 0) : 0;
+
+                return { seat, score: seat.priority + collisionScore + (seat.isEdge ? 50 : 0) + rowPenalty };
             });
             candidates.sort((a, b) => a.score - b.score);
-            return (candidates.length > 0 && candidates[0].score < 100000) ? candidates[0].seat : null;
+            return (candidates.length > 0 && candidates[0].score < 200000) ? candidates[0].seat : null;
         };
 
         const hasCollision6 = (node, student, seat) => {
@@ -334,29 +338,47 @@ const ExamAlgorithm = {
                 const emptyInCol = allInCol.filter(x => !x.student);
 
                 if (nonPrioInCol.length > 1) {
-                    // Kullanıcı İsteği: Bir sütun arka arkaya hep aynı ders olsun.
-                    // Karıştırma (interleave) yerine, sütundaki öğrencileri ders ismine göre gruplayarak sıralıyoruz.
-                    const groupedInCol = nonPrioInCol.map(x => x.student);
-                    groupedInCol.sort((a, b) => (a._matchedSubject || '').localeCompare(b._matchedSubject || '', 'tr'));
+                    // Kullanıcı İsteği: Sütunda aynı dersler yan yana olmasın (Interleaving A,B,A,B)
+                    // Öğrencileri derslerine göre ayırıp çaprazlayarak (interleave) diziyoruz.
+                    const studentsBySubject = {};
+                    nonPrioInCol.forEach(x => {
+                        const sub = x.student._matchedSubject || 'Unknown';
+                        if (!studentsBySubject[sub]) studentsBySubject[sub] = [];
+                        studentsBySubject[sub].push(x.student);
+                    });
 
-                    // Temizle ve baştan ata: mutation-while-iterating bug'ını önler
-                    // Non-priority seats are cleared first, then refilled in row order
+                    // En çok öğrencisi olan dersi en başa al (daha iyi interleaving için)
+                    const subNames = Object.keys(studentsBySubject).sort((a, b) => studentsBySubject[b].length - studentsBySubject[a].length);
+                    const interleaved = [];
+                    let hasMore = true;
+                    let passIdx = 0;
+                    while (hasMore) {
+                        hasMore = false;
+                        for (const name of subNames) {
+                            if (studentsBySubject[name].length > passIdx) {
+                                interleaved.push(studentsBySubject[name][passIdx]);
+                                hasMore = true;
+                            }
+                        }
+                        passIdx++;
+                    }
+
+                    // Temizle ve baştan ata
                     const lockedIds = new Set(prioPositions.map(x => x.seat.id));
                     const freeSeats = colSeats.filter(s => !lockedIds.has(s.id));
 
                     // Step 1: clear all non-priority seats in this column
                     freeSeats.forEach(s => { delete node.assigned[s.id]; });
 
-                    // Step 2: assign grouped students to free seats from Row 1 upward
+                    // Step 2: assign interleaved students
                     let fsIdx = 0;
-                    for (const st of groupedInCol) {
+                    for (const st of interleaved) {
                         while (fsIdx < freeSeats.length && node.assigned[freeSeats[fsIdx].id]) fsIdx++;
                         if (fsIdx < freeSeats.length) {
                             node.assigned[freeSeats[fsIdx].id] = st;
                             fsIdx++;
                         }
                     }
-                    // Note: any remaining freeSeats stay empty (correctly at BACK of column)
                 }
 
                 // Pass 2: Standard Within-Column Swap
