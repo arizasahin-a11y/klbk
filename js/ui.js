@@ -3032,7 +3032,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ─────── PRINT HELPERS (Queue-based with PDF Overlay) ───────────
     window._printQueue = [];
     window._isProcessingPrint = false;
-    window._cachedFont = null;
+    window._cachedFonts = {};
 
     // Robust file fetcher with caching, link correction, and binary validation
     window.getFileBytes = async function (url) {
@@ -3082,7 +3082,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (res.ok) {
                         const contentType = res.headers.get('content-type') || '';
                         if (contentType.includes('text/html')) {
-                            // Stage 2: Check for Google Drive "Too large to scan" confirm token
                             const htmlText = await res.text();
                             const confirmMatch = htmlText.match(/confirm=([a-zA-Z0-9_-]+)/);
                             if (confirmMatch && retryCount === 0) {
@@ -3131,7 +3130,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         try {
-            return await fetchAndStore(fetchUrl);
+            let result = await fetchAndStore(fetchUrl);
+            // Fallback for Google Drive
+            if (!result && url.includes('drive.google.com')) {
+                const parts = url.match(/\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/) || url.match(/\/file\/d\/([^/]+)/);
+                const driveId = parts ? parts[1].split(/[/?#&]/)[0] : null;
+                if (driveId) {
+                    const fallbackUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
+                    result = await fetchAndStore(fallbackUrl, 0);
+                }
+            }
+            return result;
         } catch (err) {
             console.warn("getFileBytes technical detail:", url, err);
             if (url.includes('drive.google.com')) {
@@ -3140,7 +3149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     msg = 'Google Drive dosyası kısıtlı veya paylaşıma açık değil. Lütfen "Bağlantıyı bilen herkes görüntüleyebilir" olarak güncelleyin.';
                 } else if (err.message === "CORS_OR_NETWORK_ERROR") {
                     msg = window.location.protocol === 'file:' ? 
-                        'Tarayıcı güvenlik engeli (CORS). Lütfen uygulamayı bir sunucu (Vercel/Live Server) üzerinden çalıştırın.' : 
+                        'Tarayıcı güvenlik engeli (CORS). Lütfen uygulamayı VS Code üzerinden (Live Server/Go Live) çalıştırın.' : 
                         'Ağ hatası veya Google Drive bağlantısındaki erişim engeli.';
                 }
                 Swal.fire({ icon: 'error', title: 'Dosya Hatası', text: msg, footer: `<a href="${url}" target="_blank">Dosyayı Google Drive'da Aç</a>` });

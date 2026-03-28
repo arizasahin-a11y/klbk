@@ -1157,7 +1157,17 @@
             };
 
             try {
-                return await fetchAndStore(fetchUrl);
+                let result = await fetchAndStore(fetchUrl);
+                // Fallback for Google Drive: Try OLD /uc? endpoint if first attempt fails
+                if (!result && url.includes('drive.google.com')) {
+                    const parts = url.match(/\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/) || url.match(/\/file\/d\/([^/]+)/);
+                    const driveId = parts ? parts[1].split(/[/?#&]/)[0] : null;
+                    if (driveId) {
+                        const fallbackUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
+                        result = await fetchAndStore(fallbackUrl, 0);
+                    }
+                }
+                return result;
             } catch (err) {
                 console.warn("getFileBytes technical detail:", url, err);
                 if (url.includes('drive.google.com')) {
@@ -1166,8 +1176,8 @@
                         msg = 'Google Drive dosyası kısıtlı veya paylaşıma açık değil. Lütfen "Bağlantıyı bilen herkes görüntüleyebilir" olarak güncelleyin.';
                     } else if (err.message === "CORS_OR_NETWORK_ERROR") {
                         msg = window.location.protocol === 'file:' ? 
-                            'Tarayıcı güvenlik engeli (CORS). Lütfen uygulamayı bir sunucu (Vercel/Live Server) üzerinden çalıştırın.' : 
-                            'Ağ hatası veya Google Drive bağlantısındaki erişim engeli.';
+                            'Tarayıcı güvenlik engeli (CORS). Lütfen uygulamayı VS Code üzerinden (Live Server/Go Live) çalıştırın.' : 
+                            'Ağ hatası veya Google Drive bağlantısindeki erişim engeli.';
                     }
                     Swal.fire({ icon: 'error', title: 'Dosya Hatası', text: msg, footer: `<a href="${url}" target="_blank">Dosyayı Google Drive'da Aç</a>` });
                 }
@@ -1502,13 +1512,14 @@
                 window.open(blobUrl, '_blank');
             } catch (err) {
                 console.error("Test PDF Rendering Error:", err);
+                const isFetchError = (err.message === "Dosya içeriği boş veya hatalı.");
                 Swal.fire({
                     icon: 'warning',
                     title: 'Başlık Eklenemedi',
-                    text: 'PDF indirildi ancak başlık şablonu uygulanamadı. Dosya doğrudan açılıyor. Hata: ' + err.message,
+                    text: (isFetchError ? 'PDF dosyası indirilemediği için başlık eklenemedi. ' : 'PDF indirildi ancak başlık şablonu uygulanamadı. ') + 'Hata: ' + err.message,
                 });
                 // Fallback attempt to at least open the original file
-                window.open(url, '_blank');
+                if (!isFetchError) window.open(url, '_blank');
             }
         };
 
