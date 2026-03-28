@@ -1072,22 +1072,20 @@
             if (window._fileBytesCache[url]) return window._fileBytesCache[url];
 
             const isFileProtocol = window.location.protocol === 'file:';
-
             let fetchUrl = url;
             let driveId = null;
 
-            // Handle Google Drive links: convert various formats to "direct download"
             if (url.includes('drive.google.com')) {
                 const parts = url.match(/\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/) || url.match(/\/file\/d\/([^/]+)/);
                 driveId = parts ? parts[1].split(/[/?#&]/)[0] : null;
-
                 if (driveId) {
-                    fetchUrl = `https://drive.usercontent.google.com/download?id=${driveId}&export=download`;
+                    fetchUrl = "https://drive.usercontent.google.com/download?id=" + driveId + "&export=download";
                 }
-            } 
-            else if (url.includes('supabase.co')) {
+            } else if (url.includes('supabase.co')) {
                 fetchUrl += (url.includes('?') ? '&' : '?') + 'cb=' + Date.now();
             }
+
+            const isLocal = url.startsWith('file:///') || url.includes(':\\') || url.includes(':/');
 
             const validateBuffer = (buffer) => {
                 if (!buffer || buffer.byteLength < 5) return false;
@@ -1097,31 +1095,43 @@
                 if (sig.startsWith('OTTO') || sig.startsWith('true') || (arr[0] === 0 && arr[1] === 1)) return true;
                 if (arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4E && arr[3] === 0x47) return true;
                 if (arr[0] === 0xFF && arr[1] === 0xD8 && arr[2] === 0xFF) return true;
-                if (sig.includes('<svg') || sig.includes('<?xml')) return true;
-                return false;
+                return sig.includes('<svg') || sig.includes('<?xml');
+            };
+
+            const fetchWithTimeout = async (target, opts = {}, timeout = 8000) => {
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), timeout);
+                try {
+                    const response = await fetch(target, { ...opts, signal: controller.signal });
+                    clearTimeout(id);
+                    return response;
+                } catch (e) {
+                    clearTimeout(id);
+                    throw e;
+                }
             };
 
             const fetchAndStore = async (targetUrl, retryCount = 0) => {
                 let buffer = null;
-                try {
-                    const res = await fetch(targetUrl, { mode: 'cors', cache: 'no-store' });
-                    if (res.ok) {
-                        const contentType = res.headers.get('content-type') || '';
-                        if (contentType.includes('text/html')) {
-                            const htmlText = await res.text();
-                            const confirmMatch = htmlText.match(/confirm=([a-zA-Z0-9_-]+)/);
-                            if (confirmMatch && retryCount === 0) {
-                                const newUrl = targetUrl + `&confirm=${confirmMatch[1]}`;
-                                return await fetchAndStore(newUrl, 1);
+                if (!isLocal) {
+                    try {
+                        const res = await fetchWithTimeout(targetUrl, { mode: 'cors', cache: 'no-store' });
+                        if (res.ok) {
+                            const contentType = res.headers.get('content-type') || '';
+                            if (contentType.includes('text/html')) {
+                                const htmlText = await res.text();
+                                const confirmMatch = htmlText.match(/confirm=([a-zA-Z0-9_-]+)/);
+                                if (confirmMatch && retryCount === 0) {
+                                    return await fetchAndStore(targetUrl + "&confirm=" + confirmMatch[1], 1);
+                                }
+                                throw new Error("HTML_RECEIVED");
                             }
-                            throw new Error("HTML_RECEIVED");
-                        }
-                        buffer = await res.arrayBuffer();
-                    } else if (res.status === 404) throw new Error("404_NOT_FOUND");
-                    else throw new Error(`HTTP_${res.status}`);
-                } catch (e) {
-                    if (e.message === "HTML_RECEIVED" || e.message === "404_NOT_FOUND") throw e;
-                    // Fallback to XHR if fetch fails (CORS is main cause)
+                            buffer = await res.arrayBuffer();
+                        } else if (res.status === 404) throw new Error("404_NOT_FOUND");
+                        else throw new Error("HTTP_" + res.status);
+                    } catch (e) {
+                        if (["HTML_RECEIVED", "404_NOT_FOUND"].includes(e.message)) throw e;
+                    }
                 }
 
                 if (!buffer) {
@@ -1129,21 +1139,22 @@
                         const xhr = new XMLHttpRequest();
                         xhr.open('GET', targetUrl, true);
                         xhr.responseType = 'arraybuffer';
+                        xhr.timeout = 8000;
                         xhr.onload = () => {
                             if (xhr.status === 200) {
                                 const ct = xhr.getResponseHeader('content-type') || '';
                                 if (ct.includes('text/html')) {
                                     const decoder = new TextDecoder('utf-8');
                                     const html = decoder.decode(xhr.response);
-                                    const confirmMatch = html.match(/confirm=([a-zA-Z0-9_-]+)/);
-                                    if (confirmMatch && retryCount === 0) {
-                                        const newUrl = targetUrl + `&confirm=${confirmMatch[1]}`;
-                                        fetchAndStore(newUrl, 1).then(resolve).catch(reject);
+                                    const cm = html.match(/confirm=([a-zA-Z0-9_-]+)/);
+                                    if (cm && retryCount === 0) {
+                                        fetchAndStore(targetUrl + "&confirm=" + cm[1], 1).then(resolve).catch(reject);
                                     } else reject(new Error("HTML_RECEIVED"));
                                 } else resolve(xhr.response);
-                            } else reject(new Error(`HTTP_${xhr.status}`));
+                            } else reject(new Error("HTTP_" + xhr.status));
                         };
                         xhr.onerror = () => reject(new Error("CORS_OR_NETWORK_ERROR"));
+                        xhr.ontimeout = () => reject(new Error("TIMEOUT"));
                         xhr.send();
                     });
                 }
@@ -1154,51 +1165,49 @@
                 } else throw new Error("INVALID_CONTENT");
             };
 
-            try {
-                // Stage 1: Try Direct Fetch
-                let result = await fetchAndStore(fetchUrl);
-                return result;
-            } catch (err) {
-                console.warn("Direct fetch failed, trying Stage 2 fallbacks...", err.message);
-                
-                try {
-                    // Stage 2: Fallback for Google Drive Legacy
-                    if (driveId) {
-                        const fallbackUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
-                        return await fetchAndStore(fallbackUrl, 0);
-                    } else throw err;
-                } catch (err2) {
-                    console.warn("Stage 2 legacy fetch failed, trying Stage 3 (CORS Proxy)...", err2.message);
-                    
-                    try {
-                        // Stage 3: CORS Proxy Fallback (Ultimate bypass)
-                        if (fetchUrl.startsWith('http')) {
-                            console.log("Using CORS Proxy for:", fetchUrl);
-                            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(fetchUrl)}`;
-                            return await fetchAndStore(proxyUrl, 0);
-                        } else throw err2;
-                    } catch (err3) {
-                        console.error("Technical debugging details:", { url, fetchUrl, err: err3.message, protocol: window.location.protocol });
-                        
-                        let msg = 'Dosya indirilemedi. Bağlantı hatalı veya erişim kısıtlı.';
-                        if (isFileProtocol) {
-                            msg = '<b>KRİTİK UYARI:</b> Uygulamayı klasörden çift tıklayarak (file://) açtığınız için tarayıcınız Google Drive erişimine izin vermiyor.';
-                            msg += '<br><br>Lütfen VS Code sağ alt köşesindeki <b>"Go Live" (Live Server)</b> butonuna basarak uygulamayı çalıştırın.';
-                        } else if (err3.message === "HTML_RECEIVED" || err3.message === "INVALID_CONTENT") {
-                            msg = 'Google Drive dosyası kısıtlı veya paylaşıma açık değil. Lütfen "Bağlantıya sahip olan herkes görüntüleyebilir" olarak güncelleyin.';
-                        } else if (err3.message === "404_NOT_FOUND") {
-                            msg = 'Soru kağıdı bu adreste bulunamadı (404). Lütfen bağlantıyı kontrol edin.';
-                        }
+            const proxyList = [
+                (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+                (u) => "https://corsproxy.io/?" + encodeURIComponent(u),
+                (u) => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u)
+            ];
 
-                        Swal.fire({
-                            icon: isFileProtocol ? 'warning' : 'error',
-                            title: isFileProtocol ? 'Yerel Sunucu Gerekli' : 'Dosya Hatası',
-                            html: msg,
-                            footer: `<details style="text-align:left; font-size:11px;"><summary>Teknik Detay (F12)</summary><br>URL: ${url}<br>Hata: ${err3.message}<br>Protokol: ${window.location.protocol}</details>`
-                        });
-                        return null;
+            try {
+                return await fetchAndStore(fetchUrl);
+            } catch (err) {
+                console.warn("Direct fetch failed, starting automated multi-proxy recovery...", err.message);
+                
+                if (driveId) {
+                    try {
+                        const legacyUrl = "https://drive.google.com/uc?export=download&id=" + driveId;
+                        return await fetchAndStore(legacyUrl, 0);
+                    } catch (e2) { console.warn("Legacy fallback failed, proceeding to Proxy Pool."); }
+                }
+
+                for (let i = 0; i < proxyList.length; i++) {
+                    try {
+                        const proxyUrl = proxyList[i](fetchUrl);
+                        console.log("Attempting Proxy #" + (i + 1) + ": " + proxyUrl);
+                        return await fetchAndStore(proxyUrl, 0);
+                    } catch (pxErr) {
+                        console.warn("Proxy #" + (i + 1) + " failed: " + pxErr.message);
                     }
                 }
+
+                let msg = 'Dosya indirilemedi. Bağlantı hatalı veya erişim kısıtlı.';
+                if (isFileProtocol) {
+                    msg = '<b>KRİTİK UYARI:</b> Uygulamayı klasörden çift tıklayarak (file://) açtığınız için tarayıcınız Google Drive erişimine izin vermiyor.';
+                    msg += '<br><br>Lütfen VS Code sağ alt köşesindeki <b>"Go Live" (Live Server)</b> butonuna basarak uygulamayı çalıştırın.';
+                } else if (err.message === "HTML_RECEIVED" || err.message === "INVALID_CONTENT") {
+                    msg = 'Google Drive dosyası kısıtlı veya paylaşıma açık değil. Lütfen "Bağlantıya sahip olan herkes görüntüleyebilir" olarak güncelleyin.';
+                }
+
+                Swal.fire({
+                    icon: isFileProtocol ? 'warning' : 'error',
+                    title: isFileProtocol ? 'Yerel Sunucu Gerekli' : 'Dosya Hatası',
+                    html: msg,
+                    footer: "<details style='text-align:left; font-size:11px;'><summary>Teknik Detay (F12)</summary><br>URL: " + url + "<br>Hata: " + err.message + "<br>Protokol: " + window.location.protocol + "</details>"
+                });
+                return null;
             }
         };
 
