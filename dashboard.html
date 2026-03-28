@@ -148,14 +148,31 @@
                         </div>
                     </div>
 
-                        <div class="widget glass-panel" style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:2rem;">
-                            <div class="stat-icon primary" style="margin-bottom:1rem; width:60px; height:60px; font-size:1.5rem;">
+                    <div class="dashboard-widgets">
+                        <div class="widget glass-panel list-widget">
+                            <div class="widget-header">
+                                <h3>Son Eklenen Sınıflar</h3>
+                            </div>
+                            <div class="widget-body" id="recentClassesList">
+                                <p class="empty-text">Henüz sınıf eklenmemiş.</p>
+                            </div>
+                        </div>
+                        <div class="widget glass-panel list-widget">
+                            <div class="widget-header">
+                                <h3>Hazır Derslikler</h3>
+                            </div>
+                            <div class="widget-body" id="readyClassroomsList">
+                                <p class="empty-text">Henüz derslik tanımlanmamış.</p>
+                            </div>
+                        </div>
+                        <div class="widget glass-panel" style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:1.5rem;">
+                            <div class="stat-icon primary" style="margin-bottom:0.75rem; width:50px; height:50px; font-size:1.2rem; display:flex; align-items:center; justify-content:center; border-radius:12px; background:var(--primary-light); color:var(--primary);">
                                 <i class="fa-solid fa-vial-circle-check"></i>
                             </div>
-                            <h3>Sistem Testi</h3>
-                            <p style="font-size:0.9rem; color:var(--gray-500); margin-bottom:1.5rem;">Google Drive erişimi ve PDF başlık şablonunu test edin.</p>
-                            <button type="button" onclick="window.testDashboardPdf()" class="btn btn-primary" style="width:100%;">
-                                <i class="fa-solid fa-file-pdf"></i> Örnek Öğrenci Başlığı Oluştur
+                            <h3 style="margin-bottom:0.5rem;">Sistem Testi</h3>
+                            <p style="font-size:0.8rem; color:var(--gray-500); margin-bottom:1rem;">Google Drive ve PDF şablonunu test edin.</p>
+                            <button type="button" onclick="window.testDashboardPdf()" class="btn btn-primary btn-sm" style="width:100%;">
+                                <i class="fa-solid fa-file-pdf"></i> Örnek Öğrenci Başlığı
                             </button>
                         </div>
                     </div>
