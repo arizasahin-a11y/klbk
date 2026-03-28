@@ -3035,17 +3035,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     window._cachedFont = null;
 
     // Robust file fetcher for local file:/// stability
-    // Robust file fetcher with caching
+    // Robust file fetcher with caching and link correction
     window.getFileBytes = async function (url) {
         if (!window._fileBytesCache) window._fileBytesCache = {};
         if (window._fileBytesCache[url]) return window._fileBytesCache[url];
 
-        const isLocal = url.startsWith('file:///') || url.includes(':\\') || url.includes(':/');
-
-        // Bypass browser cache ONLY for Supabase if needed, but we prefer our own internal cache for efficiency
         let fetchUrl = url;
-        // Only add cache buster if explicitly requested or if it's NOT a PDF (since papers shouldn't change mid-session)
-        // Actually, we'll remove it entirely to respect browser and local caching.
+
+        // Handle Google Drive links: convert "view" to "direct download"
+        if (url.includes('drive.google.com')) {
+            const driveIdMatch = url.match(/\/d\/([^/]+)/);
+            const driveIdMatchAlt = url.match(/[?&]id=([^&]+)/);
+            const driveId = (driveIdMatch && driveIdMatch[1]) || (driveIdMatchAlt && driveIdMatchAlt[1]);
+            if (driveId) {
+                // Using drive.usercontent.google.com which is more robust against HTML redirects
+                fetchUrl = `https://drive.usercontent.google.com/download?id=${driveId}&export=download`;
+            }
+        } 
+        else if (url.includes('supabase.co')) {
+            fetchUrl += (url.includes('?') ? '&' : '?') + 'cb=' + Date.now();
+        }
+
+        const isLocal = url.startsWith('file:///') || url.includes(':\\') || url.includes(':/');
 
         const fetchAndStore = async () => {
             // Priority 1: Browser Fetch (Fastest for remote) - Skip for local due to security/hangs
