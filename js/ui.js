@@ -6140,6 +6140,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         hideMenu();
         if (_ctx.moveMode) { _ctx.moveMode = false; _ctx.moveSrc = null; clearHighlights(); }
     });
+    }());
 
     window.testDashboardPdf = async function() {
         const testUrl = "https://drive.google.com/file/d/1UZRlx5JA_Qx8Lx4edyP1GkSssDBQNwAc/view?usp=sharing";
@@ -6156,11 +6157,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             const { PDFDocument } = PDFLib;
             const pdfDoc = await PDFDocument.load(bytes);
-            const pages = pdfDoc.getPages();
-            const firstPage = pages[0];
+            const firstPage = pdfDoc.getPages()[0];
             const { width, height } = firstPage.getSize();
             
-            // Mock student data
             const mockStudent = {
                 no: '123',
                 name: 'ÖRNEK ÖĞRENCİ',
@@ -6171,38 +6170,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                 examNo: '1'
             };
 
-            // Font loading
             const fontBytes = await window.getFileBytes('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf');
-            if (!fontBytes) throw new Error("Yazı tipi dosyası indirilemedi.");
-            
-            pdfDoc.registerFontkit(fontkit);
-            const mainFont = await pdfDoc.embedFont(fontBytes);
-            
-            const A4_W = 595.28, A4_H = 841.89;
-            const sf = 1 / Math.min(A4_W / width, A4_H / height);
+            if (fontBytes) {
+                pdfDoc.registerFontkit(fontkit);
+                const mainFont = await pdfDoc.embedFont(fontBytes);
+                const A4_W = 595.28, A4_H = 841.89;
+                const sf = 1 / Math.min(A4_W / width, A4_H / height);
 
-            // Render header
-            await window.renderStudentPDFHeader(pdfDoc, firstPage, mockStudent, { 
-                mainFont, 
-                sf: sf,
-                session: { date: new Date().toLocaleDateString('tr-TR'), time: new Date().toLocaleTimeString('tr-TR') },
-                metadata: { designId: 'design9' } // Default Atatürk design for test
-            });
+                await window.renderStudentPDFHeader(pdfDoc, firstPage, mockStudent, { 
+                    mainFont, 
+                    sf: sf,
+                    session: { date: new Date().toLocaleDateString('tr-TR'), time: new Date().toLocaleTimeString('tr-TR') },
+                    metadata: { designId: 'design9' }
+                });
+            }
 
             const modifiedPdfBytes = await pdfDoc.save();
             const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
-            const blobUrl = URL.createObjectURL(blob);
-            
+            window.finalizeAndPrint(URL.createObjectURL(blob));
             Swal.close();
-            window.finalizeAndPrint(blobUrl);
         } catch (err) {
             console.error("Dashboard Test Error:", err);
             Swal.fire({
                 icon: 'error',
                 title: 'Test Başarısız',
-                text: 'Hata: ' + err.message,
-                footer: '<details><summary>Detay</summary>' + err.stack + '</details>'
+                text: 'Hata: ' + err.message
             });
         }
     };
-});
