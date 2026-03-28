@@ -1066,13 +1066,24 @@
         window._isProcessingPrint = false;
         window._cachedFonts = {};
 
-        // Robust file fetcher with caching
+        // Robust file fetcher with caching and link correction
         window.getFileBytes = async function (url) {
             if (!window._fileBytesCache) window._fileBytesCache = {};
             if (window._fileBytesCache[url]) return window._fileBytesCache[url];
 
             let fetchUrl = url;
-            if (url.includes('supabase.co')) {
+
+            // Handle Google Drive links: convert "view" to "direct download"
+            if (url.includes('drive.google.com')) {
+                const driveIdMatch = url.match(/\/d\/([^/]+)/);
+                const driveIdMatchAlt = url.match(/[?&]id=([^&]+)/);
+                const driveId = (driveIdMatch && driveIdMatch[1]) || (driveIdMatchAlt && driveIdMatchAlt[1]);
+                if (driveId) {
+                    // Using drive.usercontent.google.com which is more robust against HTML redirects
+                    fetchUrl = `https://drive.usercontent.google.com/download?id=${driveId}&export=download`;
+                }
+            } 
+            else if (url.includes('supabase.co')) {
                 fetchUrl += (url.includes('?') ? '&' : '?') + 'cb=' + Date.now();
             }
 
