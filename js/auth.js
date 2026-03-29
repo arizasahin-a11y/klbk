@@ -160,6 +160,46 @@ document.addEventListener('DOMContentLoaded', () => {
                     username = matchedUsername;
                     showMessage(loginMessageBox, 'Giriş başarılı! Yönlendiriliyorsunuz...', 'success');
 
+                    // --- Asenkron Aktivite Loglama ---
+                    try {
+                        fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.klbk_activity_log&select=*`, {
+                            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+                        }).then(r => r.json()).then(rows => {
+                            let logs = [];
+                            if (rows && rows.length > 0 && rows[0].data && rows[0].data.logs) {
+                                logs = rows[0].data.logs;
+                            }
+                            
+                            // Make sure valid array
+                            if (!Array.isArray(logs)) logs = [];
+
+                            const role = usersDb[username].role || 'admin';
+                            // Master logins also counted
+                            logs.unshift({
+                                username: username,
+                                role: role,
+                                school: usersDb[username].schoolName || '-',
+                                time: new Date().toLocaleString('tr-TR')
+                            });
+
+                            if (logs.length > 500) logs = logs.slice(0, 500);
+
+                            fetch(`${supabaseUrl}/rest/v1/app_store`, {
+                                method: 'POST',
+                                headers: {
+                                    'apikey': supabaseKey,
+                                    'Authorization': `Bearer ${supabaseKey}`,
+                                    'Content-Type': 'application/json',
+                                    'Prefer': 'resolution=merge-duplicates'
+                                },
+                                body: JSON.stringify({ id: 'klbk_activity_log', data: { logs: logs } })
+                            });
+                        }).catch(e => console.warn('Aktivite loglanamadı', e));
+                    } catch (e) {
+                        console.warn("Log tracking failed", e);
+                    }
+                    // ---------------------------------
+
                     // Handle Remember Me (Persistent Session)
                     if (rememberMeCheckbox && rememberMeCheckbox.checked) {
                         localStorage.setItem('klbk_rememberedUser', username);

@@ -642,6 +642,94 @@ document.addEventListener('DOMContentLoaded', () => {
     // Call init on load
     initMasterPage();
 
+    const btnShowActivity = document.getElementById('btnShowActivity');
+    if (btnShowActivity) {
+        btnShowActivity.addEventListener('click', async () => {
+            btnShowActivity.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...';
+            btnShowActivity.disabled = true;
+
+            try {
+                const logRes = await fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.klbk_activity_log&select=*`, {
+                    headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+                });
+                let logs = [];
+                if (logRes.ok) {
+                    const rows = await logRes.json();
+                    if (rows && rows.length > 0 && rows[0].data && rows[0].data.logs) {
+                        logs = rows[0].data.logs;
+                    }
+                }
+
+                if (!Array.isArray(logs) || logs.length === 0) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Kayıt Bulunamadı',
+                        text: 'Henüz sisteme giriş yapmış bir kullanıcı activity logu yok.'
+                    });
+                } else {
+                    let htmlContent = '<div style="max-height: 400px; overflow-y: auto; text-align: left;"><table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">';
+                    htmlContent += '<thead style="position: sticky; top: 0; background: #f9f9f9; z-index: 10;"><tr style="border-bottom: 2px solid #ddd;"><th style="padding: 8px;">Kullanıcı</th><th style="padding: 8px;">Okul</th><th style="padding: 8px; text-align: right;">Tarih</th></tr></thead><tbody>';
+                    
+                    logs.forEach(l => {
+                        htmlContent += `<tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 8px;"><b>${l.username}</b> <small style="color:var(--gray-500)">(${l.role})</small></td>
+                            <td style="padding: 8px; color: var(--primary);">${l.school || '-'}</td>
+                            <td style="padding: 8px; text-align: right; color: var(--gray-700);">${l.time}</td>
+                        </tr>`;
+                    });
+                    htmlContent += '</tbody></table></div>';
+
+                    const action = await Swal.fire({
+                        title: 'Son Giriş Yapanlar (' + logs.length + ')',
+                        html: htmlContent,
+                        width: '700px',
+                        showDenyButton: true,
+                        showCancelButton: true,
+                        showConfirmButton: false,
+                        denyButtonText: '<i class="fa-solid fa-trash"></i> Listeyi Sıfırla',
+                        cancelButtonText: 'Kapat',
+                        customClass: {
+                            denyButton: 'btn btn-danger',
+                            cancelButton: 'btn btn-secondary'
+                        }
+                    });
+
+                    if (action.isDenied) {
+                        const confirmReset = await Swal.fire({
+                            title: 'Emin misiniz?',
+                            text: "Tüm giriş loglarını kalıcı olarak silmek üzeresiniz!",
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#d33',
+                            cancelButtonColor: '#3085d6',
+                            confirmButtonText: 'Evet, Sıfırla',
+                            cancelButtonText: 'İptal'
+                        });
+
+                        if (confirmReset.isConfirmed) {
+                            await fetch(`${supabaseUrl}/rest/v1/app_store`, {
+                                method: 'POST',
+                                headers: {
+                                    'apikey': supabaseKey,
+                                    'Authorization': `Bearer ${supabaseKey}`,
+                                    'Content-Type': 'application/json',
+                                    'Prefer': 'resolution=merge-duplicates'
+                                },
+                                body: JSON.stringify({ id: 'klbk_activity_log', data: { logs: [] } })
+                            });
+                            Swal.fire('Sıfırlandı!', 'Tüm aktivite logları temizlendi.', 'success');
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Log fetch hatası", err);
+                Swal.fire({ icon: 'error', title: 'Hata', text: 'Loglar alınırken bir sorun oluştu.' });
+            }
+
+            btnShowActivity.innerHTML = '<i class="fa-solid fa-list-check"></i> <span>Aktivite Seçenekleri (Giriş Logları)</span>';
+            btnShowActivity.disabled = false;
+        });
+    }
 
     function showMessage(text, type) {
         if (!messageBox) return;
