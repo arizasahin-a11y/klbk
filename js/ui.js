@@ -3037,134 +3037,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     window._isProcessingPrint = false;
     window._cachedFonts = {};
 
-    // Robust file fetcher with caching, link correction, and binary validation
+    // Merkezi DataManager fonksiyonlarını kullan (Yedekleme ve Google Drive desteği için)
     window.getFileBytes = async function (url) {
-        if (!window._fileBytesCache) window._fileBytesCache = {};
-        if (window._fileBytesCache[url]) return window._fileBytesCache[url];
-
-        const isFileProtocol = window.location.protocol === 'file:';
-        let fetchUrl = url;
-        let driveId = null;
-
-        if (url.includes('drive.google.com')) {
-            const parts = url.match(/\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/) || url.match(/\/file\/d\/([^/]+)/);
-            driveId = parts ? parts[1].split(/[/?#&]/)[0] : null;
-            if (driveId) {
-                fetchUrl = "https://drive.usercontent.google.com/download?id=" + driveId + "&export=download";
-            }
-        }
-
-        const decodeB64 = (b64) => {
-            const bin = atob(b64);
-            const len = bin.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) bytes[i] = bin.charCodeAt(i);
-            return bytes.buffer;
-        };
-
-        const validateBuffer = (buffer) => {
-            if (!buffer || buffer.byteLength < 5) return false;
-            const arr = new Uint8Array(buffer.slice(0, 8));
-            const sig = String.fromCharCode(...arr.slice(0, 5));
-            return sig === '%PDF-' || sig.startsWith('OTTO') || sig.startsWith('true') || (arr[0] === 0 && arr[1] === 1) || (arr[0] === 0x89 && arr[1] === 0x50) || (arr[0] === 0xFF && arr[1] === 0xD8) || sig.includes('<svg');
-        };
-
-        const fetchWithRetry = async (target, retryCount = 0) => {
-            try {
-                const res = await fetch(target, { mode: 'cors', cache: 'no-store' });
-                if (res.ok) {
-                    const ct = res.headers.get('content-type') || '';
-                    if (ct.includes('text/html')) {
-                        const html = await res.text();
-                        const confirm = html.match(/confirm=([a-zA-Z0-9_-]+)/);
-                        if (confirm && retryCount === 0) return await fetchWithRetry(target + "&confirm=" + confirm[1], 1);
-                        throw new Error("HTML_RECEIVED");
-                    }
-                    return await res.arrayBuffer();
-                }
-                throw new Error("HTTP_" + res.status);
-            } catch (e) { throw e; }
-        };
-
-        try {
-            // Stage 0: Custom Google Apps Script Proxy (PRIORITY)
-            if (driveId) {
-                try {
-                    console.log("Using Custom GAS Proxy for ID:", driveId);
-                    const gasUrl = "https://script.google.com/macros/s/AKfycbzzq1WBvSNmM5yGVH49vt2EOkTA83sFFSiysuqg4x54L3Cn9DEOmixlHW8fd_bLJ_du/exec" + "?id=" + driveId;
-                    const res = await fetch(gasUrl);
-                    const b64 = await res.text();
-                    if (b64 && !b64.startsWith("Hata") && b64.length > 100) {
-                        const buf = decodeB64(b64);
-                        if (validateBuffer(buf)) {
-                            window._fileBytesCache[url] = buf;
-                            return buf;
-                        }
-                    }
-                } catch (e) { console.warn("Custom Proxy failed, trying alternatives...", e); }
-            }
-
-            // Stage 1: Direct Fetch
-            let result = await fetchWithRetry(fetchUrl);
-            if (validateBuffer(result)) {
-                window._fileBytesCache[url] = result;
-                return result;
-            }
-        } catch (err) {
-            console.warn("Direct fetch failed, trying Proxy Pool...", err.message);
-            const proxyList = [
-                (u) => "https://corsproxy.io/?" + encodeURIComponent(u),
-                (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
-                (u) => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u)
-            ];
-
-            for (let i = 0; i < proxyList.length; i++) {
-                try {
-                    const pUrl = proxyList[i](fetchUrl);
-                    const res = await fetch(pUrl);
-                    const buf = await res.arrayBuffer();
-                    if (validateBuffer(buf)) {
-                        window._fileBytesCache[url] = buf;
-                        return buf;
-                    }
-                } catch (pe) { console.warn("Proxy #" + (i+1) + " failed"); }
-            }
-
-            Swal.fire({
-                icon: isFileProtocol ? 'warning' : 'error',
-                title: 'Dosya İndirilemedi',
-                html: isFileProtocol ? 'Yerel sunucu gerekli.' : 'Google Drive erişimi engellendi. Proxy sunucuları da yanıt vermiyor.',
-                footer: "<details><summary>Teknik Detay</summary>URL: " + url + "<br>ID: " + driveId + "</details>"
-            });
-            return null;
-        }
+        return await DataManager.getFileBytes(url);
     };
-    window.loadRequiredFonts = async (pdfDoc) => {
-        pdfDoc.registerFontkit(window.fontkit);
-        const { getFileBytes } = window;
-        if (!window._cachedFonts) window._cachedFonts = {};
-        const urls = {
-            main: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf',
-            nameFont: 'fonts/MonotypeCorsiva.ttf',
-            schoolFont: 'fonts/SnapITC.ttf'
-        };
 
-        const keys = Object.keys(urls);
-        await Promise.all(keys.map(async (key) => {
-            if (!window._cachedFonts[key]) {
-                try {
-                    const bytes = await getFileBytes(urls[key]);
-                    if (bytes && bytes.byteLength > 1000) window._cachedFonts[key] = bytes;
-                } catch (e) { }
-            }
-        }));
-
-        const fonts = {};
-        const fallback = await pdfDoc.embedFont(window.PDFLib.StandardFonts.HelveticaBold);
-        fonts.mainFont = window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback;
-        fonts.nameFont = window._cachedFonts.nameFont ? await pdfDoc.embedFont(window._cachedFonts.nameFont) : (window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback);
-        fonts.schoolFont = window._cachedFonts.schoolFont ? await pdfDoc.embedFont(window._cachedFonts.schoolFont) : (window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback);
-        return fonts;
+    window.loadRequiredFonts = async function (pdfDoc) {
+        return await DataManager.loadRequiredFonts(pdfDoc);
     };
 
     window.finalizeAndPrint = (blobUrl, onFinalize = null) => {
@@ -6235,7 +6114,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
 
             // Font loading using shared utility
-            const fonts = await window.loadRequiredFonts(pdfDoc);
+            const fonts = await DataManager.loadRequiredFonts(pdfDoc);
             
             const A4_W = 595.28, A4_H = 841.89;
             const sf = 1 / Math.min(A4_W / width, A4_H / height);

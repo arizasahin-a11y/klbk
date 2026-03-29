@@ -646,6 +646,141 @@ const DataManager = {
             console.log("Date formats fixed and standardized to DD.MM.YYYY");
             this._saveData(this._memoryData);
         }
+    },
+
+    // --- PDF & File Fetching Utilities ---
+    _fileBytesCache: {},
+
+    getFileBytes: async function (url) {
+        if (!url) return null;
+        if (this._fileBytesCache[url]) return this._fileBytesCache[url];
+
+        let driveId = null;
+        // Gelişmiş Google Drive ID çıkarma regexi
+        if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+            const parts = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || 
+                          url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || 
+                          url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+                          url.match(/\/open\?id=([a-zA-Z0-9_-]+)/);
+            if (parts) driveId = parts[1];
+        }
+
+        const gasUrl = "https://script.google.com/macros/s/AKfycbzzq1WBvSNmM5yGVH49vt2EOkTA83sFFSiysuqg4x54L3Cn9DEOmixlHW8fd_bLJ_du/exec";
+
+        const fetchWithRetry = async (targetUrl) => {
+            try {
+                const response = await fetch(targetUrl);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                // Google Drive "Virus Scan" veya "Large File" onay sayfasını kontrol et
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('text/html')) {
+                    const html = await response.text();
+                    if (html.includes('confirm=')) {
+                        const confirmToken = html.match(/confirm=([a-zA-Z0-9_-]+)/)?.[1];
+                        if (confirmToken) {
+                            const newUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'confirm=' + confirmToken;
+                            const retryRes = await fetch(newUrl);
+                            return await retryRes.arrayBuffer();
+                        }
+                    }
+                    if (html.includes('google.com/file/d/')) {
+                         // Eğer bir şekilde HTML sayfası dönüyorsa (izinsiz erişim vb) hata fırlat
+                         throw new Error("Google Drive Preview page returned instead of file.");
+                    }
+                }
+                return await response.arrayBuffer();
+            } catch (e) {
+                console.warn(`Fetch failed for ${targetUrl}:`, e);
+                return null;
+            }
+        };
+
+        // 1. Yol: Eğer Google Drive ID varsa, önce custom GAS Proxy dene (En güvenilir CORS çözümü)
+        if (driveId) {
+            try {
+                const proxyUrl = `${gasUrl}?id=${driveId}`;
+                const res = await fetch(proxyUrl);
+                if (res.ok) {
+                    const base64 = await res.text();
+                    if (base64 && base64.length > 100 && !base64.startsWith('<!DOCTYPE')) {
+                        const binaryString = atob(base64);
+                        const bytes = new Uint8Array(binaryString.length);
+                        for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+                        this._fileBytesCache[url] = bytes.buffer;
+                        return bytes.buffer;
+                    }
+                }
+            } catch (e) { console.warn("GAS Proxy failed:", e); }
+        }
+
+        // 2. Yol: Doğrudan indirme linklerini dene
+        const directUrls = [];
+        if (driveId) {
+            directUrls.push(`https://drive.usercontent.google.com/download?id=${driveId}&export=download`);
+            directUrls.push(`https://drive.google.com/uc?export=download&id=${driveId}`);
+        } else {
+            directUrls.push(url);
+        }
+
+        for (const dUrl of directUrls) {
+            const bytes = await fetchWithRetry(dUrl);
+            if (bytes && bytes.byteLength > 100) {
+                this._fileBytesCache[url] = bytes;
+                return bytes;
+            }
+        }
+
+        // 3. Yol: CORS Proxyleri üzerinden dene
+        const proxies = [
+            "https://api.allorigins.win/raw?url=",
+            "https://corsproxy.io/?",
+            "https://proxy.cors.sh/"
+        ];
+
+        for (const proxy of proxies) {
+            for (const dUrl of directUrls) {
+                const pUrl = proxy + encodeURIComponent(dUrl);
+                const bytes = await fetchWithRetry(pUrl);
+                if (bytes && bytes.byteLength > 100) {
+                    this._fileBytesCache[url] = bytes;
+                    return bytes;
+                }
+            }
+        }
+
+        return null;
+    },
+
+    loadRequiredFonts: async function (pdfDoc) {
+        if (typeof PDFLib === 'undefined') return {};
+        const { StandardFonts } = PDFLib;
+        
+        const [helveticaBold, helvetica] = await Promise.all([
+            pdfDoc.embedFont(StandardFonts.HelveticaBold),
+            pdfDoc.embedFont(StandardFonts.Helvetica)
+        ]);
+
+        const customFonts = {
+            mainFont: helveticaBold,
+            schoolFont: helveticaBold,
+            nameFont: helveticaBold,
+            normalFont: helvetica
+        };
+
+        try {
+            // Roboto Medium fontunu yükle
+            const robotoUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf';
+            const robotoBytes = await this.getFileBytes(robotoUrl);
+            if (robotoBytes) {
+                const robotoFont = await pdfDoc.embedFont(robotoBytes);
+                customFonts.mainFont = robotoFont;
+                customFonts.schoolFont = robotoFont;
+                customFonts.nameFont = robotoFont;
+            }
+        } catch (e) { console.warn("Roboto font load failed:", e); }
+
+        return customFonts;
     }
 };
 

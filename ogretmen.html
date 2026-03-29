@@ -1283,16 +1283,11 @@
             };
 
             try {
-                const pdfBytes = await window.getFileBytes(printPath);
+                const pdfBytes = await DataManager.getFileBytes(printPath);
                 if (!pdfBytes) {
-                    Swal.fire({ icon: 'error', title: 'Hata', text: 'Soru kağıdı verdiğiniz adreste bulunamadı' });
+                    Swal.fire({ icon: 'error', title: 'Hata', text: 'Soru kağıdı indirilemedi veya bulunamadı.' });
                     if (finalize) finalize(null);
                     return;
-                }
-
-                // Skip processing if already blob and no info
-                if (printPath.startsWith('blob:') && (!info || Object.keys(info).length === 0)) {
-                    return window.finalizeAndPrint(printPath, () => finalize(null));
                 }
 
                 const { PDFDocument } = PDFLib;
@@ -1300,7 +1295,7 @@
 
                 if (typeof fontkit !== 'undefined') pdfDoc.registerFontkit(fontkit);
 
-                const fonts = await loadRequiredFonts(pdfDoc);
+                const fonts = await DataManager.loadRequiredFonts(pdfDoc);
                 const pages = pdfDoc.getPages();
 
                 for (let i = 0; i < pages.length; i++) {
@@ -1326,29 +1321,7 @@
             }
         };
 
-        const loadRequiredFonts = async (pdfDoc) => {
-            const urls = {
-                main: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf',
-                nameFont: 'fonts/MonotypeCorsiva.ttf',
-                schoolFont: 'fonts/SnapITC.ttf'
-            };
-            for (const key in urls) {
-                if (!window._cachedFonts[key]) {
-                    try {
-                        const bytes = await window.getFileBytes(urls[key]);
-                        if (bytes && bytes.byteLength > 1000) window._cachedFonts[key] = bytes;
-                    } catch (e) { console.warn(`Font fetch failed: ${key}`, e); }
-                }
-            }
-            const fonts = {};
-            const fallback = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
-            fonts.mainFont = window._cachedFonts.main ? await pdfDoc.embedFont(window._cachedFonts.main) : fallback;
-            fonts.nameFont = window._cachedFonts.nameFont ? await pdfDoc.embedFont(window._cachedFonts.nameFont) : fonts.mainFont;
-            fonts.schoolFont = window._cachedFonts.schoolFont ? await pdfDoc.embedFont(window._cachedFonts.schoolFont) : fonts.mainFont;
-            return fonts;
-        };
-
-        // renderStudentPDFHeader artık js/ui.js'ten kullanılıyor
+        // Font ve PDF Header fonksiyonları artık merkezi js/data.js ve js/ui.js üzerinden kullanılıyor.
 
         async function printPapersForGroupBatch(targetStudents, session, groupLabel) {
             const { PDFDocument } = PDFLib;
@@ -1362,7 +1335,7 @@
             try {
                 const mergedPdf = await PDFDocument.create();
                 if (typeof fontkit !== 'undefined') mergedPdf.registerFontkit(fontkit);
-                const fonts = await loadRequiredFonts(mergedPdf);
+                const fonts = await DataManager.loadRequiredFonts(mergedPdf);
                 const imageCache = {}; // Local image cache
                 const docCache = {}; // Local document object cache for this batch
                 const metadata = session.subjectMetadata || {};
@@ -1392,7 +1365,7 @@
                             if (window._pdfTemplateCache[printPath]) {
                                 bytes = window._pdfTemplateCache[printPath];
                             } else {
-                                bytes = await window.getFileBytes(printPath);
+                                bytes = await DataManager.getFileBytes(printPath);
                                 window._pdfTemplateCache[printPath] = bytes;
                             }
                             if (bytes) {
@@ -1473,14 +1446,14 @@
 
             try {
                 // Perform the fetch WITHOUT showing an internal alert immediately if it's handled by testPdfLink
-                const pdfBytes = await window.getFileBytes(url);
+                const pdfBytes = await DataManager.getFileBytes(url);
                 if (!pdfBytes) return; // If null, getFileBytes already showed the technical modal. Stop here.
 
                 const { PDFDocument } = PDFLib;
                 const pdfDoc = await PDFDocument.load(pdfBytes);
                 if (typeof fontkit !== 'undefined') pdfDoc.registerFontkit(fontkit);
 
-                const fonts = await loadRequiredFonts(pdfDoc);
+                const fonts = await DataManager.loadRequiredFonts(pdfDoc);
                 const page = pdfDoc.getPages()[0];
                 if (!page) throw new Error("PDF sayfası bulunamadı.");
 
