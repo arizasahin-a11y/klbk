@@ -150,7 +150,6 @@ const DataManager = {
         const bucketName = 'xms';
         const listUrl = `${this.supabaseUrl}/storage/v1/object/list/${bucketName}`;
         const currentUser = sessionStorage.getItem('klbk_currentUser') || '';
-        const prefix = teacherOnly && currentUser ? currentUser + '_' : '';
 
         try {
             const res = await fetch(listUrl, {
@@ -161,10 +160,11 @@ const DataManager = {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    prefix: prefix,
+                    prefix: '',
                     limit: 100,
                     offset: 0,
-                    sortBy: { column: 'created_at', order: 'desc' }
+                    sortBy: { column: 'created_at', order: 'desc' },
+                    search: '' // Ensure Supabase returns all
                 })
             });
 
@@ -174,11 +174,19 @@ const DataManager = {
             }
 
             const files = await res.json();
-            return files.map(f => ({
+            
+            let mappedFiles = files.map(f => ({
                 name: f.name,
                 url: `${this.supabaseUrl}/storage/v1/object/public/${bucketName}/${f.name}`,
                 created_at: f.created_at
             }));
+
+            if (teacherOnly && currentUser) {
+                const searchPrefix = currentUser + '_';
+                mappedFiles = mappedFiles.filter(f => f.name.startsWith(searchPrefix));
+            }
+
+            return mappedFiles;
         } catch (e) {
             console.error("Supabase Storage List Error:", e);
             throw e;
