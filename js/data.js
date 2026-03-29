@@ -83,16 +83,33 @@ const DataManager = {
         }
     },
 
+    // Helper to safely format paths for cloud buckets (removes special chars & turkish chars)
+    sanitizeSupabaseString: function (str) {
+        if (!str) return '';
+        const trMap = {
+            'ç': 'c', 'Ç': 'C', 'ğ': 'g', 'Ğ': 'G',
+            'ı': 'i', 'I': 'I', 'İ': 'I',
+            'ö': 'o', 'Ö': 'O', 'ş': 's', 'Ş': 'S',
+            'ü': 'u', 'Ü': 'U', ' ': '_'
+        };
+        let s = '';
+        for (let char of str) s += trMap[char] || char;
+        // Keep only alphanumeric, dot, hyphen, underscore safely
+        return s.replace(/[^a-zA-Z0-9.\-_]/g, '');
+    },
+
     // --- Supabase Storage (PDF Uploads) ---
     uploadFileToSupabase: async function (file) {
         if (!file) return null;
 
         const bucketName = 'xms';
         const currentUser = sessionStorage.getItem('klbk_currentUser') || 'unknown';
-        // Clean the original filename, but preserve it without adding random strings
-        let cleanName = file.name.replace(/[^a-zA-Z0-9.\-—_ğüşöçİĞÜŞÖÇ ]/g, "_");
-        // Add teacher username prefix to filter files
-        const uniqueFileName = `${currentUser}_${cleanName}`;
+        
+        // Remove Turkish characters and spaces to prevent "InvalidKey" 400 API errors
+        const cleanUser = this.sanitizeSupabaseString(currentUser);
+        let cleanName = this.sanitizeSupabaseString(file.name);
+        
+        const uniqueFileName = `${cleanUser}_${cleanName}`;
 
         const uploadUrl = `${this.supabaseUrl}/storage/v1/object/${bucketName}/${uniqueFileName}`;
 
@@ -182,7 +199,8 @@ const DataManager = {
             }));
 
             if (teacherOnly && currentUser) {
-                const searchPrefix = currentUser + '_';
+                // Ensure we filter using the exact same sanitized prefix as used during upload
+                const searchPrefix = this.sanitizeSupabaseString(currentUser) + '_';
                 mappedFiles = mappedFiles.filter(f => f.name.startsWith(searchPrefix));
             }
 
