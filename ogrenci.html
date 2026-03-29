@@ -697,7 +697,15 @@
             // Check Rules Agreement
             const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
             const now = Date.now();
-            const lastAccepted = currentStudent.rulesAcceptedAt || 0;
+            
+            // Read mostly from local device to prevent DB race conditions
+            let lastAccepted = parseInt(localStorage.getItem(`klbk_rules_${currentStudent.no}`) || '0');
+            
+            // Legacy check
+            if (currentStudent.rulesAcceptedAt && currentStudent.rulesAcceptedAt > lastAccepted) {
+                lastAccepted = currentStudent.rulesAcceptedAt;
+                localStorage.setItem(`klbk_rules_${currentStudent.no}`, lastAccepted.toString());
+            }
 
             document.getElementById('loginView').classList.add('hidden');
 
@@ -713,8 +721,9 @@
 
         function acceptRules() {
             if (!currentStudent) return;
-            currentStudent.rulesAcceptedAt = Date.now();
-            DataManager.addStudent(currentStudent); // Save to cloud
+            // Save to device storage to prevent massive data overwrite race conditions on cloud DB
+            localStorage.setItem(`klbk_rules_${currentStudent.no}`, Date.now().toString());
+            
             document.getElementById('rulesView').classList.add('hidden');
             showResultsScreen();
         }
