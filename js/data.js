@@ -88,10 +88,11 @@ const DataManager = {
         if (!file) return null;
 
         const bucketName = 'xms';
+        const currentUser = sessionStorage.getItem('klbk_currentUser') || 'unknown';
         // Clean the original filename, but preserve it without adding random strings
         let cleanName = file.name.replace(/[^a-zA-Z0-9.\-—_ğüşöçİĞÜŞÖÇ ]/g, "_");
-        // Ensure name is unique enough if uploaded multiple times? Usually Supabase allows overwrite if upsert is true. We'll add a short prefix just in case to prevent accidental full overwrites if they upload different files with the same name, or just use the clean name. Let's use just the name so it overwrites/updates cleanly.
-        const uniqueFileName = cleanName;
+        // Add teacher username prefix to filter files
+        const uniqueFileName = `${currentUser}_${cleanName}`;
 
         const uploadUrl = `${this.supabaseUrl}/storage/v1/object/${bucketName}/${uniqueFileName}`;
 
@@ -145,9 +146,11 @@ const DataManager = {
         }
     },
 
-    listSupabaseFiles: async function () {
+    listSupabaseFiles: async function (teacherOnly = false) {
         const bucketName = 'xms';
         const listUrl = `${this.supabaseUrl}/storage/v1/object/list/${bucketName}`;
+        const currentUser = sessionStorage.getItem('klbk_currentUser') || '';
+        const prefix = teacherOnly && currentUser ? currentUser + '_' : '';
 
         try {
             const res = await fetch(listUrl, {
@@ -158,7 +161,7 @@ const DataManager = {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    prefix: '',
+                    prefix: prefix,
                     limit: 100,
                     offset: 0,
                     sortBy: { column: 'created_at', order: 'desc' }
