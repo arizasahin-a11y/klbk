@@ -779,6 +779,14 @@ const DataManager = {
 
     loadRequiredFonts: async function (pdfDoc) {
         if (typeof PDFLib === 'undefined') return {};
+        
+        // Fontkit'i kaydet ! (Özel TTF fontlarını yükleyebilmek için ÇOK ÖNEMLİ)
+        if (typeof window !== 'undefined' && window.fontkit) {
+            pdfDoc.registerFontkit(window.fontkit);
+        } else if (typeof fontkit !== 'undefined') {
+            pdfDoc.registerFontkit(fontkit);
+        }
+
         const { StandardFonts } = PDFLib;
         
         const [helveticaBold, helvetica] = await Promise.all([
@@ -794,7 +802,7 @@ const DataManager = {
         };
 
         try {
-            // Roboto Medium fontunu yükle
+            // Roboto Medium fontunu yükle (Türkçe karakter desteği için)
             const robotoUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf';
             const robotoBytes = await this.getFileBytes(robotoUrl);
             if (robotoBytes) {
