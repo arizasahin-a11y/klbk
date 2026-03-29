@@ -651,6 +651,13 @@ const DataManager = {
     // --- PDF & File Fetching Utilities ---
     _fileBytesCache: {},
 
+    validateBuffer: function (buffer) {
+        if (!buffer || buffer.byteLength < 5) return false;
+        const arr = new Uint8Array(buffer.slice(0, 10));
+        const header = String.fromCharCode(...arr);
+        return header.includes('%PDF-') || header.includes('OTTO') || header.startsWith('\x00\x01\x00\x00') || header.startsWith('wOFF');
+    },
+
     getFileBytes: async function (url) {
         if (!url) return null;
         if (this._fileBytesCache[url]) return this._fileBytesCache[url];
@@ -667,9 +674,13 @@ const DataManager = {
 
         const gasUrl = "https://script.google.com/macros/s/AKfycbzzq1WBvSNmM5yGVH49vt2EOkTA83sFFSiysuqg4x54L3Cn9DEOmixlHW8fd_bLJ_du/exec";
 
-        const fetchWithRetry = async (targetUrl) => {
+        const fetchWithRetry = async (targetUrl, useTimeout = true) => {
+            const controller = new AbortController();
+            const timeoutId = useTimeout ? setTimeout(() => controller.abort(), 6000) : null;
+            
             try {
-                const response = await fetch(targetUrl);
+                const response = await fetch(targetUrl, { signal: controller.signal });
+                if (timeoutId) clearTimeout(timeoutId);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 
                 // Google Drive "Virus Scan" veya "Large File" onay sayfasını kontrol et
@@ -684,14 +695,11 @@ const DataManager = {
                             return await retryRes.arrayBuffer();
                         }
                     }
-                    if (html.includes('google.com/file/d/')) {
-                         // Eğer bir şekilde HTML sayfası dönüyorsa (izinsiz erişim vb) hata fırlat
-                         throw new Error("Google Drive Preview page returned instead of file.");
-                    }
+                    throw new Error("Google Drive Preview page returned instead of file.");
                 }
                 return await response.arrayBuffer();
             } catch (e) {
-                console.warn(`Fetch failed for ${targetUrl}:`, e);
+                if (timeoutId) clearTimeout(timeoutId);
                 return null;
             }
         };
@@ -700,18 +708,25 @@ const DataManager = {
         if (driveId) {
             try {
                 const proxyUrl = `${gasUrl}?id=${driveId}`;
-                const res = await fetch(proxyUrl);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s maks
+                const res = await fetch(proxyUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
                 if (res.ok) {
                     const base64 = await res.text();
-                    if (base64 && base64.length > 100 && !base64.startsWith('<!DOCTYPE')) {
+                    if (base64 && base64.length > 100 && !base64.startsWith('<!DOCTYPE') && !base64.startsWith('Hata')) {
                         const binaryString = atob(base64);
                         const bytes = new Uint8Array(binaryString.length);
                         for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-                        this._fileBytesCache[url] = bytes.buffer;
-                        return bytes.buffer;
+                        
+                        if (this.validateBuffer(bytes.buffer)) {
+                            this._fileBytesCache[url] = bytes.buffer;
+                            return bytes.buffer;
+                        }
                     }
                 }
-            } catch (e) { console.warn("GAS Proxy failed:", e); }
+            } catch (e) { console.warn("GAS Proxy failed or timed out."); }
         }
 
         // 2. Yol: Doğrudan indirme linklerini dene
@@ -724,32 +739,42 @@ const DataManager = {
         }
 
         for (const dUrl of directUrls) {
-            const bytes = await fetchWithRetry(dUrl);
-            if (bytes && bytes.byteLength > 100) {
+            const bytes = await fetchWithRetry(dUrl, true);
+            if (bytes && this.validateBuffer(bytes)) {
                 this._fileBytesCache[url] = bytes;
                 return bytes;
             }
         }
 
-        // 3. Yol: CORS Proxyleri üzerinden dene
+        // 3. Yol: CORS Proxyleri üzerinden Paralel deneme (ikinci döngüyü hızlandırmak için)
         const proxies = [
             "https://api.allorigins.win/raw?url=",
             "https://corsproxy.io/?",
-            "https://proxy.cors.sh/"
+            "https://api.codetabs.com/v1/proxy?quest="
         ];
 
+        // Proxylere aynı anda istek gönder, dönen ilk başarılı sonucu al!
+        const promises = [];
         for (const proxy of proxies) {
             for (const dUrl of directUrls) {
                 const pUrl = proxy + encodeURIComponent(dUrl);
-                const bytes = await fetchWithRetry(pUrl);
-                if (bytes && bytes.byteLength > 100) {
-                    this._fileBytesCache[url] = bytes;
-                    return bytes;
-                }
+                promises.push(
+                     fetchWithRetry(pUrl, true).then(buf => {
+                          if (buf && this.validateBuffer(buf)) return buf;
+                          throw new Error("Invalid buffer");
+                     })
+                );
             }
         }
 
-        return null;
+        try {
+            const successBuffer = await Promise.any(promises);
+            this._fileBytesCache[url] = successBuffer;
+            return successBuffer;
+        } catch (e) {
+            // Hiçbiri başarılı olamadı
+            return null;
+        }
     },
 
     loadRequiredFonts: async function (pdfDoc) {

@@ -1447,7 +1447,7 @@
             try {
                 // Perform the fetch WITHOUT showing an internal alert immediately if it's handled by testPdfLink
                 const pdfBytes = await DataManager.getFileBytes(url);
-                if (!pdfBytes) return; // If null, getFileBytes already showed the technical modal. Stop here.
+                if (!pdfBytes) throw new Error("Dosya içeriği boş veya hatalı."); // Sessiz return yerine hata fırlat ki Swal uyarı ekranı açılabilsin.
 
                 const { PDFDocument } = PDFLib;
                 const pdfDoc = await PDFDocument.load(pdfBytes);
