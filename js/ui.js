@@ -827,6 +827,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="accordion-header" style="padding:1.5rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="this.nextElementSibling.classList.toggle('hidden');">
                         <div style="display:flex; align-items:center; gap:1rem;">
                             <h2 style="color:var(--primary); font-size:1.5rem; margin:0;">${cls} Sınıfı</h2>
+                            <button class="btn btn-danger btn-sm" style="padding:0.4rem 0.85rem; font-size:0.95rem; font-weight:600; border-radius: 8px;" onclick="event.stopPropagation(); window.deleteClassCompletely('${cls}')">
+                                <i class="fa-solid fa-trash"></i> Sınıfı Sil
+                            </button>
                             <button class="btn btn-secondary btn-sm" style="padding:0.4rem 0.85rem; font-size:0.95rem; font-weight:600; border-radius: 8px;" onclick="event.stopPropagation(); window.assignSubjectsToClass('${cls}')">
                                 <i class="fa-solid fa-book"></i> Ders Tanımla
                             </button>
@@ -5801,8 +5804,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             html: html,
             width: 600,
             showCancelButton: true,
+            showDenyButton: true,
             confirmButtonText: 'Kaydet',
             cancelButtonText: 'İptal',
+            denyButtonText: '<i class="fa-solid fa-trash"></i> Sil',
+            denyButtonColor: '#ef4444',
             didOpen: () => {
                 const guide = document.getElementById('edit-code-guide');
                 const input = document.getElementById('edit-std-kodu');
@@ -5873,6 +5879,56 @@ document.addEventListener('DOMContentLoaded', async () => {
                 DataManager._saveData(data);
                 document.querySelector('[data-tab="classLists"]').click();
                 Swal.fire('Başarılı', 'Öğrenci bilgileri güncellendi.', 'success');
+            } else if (result.isDenied) {
+                Swal.fire({
+                    title: 'Emin misiniz?',
+                    text: `${std.class} sınıfındaki ${std.no} numaralı ${std.name} isimli öğrenci silinecek. Bu işlem geri alınamaz!`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Evet, Sil!',
+                    cancelButtonText: 'İptal'
+                }).then((del) => {
+                    if (del.isConfirmed) {
+                        data.students.splice(studentIndex, 1);
+                        DataManager._saveData(data);
+                        document.querySelector('[data-tab="classLists"]').click();
+                        Swal.fire('Silindi!', 'Öğrenci başarıyla silindi.', 'success');
+                    }
+                });
+            }
+        });
+    };
+
+    window.deleteClassCompletely = function (className) {
+        Swal.fire({
+            title: 'Sınıfı Silmek İstediğinize Emin Misiniz?',
+            text: `Bu işlem "${className}" sınıfını ve sınıfta bulunan İÇİNDEKİ TÜM ÖĞRENCİLERİ silecektir. Bu işlem geri alınamaz!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Evet, Tüm Sınıfı Sil!',
+            cancelButtonText: 'İptal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const data = DataManager._getData();
+                data.students = data.students.filter(s => s.class !== className);
+                
+                if (data.classRoomMappings && data.classRoomMappings[className]) {
+                    delete data.classRoomMappings[className];
+                }
+                
+                DataManager._saveData(data);
+                
+                // Refresh list
+                const updateClassesListFn = window.updateClassesList || document.querySelector('[data-tab="classLists"]').click;
+                try {
+                    document.querySelector('[data-tab="classLists"]').click();
+                } catch(e) {}
+                
+                Swal.fire('Silindi!', `"${className}" sınıfı ve öğrencileri silindi.`, 'success');
             }
         });
     };

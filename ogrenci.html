@@ -797,7 +797,8 @@
                 // Sınav biteli 30 dakikadan fazla olduysa GÖSTERME
                 if (diffEndMins < -30) return;
 
-                let stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (diffMins > (ses.screenViewLimit || 8) ? 'med' : 'near')));
+                const limit = ses.screenViewLimit || 8;
+                let stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
                 lastStates[ses.id] = stateCode;
 
                 const displayTime = ses.time.includes('. Ders') ? `${ses.time} (${targetTime.getHours().toString().padStart(2, '0')}:${targetTime.getMinutes().toString().padStart(2, '0')})` : ses.time;
@@ -872,7 +873,8 @@
 
                 let newState = 'hidden';
                 if (diffMins <= 36 * 60 && diffEndMins >= -30) {
-                    newState = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (diffMins > (ses.screenViewLimit || 8) ? 'med' : 'near')));
+                    const limit = ses.screenViewLimit || 8;
+                    newState = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
                 }
 
                 // Only trigger full render if state actually changes
@@ -1143,7 +1145,6 @@
                         </div>
                     </div>
 
-                    ${!(ses.screenViewLimit > 0) ? `
                     <div class="nested-accordion">
                         <div class="nested-header" onclick="toggleNested(this)">
                             <span><i class="fa-solid fa-thumbtack" style="color:var(--primary); margin-right:10px;"></i> ${myRoom.name} Salonu Oturma Planı</span>
@@ -1162,7 +1163,7 @@
                                 <div style="display:flex; align-items:center; gap:6px;"><div style="width:12px; height:12px; background:rgba(245, 158, 11, 0.15); border:1.5px solid var(--warning); border-radius:3px;"></div> Aynı Ders (Arka/Ön)</div>
                             </div>
                         </div>
-                    </div>` : ''}
+                    </div>
                 </div>`;
         }
 
@@ -1369,7 +1370,7 @@
                 const diffMins = (targetTime - now) / 1000 / 60;
                 const diffEndMins = (endTime - now) / 1000 / 60;
 
-                if (diffMins <= (ses.screenViewLimit || 8) && diffEndMins >= 0) {
+                if (Math.floor(diffMins) <= (ses.screenViewLimit || 8) && diffEndMins >= 0) {
                     const roomResult = ses.results.find(r => r.name === myRoomName);
                     if (roomResult) {
                         activeSession = ses;
