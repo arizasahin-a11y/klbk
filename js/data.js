@@ -652,15 +652,29 @@ const DataManager = {
     _fileBytesCache: {},
 
     validateBuffer: function (buffer) {
-        if (!buffer || buffer.byteLength < 5) return false;
-        const arr = new Uint8Array(buffer.slice(0, 10));
-        const header = String.fromCharCode(...arr);
-        return header.includes('%PDF-') || header.includes('OTTO') || header.startsWith('\x00\x01\x00\x00') || header.startsWith('wOFF');
+        if (!buffer || buffer.byteLength < 10) return false;
+        const arr = new Uint8Array(buffer.slice(0, 100));
+        const str = String.fromCharCode(...arr).toLowerCase();
+        // Sadece HTML hata sayfalarını reddet (CORS proxylerinden dönenleri engellemek için)
+        if (str.includes('<!doctype html') || str.includes('<html') || str.includes('<body') || str.includes('hata oluştu')) {
+            return false;
+        }
+        return true;
     },
 
     getFileBytes: async function (url) {
         if (!url) return null;
         if (this._fileBytesCache[url]) return this._fileBytesCache[url];
+
+        // Data URI ise proxy veya Drive mantığını tamamen atla
+        if (url.startsWith('data:')) {
+            try {
+                const res = await fetch(url);
+                const buf = await res.arrayBuffer();
+                this._fileBytesCache[url] = buf;
+                return buf;
+            } catch (e) { return null; }
+        }
 
         let driveId = null;
         // Gelişmiş Google Drive ID çıkarma regexi
@@ -746,6 +760,11 @@ const DataManager = {
             }
         }
 
+        // Eğer URL yerel (relative) bir dosya veya aynı domain içerisindeyse proxy kullanma, iptal et
+        if (!url.startsWith('http')) {
+            return null; // Local fetch failed so no point in trying internet proxies
+        }
+
         // 3. Yol: CORS Proxyleri üzerinden Paralel deneme (ikinci döngüyü hızlandırmak için)
         const proxies = [
             "https://api.allorigins.win/raw?url=",
@@ -802,16 +821,30 @@ const DataManager = {
         };
 
         try {
-            // Roboto Medium fontunu yükle (Türkçe karakter desteği için)
+            // Fontları paralel yükle
             const robotoUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf';
-            const robotoBytes = await this.getFileBytes(robotoUrl);
+            const nameFontUrl = 'fonts/MonotypeCorsiva.ttf';
+            const schoolFontUrl = 'fonts/SnapITC.ttf';
+
+            const [robotoBytes, nameFontBytes, schoolFontBytes] = await Promise.all([
+                this.getFileBytes(robotoUrl),
+                this.getFileBytes(nameFontUrl).catch(()=>null),
+                this.getFileBytes(schoolFontUrl).catch(()=>null)
+            ]);
+
             if (robotoBytes) {
                 const robotoFont = await pdfDoc.embedFont(robotoBytes);
                 customFonts.mainFont = robotoFont;
                 customFonts.schoolFont = robotoFont;
                 customFonts.nameFont = robotoFont;
             }
-        } catch (e) { console.warn("Roboto font load failed:", e); }
+            if (nameFontBytes) {
+                try { customFonts.nameFont = await pdfDoc.embedFont(nameFontBytes); } catch(e){}
+            }
+            if (schoolFontBytes) {
+                try { customFonts.schoolFont = await pdfDoc.embedFont(schoolFontBytes); } catch(e){}
+            }
+        } catch (e) { console.warn("Font load failed:", e); }
 
         return customFonts;
     }
