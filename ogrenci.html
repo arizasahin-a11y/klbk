@@ -797,7 +797,7 @@
                 // Sınav biteli 30 dakikadan fazla olduysa GÖSTERME
                 if (diffEndMins < -30) return;
 
-                const limit = (ses.screenViewLimit === undefined || ses.screenViewLimit === 8) ? 20 : ses.screenViewLimit;
+                const limit = 20;
                 let stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
                 lastStates[ses.id] = stateCode;
 
@@ -843,7 +843,7 @@
                                 </div>
                             </div>
                             <div id="details-${ses.id}" class="${isOpen ? '' : 'hidden'}">
-                                ${isNearOrActive ? generateDetailsHtml(item) : (isMed ? `<div class="glass-panel" style="padding: 1.5rem; text-align: center; margin-top: 10px; border: 1px dashed var(--primary-light); color: var(--primary); font-weight: 600;"><i class="fa-solid fa-user-shield" style="margin-right: 8px;"></i> Sınav yerleri sınavdan ${(ses.screenViewLimit === undefined || ses.screenViewLimit === 8) ? 20 : ses.screenViewLimit} dakika önce burada açıklanacaktır.</div>` : '')}
+                                ${isNearOrActive ? generateDetailsHtml(item) : (isMed ? `<div class="glass-panel" style="padding: 1.5rem; text-align: center; margin-top: 10px; border: 1px dashed var(--primary-light); color: var(--primary); font-weight: 600;"><i class="fa-solid fa-user-shield" style="margin-right: 8px;"></i> Sınav yerleri sınavdan 20 dakika önce burada açıklanacaktır.</div>` : '')}
                             </div>
                         </div>`;
             });
@@ -873,7 +873,7 @@
 
                 let newState = 'hidden';
                 if (diffMins <= 36 * 60 && diffEndMins >= -30) {
-                    const limit = (ses.screenViewLimit === undefined || ses.screenViewLimit === 8) ? 20 : ses.screenViewLimit;
+                    const limit = 20;
                     newState = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
                 }
 
