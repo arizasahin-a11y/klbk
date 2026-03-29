@@ -4874,7 +4874,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <input type="checkbox" id="meta-screen-check" ${ses.screenViewEnabled ? 'checked' : ''} style="width:18px; height:18px;">
                                     <i class="fa-solid fa-desktop" style="color:var(--info);"></i>
                                 </label>
-                                <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit || 20}" min="1" max="9999" style="width:85px; height:35px; text-align:center; border:1px solid var(--gray-300); border-radius:6px; font-weight:bold;">
+                                <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit !== undefined ? ses.screenViewLimit : 20}" min="0" max="9999" style="width:85px; height:35px; text-align:center; border:1px solid var(--gray-300); border-radius:6px; font-weight:bold;">
                                 <span style="font-size:0.85rem; font-weight:600; color:var(--gray-500);">dk</span>
                             </div>
                         </div>
@@ -4955,7 +4955,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     studentMsg: document.getElementById('meta-std-msg').value.trim(),
                     teacherMsg: document.getElementById('meta-tch-msg').value.trim(),
                     screenViewEnabled: document.getElementById('meta-screen-check').checked,
-                    screenViewLimit: parseInt(document.getElementById('meta-screen-limit').value) || 20
+                    screenViewLimit: (function() {
+                        const val = parseInt(document.getElementById('meta-screen-limit').value);
+                        return isNaN(val) ? 20 : val;
+                    })()
                 };
             }
         })
