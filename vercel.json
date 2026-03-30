@@ -1,4 +1,10 @@
 {
+  "redirects": [
+    { "source": "/master(|.html)", "destination": "/security_error", "permanent": false },
+    { "source": "/ogrenci(|.html)", "destination": "/security_error", "permanent": false },
+    { "source": "/ogretmen(|.html)", "destination": "/security_error", "permanent": false },
+    { "source": "/dashboard(|.html)", "destination": "/security_error", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/k9x7v2m4(|.html)", "destination": "/index.html" },
     { "source": "/h6t3y9w1(|.html)", "destination": "/ogretmen.html" },
