@@ -127,8 +127,22 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     // Use an ultra-robust normalized string for language detection throughout header construction
     const normalizedSubForHeader = (info?.subject || '').replace(/İ/g, 'i').replace(/I/g, 'ı').replace(/ı/g, 'i').replace(/İ/g, 'i').toLowerCase();
     
-    let termDom = ''; try { const el = document.getElementById('academicTerm'); if (el) termDom = el.value; } catch (e) { }
-    const rawTermInput = (sess.academicTerm || termDom || '').trim();
+    let termDom = '';
+    try { const el = document.getElementById('academicTerm'); if (el) termDom = el.value; } catch (e) { }
+
+    // Fallback chain: session object → DOM input → DataManager school settings → date-based auto-detect
+    let rawTermInput = (sess.academicTerm || termDom || '').trim();
+    if (!rawTermInput) {
+        try {
+            const schoolSettings = window.DataManager ? window.DataManager.getSchoolSettings() : null;
+            rawTermInput = (schoolSettings && schoolSettings.academicTerm) ? schoolSettings.academicTerm : '';
+        } catch (e) { }
+    }
+    if (!rawTermInput) {
+        // Date-based auto-detect: Sep–Dec = I. Dönem, Jan = I. Dönem, Feb–Aug = II. Dönem
+        const _m = new Date().getMonth() + 1; // 1-12
+        rawTermInput = (_m >= 2 && _m <= 8) ? 'II' : 'I';
+    }
 
     /**
      * Detects if the raw term string refers to Term 1 or Term 2.
