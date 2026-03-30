@@ -1652,7 +1652,15 @@
                 return;
             }
 
-            allStudentsForEntity.sort((a,b) => parseInt(a.no) - parseInt(b.no));
+            if (mode === 'class') {
+                allStudentsForEntity.sort((a, b) => (parseInt(a.no) || 0) - (parseInt(b.no) || 0));
+            } else {
+                allStudentsForEntity.sort((a, b) => {
+                    const classComp = sortByNum(a.class, b.class);
+                    if (classComp !== 0) return classComp;
+                    return (parseInt(a.no) || 0) - (parseInt(b.no) || 0);
+                });
+            }
 
             let checkboxesHtml = allStudentsForEntity.map(std => {
                 return `
