@@ -286,8 +286,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         const now = new Date();
         const y = now.getFullYear();
         const m = now.getMonth() + 1; // 1-12
-        const autoYear = (m >= 2 && m <= 8) ? `${y - 1}-${y}` : `${y}-${y + 1}`;
-        const autoTerm = (m >= 2 && m <= 8) ? 'II. Dönem' : 'I. Dönem';
+        // Academic calendar rules:
+        // Sep–Dec (9–12) → I. Dönem, year = y / y+1
+        // Jan     (1)    → I. Dönem, year = y-1 / y
+        // Feb–Aug (2–8)  → II. Dönem, year = y-1 / y
+        let autoYear, autoTerm;
+        if (m >= 9) {
+            // Sep–Dec: start of new school year
+            autoYear = `${y}-${y + 1}`;
+            autoTerm = 'I. Dönem';
+        } else if (m === 1) {
+            // January: still first term of the school year that started previous Sep
+            autoYear = `${y - 1}-${y}`;
+            autoTerm = 'I. Dönem';
+        } else {
+            // Feb–Aug: second term of the closing school year
+            autoYear = `${y - 1}-${y}`;
+            autoTerm = 'II. Dönem';
+        }
 
         setVal('academicYear', school.academicYear || autoYear);
         setVal('academicTerm', autoTerm);
