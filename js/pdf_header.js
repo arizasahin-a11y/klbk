@@ -128,11 +128,37 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const normalizedSubForHeader = (info?.subject || '').replace(/İ/g, 'i').replace(/I/g, 'ı').replace(/ı/g, 'i').replace(/İ/g, 'i').toLowerCase();
     
     let termDom = ''; try { const el = document.getElementById('academicTerm'); if (el) termDom = el.value; } catch (e) { }
-    let termStr = (sess.academicTerm || termDom || '').toUpperCase();
-    if (termStr.includes('2.') || termStr.includes('II.')) {
-        termStr = `II. ${lang.term}`;
-    } else if (termStr.includes('1.') || termStr.includes('I.')) {
-        termStr = `I. ${lang.term}`;
+    const rawTermInput = (sess.academicTerm || termDom || '').trim();
+
+    /**
+     * Detects if the raw term string refers to Term 1 or Term 2.
+     * Handles: "1", "2", "I", "II", "1.", "2.", "I.", "II.", "1. Dönem", "2. Dönem", etc.
+     * Returns 1 or 2 (defaults to 1 if ambiguous).
+     */
+    const detectTermNumber = (raw) => {
+        const s = raw.toUpperCase().trim();
+        // Check for "2" or "II" indicators
+        if (/\bII\b/.test(s) || /\b2\b/.test(s) || s.startsWith('II.') || s.startsWith('2.')) return 2;
+        return 1;
+    };
+
+    const termNum = detectTermNumber(rawTermInput);
+
+    // Format term string according to detected language
+    let termStr;
+    const isEnglishSubject = normalizedSubForHeader.includes('ingilizce') || normalizedSubForHeader.includes('english');
+    const isGermanSubject = normalizedSubForHeader.includes('almanca') || normalizedSubForHeader.includes('deutsch');
+    const isFrenchSubject = normalizedSubForHeader.includes('fransizca') || normalizedSubForHeader.includes('francais');
+
+    if (isEnglishSubject) {
+        termStr = termNum === 2 ? '2nd Term' : '1st Term';
+    } else if (isGermanSubject) {
+        termStr = termNum === 2 ? '2. Halbjahr' : '1. Halbjahr';
+    } else if (isFrenchSubject) {
+        termStr = termNum === 2 ? '2ème Semestre' : '1er Semestre';
+    } else {
+        // Turkish (default)
+        termStr = termNum === 2 ? `II. ${lang.term}` : `I. ${lang.term}`;
     }
     const examNoStr = info?.examNo || metadata?.examNo || '';
     
@@ -146,27 +172,19 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     if (schoolFont.widthOfTextAtSize(cleanTurkishChars(sName), 9 * sf) > midW) sName = rawSchoolName;
 
     let examText = '';
-    if (normalizedSubForHeader.includes('ingilizce') || normalizedSubForHeader.includes('english')) {
-        // English specific format: "2025-2026 ACADEMIC YEAR 2nd Term 1st English Exam for 9th Graders"
-        let engTerm = termStr.includes('2') || termStr.includes('II') ? '2nd' : '1st';
+    if (isEnglishSubject) {
+        // English: "2025-2026 ACADEMIC YEAR 1st Term 1st English Exam for 9th Graders"
         let engExamNo = getOrdinal(parseInt(examNoStr) || 1);
-        
         let gradeLevel = (info?.subject || '').match(/\d+/);
         let gradeStr = gradeLevel ? ` for ${getOrdinal(parseInt(gradeLevel[0]))} Graders` : '';
-        
-        // Remove grade numbers from subject name for the "English Exam" part
-        let displaySubject = rawSchoolName.includes('FEN') ? 'English' : 'English'; // Placeholder if needed
         let subjectClean = (lang.subject || '').replace(/\d+/g, '').replace(/İ/g,'i').toLowerCase();
-        // Capitalize first letter (e.g. english -> English)
         subjectClean = subjectClean.charAt(0).toUpperCase() + subjectClean.slice(1).trim();
-
-        examText = `${school.academicYear || ''} ${lang.year} ${engTerm} Term ${engExamNo} ${subjectClean} Exam${gradeStr}`.toUpperCase();
-    } else if (normalizedSubForHeader.includes('almanca') || normalizedSubForHeader.includes('deutsch') || 
-               normalizedSubForHeader.includes('fransizca') || normalizedSubForHeader.includes('francais')) {
-        // Other foreign languages remain in standard format
+        examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${engExamNo} ${subjectClean} Exam${gradeStr}`.toUpperCase();
+    } else if (isGermanSubject || isFrenchSubject) {
+        // German/French: use localized year, term and subject labels
         examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} ${examNoStr ? `${examNoStr}. ` : ''}${lang.written}`.toUpperCase();
     } else {
-        // Türkçe sınavlarda: "2023-2024 ÖĞRETİM YILI I. DÖNEM FİZİK 9 DERSİ 1. SINAVI" formatı
+        // Turkish: "2023-2024 ÖĞRETİM YILI I. DÖNEM FİZİK 9 DERSİ 1. SINAVI"
         examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} DERSİ ${examNoStr ? `${examNoStr}. ` : ''}SINAVI`.toUpperCase();
     }
     

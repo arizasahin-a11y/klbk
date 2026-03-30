@@ -3464,14 +3464,41 @@ document.addEventListener('DOMContentLoaded', async () => {
                         let sName = (school.name || '').replace(/i/g, 'İ').toUpperCase().split('').join(' ');
                         drawCenterText(sName, ix + leftW, iy + row3H + row2H, midW, row1H, 11, schoolFont);
 
-                        let termStr = (sessDom.academicTerm || termDom || '').toUpperCase();
-                        if (termStr === '1. DÖNEM' || termStr === '1 DÖNEM' || termStr === '1. DONEM') termStr = 'I. DÖNEM';
-                        else if (termStr === '2. DÖNEM' || termStr === '2 DÖNEM' || termStr === '2. DONEM') termStr = 'II. DÖNEM';
-                        else termStr = termStr.replace('1.', '1.').replace('2.', '2.');
-                        if (termStr && !termStr.includes('DÖNEM') && !termStr.includes('DONEM')) termStr += ' DÖNEM';
+                        const rawTermForPdf = (sessDom.academicTerm || termDom || '').trim();
+                        const termNumForPdf = (() => {
+                            const s = rawTermForPdf.toUpperCase();
+                            if (/\bII\b/.test(s) || /\b2\b/.test(s) || s.startsWith('II.') || s.startsWith('2.')) return 2;
+                            return 1;
+                        })();
+                        const subNorm = (req.info.subject || '').replace(/İ/g,'i').replace(/I/g,'ı').replace(/ı/g,'i').toLowerCase();
+                        let termStr;
+                        if (subNorm.includes('ingilizce') || subNorm.includes('english')) {
+                            termStr = termNumForPdf === 2 ? '2nd Term' : '1st Term';
+                        } else if (subNorm.includes('almanca') || subNorm.includes('deutsch')) {
+                            termStr = termNumForPdf === 2 ? '2. Halbjahr' : '1. Halbjahr';
+                        } else if (subNorm.includes('fransizca') || subNorm.includes('francais')) {
+                            termStr = termNumForPdf === 2 ? '2ème Semestre' : '1er Semestre';
+                        } else {
+                            termStr = termNumForPdf === 2 ? 'II. DÖNEM' : 'I. DÖNEM';
+                        }
 
                         const examNoStr = req.info.examNo || '';
-                        const examText = `${school.academicYear || ''} ÖĞRETİM YILI ${termStr} ${req.info.subject || ''} DERSİ ${examNoStr ? `${examNoStr}. ` : ''}YAZILI SINAVI`.trim().toUpperCase();
+                        let examText;
+                        if (subNorm.includes('ingilizce') || subNorm.includes('english')) {
+                            const getOrd = (n) => { const s=["th","st","nd","rd"],v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); };
+                            const engExamNo = getOrd(parseInt(examNoStr) || 1);
+                            const gradeLevel = (req.info.subject || '').match(/\d+/);
+                            const gradeStr = gradeLevel ? ` FOR ${getOrd(parseInt(gradeLevel[0]))} GRADERS` : '';
+                            let subClean = (req.info.subject || '').replace(/\d+/g,'').replace(/İ/g,'i').toLowerCase();
+                            subClean = subClean.charAt(0).toUpperCase() + subClean.slice(1).trim();
+                            examText = `${school.academicYear || ''} ACADEMIC YEAR ${termStr} ${engExamNo} ${subClean} EXAM${gradeStr}`.toUpperCase();
+                        } else if (subNorm.includes('almanca') || subNorm.includes('deutsch')) {
+                            examText = `${school.academicYear || ''} SCHULJAHR ${termStr} ${(req.info.subject||'').toUpperCase()} ${examNoStr ? `${examNoStr}. ` : ''}SCHRIFTLICHE PRÜFUNG`.toUpperCase();
+                        } else if (subNorm.includes('fransizca') || subNorm.includes('francais')) {
+                            examText = `${school.academicYear || ''} ANNÉE SCOLAIRE ${termStr} ${(req.info.subject||'').toUpperCase()} ${examNoStr ? `${examNoStr}. ` : ''}EXAMEN ÉCRIT`.toUpperCase();
+                        } else {
+                            examText = `${school.academicYear || ''} ÖĞRETİM YILI ${termStr} ${req.info.subject || ''} DERSİ ${examNoStr ? `${examNoStr}. ` : ''}YAZILI SINAVI`.trim().toUpperCase();
+                        }
 
                         let row2Sz = 14;
                         let examTextWidth = mainFont ? mainFont.widthOfTextAtSize(cleanTurkishChars(examText), row2Sz) : examText.length * (row2Sz * 0.6);
