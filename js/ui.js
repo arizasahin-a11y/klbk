@@ -286,8 +286,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const now = new Date();
         const y = now.getFullYear();
         const m = now.getMonth() + 1; // 1-12
-        const autoYear = (m < 1 || m > 7) ? `${y}-${y + 1}` : `${y - 1}-${y}`;
-        const autoTerm = (m < 2) ? 'I. D\u00f6nem' : ((m >= 2 && m <= 7) ? 'II. D\u00f6nem' : 'I. D\u00f6nem');
+        const autoYear = (m >= 2 && m <= 8) ? `${y - 1}-${y}` : `${y}-${y + 1}`;
+        const autoTerm = (m >= 2 && m <= 8) ? 'II. Dönem' : 'I. Dönem';
 
         setVal('academicYear', school.academicYear || autoYear);
         setVal('academicTerm', autoTerm);
