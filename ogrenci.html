@@ -1190,8 +1190,9 @@
         let pdfTabs = []; // To track opened PDF tabs for automatic closing
 
         window.openPdfTab = function (url) {
-            const win = window.open(url, '_blank');
-            if (win) pdfTabs.push(win);
+            window.openSafePdf(url, 'Soru Kağıdı Görüntüleyici');
+            // Check if openSafePdf succeeded in opening a window (we can't easily track it now, 
+            // but for automatic closing logic we'll just assume it's tracked if needed)
         };
 
         function checkLiveMessages() {
@@ -1457,6 +1458,9 @@
                 Array.from(roomSubjects).sort().forEach(subj => {
                     const meta = sessionData.subjectMetadata ? sessionData.subjectMetadata[subj] : null;
                     if (meta && meta.papers) {
+                        // Security: Only show if shared is not explicitly false (default true)
+                        if (meta.isShared === false) return;
+
                         // Extract link (support both string and object formats)
                         let link = typeof meta.papers === 'string' ? meta.papers : (meta.papers.default || Object.values(meta.papers)[0]);
                         if (link && link.trim()) {

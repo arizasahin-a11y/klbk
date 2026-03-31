@@ -636,4 +636,56 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const lDim = 28 * sf;
         await drawLogo(ox + (leftW - lDim) / 2, oy + row3H + (oh - row3H - lDim) / 2, lDim);
     }
-};;
+};
+
+window.openSafePdf = function (url, title = 'PDF Görüntüleyici') {
+    if (!url) return;
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+        window.open(url, '_blank');
+        return;
+    }
+
+    const newWin = window.open('', '_blank');
+    if (!newWin) {
+        window.open(url, '_blank');
+        return;
+    }
+
+    newWin.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>${title}</title>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+            <style>
+                body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #525659; }
+                iframe { width: 100%; height: 100%; border: none; }
+                .floating-print-btn { 
+                    position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; 
+                    background: #4f46e5; color: white; border: none; border-radius: 50%; 
+                    cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
+                    display: flex; align-items: center; justify-content: center; 
+                    font-size: 24px; z-index: 10000; transition: all 0.3s; 
+                }
+                .floating-print-btn:hover { background: #4338ca; transform: scale(1.1); }
+                @media print { .floating-print-btn { display: none !important; } }
+            </style>
+        </head>
+        <body>
+            <iframe src="${url}" name="printFrame"></iframe>
+            <button class="floating-print-btn" onclick="try { window.frames['printFrame'].focus(); window.frames['printFrame'].print(); } catch(e) { window.print(); }" title="Yazdır">
+                <i class="fas fa-print"></i>
+            </button>
+            <script>
+                window.onload = function() {
+                    setTimeout(() => { try { window.frames['printFrame'].focus(); } catch(e) {} }, 500);
+                };
+            </script>
+        </body>
+        </html>
+    `);
+    newWin.document.close();
+};

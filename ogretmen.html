@@ -582,7 +582,12 @@
                                 const groupPdf = (meta.papers && meta.papers[groupLetter]) || '';
                                 papersHtml += `
                                     <div style="margin-bottom:12px; background:white; padding:15px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: var(--shadow-sm);">
-                                        <label style="font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform:uppercase; display: block; margin-bottom: 8px;">Grup ${groupLetter} Soru Kağıdı</label>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                            <label style="font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform:uppercase; margin:0;">Grup ${groupLetter} Soru Kağıdı</label>
+                                            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); cursor: pointer;" title="Öğrenci ekranında göster/gizle">
+                                                <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared !== false ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 16px; height: 16px; accent-color: var(--primary);"> Paylaş
+                                            </label>
+                                        </div>
                                         <div style="display: flex; gap: 8px;">
                                             <input type="text" id="pdfLink-${ses.id}-${encodedSub}-${groupLetter}" class="form-control" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" placeholder="https://..." value="${groupPdf}">
                                             <button class="btn btn-primary" style="padding: 0.65rem 1.25rem; border-radius:8px; font-weight:800;" onclick="savePdfLink('${ses.id}', '${encodedSub}', '${groupLetter}')"><i class="fa-solid fa-save"></i></button>
@@ -594,9 +599,14 @@
                         } else {
                             papersHtml = `
                                 <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-100); margin-bottom: 1.25rem;">
-                                    <label style="font-size: 0.75rem; font-weight: 800; color: var(--gray-500); text-transform:uppercase; display: block; margin-bottom: 10px;">
-                                        <i class="fa-solid fa-file-pdf" style="color:var(--danger)"></i> Soru Kağıdı Bağlantısı
-                                    </label>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                        <label style="font-size: 0.75rem; font-weight: 800; color: var(--gray-500); text-transform:uppercase; margin: 0;">
+                                            <i class="fa-solid fa-file-pdf" style="color:var(--danger)"></i> Soru Kağıdı Bağlantısı
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); cursor: pointer;" title="Öğrenci ekranında göster/gizle">
+                                            <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared !== false ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 16px; height: 16px; accent-color: var(--primary);"> Paylaş
+                                        </label>
+                                    </div>
                                     <div style="display: flex; gap: 10px;">
                                         <input type="text" id="pdfLink-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.85rem; border:2px solid var(--gray-200); border-radius:10px; font-weight:600;" placeholder="https://..." value="${currentPdf}">
                                         <button class="btn btn-primary" style="padding: 0.85rem 1.5rem; border-radius:10px; font-weight:800;" onclick="savePdfLink('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-save"></i> KAYDET</button>
@@ -767,6 +777,14 @@
                     session.subjectMetadata[subName].papers[groupLetter] = link;
                 } else {
                     session.subjectMetadata[subName].papers['default'] = link;
+                }
+
+                // Check isShared status
+                const shareCheck = document.getElementById(`pdfShared-${sesId}-${encodedSub}`);
+                if (shareCheck) {
+                    session.subjectMetadata[subName].isShared = shareCheck.checked;
+                } else if (session.subjectMetadata[subName].isShared === undefined) {
+                    session.subjectMetadata[subName].isShared = true; // Default to true as requested
                 }
 
                 DataManager.addExamSession(session);
@@ -1187,72 +1205,10 @@
         }
     };
 
-        window.finalizeAndPrint = (blobUrl, onFinalize = null) => {
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            
-            if (isMobile) {
-                // Mobile browsers (especially iOS) struggle with PDFs in iframes.
-                // Best approach for mobile is a direct window.open(blobUrl) or redirect.
-                const newWin = window.open(blobUrl, '_blank');
-                if (!newWin || newWin.closed || typeof newWin.closed == 'undefined') {
-                    // Fallback to current window if popup blocked or failing
-                    window.location.href = blobUrl;
-                }
-                if (onFinalize) onFinalize();
-                return;
-            }
-
-            const newWin = window.open('', '_blank');
-            if (!newWin) {
-                // Try a direct popup of the blob as fallback for PC if window.open('') failed
-                const fallbackWin = window.open(blobUrl, '_blank');
-                if (!fallbackWin) {
-                    Swal.fire('Hata', 'Yeni sekme açılamadı! Lütfen tarayıcı ayarlarından açılır pencerelere izin verin.', 'error');
-                }
-                if (onFinalize) onFinalize();
-                return;
-            }
-
-            newWin.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>Sınav Kağıtları</title>
-                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-                    <style>
-                        body { margin: 0; padding: 0; overflow: hidden; background: #525659; }
-                        iframe { width: 100%; height: 100vh; border: none; }
-                        .floating-print-btn {
-                            position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px;
-                            background: #4f46e5; color: white; border: none; border-radius: 50%;
-                            cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                            display: flex; align-items: center; justify-content: center;
-                            font-size: 24px; z-index: 10000; transition: all 0.3s;
-                        }
-                        .floating-print-btn:hover { background: #4338ca; transform: scale(1.1); }
-                        @media print { .floating-print-btn { display: none !important; } }
-                    </style>
-                </head>
-                <body>
-                    <iframe src="${blobUrl}" name="printFrame"></iframe>
-                    <button class="floating-print-btn" onclick="try { window.frames['printFrame'].focus(); window.frames['printFrame'].print(); } catch(e) { window.print(); }" title="Yazdır">
-                        <i class="fas fa-print"></i>
-                    </button>
-                    <script>
-                        // PDF focus for print
-                        window.onload = function() {
-                            setTimeout(() => {
-                                try { window.frames[0].focus(); } catch(e) {}
-                            }, 500);
-                        };
-                    <\/script>
-                </body>
-                </html>
-            `);
-            newWin.document.close();
-            if (onFinalize) onFinalize();
-        };
+    window.finalizeAndPrint = (blobUrl, onFinalize = null) => {
+        window.openSafePdf(blobUrl, 'Sınav Dosyası');
+        if (onFinalize) onFinalize();
+    };
 
         window.printFile = function (path, studentInfo = null, session = null, options = {}) {
             if (!path) return Promise.resolve();
@@ -1316,7 +1272,7 @@
             } catch (e) {
                 console.error("PDF Overlay Error:", e);
                 // Fallback: Open in new window instead of hidden iframe print
-                window.open(printPath, '_blank');
+                window.openSafePdf(printPath, 'Soru Kağıdı');
                 finalize(null);
             }
         };
@@ -1485,7 +1441,7 @@
                 const blobUrl = URL.createObjectURL(blob);
                 
                 Swal.close();
-                window.open(blobUrl, '_blank');
+                window.openSafePdf(blobUrl, 'Örnek Sınav Kağıdı');
             } catch (err) {
                 console.error("Test PDF Rendering Error:", err);
                 const isFetchError = (err.message === "Dosya içeriği boş veya hatalı.");
@@ -1495,7 +1451,7 @@
                     text: (isFetchError ? 'PDF dosyası indirilemediği için başlık eklenemedi. ' : 'PDF indirildi ancak başlık şablonu uygulanamadı. ') + 'Hata: ' + err.message,
                 });
                 // Fallback attempt to at least open the original file
-                if (!isFetchError) window.open(url, '_blank');
+                if (!isFetchError) window.openSafePdf(url, 'Soru Kağıdı');
             }
         };
 

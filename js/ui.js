@@ -3083,18 +3083,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     window.finalizeAndPrint = (blobUrl, onFinalize = null) => {
-        const win = window.open(blobUrl, '_blank');
-        if (win) {
-            // New tab opened successfully
-            if (onFinalize) onFinalize();
-        } else {
-            Swal.fire({
-                title: 'Pop-up Engellendi',
-                text: 'Yazdırma sayfası yeni sekmede açılamadı. Lütfen tarayıcı ayarlarınızdan bu siteye pop-up izni verin.',
-                icon: 'warning',
-                confirmButtonColor: '#4f46e5'
-            });
-        }
+        window.openSafePdf(blobUrl, 'Sınav Dosyası');
+        if (onFinalize) onFinalize();
     };
 
 
@@ -3244,7 +3234,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Fallback: Open in new window instead of hidden iframe print
-        window.open(printPath, '_blank');
+        window.openSafePdf(printPath, 'Soru Kağıdı');
         finalize(null);
     };
 
@@ -4719,7 +4709,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="input-group" style="display:flex; align-items:center; gap:3px; margin-top:4px;">
                             <span style="font-size:0.7rem; font-weight:700; color:var(--gray-500); min-width:18px;">${groupLetter}</span>
                             <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-group="${groupLetter}" style="flex:1; margin:0; height:30px; font-size:0.8rem; padding:0 6px;" value="${subPapers[groupLetter] || ''}" placeholder="PDF yol / URL">
-                            <button type="button" class="btn btn-secondary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
+                            <button type="button" class="btn btn-secondary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.openSafePdf(inp.value, 'Soru Kağıdı Önizleme'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
                             <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem; background:#6366f1; border-color:#6366f1;" onclick="window.testSpecificRow(this)" title="Örnek Öğrenci Testi"><i class="fa-solid fa-file-circle-check"></i></button>
                             <button type="button" class="btn btn-info btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
                             <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
@@ -4729,7 +4719,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 paperInputs = `
                     <div class="input-group" style="display:flex; align-items:center; gap:3px; margin-top:4px;">
                         <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" style="flex:1; margin:0; height:30px; font-size:0.8rem; padding:0 6px;" value="${typeof subPapers === 'string' ? subPapers : (subPapers['default'] || '')}" placeholder="PDF yol / URL">
-                        <button type="button" class="btn btn-secondary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
+                        <button type="button" class="btn btn-secondary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.openSafePdf(inp.value, 'Soru Kağıdı Önizleme'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
                             <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem; background:#6366f1; border-color:#6366f1;" onclick="window.testSpecificRow(this)" title="Örnek Öğrenci Testi"><i class="fa-solid fa-file-circle-check"></i></button>
                         <button type="button" class="btn btn-info btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
                         <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
