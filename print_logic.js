@@ -306,6 +306,17 @@ async function executePrintSession(id, mode, filterArray) {
         body += `<script>window.addEventListener('load', () => { setTimeout(() => { document.querySelectorAll('.schema-container').forEach(wrap => { const wall = wrap.querySelector('.classroom-walls'); const wrapW = wrap.clientWidth - 20; const wrapH = wrap.clientHeight - 20; const scale = Math.min(wrapW / wall.offsetWidth, wrapH / wall.offsetHeight, 2.5); wall.style.transform = "scale(" + scale + ")"; }); }, 150); });<\/script>`;
     }
     const win = window.open('', '_blank');
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${session.name}</title><style>${pageCss}</style></head><body>${body}</body></html>`);
-    win.document.close();
+    if (!win) {
+        Swal.fire('Hata', 'Yeni sekme açılamadı! Lütfen tarayıcı ayarlarından açılır pencerelere izin verin.', 'error');
+        return;
+    }
+    const doc = win.document;
+    doc.open();
+    doc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + session.name + '</title>');
+    doc.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">');
+    doc.write('<style>' + pageCss + ' .floating-print-btn { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #4f46e5; color: white; border: none; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 24px; z-index: 10000; transition: all 0.3s; } .floating-print-btn:hover { background: #4338ca; transform: scale(1.1); } @media print { .floating-print-btn { display: none !important; } }</style>');
+    doc.write('</head><body>' + body);
+    doc.write('<button class="floating-print-btn" onclick="window.print()" title="Yazdır"><i class="fas fa-print"></i></button>');
+    doc.write('</body></html>');
+    doc.close();
 }

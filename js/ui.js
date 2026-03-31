@@ -204,8 +204,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (targetViewId === 'view-students') updateClassesList();
             if (targetViewId === 'view-school') loadSchoolSettings();
 
-            // Store active tab
+            // Update Browser URL (Hash based for easy refresh)
+            window.location.hash = targetViewId;
             sessionStorage.setItem('klbk_activeTab', targetViewId);
+
+            // Close Sidebar on Mobile after selection
+            if (window.innerWidth <= 900) {
+                document.querySelector('.sidebar').classList.remove('open');
+            }
         });
     });
 
@@ -213,8 +219,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     function initializeNavigation() {
         const savedTabId = sessionStorage.getItem('klbk_activeTab');
         const loader = document.getElementById('appLoader');
+        const isMobile = window.innerWidth <= 900;
 
-        if (savedTabId) {
+        if (isMobile) {
+            // Force Exam section on mobile as requested
+            const examTab = Array.from(navItems).find(item => item.getAttribute('data-target') === 'view-exam');
+            if (examTab) {
+                examTab.click();
+            }
+        } else if (savedTabId) {
             const tabToClick = Array.from(navItems).find(item => item.getAttribute('data-target') === savedTabId);
             if (tabToClick) {
                 tabToClick.click();
@@ -238,9 +251,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Mobile Sidebar Toggle
-    document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+    const toggleSidebar = () => {
         document.querySelector('.sidebar').classList.toggle('open');
-    });
+    };
+
+    if (document.getElementById('mobileMenuBtn')) {
+        document.getElementById('mobileMenuBtn').addEventListener('click', toggleSidebar);
+    }
+    if (document.getElementById('mobileMenuBtnOutside')) {
+        document.getElementById('mobileMenuBtnOutside').addEventListener('click', toggleSidebar);
+    }
 
 
     // --- 3. Inner Tabs (Students View) ---
