@@ -585,7 +585,7 @@
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                             <label style="font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform:uppercase; margin:0;">Grup ${groupLetter} Soru Kağıdı</label>
                                             <label style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); cursor: pointer;" title="Öğrenci ekranında göster/gizle">
-                                                <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared !== false ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 16px; height: 16px; accent-color: var(--primary);"> Paylaş
+                                                <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared === true ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 16px; height: 16px; accent-color: var(--primary);"> Paylaş
                                             </label>
                                         </div>
                                         <div style="display: flex; gap: 8px;">
@@ -604,7 +604,7 @@
                                             <i class="fa-solid fa-file-pdf" style="color:var(--danger)"></i> Soru Kağıdı Bağlantısı
                                         </label>
                                         <label style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); cursor: pointer;" title="Öğrenci ekranında göster/gizle">
-                                            <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared !== false ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 16px; height: 16px; accent-color: var(--primary);"> Paylaş
+                                            <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared === true ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 16px; height: 16px; accent-color: var(--primary);"> Paylaş
                                         </label>
                                     </div>
                                     <div style="display: flex; gap: 10px;">
