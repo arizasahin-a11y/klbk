@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.formatDateToStandard = (val) => DataManager.formatDateToStandard(val);
     window.formatDateToInput = (val) => DataManager.formatDateToInput(val);
 
-    window.shortenSubject = function (n) {
+    window.shortenSubject = function (n, limit = 20) {
         if (!n || n === '-') return n;
         
         // Extract trailing number if exists (e.g., "9" in "Matematik 9")
@@ -23,18 +23,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             n = n.replace(/\s+(\d+)$/, '').trim();
         }
 
-        // Exact overrides
+        // If fits within limit, don't shorten
+        if ((n + grade).length <= (limit || 20)) return n + grade;
+
+        // Exact overrides (Priority)
         const exacts = {
             "Türk Dili ve Edebiyatı": "TDE",
             "Din Kültürü ve Ahlak Bilgisi": "DKAB",
             "Beden Eğitimi ve Spor": "BES",
             "T.C. İnkılap Tarihi ve Atatürkçülük": "İNK",
-            "Sağlık Bilgisi ve Trafik Kültürü": "SB"
+            "Tarih ve Atatürkçülük": "İNK",
+            "İnkılap Tarihi": "İNK",
+            "Sağlık Bilgisi ve Trafik Kültürü": "SB",
+            "Görsel Sanatlar": "Görsel",
+            "Müzik": "Müzik",
+            "Beden Eğitimi": "Bed. Eğt.",
+            "Bilişim Teknolojileri": "Bilişim"
         };
         
         let foundAbbr = null;
         for (let k in exacts) {
-            if (n.toLowerCase().includes(k.toLowerCase())) {
+            if (n.toLowerCase() === k.toLowerCase() || n.toLowerCase().includes(k.toLowerCase())) {
                 foundAbbr = exacts[k];
                 break;
             }
@@ -57,9 +66,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             .replace(/Bilişim/gi, 'Biliş.')
             .replace(/Seçmeli/gi, 'S.');
         
-        // If still multi-word and long, take initials (only if not an exact match abbreviation)
-        if (!foundAbbr && res.length > 20) {
-            const words = res.split(' ').filter(w => w.length > 1 && !['ve', 'ile'].includes(w.toLowerCase()));
+        // Final length check and initials fallback if still too long
+        if (res.length > 25 && !foundAbbr) {
+            const words = res.split(' ').filter(w => w.length > 1 && !['ve', 'ile', 'veya'].includes(w.toLowerCase()));
             if (words.length >= 2) res = words.map(w => w[0].toUpperCase()).join('');
         }
         

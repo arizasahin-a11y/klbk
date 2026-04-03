@@ -218,9 +218,9 @@ if (scriptStartIdx !== -1 && scriptEndIdx !== -1) {
                 return parts.length === 3 ? \`\${parts[2]}.\${parts[1]}.\${parts[0]}\` : d;
             };
 
-            const abbr = (n) => {
+            const abbr = (n, lim = 20) => {
                 if (!n || n === '-') return n;
-                return n.replace(/Matematik/gi, 'Mat.').replace(/Edebiyat/gi, 'Edb.').replace(/İngilizce/gi, 'İng.').replace(/Fizik/gi, 'Fiz.').replace(/Kimya/gi, 'Kim.').replace(/Biyoloji/gi, 'Biyo.').replace(/Tarih/gi, 'Tar.').replace(/Coğrafya/gi, 'Coğ.').replace(/Felsefe/gi, 'Fel.').replace(/Din Kültürü/gi, 'Din.').replace(/Almanca/gi, 'Alm.').replace(/Görsel Sanatlar/gi, 'Grs.').replace(/Müzik/gi, 'Müz.').replace(/Beden Eğitimi/gi, 'Bed.').replace(/Bilişim/gi, 'Biliş.');
+                return window.shortenSubject ? window.shortenSubject(n, lim) : n;
             };
 
             const hdr = (title) => \`
@@ -262,7 +262,7 @@ if (scriptStartIdx !== -1 && scriptEndIdx !== -1) {
                     const PAGE_SIZE = 45;
                     for (let p = 0; p < students.length; p += PAGE_SIZE) {
                         const chunk = students.slice(p, p + PAGE_SIZE);
-                        const rows = chunk.map(s => \`<tr><td style="width:10%;"><b>\${s.no}</b></td><td style="width:40%; text-transform:uppercase;">\${s.name}</td><td style="width:30%;">\${s._matchedSubject || '-'}</td><td style="width:12%;">\${s.room}</td><td style="width:8%; text-align:center;"><b>\${s.seatNum}</b></td></tr>\`).join('');
+                        const rows = chunk.map(s => \`<tr><td style="width:10%;"><b>\${s.no}</b></td><td style="width:40%; text-transform:uppercase;">\${s.name}</td><td style="width:30%;">\${abbr(s._matchedSubject || '-', 25)}</td><td style="width:12%;">\${s.room}</td><td style="width:8%; text-align:center;"><b>\${s.seatNum}</b></td></tr>\`).join('');
                         body += \`<div class="page portrait">\${hdr(\`\${cls} Sınıf Listesi\`)}<table><thead><tr><th style="width:10%;">No</th><th style="width:40%;">Ad Soyad</th><th style="width:30%;">Sınav Dersi</th><th style="width:12%;">Derslik</th><th style="width:8%;">Sıra</th></tr></thead><tbody>\${rows}</tbody></table>\${(studentMsg && (p + PAGE_SIZE >= students.length)) ? \`<div class="msg-box"><strong><span class="icon">!</span> Dikkat: </strong>\${studentMsg}</div>\` : ""}</div>\`;
                     }
                 });
@@ -290,7 +290,7 @@ if (scriptStartIdx !== -1 && scriptEndIdx !== -1) {
                         const chunk = sortedSeatIds.slice(p, p + PAGE_SIZE);
                         const rows = chunk.map(sid => {
                             const s = room.seats[sid];
-                            if (s) return \`<tr><td style="text-align:center; width:6%;"><b>\${seatToNum[sid] || '-'}</b></td><td style="width:7%;">\${s.class}</td><td style="text-align:center; width:7%;"><b>\${s.no}</b></td><td style="width:45%; text-transform:uppercase;">\${s.name}</td><td style="width:20%;">\${abbr(s._matchedSubject || '-')}</td><td style="width:15%; border-bottom:1px solid #eee;"></td></tr>\`;
+                            if (s) return \`<tr><td style="text-align:center; width:6%;"><b>\${seatToNum[sid] || '-'}</b></td><td style="width:7%;">\${s.class}</td><td style="text-align:center; width:7%;"><b>\${s.no}</b></td><td style="width:45%; text-transform:uppercase;">\${s.name}</td><td style="width:20%;">\${abbr(s._matchedSubject || '-', 20)}</td><td style="width:15%; border-bottom:1px solid #eee;"></td></tr>\`;
                             else return \`<tr style="color:#64748b; background:#fff5f5;"><td style="text-align:center;"><b>\${seatToNum[sid] || '-'}</b></td><td colspan="4" style="text-align:center; font-weight:bold; letter-spacing:2px;">BOŞ</td><td></td></tr>\`;
                         }).join('');
                         const studentsInRoom = Object.values(room.seats || {});
@@ -302,13 +302,13 @@ if (scriptStartIdx !== -1 && scriptEndIdx !== -1) {
                             const classExams = [...new Set(classStudents.map(s => s._matchedSubject || '-'))].sort();
                             classExams.forEach(ex => {
                                 const count = classStudents.filter(s => (s._matchedSubject || '-') === ex).length;
-                                summaryListHtml += \`<div style="padding: 2px 0; border-bottom: 1px dashed #e2e8f0; font-size: 8.5pt;"><b>\${cls}</b> \${abbr(ex)} => <b>\${count}</b></div>\`;
+                                summaryListHtml += \`<div style="padding: 2px 0; border-bottom: 1px dashed #e2e8f0; font-size: 8.5pt;"><b>\${cls}</b> \${abbr(ex, 18)} => <b>\${count}</b></div>\`;
                                 roomTotal += count;
                             });
                         });
                         let examSummaryRows = [...new Set(studentsInRoom.map(s => s._matchedSubject || '-'))].sort().map(ex => {
                             const count = studentsInRoom.filter(s => (s._matchedSubject || '-') === ex).length;
-                            return \`<tr><td style="padding:2px 4px;">\${ex}</td><td style="text-align:center; font-weight:bold;">\${count}</td></tr>\`;
+                            return \`<tr><td style="padding:2px 4px;">\${abbr(ex, 25)}</td><td style="text-align:center; font-weight:bold;">\${count}</td></tr>\`;
                         }).join('');
                         const summaryContent = (p + PAGE_SIZE >= sortedSeatIds.length) ? \`
                             <div style="flex-shrink:0; width:45mm; margin-left:10px;">
@@ -349,7 +349,7 @@ if (scriptStartIdx !== -1 && scriptEndIdx !== -1) {
                                 const student = room.seats?.[sid];
                                 const num = seatToNum[sid] || '-';
                                 if (isDisabled) groupsHtml += \`<div class="desk" style="opacity:0.3; border-style:dotted;">KAPALI</div>\`;
-                                else if (student) groupsHtml += \`<div class="desk"><div style="font-size:7pt;color:#64748b;font-weight:700;margin-bottom:2px;">\${student.class} / \${student.no}</div><div style="font-weight:900;font-size:8.5pt;color:#1e293b; text-transform:uppercase;">\${student.name}</div><div style="font-size:6.5pt;color:#4f46e5;margin-top:3px;font-weight:600;">\${abbr(student._matchedSubject || '-')}</div><div class="desk-num">\${num}</div></div>\`;
+                                else if (student) groupsHtml += \`<div class="desk"><div style="font-size:7pt;color:#64748b;font-weight:700;margin-bottom:2px;">\${student.class} / \${student.no}</div><div style="font-weight:900;font-size:8.5pt;color:#1e293b; text-transform:uppercase;">\${student.name}</div><div style="font-size:6.5pt;color:#4f46e5;margin-top:3px;font-weight:600;">\${abbr(student._matchedSubject || '-', 16)}</div><div class="desk-num">\${num}</div></div>\`;
                                 else groupsHtml += \`<div class="desk empty">BOŞ<div class="desk-num" style="background:#fee2e2; color:#ef4444;">\${num}</div></div>\`;
                             }
                         }

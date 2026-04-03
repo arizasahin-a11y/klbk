@@ -97,14 +97,15 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const midCol3W = midW - midCol2W - midCol4W - midCol5W - midCol6W;
     const getTranslations = (subject) => {
         const rawSub = (subject || '');
-        // Normalize for comparison: Remove tr-specific casing issues by converting everything to a standard form
+        const shortenedSub = window.shortenSubject ? window.shortenSubject(rawSub, 35) : rawSub;
+        // Normalize for comparison
         const normalized = rawSub.replace(/İ/g, 'i').replace(/I/g, 'ı').replace(/ı/g, 'i').replace(/İ/g, 'i').toLowerCase();
         
         const isEnglish = normalized.includes('ingilizce') || normalized.includes('english');
         const isGerman = normalized.includes('almanca') || normalized.includes('deutsch');
         const isFrench = normalized.includes('fransizca') || normalized.includes('francais');
 
-        let translatedSubject = rawSub.replace(/i/g, 'İ').toUpperCase();
+        let translatedSubject = shortenedSub.replace(/i/g, 'İ').toUpperCase();
 
         if (isEnglish) {
             if (translatedSubject.includes('İNGİLİZCE')) translatedSubject = translatedSubject.replace(/İNGİLİZCE/g, 'ENGLISH');
@@ -273,7 +274,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         page.drawText(lang.room, { x: bx + bL + b2 + b3 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
         drawCenterText(info?.room || '', bx + bL + b2 + b3, by - 2.5 * sf, b4, row3H, 11, mainFont);
         page.drawText(lang.exam, { x: bx + bL + b2 + b3 + b4 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-        drawCenterText((info?.subject || '').toUpperCase(), bx + bL + b2 + b3 + b4, by - 2.5 * sf, b5, row3H, 9.5, mainFont);
+        const shortSubInBox = window.shortenSubject ? window.shortenSubject(info?.subject || '', 20) : (info?.subject || '');
+        drawCenterText(shortSubInBox.toUpperCase(), bx + bL + b2 + b3 + b4, by - 2.5 * sf, b5, row3H, 9.5, mainFont);
         page.drawText(lang.seat, { x: bx + bL + b2 + b3 + b4 + b5 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
         drawCenterText(info?.seat || '', bx + bL + b2 + b3 + b4 + b5, by - 2.5 * sf, b6, row3H, 14, mainFont);
     };
