@@ -77,6 +77,49 @@ async function executePrintSession(id, mode, filterArray) {
 
     if (!session || !session.results || session.results.length === 0) return;
 
+    // --- SINAV KAĞIDI YAZDIRMA MANTIĞI ---
+    const paperCheck = document.getElementById(`paperCheck-${id}`);
+    if (paperCheck && paperCheck.checked) {
+        const myBranches = JSON.parse(sessionStorage.getItem('myBranches') || '[]');
+        const pdfUrls = [];
+        const seenPdfs = new Set();
+        
+        const branchMatches = (sName) => {
+            if (!sName) return false;
+            const name = sName.toLowerCase().trim();
+            return myBranches.some(b => {
+                const bn = b.toLowerCase().trim();
+                return name === bn || name.startsWith(bn + " ");
+            });
+        };
+
+        if (session.subjectMetadata) {
+            Object.keys(session.subjectMetadata).forEach(subName => {
+                const meta = session.subjectMetadata[subName];
+                const isMine = branchMatches(subName);
+                const isShared = meta.isShared === true;
+
+                if (isMine || isShared) {
+                    if (meta.papers) {
+                        const papers = typeof meta.papers === 'string' ? { default: meta.papers } : meta.papers;
+                        Object.values(papers).forEach(url => {
+                            if (url && url.trim() && !seenPdfs.has(url)) {
+                                pdfUrls.push({ url, subject: subName });
+                                seenPdfs.add(url);
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+        if (pdfUrls.length > 0) {
+            mergeAndPrintPapers(pdfUrls, session.name);
+        }
+    }
+    // ------------------------------------
+
+
     const pageCss = `
                 body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1e293b; margin: 0; padding: 0; background: #e2e8f0; }
                 
@@ -84,9 +127,7 @@ async function executePrintSession(id, mode, filterArray) {
                     body { background: white; }
                     .page { box-shadow: none !important; margin: 0 !important; }
                 }
-
                 @page { margin: 0; }
-                
                 @page portrait_page { size: A4 portrait; margin: 0; }
                 @page landscape_page { size: A4 landscape; margin: 0; }
                 
@@ -319,4 +360,52 @@ async function executePrintSession(id, mode, filterArray) {
     doc.write('<button class="floating-print-btn" onclick="window.print()" title="Yazdır"><i class="fas fa-print"></i></button>');
     doc.write('</body></html>');
     doc.close();
+}
+
+async function mergeAndPrintPapers(pdfUrls, sessionName) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: 'Hazırlanıyor...',
+            text: 'Soru kağıtları birleştiriliyor, lütfen bekleyin.',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading() }
+        });
+    }
+
+    try {
+        const { PDFLib, DataManager } = window;
+        if (!PDFLib) throw new Error("PDFLib kütüphanesi yüklenemedi.");
+        
+        const mergedPdf = await PDFLib.PDFDocument.create();
+        
+        for (const item of pdfUrls) {
+            try {
+                const bytes = await DataManager.getFileBytes(item.url);
+                if (!bytes) continue;
+                const pdf = await PDFLib.PDFDocument.load(bytes);
+                const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+                copiedPages.forEach((page) => mergedPdf.addPage(page));
+            } catch (err) {
+                console.error("PDF load error:", item.url, err);
+            }
+        }
+
+        const mergedPdfBytes = await mergedPdf.save();
+        const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        
+        if (typeof Swal !== 'undefined') Swal.close();
+        
+        if (window.openSafePdf) {
+            window.openSafePdf(url, sessionName + ' - Soru Kağıtları');
+        } else {
+            window.open(url, '_blank');
+        }
+    } catch (err) {
+        if (typeof Swal !== 'undefined') {
+            Swal.close();
+            Swal.fire('Hata', 'Soru kağıtları birleştirilemedi: ' + err.message, 'error');
+        }
+        console.error("Merge error:", err);
+    }
 }

@@ -421,6 +421,9 @@
                 sessions.forEach(ses => {
                     if (!ses.subjects && (!ses.results || ses.results.length === 0)) return;
 
+                    const myMatchedSubjects = [];
+                    const otherSharedSubjects = [];
+                    const seenNames = new Set();
                     const branchMatches = (sName) => {
                         if (!sName) return false;
                         const name = sName.toLowerCase().trim();
@@ -430,44 +433,49 @@
                         });
                     };
 
-                    const matchingSubjects = [];
-                    const seenNames = new Set();
+                    const processSubject = (subName, orig) => {
+                        if (!subName || seenNames.has(subName)) return;
+                        seenNames.add(subName);
+                        
+                        const isMine = branchMatches(subName);
+                        const meta = (ses.subjectMetadata && ses.subjectMetadata[subName]) || {};
+                        const isShared = meta.isShared === true;
 
-                    // 1. Scan results for granular subjects (Fizik 9, Fizik 10 etc)
+                        const subObj = {
+                            name: subName,
+                            hasGroups: orig ? (typeof orig === 'object' ? orig.hasGroups : ses.hasGroups) : ses.hasGroups,
+                            isMine: isMine,
+                            isShared: isShared
+                        };
+
+                        if (isMine) myMatchedSubjects.push(subObj);
+                        else if (isShared) otherSharedSubjects.push(subObj);
+                    };
+
+                    // 1. Scan results for granular subjects
                     if (ses.results) {
                         ses.results.forEach(room => {
                             Object.values(room.seats || {}).forEach(std => {
                                 const subName = std._matchedSubject || "";
-                                if (subName && branchMatches(subName) && !seenNames.has(subName)) {
-                                    seenNames.add(subName);
-                                    const orig = (ses.subjects || []).find(s => {
-                                        const n = (typeof s === 'object' ? s.name : s);
-                                        return subName.startsWith(n);
-                                    });
-                                    matchingSubjects.push({
-                                        name: subName,
-                                        hasGroups: orig ? (typeof orig === 'object' ? orig.hasGroups : ses.hasGroups) : ses.hasGroups
-                                    });
+                                if (subName) {
+                                    const orig = (ses.subjects || []).find(s => subName.startsWith(typeof s === 'object' ? s.name : s));
+                                    processSubject(subName, orig);
                                 }
                             });
                         });
                     }
 
-                    // 2. Fallback to session subjects if not already seen as granular
+                    // 2. Fallback to session subjects
                     (ses.subjects || []).forEach(sub => {
                         const subName = (typeof sub === 'object' ? sub.name : sub);
-                        if (branchMatches(subName) && !seenNames.has(subName)) {
-                            // Only add base subject if no granular versions exist in results
-                            const hasGranular = Array.from(seenNames).some(n => n.startsWith(subName + " "));
-                            if (!hasGranular) {
-                                seenNames.add(subName);
-                                matchingSubjects.push(sub);
-                            }
-                        }
+                        processSubject(subName, sub);
                     });
 
-                    if (matchingSubjects.length > 0) {
-                        targetSessions.push({ session: ses, matchingSubjects });
+                    if (myMatchedSubjects.length > 0) {
+                        targetSessions.push({ 
+                            session: ses, 
+                            displaySubjects: [...myMatchedSubjects, ...otherSharedSubjects] 
+                        });
                     }
                 });
 
@@ -479,7 +487,7 @@
                 let html = '';
                 targetSessions.forEach(item => {
                     const ses = item.session;
-                    const subjectsObj = item.matchingSubjects;
+                    const subjectsObj = item.displaySubjects;
                     const targetTime = DataManager.parseSessionDateTime(ses.date, ses.time);
                     const endTime = DataManager.getSessionEndDateTime(ses.date, ses.time);
                     const diffMs = targetTime - now;
@@ -536,6 +544,7 @@
 
                     subjectsObj.forEach(sub => {
                         const subNameStr = (typeof sub === 'object' ? sub.name : sub);
+                        const isMine = sub.isMine;
                         const encodedSub = encodeURIComponent(subNameStr);
                         const subId = ses.id + "|" + encodedSub;
                         const isSubOpen = openSubjects.has(subId);
@@ -554,7 +563,7 @@
                                                 <i class="fa-solid ${currentPdf ? 'fa-check' : 'fa-book'}"></i>
                                             </div>
                                             <div>
-                                                <div style="font-weight:900; font-size:1.1rem;">${subNameStr}</div>
+                                                <div style="font-weight:900; font-size:1.1rem;">${subNameStr} ${!isMine ? '<span style="font-size:0.65rem; background:var(--primary-light); color:var(--primary); padding:2px 6px; border-radius:4px; margin-left:5px;">PAYLAŞILAN</span>' : ''}</div>
                                                 <div style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">${currentPdf ? 'Sınav kağıdı yüklendi' : 'Sınav kağıdı bekleniyor...'}</div>
                                             </div>
                                         </div>
@@ -562,74 +571,82 @@
                                     </div>
                                     <div class="nested-content ${isSubOpen ? '' : 'hidden'}" style="background-color: #fafbfc; padding: 1.25rem;">`;
 
-                        const hasGroups = (typeof sub === 'object' && sub.hasGroups) || ses.hasGroups;
-                        const groupCount = ses.groupCount || 2;
-                        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-                        let papersHtml = '';
+                        if (!isMine) {
+                            html += `<div style="text-align:center; padding:1.5rem; background:white; border-radius:12px; border:1px solid var(--gray-200); color:var(--gray-500);">
+                                        <i class="fa-solid fa-lock" style="font-size:1.5rem; margin-bottom:10px; display:block;"></i>
+                                        <div style="font-weight:700; font-size:0.9rem;">Bu branş kısıtlı görünümündedir.</div>
+                                        <div style="font-size:0.8rem; margin-top:5px;">Soru kağıdı paylaşıldığı için toplu yazdırma listesine dahil edilmiştir. İçeriği sadece sahibi düzenleyebilir.</div>
+                                     </div>`;
+                        } else {
+                            const hasGroups = (typeof sub === 'object' && sub.hasGroups) || ses.hasGroups;
+                            const groupCount = ses.groupCount || 2;
+                            const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                            let papersHtml = '';
 
-                        const renderActions = (targetSuffix) => `
-                            <div style="display: flex; gap: 5px; margin-top: 8px;">
-                                 <button type="button" class="btn btn-secondary btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="pasteLink('${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-paste"></i> Yapıştır</button>
-                                 <button type="button" class="btn btn-secondary btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="openCloudBrowser(this, '${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-cloud"></i> Bulut</button>
-                                 <input type="file" id="file-${ses.id}-${encodedSub}${targetSuffix ? '-' + targetSuffix : ''}" style="display:none;" accept="application/pdf" onchange="uploadPdf(this, '${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})">
-                                 <button type="button" class="btn btn-info btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="document.getElementById('file-${ses.id}-${encodedSub}${targetSuffix ? '-' + targetSuffix : ''}').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Yükle</button>
-                                 <button type="button" class="btn btn-success btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="testPdfLink('${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-vial"></i> Test</button>
-                            </div>`;
+                            const renderActions = (targetSuffix) => `
+                                <div style="display: flex; gap: 5px; margin-top: 8px;">
+                                     <button type="button" class="btn btn-secondary btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="pasteLink('${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-paste"></i> Yapıştır</button>
+                                     <button type="button" class="btn btn-secondary btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="openCloudBrowser(this, '${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-cloud"></i> Bulut</button>
+                                     <input type="file" id="file-${ses.id}-${encodedSub}${targetSuffix ? '-' + targetSuffix : ''}" style="display:none;" accept="application/pdf" onchange="uploadPdf(this, '${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})">
+                                     <button type="button" class="btn btn-info btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="document.getElementById('file-${ses.id}-${encodedSub}${targetSuffix ? '-' + targetSuffix : ''}').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Yükle</button>
+                                     <button type="button" class="btn btn-success btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="testPdfLink('${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-vial"></i> Test</button>
+                                </div>`;
 
-                        if (hasGroups) {
-                            for (let i = 0; i < groupCount; i++) {
-                                const groupLetter = alphabet[i];
-                                const groupPdf = (meta.papers && meta.papers[groupLetter]) || '';
-                                papersHtml += `
-                                    <div style="margin-bottom:12px; background:white; padding:15px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: var(--shadow-sm);">
-                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                            <label style="font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform:uppercase; margin:0;">Grup ${groupLetter} Soru Kağıdı</label>
+                            if (hasGroups) {
+                                for (let i = 0; i < groupCount; i++) {
+                                    const groupLetter = alphabet[i];
+                                    const groupPdf = (meta.papers && meta.papers[groupLetter]) || '';
+                                    papersHtml += `
+                                        <div style="margin-bottom:12px; background:white; padding:15px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: var(--shadow-sm);">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                                <label style="font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform:uppercase; margin:0;">Grup ${groupLetter} Soru Kağıdı</label>
+                                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); cursor: pointer;" title="Öğrenci ekranında göster/gizle">
+                                                    <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared === true ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 16px; height: 16px; accent-color: var(--primary);"> Paylaş
+                                                </label>
+                                            </div>
+                                            <div style="display: flex; gap: 8px;">
+                                                <input type="text" id="pdfLink-${ses.id}-${encodedSub}-${groupLetter}" class="form-control" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" placeholder="https://..." value="${groupPdf}">
+                                                <button class="btn btn-primary" style="padding: 0.65rem 1.25rem; border-radius:8px; font-weight:800;" onclick="savePdfLink('${ses.id}', '${encodedSub}', '${groupLetter}')"><i class="fa-solid fa-save"></i></button>
+                                            </div>
+                                            ${renderActions(groupLetter)}
+                                            ${groupPdf ? `<div style="margin-top:8px;"><a href="${groupPdf}" target="_blank" style="font-size:0.75rem; color:var(--primary); font-weight:700; text-decoration:none;"><i class="fa-solid fa-external-link"></i> Önizle</a></div>` : ''}
+                                        </div>`;
+                                }
+                            } else {
+                                papersHtml = `
+                                    <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-100); margin-bottom: 1.25rem;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                            <label style="font-size: 0.75rem; font-weight: 800; color: var(--gray-500); text-transform:uppercase; margin: 0;">
+                                                <i class="fa-solid fa-file-pdf" style="color:var(--danger)"></i> Soru Kağıdı Bağlantısı
+                                            </label>
                                             <label style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); cursor: pointer;" title="Öğrenci ekranında göster/gizle">
                                                 <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared === true ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 16px; height: 16px; accent-color: var(--primary);"> Paylaş
                                             </label>
                                         </div>
-                                        <div style="display: flex; gap: 8px;">
-                                            <input type="text" id="pdfLink-${ses.id}-${encodedSub}-${groupLetter}" class="form-control" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" placeholder="https://..." value="${groupPdf}">
-                                            <button class="btn btn-primary" style="padding: 0.65rem 1.25rem; border-radius:8px; font-weight:800;" onclick="savePdfLink('${ses.id}', '${encodedSub}', '${groupLetter}')"><i class="fa-solid fa-save"></i></button>
+                                        <div style="display: flex; gap: 10px;">
+                                            <input type="text" id="pdfLink-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.85rem; border:2px solid var(--gray-200); border-radius:10px; font-weight:600;" placeholder="https://..." value="${currentPdf}">
+                                            <button class="btn btn-primary" style="padding: 0.85rem 1.5rem; border-radius:10px; font-weight:800;" onclick="savePdfLink('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-save"></i> KAYDET</button>
                                         </div>
-                                        ${renderActions(groupLetter)}
-                                        ${groupPdf ? `<div style="margin-top:8px;"><a href="${groupPdf}" target="_blank" style="font-size:0.75rem; color:var(--primary); font-weight:700; text-decoration:none;"><i class="fa-solid fa-external-link"></i> Önizle</a></div>` : ''}
+                                        ${renderActions(null)}
                                     </div>`;
                             }
-                        } else {
-                            papersHtml = `
-                                <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-100); margin-bottom: 1.25rem;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                        <label style="font-size: 0.75rem; font-weight: 800; color: var(--gray-500); text-transform:uppercase; margin: 0;">
-                                            <i class="fa-solid fa-file-pdf" style="color:var(--danger)"></i> Soru Kağıdı Bağlantısı
-                                        </label>
-                                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); cursor: pointer;" title="Öğrenci ekranında göster/gizle">
-                                            <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared === true ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 16px; height: 16px; accent-color: var(--primary);"> Paylaş
-                                        </label>
-                                    </div>
-                                    <div style="display: flex; gap: 10px;">
-                                        <input type="text" id="pdfLink-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.85rem; border:2px solid var(--gray-200); border-radius:10px; font-weight:600;" placeholder="https://..." value="${currentPdf}">
-                                        <button class="btn btn-primary" style="padding: 0.85rem 1.5rem; border-radius:10px; font-weight:800;" onclick="savePdfLink('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-save"></i> KAYDET</button>
-                                    </div>
-                                    ${renderActions(null)}
-                                </div>`;
-                        }
 
-                        if (stateCode === 'far' || stateCode === 'near') {
-                            html += papersHtml;
-                        } else if (stateCode === 'active') {
-                            html += `<div style="background: white; padding: 1.5rem; border-radius: 12px; border: 2px solid #fee2e2; box-shadow: var(--shadow-sm);" onclick="event.stopPropagation()">
-                                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                                             <h5 style="color: var(--danger); margin:0; font-weight:900; display:flex; align-items:center; gap:8px;">
-                                                 <i class="fa-solid fa-tower-broadcast fa-beat"></i> CANLI MESAJ GÖNDER
-                                             </h5>
-                                             <span style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">Hedef: ${subNameStr}</span>
-                                         </div>
-                                         <div style="display: flex; gap: 10px;">
-                                             <input type="text" id="msg-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.85rem; border:2px solid #fecaca; border-radius:10px; font-weight:600;" placeholder="Düzeltme veya duyuru...">
-                                             <button class="btn btn-primary" style="background: var(--danger); border: none; padding: 0.85rem 1.5rem; border-radius:10px; font-weight:900;" onclick="sendLiveMessage('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-paper-plane"></i> GÖNDER</button>
-                                         </div>
-                                     </div>`;
+                            if (stateCode === 'far' || stateCode === 'near') {
+                                html += papersHtml;
+                            } else if (stateCode === 'active') {
+                                html += `<div style="background: white; padding: 1.5rem; border-radius: 12px; border: 2px solid #fee2e2; box-shadow: var(--shadow-sm);" onclick="event.stopPropagation()">
+                                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                                                 <h5 style="color: var(--danger); margin:0; font-weight:900; display:flex; align-items:center; gap:8px;">
+                                                     <i class="fa-solid fa-tower-broadcast fa-beat"></i> CANLI MESAJ GÖNDER
+                                                 </h5>
+                                                 <span style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">Hedef: ${subNameStr}</span>
+                                             </div>
+                                             <div style="display: flex; gap: 10px;">
+                                                 <input type="text" id="msg-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.85rem; border:2px solid #fecaca; border-radius:10px; font-weight:600;" placeholder="Düzeltme veya duyuru...">
+                                                 <button class="btn btn-primary" style="background: var(--danger); border: none; padding: 0.85rem 1.5rem; border-radius:10px; font-weight:900;" onclick="sendLiveMessage('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-paper-plane"></i> GÖNDER</button>
+                                             </div>
+                                         </div>`;
+                            }
                         }
 
                         html += `   </div></div>`;
