@@ -1,0 +1,12 @@
+<Configuration>
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>a:\TOOLS\kodlama\km\KLBK FRVR</HostFolder>
+      <SandboxFolder>C:\Users\WDAGUtilityAccount\Desktop\KLBK_FRVR</SandboxFolder>
+      <ReadOnly>false</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>powershell.exe -ExecutionPolicy Bypass -Command "Start-Process explorer.exe 'C:\Users\WDAGUtilityAccount\Desktop\KLBK_FRVR'; Start-Process cmd.exe '/k cd C:\Users\WDAGUtilityAccount\Desktop\KLBK_FRVR'"</Command>
+  </LogonCommand>
+</Configuration>
