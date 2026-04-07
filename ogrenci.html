@@ -1548,8 +1548,8 @@
             // Cleanup existing timer if any
             if (window.fullScreenTimerInterval) clearInterval(window.fullScreenTimerInterval);
 
-            const examStartTime = DataManager.parseSessionDateTime(sessionData.date, sessionData.time);
-            const examEndTime = DataManager.getSessionEndDateTime(sessionData.date, sessionData.time);
+            const examStartTime = DataManager.parseSessionDateTime(sessionData.date, sessionData.time).getTime();
+            const examEndTime = DataManager.getSessionEndDateTime(sessionData.date, sessionData.time).getTime();
             const totalDuration = examEndTime - examStartTime;
             const halfTime = examStartTime + (totalDuration / 2);
             const fiveMinBefore = examEndTime - (5 * 60 * 1000);
@@ -1559,7 +1559,7 @@
                 const timerEl = document.getElementById('fullScreenTimer');
                 if (!timerEl) return;
 
-                const now = getNow();
+                const now = getNow().getTime();
                 let diff = 0;
                 let isFinished = false;
 
