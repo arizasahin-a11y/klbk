@@ -17,6 +17,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
     <style>
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
         :root {
             --primary: #4f46e5;
             --primary-hover: #4338ca;
@@ -1519,6 +1525,11 @@
                 overlay.style.display = 'none';
             }
 
+            if (window.fullScreenTimerInterval) {
+                clearInterval(window.fullScreenTimerInterval);
+                window.fullScreenTimerInterval = null;
+            }
+
             // Restore student info UI
             const resultsView = document.getElementById('resultsView');
             if (resultsView && currentStudent) resultsView.style.display = 'block';
@@ -1534,10 +1545,62 @@
         }
 
         function renderFullScreenPlan(roomData, sessionData) {
+            // Cleanup existing timer if any
+            if (window.fullScreenTimerInterval) clearInterval(window.fullScreenTimerInterval);
+
+            const examStartTime = DataManager.parseSessionDateTime(sessionData.date, sessionData.time);
+            const examEndTime = DataManager.getSessionEndDateTime(sessionData.date, sessionData.time);
+
+            // Timer Updater Function
+            const updateTimerUI = () => {
+                const timerEl = document.getElementById('fullScreenTimer');
+                if (!timerEl) return;
+
+                const now = getNow();
+                let diff = 0;
+                let prefix = '';
+                let isFinished = false;
+
+                if (now < examStartTime) {
+                    diff = examStartTime - now;
+                    prefix = 'BAŞLAMAYA: ';
+                    timerEl.style.color = '#39FF14'; // Neon Green
+                    timerEl.style.borderColor = 'rgba(57, 255, 20, 0.4)';
+                } else if (now < examEndTime) {
+                    diff = examEndTime - now;
+                    prefix = 'KALAN SÜRE: ';
+                    timerEl.style.color = '#FFD700'; // Gold/Yellow
+                    timerEl.style.borderColor = 'rgba(255, 215, 0, 0.4)';
+                } else {
+                    isFinished = true;
+                }
+
+                if (isFinished) {
+                    timerEl.textContent = 'SINAV BİTTİ';
+                    timerEl.style.color = '#FF3131'; // Neon Red
+                    timerEl.style.borderColor = 'rgba(255, 49, 49, 0.6)';
+                    timerEl.style.animation = 'blink 1s infinite';
+                    return;
+                }
+
+                // Format HH:MM:SS
+                const h = Math.floor(diff / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                const hStr = h.toString().padStart(2, '0');
+                const mStr = m.toString().padStart(2, '0');
+                const sStr = s.toString().padStart(2, '0');
+
+                timerEl.textContent = `${prefix}${hStr}:${mStr}:${sStr}`;
+                timerEl.style.animation = 'none';
+            };
+
+            window.fullScreenTimerInterval = setInterval(updateTimerUI, 1000);
+
             // Calculate timing for PDF links (2 minutes after start)
             let pdfLinksHtml = '';
             const nowTime = getNow();
-            const examStartTime = DataManager.parseSessionDateTime(sessionData.date, sessionData.time);
             const diffMs = nowTime - examStartTime;
 
             if (diffMs >= 4 * 60 * 1000) {
@@ -1600,7 +1663,14 @@
                             ${pdfLinksHtml}
                         </div>
                     </div>
-                    <button onclick="closeFullScreenPlan(true)" class="btn btn-danger" style="padding: 0.5rem 1rem; border-radius: 8px;">✕ Kapat</button>
+                    <div style="display: flex; align-items: center; gap: 15px; margin-left: auto;">
+                        <div id="fullScreenTimer" style="font-family: 'JetBrains Mono', 'Courier New', monospace; font-weight: 900; font-size: 1.3rem; color: #39FF14; background: rgba(0,0,0,0.4); padding: 0.4rem 1.2rem; border-radius: 8px; border: 2px solid rgba(57, 255, 20, 0.4); box-shadow: 0 0 15px rgba(57, 255, 20, 0.2); letter-spacing: 1px; min-width: 180px; text-align: center;">
+                            --:--:--
+                        </div>
+                        <button onclick="closeFullScreenPlan(true)" class="btn btn-danger" style="padding: 0.6rem 1.2rem; border-radius: 10px; font-weight: 800; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);">
+                            <i class="fa-solid fa-xmark" style="font-size: 1.1rem;"></i> KAPAT
+                        </button>
+                    </div>
                 </div>
                 <div id="fullScreenSchemaContainer" style="flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative;">
             `;
