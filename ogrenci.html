@@ -1550,6 +1550,9 @@
 
             const examStartTime = DataManager.parseSessionDateTime(sessionData.date, sessionData.time);
             const examEndTime = DataManager.getSessionEndDateTime(sessionData.date, sessionData.time);
+            const totalDuration = examEndTime - examStartTime;
+            const halfTime = examStartTime + (totalDuration / 2);
+            const fiveMinBefore = examEndTime - (5 * 60 * 1000);
 
             // Timer Updater Function
             const updateTimerUI = () => {
@@ -1558,32 +1561,38 @@
 
                 const now = getNow();
                 let diff = 0;
-                let prefix = '';
                 let isFinished = false;
 
+                // Color and Border logic based on User Request
                 if (now < examStartTime) {
                     diff = examStartTime - now;
-                    prefix = 'BAŞLAMAYA: ';
-                    timerEl.style.color = '#39FF14'; // Neon Green
+                    timerEl.style.color = '#39FF14'; // Phosphor Green (Before Start)
                     timerEl.style.borderColor = 'rgba(57, 255, 20, 0.4)';
+                } else if (now < halfTime) {
+                    diff = examEndTime - now;
+                    timerEl.style.color = '#39FF14'; // Phosphor Green (First Half)
+                    timerEl.style.borderColor = 'rgba(57, 255, 20, 0.4)';
+                } else if (now < fiveMinBefore) {
+                    diff = examEndTime - now;
+                    timerEl.style.color = '#FFFF00'; // pure Yellow (Middle Part)
+                    timerEl.style.borderColor = 'rgba(255, 255, 0, 0.5)';
                 } else if (now < examEndTime) {
                     diff = examEndTime - now;
-                    prefix = 'KALAN SÜRE: ';
-                    timerEl.style.color = '#FFD700'; // Gold/Yellow
-                    timerEl.style.borderColor = 'rgba(255, 215, 0, 0.4)';
+                    timerEl.style.color = '#FF3131'; // Neon Red (Last 5 Mins)
+                    timerEl.style.borderColor = 'rgba(255, 49, 49, 0.6)';
                 } else {
                     isFinished = true;
                 }
 
                 if (isFinished) {
                     timerEl.textContent = 'SINAV BİTTİ';
-                    timerEl.style.color = '#FF3131'; // Neon Red
-                    timerEl.style.borderColor = 'rgba(255, 49, 49, 0.6)';
+                    timerEl.style.color = '#FF3131'; 
+                    timerEl.style.borderColor = 'rgba(255, 49, 49, 0.8)';
                     timerEl.style.animation = 'blink 1s infinite';
                     return;
                 }
 
-                // Format HH:MM:SS
+                // Format HH:MM:SS (No prefix as requested)
                 const h = Math.floor(diff / (1000 * 60 * 60));
                 const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                 const s = Math.floor((diff % (1000 * 60)) / 1000);
@@ -1592,8 +1601,9 @@
                 const mStr = m.toString().padStart(2, '0');
                 const sStr = s.toString().padStart(2, '0');
 
-                timerEl.textContent = `${prefix}${hStr}:${mStr}:${sStr}`;
+                timerEl.textContent = `${hStr}:${mStr}:${sStr}`;
                 timerEl.style.animation = 'none';
+                timerEl.style.fontWeight = '900'; // Always Bold
             };
 
             window.fullScreenTimerInterval = setInterval(updateTimerUI, 1000);
