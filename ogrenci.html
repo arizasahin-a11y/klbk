@@ -1588,6 +1588,11 @@
                     timerEl.textContent = 'SINAV BİTTİ';
                     timerEl.style.color = '#FF3131'; 
                     timerEl.style.borderColor = 'rgba(255, 49, 49, 0.8)';
+                    const label = document.getElementById('fullScreenLessonLabel');
+                    if (label) {
+                        label.style.background = '#FF3131';
+                        label.style.borderColor = '#FF3131';
+                    }
                     timerEl.style.animation = 'blink 1s infinite';
                     return;
                 }
@@ -1604,6 +1609,13 @@
                 timerEl.textContent = `${hStr}:${mStr}:${sStr}`;
                 timerEl.style.animation = 'none';
                 timerEl.style.fontWeight = '900'; // Always Bold
+
+                // Sync label color with timer color
+                const label = document.getElementById('fullScreenLessonLabel');
+                if (label) {
+                    label.style.background = timerEl.style.color;
+                    label.style.borderColor = timerEl.style.color;
+                }
             };
 
             window.fullScreenTimerInterval = setInterval(updateTimerUI, 1000);
@@ -1674,14 +1686,22 @@
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 15px; margin-left: auto;">
-                        <div id="fullScreenTimer" style="font-family: 'JetBrains Mono', 'Courier New', monospace; font-weight: 900; font-size: 4rem; color: #39FF14; background: rgba(0,0,0,0.6); padding: 3px; border-radius: 12px; border: 6px double rgba(57, 255, 20, 0.6); box-shadow: 0 0 40px rgba(57, 255, 20, 0.4); letter-spacing: 4px; text-align: center; text-shadow: 0 0 20px rgba(57, 255, 20, 0.5); line-height: 1; display: flex; align-items: center; justify-content: center;">
-                            --:--:--
-                        </div>
                         <button onclick="closeFullScreenPlan(true)" class="btn btn-danger" style="padding: 0.6rem 1.2rem; border-radius: 10px; font-weight: 800; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);">
                             <i class="fa-solid fa-xmark" style="font-size: 1.1rem;"></i> KAPAT
                         </button>
                     </div>
                 </div>
+                
+                <!-- Floating Info Panel Layer -->
+                <div style="position: fixed; left: 20px; top: 50%; transform: translateY(-50%); z-index: 10000; display: flex; flex-direction: column; align-items: center; gap: 0; pointer-events: none;">
+                    <div id="fullScreenLessonLabel" style="padding: 6px 20px; background: #39FF14; color: black; font-weight: 900; font-size: 1.1rem; border-radius: 12px 12px 0 0; text-transform: uppercase; letter-spacing: 1.5px; width: 100%; text-align: center; box-shadow: 0 -5px 15px rgba(57, 255, 20, 0.2); border: 2px solid #39FF14; border-bottom: none;">
+                        ${sessionData.time || 'SINAV'}
+                    </div>
+                    <div id="fullScreenTimer" style="font-family: 'JetBrains Mono', 'Courier New', monospace; font-weight: 900; font-size: 3.2rem; color: #39FF14; background: rgba(0,0,0,0.75); padding: 10px 20px; border-radius: 0 0 16px 16px; border: 5px double rgba(57, 255, 20, 0.6); box-shadow: 0 15px 40px rgba(0,0,0,0.6); letter-spacing: 3px; text-align: center; text-shadow: 0 0 15px rgba(57, 255, 20, 0.4); line-height: 1; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); min-width: 320px;">
+                        --:--:--
+                    </div>
+                </div>
+
                 <div id="fullScreenSchemaContainer" style="flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative;">
             `;
 
