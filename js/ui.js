@@ -2181,12 +2181,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (noMsg) noMsg.style.display = 'none';
             }
 
-            // Re-render the wizard classes if a checkbox was changed, 
-            // because checking a box might HIDE those students from subsequent subject groups.
-            // BUT we only want to do full re-render if we are in an event listener, not during init.
-            if (window._wizInitialized) {
-                populateWizardClasses();
-            }
+            // NOTE: We do NOT call populateWizardClasses() here to avoid
+            // a feedback loop: populateWizardClasses → updateOccupancy → populateWizardClasses → ...
         };
 
         // Helper to check what is currently claimed to prevent auto-select conflicts
@@ -2266,10 +2262,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             cb.addEventListener('change', updateOccupancy);
         });
 
-        if (!window._wizInitialized) {
-            window._wizInitialized = true;
-            updateOccupancy(); // Initial occupancy setup
-        }
+        // _wizInitialized is set and updateOccupancy is called at the end of this function
 
         // Toggle Students Modal (inside pools)
         window.wizToggleStudents = (pid) => {
@@ -2315,6 +2308,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         };
 
+        // Run initial occupancy calculation (only once, not in recursive path)
+        if (!window._wizInitialized) {
+            window._wizInitialized = true;
+        }
         updateOccupancy();
     }
 
