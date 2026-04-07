@@ -603,6 +603,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js"></script>
     <!-- Ortak PDF Başlık render fonksiyonu ve openSafePdf -->
     <script src="js/pdf_header.js?v=5.3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/data.js"></script>
     <script>
         DataManager._getStorageKey = function () {
@@ -1194,10 +1195,95 @@
         let activeMessages = new Map(); // Store active message windows
         let pdfTabs = []; // To track opened PDF tabs for automatic closing
 
-        window.openPdfTab = function (url) {
-            window.openSafePdf(url, 'Soru Kağıdı Görüntüleyici');
-            // Check if openSafePdf succeeded in opening a window (we can't easily track it now, 
-            // but for automatic closing logic we'll just assume it's tracked if needed)
+        window.openPdfTab = async function (url) {
+            if (!url) return;
+
+            Swal.fire({
+                title: 'Soru Kağıdı Hazırlanıyor...',
+                text: 'Güvenli bağlantı üzerinden dosya indiriliyor ve bilgileriniz ekleniyor, lütfen bekleyin.',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            try {
+                // 1. Get bytes via GAS Proxy
+                const bytes = await DataManager.getFileBytes(url);
+                if (!bytes) throw new Error("Dosya indirilemedi (Proxy hatası).");
+
+                // 2. Prepare student info for header
+                let info = null;
+                const session = window.currentRenderedSession;
+                const stdUser = window.currentStudent;
+                if (session && session.results && stdUser) {
+                    for (const room of session.results) {
+                        const seatId = Object.keys(room.seats || {}).find(sid => room.seats[sid].no === stdUser.no);
+                        if (seatId) {
+                            const stdData = room.seats[seatId];
+                            let seatNum = '-';
+                            let ctr = 1;
+                            for (let g = 1; g <= room.groups; g++) {
+                                const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
+                                for (let r = 1; r <= cf.rows; r++) {
+                                    for (let c = 1; c <= cf.cols; c++) {
+                                        const sid = `G${g}-S${r}-C${c}`;
+                                        if (!(room.disabledSeats || []).includes(sid)) {
+                                            if (sid === seatId) seatNum = ctr;
+                                            ctr++;
+                                        }
+                                    }
+                                }
+                            }
+                            info = {
+                                name: stdData.name,
+                                no: stdData.no,
+                                class: stdData.class,
+                                room: room.name,
+                                seat: seatNum.toString(),
+                                subject: stdData._matchedSubject || '',
+                                examNo: (session.subjectMetadata && session.subjectMetadata[stdData._matchedSubject]) ? session.subjectMetadata[stdData._matchedSubject].examNo : ''
+                            };
+                            break;
+                        }
+                    }
+                }
+
+                // 3. Render Header via PDFLib
+                const { PDFDocument } = PDFLib;
+                const pdfDoc = await PDFDocument.load(bytes);
+                const firstPage = pdfDoc.getPages()[0];
+                const { width, height } = firstPage.getSize();
+
+                // Scaling factors for A4
+                const A4_W = 595.28, A4_H = 841.89;
+                const sf = 1 / Math.min(A4_W / width, A4_H / height);
+
+                // Load fonts via DataManager
+                const fonts = await DataManager.loadRequiredFonts(pdfDoc);
+
+                // Render the common header (same design used in dashboard/teacher)
+                await window.renderStudentPDFHeader(pdfDoc, firstPage, info, {
+                    ...fonts,
+                    sf: sf,
+                    session: session,
+                    designType: (session && session.subjectMetadata && info && session.subjectMetadata[info.subject]) ? session.subjectMetadata[info.subject].pdfHeaderDesign : '1'
+                });
+
+                // 4. Finalize and Show
+                const modifiedPdfBytes = await pdfDoc.save();
+                const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
+                const blobUrl = URL.createObjectURL(blob);
+                
+                Swal.close();
+                window.openSafePdf(blobUrl, 'Soru Kağıdı - ' + (info ? info.name : 'Görüntüleyici'));
+
+            } catch (err) {
+                console.error("OpenPdfTab Error:", err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Dosya Açılamadı',
+                    text: 'Hata: ' + err.message + '. Lütfen yetkilerinizi veya internet bağlantınızı kontrol edin.'
+                });
+            }
         };
 
         function checkLiveMessages() {
