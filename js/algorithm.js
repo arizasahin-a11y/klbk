@@ -271,6 +271,28 @@ const ExamAlgorithm = {
                     }
                 }
             }
+            if (!placed) {
+                // SÜPER FALLBACK: Tek ders senaryosu — tüm slotlar aynı dersle dolu ve
+                // hasCollision6 tüm boş koltukları bloke ediyor. Çakışma kuralını kır,
+                // öğrenciyi ilk boş koltuğa yerleştir (hiçbir öğrenci yersiz kalmasın).
+                for (let ri = 0; ri < numRooms; ri++) {
+                    const node = roomNodes[(roomIdx + ri) % numRooms];
+                    
+                    let seat = node.slotSeats[0].find(st => !node.assigned[st.id]);
+                    if (!seat) seat = node.slotSeats[1].find(st => !node.assigned[st.id]);
+                    
+                    if (!seat) {
+                        // Eğer slotSeats içinde (herhangi bir sebeple) bulunamazsa tüm listeyi tara
+                        seat = node.allSeats.find(st => !node.assigned[st.id]);
+                    }
+
+                    if (seat) { 
+                        node.assigned[seat.id] = s; 
+                        roomIdx = (roomIdx + ri + 1) % numRooms; 
+                        placed = true; break; 
+                    }
+                }
+            }
         });
 
         // ── 7. OPT-B: Derslikler Arası Denge (Öncelikli öğrenciler DOKUNULMAZ) ──

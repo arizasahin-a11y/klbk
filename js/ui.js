@@ -2498,22 +2498,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
 
-                if (!matchingPoolSelected) {
-                    if ((s.class || '').includes('12')) {
-                        console.warn(`[DEBUG] ${s.class} - ${s.name} (${s.no}) HARİÇ: pid eşleşmedi. Ders:`, s.dersler, '| selectedClasses:', wizardSessionData.selectedClasses);
-                    }
-                    return false;
-                }
-                if (wizardSessionData.excludedStudents && wizardSessionData.excludedStudents.includes(s.no.toString())) {
-                    if ((s.class || '').includes('12')) {
-                        console.warn(`[DEBUG] ${s.class} - ${s.name} (${s.no}) HARİÇ: excludedStudents listesinde`);
-                    }
-                    return false;
-                }
-
-                if ((s.class || '').includes('12')) {
-                    console.info(`[DEBUG] ${s.class} - ${s.name} (${s.no}) DAHİL: _matchedSubject=${matchedSubjectName}`);
-                }
+                if (!matchingPoolSelected) return false;
+                if (wizardSessionData.excludedStudents && wizardSessionData.excludedStudents.includes(s.no.toString())) return false;
 
                 s._matchedSubject = matchedSubjectName;
                 return true;
