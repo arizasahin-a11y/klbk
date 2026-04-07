@@ -2162,7 +2162,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (window._wizRefreshSubjectList) window._wizRefreshSubjectList();
 
             const totalOccupancy = currentClaimedNos.size;
-            document.getElementById('wizOccupancyCount').textContent = totalOccupancy;
+            const occEl = document.getElementById('wizOccupancyCount');
+            if (occEl) occEl.textContent = totalOccupancy;
 
             const btnAdd = document.getElementById('btnAddWizardSubject');
             const select = document.getElementById('wizSubjectSelect');
@@ -2497,8 +2498,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
 
-                if (!matchingPoolSelected) return false;
-                if (wizardSessionData.excludedStudents && wizardSessionData.excludedStudents.includes(s.no.toString())) return false;
+                if (!matchingPoolSelected) {
+                    if ((s.class || '').includes('12')) {
+                        console.warn(`[DEBUG] ${s.class} - ${s.name} (${s.no}) HARİÇ: pid eşleşmedi. Ders:`, s.dersler, '| selectedClasses:', wizardSessionData.selectedClasses);
+                    }
+                    return false;
+                }
+                if (wizardSessionData.excludedStudents && wizardSessionData.excludedStudents.includes(s.no.toString())) {
+                    if ((s.class || '').includes('12')) {
+                        console.warn(`[DEBUG] ${s.class} - ${s.name} (${s.no}) HARİÇ: excludedStudents listesinde`);
+                    }
+                    return false;
+                }
+
+                if ((s.class || '').includes('12')) {
+                    console.info(`[DEBUG] ${s.class} - ${s.name} (${s.no}) DAHİL: _matchedSubject=${matchedSubjectName}`);
+                }
 
                 s._matchedSubject = matchedSubjectName;
                 return true;
