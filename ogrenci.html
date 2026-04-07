@@ -1479,7 +1479,8 @@
                 if (!ses.screenViewEnabled || !ses.results) continue;
 
                 const targetTime = DataManager.parseSessionDateTime(ses.date, ses.time);
-                const endTime = DataManager.getSessionEndDateTime(ses.date, ses.time);
+                // Force 40 minute duration from actual scheduled start
+                const endTime = new Date(targetTime.getTime() + 40 * 60 * 1000);
                 const diffMins = (targetTime - now) / 1000 / 60;
                 const diffEndMins = (endTime - now) / 1000 / 60;
 
@@ -1549,7 +1550,8 @@
             if (window.fullScreenTimerInterval) clearInterval(window.fullScreenTimerInterval);
 
             const examStartTime = DataManager.parseSessionDateTime(sessionData.date, sessionData.time).getTime();
-            const examEndTime = DataManager.getSessionEndDateTime(sessionData.date, sessionData.time).getTime();
+            // Force 40 minute duration from actual scheduled start
+            const examEndTime = examStartTime + (40 * 60 * 1000);
             const totalDuration = examEndTime - examStartTime;
             const halfTime = examStartTime + (totalDuration / 2);
             const fiveMinBefore = examEndTime - (5 * 60 * 1000);
@@ -1695,7 +1697,7 @@
                 <!-- Floating Info Panel Layer -->
                 <div style="position: fixed; left: 20px; top: 50%; transform: translateY(-50%); z-index: 10000; display: flex; flex-direction: column; align-items: center; gap: 0; pointer-events: none;">
                     <div id="fullScreenLessonLabel" style="padding: 6px 20px; background: #39FF14; color: black; font-weight: 900; font-size: 1.1rem; border-radius: 12px 12px 0 0; text-transform: uppercase; letter-spacing: 1.5px; width: 100%; text-align: center; box-shadow: 0 -5px 15px rgba(57, 255, 20, 0.2); border: 2px solid #39FF14; border-bottom: none;">
-                        ${sessionData.time || 'SINAV'}
+                        KALAN SÜRENİZ
                     </div>
                     <div id="fullScreenTimer" style="font-family: 'JetBrains Mono', 'Courier New', monospace; font-weight: 900; font-size: 3.2rem; color: #39FF14; background: rgba(0,0,0,0.75); padding: 10px 20px; border-radius: 0 0 16px 16px; border: 5px double rgba(57, 255, 20, 0.6); box-shadow: 0 15px 40px rgba(0,0,0,0.6); letter-spacing: 3px; text-align: center; text-shadow: 0 0 15px rgba(57, 255, 20, 0.4); line-height: 1; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); min-width: 320px;">
                         --:--:--
