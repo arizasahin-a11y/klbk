@@ -1808,6 +1808,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             selectedClasses: [], excludedStudents: [], selectedClassrooms: []
         };
         window._wizAvailableSubjects = null;
+        window._wizSeenPools = null;
+        window._wizInitialized = false;
 
         const dateInput = document.getElementById('wizSessionDate');
         const today = new Date().toISOString().split('T')[0];
@@ -2069,7 +2071,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Separate by Class and Alan
             const classAlanGroups = {};
             targetStudents.forEach(s => {
-                const clsName = (s.class || "Bilinmeyen").trim();
+                const clsName = (s.class || "Bilinmeyen").trim().toLocaleUpperCase('tr-TR');
                 const alanName = (s.alan || "Genel").trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
                 const groupKey = `${clsName}|${alanName}`;
                 if (!classAlanGroups[groupKey]) classAlanGroups[groupKey] = [];
@@ -2256,15 +2258,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             html += `</div>`;
         });
 
-        // Optimization: Only update DOM if HTML changed
-        if (container.innerHTML !== html) {
-            container.innerHTML = html;
+        // Always update DOM to ensure checkbox states stay in sync with selectedClasses
+        container.innerHTML = html;
 
-            // Bind events for live reactivity
-            document.querySelectorAll('.wiz-class-cb').forEach(cb => {
-                cb.addEventListener('change', updateOccupancy);
-            });
-        }
+        // Bind events for live reactivity
+        document.querySelectorAll('.wiz-class-cb').forEach(cb => {
+            cb.addEventListener('change', updateOccupancy);
+        });
 
         if (!window._wizInitialized) {
             window._wizInitialized = true;
@@ -2479,7 +2479,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     );
 
                     if (sitsForThis) {
-                        const pid = `${subNameNorm}_${sCls.toLocaleUpperCase('tr-TR')}_${sAlan}`;
+                        const pid = `${subNameNorm}_${sCls.toLocaleUpperCase('tr-TR').replace(/I/g, '\u0130')}_${sAlan}`;
                         if (wizardSessionData.selectedClasses.includes(pid)) {
                             matchingPoolSelected = true;
                             const originalDers = (s.dersler || []).find(d => {
