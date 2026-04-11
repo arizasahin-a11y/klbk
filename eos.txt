@@ -1,0 +1,36 @@
+
+
+"Uygulamanız Gönderilmiştir Güle Güle Kullanın, İlk kullanımda sorulacak aktivasyon kodu aşağıda verilmiştir.
+
+Öncelikle zipli dosya içinde 3. sütuna öğrenci numarasını, 5. sütuna puanları girin Bu puanların ne olduğu önemli değil puanlar ne olursa olsun uygulama en yüksek puana en yüksek düzeyi en düşük puana en düşük düzeyi seçecektir. TEK BİR PUAN SÜTUNUNUN OLMASI TÜM DÜZEYLER İÇİN YETERLİDİR. E-OKUL  YAZILI  NOTLARINI DA GİREBİLİRSİNİZ. Excel dosyasını telefonunuza atınız.
+
+Uygulama ile e-Okula girdikten sonra
+1) Ekranın sağ altındaki sarı şimşeğe tıklayınız
+2) Gelen panelde sınıf seçiniz.
+3) Altta ders ismi gelecek, istediğiniz ders değilse değiştiriniz
+4) Yukarıdaki gibi hazırladığınız Excel Dosyasını Dosya Seç tuşuna basarak seçiniz.
+5) Tema kutusuna numarasını yazın. 1 birinci temayı yap 1-3 ise 1. 2. ve 3. temayı birden yap demektir
+6) Tüm şubeleri bir seferde yapmak istiyorsanız alttaki kutucuğa tik atınız. 
+7) Tam otomatik işlem için kayıt Onayını otomatik seçin.
+8) başlat tuşuna basın
+9) Gerekirse duraklatın, Durdurun ya da  silin
+
+İyi Günlerde Kullanın..
+AKTİVASYON KODUNUZ:
+
+1. Kurulum Esnasında "Yine de Yükle" Seçeneği
+APK'yı kurarken Play Protect uyarısı çıktığında:
+
+Ekrandaki "Ayrıntılar" veya "Daha fazla bilgi" (Details) seçeneğine tıklayın.
+En altta çıkan "Yine de yükle" (Install anyway) bağlantısına basarak kurulumu tamamlayın.
+2. Play Protect'i Geçici Olarak Devre Dışı Bırakma (Eğer hiç kurulmuyorsa)
+Eğer uyarı penceresi kurulumu tamamen engelliyorsa:
+
+Google Play Store uygulamasını açın.
+Sağ üstteki profil resminize tıklayın.
+Play Protect menüsüne girin.
+Sağ üstteki Ayarlar (çark) simgesine tıklayın.
+"Uygulamaları Play Protect ile tara" seçeneğini geçici olarak kapatın.
+APK'yı kurduktan sonra isterseniz bu ayarı tekrar açabilirsiniz.
+
+"
