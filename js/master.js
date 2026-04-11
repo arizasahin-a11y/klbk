@@ -25,9 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnUploadExcel = document.getElementById('btnUploadExcel');
     const excelMessage = document.getElementById('excelMessage');
 
-    // Supabase Configuration
-    const supabaseUrl = "https://esdttjvkqyeaosdcsskr.supabase.co";
-    const supabaseKey = "sb_publishable_Rdl1xQ10AjWVZPxLwL_O_A_x4NYDxl6";
+    // Cloud Configuration (Google Apps Script)
+    const gasApiUrl = "https://script.google.com/macros/s/AKfycbx_lmok6XZ1te32GRoWFb16sl-FzOPDRL3i81OlsaYrr1D-XXtb93ng1PpcqXBz3y3kuw/exec"; // Final Doğrulanan URL (Garantili)
 
     // Global config
     let globalUsersDb = {};
@@ -35,13 +34,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     async function getCloudUsers() {
+        if (!gasApiUrl) return { 'admin': { password: 'admin', schoolName: 'Sistem Yöneticisi', role: 'master' } };
         try {
-            const res = await fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.klbk_users&select=*`, {
-                headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
-            });
+            const res = await fetch(`${gasApiUrl}?action=get_users`);
             if (res.ok) {
-                const rows = await res.json();
-                if (rows && rows.length > 0) return rows[0].data;
+                const data = await res.json();
+                if (data) return data;
             }
         } catch (e) {
             console.error("Bulut verisi çekilirken hata:", e);
@@ -52,16 +50,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function saveToCloud(id, dataObj) {
+        if (!gasApiUrl) return;
         try {
-            await fetch(`${supabaseUrl}/rest/v1/app_store`, {
+            const action = id === 'klbk_users' ? 'save_users' : 'save_data';
+            const params = new URLSearchParams();
+            params.append('payload', JSON.stringify({ action: action, id: id, data: dataObj }));
+
+            await fetch(gasApiUrl, {
                 method: 'POST',
-                headers: {
-                    'apikey': supabaseKey,
-                    'Authorization': `Bearer ${supabaseKey}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'resolution=merge-duplicates'
-                },
-                body: JSON.stringify({ id: id, data: dataObj })
+                mode: 'no-cors',
+                body: params
             });
         } catch (e) {
             console.error("Buluta veri kaydedilirken hata:", e);
@@ -137,16 +135,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Fetch School Data for Branches
     async function fetchSchoolBranches(storeKey) {
-        if (!regBranchSelect) return;
+        if (!regBranchSelect || !gasApiUrl) return;
         regBranchSelect.innerHTML = '<option value="">Yükleniyor...</option>';
         try {
-            const res = await fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.${storeKey}&select=*`, {
-                headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
-            });
+            const res = await fetch(`${gasApiUrl}?action=get_data&id=${storeKey}`);
             if (res.ok) {
-                const rows = await res.json();
-                if (rows && rows.length > 0 && rows[0].data.school && rows[0].data.school.subjects) {
-                    const subjects = rows[0].data.school.subjects;
+                const data = await res.json();
+                if (data && data.school && data.school.subjects) {
+                    const subjects = data.school.subjects;
                     regBranchSelect.innerHTML = '<option value="">-- Branş Seçiniz --</option>';
                     subjects.forEach(sub => {
                         const opt = document.createElement('option');
@@ -368,17 +364,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // 2. Update School's Own DB limits
-                const res = await fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.${storeKey}&select=*`, {
-                    headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
-                });
+                const res = await fetch(`${gasApiUrl}?action=get_data&id=${storeKey}`);
                 if (res.ok) {
-                    const rows = await res.json();
-                    if (rows && rows.length > 0) {
-                        const schoolData = rows[0].data;
-                        if (schoolData.school) {
-                            schoolData.school.name = newName.trim();
-                            await saveToCloud(storeKey, schoolData);
-                        }
+                    const schoolData = await res.json();
+                    if (schoolData && schoolData.school) {
+                        schoolData.school.name = newName.trim();
+                        await saveToCloud(storeKey, schoolData);
                     }
                 }
 
@@ -649,14 +640,12 @@ document.addEventListener('DOMContentLoaded', () => {
             btnShowActivity.disabled = true;
 
             try {
-                const logRes = await fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.klbk_activity_log&select=*`, {
-                    headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
-                });
+                const logRes = await fetch(`${gasApiUrl}?action=get_data&id=klbk_activity_log`);
                 let logs = [];
                 if (logRes.ok) {
-                    const rows = await logRes.json();
-                    if (rows && rows.length > 0 && rows[0].data && rows[0].data.logs) {
-                        logs = rows[0].data.logs;
+                    const data = await logRes.json();
+                    if (data && data.logs) {
+                        logs = data.logs;
                     }
                 }
 
@@ -707,15 +696,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
 
                         if (confirmReset.isConfirmed) {
-                            await fetch(`${supabaseUrl}/rest/v1/app_store`, {
+                            await fetch(gasApiUrl, {
                                 method: 'POST',
-                                headers: {
-                                    'apikey': supabaseKey,
-                                    'Authorization': `Bearer ${supabaseKey}`,
-                                    'Content-Type': 'application/json',
-                                    'Prefer': 'resolution=merge-duplicates'
-                                },
-                                body: JSON.stringify({ id: 'klbk_activity_log', data: { logs: [] } })
+                                mode: 'no-cors',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ action: "save_data", id: 'klbk_activity_log', data: { logs: [] } })
                             });
                             Swal.fire('Sıfırlandı!', 'Tüm aktivite logları temizlendi.', 'success');
                         }

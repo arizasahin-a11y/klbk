@@ -15,21 +15,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginMessageBox = document.getElementById('loginMessage');
     const rememberMeCheckbox = document.getElementById('rememberMe');
 
-    // Supabase Configuration
-    const supabaseUrl = "https://esdttjvkqyeaosdcsskr.supabase.co";
-    const supabaseKey = "sb_publishable_Rdl1xQ10AjWVZPxLwL_O_A_x4NYDxl6";
+    // Cloud Configuration (Google Apps Script)
+    const gasApiUrl = "https://script.google.com/macros/s/AKfycbx_lmok6XZ1te32GRoWFb16sl-FzOPDRL3i81OlsaYrr1D-XXtb93ng1PpcqXBz3y3kuw/exec"; // Final Doğrulanan URL (Garantili)
 
     async function getCloudUsers() {
+        if (!gasApiUrl) return { 'admin': { password: 'admin', schoolName: 'Sistem Yöneticisi', role: 'master' } };
         try {
-            const res = await fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.klbk_users&select=*`, {
-                headers: {
-                    'apikey': supabaseKey,
-                    'Authorization': `Bearer ${supabaseKey}`
-                }
-            });
+            const res = await fetch(`${gasApiUrl}?action=get_users`);
             if (res.ok) {
-                const rows = await res.json();
-                if (rows && rows.length > 0) return rows[0].data;
+                const data = await res.json();
+                if (data) return data;
             }
         } catch (e) {
             console.error("Bulut kullanıcı verisi alınamadı", e);
@@ -41,15 +36,13 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            await fetch(`${supabaseUrl}/rest/v1/app_store`, {
+            const params = new URLSearchParams();
+            params.append('payload', JSON.stringify({ action: 'save_users', data: defaultUsers }));
+
+            await fetch(gasApiUrl, {
                 method: 'POST',
-                headers: {
-                    'apikey': supabaseKey,
-                    'Authorization': `Bearer ${supabaseKey}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'resolution=merge-duplicates'
-                },
-                body: JSON.stringify({ id: 'klbk_users', data: defaultUsers })
+                mode: 'no-cors',
+                body: params
             });
         } catch (e) { }
 
@@ -162,39 +155,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // --- Asenkron Aktivite Loglama ---
                     try {
-                        fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.klbk_activity_log&select=*`, {
-                            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
-                        }).then(r => r.json()).then(rows => {
-                            let logs = [];
-                            if (rows && rows.length > 0 && rows[0].data && rows[0].data.logs) {
-                                logs = rows[0].data.logs;
-                            }
-                            
-                            // Make sure valid array
-                            if (!Array.isArray(logs)) logs = [];
+                        if (gasApiUrl) {
+                            fetch(`${gasApiUrl}?action=get_data&id=klbk_activity_log`).then(r => r.json()).then(rows => {
+                                let logs = rows?.logs || [];
+                                if (!Array.isArray(logs)) logs = [];
 
-                            const role = usersDb[username].role || 'admin';
-                            // Master logins also counted
-                            logs.unshift({
-                                username: username,
-                                role: role,
-                                school: usersDb[username].schoolName || '-',
-                                time: new Date().toLocaleString('tr-TR')
-                            });
+                                const role = usersDb[username].role || 'admin';
+                                logs.unshift({
+                                    username: username,
+                                    role: role,
+                                    school: usersDb[username].schoolName || '-',
+                                    time: new Date().toLocaleString('tr-TR')
+                                });
 
-                            if (logs.length > 500) logs = logs.slice(0, 500);
+                                if (logs.length > 500) logs = logs.slice(0, 500);
 
-                            fetch(`${supabaseUrl}/rest/v1/app_store`, {
-                                method: 'POST',
-                                headers: {
-                                    'apikey': supabaseKey,
-                                    'Authorization': `Bearer ${supabaseKey}`,
-                                    'Content-Type': 'application/json',
-                                    'Prefer': 'resolution=merge-duplicates'
-                                },
-                                body: JSON.stringify({ id: 'klbk_activity_log', data: { logs: logs } })
-                            });
-                        }).catch(e => console.warn('Aktivite loglanamadı', e));
+                                fetch(gasApiUrl, {
+                                    method: 'POST',
+                                    mode: 'no-cors',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ action: 'save_data', id: 'klbk_activity_log', data: { logs: logs } })
+                                });
+                            }).catch(e => console.warn('Aktivite loglanamadı', e));
+                        }
                     } catch (e) {
                         console.warn("Log tracking failed", e);
                     }

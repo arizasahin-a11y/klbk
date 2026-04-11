@@ -22,9 +22,8 @@ const initialState = {
 
 const DataManager = {
 
-    // Cloud Configuration
-    supabaseUrl: "https://esdttjvkqyeaosdcsskr.supabase.co",
-    supabaseKey: "sb_publishable_Rdl1xQ10AjWVZPxLwL_O_A_x4NYDxl6",
+    // Cloud Configuration (Google Apps Script)
+    gasApiUrl: "https://script.google.com/macros/s/AKfycbx_lmok6XZ1te32GRoWFb16sl-FzOPDRL3i81OlsaYrr1D-XXtb93ng1PpcqXBz3y3kuw/exec", // Final Doğrulanan URL (Garantili)
     _memoryData: null,
 
     // Get Key
@@ -37,25 +36,26 @@ const DataManager = {
 
     // Initialize Cloud Data (Must be called on page load)
     initCloud: async function () {
+        if (!this.gasApiUrl) {
+            console.warn("GAS API URL not set, using empty state.");
+            this._memoryData = JSON.parse(JSON.stringify(initialState));
+            return;
+        }
+
         const key = this._getStorageKey();
         try {
-            const res = await fetch(`${this.supabaseUrl}/rest/v1/app_store?id=eq.${key}&select=*`, {
-                headers: {
-                    'apikey': this.supabaseKey,
-                    'Authorization': `Bearer ${this.supabaseKey}`
-                }
-            });
+            const res = await fetch(`${this.gasApiUrl}?action=get_data&id=${key}`);
             if (res.ok) {
-                const rows = await res.json();
-                if (rows && rows.length > 0) {
-                    this._memoryData = rows[0].data;
+                const data = await res.json();
+                if (data) {
+                    this._memoryData = data;
                     console.log("Cloud data loaded successfully.");
-                    this._migrateDateFormats(); // Standardize dates to DD.MM.YYYY
+                    this._migrateDateFormats();
                     return;
                 }
             }
         } catch (e) {
-            console.error("Cloud fetch failed, initializing empty state", e);
+            console.error("Cloud fetch failed", e);
         }
 
         // If not found or error, use initial state
@@ -64,27 +64,26 @@ const DataManager = {
 
     // Sync Memory Data to Cloud
     _syncToCloud: async function (data) {
+        if (!this.gasApiUrl) return;
+
         const key = this._getStorageKey();
         try {
-            await fetch(`${this.supabaseUrl}/rest/v1/app_store`, {
+            const params = new URLSearchParams();
+            params.append('payload', JSON.stringify({ action: "save_data", id: key, data: data }));
+
+            await fetch(this.gasApiUrl, {
                 method: 'POST',
-                headers: {
-                    'apikey': this.supabaseKey,
-                    'Authorization': `Bearer ${this.supabaseKey}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'resolution=merge-duplicates'
-                },
-                body: JSON.stringify({ id: key, data: data })
+                mode: 'no-cors',
+                body: params
             });
-            console.log("Data synced to cloud.");
+            console.log("Cloud sync request (Form-Encoded) sent to GAS.");
         } catch (e) {
             console.error("Cloud sync failed!", e);
-            // Optionally fallback to localStorage here if offline
         }
     },
 
     // Helper to safely format paths for cloud buckets (removes special chars & turkish chars)
-    sanitizeSupabaseString: function (str) {
+    sanitizeFileName: function (str) {
         if (!str) return '';
         const trMap = {
             'ç': 'c', 'Ç': 'C', 'ğ': 'g', 'Ğ': 'G',
@@ -98,116 +97,76 @@ const DataManager = {
         return s.replace(/[^a-zA-Z0-9.\-_]/g, '');
     },
 
-    // --- Supabase Storage (PDF Uploads) ---
-    uploadFileToSupabase: async function (file) {
-        if (!file) return null;
+    // --- Cloud Storage (File Uploads via GAS) ---
+    uploadFileToCloud: async function (file) {
+        if (!file || !this.gasApiUrl) return null;
 
-        const bucketName = 'xms';
+        const reader = new FileReader();
+        const fileContent = await new Promise((resolve) => {
+            reader.onload = () => resolve(reader.result.split(',')[1]); // get base64 part
+            reader.readAsDataURL(file);
+        });
+
         const currentUser = sessionStorage.getItem('klbk_currentUser') || 'unknown';
-        
-        // Remove Turkish characters and spaces to prevent "InvalidKey" 400 API errors
-        const cleanUser = this.sanitizeSupabaseString(currentUser);
-        let cleanName = this.sanitizeSupabaseString(file.name);
-        
-        const uniqueFileName = `${cleanUser}_${cleanName}`;
-
-        const uploadUrl = `${this.supabaseUrl}/storage/v1/object/${bucketName}/${uniqueFileName}`;
+        const uniqueFileName = `${this.sanitizeFileName(currentUser)}_${Date.now()}_${this.sanitizeFileName(file.name)}`;
 
         try {
-            const res = await fetch(uploadUrl, {
-                method: 'POST', // Changed from POST to POST with upsert header or PUT? Usually Supabase Storage API uses POST to create. To overwrite, we might need upsert headers.
-                headers: {
-                    'apikey': this.supabaseKey,
-                    'Authorization': `Bearer ${this.supabaseKey}`,
-                    'Content-Type': file.type || 'application/pdf',
-                    'x-upsert': 'true' // Allow overwriting files with the same name
-                },
-                body: file
-            });
-
-            if (!res.ok) {
-                const errText = await res.text();
-                throw new Error(`Upload failed: ${res.status} ${errText}`);
-            }
-
-            // Return the public URL for the newly uploaded file
-            const publicUrl = `${this.supabaseUrl}/storage/v1/object/public/${bucketName}/${uniqueFileName}`;
-            return publicUrl;
-        } catch (e) {
-            console.error("Supabase Storage Upload Error:", e);
-            throw e;
-        }
-    },
-
-    deleteSupabaseFile: async function (fileName) {
-        const bucketName = 'xms';
-        const deleteUrl = `${this.supabaseUrl}/storage/v1/object/${bucketName}/${fileName}`;
-
-        try {
-            const res = await fetch(deleteUrl, {
-                method: 'DELETE',
-                headers: {
-                    'apikey': this.supabaseKey,
-                    'Authorization': `Bearer ${this.supabaseKey}`
-                }
-            });
-
-            if (!res.ok) {
-                const errText = await res.text();
-                throw new Error(`Delete failed: ${res.status} ${errText}`);
-            }
-            return true;
-        } catch (e) {
-            console.error("Supabase Storage Delete Error:", e);
-            throw e;
-        }
-    },
-
-    listSupabaseFiles: async function (teacherOnly = false) {
-        const bucketName = 'xms';
-        const listUrl = `${this.supabaseUrl}/storage/v1/object/list/${bucketName}`;
-        const currentUser = sessionStorage.getItem('klbk_currentUser') || '';
-
-        try {
-            const res = await fetch(listUrl, {
-                method: 'POST',
-                headers: {
-                    'apikey': this.supabaseKey,
-                    'Authorization': `Bearer ${this.supabaseKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    prefix: '',
-                    limit: 100,
-                    offset: 0,
-                    sortBy: { column: 'created_at', order: 'desc' },
-                    search: '' // Ensure Supabase returns all
-                })
-            });
-
-            if (!res.ok) {
-                const errText = await res.text();
-                throw new Error(`Failed to list files: ${res.status} ${errText}`);
-            }
-
-            const files = await res.json();
-            
-            let mappedFiles = files.map(f => ({
-                name: f.name,
-                url: `${this.supabaseUrl}/storage/v1/object/public/${bucketName}/${f.name}`,
-                created_at: f.created_at
+            const params = new URLSearchParams();
+            params.append('payload', JSON.stringify({
+                action: "upload_file",
+                fileName: uniqueFileName,
+                fileData: fileContent,
+                mimeType: file.type || 'application/pdf'
             }));
 
-            if (teacherOnly && currentUser) {
-                // Ensure we filter using the exact same sanitized prefix as used during upload
-                const searchPrefix = this.sanitizeSupabaseString(currentUser) + '_';
-                mappedFiles = mappedFiles.filter(f => f.name.startsWith(searchPrefix));
-            }
+            const res = await fetch(this.gasApiUrl, {
+                method: 'POST',
+                body: params
+            });
 
-            return mappedFiles;
+            const result = await res.json();
+            if (result.success) return result.url;
+            throw new Error(result.error);
         } catch (e) {
-            console.error("Supabase Storage List Error:", e);
+            console.error("GAS File Upload Error:", e);
             throw e;
+        }
+    },
+
+    deleteCloudFile: async function (fileName) {
+        if (!this.gasApiUrl) return false;
+        try {
+            const params = new URLSearchParams();
+            params.append('payload', JSON.stringify({ action: "delete_file", fileName: fileName }));
+
+            const res = await fetch(this.gasApiUrl, {
+                method: 'POST',
+                body: params
+            });
+            return (await res.json()).success;
+        } catch (e) {
+            console.error("GAS File Delete Error:", e);
+            return false;
+        }
+    },
+
+    listCloudFiles: async function (teacherOnly = false) {
+        if (!this.gasApiUrl) return [];
+        try {
+            const res = await fetch(`${this.gasApiUrl}?action=list_files`);
+            if (res.ok) {
+                let files = await res.json();
+                if (teacherOnly) {
+                    const currentUser = sessionStorage.getItem('klbk_currentUser') || '';
+                    const searchPrefix = this.sanitizeFileName(currentUser) + '_';
+                    files = files.filter(f => f.name.startsWith(searchPrefix));
+                }
+                return files;
+            }
+            return [];
+        } catch (e) {
+            console.error("GAS List Error:", e);
+            return [];
         }
     },
 
@@ -221,9 +180,9 @@ const DataManager = {
     },
 
     // Internal Method: Save Full Data Store (Updates Memory & Triggers Sync)
-    _saveData: function (data) {
+    _saveData: async function (data) {
         this._memoryData = data;
-        this._syncToCloud(data);
+        await this._syncToCloud(data);
     },
 
     // --- School API ---
@@ -231,11 +190,11 @@ const DataManager = {
         return this._getData().school;
     },
 
-    saveSchoolSettings: function (settingsObj) {
+    saveSchoolSettings: async function (settingsObj) {
         const data = this._getData();
         const oldName = data.school.name;
         data.school = { ...data.school, ...settingsObj };
-        this._saveData(data);
+        await this._saveData(data);
 
         // Sync new school name back to Master DB if it was changed
         if (settingsObj.name && oldName !== settingsObj.name) {
@@ -245,17 +204,14 @@ const DataManager = {
 
     // Sync school name changes from the dashboard back to the root Master DB
     _updateMasterSchoolName: async function (newName) {
+        if (!this.gasApiUrl) return;
         const storeKey = this._getStorageKey();
         try {
-            const res = await fetch(`${this.supabaseUrl}/rest/v1/app_store?id=eq.klbk_users&select=*`, {
-                headers: { 'apikey': this.supabaseKey, 'Authorization': `Bearer ${this.supabaseKey}` }
-            });
+            const res = await fetch(`${this.gasApiUrl}?action=get_users`);
             if (res.ok) {
-                const rows = await res.json();
-                if (rows && rows.length > 0) {
-                    const usersDb = rows[0].data;
+                const usersDb = await res.json();
+                if (usersDb) {
                     let updated = false;
-
                     for (const [uname, user] of Object.entries(usersDb)) {
                         if (uname === 'admin') continue;
                         const userStoreKey = user.storeKey || `klbk_data_${uname}`;
@@ -266,18 +222,15 @@ const DataManager = {
                     }
 
                     if (updated) {
-                        await fetch(`${this.supabaseUrl}/rest/v1/app_store`, {
+                        const params = new URLSearchParams();
+                        params.append('payload', JSON.stringify({ action: "save_users", data: usersDb }));
+
+                        await fetch(this.gasApiUrl, {
                             method: 'POST',
-                            headers: {
-                                'apikey': this.supabaseKey,
-                                'Authorization': `Bearer ${this.supabaseKey}`,
-                                'Content-Type': 'application/json',
-                                'Prefer': 'resolution=merge-duplicates'
-                            },
-                            body: JSON.stringify({ id: 'klbk_users', data: usersDb })
+                            body: params
                         });
                         console.log("Master school name updated for related users.");
-                        sessionStorage.setItem('klbk_schoolName', newName); // Local cache sync
+                        sessionStorage.setItem('klbk_schoolName', newName);
                     }
                 }
             }
@@ -290,7 +243,7 @@ const DataManager = {
         return this._getData().classRoomMappings || {};
     },
 
-    saveClassRoomMapping: function (className, roomName) {
+    saveClassRoomMapping: async function (className, roomName) {
         const data = this._getData();
         if (!data.classRoomMappings) data.classRoomMappings = {};
         if (roomName) {
@@ -298,7 +251,7 @@ const DataManager = {
         } else {
             delete data.classRoomMappings[className];
         }
-        this._saveData(data);
+        await this._saveData(data);
     },
 
     // --- Students API ---
@@ -306,7 +259,7 @@ const DataManager = {
         return this._getData().students;
     },
 
-    addStudent: function (studentObj) {
+    addStudent: async function (studentObj) {
         const data = this._getData();
         // Check if exists using robust string comparison
         const exists = data.students.findIndex(s => String(s.no).trim() === String(studentObj.no).trim());
@@ -315,10 +268,10 @@ const DataManager = {
         } else {
             data.students.push(studentObj);
         }
-        this._saveData(data);
+        await this._saveData(data);
     },
 
-    bulkImportStudents: function (studentList, mode) {
+    bulkImportStudents: async function (studentList, mode) {
         const data = this._getData();
         const stats = {
             totalStudents: 0,
@@ -389,11 +342,11 @@ const DataManager = {
             data.students = finalStudents;
         }
 
-        this._saveData(data);
+        await this._saveData(data);
         return stats;
     },
 
-    resetAllStudentRuleAcceptances: function () {
+    resetAllStudentRuleAcceptances: async function () {
         const data = this._getData();
         if (!data.students) return 0;
         let count = 0;
@@ -404,7 +357,7 @@ const DataManager = {
             }
         });
         if (count > 0) {
-            this._saveData(data);
+            await this._saveData(data);
         }
         return count;
     },
@@ -414,7 +367,7 @@ const DataManager = {
         return this._getData().classrooms;
     },
 
-    addClassroom: function (roomObj) {
+    addClassroom: async function (roomObj) {
         const data = this._getData();
         const exists = data.classrooms.findIndex(r => r.name === roomObj.name);
         if (exists !== -1) {
@@ -422,13 +375,13 @@ const DataManager = {
         } else {
             data.classrooms.push(roomObj);
         }
-        this._saveData(data);
+        await this._saveData(data);
     },
 
-    removeClassroom: function (name) {
+    removeClassroom: async function (name) {
         const data = this._getData();
         data.classrooms = data.classrooms.filter(r => r.name !== name);
-        this._saveData(data);
+        await this._saveData(data);
     },
 
     // --- Exam Sessions API ---
@@ -436,7 +389,7 @@ const DataManager = {
         return this._getData().examSessions || [];
     },
 
-    addExamSession: function (sessionObj) {
+    addExamSession: async function (sessionObj) {
         const data = this._getData();
         if (!data.examSessions) data.examSessions = [];
 
@@ -460,14 +413,14 @@ const DataManager = {
         } else {
             data.examSessions.push(sessionObj);
         }
-        this._saveData(data);
+        await this._saveData(data);
     },
 
-    removeExamSession: function (id) {
+    removeExamSession: async function (id) {
         const data = this._getData();
         if (!data.examSessions) return;
         data.examSessions = data.examSessions.filter(s => s.id !== id);
-        this._saveData(data);
+        await this._saveData(data);
     },
 
     // --- Sorted Exam Sessions for UI ---

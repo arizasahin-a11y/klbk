@@ -742,7 +742,7 @@
             });
 
             try {
-                const url = await DataManager.uploadFileToSupabase(file);
+                const url = await DataManager.uploadFileToCloud(file);
                 // Update UI input
                 const inputId = groupLetter ? `pdfLink-${sesId}-${encodedSub}-${groupLetter}` : `pdfLink-${sesId}-${encodedSub}`;
                 const el = document.getElementById(inputId);
@@ -885,16 +885,11 @@
                 didOpen: async () => {
                     Swal.showLoading();
                     try {
-                        const res = await fetch(`${DataManager.supabaseUrl}/rest/v1/app_store?id=eq.klbk_users&select=*`, {
-                            headers: { 'apikey': DataManager.supabaseKey, 'Authorization': `Bearer ${DataManager.supabaseKey}` }
-                        });
+                        const res = await fetch(`${DataManager.gasApiUrl}?action=get_users`);
                         if (res.ok) {
-                            const rows = await res.json();
-                            if (rows && rows.length > 0) {
-                                const db = rows[0].data;
-                                if (db[currentUser]) {
-                                    document.getElementById('profEmail').value = db[currentUser].email || '';
-                                }
+                            const db = await res.json();
+                            if (db && db[currentUser]) {
+                                document.getElementById('profEmail').value = db[currentUser].email || '';
                             }
                         }
                     } catch (e) { }
@@ -906,29 +901,22 @@
 
                     Swal.showLoading();
                     try {
-                        const res = await fetch(`${DataManager.supabaseUrl}/rest/v1/app_store?id=eq.klbk_users&select=*`, {
-                            headers: { 'apikey': DataManager.supabaseKey, 'Authorization': `Bearer ${DataManager.supabaseKey}` }
-                        });
+                        const res = await fetch(`${DataManager.gasApiUrl}?action=get_users`);
                         if (res.ok) {
-                            const rows = await res.json();
-                            if (rows && rows.length > 0) {
-                                const db = rows[0].data;
-                                if (db[currentUser]) {
-                                    db[currentUser].email = email;
-                                    if (pass) db[currentUser].password = pass; // Only update if provided
+                            const db = await res.json();
+                            if (db && db[currentUser]) {
+                                db[currentUser].email = email;
+                                if (pass) db[currentUser].password = pass; // Only update if provided
 
-                                    await fetch(`${DataManager.supabaseUrl}/rest/v1/app_store`, {
+                                    const params = new URLSearchParams();
+                                    params.append('payload', JSON.stringify({ action: 'save_users', data: db }));
+
+                                    await fetch(DataManager.gasApiUrl, {
                                         method: 'POST',
-                                        headers: {
-                                            'apikey': DataManager.supabaseKey,
-                                            'Authorization': `Bearer ${DataManager.supabaseKey}`,
-                                            'Content-Type': 'application/json',
-                                            'Prefer': 'resolution=merge-duplicates'
-                                        },
-                                        body: JSON.stringify({ id: 'klbk_users', data: db })
+                                        mode: 'no-cors',
+                                        body: params
                                     });
-                                    return true;
-                                }
+                                return true;
                             }
                         }
                         throw new Error("Veritabanı hatası");
@@ -1059,7 +1047,7 @@
                 width: 600,
                 didOpen: async () => {
                     try {
-                        const files = await DataManager.listSupabaseFiles(true);
+                        const files = await DataManager.listCloudFiles(true);
                         let html = '<ul style="list-style:none; padding:0; margin:0;">';
                         if (files.length === 0) {
                             html += '<li style="padding: 1rem; color: var(--gray-500); text-align: center;">Bulutta kayıtlı dosya yok.</li>';
@@ -1104,7 +1092,7 @@
             try {
                 btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
                 btnEl.disabled = true;
-                await DataManager.deleteSupabaseFile(name);
+                await DataManager.deleteCloudFile(name);
                 const li = btnEl.closest('li');
                 if (li) li.remove();
             } catch (e) {
@@ -1170,10 +1158,10 @@
 
         try {
             // Stage 0: Custom Google Apps Script Proxy (PRIORITY)
-            if (driveId) {
+            if (driveId && DataManager.gasApiUrl) {
                 try {
-                    console.log("Using Custom GAS Proxy for ID:", driveId);
-                    const gasUrl = "https://script.google.com/macros/s/AKfycbzzq1WBvSNmM5yGVH49vt2EOkTA83sFFSiysuqg4x54L3Cn9DEOmixlHW8fd_bLJ_du/exec" + "?id=" + driveId;
+                    console.log("Using GAS Proxy for ID:", driveId);
+                    const gasUrl = DataManager.gasApiUrl + "?action=proxy&id=" + driveId;
                     const res = await fetch(gasUrl);
                     const b64 = await res.text();
                     if (b64 && !b64.startsWith("Hata") && b64.length > 100) {
@@ -1183,7 +1171,7 @@
                             return buf;
                         }
                     }
-                } catch (e) { console.warn("Custom Proxy failed, trying alternatives...", e); }
+                } catch (e) { console.warn("GAS Proxy failed, trying alternatives...", e); }
             }
 
             // Stage 1: Direct Fetch

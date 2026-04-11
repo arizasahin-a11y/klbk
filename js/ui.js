@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- Cloud Sync ---
-    // Fetch user's data from Supabase before rendering the dashboard
+    // Fetch user's data from Cloud before rendering the dashboard
     await DataManager.initCloud();
 
     // Check klbk_data_ format
@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const cloudData = DataManager.getSchoolSettings();
         if (!cloudData.name) {
             console.log("Migrating local data to cloud...");
-            DataManager._saveData(JSON.parse(localStorage.getItem(key)));
+            await DataManager._saveData(JSON.parse(localStorage.getItem(key)));
         }
     }
 
@@ -446,9 +446,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                         confirmButtonColor: '#6366f1'
                     }).then(res => {
                         if (res.isConfirmed) {
-                            DataManager._saveData(parsed);
+                            Swal.fire({
+                                title: 'Veriler Yükleniyor...',
+                                html: 'Lütfen bekleyiniz, bulut senkronizasyonu yapılıyor.',
+                                allowOutsideClick: false,
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
+                            });
+                            await DataManager._saveData(parsed);
                             loadSchoolSettings();
-                            Swal.fire({ icon: 'success', title: 'Y\u00fcklendi!', text: 'Veriler ba\u015far\u0131yla geri y\u00fcklendi.', timer: 2000, showConfirmButton: false });
+                            Swal.fire({ icon: 'success', title: 'Yüklendi!', text: 'Veriler başarıyla buluta kaydedildi.', timer: 2000, showConfirmButton: false });
                         }
                     });
                 } catch (err) {
@@ -461,7 +469,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // Save School Settings Form
-    document.getElementById('schoolForm').addEventListener('submit', (e) => {
+    document.getElementById('schoolForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const gradesArr = document.getElementById('gradeLevels').value.split(/[,\n;]/).map(s => s.trim()).filter(Boolean);
@@ -498,7 +506,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             pdfHeaderDesign: document.getElementById('pdfHeaderDesign') ? document.getElementById('pdfHeaderDesign').value : '1'
         };
 
-        DataManager.saveSchoolSettings(settings);
+        Swal.fire({
+            title: 'Ayarlar Kaydediliyor...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        await DataManager.saveSchoolSettings(settings);
         loadSchoolSettings(); // Refresh UI with cleaned data
 
         Swal.fire({
@@ -3221,9 +3237,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (printPath.includes("file://") || printPath.includes("C:") || printPath.includes("D:")) {
                 htmlMsg += `<b style="color:#e11d48;">UYARI:</b> Sistemi bir internet sunucusunda çalıştırırken, bilgisayarınızdaki yerel dosyalara (C:\\ veya D:\\) erişilemez. Güvenlik nedeniyle tarayıcılar buna izin vermez.<br><br>
-                 <b>ÇÖZÜM:</b> Soru kağıdı PDF'lerinizi OneDrive, Google Drive veya Supabase gibi bir buluta yükleyip <b>'Herkesin görebileceği' bir internet linkini (https://...)</b> buraya yapıştırmalısınız.`;
-            } else if (printPath.includes('supabase.co')) {
-                htmlMsg += `<b style="color:#e11d48;">UYARI:</b> Supabase dosya okuma formatında (CORS) veya isim/boşluk yapısında bir hata oluştu.<br><br>
+                 <b>ÇÖZÜM:</b> Soru kağıdı PDF'lerinizi OneDrive, Google Drive veya Bulut gibi bir buluta yükleyip <b>'Herkesin görebileceği' bir internet linkini (https://...)</b> buraya yapıştırmalısınız.`;
+            } else if (printPath.includes('Bulut.co')) {
+                htmlMsg += `<b style="color:#e11d48;">UYARI:</b> Google Drive/Script dosya okuma formatında (CORS) veya isim/boşluk yapısında bir hata oluştu.<br><br>
                  <b>ÇÖZÜM:</b> Sorunu aşmak için dosyayı "Yeni Sekmede" açarak manuel olarak yazdırabilirsiniz (Oturum Listesindeki yazdırma butonu bunu yapmaya çalışır)`;
             } else {
                 htmlMsg += `<small><i>Dosya yolu hatalı olabilir veya internetten çektiğiniz linkin (CORS) indirme izni yoktur.</i></small>`;
@@ -3602,7 +3618,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let errorHtml = `<div style="text-align:left; font-size:0.95rem;">`;
                 if (hadLocalFileError) {
                     errorHtml += `<b style="color:#e11d48;">UYARI:</b> Sistemi Vercel gibi bir internet sunucusunda çalıştırırken, bilgisayarınızdaki yerel dosyalara (C:\\ veya D:\\ vb.) erişilemez. Tarayıcı internet üzerindeki bir sitenin sizin yerel diskinize sızmasını engeller.<br><br>
-                 <b>ÇÖZÜM:</b> Soru kağıdı PDF'lerinizi OneDrive, Google Drive veya Supabase depolama sistemine yükleyip, herkesin erişebileceği (https:// ile başlayan) linkleri ayarlardaki Soru Kağıdı bölümüne yapıştırmalısınız.`;
+                 <b>ÇÖZÜM:</b> Soru kağıdı PDF'lerinizi OneDrive veya Google Drive depolama sistemine yükleyip, herkesin erişebileceği (https:// ile başlayan) linkleri ayarlardaki Soru Kağıdı bölümüne yapıştırmalısınız.`;
                 } else {
                     errorHtml += `Hiçbir soru kağıdı indirilemedi. Dosya yolu hatalı, internet linkiniz kopuk veya (CORS) indirme izni ayarlanmamış olabilir.<br><br><b>Detay:</b> ${lastError ? lastError.message : 'Bilinmeyen Hata'}`;
                 }
@@ -4511,7 +4527,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 btn.disabled = true;
 
                 try {
-                    const publicUrl = await DataManager.uploadFileToSupabase(file);
+                    const publicUrl = await DataManager.uploadFileToCloud(file);
                     // More robust way to find the input within the same group
                     const inputGroup = btn.closest('.input-group');
                     const input = inputGroup ? inputGroup.querySelector('input.meta-paper-input') : null;
@@ -4582,7 +4598,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             btn.disabled = true;
-            const files = await DataManager.listSupabaseFiles();
+            const files = await DataManager.listCloudFiles();
             btn.innerHTML = '<i class="fa-solid fa-cloud"></i> Buluttan Seç';
             btn.disabled = false;
 
@@ -4612,7 +4628,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 try {
                     btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
                     btnEl.disabled = true;
-                    await DataManager.deleteSupabaseFile(name);
+                    await DataManager.deleteCloudFile(name);
                     const row = btnEl.closest('tr');
                     if (row) row.remove();
                 } catch (e) {
@@ -5815,10 +5831,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     extra5: document.getElementById('edit-std-ex5').value.trim(),
                 };
             }
-        }).then((result) => {
+        }).then(async (result) => {
             if (result.isConfirmed) {
                 data.students[studentIndex] = { ...data.students[studentIndex], ...result.value };
-                DataManager._saveData(data);
+                await DataManager._saveData(data);
                 document.querySelector('[data-tab="classLists"]').click();
                 Swal.fire('Başarılı', 'Öğrenci bilgileri güncellendi.', 'success');
             } else if (result.isDenied) {
@@ -5834,7 +5850,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }).then((del) => {
                     if (del.isConfirmed) {
                         data.students.splice(studentIndex, 1);
-                        DataManager._saveData(data);
+                        await DataManager._saveData(data);
                         document.querySelector('[data-tab="classLists"]').click();
                         Swal.fire('Silindi!', 'Öğrenci başarıyla silindi.', 'success');
                     }
@@ -5853,7 +5869,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             cancelButtonColor: '#6b7280',
             confirmButtonText: 'Evet, Tüm Sınıfı Sil!',
             cancelButtonText: 'İptal'
-        }).then((result) => {
+        }).then(async (result) => {
             if (result.isConfirmed) {
                 const data = DataManager._getData();
                 data.students = data.students.filter(s => s.class !== className);
@@ -5862,7 +5878,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     delete data.classRoomMappings[className];
                 }
                 
-                DataManager._saveData(data);
+                await DataManager._saveData(data);
                 
                 // Refresh list
                 const updateClassesListFn = window.updateClassesList || document.querySelector('[data-tab="classLists"]').click;
@@ -5875,11 +5891,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     };
 
-    window.updateDeskPos = function (roomName, pos) {
+    window.updateDeskPos = async function (roomName, pos) {
         const room = DataManager.getClassrooms().find(r => r.name === roomName);
         if (!room) return;
         room.teacherDeskPos = pos;
-        DataManager.addClassroom(room);
+        await DataManager.addClassroom(room);
         window.updateClassroomsList();
     };
 
