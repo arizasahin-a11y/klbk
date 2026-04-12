@@ -2534,12 +2534,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 wizardSessionData.subjects.forEach(subObj => {
                     const subName = subObj.name;
-                    if (!wizardSessionData.subjectMetadata[subName]) {
-                        wizardSessionData.subjectMetadata[subName] = { papers: {}, examNo: '' };
+                    const safeSub = DataManager.sanitizeFirebaseKey(subName);
+                    
+                    if (!wizardSessionData.subjectMetadata[safeSub]) {
+                        wizardSessionData.subjectMetadata[safeSub] = { papers: {}, examNo: '' };
                     }
                     
                     // Already set manually?
-                    if (wizardSessionData.subjectMetadata[subName].pdfHeaderDesign) return;
+                    if (wizardSessionData.subjectMetadata[safeSub].pdfHeaderDesign) return;
 
                     // Find first student in this session taking this subject to decide design
                     const sampleStudent = targetStudents.find(s => s._matchedSubject === subName);
@@ -2560,7 +2562,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             else if (sAlan === "TM" || sAlan === "EA" || sAlan.includes("EŞİT")) design = "10"; // Bulut
                         }
                         
-                        wizardSessionData.subjectMetadata[subName].pdfHeaderDesign = design;
+                        wizardSessionData.subjectMetadata[safeSub].pdfHeaderDesign = design;
                     }
                 });
 
@@ -2651,7 +2653,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     : (ses.subjects ? ses.subjects.map(s => typeof s === 'object' ? s.name : s) : (ses.subject ? [ses.subject] : []));
                                 
                                 return subjectNames.map(subName => {
-                                    const meta = (ses.subjectMetadata || {})[subName] || {};
+                                    const meta = DataManager.getSanitizedSubjectMetadata(ses, subName);
                                     const papers = meta.papers || {};
                                     let hasPdf = false;
                                     if (typeof papers === 'string' && papers.trim().length > 0) hasPdf = true;
@@ -2814,7 +2816,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const validItems = [];
 
         items.forEach(item => {
-            const subMeta = metadata[item.subject] || {};
+            const subMeta = DataManager.getSanitizedSubjectMetadata(ses, item.subject);
             const paperPath = subMeta.papers
                 ? (typeof subMeta.papers === 'string' ? subMeta.papers : (subMeta.papers['default'] || subMeta.papers['A'] || Object.values(subMeta.papers).find(p => p) || ''))
                 : '';
@@ -2896,7 +2898,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             for (let itemIdx = 0; itemIdx < finalItems.length; itemIdx++) {
                 const item = finalItems[itemIdx];
-                const subMeta = metadata[item.subject] || {};
+                const subMeta = DataManager.getSanitizedSubjectMetadata(ses, item.subject);
                 const designType = subMeta.pdfHeaderDesign || '1';
                 const examNo = subMeta.examNo || subMeta.examNumber || '';
                 const paperPath = item.paperPath;
@@ -3300,7 +3302,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             studentsToExport.forEach(s => {
                 const subName = s._matchedSubject || '-';
                 const group = s._groupLabel || s.group || 'default';
-                const meta = metadata[subName] || {};
+                const meta = DataManager.getSanitizedSubjectMetadata(session, subName);
                 const papers = meta.papers || {};
 
                 let path = '';
@@ -3747,7 +3749,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 Object.values(room.seats || {}).forEach(s => {
                     const sub = s._matchedSubject || '-';
                     if (sub === '-') return;
-                    const meta = metadata[sub] || {};
+                    const meta = DataManager.getSanitizedSubjectMetadata(session, sub);
                     const papers = meta.papers || {};
                     const hasPaper = typeof papers === 'string' ? papers.trim().length > 0 : Object.values(papers).some(p => p && p.trim().length > 0);
                     if (hasPaper) loaded.add(sub);
@@ -3843,7 +3845,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (mode === 'room' && room.name !== filterValue) return;
                     const sub = s._matchedSubject || '-';
                     if (sub === '-') return;
-                    const meta = metadata[sub] || {};
+                    const meta = DataManager.getSanitizedSubjectMetadata(session, sub);
                     const papers = meta.papers || {};
                     const hasPaper = typeof papers === 'string' ? papers.trim().length > 0 : Object.values(papers).some(p => p && p.trim().length > 0);
                     if (hasPaper) loaded.add(sub);
@@ -3887,7 +3889,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
 
-        const printPapersForGroupBatch = async (targetStudents, metadata, groupLabel) => {
+        const printPapersForGroupBatch = async (targetStudents, session, groupLabel) => {
             const { PDFLib, fontkit } = window;
             const { PDFDocument } = PDFLib;
             Swal.fire({
@@ -3909,7 +3911,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (progressEl) progressEl.innerText = `${i + 1} / ${targetStudents.length}`;
                     const subName = s._matchedSubject || '-';
                     const groupLabel_s = s._groupLabel || s.group || 'default';
-                    const meta = metadata[subName] || {};
+                    const meta = DataManager.getSanitizedSubjectMetadata(session, subName);
+                    if (!meta) continue;
+
                     const papers = meta.papers || {};
                     let path = typeof papers === 'string' ? papers : (papers[groupLabel_s] || papers['default'] || '');
                     if (!path) continue;
@@ -3998,7 +4002,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             studentsInFilter.forEach(s => {
                 const subName = s._matchedSubject || '-';
                 const group = s._groupLabel || s.group || 'default';
-                const meta = metadata[subName] || {};
+                const meta = DataManager.getSanitizedSubjectMetadata(session, subName);
                 const papers = meta.papers || {};
                 let path = typeof papers === 'string' ? papers : (papers[group] || papers['default'] || '');
                 if (path) {
@@ -4031,7 +4035,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             // USE BATCH PRINTING INSTEAD OF INDIVIDUAL
-            await printPapersForGroupBatch(validStudents, metadata, `${mode === 'class' ? 'Sınıf' : 'Salon'}: ${fVal}`);
+            await printPapersForGroupBatch(validStudents, session, `${mode === 'class' ? 'Sınıf' : 'Salon'}: ${fVal}`);
         };
 
 
@@ -4057,7 +4061,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             checkedStudents.forEach(cb => {
                 const subName = cb.dataset.sub;
                 const group = cb.dataset.group || 'default';
-                const meta = metadata[subName] || {};
+                const meta = DataManager.getSanitizedSubjectMetadata(session, subName);
                 const papers = meta.papers || {};
 
                 let path = '';
@@ -4106,7 +4110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (targetStudents.length === 1) {
                 // DIRECT PATH for single student: Much faster
                 const s = targetStudents[0];
-                const meta = metadata[s._matchedSubject] || {};
+                const meta = DataManager.getSanitizedSubjectMetadata(session, s._matchedSubject);
                 const papers = meta.papers || {};
                 let path = typeof papers === 'string' ? papers : (papers[s._groupLabel] || papers['default'] || '');
                 if (path) {
@@ -4120,7 +4124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             if (targetStudents.length > 0) {
-                await printPapersForGroupBatch(targetStudents, metadata, 'Seçili Öğrenciler');
+                await printPapersForGroupBatch(targetStudents, session, 'Seçili Öğrenciler');
                 return;
             }
         }
@@ -4261,7 +4265,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const totalPages = Math.ceil(students.length / PAGE_SIZE);
 
                         const rows = chunk.map(s => {
-                            const meta = (session.subjectMetadata || {})[s._matchedSubject] || {};
+                            const meta = DataManager.getSanitizedSubjectMetadata(session, s._matchedSubject);
                             const examNo = meta.examNo || meta.examNumber || '';
                             const eNum = examNo ? ` <small>(${examNo})</small>` : '';
 
@@ -4703,7 +4707,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         let subjectsHtml = '';
         subjectNames.forEach((sub, idx) => {
-            const data = metadata[sub] || {};
+            const data = DataManager.getSanitizedSubjectMetadata(ses, sub);
             const subExamNum = data.examNo || data.examNumber || '';
             const subPapers = data.papers || {};
             const subHeader = data.pdfHeaderDesign || '1'; // Inject subHeader variable
@@ -4879,7 +4883,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const headerSelect = document.querySelector(`.meta-header-design-select[data-sub="${sub}"]`);
                     const headerDesign = headerSelect ? headerSelect.value : '1';
 
-                    newMetadata[sub] = {
+                    const safeSub = DataManager.sanitizeFirebaseKey(sub);
+                    newMetadata[safeSub] = {
                         examNo: examNum,
                         pdfHeaderDesign: headerDesign,
                         papers: papers
@@ -5124,7 +5129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             const subName = s._matchedSubject || '-';
             const group = s._groupLabel || s.group || 'default';
-            const meta = metadata[subName] || {};
+            const meta = DataManager.getSanitizedSubjectMetadata(session, subName);
             const papers = meta.papers || {};
             let path = typeof papers === 'string' ? papers : (papers[group] || papers['default'] || '');
             const hasPdf = path && path.trim().length > 0;
@@ -5249,7 +5254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .map(s => {
                     const subName = s._matchedSubject || '-';
                     const group = s._groupLabel || s.group || 'default';
-                    const meta = metadata[subName] || {};
+                    const meta = DataManager.getSanitizedSubjectMetadata(session, subName);
                     const papers = meta.papers || {};
                     let path = typeof papers === 'string' ? papers : (papers[group] || papers['default'] || '');
                     const hasPdf = path && path.trim().length > 0;

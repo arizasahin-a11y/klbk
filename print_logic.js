@@ -93,25 +93,27 @@ async function executePrintSession(id, mode, filterArray) {
             });
         };
 
-        if (session.subjectMetadata) {
-            Object.keys(session.subjectMetadata).forEach(subName => {
-                const meta = session.subjectMetadata[subName];
-                const isMine = branchMatches(subName);
-                const isShared = meta.isShared === true;
+        const subjectList = session.subjects ? session.subjects.map(s => typeof s === 'object' ? s.name : s) : [];
+        
+        subjectList.forEach(subName => {
+            const meta = DataManager.getSanitizedSubjectMetadata(session, subName);
+            if (!meta) return;
 
-                if (isMine || isShared) {
-                    if (meta.papers) {
-                        const papers = typeof meta.papers === 'string' ? { default: meta.papers } : meta.papers;
-                        Object.values(papers).forEach(url => {
-                            if (url && url.trim() && !seenPdfs.has(url)) {
-                                pdfUrls.push({ url, subject: subName });
-                                seenPdfs.add(url);
-                            }
-                        });
-                    }
+            const isMine = branchMatches(subName);
+            const isShared = meta.isShared === true;
+
+            if (isMine || isShared) {
+                if (meta.papers) {
+                    const papers = typeof meta.papers === 'string' ? { default: meta.papers } : meta.papers;
+                    Object.values(papers).forEach(url => {
+                        if (url && url.trim() && !seenPdfs.has(url)) {
+                            pdfUrls.push({ url, subject: subName });
+                            seenPdfs.add(url);
+                        }
+                    });
                 }
-            });
-        }
+            }
+        });
 
         if (pdfUrls.length > 0) {
             mergeAndPrintPapers(pdfUrls, session.name);

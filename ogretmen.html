@@ -452,7 +452,7 @@
                         seenNames.add(subName);
                         
                         const isMine = branchMatches(subName);
-                        const meta = (ses.subjectMetadata && ses.subjectMetadata[subName]) || {};
+                        const meta = DataManager.getSanitizedSubjectMetadata(ses, subName);
                         const isShared = meta.isShared === true;
 
                         const subObj = {
@@ -563,7 +563,7 @@
                         const subId = ses.id + "|" + encodedSub;
                         const isSubOpen = openSubjects.has(subId);
 
-                        const meta = (ses.subjectMetadata && ses.subjectMetadata[subNameStr]) || {};
+                        const meta = DataManager.getSanitizedSubjectMetadata(ses, subNameStr);
                         let currentPdf = '';
                         if (meta.papers) {
                             if (typeof meta.papers === 'string') currentPdf = meta.papers;
@@ -794,28 +794,30 @@
 
             if (session) {
                 if (!session.subjectMetadata) session.subjectMetadata = {};
-                if (!session.subjectMetadata[subName]) {
-                    session.subjectMetadata[subName] = { examNo: '', pdfHeaderDesign: '1', papers: {} };
+                const safeSub = DataManager.sanitizeFirebaseKey(subName);
+                
+                if (!session.subjectMetadata[safeSub]) {
+                    session.subjectMetadata[safeSub] = { examNo: '', pdfHeaderDesign: '1', papers: {} };
                 }
 
-                if (typeof session.subjectMetadata[subName].papers !== 'object' || session.subjectMetadata[subName].papers === null) {
-                    const oldPaper = session.subjectMetadata[subName].papers;
-                    session.subjectMetadata[subName].papers = {};
-                    if (oldPaper) session.subjectMetadata[subName].papers['default'] = oldPaper;
+                if (typeof session.subjectMetadata[safeSub].papers !== 'object' || session.subjectMetadata[safeSub].papers === null) {
+                    const oldPaper = session.subjectMetadata[safeSub].papers;
+                    session.subjectMetadata[safeSub].papers = {};
+                    if (oldPaper) session.subjectMetadata[safeSub].papers['default'] = oldPaper;
                 }
 
                 if (groupLetter) {
-                    session.subjectMetadata[subName].papers[groupLetter] = link;
+                    session.subjectMetadata[safeSub].papers[groupLetter] = link;
                 } else {
-                    session.subjectMetadata[subName].papers['default'] = link;
+                    session.subjectMetadata[safeSub].papers['default'] = link;
                 }
 
                 // Check isShared status
                 const shareCheck = document.getElementById(`pdfShared-${sesId}-${encodedSub}`);
                 if (shareCheck) {
-                    session.subjectMetadata[subName].isShared = shareCheck.checked;
-                } else if (session.subjectMetadata[subName].isShared === undefined) {
-                    session.subjectMetadata[subName].isShared = true; // Default to true as requested
+                    session.subjectMetadata[safeSub].isShared = shareCheck.checked;
+                } else if (session.subjectMetadata[safeSub].isShared === undefined) {
+                    session.subjectMetadata[safeSub].isShared = true; // Default to true as requested
                 }
 
                 DataManager.addExamSession(session);
@@ -1325,7 +1327,7 @@
 
                     const subName = s._matchedSubject || '-';
                     const groupLabel_s = s._groupLabel || s.group || 'default';
-                    const meta = metadata[subName] || {};
+                    const meta = DataManager.getSanitizedSubjectMetadata(session, subName);
                     const papers = meta.papers || {};
                     let path = typeof papers === 'string' ? papers : (papers[groupLabel_s] || papers['default'] || '');
 
@@ -1452,8 +1454,7 @@
 
                 const sessions = DataManager.getExamSessions();
                 const session = sessions.find(s => s.id === sesId) || {};
-                const metadata = session.subjectMetadata || {};
-                const meta = metadata[subName] || {};
+                const meta = DataManager.getSanitizedSubjectMetadata(session, subName);
 
                 // Render header using the shared logic
                 await window.renderStudentPDFHeader(pdfDoc, page, mockStudent, { ...fonts, sf, session, metadata: meta });
@@ -1684,13 +1685,13 @@
                     const finalStudents = allStudentsForEntity.filter(s => selectedNosSet.has(s.no.toString()));
                     
                     if (finalStudents.length > 0) {
-                        const metadata = session.subjectMetadata || {};
+                        const metadata = DataManager.getSanitizedSubjectMetadata(session);
                         const missing = new Set();
                         const loaded = new Set();
                         finalStudents.forEach(s => {
                             const sub = s._matchedSubject || '-';
                             if (sub === '-') return;
-                            const meta = metadata[sub] || {};
+                            const meta = DataManager.getSanitizedSubjectMetadata(session, sub);
                             const papers = meta.papers || {};
                             const hasPaper = typeof papers === 'string' ? papers.trim().length > 0 : Object.values(papers).some(p => p && p.trim().length > 0);
                             if (hasPaper) loaded.add(sub);
@@ -1778,7 +1779,7 @@
                 allStudents.forEach(s => {
                     const sub = s._matchedSubject || '-';
                     if (sub === '-') return;
-                    const meta = metadata[sub] || {};
+                    const meta = DataManager.getSanitizedSubjectMetadata(session, sub);
                     const papers = meta.papers || {};
                     const hasPaper = typeof papers === 'string' ? papers.trim().length > 0 : Object.values(papers).some(p => p && p.trim().length > 0);
                     if (hasPaper) loaded.add(sub);
@@ -2299,7 +2300,7 @@
 
                 for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
                     const item = items[itemIdx];
-                    const subMeta = metadata[item.subject] || {};
+                    const subMeta = DataManager.getSanitizedSubjectMetadata(ses, item.subject);
                     const designType = subMeta.pdfHeaderDesign || '1';
                     const examNo = subMeta.examNo || subMeta.examNumber || '';
                     const paperPath = subMeta.papers

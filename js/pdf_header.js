@@ -64,7 +64,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
 
     const sess = options.session || window.currentRenderedSession || {};
     const subjectName = info?.subject || '';
-    const metadata = options.metadata || sess.subjectMetadata?.[subjectName] || {};
+    const metadata = options.metadata || (DataManager.getSanitizedSubjectMetadata ? DataManager.getSanitizedSubjectMetadata(sess, subjectName) : (sess.subjectMetadata?.[subjectName] || {})) || {};
     const designType = options.designType || metadata.pdfHeaderDesign || '1';
 
     const margin = 14.17 * sf;

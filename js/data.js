@@ -35,6 +35,26 @@ const DataManager = {
         return `klbk_data_${user}`;
     },
 
+    // Firebase prohibited keys: . $ # [ ] /
+    sanitizeFirebaseKey: function (key) {
+        if (!key) return "unknown";
+        return String(key).replace(/[\.\$\#\[\]\/]/g, '_');
+    },
+
+    getSanitizedSubjectMetadata: function (session, subjectName) {
+        if (!session || !session.subjectMetadata) return {};
+        const safeKey = this.sanitizeFirebaseKey(subjectName);
+        
+        // Try sanitized key first (new standard)
+        if (session.subjectMetadata[safeKey]) return session.subjectMetadata[safeKey];
+        
+        // Fallback to unsanitized key (legacy support - may contain dots)
+        // This allows existing data to be read even before it is re-saved with safe keys
+        if (session.subjectMetadata[subjectName]) return session.subjectMetadata[subjectName];
+        
+        return {};
+    },
+
     // Initialize Cloud Data (Must be called on page load)
     initCloud: async function () {
         const key = this._getStorageKey();

@@ -1262,7 +1262,7 @@
                                 room: room.name,
                                 seat: seatNum.toString(),
                                 subject: stdData._matchedSubject || '',
-                                examNo: (session.subjectMetadata && session.subjectMetadata[stdData._matchedSubject]) ? session.subjectMetadata[stdData._matchedSubject].examNo : ''
+                                examNo: DataManager.getSanitizedSubjectMetadata(session, stdData._matchedSubject || '').examNo || ''
                             };
                             break;
                         }
@@ -1287,7 +1287,7 @@
                     ...fonts,
                     sf: sf,
                     session: session,
-                    designType: (session && session.subjectMetadata && info && session.subjectMetadata[info.subject]) ? session.subjectMetadata[info.subject].pdfHeaderDesign : '1'
+                    designType: DataManager.getSanitizedSubjectMetadata(session, info.subject).pdfHeaderDesign || '1'
                 });
 
                 // 4. Finalize and Show
@@ -1658,7 +1658,7 @@
                 });
 
                 Array.from(roomSubjects).sort().forEach(subj => {
-                    const meta = sessionData.subjectMetadata ? sessionData.subjectMetadata[subj] : null;
+                    const meta = DataManager.getSanitizedSubjectMetadata(sessionData, subj);
                     if (meta && meta.papers) {
                         // Security: Only show if shared is not explicitly false (default true)
                         if (meta.isShared === false) return;
