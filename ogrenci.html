@@ -650,8 +650,14 @@
         async function syncTime() {
             const statusEl = document.getElementById('timeSyncStatus');
             try {
+                // Add a 3-second timeout for worldtimeapi
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+
                 const startTime = Date.now();
-                const response = await fetch('https://worldtimeapi.org/api/ip');
+                const response = await fetch('https://worldtimeapi.org/api/ip', { signal: controller.signal });
+                clearTimeout(timeoutId);
+
                 const data = await response.json();
                 const serverTime = new Date(data.datetime).getTime();
                 const endTime = Date.now();
@@ -661,24 +667,29 @@
                 statusEl.innerHTML = '<i class="fa-solid fa-cloud-check"></i> İnternet saati ile senkronize';
                 statusEl.style.color = 'var(--secondary)';
             } catch (err) {
-                console.error("Time sync failed:", err);
+                console.error("Time sync failed or timed out:", err);
                 statusEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Cihaz saati kullanılıyor';
                 statusEl.style.color = 'var(--danger)';
                 trustedBaseTime = Date.now();
                 performanceAtSync = performance.now();
             }
 
-            // Sync with Supabase Cloud
-            const statusEl2 = document.getElementById('timeSyncStatus');
-            statusEl2.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Sınav Verileri İndiriliyor...';
-            statusEl2.style.color = 'var(--primary)';
-            await DataManager.initCloud();
-            statusEl2.classList.add('hidden');
-
-            // Ensure body is visible after initial sync/check
-            document.body.style.visibility = 'visible';
-            // Check for persistent session after time sync
-            checkPersistentSession();
+            try {
+                // Sync with Supabase Cloud
+                const statusEl2 = document.getElementById('timeSyncStatus');
+                statusEl2.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Sınav Verileri İndiriliyor...';
+                statusEl2.style.color = 'var(--primary)';
+                statusEl2.classList.remove('hidden');
+                await DataManager.initCloud();
+                statusEl2.classList.add('hidden');
+            } catch (err) {
+                console.error("Cloud init failed:", err);
+            } finally {
+                // Ensure body is visible after initial sync/check
+                document.body.style.visibility = 'visible';
+                // Check for persistent session after time sync
+                checkPersistentSession();
+            }
         }
 
         function checkPersistentSession() {

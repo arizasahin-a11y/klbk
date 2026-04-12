@@ -39,18 +39,20 @@ const DataManager = {
     initCloud: async function () {
         const key = this._getStorageKey();
         try {
-            const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/${key}.json`);
+            // URL encode the key to handle Turkish characters in the path safely
+            const encodedKey = encodeURIComponent(key);
+            const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/${encodedKey}.json`);
             if (res.ok) {
                 const data = await res.json();
-                if (data) { // Firebase returns the object directly
+                if (data) { 
                     this._memoryData = data;
-                    console.log("Cloud data loaded successfully.");
-                    this._migrateDateFormats(); // Standardize dates to DD.MM.YYYY
+                    console.log("Cloud data loaded successfully for:", key);
+                    this._migrateDateFormats(); 
                     return;
                 }
             }
         } catch (e) {
-            console.error("Cloud fetch failed, initializing empty state", e);
+            console.error("Cloud fetch failed for:", key, e);
         }
 
         // If not found or error, use initial state
@@ -61,27 +63,37 @@ const DataManager = {
     _syncToCloud: async function (data) {
         const key = this._getStorageKey();
         try {
-            const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/${key}.json`, {
+            // Validate data before sync
+            if (!data) throw new Error("Sync attempts with null data");
+            
+            const payload = JSON.stringify(data);
+            if (!payload || payload === "{}") {
+                console.warn("Syncing empty or invalid object skipped");
+            }
+
+            // URL encode the key to handle Turkish characters in the path safely
+            const encodedKey = encodeURIComponent(key);
+            const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/${encodedKey}.json`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(data)
+                body: payload
             });
             if (!res.ok) {
                 const errText = await res.text();
                 const errMsg = `Firebase Kayıt Hatası (${res.status}): ${errText}`;
-                console.error(errMsg);
+                console.error(errMsg, "Key:", key);
                 if (window.Swal) {
-                    Swal.fire('Bulut Eşitleme Hatası', 'Verileriniz buluta kaydedilemedi. Lütfen internet bağlantınızı ve Firebase kurallarını kontrol edin.<br><br>Detay: ' + res.status, 'error');
+                    Swal.fire('Bulut Eşitleme Hatası', 'Verileriniz buluta kaydedilemedi. Lütfen internet bağlantınızı ve Firebase kurallarını kontrol edin.<br><br>Detay: ' + res.status + '<br>Yol: ' + key, 'error');
                 }
             } else {
-                console.log("Data synced to cloud.");
+                console.log("Data successfully synced to cloud for:", key);
             }
         } catch (e) {
-            console.error("Cloud sync failed!", e);
+            console.error("Cloud sync failed for:", key, e);
             if (window.Swal) {
-                Swal.fire('Bağlantı Hatası', 'Buluta erişilemiyor. Çevrimdışı çalışıyor olabilirsiniz.', 'warning');
+                Swal.fire('Bağlantı Hatası', 'Buluta erişilemiyor veya veri hatası oluştu. Çevrimdışı çalışıyor olabilirsiniz.', 'warning');
             }
         }
     },

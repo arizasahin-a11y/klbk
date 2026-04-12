@@ -342,8 +342,14 @@
         async function syncTime() {
             const statusEl = document.getElementById('timeSyncStatus');
             try {
+                // Add a 3-second timeout for worldtimeapi
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+
                 const startTime = Date.now();
-                const response = await fetch('https://worldtimeapi.org/api/ip');
+                const response = await fetch('https://worldtimeapi.org/api/ip', { signal: controller.signal });
+                clearTimeout(timeoutId);
+
                 const data = await response.json();
                 const serverTime = new Date(data.datetime).getTime();
                 const endTime = Date.now();
@@ -353,23 +359,31 @@
                 statusEl.innerHTML = '<i class="fa-solid fa-cloud-check"></i> İnternet saati ile senkronize';
                 statusEl.style.color = 'var(--secondary)';
             } catch (err) {
-                console.error("Time sync failed:", err);
+                console.error("Time sync failed or timed out:", err);
                 statusEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Cihaz saati kullanılıyor';
                 statusEl.style.color = 'var(--danger)';
                 trustedBaseTime = Date.now();
                 performanceAtSync = performance.now();
             }
 
-            statusEl.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Veriler İndiriliyor...';
-            statusEl.style.color = 'var(--primary)';
-            await DataManager.initCloud();
-            lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
-            statusEl.classList.add('hidden');
-
-            document.body.style.visibility = 'visible';
-            renderExams();
-            timerInterval = setInterval(updateAllTimers, 1000);
-            setInterval(backgroundSync, 30000); // Her 30 saniyede bir eşitle
+            try {
+                statusEl.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Veriler İndiriliyor...';
+                statusEl.style.color = 'var(--primary)';
+                await DataManager.initCloud();
+                lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
+            } catch (err) {
+                console.error("Cloud init failed:", err);
+            } finally {
+                statusEl.classList.add('hidden');
+                // Ensure body is visible after initial sync/check
+                document.body.style.visibility = 'visible';
+                renderExams();
+                if (typeof renderPublishedFiles === 'function') renderPublishedFiles();
+                
+                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = setInterval(updateAllTimers, 1000);
+                setInterval(backgroundSync, 30000); // Her 30 saniyede bir eşitle
+            }
         }
 
         async function backgroundSync() {
