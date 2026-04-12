@@ -6241,3 +6241,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.testDashboardPdf(input.value.trim(), select.value, subTitle);
     };
 
+    } catch (e) {
+        console.error("UI Initialization Error:", e);
+    }
+});
+
