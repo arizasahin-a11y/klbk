@@ -852,6 +852,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Use sanitized mapping for display
         const getDisplayRoom = (cls) => DataManager.getSanitizedClassRoomMapping(cls);
+        const assignedRoomNames = Object.values(classRoomMappings).filter(r => r);
 
         // Group students by class
         const classGroups = {};
