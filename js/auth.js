@@ -15,21 +15,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginMessageBox = document.getElementById('loginMessage');
     const rememberMeCheckbox = document.getElementById('rememberMe');
 
-    // Supabase Configuration
-    const supabaseUrl = "https://esdttjvkqyeaosdcsskr.supabase.co";
-    const supabaseKey = "sb_publishable_Rdl1xQ10AjWVZPxLwL_O_A_x4NYDxl6";
+    // Firebase Configuration
+    const firebaseProjectId = "klbk-620b0";
 
     async function getCloudUsers() {
         try {
-            const res = await fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.klbk_users&select=*`, {
-                headers: {
-                    'apikey': supabaseKey,
-                    'Authorization': `Bearer ${supabaseKey}`
-                }
-            });
+            const res = await fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/klbk_users.json`);
             if (res.ok) {
-                const rows = await res.json();
-                if (rows && rows.length > 0) return rows[0].data;
+                const data = await res.json();
+                if (data) return data;
             }
         } catch (e) {
             console.error("Bulut kullanıcı verisi alınamadı", e);
@@ -41,15 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            await fetch(`${supabaseUrl}/rest/v1/app_store`, {
-                method: 'POST',
+            await fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/klbk_users.json`, {
+                method: 'PUT',
                 headers: {
-                    'apikey': supabaseKey,
-                    'Authorization': `Bearer ${supabaseKey}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'resolution=merge-duplicates'
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ id: 'klbk_users', data: defaultUsers })
+                body: JSON.stringify(defaultUsers)
             });
         } catch (e) { }
 
@@ -162,12 +153,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // --- Asenkron Aktivite Loglama ---
                     try {
-                        fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.klbk_activity_log&select=*`, {
-                            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
-                        }).then(r => r.json()).then(rows => {
+                        fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/klbk_activity_log.json`)
+                        .then(r => r.json()).then(data => {
                             let logs = [];
-                            if (rows && rows.length > 0 && rows[0].data && rows[0].data.logs) {
-                                logs = rows[0].data.logs;
+                            if (data && data.logs) {
+                                logs = data.logs;
                             }
                             
                             // Make sure valid array
@@ -184,15 +174,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             if (logs.length > 500) logs = logs.slice(0, 500);
 
-                            fetch(`${supabaseUrl}/rest/v1/app_store`, {
-                                method: 'POST',
+                            fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/klbk_activity_log.json`, {
+                                method: 'PUT',
                                 headers: {
-                                    'apikey': supabaseKey,
-                                    'Authorization': `Bearer ${supabaseKey}`,
-                                    'Content-Type': 'application/json',
-                                    'Prefer': 'resolution=merge-duplicates'
+                                    'Content-Type': 'application/json'
                                 },
-                                body: JSON.stringify({ id: 'klbk_activity_log', data: { logs: logs } })
+                                body: JSON.stringify({ logs: logs })
                             });
                         }).catch(e => console.warn('Aktivite loglanamadı', e));
                     } catch (e) {

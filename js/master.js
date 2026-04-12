@@ -25,9 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnUploadExcel = document.getElementById('btnUploadExcel');
     const excelMessage = document.getElementById('excelMessage');
 
-    // Supabase Configuration
-    const supabaseUrl = "https://esdttjvkqyeaosdcsskr.supabase.co";
-    const supabaseKey = "sb_publishable_Rdl1xQ10AjWVZPxLwL_O_A_x4NYDxl6";
+    // Firebase Configuration
+    const firebaseProjectId = "klbk-620b0";
 
     // Global config
     let globalUsersDb = {};
@@ -36,12 +35,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function getCloudUsers() {
         try {
-            const res = await fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.klbk_users&select=*`, {
-                headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
-            });
+            const res = await fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/klbk_users.json`);
             if (res.ok) {
-                const rows = await res.json();
-                if (rows && rows.length > 0) return rows[0].data;
+                const data = await res.json();
+                if (data) return data;
             }
         } catch (e) {
             console.error("Bulut verisi çekilirken hata:", e);
@@ -53,15 +50,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function saveToCloud(id, dataObj) {
         try {
-            await fetch(`${supabaseUrl}/rest/v1/app_store`, {
-                method: 'POST',
+            await fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/${id}.json`, {
+                method: 'PUT',
                 headers: {
-                    'apikey': supabaseKey,
-                    'Authorization': `Bearer ${supabaseKey}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'resolution=merge-duplicates'
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ id: id, data: dataObj })
+                body: JSON.stringify(dataObj)
             });
         } catch (e) {
             console.error("Buluta veri kaydedilirken hata:", e);
@@ -140,13 +134,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!regBranchSelect) return;
         regBranchSelect.innerHTML = '<option value="">Yükleniyor...</option>';
         try {
-            const res = await fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.${storeKey}&select=*`, {
-                headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
-            });
+            const res = await fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/${storeKey}.json`);
             if (res.ok) {
-                const rows = await res.json();
-                if (rows && rows.length > 0 && rows[0].data.school && rows[0].data.school.subjects) {
-                    const subjects = rows[0].data.school.subjects;
+                const data = await res.json();
+                if (data && data.school && data.school.subjects) {
+                    const subjects = data.school.subjects;
                     regBranchSelect.innerHTML = '<option value="">-- Branş Seçiniz --</option>';
                     subjects.forEach(sub => {
                         const opt = document.createElement('option');
@@ -368,13 +360,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // 2. Update School's Own DB limits
-                const res = await fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.${storeKey}&select=*`, {
-                    headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
-                });
+                const res = await fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/${storeKey}.json`);
                 if (res.ok) {
-                    const rows = await res.json();
-                    if (rows && rows.length > 0) {
-                        const schoolData = rows[0].data;
+                    const schoolData = await res.json();
+                    if (schoolData) {
                         if (schoolData.school) {
                             schoolData.school.name = newName.trim();
                             await saveToCloud(storeKey, schoolData);
@@ -649,14 +638,12 @@ document.addEventListener('DOMContentLoaded', () => {
             btnShowActivity.disabled = true;
 
             try {
-                const logRes = await fetch(`${supabaseUrl}/rest/v1/app_store?id=eq.klbk_activity_log&select=*`, {
-                    headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
-                });
+                const logRes = await fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/klbk_activity_log.json`);
                 let logs = [];
                 if (logRes.ok) {
-                    const rows = await logRes.json();
-                    if (rows && rows.length > 0 && rows[0].data && rows[0].data.logs) {
-                        logs = rows[0].data.logs;
+                    const data = await logRes.json();
+                    if (data && data.logs) {
+                        logs = data.logs;
                     }
                 }
 
@@ -707,15 +694,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
 
                         if (confirmReset.isConfirmed) {
-                            await fetch(`${supabaseUrl}/rest/v1/app_store`, {
-                                method: 'POST',
+                            await fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/klbk_activity_log.json`, {
+                                method: 'PUT',
                                 headers: {
-                                    'apikey': supabaseKey,
-                                    'Authorization': `Bearer ${supabaseKey}`,
-                                    'Content-Type': 'application/json',
-                                    'Prefer': 'resolution=merge-duplicates'
+                                    'Content-Type': 'application/json'
                                 },
-                                body: JSON.stringify({ id: 'klbk_activity_log', data: { logs: [] } })
+                                body: JSON.stringify({ logs: [] })
                             });
                             Swal.fire('Sıfırlandı!', 'Tüm aktivite logları temizlendi.', 'success');
                         }

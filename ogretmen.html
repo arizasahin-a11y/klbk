@@ -885,13 +885,10 @@
                 didOpen: async () => {
                     Swal.showLoading();
                     try {
-                        const res = await fetch(`${DataManager.supabaseUrl}/rest/v1/app_store?id=eq.klbk_users&select=*`, {
-                            headers: { 'apikey': DataManager.supabaseKey, 'Authorization': `Bearer ${DataManager.supabaseKey}` }
-                        });
+                        const res = await fetch(`https://${DataManager.firebaseProjectId}.firebaseio.com/app_store/klbk_users.json`);
                         if (res.ok) {
-                            const rows = await res.json();
-                            if (rows && rows.length > 0) {
-                                const db = rows[0].data;
+                            const db = await res.json();
+                            if (db) {
                                 if (db[currentUser]) {
                                     document.getElementById('profEmail').value = db[currentUser].email || '';
                                 }
@@ -906,26 +903,20 @@
 
                     Swal.showLoading();
                     try {
-                        const res = await fetch(`${DataManager.supabaseUrl}/rest/v1/app_store?id=eq.klbk_users&select=*`, {
-                            headers: { 'apikey': DataManager.supabaseKey, 'Authorization': `Bearer ${DataManager.supabaseKey}` }
-                        });
+                        const res = await fetch(`https://${DataManager.firebaseProjectId}.firebaseio.com/app_store/klbk_users.json`);
                         if (res.ok) {
-                            const rows = await res.json();
-                            if (rows && rows.length > 0) {
-                                const db = rows[0].data;
+                            const db = await res.json();
+                            if (db) {
                                 if (db[currentUser]) {
                                     db[currentUser].email = email;
                                     if (pass) db[currentUser].password = pass; // Only update if provided
 
-                                    await fetch(`${DataManager.supabaseUrl}/rest/v1/app_store`, {
-                                        method: 'POST',
+                                    await fetch(`https://${DataManager.firebaseProjectId}.firebaseio.com/app_store/klbk_users.json`, {
+                                        method: 'PUT',
                                         headers: {
-                                            'apikey': DataManager.supabaseKey,
-                                            'Authorization': `Bearer ${DataManager.supabaseKey}`,
-                                            'Content-Type': 'application/json',
-                                            'Prefer': 'resolution=merge-duplicates'
+                                            'Content-Type': 'application/json'
                                         },
-                                        body: JSON.stringify({ id: 'klbk_users', data: db })
+                                        body: JSON.stringify(db)
                                     });
                                     return true;
                                 }

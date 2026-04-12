@@ -22,9 +22,9 @@ const initialState = {
 
 const DataManager = {
 
-    // Cloud Configuration
-    supabaseUrl: "https://esdttjvkqyeaosdcsskr.supabase.co",
-    supabaseKey: "sb_publishable_Rdl1xQ10AjWVZPxLwL_O_A_x4NYDxl6",
+    // Cloud Configuration (Firebase DB & Google Drive Storage)
+    firebaseProjectId: "klbk-620b0", 
+    gasStorageUrl: "https://script.google.com/macros/s/AKfycbz6K2I5ylOxaDR_QbT2XnPA6wh2HrquAgM3mrbVZ4x-3nPqVf4KXJMTnGCWlPj2lvBZyQ/exec",
     _memoryData: null,
 
     // Get Key
@@ -39,16 +39,11 @@ const DataManager = {
     initCloud: async function () {
         const key = this._getStorageKey();
         try {
-            const res = await fetch(`${this.supabaseUrl}/rest/v1/app_store?id=eq.${key}&select=*`, {
-                headers: {
-                    'apikey': this.supabaseKey,
-                    'Authorization': `Bearer ${this.supabaseKey}`
-                }
-            });
+            const res = await fetch(`https://${this.firebaseProjectId}.firebaseio.com/app_store/${key}.json`);
             if (res.ok) {
-                const rows = await res.json();
-                if (rows && rows.length > 0) {
-                    this._memoryData = rows[0].data;
+                const data = await res.json();
+                if (data) { // Firebase returns the object directly
+                    this._memoryData = data;
                     console.log("Cloud data loaded successfully.");
                     this._migrateDateFormats(); // Standardize dates to DD.MM.YYYY
                     return;
@@ -66,15 +61,12 @@ const DataManager = {
     _syncToCloud: async function (data) {
         const key = this._getStorageKey();
         try {
-            await fetch(`${this.supabaseUrl}/rest/v1/app_store`, {
-                method: 'POST',
+            await fetch(`https://${this.firebaseProjectId}.firebaseio.com/app_store/${key}.json`, {
+                method: 'PUT',
                 headers: {
-                    'apikey': this.supabaseKey,
-                    'Authorization': `Bearer ${this.supabaseKey}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'resolution=merge-duplicates'
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ id: key, data: data })
+                body: JSON.stringify(data) // In Firebase we put the data directly at the node
             });
             console.log("Data synced to cloud.");
         } catch (e) {
@@ -98,115 +90,104 @@ const DataManager = {
         return s.replace(/[^a-zA-Z0-9.\-_]/g, '');
     },
 
-    // --- Supabase Storage (PDF Uploads) ---
+    // --- Cloud Storage (Google Drive via Apps Script) ---
     uploadFileToSupabase: async function (file) {
         if (!file) return null;
 
-        const bucketName = 'xms';
         const currentUser = sessionStorage.getItem('klbk_currentUser') || 'unknown';
-        
-        // Remove Turkish characters and spaces to prevent "InvalidKey" 400 API errors
         const cleanUser = this.sanitizeSupabaseString(currentUser);
         let cleanName = this.sanitizeSupabaseString(file.name);
-        
         const uniqueFileName = `${cleanUser}_${cleanName}`;
 
-        const uploadUrl = `${this.supabaseUrl}/storage/v1/object/${bucketName}/${uniqueFileName}`;
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async () => {
+                const base64Data = reader.result.split(',')[1];
+                
+                try {
+                    const formData = new URLSearchParams();
+                    formData.append('action', 'upload');
+                    formData.append('fileName', uniqueFileName);
+                    formData.append('mimeType', file.type || 'application/pdf');
+                    formData.append('fileData', base64Data);
 
-        try {
-            const res = await fetch(uploadUrl, {
-                method: 'POST', // Changed from POST to POST with upsert header or PUT? Usually Supabase Storage API uses POST to create. To overwrite, we might need upsert headers.
-                headers: {
-                    'apikey': this.supabaseKey,
-                    'Authorization': `Bearer ${this.supabaseKey}`,
-                    'Content-Type': file.type || 'application/pdf',
-                    'x-upsert': 'true' // Allow overwriting files with the same name
-                },
-                body: file
-            });
-
-            if (!res.ok) {
-                const errText = await res.text();
-                throw new Error(`Upload failed: ${res.status} ${errText}`);
-            }
-
-            // Return the public URL for the newly uploaded file
-            const publicUrl = `${this.supabaseUrl}/storage/v1/object/public/${bucketName}/${uniqueFileName}`;
-            return publicUrl;
-        } catch (e) {
-            console.error("Supabase Storage Upload Error:", e);
-            throw e;
-        }
+                    const res = await fetch(this.gasStorageUrl, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await res.json();
+                    if (data && data.success) {
+                        resolve(data.url);
+                    } else {
+                        reject(new Error(data.error || "Unknown GAS upload error"));
+                    }
+                } catch (e) {
+                    console.error("GAS Upload Error:", e);
+                    reject(e);
+                }
+            };
+            reader.onerror = error => reject(error);
+        });
     },
 
     deleteSupabaseFile: async function (fileName) {
-        const bucketName = 'xms';
-        const deleteUrl = `${this.supabaseUrl}/storage/v1/object/${bucketName}/${fileName}`;
-
         try {
-            const res = await fetch(deleteUrl, {
-                method: 'DELETE',
-                headers: {
-                    'apikey': this.supabaseKey,
-                    'Authorization': `Bearer ${this.supabaseKey}`
-                }
+            const formData = new URLSearchParams();
+            formData.append('action', 'delete');
+            formData.append('fileName', fileName);
+
+            const res = await fetch(this.gasStorageUrl, {
+                method: 'POST',
+                body: formData
             });
 
-            if (!res.ok) {
-                const errText = await res.text();
-                throw new Error(`Delete failed: ${res.status} ${errText}`);
+            const data = await res.json();
+            if (data && data.success) {
+                return true;
+            } else {
+                throw new Error(data.error || "Unknown GAS delete error");
             }
-            return true;
         } catch (e) {
-            console.error("Supabase Storage Delete Error:", e);
+            console.error("GAS Delete Error:", e);
             throw e;
         }
     },
 
     listSupabaseFiles: async function (teacherOnly = false) {
-        const bucketName = 'xms';
-        const listUrl = `${this.supabaseUrl}/storage/v1/object/list/${bucketName}`;
         const currentUser = sessionStorage.getItem('klbk_currentUser') || '';
 
         try {
-            const res = await fetch(listUrl, {
+            const formData = new URLSearchParams();
+            formData.append('action', 'list');
+
+            const res = await fetch(this.gasStorageUrl, {
                 method: 'POST',
-                headers: {
-                    'apikey': this.supabaseKey,
-                    'Authorization': `Bearer ${this.supabaseKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    prefix: '',
-                    limit: 100,
-                    offset: 0,
-                    sortBy: { column: 'created_at', order: 'desc' },
-                    search: '' // Ensure Supabase returns all
-                })
+                body: formData
             });
 
-            if (!res.ok) {
-                const errText = await res.text();
-                throw new Error(`Failed to list files: ${res.status} ${errText}`);
+            const data = await res.json();
+            if (data && data.success) {
+                let mappedFiles = data.files.map(f => {
+                    return {
+                        name: f.name,
+                        url: f.url,
+                        created_at: f.created_at
+                    };
+                });
+
+                if (teacherOnly && currentUser) {
+                    const searchPrefix = this.sanitizeSupabaseString(currentUser) + '_';
+                    mappedFiles = mappedFiles.filter(f => f.name.startsWith(searchPrefix));
+                }
+
+                return mappedFiles;
+            } else {
+                throw new Error(data.error || "Failed to list files via GAS");
             }
-
-            const files = await res.json();
-            
-            let mappedFiles = files.map(f => ({
-                name: f.name,
-                url: `${this.supabaseUrl}/storage/v1/object/public/${bucketName}/${f.name}`,
-                created_at: f.created_at
-            }));
-
-            if (teacherOnly && currentUser) {
-                // Ensure we filter using the exact same sanitized prefix as used during upload
-                const searchPrefix = this.sanitizeSupabaseString(currentUser) + '_';
-                mappedFiles = mappedFiles.filter(f => f.name.startsWith(searchPrefix));
-            }
-
-            return mappedFiles;
         } catch (e) {
-            console.error("Supabase Storage List Error:", e);
+            console.error("GAS List Error:", e);
             throw e;
         }
     },
@@ -247,13 +228,10 @@ const DataManager = {
     _updateMasterSchoolName: async function (newName) {
         const storeKey = this._getStorageKey();
         try {
-            const res = await fetch(`${this.supabaseUrl}/rest/v1/app_store?id=eq.klbk_users&select=*`, {
-                headers: { 'apikey': this.supabaseKey, 'Authorization': `Bearer ${this.supabaseKey}` }
-            });
+            const res = await fetch(`https://${this.firebaseProjectId}.firebaseio.com/app_store/klbk_users.json`);
             if (res.ok) {
-                const rows = await res.json();
-                if (rows && rows.length > 0) {
-                    const usersDb = rows[0].data;
+                const usersDb = await res.json();
+                if (usersDb) {
                     let updated = false;
 
                     for (const [uname, user] of Object.entries(usersDb)) {
@@ -266,15 +244,12 @@ const DataManager = {
                     }
 
                     if (updated) {
-                        await fetch(`${this.supabaseUrl}/rest/v1/app_store`, {
-                            method: 'POST',
+                        await fetch(`https://${this.firebaseProjectId}.firebaseio.com/app_store/klbk_users.json`, {
+                            method: 'PUT',
                             headers: {
-                                'apikey': this.supabaseKey,
-                                'Authorization': `Bearer ${this.supabaseKey}`,
-                                'Content-Type': 'application/json',
-                                'Prefer': 'resolution=merge-duplicates'
+                                'Content-Type': 'application/json'
                             },
-                            body: JSON.stringify({ id: 'klbk_users', data: usersDb })
+                            body: JSON.stringify(usersDb)
                         });
                         console.log("Master school name updated for related users.");
                         sessionStorage.setItem('klbk_schoolName', newName); // Local cache sync

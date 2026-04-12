@@ -3221,9 +3221,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (printPath.includes("file://") || printPath.includes("C:") || printPath.includes("D:")) {
                 htmlMsg += `<b style="color:#e11d48;">UYARI:</b> Sistemi bir internet sunucusunda çalıştırırken, bilgisayarınızdaki yerel dosyalara (C:\\ veya D:\\) erişilemez. Güvenlik nedeniyle tarayıcılar buna izin vermez.<br><br>
-                 <b>ÇÖZÜM:</b> Soru kağıdı PDF'lerinizi OneDrive, Google Drive veya Supabase gibi bir buluta yükleyip <b>'Herkesin görebileceği' bir internet linkini (https://...)</b> buraya yapıştırmalısınız.`;
-            } else if (printPath.includes('supabase.co')) {
-                htmlMsg += `<b style="color:#e11d48;">UYARI:</b> Supabase dosya okuma formatında (CORS) veya isim/boşluk yapısında bir hata oluştu.<br><br>
+                 <b>ÇÖZÜM:</b> Soru kağıdı PDF'lerinizi OneDrive, Google Drive veya Firebase gibi bir buluta yükleyip <b>'Herkesin görebileceği' bir internet linkini (https://...)</b> buraya yapıştırmalısınız.`;
+            } else if (printPath.includes('script.google.com') || printPath.includes('googleusercontent.com')) {
+                htmlMsg += `<b style="color:#e11d48;">UYARI:</b> Google Drive / Makro bağlantısında veya dosya izinlerinde (CORS) bir hata oluştu.<br><br>
                  <b>ÇÖZÜM:</b> Sorunu aşmak için dosyayı "Yeni Sekmede" açarak manuel olarak yazdırabilirsiniz (Oturum Listesindeki yazdırma butonu bunu yapmaya çalışır)`;
             } else {
                 htmlMsg += `<small><i>Dosya yolu hatalı olabilir veya internetten çektiğiniz linkin (CORS) indirme izni yoktur.</i></small>`;
