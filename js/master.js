@@ -750,4 +750,76 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => { loginCard.style.animation = 'none'; }, 500);
     }
 
+    // --- Backup & Restore Logic ---
+    async function backupMasterData() {
+        // Since Supabase might be blocked, we use the local globalUsersDb if fetch fails
+        let users = await getCloudUsers();
+        if (!users || (Object.keys(users).length === 1 && users.admin)) {
+            console.warn("Cloud fetch failed or empty, using local memory data for backup");
+            users = globalUsersDb;
+        }
+
+        if (!users || Object.keys(users).length === 0) {
+            Swal.fire('Hata', 'Yedeklenecek veri bulunamadı.', 'error');
+            return;
+        }
+
+        const dataStr = JSON.stringify(users, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+        a.href = url;
+        a.download = `klbk_master_yedek_${dateStr}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        Swal.fire({ icon: 'success', title: 'Yedek Alındı!', text: 'Kullanıcı listesi JSON olarak indirildi.', timer: 2000, showConfirmButton: false });
+    }
+
+    async function restoreMasterData() {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+                try {
+                    const parsed = JSON.parse(evt.target.result);
+                    // Basic validation: must be an object and have at least one user or admin
+                    if (typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Geçersiz format: Veriler nesne (object) olmalıdır.');
+                    
+                    const confirm = await Swal.fire({
+                        title: 'Emin misiniz?',
+                        text: "Mevcut tüm kullanıcı ve okul listesi bu yedekteki verilerle DEĞİŞTİRİLECEKTİR! Bu işlem geri alınamaz.",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Evet, Geri Yükle',
+                        cancelButtonText: 'İptal',
+                        confirmButtonColor: '#d33'
+                    });
+
+                    if (confirm.isConfirmed) {
+                        await saveToCloud('klbk_users', parsed);
+                        Swal.fire('Başarılı!', 'Kullanıcı veritabanı geri yüklendi. Sayfa yenileniyor...', 'success');
+                        setTimeout(() => window.location.reload(), 2000);
+                    }
+                } catch (err) {
+                    Swal.fire('Hata', 'Dosya okunamadı veya format geçersiz: ' + err.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+        };
+        fileInput.click();
+    }
+
+    const btnBackupMaster = document.getElementById('btnBackupMaster');
+    const btnRestoreMaster = document.getElementById('btnRestoreMaster');
+
+    if (btnBackupMaster) btnBackupMaster.addEventListener('click', backupMasterData);
+    if (btnRestoreMaster) btnRestoreMaster.addEventListener('click', restoreMasterData);
+
 });

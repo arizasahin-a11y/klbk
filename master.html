@@ -22,6 +22,29 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        .action-icon-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(4px);
+        }
+        .action-icon-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+        .action-icon-btn:active {
+            transform: translateY(0);
+        }
+    </style>
 </head>
 
 <body class="login-body">
@@ -38,6 +61,14 @@
             <div class="login-header">
                 <div class="logo-icon" style="background: var(--primary); color: white;">
                     <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <div class="header-actions" style="position: absolute; top: 15px; right: 15px; display: flex; gap: 10px;">
+                    <button type="button" id="btnBackupMaster" class="action-icon-btn" title="Veritabanını Yedekle (JSON)">
+                        <i class="fa-solid fa-download"></i>
+                    </button>
+                    <button type="button" id="btnRestoreMaster" class="action-icon-btn" title="Yedekten Geri Yükle">
+                        <i class="fa-solid fa-upload"></i>
+                    </button>
                 </div>
                 <h2>Sistem Yönetimi</h2>
                 <p>Yeni okul tanımlama ve kullanıcı oluşturma paneli</p>
