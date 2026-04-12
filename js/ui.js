@@ -94,7 +94,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Cloud Sync ---
     // Fetch user's data from Supabase before rendering the dashboard
+    console.log("Dashboard initializing for path:", path);
+    console.log("Starting cloud sync for storage key...");
     await DataManager.initCloud();
+    console.log("Cloud sync completed. Current data state:", DataManager.getStudents().length, "students, ", DataManager.getClassrooms().length, "rooms found.");
 
     // Check klbk_data_ format
     const key = DataManager._getStorageKey();

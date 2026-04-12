@@ -31,7 +31,7 @@ const DataManager = {
     _getStorageKey: function () {
         const storeKey = sessionStorage.getItem('klbk_storeKey');
         if (storeKey) return storeKey;
-        const user = sessionStorage.getItem('klbk_currentUser') || 'admin';
+        const user = sessionStorage.getItem('klbk_currentUser') || 'Yönetici';
         return `klbk_data_${user}`;
     },
 
@@ -91,15 +91,18 @@ const DataManager = {
             console.error("Cloud fetch failed for:", key, e);
         }
 
+        console.log("Checking LocalStorage fallback for:", key);
         // Fallback to LocalStorage if cloud fails
         const local = localStorage.getItem(key);
         if (local) {
             try {
                 this._memoryData = JSON.parse(local);
-                console.log("Offline mode: Loaded data from local storage.");
+                console.log("Offline mode: Loaded data from local storage for:", key);
                 this._migrateDateFormats();
                 return;
-            } catch (e) { }
+            } catch (e) { 
+                console.error("Local storage parse failed:", e);
+            }
         }
 
         // Final fallback: Initial state
@@ -301,11 +304,14 @@ const DataManager = {
 
     // Internal Method: Get Full Data Store (Returns Memory)
     _getData: function () {
+        // Ensure core structure always exists to prevent crashes
+        const base = JSON.parse(JSON.stringify(initialState));
         if (!this._memoryData) {
-            console.warn("DataManager accessed before initCloud! Returning empty state.");
-            return JSON.parse(JSON.stringify(initialState));
+            console.warn("DataManager accessed before initCloud! Returning default state.");
+            return base;
         }
-        return this._memoryData;
+        // Deep merge memory data into base to ensure missing arrays (like students) exist
+        return { ...base, ...this._memoryData };
     },
 
     // Internal Method: Save Full Data Store (Updates Memory & Triggers Sync)
