@@ -46,13 +46,13 @@ const DataManager = {
         if (obj === null || typeof obj !== 'object') return obj;
 
         if (Array.isArray(obj)) {
-            return obj.map(item => this._deepSanitizeKeys(item));
+            return obj.map(item => DataManager._deepSanitizeKeys(item));
         }
 
         const sanitized = {};
         for (let key in obj) {
-            const safeKey = this.sanitizeFirebaseKey(key);
-            sanitized[safeKey] = this._deepSanitizeKeys(obj[key]);
+            const safeKey = DataManager.sanitizeFirebaseKey(key);
+            sanitized[safeKey] = DataManager._deepSanitizeKeys(obj[key]);
         }
         return sanitized;
     },

@@ -79,11 +79,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 1. Authentication & Path enforcement ---
     const path = window.location.pathname;
 
-    // Doğrudan dosya ismini yazanları engelle
-    if (path.endsWith('/dashboard.html') || path.endsWith('/dashboard')) {
-        window.location.href = '/security_error';
-        return;
-    }
+    // Allow dashboard access but check session
+    const isDashboard = path.endsWith('/dashboard.html') || path.endsWith('/dashboard');
 
     const isLoginPage = path.includes('k9x7v2m4');
     
@@ -457,9 +454,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                             Swal.fire({ 
                                 icon: 'success', 
                                 title: 'Yüklendi!', 
-                                text: 'Veriler başarıyla geri yüklendi ve sistem güncellendi.', 
-                                timer: 2500, 
+                                text: 'Veriler başarıyla geri yüklendi. Sistem güncelleniyor...', 
+                                timer: 1500, 
                                 showConfirmButton: false 
+                            }).then(() => {
+                                location.reload();
                             });
                         }
                     });
@@ -6243,6 +6242,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     } catch (e) {
         console.error("UI Initialization Error:", e);
+    } finally {
+        // ALWAYS remove loader, even if an error occurred, to keep the system accessible
+        const loader = document.getElementById('appLoader');
+        if (loader) {
+            loader.classList.add('fade-out');
+            setTimeout(() => loader.remove(), 600);
+        }
     }
 });
 
