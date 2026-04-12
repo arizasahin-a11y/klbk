@@ -75,13 +75,13 @@ const DataManager = {
     initCloud: async function () {
         const key = this._getStorageKey();
         try {
-            // URL encode the key to handle Turkish characters in the path safely
             const encodedKey = encodeURIComponent(key);
             const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/${encodedKey}.json`);
             if (res.ok) {
                 const data = await res.json();
                 if (data) { 
                     this._memoryData = data;
+                    localStorage.setItem(key, JSON.stringify(data)); // Sync cloud to local
                     console.log("Cloud data loaded successfully for:", key);
                     this._migrateDateFormats(); 
                     return;
@@ -91,7 +91,18 @@ const DataManager = {
             console.error("Cloud fetch failed for:", key, e);
         }
 
-        // If not found or error, use initial state
+        // Fallback to LocalStorage if cloud fails
+        const local = localStorage.getItem(key);
+        if (local) {
+            try {
+                this._memoryData = JSON.parse(local);
+                console.log("Offline mode: Loaded data from local storage.");
+                this._migrateDateFormats();
+                return;
+            } catch (e) { }
+        }
+
+        // Final fallback: Initial state
         this._memoryData = JSON.parse(JSON.stringify(initialState));
     },
 
@@ -300,6 +311,8 @@ const DataManager = {
     // Internal Method: Save Full Data Store (Updates Memory & Triggers Sync)
     _saveData: function (data) {
         this._memoryData = data;
+        const key = this._getStorageKey();
+        localStorage.setItem(key, JSON.stringify(data));
         this._syncToCloud(data);
     },
 

@@ -448,8 +448,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }).then(res => {
                         if (res.isConfirmed) {
                             DataManager._saveData(parsed);
+                            
+                            // Fully refresh all UI components with the new data
                             loadSchoolSettings();
-                            Swal.fire({ icon: 'success', title: 'Y\u00fcklendi!', text: 'Veriler ba\u015far\u0131yla geri y\u00fcklendi.', timer: 2000, showConfirmButton: false });
+                            if (typeof updateDashboardStats === 'function') updateDashboardStats();
+                            if (typeof updateClassesList === 'function') updateClassesList();
+                            
+                            Swal.fire({ 
+                                icon: 'success', 
+                                title: 'Yüklendi!', 
+                                text: 'Veriler başarıyla geri yüklendi ve sistem güncellendi.', 
+                                timer: 2500, 
+                                showConfirmButton: false 
+                            });
                         }
                     });
                 } catch (err) {
@@ -939,8 +950,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             widgetHtml += `
                 <div style="display:flex; justify-content:space-between; padding:0.75rem 0; border-bottom:1px solid #f1f5f9;">
-                    <strong>${cls}</strong>
-                    <span>${count} Kişi</span>
+                    <div style="display:flex; flex-direction:column;">
+                        <strong>${cls}</strong>
+                        <span style="font-size:0.75rem; color:var(--gray-500);">${count} Öğrenci</span>
+                    </div>
+                    <div style="text-align:right;">
+                        <span style="font-size:0.85rem; color:var(--primary); font-weight:600;">${assignedRoom || '<small style="color:var(--gray-400); font-weight:normal;">Atanmadı</small>'}</span>
+                    </div>
                 </div>
             `;
         });
