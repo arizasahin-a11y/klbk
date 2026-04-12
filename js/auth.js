@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // --- Asenkron Aktivite Loglama ---
                     try {
                         fetch(`${firebaseDatabaseUrl}/app_store/klbk_activity_log.json`)
-                        .then(r => r.json()).then(data => {
+                        .then(r => r.json()).then(async data => {
                             let logs = [];
                             if (data && data.logs) {
                                 logs = data.logs;
