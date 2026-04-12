@@ -82,7 +82,7 @@ const DataManager = {
                 if (data) { 
                     this._memoryData = data;
                     localStorage.setItem(key, JSON.stringify(data)); // Sync cloud to local
-                    console.log("Cloud data loaded successfully for:", key);
+                    console.log("%c CLOUD SUCCESS: Loaded data for " + key, "background: #22c55e; color: white; padding: 2px 5px;");
                     this._migrateDateFormats(); 
                     return;
                 }

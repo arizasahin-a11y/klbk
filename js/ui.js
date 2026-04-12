@@ -94,21 +94,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Cloud Sync ---
     // Fetch user's data from Supabase before rendering the dashboard
-    console.log("Dashboard initializing for path:", path);
-    console.log("Starting cloud sync for storage key...");
+    console.log("%c DIAGNOSIS: Path is " + path, "color: blue; font-weight: bold; font-size: 14px;");
     await DataManager.initCloud();
-    console.log("Cloud sync completed. Current data state:", DataManager.getStudents().length, "students, ", DataManager.getClassrooms().length, "rooms found.");
-
-    // Check klbk_data_ format
-    const key = DataManager._getStorageKey();
-    if (localStorage.getItem(key)) {
-        // Optional: migrate local to cloud if cloud is empty
-        const cloudData = DataManager.getSchoolSettings();
-        if (!cloudData.name) {
-            console.log("Migrating local data to cloud...");
-            DataManager._saveData(JSON.parse(localStorage.getItem(key)));
-        }
+    
+    // Check what was loaded
+    const studentsCount = DataManager.getStudents().length;
+    console.log("%c DIAGNOSIS: Found " + studentsCount + " students in memory.", "color: green; font-weight: bold; font-size: 16px;");
+    if (studentsCount > 0) {
+        console.log("First student preview:", DataManager.getStudents()[0].name);
+    } else {
+        console.warn("%c DIAGNOSIS WARNING: NO STUDENTS FOUND! Check storage key or database content.", "color: red; font-weight: bold;");
     }
+
+    const key = DataManager._getStorageKey();
+    console.log("%c DIAGNOSIS: Using storage key: " + key, "color: orange; font-weight: bold;");
 
     document.getElementById('displayUsername').textContent = sessionStorage.getItem('klbk_currentUser') || 'Yönetici';
 
