@@ -901,7 +901,7 @@
                 didOpen: async () => {
                     Swal.showLoading();
                     try {
-                        const res = await fetch(`https://${DataManager.firebaseProjectId}.firebaseio.com/app_store/klbk_users.json`);
+                        const res = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`);
                         if (res.ok) {
                             const db = await res.json();
                             if (db) {
@@ -919,7 +919,7 @@
 
                     Swal.showLoading();
                     try {
-                        const res = await fetch(`https://${DataManager.firebaseProjectId}.firebaseio.com/app_store/klbk_users.json`);
+                        const res = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`);
                         if (res.ok) {
                             const db = await res.json();
                             if (db) {
@@ -927,7 +927,7 @@
                                     db[currentUser].email = email;
                                     if (pass) db[currentUser].password = pass; // Only update if provided
 
-                                    await fetch(`https://${DataManager.firebaseProjectId}.firebaseio.com/app_store/klbk_users.json`, {
+                                    await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`, {
                                         method: 'PUT',
                                         headers: {
                                             'Content-Type': 'application/json'

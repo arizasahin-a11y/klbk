@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    try {
 
     // Shared sort utility for Turkish alphanumeric strings (e.g. "9-A", "Salon 1")
     const sortByNum = (a, b) => {
@@ -5974,13 +5975,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     };
 
-    initializeNavigation();
+    } catch (e) {
+        console.error("Dashboard initialization error:", e);
+    } finally {
+        initializeNavigation();
 
-    // --- Font Pre-fetching for Speed ---
-    (async function preFetchFonts() {
-        const fonts = ['https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf', 'fonts/MonotypeCorsiva.ttf', 'fonts/SnapITC.ttf'];
-        fonts.forEach(url => window.getFileBytes(url));
-    })();
+        // --- Font Pre-fetching for Speed ---
+        (async function preFetchFonts() {
+            const fonts = ['https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf', 'fonts/MonotypeCorsiva.ttf', 'fonts/SnapITC.ttf'];
+            fonts.forEach(url => window.getFileBytes(url));
+        })();
+    }
 });
 
 // ══════════════════════════════════════════════════════════════

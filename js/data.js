@@ -724,7 +724,7 @@ const DataManager = {
         if (!this._memoryData || !this._memoryData.examSessions) return;
         let changed = false;
         this._memoryData.examSessions.forEach(ses => {
-            if (ses.date) {
+            if (ses && ses.date && typeof ses.date === 'string') {
                 // If it's YYYY-MM-DD (Standard HTML Date Input)
                 if (ses.date.includes('-')) {
                     ses.date = this.formatDateToStandard(ses.date);
@@ -733,8 +733,10 @@ const DataManager = {
                 // If it's YYYY.MM.DD (Incorrectly saved earlier)
                 else if (ses.date.includes('.') && ses.date.split('.')[0].length === 4) {
                     const parts = ses.date.split('.');
-                    ses.date = `${parts[2]}.${parts[1]}.${parts[0]}`;
-                    changed = true;
+                    if (parts.length === 3) {
+                        ses.date = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                        changed = true;
+                    }
                 }
             }
         });
