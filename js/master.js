@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const excelMessage = document.getElementById('excelMessage');
 
     // Firebase Configuration
-    const firebaseProjectId = "klbk-620b0";
+    const firebaseDatabaseUrl = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
 
     // Global config
     let globalUsersDb = {};
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function getCloudUsers() {
         try {
-            const res = await fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/klbk_users.json`);
+            const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
             if (res.ok) {
                 const data = await res.json();
                 if (data) return data;
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function saveToCloud(id, dataObj) {
         try {
-            await fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/${id}.json`, {
+            await fetch(`${firebaseDatabaseUrl}/app_store/${id}.json`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'

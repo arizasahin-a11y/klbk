@@ -23,7 +23,7 @@ const initialState = {
 const DataManager = {
 
     // Cloud Configuration (Firebase DB & Google Drive Storage)
-    firebaseProjectId: "klbk-620b0", 
+    firebaseDatabaseUrl: "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app", 
     gasStorageUrl: "https://script.google.com/macros/s/AKfycbz6K2I5ylOxaDR_QbT2XnPA6wh2HrquAgM3mrbVZ4x-3nPqVf4KXJMTnGCWlPj2lvBZyQ/exec",
     _memoryData: null,
 
@@ -39,7 +39,7 @@ const DataManager = {
     initCloud: async function () {
         const key = this._getStorageKey();
         try {
-            const res = await fetch(`https://${this.firebaseProjectId}.firebaseio.com/app_store/${key}.json`);
+            const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/${key}.json`);
             if (res.ok) {
                 const data = await res.json();
                 if (data) { // Firebase returns the object directly
@@ -61,7 +61,7 @@ const DataManager = {
     _syncToCloud: async function (data) {
         const key = this._getStorageKey();
         try {
-            await fetch(`https://${this.firebaseProjectId}.firebaseio.com/app_store/${key}.json`, {
+            await fetch(`${this.firebaseDatabaseUrl}/app_store/${key}.json`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'

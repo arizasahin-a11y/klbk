@@ -16,11 +16,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const rememberMeCheckbox = document.getElementById('rememberMe');
 
     // Firebase Configuration
-    const firebaseProjectId = "klbk-620b0";
+    const firebaseDatabaseUrl = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
 
     async function getCloudUsers() {
         try {
-            const res = await fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/klbk_users.json`);
+            const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
             if (res.ok) {
                 const data = await res.json();
                 if (data) return data;
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            await fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/klbk_users.json`, {
+            await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // --- Asenkron Aktivite Loglama ---
                     try {
-                        fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/klbk_activity_log.json`)
+                        fetch(`${firebaseDatabaseUrl}/app_store/klbk_activity_log.json`)
                         .then(r => r.json()).then(data => {
                             let logs = [];
                             if (data && data.logs) {
@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             if (logs.length > 500) logs = logs.slice(0, 500);
 
-                            fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/klbk_activity_log.json`, {
+                            fetch(`${firebaseDatabaseUrl}/app_store/klbk_activity_log.json`, {
                                 method: 'PUT',
                                 headers: {
                                     'Content-Type': 'application/json'
