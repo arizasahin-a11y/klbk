@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Form Elements
     const regSchoolSelect = document.getElementById('regSchoolSelect');
     const editSchoolNameBtn = document.getElementById('editSchoolNameBtn');
+    const deleteSchoolBtn = document.getElementById('deleteSchoolBtn');
     const newSchoolGroup = document.getElementById('newSchoolGroup');
     const regSchoolNewInput = document.getElementById('regSchoolNew');
     const branchGroup = document.getElementById('branchGroup');
@@ -225,6 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
             regRoleSelect.value = 'admin';
             regRoleSelect.disabled = false;
             if (editSchoolNameBtn) editSchoolNameBtn.classList.add('hidden');
+            if (deleteSchoolBtn) deleteSchoolBtn.classList.add('hidden');
             if (excelUploadGroup) excelUploadGroup.classList.remove('hidden');
 
             // New school implies new user
@@ -236,6 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
             regSchoolNewInput.required = false;
             regSchoolNewInput.value = '';
             if (editSchoolNameBtn) editSchoolNameBtn.classList.remove('hidden');
+            if (deleteSchoolBtn) deleteSchoolBtn.classList.remove('hidden');
             if (excelUploadGroup) excelUploadGroup.classList.remove('hidden');
 
             updateUsersList(val);
@@ -247,6 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
             regSchoolNewInput.required = false;
             regUsernameSelect.innerHTML = '<option value="">Lütfen Önce Okul Seçin</option>';
             if (editSchoolNameBtn) editSchoolNameBtn.classList.add('hidden');
+            if (deleteSchoolBtn) deleteSchoolBtn.classList.add('hidden');
             if (excelUploadGroup) excelUploadGroup.classList.add('hidden');
         }
     });
@@ -406,6 +410,81 @@ document.addEventListener('DOMContentLoaded', () => {
                 showMessage("Okul adı güncellenemedi.", "error");
                 editSchoolNameBtn.innerHTML = '<i class="fa-solid fa-pen"></i> İsmi Düzenle';
                 editSchoolNameBtn.style.pointerEvents = 'auto';
+            }
+        });
+    }
+
+    // Delete School Logic
+    if (deleteSchoolBtn) {
+        deleteSchoolBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const storeKey = regSchoolSelect.value;
+            const schoolName = regSchoolSelect.options[regSchoolSelect.selectedIndex].text;
+            if (!storeKey || storeKey === '_NEW_') return;
+
+            const confirm1 = await Swal.fire({
+                title: 'Kurumu Silmek İstediğinize Emin Misiniz?',
+                html: `<b style="color:var(--danger)">"${schoolName}"</b> kurumu ve bu kuruma bağlı <b>tüm kullanıcı hesapları</b> kalıcı olarak silinecektir!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Evet, Her Şeyi Sil',
+                cancelButtonText: 'İptal'
+            });
+
+            if (!confirm1.isConfirmed) return;
+
+            const confirm2 = await Swal.fire({
+                title: 'SON ONAY!',
+                text: "Bu okulun tüm öğrenci, sınıf ve sınav verileri de sunucudan kaldırılacaktır. Devam edilsin mi?",
+                icon: 'error',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'KESİN OLARAK SİL',
+                cancelButtonText: 'Vazgeç'
+            });
+
+            if (!confirm2.isConfirmed) return;
+
+            Swal.fire({ title: 'Siliniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                // 1. Remove all users of this school from Master DB
+                const usersDb = await getCloudUsers();
+                let deletedUsersCount = 0;
+                for (const [uname, user] of Object.entries(usersDb)) {
+                    if (uname === 'admin') continue;
+                    const uKey = getUserStoreKey(uname, user);
+                    if (uKey === storeKey) {
+                        delete usersDb[uname];
+                        deletedUsersCount++;
+                    }
+                }
+
+                // Update Master DB
+                await saveToCloud('klbk_users', usersDb);
+
+                // 2. Delete the school's data node from Firebase
+                const res = await fetch(`${firebaseDatabaseUrl}/app_store/${storeKey}.json`, {
+                    method: 'DELETE'
+                });
+
+                if (!res.ok) {
+                    console.warn("Okul veri dosyası silinemedi veya zaten yoktu.");
+                }
+
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Başarıyla Silindi',
+                    text: `"${schoolName}" kurumu ve ${deletedUsersCount} kullanıcı hesabı sistemden kaldırıldı.`
+                });
+
+                window.location.reload();
+
+            } catch (err) {
+                console.error("Okul silme hatası:", err);
+                Swal.fire('Hata', 'İşlem sırasında bir sorun oluştu: ' + err.message, 'error');
             }
         });
     }
