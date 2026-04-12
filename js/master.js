@@ -50,15 +50,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function saveToCloud(id, dataObj) {
         try {
-            await fetch(`${firebaseDatabaseUrl}/app_store/${id}.json`, {
+            const res = await fetch(`${firebaseDatabaseUrl}/app_store/${id}.json`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(dataObj)
             });
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(`Firebase hata: ${res.status} - ${errText}`);
+            }
+            return true;
         } catch (e) {
             console.error("Buluta veri kaydedilirken hata:", e);
+            throw e;
         }
     }
 
@@ -134,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!regBranchSelect) return;
         regBranchSelect.innerHTML = '<option value="">Yükleniyor...</option>';
         try {
-            const res = await fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/${storeKey}.json`);
+            const res = await fetch(`${firebaseDatabaseUrl}/app_store/${storeKey}.json`);
             if (res.ok) {
                 const data = await res.json();
                 if (data && data.school && data.school.subjects) {
@@ -360,7 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // 2. Update School's Own DB limits
-                const res = await fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/${storeKey}.json`);
+                const res = await fetch(`${firebaseDatabaseUrl}/app_store/${storeKey}.json`);
                 if (res.ok) {
                     const schoolData = await res.json();
                     if (schoolData) {
@@ -638,7 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btnShowActivity.disabled = true;
 
             try {
-                const logRes = await fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/klbk_activity_log.json`);
+                const logRes = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_activity_log.json`);
                 let logs = [];
                 if (logRes.ok) {
                     const data = await logRes.json();
@@ -694,7 +700,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
 
                         if (confirmReset.isConfirmed) {
-                            await fetch(`https://${firebaseProjectId}.firebaseio.com/app_store/klbk_activity_log.json`, {
+                            await fetch(`${firebaseDatabaseUrl}/app_store/klbk_activity_log.json`, {
                                 method: 'PUT',
                                 headers: {
                                     'Content-Type': 'application/json'
@@ -787,9 +793,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     if (confirm.isConfirmed) {
-                        await saveToCloud('klbk_users', parsed);
-                        Swal.fire('Başarılı!', 'Kullanıcı veritabanı geri yüklendi. Sayfa yenileniyor...', 'success');
-                        setTimeout(() => window.location.reload(), 2000);
+                        Swal.fire({ title: 'Yükleniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                        try {
+                            await saveToCloud('klbk_users', parsed);
+                            Swal.fire('Başarılı!', 'Kullanıcı veritabanı geri yüklendi. Sayfa yenileniyor...', 'success');
+                            setTimeout(() => window.location.reload(), 2000);
+                        } catch (err) {
+                            Swal.fire('Hata', 'Firebase kaydı başarısız oldu: ' + err.message, 'error');
+                        }
                     }
                 } catch (err) {
                     Swal.fire('Hata', 'Dosya okunamadı veya format geçersiz: ' + err.message, 'error');

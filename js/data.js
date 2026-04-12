@@ -61,17 +61,28 @@ const DataManager = {
     _syncToCloud: async function (data) {
         const key = this._getStorageKey();
         try {
-            await fetch(`${this.firebaseDatabaseUrl}/app_store/${key}.json`, {
+            const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/${key}.json`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(data) // In Firebase we put the data directly at the node
+                body: JSON.stringify(data)
             });
-            console.log("Data synced to cloud.");
+            if (!res.ok) {
+                const errText = await res.text();
+                const errMsg = `Firebase Kayıt Hatası (${res.status}): ${errText}`;
+                console.error(errMsg);
+                if (window.Swal) {
+                    Swal.fire('Bulut Eşitleme Hatası', 'Verileriniz buluta kaydedilemedi. Lütfen internet bağlantınızı ve Firebase kurallarını kontrol edin.<br><br>Detay: ' + res.status, 'error');
+                }
+            } else {
+                console.log("Data synced to cloud.");
+            }
         } catch (e) {
             console.error("Cloud sync failed!", e);
-            // Optionally fallback to localStorage here if offline
+            if (window.Swal) {
+                Swal.fire('Bağlantı Hatası', 'Buluta erişilemiyor. Çevrimdışı çalışıyor olabilirsiniz.', 'warning');
+            }
         }
     },
 
@@ -228,7 +239,7 @@ const DataManager = {
     _updateMasterSchoolName: async function (newName) {
         const storeKey = this._getStorageKey();
         try {
-            const res = await fetch(`https://${this.firebaseProjectId}.firebaseio.com/app_store/klbk_users.json`);
+            const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/klbk_users.json`);
             if (res.ok) {
                 const usersDb = await res.json();
                 if (usersDb) {
@@ -244,7 +255,7 @@ const DataManager = {
                     }
 
                     if (updated) {
-                        await fetch(`https://${this.firebaseProjectId}.firebaseio.com/app_store/klbk_users.json`, {
+                        await fetch(`${this.firebaseDatabaseUrl}/app_store/klbk_users.json`, {
                             method: 'PUT',
                             headers: {
                                 'Content-Type': 'application/json'

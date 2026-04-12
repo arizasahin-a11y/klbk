@@ -24,6 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.ok) {
                 const data = await res.json();
                 if (data) return data;
+            } else {
+                console.error("Firebase Auth Error:", res.status);
             }
         } catch (e) {
             console.error("Bulut kullanıcı verisi alınamadı", e);
@@ -174,13 +176,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             if (logs.length > 500) logs = logs.slice(0, 500);
 
-                            fetch(`${firebaseDatabaseUrl}/app_store/klbk_activity_log.json`, {
+                            const syncRes = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_activity_log.json`, {
                                 method: 'PUT',
                                 headers: {
                                     'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify({ logs: logs })
                             });
+                            if (!syncRes.ok) console.warn("Activity log sync failed", syncRes.status);
                         }).catch(e => console.warn('Aktivite loglanamadı', e));
                     } catch (e) {
                         console.warn("Log tracking failed", e);
