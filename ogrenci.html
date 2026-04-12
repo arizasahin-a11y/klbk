@@ -710,16 +710,23 @@
         syncTime();
 
         function queryExams(isAutoLogin = false) {
-            const noInput = document.getElementById('studentNo');
-            const no = noInput.value.trim();
-            if (!no) return;
-            const students = DataManager.getStudents();
-            currentStudent = students.find(s => s.no.toString() === no);
-            if (!currentStudent) {
-                if (!isAutoLogin) alert('Öğrenci bulunamadı!');
-                if (isAutoLogin) localStorage.removeItem('klbk_student_session');
-                return;
-            }
+            try {
+                const noInput = document.getElementById('studentNo');
+                const no = noInput.value.trim();
+                if (!no) return;
+                
+                const students = DataManager.getStudents();
+                if (!students || (Array.isArray(students) && students.length === 0)) {
+                    if (!isAutoLogin) alert('Öğrenci verileri yüklenemedi. Lütfen internetinizi kontrol edip sayfayı yenileyin.');
+                    return;
+                }
+
+                currentStudent = students.find(s => s && s.no && s.no.toString() === no);
+                if (!currentStudent) {
+                    if (!isAutoLogin) alert('Öğrenci bulunamadı! Numarayı doğru girdiğinizden emin olun.');
+                    if (isAutoLogin) localStorage.removeItem('klbk_student_session');
+                    return;
+                }
 
             // Save session
             localStorage.setItem('klbk_student_session', no);
@@ -750,6 +757,10 @@
                 // Show results directly
                 showResultsScreen();
             }
+          } catch (err) {
+            console.error("QueryExams Error:", err);
+            if (!isAutoLogin) alert("Sorgulama sırasında bir hata oluştu: " + err.message);
+          }
         }
 
         function acceptRules() {

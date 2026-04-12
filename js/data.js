@@ -37,7 +37,8 @@ const DataManager = {
 
     // Firebase prohibited keys: . $ # [ ] /
     sanitizeFirebaseKey: function (key) {
-        if (!key) return "unknown";
+        if (key === null || key === undefined) return "unknown";
+        // Ensure it's a string and replace forbidden characters
         return String(key).replace(/[\.\$\#\[\]\/]/g, '_');
     },
 
@@ -338,7 +339,9 @@ const DataManager = {
 
     // --- Students API ---
     getStudents: function () {
-        return this._getData().students;
+        const students = this._getData().students;
+        if (!students) return [];
+        return Array.isArray(students) ? students : Object.values(students);
     },
 
     addStudent: function (studentObj) {
@@ -446,7 +449,9 @@ const DataManager = {
 
     // --- Classrooms API ---
     getClassrooms: function () {
-        return this._getData().classrooms;
+        const rooms = this._getData().classrooms;
+        if (!rooms) return [];
+        return Array.isArray(rooms) ? rooms : Object.values(rooms);
     },
 
     addClassroom: function (roomObj) {
@@ -468,7 +473,9 @@ const DataManager = {
 
     // --- Exam Sessions API ---
     getExamSessions: function () {
-        return this._getData().examSessions || [];
+        const sessions = this._getData().examSessions;
+        if (!sessions) return [];
+        return Array.isArray(sessions) ? sessions : Object.values(sessions);
     },
 
     addExamSession: function (sessionObj) {

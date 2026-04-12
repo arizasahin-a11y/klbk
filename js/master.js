@@ -330,13 +330,40 @@ document.addEventListener('DOMContentLoaded', () => {
         const uname = regUsernameSelect.value;
         if (!uname || uname === "_NEW_USER_") return;
 
-        if (!confirm(`'${uname}' kullanıcısını silmek istediğinize emin misiniz?`)) return;
+        const confirmResult = await Swal.fire({
+            title: 'Kullanıcıyı Sil?',
+            text: `'${uname}' kullanıcısını silmek istediğinize emin misiniz?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Evet, Sil'
+        });
+
+        if (!confirmResult.isConfirmed) return;
 
         btnDeleteUser.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Siliyor...';
         btnDeleteUser.disabled = true;
 
         try {
-            delete globalUsersDb[uname];
+            // Handle dots/nesting for deletion
+            const deleteDeep = (obj, targetPath) => {
+                const parts = targetPath.split('.');
+                let current = obj;
+                for (let i = 0; i < parts.length - 1; i++) {
+                    if (current[parts[i]]) current = current[parts[i]];
+                    else return false;
+                }
+                const last = parts[parts.length - 1];
+                if (last in current) {
+                    delete current[last];
+                    return true;
+                }
+                return false;
+            };
+
+            const deleted = deleteDeep(globalUsersDb, uname);
+            if (!deleted && globalUsersDb[uname]) delete globalUsersDb[uname];
+
             await saveToCloud('klbk_users', globalUsersDb);
             showMessage(`'${uname}' kullanıcısı başarıyla silindi.`, 'success');
 
@@ -350,6 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             console.error("Silme hatası:", err);
             showMessage("Kullanıcı silinemedi.", "error");
+            btnDeleteUser.innerHTML = '<i class="fa-solid fa-trash"></i> Kullanıcıyı Sil';
             btnDeleteUser.disabled = false;
         }
     });
@@ -521,6 +549,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (username.length < 3) {
                 showMessage('Kullanıcı adı en az 3 karakter olmalıdır.', 'error');
+                return;
+            }
+            if (/[\.\$\#\[\]\/]/.test(username)) {
+                showMessage('Kullanıcı adı nokta (.) veya özel karakter ($ # [ ] /) içeremez.', 'error');
                 return;
             }
             if (password.length < 4) {

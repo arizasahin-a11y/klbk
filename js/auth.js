@@ -136,21 +136,59 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const usersDb = await getCloudUsers();
                 
-                let matchedUsername = null;
-                if (usersDb[username]) {
-                    matchedUsername = username;
-                } else {
-                    for (const [uname, data] of Object.entries(usersDb)) {
+                // Helper to find a user in a potentially nested object (Firebase "dot" behavior)
+                const findDeepUser = (obj, targetPath) => {
+                    const parts = targetPath.split('.');
+                    let current = obj;
+                    for (const p of parts) {
+                        if (current && typeof current === 'object' && p in current) {
+                            current = current[p];
+                        } else {
+                            return null;
+                        }
+                    }
+                    // Validate if it's the actual user object (should have password)
+                    return (current && typeof current === 'object' && 'password' in current) ? current : null;
+                };
+
+                // 1. Direct match (No dots or successfully retrieved as flat key)
+                let matchedUser = usersDb[username];
+                let actualUsername = username;
+
+                // 2. Deep match (If dots in username caused nesting in Firebase)
+                if (!matchedUser && username.includes('.')) {
+                    matchedUser = findDeepUser(usersDb, username);
+                }
+
+                // 3. Email match (Fallthrough search)
+                if (!matchedUser) {
+                    const flattenUsers = (obj, prefix = '') => {
+                        let results = {};
+                        for (const k in obj) {
+                            const newKey = prefix ? `${prefix}.${k}` : k;
+                            if (obj[k] && typeof obj[k] === 'object' && 'password' in obj[k]) {
+                                results[newKey] = obj[k];
+                            } else if (obj[k] && typeof obj[k] === 'object') {
+                                Object.assign(results, flattenUsers(obj[k], newKey));
+                            }
+                        }
+                        return results;
+                    };
+
+                    const flatUsers = flattenUsers(usersDb);
+                    for (const [uname, data] of Object.entries(flatUsers)) {
                         if (data.email && data.email.toLowerCase() === username.toLowerCase()) {
-                            matchedUsername = uname;
+                            matchedUser = data;
+                            actualUsername = uname;
                             break;
                         }
                     }
                 }
 
-                // Validate credentials against usersDb
-                if (matchedUsername && usersDb[matchedUsername].password === password) {
-                    username = matchedUsername;
+                // Validate credentials
+                if (matchedUser && matchedUser.password === password) {
+                    username = actualUsername;
+                    const userData = matchedUser;
                     showMessage(loginMessageBox, 'Giriş başarılı! Yönlendiriliyorsunuz...', 'success');
 
                     // --- Asenkron Aktivite Loglama ---
@@ -165,12 +203,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             // Make sure valid array
                             if (!Array.isArray(logs)) logs = [];
 
-                            const role = usersDb[username].role || 'admin';
+                            const role = userData.role || 'admin';
                             // Master logins also counted
                             logs.unshift({
                                 username: username,
                                 role: role,
-                                school: usersDb[username].schoolName || '-',
+                                school: userData.schoolName || '-',
                                 time: new Date().toLocaleString('tr-TR')
                             });
 
@@ -195,18 +233,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         localStorage.setItem('klbk_rememberedUser', username);
 
                         // Save full session to localStorage for persistence (Except students)
-                        const role = usersDb[username].role || 'admin';
+                        const role = userData.role || 'admin';
                         if (role !== 'student' && role !== 'ogrenci') {
                                 const sessionData = {
                                     klbk_currentUser: username,
-                                    klbk_name: usersDb[username].name || username,
-                                    klbk_schoolName: usersDb[username].schoolName || '',
-                                    klbk_storeKey: usersDb[username].storeKey || (`klbk_data_${username}`),
+                                    klbk_name: userData.name || username,
+                                    klbk_schoolName: userData.schoolName || '',
+                                    klbk_storeKey: userData.storeKey || (`klbk_data_${username}`),
                                     klbk_role: role,
                                     klbk_loginTime: new Date().toISOString()
                                 };
-                            if (usersDb[username].branch) {
-                                sessionData.klbk_branch = usersDb[username].branch;
+                            if (userData.branch) {
+                                sessionData.klbk_branch = userData.branch;
                             }
                             localStorage.setItem('klbk_persistent_session', JSON.stringify(sessionData));
                         }
@@ -218,18 +256,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Setup session
                     sessionStorage.setItem('klbk_isLoggedIn', 'true');
                     sessionStorage.setItem('klbk_currentUser', username);
-                    sessionStorage.setItem('klbk_name', usersDb[username].name || username);
-                    sessionStorage.setItem('klbk_schoolName', usersDb[username].schoolName || '');
-                    sessionStorage.setItem('klbk_storeKey', usersDb[username].storeKey || (`klbk_data_${username}`));
-                    sessionStorage.setItem('klbk_role', usersDb[username].role || 'admin');
-                    if (usersDb[username].branch) {
-                        sessionStorage.setItem('klbk_branch', usersDb[username].branch);
+                    sessionStorage.setItem('klbk_name', userData.name || username);
+                    sessionStorage.setItem('klbk_schoolName', userData.schoolName || '');
+                    sessionStorage.setItem('klbk_storeKey', userData.storeKey || (`klbk_data_${username}`));
+                    sessionStorage.setItem('klbk_role', userData.role || 'admin');
+                    if (userData.branch) {
+                        sessionStorage.setItem('klbk_branch', userData.branch);
                     }
                     sessionStorage.setItem('klbk_loginTime', new Date().toISOString());
 
                     // Redirect logic
                     setTimeout(() => {
-                        const rawRole = usersDb[username].role || 'admin';
+                        const rawRole = userData.role || 'admin';
                         const role = rawRole.toLowerCase().trim();
                         
                         if (role === 'ogretmen' || role === 'idareci') {
