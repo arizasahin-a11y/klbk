@@ -66,9 +66,14 @@ const DataManager = {
             // Validate data before sync
             if (!data) throw new Error("Sync attempts with null data");
             
-            const payload = JSON.stringify(data);
+            // Deep copy to strip any non-serializable properties (functions, DOM refs, etc)
+            // This often fixes 400 Bad Request errors in Firebase
+            const cleanData = JSON.parse(JSON.stringify(data));
+            const payload = JSON.stringify(cleanData);
+            
             if (!payload || payload === "{}") {
                 console.warn("Syncing empty or invalid object skipped");
+                return;
             }
 
             // URL encode the key to handle Turkish characters in the path safely
@@ -76,16 +81,28 @@ const DataManager = {
             const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/${encodedKey}.json`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json; charset=utf-8'
                 },
                 body: payload
             });
+
             if (!res.ok) {
                 const errText = await res.text();
-                const errMsg = `Firebase Kayıt Hatası (${res.status}): ${errText}`;
-                console.error(errMsg, "Key:", key);
+                let serverMsg = errText;
+                try {
+                    const errObj = JSON.parse(errText);
+                    if (errObj.error) serverMsg = errObj.error;
+                } catch(e) {}
+
+                const errMsg = `Firebase Kayıt Hatası (${res.status}): ${serverMsg}`;
+                console.error(errMsg, "Key:", key, "Payload Sample:", payload.substring(0, 100));
+                
                 if (window.Swal) {
-                    Swal.fire('Bulut Eşitleme Hatası', 'Verileriniz buluta kaydedilemedi. Lütfen internet bağlantınızı ve Firebase kurallarını kontrol edin.<br><br>Detay: ' + res.status + '<br>Yol: ' + key, 'error');
+                    Swal.fire({
+                        title: 'Bulut Eşitleme Hatası',
+                        html: `Verileriniz buluta kaydedilemedi.<br><br><b>Durum:</b> ${res.status}<br><b>Hata:</b> ${serverMsg}<br><b>Yol:</b> ${key}`,
+                        icon: 'error'
+                    });
                 }
             } else {
                 console.log("Data successfully synced to cloud for:", key);
@@ -93,7 +110,7 @@ const DataManager = {
         } catch (e) {
             console.error("Cloud sync failed for:", key, e);
             if (window.Swal) {
-                Swal.fire('Bağlantı Hatası', 'Buluta erişilemiyor veya veri hatası oluştu. Çevrimdışı çalışıyor olabilirsiniz.', 'warning');
+                Swal.fire('Bağlantı Hatası', 'Buluta erişilemiyor veya veri hatası oluştu. Lütfen internetinizi kontrol edin.', 'warning');
             }
         }
     },
