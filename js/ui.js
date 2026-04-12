@@ -6240,15 +6240,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.testDashboardPdf(input.value.trim(), select.value, subTitle);
     };
 
-    } catch (e) {
-        console.error("UI Initialization Error:", e);
-    } finally {
-        // ALWAYS remove loader, even if an error occurred, to keep the system accessible
-        const loader = document.getElementById('appLoader');
-        if (loader) {
-            loader.classList.add('fade-out');
-            setTimeout(() => loader.remove(), 600);
-        }
-    }
-});
 
