@@ -830,7 +830,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const recentWidget = document.getElementById('recentClassesList');
         const classrooms = DataManager.getClassrooms();
         const classRoomMappings = DataManager.getClassRoomMappings() || {};
-        const assignedRoomNames = Object.values(classRoomMappings);
+        
+        // Use sanitized mapping for display
+        const getDisplayRoom = (cls) => DataManager.getSanitizedClassRoomMapping(cls);
 
         // Group students by class
         const classGroups = {};
@@ -864,7 +866,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         classes.forEach((cls, index) => {
             const clsStudents = classGroups[cls] || [];
             const count = clsStudents.length;
-            const assignedRoom = classRoomMappings[cls] || '';
+            const assignedRoom = DataManager.getSanitizedClassRoomMapping(cls) || '';
 
             // Accordion Header
             html += `
@@ -2336,7 +2338,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         allRooms.forEach(room => {
-            const isAutoMatch = Array.from(selectedClasses).some(cls => mappings[cls] === room.name);
+            const isAutoMatch = Array.from(selectedClasses).some(cls => DataManager.getSanitizedClassRoomMapping(cls) === room.name);
             if (isAutoMatch && !wizardSessionData.selectedClassrooms.includes(room.name)) {
                 wizardSessionData.selectedClassrooms.push(room.name);
             }
@@ -5863,8 +5865,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const data = DataManager._getData();
                 data.students = data.students.filter(s => s.class !== className);
                 
-                if (data.classRoomMappings && data.classRoomMappings[className]) {
-                    delete data.classRoomMappings[className];
+                if (data.classRoomMappings) {
+                    const safeCls = DataManager.sanitizeFirebaseKey(className);
+                    if (data.classRoomMappings[className]) delete data.classRoomMappings[className];
+                    if (data.classRoomMappings[safeCls]) delete data.classRoomMappings[safeCls];
                 }
                 
                 DataManager._saveData(data);

@@ -42,6 +42,21 @@ const DataManager = {
         return String(key).replace(/[\.\$\#\[\]\/]/g, '_');
     },
 
+    _deepSanitizeKeys: function (obj) {
+        if (obj === null || typeof obj !== 'object') return obj;
+
+        if (Array.isArray(obj)) {
+            return obj.map(item => this._deepSanitizeKeys(item));
+        }
+
+        const sanitized = {};
+        for (let key in obj) {
+            const safeKey = this.sanitizeFirebaseKey(key);
+            sanitized[safeKey] = this._deepSanitizeKeys(obj[key]);
+        }
+        return sanitized;
+    },
+
     getSanitizedSubjectMetadata: function (session, subjectName) {
         if (!session || !session.subjectMetadata) return {};
         const safeKey = this.sanitizeFirebaseKey(subjectName);
@@ -89,7 +104,8 @@ const DataManager = {
             
             // Deep copy to strip any non-serializable properties (functions, DOM refs, etc)
             // This often fixes 400 Bad Request errors in Firebase
-            const cleanData = JSON.parse(JSON.stringify(data));
+            // Recursive deep sanitize all keys to prevent 400 errors from dots/slashes/etc
+            const cleanData = this._deepSanitizeKeys(data);
             const payload = JSON.stringify(cleanData);
             
             if (!payload || payload === "{}") {
@@ -116,12 +132,31 @@ const DataManager = {
                 } catch(e) {}
 
                 const errMsg = `Firebase Kayıt Hatası (${res.status}): ${serverMsg}`;
-                console.error(errMsg, "Key:", key, "Payload Sample:", payload.substring(0, 100));
+                console.error(errMsg, "Key:", key);
                 
+                // Extract keys with forbidden characters for debugging
+                const findForbiddenKeys = (obj, path = '') => {
+                    let forbidden = [];
+                    for (let k in obj) {
+                        if (/[\.\$\#\[\]\/]/.test(k)) {
+                            forbidden.push(`${path}${k}`);
+                        }
+                        if (obj[k] && typeof obj[k] === 'object' && obj[k] !== null && !Array.isArray(obj[k])) {
+                            forbidden = forbidden.concat(findForbiddenKeys(obj[k], `${path}${k} -> `));
+                        }
+                    }
+                    return forbidden;
+                };
+
+                const issues = findForbiddenKeys(cleanData);
+                if (issues.length > 0) {
+                    console.warn("Tespit edilen geçersiz anahtarlar:", issues);
+                }
+
                 if (window.Swal) {
                     Swal.fire({
                         title: 'Bulut Eşitleme Hatası',
-                        html: `Verileriniz buluta kaydedilemedi.<br><br><b>Durum:</b> ${res.status}<br><b>Hata:</b> ${serverMsg}<br><b>Yol:</b> ${key}`,
+                        html: `Verileriniz buluta kaydedilemedi.<br><br><b>Hata:</b> ${serverMsg}<br><br>${issues.length > 0 ? `<b>Geçersiz Karakter İçeren Anahtarlar:</b><br><small>${issues.join('<br>')}</small>` : 'Lütfen internetinizi veya veri formatını kontrol edin.'}`,
                         icon: 'error'
                     });
                 }
@@ -326,13 +361,32 @@ const DataManager = {
         return this._getData().classRoomMappings || {};
     },
 
+    getSanitizedClassRoomMapping: function (className) {
+        const mappings = this.getClassRoomMappings();
+        const safeKey = this.sanitizeFirebaseKey(className);
+        
+        // 1. Check sanitized key
+        if (mappings[safeKey]) return mappings[safeKey];
+        // 2. Fallback to original key
+        if (mappings[className]) return mappings[className];
+        
+        return null;
+    },
+
     saveClassRoomMapping: function (className, roomName) {
         const data = this._getData();
         if (!data.classRoomMappings) data.classRoomMappings = {};
+        const safeKey = this.sanitizeFirebaseKey(className);
+
         if (roomName) {
-            data.classRoomMappings[className] = roomName;
+            data.classRoomMappings[safeKey] = roomName;
+            // Also cleanup legacy key if it exists and is different from safeKey
+            if (safeKey !== className && data.classRoomMappings[className]) {
+                delete data.classRoomMappings[className];
+            }
         } else {
-            delete data.classRoomMappings[className];
+            delete data.classRoomMappings[safeKey];
+            if (safeKey !== className) delete data.classRoomMappings[className];
         }
         this._saveData(data);
     },

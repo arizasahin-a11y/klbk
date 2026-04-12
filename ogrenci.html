@@ -675,15 +675,19 @@
             }
 
             try {
-                // Sync with Supabase Cloud
+                // Sync with Firebase Cloud
                 const statusEl2 = document.getElementById('timeSyncStatus');
                 statusEl2.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Sınav Verileri İndiriliyor...';
-                statusEl2.style.color = 'var(--primary)';
-                statusEl2.classList.remove('hidden');
+                
+                console.log("Initializing Cloud Sync for Student portal...");
                 await DataManager.initCloud();
+                console.log("Cloud initialization completed. Data state:", !!DataManager._getData());
+                
                 statusEl2.classList.add('hidden');
             } catch (err) {
-                console.error("Cloud init failed:", err);
+                console.error("Cloud init failed for student:", err);
+                const statusEl2 = document.getElementById('timeSyncStatus');
+                statusEl2.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Veri yükleme hatası: ${err.message}`;
             } finally {
                 // Ensure body is visible after initial sync/check
                 document.body.style.visibility = 'visible';
@@ -1494,8 +1498,7 @@
             if (!currentStudent) return;
             const sessions = DataManager.getSortedExamSessions();
             const now = getNow();
-            const classMappings = DataManager.getClassRoomMappings() || {};
-            const myRoomName = classMappings[currentStudent.class];
+            const myRoomName = DataManager.getSanitizedClassRoomMapping(currentStudent.class);
 
             if (!myRoomName) return;
 
