@@ -817,11 +817,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- 6. Update Dashboard Stats ---
     function updateDashboardStats() {
-        const stats = DataManager.getStats();
-        document.getElementById('statTotalStudents').textContent = stats.totalStudents;
-        document.getElementById('statTotalClasses').textContent = stats.totalClasses;
-        document.getElementById('statTotalRooms').textContent = stats.totalRooms;
-        document.getElementById('statTotalCapacity').textContent = stats.totalCapacity;
+        try {
+            const stats = DataManager.getStats();
+            document.getElementById('statTotalStudents').textContent = stats.totalStudents || 0;
+            document.getElementById('statTotalClasses').textContent = stats.totalClasses || 0;
+            document.getElementById('statTotalRooms').textContent = stats.totalRooms || 0;
+            document.getElementById('statTotalCapacity').textContent = stats.totalCapacity || 0;
+        } catch (err) {
+            console.error("Dashboard Stats calculation failed:", err);
+            // Fallback display
+            document.getElementById('statTotalStudents').textContent = '0';
+        }
     }
 
     // --- 7. Students & Classes UI Helpers ---

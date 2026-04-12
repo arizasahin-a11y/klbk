@@ -31,7 +31,7 @@ const DataManager = {
     _getStorageKey: function () {
         const storeKey = sessionStorage.getItem('klbk_storeKey');
         if (storeKey) return storeKey;
-        const user = sessionStorage.getItem('klbk_currentUser') || 'Yönetici';
+        const user = sessionStorage.getItem('klbk_currentUser') || 'admin';
         return `klbk_data_${user}`;
     },
 
@@ -310,8 +310,24 @@ const DataManager = {
             console.warn("DataManager accessed before initCloud! Returning default state.");
             return base;
         }
-        // Deep merge memory data into base to ensure missing arrays (like students) exist
-        return { ...base, ...this._memoryData };
+
+        const data = this._memoryData;
+        
+        // --- DATA HARDENING: Ensure core keys are Arrays (Firebase fallback) ---
+        // If Firebase saved these as objects (0:..., 1:...), convert back to arrays
+        const ensureArray = (val) => {
+            if (!val) return [];
+            if (Array.isArray(val)) return val;
+            return Object.values(val);
+        };
+
+        return { 
+            ...base, 
+            ...data,
+            students: ensureArray(data.students),
+            classrooms: ensureArray(data.classrooms),
+            examSessions: ensureArray(data.examSessions)
+        };
     },
 
     // Internal Method: Save Full Data Store (Updates Memory & Triggers Sync)
