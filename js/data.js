@@ -310,10 +310,13 @@ const DataManager = {
 
     // Internal Method: Save Full Data Store (Updates Memory & Triggers Sync)
     _saveData: function (data) {
-        this._memoryData = data;
+        // Always sanitize before storing anywhere (memory, local, or cloud)
+        // to ensure consistency across all storage layers.
+        const cleanData = this._deepSanitizeKeys(data);
+        this._memoryData = cleanData;
         const key = this._getStorageKey();
-        localStorage.setItem(key, JSON.stringify(data));
-        this._syncToCloud(data);
+        localStorage.setItem(key, JSON.stringify(cleanData));
+        this._syncToCloud(cleanData);
     },
 
     // --- School API ---
