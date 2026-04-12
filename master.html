@@ -24,22 +24,23 @@
     <link rel="stylesheet" href="css/style.css">
     <style>
         .action-icon-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: var(--primary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
-            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         .action-icon-btn:hover {
-            background: rgba(255, 255, 255, 0.4);
+            background: var(--primary-hover);
             transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
         }
         .action-icon-btn:active {
             transform: translateY(0);
@@ -58,11 +59,11 @@
 
     <div class="login-container">
         <div class="login-card glass-panel" style="border-top: 4px solid var(--primary);">
-            <div class="login-header">
+            <div class="login-header" style="position: relative;">
                 <div class="logo-icon" style="background: var(--primary); color: white;">
                     <i class="fa-solid fa-user-shield"></i>
                 </div>
-                <div class="header-actions" style="position: absolute; top: 15px; right: 15px; display: flex; gap: 10px;">
+                <div class="header-actions" style="position: absolute; top: 0; right: 0; display: flex; gap: 8px;">
                     <button type="button" id="btnBackupMaster" class="action-icon-btn" title="Veritabanını Yedekle (JSON)">
                         <i class="fa-solid fa-download"></i>
                     </button>
