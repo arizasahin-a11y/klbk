@@ -140,10 +140,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!regBranchSelect) return;
         regBranchSelect.innerHTML = '<option value="">Yükleniyor...</option>';
         try {
-            const res = await fetch(`${firebaseDatabaseUrl}/app_store/${storeKey}.json`);
+            const url = `${firebaseDatabaseUrl}/app_store/${storeKey}.json`;
+            const res = await fetch(url);
+            
             if (res.ok) {
                 const data = await res.json();
-                if (data && data.school && data.school.subjects) {
+                // If school data doesn't exist yet (null), or subjects is empty
+                if (!data || !data.school) {
+                    console.warn("School data not found for:", storeKey);
+                    regBranchSelect.innerHTML = '<option value="">Sunucuda okul verisi henüz yok</option>';
+                    return;
+                }
+
+                if (data.school.subjects && data.school.subjects.length > 0) {
                     const subjects = data.school.subjects;
                     regBranchSelect.innerHTML = '<option value="">-- Branş Seçiniz --</option>';
                     subjects.forEach(sub => {
@@ -152,16 +161,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         opt.textContent = sub;
                         regBranchSelect.appendChild(opt);
                     });
-                    if (subjects.length === 0) {
-                        regBranchSelect.innerHTML = '<option value="">Okulda henüz ders tanımlanmamış</option>';
-                    }
-                    return;
+                } else {
+                    regBranchSelect.innerHTML = '<option value="">Okulda henüz ders tanımlanmamış</option>';
                 }
+            } else {
+                regBranchSelect.innerHTML = `<option value="">Hata (${res.status}): Bağlantı reddedildi</option>`;
             }
         } catch (e) {
             console.error("Dersler alınamadı", e);
+            regBranchSelect.innerHTML = '<option value="">Sunucu bağlantı hatası!</option>';
         }
-        regBranchSelect.innerHTML = '<option value="">Okulda henüz ders tanımlanmamış</option>';
     }
 
     function updateUsersList(storeKey) {
