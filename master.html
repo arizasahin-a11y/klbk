@@ -172,6 +172,15 @@
                     <small style="color: var(--gray-500); display: block; margin-top: 4px; padding-left: 10px;">
                         <em>* CTRL (Windows) veya CMD (Mac) tuşuna basılı tutarak çoklu seçim yapabilirsiniz.</em>
                     </small>
+                    <div id="quickBranchDiv" class="hidden" style="margin-top: 10px; padding: 10px; background: rgba(99, 102, 241, 0.05); border-radius: 8px; border: 1px dashed var(--primary);">
+                        <p style="font-size: 0.75rem; color: var(--primary); margin-bottom: 5px; font-weight: 600;">Ders Listesi Bulunamadı!</p>
+                        <p style="font-size: 0.7rem; color: var(--gray-500); margin-bottom: 8px;">Okulun ders listesini virgülle ayırarak aşağıya yazın veya hazır listeyi yükleyin:</p>
+                        <textarea id="quickBranchInput" placeholder="Matematik, Türk Dili ve Edebiyatı, Fizik..." style="width: 100%; height: 60px; font-size: 0.8rem; padding: 5px; border: 1px solid var(--gray-300); border-radius: 4px;"></textarea>
+                        <div style="display: flex; gap: 5px; margin-top: 5px;">
+                            <button type="button" id="btnSaveQuickBranches" class="btn btn-primary btn-sm" style="flex: 1; font-size: 0.75rem;">Kaydet</button>
+                            <button type="button" id="btnSeedBranches" class="btn btn-secondary btn-sm" style="flex: 1; font-size: 0.75rem;">Hazır Listeyi Yükle</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="masterMessage" class="message-box hidden"></div>

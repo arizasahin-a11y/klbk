@@ -25,6 +25,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnUploadExcel = document.getElementById('btnUploadExcel');
     const excelMessage = document.getElementById('excelMessage');
 
+    const quickBranchDiv = document.getElementById('quickBranchDiv');
+    const quickBranchInput = document.getElementById('quickBranchInput');
+    const btnSaveQuickBranches = document.getElementById('btnSaveQuickBranches');
+    const btnSeedBranches = document.getElementById('btnSeedBranches');
+
     // Firebase Configuration
     const firebaseDatabaseUrl = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
 
@@ -139,16 +144,18 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchSchoolBranches(storeKey) {
         if (!regBranchSelect) return;
         regBranchSelect.innerHTML = '<option value="">Yükleniyor...</option>';
+        const quickBranchDiv = document.getElementById('quickBranchDiv');
+        if (quickBranchDiv) quickBranchDiv.classList.add('hidden');
+
         try {
             const url = `${firebaseDatabaseUrl}/app_store/${storeKey}.json`;
             const res = await fetch(url);
             
             if (res.ok) {
                 const data = await res.json();
-                // If school data doesn't exist yet (null), or subjects is empty
                 if (!data || !data.school) {
-                    console.warn("School data not found for:", storeKey);
                     regBranchSelect.innerHTML = '<option value="">Sunucuda okul verisi henüz yok</option>';
+                    if (quickBranchDiv) quickBranchDiv.classList.remove('hidden');
                     return;
                 }
 
@@ -163,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 } else {
                     regBranchSelect.innerHTML = '<option value="">Okulda henüz ders tanımlanmamış</option>';
+                    if (quickBranchDiv) quickBranchDiv.classList.remove('hidden');
                 }
             } else {
                 regBranchSelect.innerHTML = `<option value="">Hata (${res.status}): Bağlantı reddedildi</option>`;
@@ -640,6 +648,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnUploadExcel.disabled = false;
             };
             reader.readAsArrayBuffer(file);
+        });
+    }
+
+    if (btnSaveQuickBranches) {
+        btnSaveQuickBranches.addEventListener('click', async () => {
+            const storeKey = regSchoolSelect.value;
+            const branchText = quickBranchInput.value.trim();
+            if (!storeKey || !branchText) return;
+
+            const branches = branchText.split(',').map(b => b.trim()).filter(b => b.length > 0);
+            if (branches.length === 0) return;
+
+            btnSaveQuickBranches.disabled = true;
+            btnSaveQuickBranches.textContent = "Kaydediliyor...";
+
+            try {
+                // Fetch current or create new
+                let schoolData = { school: { name: regSchoolSelect.options[regSchoolSelect.selectedIndex].text, subjects: [] } };
+                const res = await fetch(`${firebaseDatabaseUrl}/app_store/${storeKey}.json`);
+                if (res.ok) {
+                    const existing = await res.json();
+                    if (existing) schoolData = existing;
+                }
+                
+                if (!schoolData.school) schoolData.school = { subjects: [] };
+                schoolData.school.subjects = branches;
+
+                await saveToCloud(storeKey, schoolData);
+                Swal.fire('Başarılı', 'Dersler okula tanımlandı.', 'success');
+                fetchSchoolBranches(storeKey);
+            } catch (err) {
+                Swal.fire('Hata', 'Dersler kaydedilemedi.', 'error');
+            }
+            btnSaveQuickBranches.disabled = false;
+            btnSaveQuickBranches.textContent = "Kaydet";
+        });
+    }
+
+    if (btnSeedBranches) {
+        btnSeedBranches.addEventListener('click', () => {
+            const common = "Matematik, Türk Dili ve Edebiyatı, Fizik, Kimya, Biyoloji, Tarih, Coğrafya, Felsefe, İngilizce, Din Kültürü, Beden Eğitimi, Görsel Sanatlar, Müzik, Almanca, Psikoloji, Sosyoloji";
+            quickBranchInput.value = common;
         });
     }
 
