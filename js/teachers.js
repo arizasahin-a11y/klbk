@@ -398,13 +398,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         const rawTeacherName = (json[0] && json[0][0] ? json[0][0].toString().trim() : '');
                         if (!rawTeacherName) return; // Skip empty sheets
                         
+                        // Koruma: MEB gibi sistemlerin verdiği sahte .xls (MHTML) dosyalarını engelle
+                        if (rawTeacherName.startsWith('MIME-Version') || rawTeacherName.startsWith('<html') || rawTeacherName.startsWith('<!DOCTYPE')) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Geçersiz Excel Formatı',
+                                html: 'Yüklediğiniz bu .xls dosyası gerçek bir Excel dosyası değil (Web sayfası / MHTML formatında).<br><br>Lütfen bu dosyayı bilgisayarınızdaki MS Excel programıyla açıp <b>"Farklı Kaydet"</b> diyerek <b>"Excel Çalışma Kitabı (*.xlsx)"</b> formatında kaydedin ve oluşan yeni dosyayı sisteme yükleyin.'
+                            });
+                            throw new Error('MHTML Format Detected'); // Stop processing
+                        }
+
                         // Find Teacher or Add Stub
-                        const searchName = rawTeacherName.toLowerCase().replace(/\\s+/g, '');
+                        const searchName = rawTeacherName.toLowerCase().replace(/\s+/g, '');
                         let foundUname = '';
                         let isNew = false;
                         
                         for (const [uname, user] of Object.entries(usersDb)) {
-                            const dbName = (user.name || '').toLowerCase().replace(/\\s+/g, '');
+                            const dbName = (user.name || '').toLowerCase().replace(/\s+/g, '');
                             if (dbName === searchName || uname === searchName) {
                                 // Double check if standardizing characters matches better (e.g. ı->i, ş->s)
                                 foundUname = uname;
@@ -454,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             // Iterate B to I (indices 1 to 8)
                             for (let colIndex = 1; colIndex <= 8; colIndex++) {
                                 if (row[colIndex]) {
-                                    let cellVal = row[colIndex].toString().replace(/\\s+/g, '').toUpperCase();
+                                    let cellVal = row[colIndex].toString().replace(/\s+/g, '').toUpperCase();
                                     cellVal = cellVal.replace(/[^A-Z0-9]/gi, ''); // Remove hyphens, slashes, etc. (e.g. 11-B -> 11B)
                                     if (cellVal) {
                                         daySchedule[colIndex.toString()] = cellVal;
