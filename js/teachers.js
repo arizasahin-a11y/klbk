@@ -119,8 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Admin's own school check (by storeKey or schoolName)
             const uKey = user.storeKey || `klbk_data_${uname}`;
             
-            // admin ve ariza/arıza/@arız@ kullanıcıları her halükarda listede görünsün
-            if (uname !== 'admin' && uname !== 'ariza' && uname !== 'arıza' && uname !== '@arız@') {
+            // admin ve ariza/arıza/@arız@/@rız@ kullanıcıları her halükarda listede görünsün
+            if (uname !== 'admin' && uname !== 'ariza' && uname !== 'arıza' && uname !== '@arız@' && uname !== '@rız@') {
                 if (uKey !== currentSchoolStoreKey) return false;
             }
             
