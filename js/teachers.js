@@ -588,7 +588,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     let processedCount = 0;
                     let errorCount = 0;
                     
-                    const validDays = ['Pa', 'Sa', 'Ça', 'Pe', 'Cu', 'Pa', 'Sa', 'Ca', 'Pe', 'Cu'];
+                    // Önceki yüklemeleri temizle (Sadece kendi okulunun)
+                    for (const uname in usersDb) {
+                        if (usersDb[uname].storeKey === currentSchoolStoreKey && usersDb[uname].schedule) {
+                            delete usersDb[uname].schedule;
+                        }
+                    }
                     
                     workbook.SheetNames.forEach(sheetName => {
                         const sheet = workbook.Sheets[sheetName];
@@ -652,13 +657,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             
                             const dayCodeStr = row[0].toString().trim();
                             
-                            // Normalleştirme Ça->Ca
+                            // Normalleştirme - Çok çeşitli gün yazımlarına karşı koruma
+                            let dStr = dayCodeStr.toLowerCase().replace(/[^a-zçğıöşü]/g, '');
                             let safeDay = '';
-                            if (dayCodeStr.substring(0,2).toLowerCase() === 'pa') safeDay = 'Pa';
-                            else if (dayCodeStr.substring(0,2).toLowerCase() === 'sa') safeDay = 'Sa';
-                            else if (dayCodeStr.substring(0,2).toLowerCase() === 'ça' || dayCodeStr.substring(0,2).toLowerCase() === 'ca') safeDay = 'Ça';
-                            else if (dayCodeStr.substring(0,2).toLowerCase() === 'pe') safeDay = 'Pe';
-                            else if (dayCodeStr.substring(0,2).toLowerCase() === 'cu') safeDay = 'Cu';
+                            if (dStr.includes('paz') || dStr.includes('pt') || dStr.startsWith('pa')) safeDay = 'Pa';
+                            else if (dStr.includes('sal') || dStr.startsWith('sa')) safeDay = 'Sa';
+                            else if (dStr.includes('çar') || dStr.includes('car') || dStr.startsWith('ça') || dStr.startsWith('ca') || dStr.includes('crs')) safeDay = 'Ça';
+                            else if (dStr.includes('per') || dStr.includes('prs') || dStr.startsWith('pe') || dStr.includes('pr')) safeDay = 'Pe';
+                            else if (dStr.includes('cum') || dStr.startsWith('cu')) safeDay = 'Cu';
                             
                             if (!safeDay) continue; // Not a valid day row
                             
