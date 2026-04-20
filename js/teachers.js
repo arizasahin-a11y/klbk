@@ -119,8 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Admin's own school check (by storeKey or schoolName)
             const uKey = user.storeKey || `klbk_data_${uname}`;
             
-            // admin ve ariza/arıza kullanıcıları her halükarda listede görünsün
-            if (uname !== 'admin' && uname !== 'ariza' && uname !== 'arıza') {
+            // admin ve ariza/arıza/@arız@ kullanıcıları her halükarda listede görünsün
+            if (uname !== 'admin' && uname !== 'ariza' && uname !== 'arıza' && uname !== '@arız@') {
                 if (uKey !== currentSchoolStoreKey) return false;
             }
             
@@ -313,6 +313,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const contextMenu = document.getElementById('teacherContextMenu');
     const btnContextMerge = document.getElementById('btnContextMerge');
     let contextActiveUname = null;
+
+    if (contextMenu && contextMenu.parentNode !== document.body) {
+        // CSS transform hatalarını ve fixed konum kaymalarını engellemek için menüyü direkt gövdeye al
+        document.body.appendChild(contextMenu);
+    }
 
     window.addEventListener('click', () => {
         if (contextMenu) contextMenu.style.display = 'none';
