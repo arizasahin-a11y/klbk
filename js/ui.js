@@ -97,6 +97,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log("%c DIAGNOSIS: Path is " + path, "color: blue; font-weight: bold; font-size: 14px;");
     await DataManager.initCloud();
     
+    // Fetch school teachers for assignment calculations
+    if (DataManager.getSchoolTeachers) {
+        window.globalTeachersDb = await DataManager.getSchoolTeachers();
+    }
+    
     // Check what was loaded
     const studentsCount = DataManager.getStudents().length;
     console.log("%c DIAGNOSIS: Found " + studentsCount + " students in memory.", "color: green; font-weight: bold; font-size: 16px;");
@@ -4159,6 +4164,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Filtre varsa direkt yazdır, yoksa onay al
         const startPrint = async (isPreview = false) => {
+            let examTeachersData = { classrooms: {}, globalSpares: [] };
+            if (DataManager.calculateExamTeachers) {
+                examTeachersData = DataManager.calculateExamTeachers(session, window.globalTeachersDb || {});
+            }
+
             // ── Sayfa CSS ──────────────────────────────────────────────────
             const pageCss = `
                 @page { ${isSeating ? 'size: A4 landscape;' : 'size: A4 portrait;'} margin: 0; }
@@ -4244,16 +4254,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : d;
             };
 
-            const hdr = (title) => `
-                <div class="page-header">
-                    <h2>${title}</h2>
-                    <div class="info">
+            const hdr = (title, roomName = null) => {
+                let gorevliHtml = '';
+                if (roomName && examTeachersData.classrooms[roomName]) {
+                    const gorevli = examTeachersData.classrooms[roomName].gorevli;
+                    if (gorevli) {
+                        gorevliHtml = `<div style="font-size:12pt; font-weight:700; color:#dc2626; border: 2px dashed #ef4444; border-radius: 6px; padding: 4px 8px; background: #fef2f2; display: inline-block;">Görevli Öğretmen: ${gorevli}</div>`;
+                    }
+                }
+                return `
+                <div class="page-header" style="justify-content: space-between; align-items: center;">
+                    <div style="flex:1;">
+                        <h2>${title}</h2>
+                    </div>
+                    <div style="flex:1; text-align:center;">
+                        ${gorevliHtml}
+                    </div>
+                    <div class="info" style="flex:1;">
                         <div>${session.name}</div>
                         <div style="font-size: 9pt; color: #64748b; font-weight: 400;">
                             ${formatDate(session.date)} ${session.time || ''}
                         </div>
                     </div>
                 </div>`;
+            };
 
             const abbr = (n) => window.shortenSubject(n);
 
@@ -4395,7 +4419,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 </div>
                             </div>` : '';
 
-                        body += `<div class="page">${hdr(`${room.name} Salonu - Oturma Listesi ${totalPages > 1 ? `(Sayfa ${pageNum}/${totalPages})` : ''}`)}
+                        let sigHtml = '';
+                        if (p + PAGE_SIZE >= sortedSeatIds.length) {
+                            const gorevliName = examTeachersData.classrooms[room.name]?.gorevli || '';
+                            const safeName = gorevliName ? gorevliName.replace(' (İdare)', '') : 'Gözetmen Öğretmen';
+                            sigHtml = `
+                            <div style="margin-top: 15px; display: flex; justify-content: flex-end; padding-right: 30px;">
+                                <div style="text-align: center; width: 250px;">
+                                    <div style="font-weight: 600; font-size: 10pt;">${safeName}</div>
+                                    <div style="font-size: 9pt; color: #64748b; margin-top: 2px;">Salon Gözetmeni</div>
+                                    <div style="margin-top: 25px; border-top: 1px dotted #94a3b8; width: 100%;"></div>
+                                    <div style="font-size: 8pt; color: #94a3b8; margin-top: 3px;">İmza</div>
+                                </div>
+                            </div>`;
+                        }
+
+                        body += `<div class="page">${hdr(`${room.name} Salonu - Oturma Listesi ${totalPages > 1 ? `(Sayfa ${pageNum}/${totalPages})` : ''}`, room.name)}
                             <div style="display:flex; gap:0; align-items:flex-start; flex:1;">
                                 <div style="flex:1;">
                                     <table style="table-layout:fixed;">
@@ -4410,6 +4449,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 ${summaryContent}
                             </div>
                             ${(teacherMsg && (p + PAGE_SIZE >= sortedSeatIds.length)) ? `<div class="msg-box" style="border-color:#ca8a04; background:#fffaf0;"><strong><span class="icon" style="background:#ea580c;">!</span> Lütfen Dikkat!!!</strong>${teacherMsg}</div>` : ""}
+                            ${sigHtml}
                         </div>`;
                     }
                 });
@@ -4463,7 +4503,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         groupsHtml += '</div>';
                     }
                     groupsHtml += '</div>';
-                    body += `<div class="page">${hdr(`${room.name} Salonu - Oturma Şeması`)}
+                    body += `<div class="page">${hdr(`${room.name} Salonu - Oturma Şeması`, room.name)}
                         <div class="schema-container"><div class="classroom-walls">${groupsHtml}
                             <div class="front-side">${room.teacherDeskPos === 'left' ? `<div class="teacher-desk">ÖĞRETMEN<br>MASASI</div><div class="board">Y A Z I &nbsp; T A H T A S I</div><div style="width:110px;"></div>` : `<div style="width:110px;"></div><div class="board">Y A Z I &nbsp; T A H T A S I</div><div class="teacher-desk">ÖĞRETMEN<br>MASASI</div>`}</div>
                         </div></div></div>`;
@@ -5095,6 +5135,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             window.currentRenderedSession = session;
 
+            let examTeachersData = { classrooms: {}, globalSpares: [] };
+            if (DataManager.calculateExamTeachers) {
+                examTeachersData = DataManager.calculateExamTeachers(session, window.globalTeachersDb || {});
+            }
+            window._currentExamTeachersData = examTeachersData;
+
             resultsContainer.innerHTML = '';
 
             if (mode === 'class') {
@@ -5193,7 +5239,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             roomPanel.innerHTML = `
                 <div class="nested-accordion-header" onclick="toggleNestedAccordion('${roomId}')" style="background:var(--gray-50); padding:1rem; border:1px solid var(--gray-200); border-radius:8px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-                    <h3 style="margin:0; font-size:1.1rem;"><i class="fa-solid fa-door-open" style="color:var(--secondary);"></i> ${room.name} Salonu</h3>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <h3 style="margin:0; font-size:1.1rem;"><i class="fa-solid fa-door-open" style="color:var(--secondary);"></i> ${room.name} Salonu</h3>
+                        ${(window._currentExamTeachersData?.classrooms?.[room.name]?.gorevli) ? 
+                            `<span style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:12px; margin-left:10px;">Görevli: ${window._currentExamTeachersData.classrooms[room.name].gorevli}</span>` : ''}
+                    </div>
                     <div style="display:flex; align-items:center; gap:15px;">
                         ${allHavePdf ? `<label style="display:flex; align-items:center; gap:5px; margin:0; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--primary);" onclick="event.stopPropagation();">
                             <input type="checkbox" class="room-paper-check" data-room="${room.name}" style="width:16px; height:16px;"> Soru Kağıdı
