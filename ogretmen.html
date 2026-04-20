@@ -377,6 +377,10 @@
                 statusEl.classList.add('hidden');
                 // Ensure body is visible after initial sync/check
                 document.body.style.visibility = 'visible';
+                if (window.DataManager && window.DataManager.getSchoolTeachers) {
+                    window.globalTeachersDb = await window.DataManager.getSchoolTeachers();
+                }
+
                 renderExams();
                 if (typeof renderPublishedFiles === 'function') renderPublishedFiles();
                 
@@ -393,6 +397,11 @@
                 if (current !== lastSyncSessions) {
                     console.log("Oturum verileri değişmiş, yenileniyor...");
                     lastSyncSessions = current;
+                    
+                    if (window.DataManager && window.DataManager.getSchoolTeachers) {
+                        window.globalTeachersDb = await window.DataManager.getSchoolTeachers();
+                    }
+
                     renderExams();
                 }
             } catch (e) { console.error("Sync hatası:", e); }
@@ -424,6 +433,47 @@
             else openSubjects.add(compositeId);
             renderExams(); // Re-render to show/hide
         }
+
+        window.showExamDuties = function(sesId) {
+            const sessions = DataManager.getExamSessions();
+            const session = sessions.find(s => s.id === sesId);
+            if (!session) return;
+
+            let examTeachersData = { classrooms: {}, globalSpares: [] };
+            if (window.DataManager && window.DataManager.calculateExamTeachers) {
+                examTeachersData = window.DataManager.calculateExamTeachers(session, window.globalTeachersDb || {});
+            }
+
+            let html = '<div style="text-align: left;">';
+            html += '<h4 style="color:#4f46e5; border-bottom: 2px solid #e0e7ff; padding-bottom: 5px; margin-bottom: 10px;">Salon Görevlileri</h4>';
+            html += '<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px;">';
+            Object.entries(examTeachersData.classrooms || {}).forEach(([room, data]) => {
+                html += `<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; text-align: center;">
+                            <div style="font-weight: 900; color: #1e293b;">${room}</div>
+                            <div style="font-size: 0.8rem; color: #dc2626; font-weight: 700; margin-top: 5px;">${data.gorevli || '<span style="color:#94a3b8">Bilinmiyor</span>'}</div>
+                         </div>`;
+            });
+            html += '</div>';
+
+            html += '<h4 style="color:#ea580c; border-bottom: 2px solid #ffedd5; padding-bottom: 5px; margin-bottom: 10px;">Boş Öğretmenler (Yedek Havuzu)</h4>';
+            html += '<div style="display:flex; flex-wrap: wrap; gap: 8px;">';
+            if (examTeachersData.globalSpares && examTeachersData.globalSpares.length > 0) {
+                examTeachersData.globalSpares.forEach(spare => {
+                    html += `<span style="background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">${spare.name}</span>`;
+                });
+            } else {
+                html += '<span style="color: #94a3b8; font-size: 0.9rem;">Bu ders saatinde nöbetçi veya boşta kimse bulunamadı.</span>';
+            }
+            html += '</div></div>';
+
+            Swal.fire({
+                title: 'Görev Dağılımı',
+                html: html,
+                width: 600,
+                confirmButtonText: 'Kapat',
+                confirmButtonColor: 'var(--primary)'
+            });
+        };
 
         function renderExams() {
             try {
@@ -548,6 +598,9 @@
                                             </button>
                                             <button class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.75rem; background: var(--gray-100); color: var(--gray-700); border: 1px solid var(--gray-300);" onclick="openSessionSettings('${ses.id}')">
                                                 <i class="fa-solid fa-gear"></i>
+                                            </button>
+                                            <button class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.75rem; background: #fffbeb; color: #d97706; border: 1px solid #fde68a;" onclick="window.showExamDuties('${ses.id}')" title="Sınav saati boşta olan yedek öğretmenleri listele">
+                                                <i class="fa-solid fa-users-viewfinder"></i> Yedekler
                                             </button>
                                         </div>
                                         ${timerDisplayHtml}

@@ -77,6 +77,12 @@ async function executePrintSession(id, mode, filterArray) {
 
     if (!session || !session.results || session.results.length === 0) return;
 
+    let examTeachersData = { classrooms: {}, globalSpares: [] };
+    if (window.DataManager && window.DataManager.getSchoolTeachers) {
+        const teachersDb = await window.DataManager.getSchoolTeachers();
+        examTeachersData = window.DataManager.calculateExamTeachers(session, teachersDb);
+    }
+
     // --- SINAV KAĞIDI YAZDIRMA MANTIĞI ---
     const paperCheck = document.getElementById(`paperCheck-${id}`);
     if (paperCheck && paperCheck.checked) {
@@ -208,16 +214,27 @@ async function executePrintSession(id, mode, filterArray) {
         return n.replace(/Matematik/gi, 'Mat.').replace(/Edebiyat/gi, 'Edb.').replace(/İngilizce/gi, 'İng.').replace(/Fizik/gi, 'Fiz.').replace(/Kimya/gi, 'Kim.').replace(/Biyoloji/gi, 'Biyo.').replace(/Tarih/gi, 'Tar.').replace(/Coğrafya/gi, 'Coğ.').replace(/Felsefe/gi, 'Fel.').replace(/Din Kültürü/gi, 'Din.').replace(/Almanca/gi, 'Alm.').replace(/Görsel Sanatlar/gi, 'Grs.').replace(/Müzik/gi, 'Müz.').replace(/Beden Eğitimi/gi, 'Bed.').replace(/Bilişim/gi, 'Biliş.');
     };
 
-    const hdr = (title) => `
-                <div class="page-header">
-                    <h2>${title}</h2>
-                    <div class="info">
+    const hdr = (title, roomName = null) => {
+        let gorevliHtml = '';
+        if (roomName && examTeachersData.classrooms[roomName]) {
+            const gorevli = examTeachersData.classrooms[roomName].gorevli;
+            if (gorevli) {
+                gorevliHtml = `<div style="font-size:12pt; font-weight:700; color:#dc2626; border: 2px dashed #ef4444; border-radius: 6px; padding: 4px 8px; background: #fef2f2; display: inline-block;">GÖREVLİ Öğretmen: ${gorevli}</div>`;
+            }
+        }
+        
+        return `
+                <div class="page-header" style="align-items:flex-start;">
+                    <div style="flex:1;"><h2>${title}</h2></div>
+                    ${gorevliHtml ? `<div style="flex:1.5; text-align:center;">${gorevliHtml}</div>` : ''}
+                    <div class="info" style="flex:1; text-align:right;">
                         <div>${session.name}</div>
                         <div style="font-size: 9pt; color: #64748b; font-weight: 400;">
                             ${formatDate(session.date)} ${session.time || ''}
                         </div>
                     </div>
                 </div>`;
+    };
 
     let body = '';
 
@@ -248,7 +265,7 @@ async function executePrintSession(id, mode, filterArray) {
             for (let p = 0; p < students.length; p += PAGE_SIZE) {
                 const chunk = students.slice(p, p + PAGE_SIZE);
                 const rows = chunk.map(s => `<tr><td style="width:10%;"><b>${s.no}</b></td><td style="width:40%; text-transform:uppercase;">${s.name}</td><td style="width:30%;">${s._matchedSubject || '-'}</td><td style="width:12%;">${s.room}</td><td style="width:8%; text-align:center;"><b>${s.seatNum}</b></td></tr>`).join('');
-                body += `<div class="page portrait">${hdr(`${cls} Sınıf Listesi`)}<table><thead><tr><th style="width:10%;">No</th><th style="width:40%;">Ad Soyad</th><th style="width:30%;">Sınav Dersi</th><th style="width:12%;">Derslik</th><th style="width:8%;">Sıra</th></tr></thead><tbody>${rows}</tbody></table>${(studentMsg && (p + PAGE_SIZE >= students.length)) ? `<div class="msg-box"><strong><span class="icon">!</span> Dikkat: </strong>${studentMsg}</div>` : ""}</div>`;
+                body += `<div class="page portrait">${hdr(`${cls} Sınıf Listesi`, cls)}<table><thead><tr><th style="width:10%;">No</th><th style="width:40%;">Ad Soyad</th><th style="width:30%;">Sınav Dersi</th><th style="width:12%;">Derslik</th><th style="width:8%;">Sıra</th></tr></thead><tbody>${rows}</tbody></table>${(studentMsg && (p + PAGE_SIZE >= students.length)) ? `<div class="msg-box"><strong><span class="icon">!</span> Dikkat: </strong>${studentMsg}</div>` : ""}</div>`;
             }
         });
 
@@ -306,7 +323,7 @@ async function executePrintSession(id, mode, filterArray) {
                                     <table style="font-size:7.5pt;"><thead><tr><th style="padding:2px 4px; width:75%;">Sınav</th><th style="padding:2px 4px; width:25%;">Sayı</th></tr></thead><tbody>${examSummaryRows}</tbody></table>
                                 </div>
                             </div>` : '';
-                body += `<div class="page portrait">${hdr(`${room.name} Salonu - Oturma Listesi`)}<div style="display:flex; flex:1;"><div style="flex:1;"><table><thead><tr><th>Sıra</th><th>Sınıf</th><th>No</th><th>Ad Soyad</th><th>Sınav</th><th>Açıklama</th></tr></thead><tbody>${rows}</tbody></table></div>${summaryContent}</div>${(teacherMsg && (p + PAGE_SIZE >= sortedSeatIds.length)) ? `<div class="msg-box" style="border-color:#ca8a04; background:#fffaf0;"><strong><span class="icon" style="background:#ea580c;">!</span> Dikkat: </strong>${teacherMsg}</div>` : ""}</div>`;
+                body += `<div class="page portrait">${hdr(`${room.name} Salonu - Oturma Listesi`, room.name)}<div style="display:flex; flex:1;"><div style="flex:1;"><table><thead><tr><th>Sıra</th><th>Sınıf</th><th>No</th><th>Ad Soyad</th><th>Sınav</th><th>Açıklama</th></tr></thead><tbody>${rows}</tbody></table></div>${summaryContent}</div>${(teacherMsg && (p + PAGE_SIZE >= sortedSeatIds.length)) ? `<div class="msg-box" style="border-color:#ca8a04; background:#fffaf0;"><strong><span class="icon" style="background:#ea580c;">!</span> Dikkat: </strong>${teacherMsg}</div>` : ""}</div>`;
             }
         });
 
@@ -341,7 +358,7 @@ async function executePrintSession(id, mode, filterArray) {
                 groupsHtml += '</div>';
             }
             groupsHtml += '</div>';
-            body += `<div class="page landscape">${hdr(`${room.name} Salonu - Oturma Şeması`)}<div class="schema-container"><div class="classroom-walls">${groupsHtml}<div class="front-side">${room.teacherDeskPos === 'left' ? `<div class="teacher-desk">ÖĞRETMEN MASASI</div><div class="board">YAZI TAHTASI</div><div style="width:110px;"></div>` : `<div style="width:110px;"></div><div class="board">YAZI TAHTASI</div><div class="teacher-desk">ÖĞRETMEN MASASI</div>`}</div></div></div></div>`;
+            body += `<div class="page landscape">${hdr(`${room.name} Salonu - Oturma Şeması`, room.name)}<div class="schema-container"><div class="classroom-walls">${groupsHtml}<div class="front-side">${room.teacherDeskPos === 'left' ? `<div class="teacher-desk">ÖĞRETMEN MASASI</div><div class="board">YAZI TAHTASI</div><div style="width:110px;"></div>` : `<div style="width:110px;"></div><div class="board">YAZI TAHTASI</div><div class="teacher-desk">ÖĞRETMEN MASASI</div>`}</div></div></div></div>`;
         });
     }
 

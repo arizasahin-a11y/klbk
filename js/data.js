@@ -983,6 +983,122 @@ const DataManager = {
         } catch (e) { console.warn("Font load failed:", e); }
 
         return customFonts;
+    },
+
+    // --- Görevli & Yedek Öğretmen Engine ---
+    getSchoolTeachers: async function () {
+        try {
+            const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/klbk_users.json`);
+            if (res.ok) {
+                const usersDb = await res.json();
+                if (!usersDb) return {};
+                
+                const myStoreKey = this._getStorageKey();
+                const schoolTeachers = {};
+                for (let [uname, u] of Object.entries(usersDb)) {
+                    if (uname === 'admin' || u.role === 'admin' || u.role === 'master' || (u.storeKey || `klbk_data_${uname}`) === myStoreKey) {
+                        if (uname !== 'admin' && uname !== '@arız@' && uname !== '@rız@') {
+                            schoolTeachers[uname] = u;
+                        }
+                    }
+                }
+                return schoolTeachers;
+            }
+        } catch (e) {
+            console.error("Failed to fetch school teachers:", e);
+        }
+        return {};
+    },
+
+    calculateExamTeachers: function (session, teachersDb) {
+        let result = {
+            classrooms: {},      // roomName -> { gorevli: "", yedekler: [] }
+            globalSpares: []     // list of { name: "", uname: "", role: "" }
+        };
+
+        if (!session || !teachersDb || Object.keys(teachersDb).length === 0) return result;
+
+        const parseDay = (dateStr) => {
+            if (!dateStr) return null;
+            let ds = dateStr;
+            if (ds.includes('.')) {
+                const parts = ds.split('.');
+                if (parts.length === 3 && parts[0].length === 2) {
+                    ds = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+            }
+            const d = new Date(ds + 'T00:00:00');
+            if (isNaN(d.getTime())) return null;
+            const days = ['Pz', 'Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct'];
+            return days[d.getDay()];
+        };
+
+        const examDay = parseDay(session.date);
+        const examHourMatch = (session.time || '').match(/\d+/);
+        const examHour = examHourMatch ? examHourMatch[0] : null;
+
+        if (!examDay || !examHour) return result;
+
+        const normalizeClass = (val) => String(val).toUpperCase().replace(/[^A-Z0-9ĞÜŞİÖÇ]/gi, '');
+        
+        let assignments = {};
+
+        Object.entries(teachersDb).forEach(([uname, t]) => {
+            const sched = t.schedule || {};
+            const daySched = sched[examDay] || {};
+
+            const hasAnyClassThisDay = Object.keys(daySched).length > 0;
+            const assignedClassAtThisHour = daySched[examHour];
+
+            if (assignedClassAtThisHour) {
+                const normalizedRoom = normalizeClass(assignedClassAtThisHour);
+                if (!assignments[normalizedRoom]) {
+                    assignments[normalizedRoom] = { ogretmenler: [], idareciler: [], origMatches: [] };
+                }
+                
+                // Keep track of the original class name match
+                if (!assignments[normalizedRoom].origMatches.includes(assignedClassAtThisHour)) {
+                    assignments[normalizedRoom].origMatches.push(assignedClassAtThisHour);
+                }
+
+                if (t.role === 'idareci' || t.role === 'admin' || t.role === 'master') {
+                    assignments[normalizedRoom].idareciler.push({ uname, name: t.name, role: t.role });
+                } else {
+                    assignments[normalizedRoom].ogretmenler.push({ uname, name: t.name, role: t.role });
+                }
+            } else if (hasAnyClassThisDay) {
+                result.globalSpares.push({ uname, name: t.name, role: t.role });
+            }
+        });
+
+        // Loop over the known rooms in the session to properly link them up
+        if (session.results) {
+            session.results.forEach(room => {
+                const normRoom = normalizeClass(room.name);
+                const assignmentMatch = assignments[normRoom];
+                
+                let classroomInfo = { gorevli: "", yedekler: [] };
+
+                if (assignmentMatch) {
+                    if (assignmentMatch.ogretmenler.length > 0) {
+                        classroomInfo.gorevli = assignmentMatch.ogretmenler[0].name;
+                        
+                        const extras = assignmentMatch.ogretmenler.slice(1);
+                        assignmentMatch.idareciler.forEach(idr => result.globalSpares.push(idr));
+                        extras.forEach(extra => result.globalSpares.push(extra));
+                    } else if (assignmentMatch.idareciler.length > 0) {
+                        classroomInfo.gorevli = assignmentMatch.idareciler[0].name + " (İdare)";
+                        
+                        const extras = assignmentMatch.idareciler.slice(1);
+                        extras.forEach(extra => result.globalSpares.push(extra));
+                    }
+                }
+                
+                result.classrooms[room.name] = classroomInfo;
+            });
+        }
+
+        return result;
     }
 };
 
