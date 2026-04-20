@@ -195,7 +195,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="display: flex; align-items: center; gap: 15px; flex: 1; min-width: 250px; flex-shrink: 0; justify-content: flex-start;">
                         <div class="stat-icon ${user.role === 'admin' ? 'primary' : 'success'}"><i class="fa-solid fa-user-tie"></i></div>
                         <div style="text-align: left;">
-                            <h3 id="teacherName-${uname}" style="font-size: 1.2rem; color: ${nameColor}; margin:0; font-weight: 900; letter-spacing: 0.3px; transition: color 0.3s ease;" title="${uname}">${name}</h3>
+                            <h3 id="teacherName-${uname}" style="font-size: 1.2rem; color: ${nameColor}; margin:0; font-weight: 900; letter-spacing: 0.3px; transition: color 0.3s ease;" title="${uname}">
+                                ${name}
+                                <span style="font-size: 0.8rem; font-weight: normal; color: var(--gray-500); margin-left: 5px; opacity: 0.8;">(@${uname})</span>
+                            </h3>
                             <p style="font-size: 0.8rem; color: var(--gray-500); margin: 3px 0 0 0;">Şifre: <b>${user.password}</b></p>
                         </div>
                     </div>
