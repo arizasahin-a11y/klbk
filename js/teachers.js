@@ -667,10 +667,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             // Iterate B to I (indices 1 to 8)
                             for (let colIndex = 1; colIndex <= 8; colIndex++) {
                                 if (row[colIndex]) {
-                                    let cellVal = row[colIndex].toString().replace(/\s+/g, '').toUpperCase();
-                                    cellVal = cellVal.replace(/[^A-Z0-9]/gi, ''); // Remove hyphens, slashes, etc. (e.g. 11-B -> 11B)
-                                    if (cellVal) {
-                                        daySchedule[colIndex.toString()] = cellVal;
+                                    let cellStr = row[colIndex].toString();
+                                    // Sadece Sınıf ismini yakala: "S.MAT 12-B" -> "12B", "9/C Müzik" -> "9C"
+                                    let match = cellStr.match(/\d{1,2}\s*[-/]?\s*[A-ZÇĞİÖŞÜa-zçğıöşü]+/i);
+                                    if (match) {
+                                        let cellVal = match[0].toUpperCase().replace(/[^A-Z0-9ÇĞİÖŞÜ]/gi, '');
+                                        if (cellVal) {
+                                            daySchedule[colIndex.toString()] = cellVal;
+                                        }
                                     }
                                 }
                             }
