@@ -172,6 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         'view-school': { title: 'Okul Ayarları', subtitle: 'Kurum genel bilgileri ve eğitim yılı tanımlamaları.' },
         'view-students': { title: 'Öğrenci & Sınıf Yönetimi', subtitle: 'Okuldaki sınıflar ve öğrenci listelerinin tanımlandığı bölüm.' },
         'view-classrooms': { title: 'Derslik Yönetimi', subtitle: 'Sınavın yapılacağı derslikler ve oturma (sıra) planları tasarımı.' },
+        'view-teachers': { title: 'Öğretmen Yönetimi', subtitle: 'Sisteme öğretmen ekleme, listeleme ve branş işlemlerini buradan yapabilirsiniz.' },
         'view-exam': { title: 'Sınav Dağıtımı', subtitle: 'Öğrencileri dersliklere dağıtma algoritması ve sonuçlar.' }
     };
 

@@ -75,6 +75,10 @@
                         <i class="fa-solid fa-person-chalkboard"></i>
                         <span>Derslik Yönetimi</span>
                     </li>
+                    <li class="nav-item" data-target="view-teachers">
+                        <i class="fa-solid fa-chalkboard-user"></i>
+                        <span>Öğretmenler</span>
+                    </li>
                     <li class="nav-item active" data-target="view-exam">
                         <i class="fa-solid fa-wand-magic-sparkles"></i>
                         <span>Sınav Dağıtımı</span>
@@ -530,6 +534,96 @@
                     </div>
                 </section>
 
+                <!-- VIEW: Teachers -->
+                <section id="view-teachers" class="view-section hidden">
+                    <div class="inner-tabs">
+                        <button class="inner-tab active" data-tab="teacherList">Sistemdeki Öğretmenler</button>
+                        <button class="inner-tab" data-tab="teacherAdd">Tekil Öğretmen Ekle</button>
+                        <button class="inner-tab" data-tab="teacherBulk">Excel'den Toplu Yükle</button>
+                    </div>
+
+                    <div id="tab-teacherList" class="inner-content active">
+                        <div class="settings-card glass-panel">
+                            <h2>Sistemdeki Öğretmenler</h2>
+                            <div class="action-bar glass-panel" style="margin-bottom: 1rem; padding: 0.5rem 1rem;">
+                                <div class="search-box">
+                                    <i class="fa-solid fa-search"></i>
+                                    <input type="text" id="teacherSearch" placeholder="Öğretmen, branş ara...">
+                                </div>
+                            </div>
+                            <div id="teachersGridContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+                                <!-- Grid injected by js -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-teacherAdd" class="inner-content hidden">
+                        <div class="settings-card glass-panel">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <h2>Yeni Öğretmen Ekle</h2>
+                                <button type="button" id="btnRefreshBranches" class="btn btn-secondary btn-sm"><i class="fa-solid fa-rotate-right"></i> Branşları Yenile</button>
+                            </div>
+                            <form id="teacherForm" class="settings-form" style="margin-top: 1rem;">
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Adı Soyadı</label>
+                                        <input type="text" id="teacherName" placeholder="Örn: Ahmet Yılmaz" required>
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Branş (Birden fazla seçilebilir)</label>
+                                        <select id="teacherBranch" multiple style="height: 100px; padding: 5px; border: 1px solid var(--gray-300); border-radius: 4px;" required>
+                                            <!-- Injected by js from DataManager.getSchoolSettings().subjects -->
+                                        </select>
+                                        <small style="margin-top: 5px; display: block; color: var(--gray-500);">CTRL / CMD ile çoklu seçim yapabilirsiniz.</small>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Kullanıcı Adı</label>
+                                        <input type="text" id="teacherUsername" placeholder="Örn: ahmet_hoca" required>
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Şifre</label>
+                                        <input type="text" id="teacherPassword" placeholder="Örn: 123456" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>E-posta (İsteğe Bağlı)</label>
+                                    <input type="email" id="teacherEmail" placeholder="Örn: ornek@okul.com">
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-user-plus"></i> Öğretmeni Ekle</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div id="tab-teacherBulk" class="inner-content hidden">
+                        <div class="settings-card glass-panel">
+                            <h2>Excel'den Toplu Öğretmen Yükleme</h2>
+                            <div class="info-alert" style="background-color: var(--secondary); color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                                <i class="fa-solid fa-circle-info" style="margin-right: 0.5rem;"></i>
+                                <strong>Excel Sütunları:</strong> <br>1. Ad Soyad (Zorunlu) | 2. Kullanıcı Adı | 3. E-Posta | 4. Şifre | 5. Branşlar (Virgüllü)<br>
+                                <em style="opacity: 0.9;">Not: Kullanıcı adı boş bırakılırsa isminden otomatik oluşturulur. Şifre boşsa 123456 atanır.</em>
+                            </div>
+                            
+                            <div class="upload-area" style="border: 2px dashed var(--gray-300); padding: 2rem; text-align: center; border-radius: 10px; margin-bottom: 1.5rem;">
+                                <i class="fa-solid fa-file-excel" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                                <h3 style="margin-bottom: 0.5rem;">Excel Dosyası Seçin</h3>
+                                <input type="file" id="teacherExcelInput" accept=".xlsx, .xls" style="display: none;">
+                                <label for="teacherExcelInput" class="btn btn-secondary" style="cursor: pointer;">Dosya Seç</label>
+                                <p id="teacherExcelName" style="margin-top: 1rem; color: var(--gray-600); font-size: 0.9rem;"></p>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" id="btnProcessTeacherExcel" class="btn btn-primary" disabled>
+                                    <i class="fa-solid fa-upload"></i> İçeri Aktar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- VIEW: Exam Distribution -->
                 <section id="view-exam" class="view-section active">
                     <div class="settings-card glass-panel" id="examSetupPanel">
@@ -737,6 +831,7 @@
     <script src="js/data.js?v=5.8"></script>
     <script src="js/algorithm.js?v=5.8"></script>
     <script src="js/ui.js?v=2.9"></script>
+    <script src="js/teachers.js?v=1.0"></script>
     <!-- Add sweetalert2 for nice modals (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>
