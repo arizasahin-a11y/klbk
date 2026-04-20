@@ -170,8 +170,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // "admin yeşil idareci kırmısı yazılsın"
             let nameColor = '#5a2c91'; // Normal: Mor-mavi
-            if (role === 'admin' || role === 'master') nameColor = 'var(--success)';
-            else if (role === 'idareci') nameColor = 'var(--danger)';
+            if (role === 'admin' || role === 'master' || uname === 'admin') nameColor = '#198754'; // Bootstrap Yeşil
+            else if (role === 'idareci') nameColor = '#dc3545'; // Bootstrap Kırmızı
             const scheduleHtml = buildScheduleHtml(user.schedule);
             
             // Highlight source card
