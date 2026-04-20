@@ -82,23 +82,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // YARDIMCI: Ders programını tablo html'ine çevir
     function buildScheduleHtml(scheduleObj) {
         if (!scheduleObj || Object.keys(scheduleObj).length === 0) {
-            return `<div style="text-align: center; padding: 1rem; color: var(--gray-500); font-style: italic;">Henüz ders programı atanmamış.</div>`;
+            return `<div style="text-align: center; padding: 2rem; color: var(--gray-500); font-style: italic;">Henüz ders programı atanmamış.</div>`;
         }
         const days = ['Pa', 'Sa', 'Ça', 'Pe', 'Cu'];
-        let table = `<table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.8rem; text-align: center;">
-            <tr style="background: var(--gray-100); border-bottom: 1px solid var(--gray-300);">
-                <th style="padding: 4px; border-right: 1px solid var(--gray-300);">Gün</th>
-                <th style="padding: 4px;">1</th><th style="padding: 4px;">2</th><th style="padding: 4px;">3</th><th style="padding: 4px;">4</th>
-                <th style="padding: 4px;">5</th><th style="padding: 4px;">6</th><th style="padding: 4px;">7</th><th style="padding: 4px;">8</th>
+        let table = `<table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95rem; text-align: center; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <tr style="background: var(--primary); color: white;">
+                <th style="padding: 10px; border-right: 1px solid rgba(255,255,255,0.2);">Gün \\ Saat</th>
+                <th style="padding: 10px;">1</th><th style="padding: 10px;">2</th><th style="padding: 10px;">3</th><th style="padding: 10px;">4</th>
+                <th style="padding: 10px;">5</th><th style="padding: 10px;">6</th><th style="padding: 10px;">7</th><th style="padding: 10px;">8</th>
             </tr>`;
             
-        days.forEach(day => {
+        days.forEach((day, idx) => {
             if (scheduleObj[day]) {
-                table += `<tr style="border-bottom: 1px dashed var(--gray-200);">
-                    <td style="padding: 4px; font-weight: bold; border-right: 1px solid var(--gray-300);">${day}</td>`;
+                const bg = idx % 2 === 0 ? 'var(--gray-50)' : 'white';
+                table += `<tr style="background: ${bg}; border-bottom: 1px solid var(--gray-200);">
+                    <td style="padding: 12px; font-weight: bold; border-right: 1px solid var(--gray-200); position: relative;">${day}
+                    </td>`;
                 for (let i = 1; i <= 8; i++) {
                     const cls = scheduleObj[day][i.toString()] || '-';
-                    table += `<td style="padding: 4px; color: ${cls !== '-' ? 'var(--primary)' : 'var(--gray-400)'};">${cls}</td>`;
+                    const isEmpty = cls === '-';
+                    table += `<td style="padding: 12px; color: ${!isEmpty ? 'var(--dark)' : 'var(--gray-300)'}; font-weight: ${!isEmpty ? '600' : 'normal'}; border-right: 1px dashed var(--gray-200);">${cls}</td>`;
                 }
                 table += `</tr>`;
             }
@@ -148,11 +151,12 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
         }
 
+        const schoolSubjects = DataManager.getSchoolSettings().subjects || [];
+        
         myTeachers.forEach(uname => {
             const user = teachersDb[uname];
             const name = user.name || uname;
-            const branches = user.branch && Array.isArray(user.branch) && user.branch.length ? user.branch.join(', ') : 'Branş Yok';
-            const role = user.role === 'admin' ? 'Okul İdaresi' : 'Öğretmen';
+            const role = user.role || 'ogretmen';
             const scheduleHtml = buildScheduleHtml(user.schedule);
             
             // Highlight source card
@@ -161,29 +165,90 @@ document.addEventListener('DOMContentLoaded', () => {
             const clickEvent = mergeModeSource ? `onclick="window.executeMerge('${uname}')"` : `onclick="window.toggleTeacherSchedule('${uname}')"`;
             const contextEvent = !mergeModeSource ? `oncontextmenu="window.handleTeacherContextMenu(event, '${uname}')"` : '';
 
+            // Build Options
+            let branchOptions = '';
+            schoolSubjects.forEach(s => {
+                const selected = user.branch && user.branch.includes(s) ? 'selected' : '';
+                branchOptions += `<option value="${s}" ${selected}>${s}</option>`;
+            });
+
             html += `
-            <div class="stat-card glass-panel" style="display: flex; flex-direction: column; position: relative; cursor: pointer; transition: all 0.2s ease; ${cardStyle}" ${clickEvent} ${contextEvent}>
-                <button type="button" class="btn btn-sm" style="position: absolute; top: 10px; right: 10px; padding: 4px 8px; color: var(--danger); background: transparent; border: none; font-size: 1rem; z-index: 10;" title="Sil" onclick="event.stopPropagation(); window.deleteTeacher('${uname}')">
-                    <i class="fa-solid fa-trash-can"></i>
-                </button>
-                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
-                    <div class="stat-icon ${user.role === 'admin' ? 'primary' : 'success'}"><i class="fa-solid fa-user-tie"></i></div>
-                    <div>
-                        <h3 style="font-size: 1.1rem; color: var(--dark); margin:0;">${name}</h3>
-                        <p style="font-size: 0.8rem; color: var(--gray-500); margin: 0;">@${uname} | Şifre: ${user.password}</p>
+            <div class="stat-card glass-panel" style="display: flex; flex-direction: column; cursor: pointer; transition: all 0.2s ease; padding: 10px 15px; margin-bottom: 10px; ${cardStyle}" ${clickEvent} ${contextEvent}>
+                
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
+                    
+                    <div style="display: flex; align-items: center; gap: 15px; flex: 1; min-width: 250px;">
+                        <div class="stat-icon ${user.role === 'admin' ? 'primary' : 'success'}"><i class="fa-solid fa-user-tie"></i></div>
+                        <div>
+                            <h3 style="font-size: 1.1rem; color: var(--dark); margin:0;" title="${uname}">${name}</h3>
+                            <p style="font-size: 0.8rem; color: var(--gray-500); margin: 0;">Şifre: ${user.password}</p>
+                        </div>
                     </div>
+
+                    <div style="display: flex; align-items: center; gap: 10px; flex: 2; min-width: 300px; justify-content: center;">
+                        <div style="display: flex; flex-direction: column; width: 60%;">
+                            <select multiple style="height: 48px; padding: 5px; border-radius: 4px; border: 1px solid var(--gray-300); font-size: 0.85rem;" onclick="event.stopPropagation()" onchange="window.updateTeacherData('${uname}', 'branch', this)">
+                                ${branchOptions}
+                            </select>
+                            <small style="font-size: 0.7rem; color: var(--gray-500); text-align: center;">Branşlar (CTRL ile listele)</small>
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; width: 35%;">
+                            <select class="form-control" style="height: 48px; border-radius: 4px; border: 1px solid var(--gray-300); font-size: 0.85rem;" onclick="event.stopPropagation()" onchange="window.updateTeacherData('${uname}', 'role', this.value)">
+                                <option value="ogretmen" ${role === 'ogretmen' ? 'selected' : ''}>Öğretmen</option>
+                                <option value="idareci" ${role === 'idareci' ? 'selected' : ''}>İdareci</option>
+                                <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
+                            </select>
+                            <small style="font-size: 0.7rem; color: var(--gray-500); text-align: center;">Yetki</small>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 5px;">
+                        <button type="button" class="btn btn-sm" style="padding: 8px 12px; color: var(--danger); background: var(--gray-100); border: none; font-size: 1.1rem; border-radius: 5px;" title="Sil" onclick="event.stopPropagation(); window.deleteTeacher('${uname}')">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+
                 </div>
-                <div style="font-size: 0.85rem; color: var(--gray-600); margin-top: auto; padding-top: 10px; border-top: 1px dashed var(--gray-200);">
-                    <i class="fa-solid fa-briefcase"></i> Yetki: <b>${role}</b><br>
-                    <i class="fa-solid fa-book"></i> Branş: <span style="color: var(--primary);">${branches}</span>
-                </div>
-                <div id="schedule-${uname}" class="hidden" style="margin-top: 10px; border-top: 1px solid var(--gray-200); padding-top: 10px;">
+
+                <div id="schedule-${uname}" class="hidden" style="margin-top: 15px; border-top: 1px solid var(--gray-200); padding-top: 15px;" onclick="event.stopPropagation()">
                     ${scheduleHtml}
                 </div>
             </div>`;
         });
         teachersGridContainer.innerHTML = html;
     }
+
+    // Auto Update Teacher Data (Branches & Roles)
+    window.updateTeacherData = async function(uname, field, elementOrValue) {
+        if (!teachersDb[uname]) return;
+        
+        let newValue;
+        if (field === 'branch') {
+            const options = Array.from(elementOrValue.options);
+            newValue = options.filter(opt => opt.selected).map(opt => opt.value);
+        } else {
+            newValue = elementOrValue;
+        }
+
+        teachersDb[uname][field] = newValue;
+        
+        try {
+            await saveUsersToCloud(teachersDb);
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 1500
+            });
+            Toast.fire({
+                icon: 'success',
+                title: 'Kaydedildi'
+            });
+        } catch(e) {
+            Swal.fire('Hata', 'Değişiklik kaydedilemedi.', 'error');
+        }
+    };
 
     // Toggle Schedule Visibility (Accordion)
     window.toggleTeacherSchedule = function(uname) {
@@ -648,12 +713,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             isNew = true;
                         }
                         
-                        const schedule = {};
-                        
                         // Start reading from row index 3 (4. satır)
+                        let currentDay = '';
+                        const tempSchedule = {}; // { 'Pa': { '1': ['İNG11', '11-B'], '2': ... } }
+
                         for (let i = 3; i < json.length; i++) {
                             const row = json[i];
-                            if (!row || !row[0]) continue;
+                            if (!row) continue;
                             
                             let dayCodeStr = (row[0] || '').toString().trim();
                             // Bazen günler 2. sütuna kaymış olabilir
@@ -661,45 +727,62 @@ document.addEventListener('DOMContentLoaded', () => {
                             
                             // Normalleştirme - Çok çeşitli gün yazımlarına karşı koruma
                             let dStr = dayCodeStr.toLowerCase().replace(/[^a-zçğıöşü]/g, '');
-                            let safeDay = '';
-                            if (dStr === 'pt' || dStr.includes('paz') || dStr.startsWith('pa')) safeDay = 'Pa';
-                            else if (dStr === 'sa' || dStr.includes('sal') || dStr.startsWith('sa')) safeDay = 'Sa';
-                            else if (dStr.includes('ça') || dStr.includes('ca') || dStr.includes('cr') || dStr.includes('çar') || dStr.includes('car')) safeDay = 'Ça';
-                            else if (dStr.includes('pe') || dStr.includes('pr') || dStr.includes('per') || dStr.includes('prs')) safeDay = 'Pe';
-                            else if (dStr.includes('cu') || dStr.includes('cum')) safeDay = 'Cu';
+                            let parsedDay = '';
+                            if (dStr === 'pt' || dStr.includes('paz') || dStr.startsWith('pa')) parsedDay = 'Pa';
+                            else if (dStr === 'sa' || dStr.includes('sal') || dStr.startsWith('sa')) parsedDay = 'Sa';
+                            else if (dStr.includes('ça') || dStr.includes('ca') || dStr.includes('cr') || dStr.includes('çar') || dStr.includes('car')) parsedDay = 'Ça';
+                            else if (dStr.includes('pe') || dStr.includes('pr') || dStr.includes('per') || dStr.includes('prs')) parsedDay = 'Pe';
+                            else if (dStr.includes('cu') || dStr.includes('cum')) parsedDay = 'Cu';
                             
-                            if (!safeDay) continue; // Not a valid day row
+                            // Eğer bu satırda bir gün ismi geçerliyse hafızaya al, alt satırlar boş olsa bile o güne aittir
+                            if (parsedDay) currentDay = parsedDay;
                             
-                            const daySchedule = {};
+                            if (!currentDay) continue; // Henüz bir gün bloğuna girmedik
+                            if (!tempSchedule[currentDay]) tempSchedule[currentDay] = {};
                             
                             // Iterate B to I (indices 1 to 8)
                             for (let colIndex = 1; colIndex <= 8; colIndex++) {
                                 if (row[colIndex]) {
-                                    let cellStr = row[colIndex].toString();
-                                    
-                                    // Sadece Sınıf ismini yakala: "S.MAT 12-B" -> "12B", "9/C Müzik" -> "9C", "11 A" -> "11A"
-                                    let match = cellStr.match(/\d{1,2}\s*[-/]?\s*[A-ZÇĞİÖŞÜa-zçğıöşü]+/i);
+                                    if (!tempSchedule[currentDay][colIndex.toString()]) {
+                                        tempSchedule[currentDay][colIndex.toString()] = [];
+                                    }
+                                    tempSchedule[currentDay][colIndex.toString()].push(row[colIndex].toString());
+                                }
+                            }
+                        }
+                        
+                        // Tüm Excel satırları bitince, hafızadaki her günün parçalarını birleştirip içinden Sınıf kodlarını çek
+                        for (const day in tempSchedule) {
+                            let dayHasData = false;
+                            const finalDaySchedule = {};
+                            for (let colIndex = 1; colIndex <= 8; colIndex++) {
+                                const parts = tempSchedule[day][colIndex.toString()] || [];
+                                const combinedStr = parts.join(" "); // Örn: "İNG11 11-B"
+                                
+                                if (combinedStr.trim()) {
+                                    // Sadece Sınıf ismini yakala: "İNG11 11-B" -> "11B", "9/C Müzik" -> "9C", "ALM 12/A" -> "12A"
+                                    let match = combinedStr.match(/\d{1,2}\s*[-/]?\s*[A-ZÇĞİÖŞÜa-zçğıöşü]+/i);
                                     let cellVal = '';
                                     if (match) {
                                         cellVal = match[0].toUpperCase().replace(/[^A-Z0-9ÇĞİÖŞÜ]/gi, '');
                                     } else {
-                                        // Hiçbir regex uyumu bulamazsa, dersi tamamen kaybetmemek adına varsayılan olarak yazıyı al (boşlukları sil)
-                                        let cleanStr = cellStr.toUpperCase().replace(/[^A-Z0-9ÇĞİÖŞÜ]/gi, '');
-                                        if (cleanStr.length > 6) cellVal = cleanStr.substring(0, 6);
+                                        // Regex bulamazsa (Sınıf ibaresi yoksa), hiç değilse ilk birkaç harfi kurtar
+                                        let cleanStr = combinedStr.toUpperCase().replace(/[^A-Z0-9ÇĞİÖŞÜ]/gi, '');
+                                        if (cleanStr.length > 5) cellVal = cleanStr.substring(0, 5);
                                         else cellVal = cleanStr;
                                     }
                                     
                                     if (cellVal) {
-                                        daySchedule[colIndex.toString()] = cellVal;
+                                        finalDaySchedule[colIndex.toString()] = cellVal;
+                                        dayHasData = true;
                                     }
                                 }
                             }
-                            
-                            if (Object.keys(daySchedule).length > 0) {
-                                schedule[safeDay] = daySchedule;
+                            if (dayHasData) {
+                                schedule[day] = finalDaySchedule;
                             }
                         }
-                        
+
                         if (Object.keys(schedule).length > 0) {
                             usersDb[foundUname].schedule = schedule;
                             processedCount++;
