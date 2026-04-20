@@ -177,11 +177,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
                     
-                    <div style="display: flex; align-items: center; gap: 15px; flex: 1; min-width: 250px;">
+                    <div style="display: flex; align-items: center; gap: 15px; flex: 1; min-width: 250px; justify-content: flex-start;">
                         <div class="stat-icon ${user.role === 'admin' ? 'primary' : 'success'}"><i class="fa-solid fa-user-tie"></i></div>
-                        <div>
-                            <h3 style="font-size: 1.1rem; color: var(--dark); margin:0;" title="${uname}">${name}</h3>
-                            <p style="font-size: 0.8rem; color: var(--gray-500); margin: 0;">Şifre: ${user.password}</p>
+                        <div style="text-align: left;">
+                            <h3 style="font-size: 1.2rem; color: #5a2c91; margin:0; font-weight: 800; letter-spacing: 0.3px;" title="${uname}">${name}</h3>
+                            <p style="font-size: 0.8rem; color: var(--gray-500); margin: 3px 0 0 0;">Şifre: <b>${user.password}</b></p>
                         </div>
                     </div>
 
@@ -712,6 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             };
                             isNew = true;
                         }
+                        const schedule = {};
                         
                         // Start reading from row index 3 (4. satır)
                         let currentDay = '';
