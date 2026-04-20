@@ -540,6 +540,7 @@
                         <button class="inner-tab active" data-tab="teacherList">Sistemdeki Öğretmenler</button>
                         <button class="inner-tab" data-tab="teacherAdd">Tekil Öğretmen Ekle</button>
                         <button class="inner-tab" data-tab="teacherBulk">Excel'den Toplu Yükle</button>
+                        <button class="inner-tab" data-tab="teacherSchedule">Ders Programı Yükle</button>
                     </div>
 
                     <div id="tab-teacherList" class="inner-content active">
@@ -618,6 +619,34 @@
                             <div class="form-actions">
                                 <button type="button" id="btnProcessTeacherExcel" class="btn btn-primary" disabled>
                                     <i class="fa-solid fa-upload"></i> İçeri Aktar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-teacherSchedule" class="inner-content hidden">
+                        <div class="settings-card glass-panel">
+                            <h2>Toplu Haftalık Ders Programı Yükle</h2>
+                            <div class="info-alert" style="background-color: var(--secondary); color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                                <i class="fa-solid fa-circle-info" style="margin-right: 0.5rem;"></i>
+                                <strong>Excel Şablon Formatı:</strong> <br>
+                                - Her sayfa (sekme) bir öğretmeni temsil etmelidir.<br>
+                                - <b>A1</b> hücresinde öğretmenin adı, soyadı yazmalıdır.<br>
+                                - <b>4. Satırdan</b> itibaren A sütununda Günler (Pa, Sa, Ça, Pe, Cu) yer almalıdır.<br>
+                                - <b>B'den I'ya kadar</b> olan sütunlar 1. Ders ile 8. Ders arasını simgeler (11B, 9C vs.).
+                            </div>
+                            
+                            <div class="upload-area" style="border: 2px dashed var(--gray-300); padding: 2rem; text-align: center; border-radius: 10px; margin-bottom: 1.5rem;">
+                                <i class="fa-solid fa-calendar-days" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                                <h3 style="margin-bottom: 0.5rem;">Ders Programı Exceli Seçin</h3>
+                                <input type="file" id="scheduleExcelInput" accept=".xlsx, .xls" style="display: none;">
+                                <label for="scheduleExcelInput" class="btn btn-secondary" style="cursor: pointer;">Dosya Seç</label>
+                                <p id="scheduleExcelName" style="margin-top: 1rem; color: var(--gray-600); font-size: 0.9rem;"></p>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" id="btnProcessScheduleExcel" class="btn btn-primary" disabled>
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> Ders Programlarını İçeri Aktar
                                 </button>
                             </div>
                         </div>

@@ -351,4 +351,155 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Tab: Öğretmen Ders Programı Excel Yükleme ---
+    const scheduleExcelInput = document.getElementById('scheduleExcelInput');
+    const btnProcessScheduleExcel = document.getElementById('btnProcessScheduleExcel');
+    const scheduleExcelName = document.getElementById('scheduleExcelName');
+
+    if (scheduleExcelInput && btnProcessScheduleExcel) {
+        scheduleExcelInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) {
+                scheduleExcelName.textContent = '';
+                btnProcessScheduleExcel.disabled = true;
+                return;
+            }
+            scheduleExcelName.textContent = `Seçili: ${file.name}`;
+            btnProcessScheduleExcel.disabled = false;
+        });
+
+        btnProcessScheduleExcel.addEventListener('click', async () => {
+            const file = scheduleExcelInput.files[0];
+            if (!file) return;
+
+            btnProcessScheduleExcel.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...';
+            btnProcessScheduleExcel.disabled = true;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = window.XLSX.read(data, { type: 'array' });
+                    const usersDb = await fetchAllUsers();
+                    
+                    let processedCount = 0;
+                    let errorCount = 0;
+                    
+                    const validDays = ['Pa', 'Sa', 'Ça', 'Pe', 'Cu', 'Pa', 'Sa', 'Ca', 'Pe', 'Cu'];
+                    
+                    workbook.SheetNames.forEach(sheetName => {
+                        const sheet = workbook.Sheets[sheetName];
+                        const json = window.XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                        
+                        // Minimum required rows check
+                        if (json.length < 4) return;
+                        
+                        // A1 = Ad Soyad
+                        const rawTeacherName = (json[0] && json[0][0] ? json[0][0].toString().trim() : '');
+                        if (!rawTeacherName) return; // Skip empty sheets
+                        
+                        // Find Teacher or Add Stub
+                        const searchName = rawTeacherName.toLowerCase().replace(/\\s+/g, '');
+                        let foundUname = '';
+                        let isNew = false;
+                        
+                        for (const [uname, user] of Object.entries(usersDb)) {
+                            const dbName = (user.name || '').toLowerCase().replace(/\\s+/g, '');
+                            if (dbName === searchName || uname === searchName) {
+                                // Double check if standardizing characters matches better (e.g. ı->i, ş->s)
+                                foundUname = uname;
+                                break;
+                            }
+                        }
+                        
+                        if (!foundUname) {
+                            // Convert to basic slug for username
+                            const charMap = {"ş":"s", "ı":"i", "ğ":"g", "ü":"u", "ö":"o", "ç":"c"};
+                            foundUname = rawTeacherName.toLowerCase().replace(/[şığıüöç]/g, match => charMap[match]).replace(/[^a-z0-9]/g, '');
+                            if (usersDb[foundUname]) foundUname += Math.floor(Math.random() * 1000);
+                            
+                            usersDb[foundUname] = {
+                                name: rawTeacherName,
+                                password: "12345",
+                                email: "",
+                                role: 'ogretmen',
+                                branch: [],
+                                schoolName: currentSchoolName,
+                                storeKey: currentSchoolStoreKey
+                            };
+                            isNew = true;
+                        }
+                        
+                        const schedule = {};
+                        
+                        // Start reading from row index 3 (4. satır)
+                        for (let i = 3; i < json.length; i++) {
+                            const row = json[i];
+                            if (!row || !row[0]) continue;
+                            
+                            const dayCodeStr = row[0].toString().trim();
+                            
+                            // Normalleştirme Ça->Ca
+                            let safeDay = '';
+                            if (dayCodeStr.substring(0,2).toLowerCase() === 'pa') safeDay = 'Pa';
+                            else if (dayCodeStr.substring(0,2).toLowerCase() === 'sa') safeDay = 'Sa';
+                            else if (dayCodeStr.substring(0,2).toLowerCase() === 'ça' || dayCodeStr.substring(0,2).toLowerCase() === 'ca') safeDay = 'Ça';
+                            else if (dayCodeStr.substring(0,2).toLowerCase() === 'pe') safeDay = 'Pe';
+                            else if (dayCodeStr.substring(0,2).toLowerCase() === 'cu') safeDay = 'Cu';
+                            
+                            if (!safeDay) continue; // Not a valid day row
+                            
+                            const daySchedule = {};
+                            
+                            // Iterate B to I (indices 1 to 8)
+                            for (let colIndex = 1; colIndex <= 8; colIndex++) {
+                                if (row[colIndex]) {
+                                    let cellVal = row[colIndex].toString().replace(/\\s+/g, '').toUpperCase();
+                                    cellVal = cellVal.replace(/[^A-Z0-9]/gi, ''); // Remove hyphens, slashes, etc. (e.g. 11-B -> 11B)
+                                    if (cellVal) {
+                                        daySchedule[colIndex.toString()] = cellVal;
+                                    }
+                                }
+                            }
+                            
+                            if (Object.keys(daySchedule).length > 0) {
+                                schedule[safeDay] = daySchedule;
+                            }
+                        }
+                        
+                        if (Object.keys(schedule).length > 0) {
+                            usersDb[foundUname].schedule = schedule;
+                            processedCount++;
+                        } else {
+                            // If it was newly created but didn't have a schedule, remove it to prevent pollution
+                            if (isNew) delete usersDb[foundUname];
+                            else errorCount++;
+                        }
+                    });
+
+                    if (processedCount > 0) {
+                        await saveUsersToCloud(usersDb);
+                        Swal.fire('Başarılı', `${processedCount} öğretmenin ders programı sisteme yüklendi.`, 'success');
+                        scheduleExcelInput.value = '';
+                        scheduleExcelName.textContent = '';
+                        btnProcessScheduleExcel.disabled = true;
+                        
+                        teachersDb = usersDb; // Update local cache
+                        renderTeachersGrid();
+                        // Jump back to list
+                        viewTeachers.querySelector('.inner-tab[data-tab="teacherList"]').click();
+                    } else {
+                        Swal.fire('Hata', 'İşlenecek geçerli program bulunamadı.', 'warning');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    Swal.fire('Hata', 'Excel okunurken bir sorun oluştu.', 'error');
+                }
+                btnProcessScheduleExcel.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Ders Programlarını İçeri Aktar';
+                btnProcessScheduleExcel.disabled = false;
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
 });
