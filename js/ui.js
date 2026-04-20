@@ -121,9 +121,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (sidebarAvatarIcon) {
         const cachedGender = sessionStorage.getItem('klbk_gender') || 'erkek';
         let iconClass = 'fa-user-tie';
-        if (cachedGender === 'kadin') iconClass = 'fa-user-nurse';
-        else if (cachedGender === 'diger') iconClass = 'fa-user';
+        let bg = '#2196f3';
+        if (cachedGender === 'kadin') { iconClass = 'fa-user-nurse'; bg = '#e91e63'; }
+        else if (cachedGender === 'diger') { iconClass = 'fa-user'; bg = '#6c757d'; }
         sidebarAvatarIcon.className = `fa-solid ${iconClass}`;
+        sidebarAvatarIcon.parentElement.style.background = bg;
+        sidebarAvatarIcon.parentElement.style.color = 'white';
     }
 
     // --- Logout Action ---
@@ -267,9 +270,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const sidebarAvatarIcon2 = document.getElementById('sidebarAvatarIcon');
                     if (sidebarAvatarIcon2) {
                         let iconClass = 'fa-user-tie';
-                        if (gender === 'kadin') iconClass = 'fa-user-nurse';
-                        else if (gender === 'diger') iconClass = 'fa-user';
+                        let bg = '#2196f3';
+                        if (gender === 'kadin') { iconClass = 'fa-user-nurse'; bg = '#e91e63'; }
+                        else if (gender === 'diger') { iconClass = 'fa-user'; bg = '#6c757d'; }
                         sidebarAvatarIcon2.className = `fa-solid ${iconClass}`;
+                        sidebarAvatarIcon2.parentElement.style.background = bg;
+                        sidebarAvatarIcon2.parentElement.style.color = 'white';
                     }
                     sessionStorage.setItem('klbk_gender', gender);
 

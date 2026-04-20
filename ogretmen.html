@@ -277,7 +277,9 @@
                 Masası</div>
             <h2
                 style="margin:0; font-weight: 900; font-size: 1.5rem; line-height: 1.2; display: flex; align-items: center; gap: 10px;">
-                <i id="teacherGenderIcon" class="fa-solid fa-user"></i>
+                <div id="teacherGenderContainer" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: white;">
+                    <i id="teacherGenderIcon" class="fa-solid fa-user"></i>
+                </div>
                 <span id="teacherNameDisplay"></span>
                 <button onclick="openTeacherSettings()"
                     style="background: none; border: none; color: white; cursor: pointer; font-size: 1.1rem; opacity: 0.8; transition: var(--transition);"
@@ -330,9 +332,11 @@
         if (teacherGenderIcon) {
             const cachedGender = sessionStorage.getItem('klbk_gender') || 'erkek';
             let iconClass = 'fa-user-tie';
-            if (cachedGender === 'kadin') iconClass = 'fa-user-nurse';
-            else if (cachedGender === 'diger') iconClass = 'fa-user';
+            let bg = '#2196f3';
+            if (cachedGender === 'kadin') { iconClass = 'fa-user-nurse'; bg = '#e91e63'; }
+            else if (cachedGender === 'diger') { iconClass = 'fa-user'; bg = '#6c757d'; }
             teacherGenderIcon.className = `fa-solid ${iconClass}`;
+            document.getElementById('teacherGenderContainer').style.background = bg;
         }
 
         const sortByNum = (a, b) => {
@@ -1047,9 +1051,11 @@
                                 const tIcon = document.getElementById('teacherGenderIcon');
                                 if (tIcon) {
                                     let iconClass = 'fa-user-tie';
-                                    if (gender === 'kadin') iconClass = 'fa-user-nurse';
-                                    else if (gender === 'diger') iconClass = 'fa-user';
+                                    let bg = '#2196f3';
+                                    if (gender === 'kadin') { iconClass = 'fa-user-nurse'; bg = '#e91e63'; }
+                                    else if (gender === 'diger') { iconClass = 'fa-user'; bg = '#6c757d'; }
                                     tIcon.className = `fa-solid ${iconClass}`;
+                                    document.getElementById('teacherGenderContainer').style.background = bg;
                                 }
                                 sessionStorage.setItem('klbk_gender', gender);
 

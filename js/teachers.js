@@ -169,10 +169,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const role = user.role || 'ogretmen';
             const gender = user.gender || 'erkek';
             
-            // Cinsiyet simgesi seçimi
-            let genderIcon = 'fa-user-tie'; // Varsayılan Erkek
-            if (gender === 'kadin') genderIcon = 'fa-user-nurse';
-            else if (gender === 'diger') genderIcon = 'fa-user';
+            // Cinsiyet simgesi ve renk seçimi
+            let genderIcon = 'fa-user-tie'; 
+            let genderBg = 'var(--primary)'; // Varsayılan
+            if (gender === 'kadin') {
+                genderIcon = 'fa-user-nurse';
+                genderBg = '#e91e63'; // Pembe
+            } else if (gender === 'erkek') {
+                genderIcon = 'fa-user-tie';
+                genderBg = '#2196f3'; // Mavi
+            } else {
+                genderIcon = 'fa-user';
+                genderBg = 'var(--gray-500)';
+            }
 
             // "admin yeşil idareci kırmısı yazılsın"
             let nameColor = '#5a2c91'; // Normal: Mor-mavi
@@ -200,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     <!-- Isim ve Kullanıcı Bilgisi (En Sol) -->
                     <div style="display: flex; align-items: center; gap: 12px; width: 22%; min-width: 180px; flex-shrink: 0; justify-content: flex-start;">
-                        <div id="genderIconContainer-${uname}" class="stat-icon ${user.role === 'admin' ? 'primary' : 'success'}" style="width: 40px; height: 40px; min-width: 40px; font-size: 1rem;">
+                        <div id="genderIconContainer-${uname}" class="stat-icon" style="width: 40px; height: 40px; min-width: 40px; font-size: 1rem; background: ${genderBg}; color: white; display: flex; align-items: center; justify-content: center; border-radius: 10px;">
                             <i class="fa-solid ${genderIcon}"></i>
                         </div>
                         <div style="text-align: left; overflow: hidden;">
@@ -291,9 +300,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const container = document.getElementById(`genderIconContainer-${uname}`);
             if (container) {
                 let iconClass = 'fa-user-tie';
-                if (newValue === 'kadin') iconClass = 'fa-user-nurse';
-                else if (newValue === 'diger') iconClass = 'fa-user';
+                let bg = '#2196f3';
+                if (newValue === 'kadin') { iconClass = 'fa-user-nurse'; bg = '#e91e63'; }
+                else if (newValue === 'diger') { iconClass = 'fa-user'; bg = '#6c757d'; }
                 container.innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
+                container.style.background = bg;
             }
         }
         
