@@ -323,7 +323,24 @@ async function executePrintSession(id, mode, filterArray) {
                                     <table style="font-size:7.5pt;"><thead><tr><th style="padding:2px 4px; width:75%;">Sınav</th><th style="padding:2px 4px; width:25%;">Sayı</th></tr></thead><tbody>${examSummaryRows}</tbody></table>
                                 </div>
                             </div>` : '';
-                body += `<div class="page portrait">${hdr(`${room.name} Salonu - Oturma Listesi`, room.name)}<div style="display:flex; flex:1;"><div style="flex:1;"><table><thead><tr><th>Sıra</th><th>Sınıf</th><th>No</th><th>Ad Soyad</th><th>Sınav</th><th>Açıklama</th></tr></thead><tbody>${rows}</tbody></table></div>${summaryContent}</div>${(teacherMsg && (p + PAGE_SIZE >= sortedSeatIds.length)) ? `<div class="msg-box" style="border-color:#ca8a04; background:#fffaf0;"><strong><span class="icon" style="background:#ea580c;">!</span> Dikkat: </strong>${teacherMsg}</div>` : ""}</div>`;
+                
+                let sigHtml = '';
+                if (p + PAGE_SIZE >= sortedSeatIds.length) {
+                    const gorevliName = examTeachersData.classrooms[room.name] ? examTeachersData.classrooms[room.name].gorevli : '';
+                    const safeName = gorevliName ? gorevliName.replace(' (İdare)', '') : 'Gözetmen Öğretmen';
+                    
+                    sigHtml = `
+                    <div style="margin-top: 15px; display: flex; justify-content: flex-end; padding-right: 30px;">
+                        <div style="text-align: center; width: 250px;">
+                            <div style="font-weight: 600; font-size: 10pt;">${safeName}</div>
+                            <div style="font-size: 9pt; color: #64748b; margin-top: 2px;">Salon Gözetmeni</div>
+                            <div style="margin-top: 25px; border-top: 1px dotted #94a3b8; width: 100%;"></div>
+                            <div style="font-size: 8pt; color: #94a3b8; margin-top: 3px;">İmza</div>
+                        </div>
+                    </div>`;
+                }
+
+                body += `<div class="page portrait">${hdr(`${room.name} Salonu - Oturma Listesi`, room.name)}<div style="display:flex; flex:1;"><div style="flex:1;"><table><thead><tr><th>Sıra</th><th>Sınıf</th><th>No</th><th>Ad Soyad</th><th>Sınav</th><th>Açıklama</th></tr></thead><tbody>${rows}</tbody></table></div>${summaryContent}</div>${(teacherMsg && (p + PAGE_SIZE >= sortedSeatIds.length)) ? `<div class="msg-box" style="border-color:#ca8a04; background:#fffaf0; margin-bottom:5px;"><strong><span class="icon" style="background:#ea580c;">!</span> Dikkat: </strong>${teacherMsg}</div>` : ""}${sigHtml}</div>`;
             }
         });
 
