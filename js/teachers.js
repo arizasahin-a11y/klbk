@@ -655,16 +655,18 @@ document.addEventListener('DOMContentLoaded', () => {
                             const row = json[i];
                             if (!row || !row[0]) continue;
                             
-                            const dayCodeStr = row[0].toString().trim();
+                            let dayCodeStr = (row[0] || '').toString().trim();
+                            // Bazen günler 2. sütuna kaymış olabilir
+                            if (!dayCodeStr && row[1]) dayCodeStr = row[1].toString().trim();
                             
                             // Normalleştirme - Çok çeşitli gün yazımlarına karşı koruma
                             let dStr = dayCodeStr.toLowerCase().replace(/[^a-zçğıöşü]/g, '');
                             let safeDay = '';
-                            if (dStr.includes('paz') || dStr.includes('pt') || dStr.startsWith('pa')) safeDay = 'Pa';
-                            else if (dStr.includes('sal') || dStr.startsWith('sa')) safeDay = 'Sa';
-                            else if (dStr.includes('çar') || dStr.includes('car') || dStr.startsWith('ça') || dStr.startsWith('ca') || dStr.includes('crs')) safeDay = 'Ça';
-                            else if (dStr.includes('per') || dStr.includes('prs') || dStr.startsWith('pe') || dStr.includes('pr')) safeDay = 'Pe';
-                            else if (dStr.includes('cum') || dStr.startsWith('cu')) safeDay = 'Cu';
+                            if (dStr === 'pt' || dStr.includes('paz') || dStr.startsWith('pa')) safeDay = 'Pa';
+                            else if (dStr === 'sa' || dStr.includes('sal') || dStr.startsWith('sa')) safeDay = 'Sa';
+                            else if (dStr.includes('ça') || dStr.includes('ca') || dStr.includes('cr') || dStr.includes('çar') || dStr.includes('car')) safeDay = 'Ça';
+                            else if (dStr.includes('pe') || dStr.includes('pr') || dStr.includes('per') || dStr.includes('prs')) safeDay = 'Pe';
+                            else if (dStr.includes('cu') || dStr.includes('cum')) safeDay = 'Cu';
                             
                             if (!safeDay) continue; // Not a valid day row
                             
@@ -674,13 +676,21 @@ document.addEventListener('DOMContentLoaded', () => {
                             for (let colIndex = 1; colIndex <= 8; colIndex++) {
                                 if (row[colIndex]) {
                                     let cellStr = row[colIndex].toString();
-                                    // Sadece Sınıf ismini yakala: "S.MAT 12-B" -> "12B", "9/C Müzik" -> "9C"
+                                    
+                                    // Sadece Sınıf ismini yakala: "S.MAT 12-B" -> "12B", "9/C Müzik" -> "9C", "11 A" -> "11A"
                                     let match = cellStr.match(/\d{1,2}\s*[-/]?\s*[A-ZÇĞİÖŞÜa-zçğıöşü]+/i);
+                                    let cellVal = '';
                                     if (match) {
-                                        let cellVal = match[0].toUpperCase().replace(/[^A-Z0-9ÇĞİÖŞÜ]/gi, '');
-                                        if (cellVal) {
-                                            daySchedule[colIndex.toString()] = cellVal;
-                                        }
+                                        cellVal = match[0].toUpperCase().replace(/[^A-Z0-9ÇĞİÖŞÜ]/gi, '');
+                                    } else {
+                                        // Hiçbir regex uyumu bulamazsa, dersi tamamen kaybetmemek adına varsayılan olarak yazıyı al (boşlukları sil)
+                                        let cleanStr = cellStr.toUpperCase().replace(/[^A-Z0-9ÇĞİÖŞÜ]/gi, '');
+                                        if (cleanStr.length > 6) cellVal = cleanStr.substring(0, 6);
+                                        else cellVal = cleanStr;
+                                    }
+                                    
+                                    if (cellVal) {
+                                        daySchedule[colIndex.toString()] = cellVal;
                                     }
                                 }
                             }
