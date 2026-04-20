@@ -156,10 +156,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const schoolSubjects = DataManager.getSchoolSettings().subjects || [];
         
+        // Alfabetik sıralama
+        myTeachers.sort((a, b) => {
+            const nameA = (teachersDb[a].name || a).toLowerCase();
+            const nameB = (teachersDb[b].name || b).toLowerCase();
+            return nameA.localeCompare(nameB, 'tr');
+        });
+        
         myTeachers.forEach(uname => {
             const user = teachersDb[uname];
             const name = user.name || uname;
             const role = user.role || 'ogretmen';
+            
+            // "admin yeşil idareci kırmısı yazılsın"
+            let nameColor = '#5a2c91'; // Normal: Mor-mavi
+            if (role === 'admin' || role === 'master') nameColor = 'var(--success)';
+            else if (role === 'idareci') nameColor = 'var(--danger)';
             const scheduleHtml = buildScheduleHtml(user.schedule);
             
             // Highlight source card
@@ -180,10 +192,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
                     
-                    <div style="display: flex; align-items: center; gap: 15px; flex: 1; min-width: 250px; justify-content: flex-start;">
+                    <div style="display: flex; align-items: center; gap: 15px; flex: 1; min-width: 250px; flex-shrink: 0; justify-content: flex-start;">
                         <div class="stat-icon ${user.role === 'admin' ? 'primary' : 'success'}"><i class="fa-solid fa-user-tie"></i></div>
                         <div style="text-align: left;">
-                            <h3 style="font-size: 1.2rem; color: #5a2c91; margin:0; font-weight: 800; letter-spacing: 0.3px;" title="${uname}">${name}</h3>
+                            <h3 style="font-size: 1.2rem; color: ${nameColor}; margin:0; font-weight: 900; letter-spacing: 0.3px;" title="${uname}">${name}</h3>
                             <p style="font-size: 0.8rem; color: var(--gray-500); margin: 3px 0 0 0;">Şifre: <b>${user.password}</b></p>
                         </div>
                     </div>
