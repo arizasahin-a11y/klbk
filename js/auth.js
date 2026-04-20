@@ -187,6 +187,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Validate credentials
                 if (matchedUser && matchedUser.password === password) {
+                    
+                    // Sadece 'admin' hesabı storeKey (yeni sistem kaydı) olmadan girebilir.
+                    // Diğer eski master kullanıcıları (örn: ariza) veya her türlü master yeni sistemdeyse girebilir.
+                    if (matchedUser.role === 'master' && actualUsername !== 'admin') {
+                        if (!matchedUser.storeKey) {
+                            showMessage(loginMessageBox, 'Hesabınız eski sisteme ait. Lütfen yeni sisteme entegre olun.', 'error');
+                            if (typeof shakeForm === 'function') shakeForm();
+                            btn.innerHTML = originalHtml;
+                            btn.disabled = false;
+                            return;
+                        }
+                    }
+
                     username = actualUsername;
                     const userData = matchedUser;
                     showMessage(loginMessageBox, 'Giriş başarılı! Yönlendiriliyorsunuz...', 'success');

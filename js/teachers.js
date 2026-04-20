@@ -115,11 +115,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const query = (teacherSearch ? teacherSearch.value.toLowerCase().trim() : '');
         
         const myTeachers = Object.keys(teachersDb).filter(uname => {
-            if (uname === 'admin') return false; // skip master admin
             const user = teachersDb[uname];
             // Admin's own school check (by storeKey or schoolName)
             const uKey = user.storeKey || `klbk_data_${uname}`;
-            if (uKey !== currentSchoolStoreKey) return false;
+            
+            // admin ve ariza kullanıcıları her halükarda listede görünsün
+            if (uname !== 'admin' && uname !== 'ariza') {
+                if (uKey !== currentSchoolStoreKey) return false;
+            }
             
             // Allow searching
             if (query) {
@@ -232,6 +235,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         teachersDb[uname][field] = newValue;
+        
+        // Eski sistemden gelen admin/ariza gibi kullanıcılar düzenlendiğinde otomatik olarak mevcut okula (yeni sisteme) dahil olsun
+        if (!teachersDb[uname].storeKey) {
+            teachersDb[uname].storeKey = currentSchoolStoreKey;
+            teachersDb[uname].schoolName = currentSchoolName;
+        }
         
         try {
             await saveUsersToCloud(teachersDb);
