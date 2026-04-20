@@ -119,8 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Admin's own school check (by storeKey or schoolName)
             const uKey = user.storeKey || `klbk_data_${uname}`;
             
-            // admin ve ariza kullanıcıları her halükarda listede görünsün
-            if (uname !== 'admin' && uname !== 'ariza') {
+            // admin ve ariza/arıza kullanıcıları her halükarda listede görünsün
+            if (uname !== 'admin' && uname !== 'ariza' && uname !== 'arıza') {
                 if (uKey !== currentSchoolStoreKey) return false;
             }
             
@@ -323,8 +323,8 @@ document.addEventListener('DOMContentLoaded', () => {
         contextActiveUname = uname;
         if (contextMenu) {
             contextMenu.style.display = 'block';
-            contextMenu.style.left = e.pageX + 'px';
-            contextMenu.style.top = e.pageY + 'px';
+            contextMenu.style.left = e.clientX + 'px';
+            contextMenu.style.top = e.clientY + 'px';
         }
     };
 
