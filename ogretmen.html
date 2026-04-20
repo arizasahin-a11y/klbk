@@ -19,7 +19,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!-- Ortak PDF Başlık render fonksiyonu (dashboard ile aynı tema desteği) -->
-    <script src="js/pdf_header.js?v=5.3"></script>
+    <script src="js/pdf_header.js?v=5.4"></script>
 
 
     <style>
@@ -296,7 +296,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/data.js?v=5.8"></script>
+    <script src="js/data.js?v=5.9"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Path Enforcement: Doğrudan dosya ismini (ogretmen.html) yazanları engelle
@@ -898,10 +898,13 @@
             if (session) {
                 if (!session.liveMessages) session.liveMessages = [];
 
+                // Ensure we use the real name for the author field
+                const authorRealName = sessionStorage.getItem('klbk_name') || currentName || currentUser;
+                
                 session.liveMessages.push({
                     text: text,
                     subject: subName,
-                    author: currentName,
+                    author: authorRealName,
                     timestamp: Date.now(),
                     expireAt: Date.now() + (10 * 60 * 1000)
                 });
@@ -938,14 +941,18 @@
                 title: 'Hesap Ayarları',
                 html: `
                     <div style="text-align: left; margin-top: 10px;">
-                        <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Kullanıcı Adı (Değiştirilemez)</label>
-                        <input type="text" id="profUser" class="form-control" value="${currentUser}" disabled style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; background: var(--gray-100); font-family: inherit;">
+                        <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Kullanıcı Adı</label>
+                        <input type="text" id="profUser" class="form-control" value="${currentUser}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
 
                         <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">E-Posta Adresi</label>
                         <input type="email" id="profEmail" class="form-control" placeholder="E-Posta" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
 
                         <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Yeni Şifre</label>
                         <input type="password" id="profPass" class="form-control" placeholder="Değiştirmek istemiyorsanız boş bırakın" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                        
+                        <hr style="margin: 15px 0; border: 0; border-top: 1px solid var(--gray-200);">
+                        <label style="display:block; font-size: 0.85rem; font-weight: 700; color: var(--danger); margin-bottom: 4px;">Değişiklikleri Onaylamak İçin Güncel Şifreniz</label>
+                        <input type="password" id="currentPassVerify" class="form-control" placeholder="Mevcut şifrenizi girin" style="width: 100%; padding: 0.75rem; border: 2px solid var(--danger); border-radius: 6px; font-family: inherit;">
                     </div>
                 `,
                 showCancelButton: true,
@@ -967,8 +974,19 @@
                     Swal.hideLoading();
                 },
                 preConfirm: async () => {
+                    const newUsername = document.getElementById('profUser').value.trim();
                     const email = document.getElementById('profEmail').value.trim();
                     const pass = document.getElementById('profPass').value;
+                    const currentPassVerify = document.getElementById('currentPassVerify').value;
+
+                    if (!newUsername) {
+                        Swal.showValidationMessage('Kullanıcı adı boş olamaz');
+                        return false;
+                    }
+                    if (!currentPassVerify) {
+                        Swal.showValidationMessage('İşlemi onaylamak için güncel şifrenizi girmelisiniz');
+                        return false;
+                    }
 
                     Swal.showLoading();
                     try {
@@ -976,30 +994,63 @@
                         if (res.ok) {
                             const db = await res.json();
                             if (db) {
-                                if (db[currentUser]) {
-                                    db[currentUser].email = email;
-                                    if (pass) db[currentUser].password = pass; // Only update if provided
-
-                                    await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`, {
-                                        method: 'PUT',
-                                        headers: {
-                                            'Content-Type': 'application/json'
-                                        },
-                                        body: JSON.stringify(db)
-                                    });
-                                    return true;
+                                // 1. Verify current password
+                                if (!db[currentUser] || db[currentUser].password !== currentPassVerify) {
+                                    throw new Error("Güncel şifreniz hatalı!");
                                 }
+
+                                // 2. Check if username is taken by someone ELSE
+                                if (newUsername !== currentUser && db[newUsername]) {
+                                    throw new Error("Bu kullanıcı adı zaten alınmış!");
+                                }
+
+                                const userData = db[currentUser] || {};
+                                userData.email = email;
+                                if (pass) userData.password = pass;
+
+                                // Key Renaming Logic
+                                if (newUsername !== currentUser) {
+                                    db[newUsername] = userData;
+                                    delete db[currentUser];
+                                } else {
+                                    db[currentUser] = userData;
+                                }
+
+                                await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`, {
+                                    method: 'PUT',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify(db)
+                                });
+
+                                // Update current session in place
+                                if (newUsername !== currentUser) {
+                                    sessionStorage.setItem('klbk_currentUser', newUsername);
+                                    const oldStoreKey = sessionStorage.getItem('klbk_storeKey');
+                                    if (oldStoreKey === `klbk_data_${currentUser}`) {
+                                        sessionStorage.setItem('klbk_storeKey', `klbk_data_${newUsername}`);
+                                    }
+                                }
+                                
+                                return { newUsername };
                             }
                         }
                         throw new Error("Veritabanı hatası");
                     } catch (e) {
-                        Swal.showValidationMessage('Kaydedilemedi: ' + e.message);
+                        Swal.showValidationMessage(e.message);
                         return false;
                     }
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    Swal.fire('Başarılı', 'Profil ayarlarınız güncellendi. Yeni şifre belirlediyseniz bir sonraki girişinizde geçerli olacaktır.', 'success');
+                    Swal.fire({
+                        title: 'Başarılı',
+                        text: 'Profil ayarlarınız güncellendi. Kullanıcı adı değişikliği yaptıysanız, sistem tutarlılığı için sayfa yenilenecektir.',
+                        icon: 'success'
+                    }).then(() => {
+                        window.location.reload();
+                    });
                 }
             });
         }
@@ -2025,15 +2076,19 @@
                 if (roomName && examTeachersData.classrooms[roomName]) {
                     const gorevli = examTeachersData.classrooms[roomName].gorevli;
                     if (gorevli) {
-                        gorevliHtml = `<div style="font-size:12pt; font-weight:700; color:#dc2626; border: 2px dashed #ef4444; border-radius: 6px; padding: 4px 8px; background: #fef2f2; display: inline-block;">Görevli Öğretmen: ${gorevli}</div>`;
+                        gorevliHtml = `<div style="font-size:12pt; font-weight:700; color:#dc2626; border: 2px dashed #ef4444; border-radius: 6px; padding: 4px 10px; background: #fef2f2; display: inline-block; white-space: nowrap;">Görevli Öğretmen: ${gorevli}</div>`;
                     }
                 }
 
                 return `
-                <div class="page-header" style="align-items:flex-start;">
-                    <div style="flex:1;"><h2>${title}</h2></div>
-                    ${gorevliHtml ? `<div style="flex:1.5; text-align:center;">${gorevliHtml}</div>` : ''}
-                    <div class="info" style="flex:1; text-align:right;">
+                <div class="page-header" style="justify-content: space-between; align-items: center; flex-wrap: nowrap; gap: 10px;">
+                    <div style="flex: 1 1 0%; min-width: 0;">
+                        <h2 style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${title}</h2>
+                    </div>
+                    <div style="flex: 1.5 1 0%; text-align:center; min-width: 0;">
+                        ${gorevliHtml}
+                    </div>
+                    <div class="info" style="flex: 1 1 0%; text-align: right; min-width: 0; white-space: nowrap;">
                         <div>${session.name}</div>
                         <div style="font-size: 9pt; color: #64748b; font-weight: 400;">
                             ${formatDate(session.date)} ${session.time || ''}

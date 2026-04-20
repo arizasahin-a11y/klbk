@@ -219,15 +219,19 @@ async function executePrintSession(id, mode, filterArray) {
         if (roomName && examTeachersData.classrooms[roomName]) {
             const gorevli = examTeachersData.classrooms[roomName].gorevli;
             if (gorevli) {
-                gorevliHtml = `<div style="font-size:12pt; font-weight:700; color:#dc2626; border: 2px dashed #ef4444; border-radius: 6px; padding: 4px 8px; background: #fef2f2; display: inline-block;">Görevli Öğretmen: ${gorevli}</div>`;
+                gorevliHtml = `<div style="font-size:12pt; font-weight:700; color:#dc2626; border: 2px dashed #ef4444; border-radius: 6px; padding: 4px 10px; background: #fef2f2; display: inline-block; white-space: nowrap;">Görevli Öğretmen: ${gorevli}</div>`;
             }
         }
         
         return `
-                <div class="page-header" style="align-items:flex-start;">
-                    <div style="flex:1;"><h2>${title}</h2></div>
-                    ${gorevliHtml ? `<div style="flex:1.5; text-align:center;">${gorevliHtml}</div>` : ''}
-                    <div class="info" style="flex:1; text-align:right;">
+                <div class="page-header" style="justify-content: space-between; align-items: center; flex-wrap: nowrap; gap: 10px;">
+                    <div style="flex: 1 1 0%; min-width: 0;">
+                        <h2 style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${title}</h2>
+                    </div>
+                    <div style="flex: 1.5 1 0%; text-align:center; min-width: 0;">
+                        ${gorevliHtml}
+                    </div>
+                    <div class="info" style="flex: 1 1 0%; text-align: right; min-width: 0; white-space: nowrap;">
                         <div>${session.name}</div>
                         <div style="font-size: 9pt; color: #64748b; font-weight: 400;">
                             ${formatDate(session.date)} ${session.time || ''}

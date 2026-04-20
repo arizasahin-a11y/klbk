@@ -190,39 +190,41 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `
             <div class="stat-card glass-panel" style="display: flex; flex-direction: column; cursor: pointer; transition: all 0.2s ease; padding: 10px 15px; margin-bottom: 10px; ${cardStyle}" ${clickEvent} ${contextEvent}>
                 
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: nowrap; width: 100%;">
                     
-                    <div style="display: flex; align-items: center; gap: 15px; flex: 1; min-width: 250px; flex-shrink: 0; justify-content: flex-start;">
-                        <div class="stat-icon ${user.role === 'admin' ? 'primary' : 'success'}"><i class="fa-solid fa-user-tie"></i></div>
-                        <div style="text-align: left;">
-                            <h3 id="teacherName-${uname}" style="font-size: 1.2rem; color: ${nameColor}; margin:0; font-weight: 900; letter-spacing: 0.3px; transition: color 0.3s ease;" title="${uname}">
+                    <!-- Isim ve Kullanıcı Bilgisi (En Sol) -->
+                    <div style="display: flex; align-items: center; gap: 15px; width: 30%; min-width: 220px; flex-shrink: 0; justify-content: flex-start;">
+                        <div class="stat-icon ${user.role === 'admin' ? 'primary' : 'success'}" style="width: 40px; height: 40px; min-width: 40px; font-size: 1rem;"><i class="fa-solid fa-user-tie"></i></div>
+                        <div style="text-align: left; overflow: hidden;">
+                            <h3 id="teacherName-${uname}" style="font-size: 1.05rem; color: ${nameColor}; margin:0; font-weight: 800; letter-spacing: 0.1px; transition: color 0.3s ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${uname}">
                                 ${name}
-                                <span style="font-size: 0.8rem; font-weight: normal; color: var(--gray-500); margin-left: 5px; opacity: 0.8;">(@${uname})</span>
+                                <span style="font-size: 0.75rem; font-weight: normal; color: var(--gray-500); margin-left: 5px; opacity: 0.8;">(@${uname})</span>
                             </h3>
-                            <p style="font-size: 0.8rem; color: var(--gray-500); margin: 3px 0 0 0;">Şifre: <b>${user.password}</b></p>
+                            <p style="font-size: 0.75rem; color: var(--gray-500); margin: 2px 0 0 0;">Şifre: <b>${user.password}</b></p>
                         </div>
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: 10px; flex: 2; min-width: 300px; justify-content: center;">
-                        <div style="display: flex; flex-direction: column; width: 60%;">
-                            <select multiple style="height: 48px; padding: 5px; border-radius: 4px; border: 1px solid var(--gray-300); font-size: 0.85rem;" onclick="event.stopPropagation()" onchange="window.updateTeacherData('${uname}', 'branch', this)">
-                                ${branchOptions}
-                            </select>
-                            <small style="font-size: 0.7rem; color: var(--gray-500); text-align: center;">Branşlar (CTRL ile listele)</small>
-                        </div>
-                        
-                        <div style="display: flex; flex-direction: column; width: 35%;">
-                            <select class="form-control" style="height: 48px; border-radius: 4px; border: 1px solid var(--gray-300); font-size: 0.85rem;" onclick="event.stopPropagation()" onchange="window.updateTeacherData('${uname}', 'role', this.value)">
-                                <option value="ogretmen" ${role === 'ogretmen' ? 'selected' : ''}>Öğretmen</option>
-                                <option value="idareci" ${role === 'idareci' ? 'selected' : ''}>İdareci</option>
-                                <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
-                            </select>
-                            <small style="font-size: 0.7rem; color: var(--gray-500); text-align: center;">Yetki</small>
-                        </div>
+                    <!-- Branşlar (Kolon Hizalama) -->
+                    <div style="display: flex; flex-direction: column; width: 35%; flex-shrink: 1;">
+                        <select multiple style="height: 48px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--gray-300); font-size: 0.85rem; background: rgba(255,255,255,0.8); border-left: 3px solid var(--primary-light);" onclick="event.stopPropagation()" onchange="window.updateTeacherData('${uname}', 'branch', this)">
+                            ${branchOptions}
+                        </select>
+                        <small style="font-size: 0.65rem; color: var(--gray-500); text-align: center; margin-top: 4px;">Branş Seçimi (CTRL ile çoklu)</small>
                     </div>
 
-                    <div style="display: flex; gap: 5px;">
-                        <button type="button" class="btn btn-sm" style="padding: 8px 12px; color: var(--danger); background: var(--gray-100); border: none; font-size: 1.1rem; border-radius: 5px;" title="Sil" onclick="event.stopPropagation(); window.deleteTeacher('${uname}')">
+                    <!-- Yetki (Kolon Hizalama) -->
+                    <div style="display: flex; flex-direction: column; width: 20%; min-width: 110px;">
+                        <select class="form-control" style="height: 48px; border-radius: 8px; border: 1px solid var(--gray-300); font-size: 0.85rem; background: rgba(255,255,255,0.8); border-left: 3px solid var(--secondary-light);" onclick="event.stopPropagation()" onchange="window.updateTeacherData('${uname}', 'role', this.value)">
+                            <option value="ogretmen" ${role === 'ogretmen' ? 'selected' : ''}>Öğretmen</option>
+                            <option value="idareci" ${role === 'idareci' ? 'selected' : ''}>İdareci</option>
+                            <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
+                        </select>
+                        <small style="font-size: 0.65rem; color: var(--gray-500); text-align: center; margin-top: 4px;">Sistem Yetkisi</small>
+                    </div>
+
+                    <!-- İşlemler (En Sağ) -->
+                    <div style="display: flex; width: 5%; min-width: 50px; justify-content: flex-end; flex-shrink: 0;">
+                        <button type="button" class="btn btn-sm" style="width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; color: var(--danger); background: rgba(220, 53, 69, 0.05); border: 1px solid rgba(220, 53, 69, 0.1); font-size: 1.1rem; border-radius: 10px; transition: all 0.2s;" title="Sil" onmouseenter="this.style.background='rgba(220, 53, 69, 0.15)'" onmouseleave="this.style.background='rgba(220, 53, 69, 0.05)'" onclick="event.stopPropagation(); window.deleteTeacher('${uname}')">
                             <i class="fa-solid fa-trash-can"></i>
                         </button>
                     </div>

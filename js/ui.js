@@ -149,6 +149,135 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // --- Account Settings Action ---
+    async function openAccountSettings() {
+        const currentUser = sessionStorage.getItem('klbk_currentUser');
+        if (!currentUser) return;
+
+        Swal.fire({
+            title: 'Hesap Ayarları',
+            html: `
+                <div style="text-align: left; margin-top: 10px;">
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Kullanıcı Adı</label>
+                    <input type="text" id="profUser" class="form-control" value="${currentUser}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">E-Posta Adresi</label>
+                    <input type="email" id="profEmail" class="form-control" placeholder="E-Posta" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Yeni Şifre</label>
+                    <input type="password" id="profPass" class="form-control" placeholder="Değiştirmek istemiyorsanız boş bırakın" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                    
+                    <hr style="margin: 15px 0; border: 0; border-top: 1px solid var(--gray-200);">
+                    <label style="display:block; font-size: 0.85rem; font-weight: 700; color: var(--danger); margin-bottom: 4px;">Değişiklikleri Onaylamak İçin Güncel Şifreniz</label>
+                    <input type="password" id="currentPassVerify" class="form-control" placeholder="Mevcut şifrenizi girin" style="width: 100%; padding: 0.75rem; border: 2px solid var(--danger); border-radius: 6px; font-family: inherit;">
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Kaydet',
+            cancelButtonText: 'İptal',
+            didOpen: async () => {
+                Swal.showLoading();
+                try {
+                    const res = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`);
+                    if (res.ok) {
+                        const db = await res.json();
+                        if (db && db[currentUser]) {
+                            const emailEl = document.getElementById('profEmail');
+                            if (emailEl) emailEl.value = db[currentUser].email || '';
+                        }
+                    }
+                } catch (e) { }
+                Swal.hideLoading();
+            },
+            preConfirm: async () => {
+                const newUsername = document.getElementById('profUser').value.trim();
+                const email = document.getElementById('profEmail').value.trim();
+                const pass = document.getElementById('profPass').value;
+                const currentPassVerify = document.getElementById('currentPassVerify').value;
+
+                if (!newUsername) {
+                    Swal.showValidationMessage('Kullanıcı adı boş olamaz');
+                    return false;
+                }
+                if (!currentPassVerify) {
+                    Swal.showValidationMessage('İşlemi onaylamak için güncel şifrenizi girmelisiniz');
+                    return false;
+                }
+
+                Swal.showLoading();
+                try {
+                    const res = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`);
+                    if (!res.ok) throw new Error("Veritabanı bağlantı hatası");
+                    
+                    const db = await res.json();
+                    if (!db || !db[currentUser]) throw new Error("Kullanıcı bulunamadı");
+
+                    // 1. Verify current password
+                    if (db[currentUser].password !== currentPassVerify) {
+                        throw new Error("Güncel şifreniz hatalı!");
+                    }
+
+                    // 2. Check if new username is taken
+                    if (newUsername !== currentUser && db[newUsername]) {
+                        throw new Error("Bu kullanıcı adı zaten alınmış!");
+                    }
+
+                    const userData = db[currentUser];
+                    userData.email = email;
+                    if (pass) userData.password = pass;
+
+                    // 3. Update DB
+                    if (newUsername !== currentUser) {
+                        db[newUsername] = userData;
+                        delete db[currentUser];
+                    } else {
+                        db[currentUser] = userData;
+                    }
+
+                    const putRes = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(db)
+                    });
+
+                    if (!putRes.ok) throw new Error("Kayıt sırasında hata oluştu");
+
+                    // 4. Update Session Data
+                    if (newUsername !== currentUser) {
+                        sessionStorage.setItem('klbk_currentUser', newUsername);
+                        const oldStoreKey = sessionStorage.getItem('klbk_storeKey');
+                        if (oldStoreKey === `klbk_data_${currentUser}`) {
+                            sessionStorage.setItem('klbk_storeKey', `klbk_data_${newUsername}`);
+                        }
+                    }
+                    return true;
+                } catch (e) {
+                    Swal.showValidationMessage(e.message);
+                    return false;
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Başarılı',
+                    text: 'Profil ayarlarınız güncellendi. Sistem tutarlılığı için sayfa yenilenecektir.',
+                    icon: 'success'
+                }).then(() => {
+                    window.location.reload();
+                });
+            }
+        });
+    }
+
+    const accountSettingsBtn = document.getElementById('accountSettingsBtn');
+    if (accountSettingsBtn) {
+        accountSettingsBtn.addEventListener('click', openAccountSettings);
+    }
+    const sidebarUserArea = document.getElementById('sidebarUserArea');
+    if (sidebarUserArea) {
+        sidebarUserArea.addEventListener('click', openAccountSettings);
+    }
+
     // --- Global Event Delegation for Accordion Classroom Editor ---
     document.body.addEventListener('change', (e) => {
         if (e.target.matches('.desk-pos-select')) {
@@ -4259,18 +4388,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (roomName && examTeachersData.classrooms[roomName]) {
                     const gorevli = examTeachersData.classrooms[roomName].gorevli;
                     if (gorevli) {
-                        gorevliHtml = `<div style="font-size:12pt; font-weight:700; color:#dc2626; border: 2px dashed #ef4444; border-radius: 6px; padding: 4px 8px; background: #fef2f2; display: inline-block;">Görevli Öğretmen: ${gorevli}</div>`;
+                        gorevliHtml = `<div style="font-size:12pt; font-weight:700; color:#dc2626; border: 2px dashed #ef4444; border-radius: 6px; padding: 4px 10px; background: #fef2f2; display: inline-block; white-space: nowrap;">Görevli Öğretmen: ${gorevli}</div>`;
                     }
                 }
                 return `
-                <div class="page-header" style="justify-content: space-between; align-items: center;">
-                    <div style="flex:1;">
-                        <h2>${title}</h2>
+                <div class="page-header" style="justify-content: space-between; align-items: center; flex-wrap: nowrap; gap: 10px;">
+                    <div style="flex: 1 1 0%; min-width: 0;">
+                        <h2 style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${title}</h2>
                     </div>
-                    <div style="flex:1; text-align:center;">
+                    <div style="flex: 1.5 1 0%; text-align:center; min-width: 0;">
                         ${gorevliHtml}
                     </div>
-                    <div class="info" style="flex:1;">
+                    <div class="info" style="flex: 1 1 0%; text-align: right; min-width: 0; white-space: nowrap;">
                         <div>${session.name}</div>
                         <div style="font-size: 9pt; color: #64748b; font-weight: 400;">
                             ${formatDate(session.date)} ${session.time || ''}
