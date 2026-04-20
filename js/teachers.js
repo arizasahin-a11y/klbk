@@ -67,13 +67,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Tab: Öğretmen Listesi ---
     const teachersGridContainer = document.getElementById('teachersGridContainer');
     const teacherSearch = document.getElementById('teacherSearch');
+    const autoCleanBtn = document.getElementById('btnAutoCleanTeachers');
     
+    let mergeModeSource = null; // Holds uname of the teacher being copied
+
     async function loadTeachersList() {
         if (!teachersGridContainer) return;
         teachersGridContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--gray-500);"><i class="fa-solid fa-spinner fa-spin"></i> Öğretmenler yükleniyor...</div>';
         
         teachersDb = await fetchAllUsers();
         renderTeachersGrid();
+    }
+
+    // YARDIMCI: Ders programını tablo html'ine çevir
+    function buildScheduleHtml(scheduleObj) {
+        if (!scheduleObj || Object.keys(scheduleObj).length === 0) {
+            return `<div style="text-align: center; padding: 1rem; color: var(--gray-500); font-style: italic;">Henüz ders programı atanmamış.</div>`;
+        }
+        const days = ['Pa', 'Sa', 'Ça', 'Pe', 'Cu'];
+        let table = `<table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.8rem; text-align: center;">
+            <tr style="background: var(--gray-100); border-bottom: 1px solid var(--gray-300);">
+                <th style="padding: 4px; border-right: 1px solid var(--gray-300);">Gün</th>
+                <th style="padding: 4px;">1</th><th style="padding: 4px;">2</th><th style="padding: 4px;">3</th><th style="padding: 4px;">4</th>
+                <th style="padding: 4px;">5</th><th style="padding: 4px;">6</th><th style="padding: 4px;">7</th><th style="padding: 4px;">8</th>
+            </tr>`;
+            
+        days.forEach(day => {
+            if (scheduleObj[day]) {
+                table += `<tr style="border-bottom: 1px dashed var(--gray-200);">
+                    <td style="padding: 4px; font-weight: bold; border-right: 1px solid var(--gray-300);">${day}</td>`;
+                for (let i = 1; i <= 8; i++) {
+                    const cls = scheduleObj[day][i.toString()] || '-';
+                    table += `<td style="padding: 4px; color: ${cls !== '-' ? 'var(--primary)' : 'var(--gray-400)'};">${cls}</td>`;
+                }
+                table += `</tr>`;
+            }
+        });
+        table += `</table>`;
+        return table;
     }
 
     function renderTeachersGrid() {
@@ -105,15 +136,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let html = '';
+        
+        if (mergeModeSource) {
+            const srcName = teachersDb[mergeModeSource]?.name || mergeModeSource;
+            html += `<div style="grid-column: 1/-1; background: var(--secondary); color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <i class="fa-solid fa-code-merge" style="margin-right: 10px;"></i> 
+                    <b>Birleştirme Modu:</b> '${srcName}' adlı öğretmenin şifre ve branş bilgileri aktarılarak birleştirilecek. Lütfen hedef (kalıcı olacak) öğretmenin kartına tıklayın.
+                </div>
+                <button type="button" class="btn btn-sm" style="background: white; color: var(--dark);" onclick="window.cancelMergeMode()">İptal Et</button>
+            </div>`;
+        }
+
         myTeachers.forEach(uname => {
             const user = teachersDb[uname];
             const name = user.name || uname;
-            const branches = user.branch && Array.isArray(user.branch) ? user.branch.join(', ') : 'Branş Yok';
+            const branches = user.branch && Array.isArray(user.branch) && user.branch.length ? user.branch.join(', ') : 'Branş Yok';
             const role = user.role === 'admin' ? 'Okul İdaresi' : 'Öğretmen';
+            const scheduleHtml = buildScheduleHtml(user.schedule);
             
+            // Highlight source card
+            const isSource = mergeModeSource === uname;
+            const cardStyle = isSource ? 'border: 2px solid var(--secondary); opacity: 0.7; pointer-events: none;' : '';
+            const clickEvent = mergeModeSource ? `onclick="window.executeMerge('${uname}')"` : `onclick="window.toggleTeacherSchedule('${uname}')"`;
+            const contextEvent = !mergeModeSource ? `oncontextmenu="window.handleTeacherContextMenu(event, '${uname}')"` : '';
+
             html += `
-            <div class="stat-card glass-panel" style="display: flex; flex-direction: column; position: relative;">
-                <button type="button" class="btn btn-sm" style="position: absolute; top: 10px; right: 10px; padding: 4px 8px; color: var(--danger); background: transparent; border: none; font-size: 1rem;" title="Sil" onclick="window.deleteTeacher('${uname}')">
+            <div class="stat-card glass-panel" style="display: flex; flex-direction: column; position: relative; cursor: pointer; transition: all 0.2s ease; ${cardStyle}" ${clickEvent} ${contextEvent}>
+                <button type="button" class="btn btn-sm" style="position: absolute; top: 10px; right: 10px; padding: 4px 8px; color: var(--danger); background: transparent; border: none; font-size: 1rem; z-index: 10;" title="Sil" onclick="event.stopPropagation(); window.deleteTeacher('${uname}')">
                     <i class="fa-solid fa-trash-can"></i>
                 </button>
                 <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
@@ -127,10 +177,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     <i class="fa-solid fa-briefcase"></i> Yetki: <b>${role}</b><br>
                     <i class="fa-solid fa-book"></i> Branş: <span style="color: var(--primary);">${branches}</span>
                 </div>
+                <div id="schedule-${uname}" class="hidden" style="margin-top: 10px; border-top: 1px solid var(--gray-200); padding-top: 10px;">
+                    ${scheduleHtml}
+                </div>
             </div>`;
         });
         teachersGridContainer.innerHTML = html;
     }
+
+    // Toggle Schedule Visibility (Accordion)
+    window.toggleTeacherSchedule = function(uname) {
+        const el = document.getElementById('schedule-' + uname);
+        if (el) {
+            el.classList.toggle('hidden');
+        }
+    };
 
     if (teacherSearch) {
         teacherSearch.addEventListener('input', renderTeachersGrid);
@@ -161,6 +222,148 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+
+    // Context Menu Logic
+    const contextMenu = document.getElementById('teacherContextMenu');
+    const btnContextMerge = document.getElementById('btnContextMerge');
+    let contextActiveUname = null;
+
+    window.addEventListener('click', () => {
+        if (contextMenu) contextMenu.style.display = 'none';
+    });
+
+    window.handleTeacherContextMenu = function(e, uname) {
+        e.preventDefault();
+        contextActiveUname = uname;
+        if (contextMenu) {
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = e.pageX + 'px';
+            contextMenu.style.top = e.pageY + 'px';
+        }
+    };
+
+    if (btnContextMerge) {
+        btnContextMerge.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (contextMenu) contextMenu.style.display = 'none';
+            if (contextActiveUname) {
+                mergeModeSource = contextActiveUname;
+                const topOfGrid = teachersGridContainer.offsetTop;
+                window.scrollTo({top: topOfGrid - 50, behavior: 'smooth'});
+                renderTeachersGrid();
+            }
+        });
+    }
+
+    window.cancelMergeMode = function() {
+        mergeModeSource = null;
+        renderTeachersGrid();
+    };
+
+    window.executeMerge = async function(targetUname) {
+        if (!mergeModeSource || mergeModeSource === targetUname) return;
+
+        const srcObj = teachersDb[mergeModeSource];
+        const tgtObj = teachersDb[targetUname];
+
+        const confirmMsg = `'${srcObj.name}' adlı hesaba ait ŞİFRE ve BRANŞ bilgileri '${tgtObj.name}' (${targetUname}) üzerine aktarılacak ve ${mergeModeSource} TAMAMEN SİLİNECEKTİR. Onaylıyor musunuz?`;
+        
+        const confirmResult = await Swal.fire({
+            title: 'Kayıtları Birleştir',
+            text: confirmMsg,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            confirmButtonText: 'Evet, Birleştir',
+            cancelButtonText: 'İptal'
+        });
+
+        if (confirmResult.isConfirmed) {
+            // Act: Copy Branch, Password, Email from source to target
+            if (srcObj.branch && srcObj.branch.length > 0) tgtObj.branch = srcObj.branch;
+            if (srcObj.password) tgtObj.password = srcObj.password;
+            if (srcObj.email) tgtObj.email = srcObj.email;
+            
+            // Delete source
+            delete teachersDb[mergeModeSource];
+
+            try {
+                await saveUsersToCloud(teachersDb);
+                Swal.fire('Başarılı', 'Kayıtlar başarıyla birleştirildi.', 'success');
+                mergeModeSource = null;
+                renderTeachersGrid();
+            } catch(e) {
+                Swal.fire('Hata', 'Birleştime kaydedilemedi.', 'error');
+            }
+        }
+    };
+
+    // Auto Clean Feature
+    if (autoCleanBtn) {
+        autoCleanBtn.addEventListener('click', async () => {
+            if (!teachersDb || Object.keys(teachersDb).length === 0) return;
+
+            const confirmResult = await Swal.fire({
+                title: 'Otomatik Temizle',
+                html: 'Tüm öğretmenler taranacak; <b>tamamen aynı isme</b> sahip 2 ve üzeri kayıt bulunursa otomatik olarak tek kayıt altında toplanacaktır (Şifre ve ders programı birleştirilir). Devam edilsin mi?',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#007bff',
+                confirmButtonText: 'Evet, Temizle',
+                cancelButtonText: 'İptal'
+            });
+
+            if (!confirmResult.isConfirmed) return;
+
+            let grouped = {};
+            let mergedCount = 0;
+
+            Object.keys(teachersDb).forEach(uname => {
+                const user = teachersDb[uname];
+                if (user.role !== 'admin' && user.storeKey === currentSchoolStoreKey) {
+                    const normName = (user.name || uname).toLowerCase().replace(/\s+/g, '');
+                    if (!grouped[normName]) grouped[normName] = [];
+                    grouped[normName].push(uname);
+                }
+            });
+
+            for (const nameKey in grouped) {
+                const unames = grouped[nameKey];
+                if (unames.length > 1) {
+                    // Start merging into the first one that has a schedule, or just the first one
+                    unames.sort((a,b) => (teachersDb[b].schedule ? 1 : 0) - (teachersDb[a].schedule ? 1 : 0));
+                    
+                    let targetUname = unames[0];
+                    let tgtObj = teachersDb[targetUname];
+
+                    for (let i = 1; i < unames.length; i++) {
+                        let srcUname = unames[i];
+                        let srcObj = teachersDb[srcUname];
+
+                        if (!tgtObj.schedule && srcObj.schedule) tgtObj.schedule = srcObj.schedule;
+                        if (!tgtObj.branch || tgtObj.branch.length === 0) if (srcObj.branch && srcObj.branch.length > 0) tgtObj.branch = srcObj.branch;
+                        if (srcObj.password && srcObj.password !== '123456' && tgtObj.password === '123456') tgtObj.password = srcObj.password;
+                        if (!tgtObj.email && srcObj.email) tgtObj.email = srcObj.email;
+
+                        delete teachersDb[srcUname];
+                        mergedCount++;
+                    }
+                }
+            }
+
+            if (mergedCount > 0) {
+                try {
+                    await saveUsersToCloud(teachersDb);
+                    Swal.fire('Başarılı', `Toplam ${mergedCount} mükerrer kayıt bulunup hedef öğretmenlere entegre edildi ve fazla hesaplar silindi.`, 'success');
+                    renderTeachersGrid();
+                } catch(e) {
+                    Swal.fire('Hata', 'Kayıt sırasında hata oluştu.', 'error');
+                }
+            } else {
+                Swal.fire('Bilgi', 'Aynı isme sahip herhangi bir mükerrer öğretmen bulunamadı.', 'info');
+            }
+        });
+    }
 
     // --- Tab: Öğretmen Ekle ---
     const btnRefreshBranches = document.getElementById('btnRefreshBranches');

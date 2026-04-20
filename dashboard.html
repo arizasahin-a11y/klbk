@@ -546,12 +546,22 @@
                     <div id="tab-teacherList" class="inner-content active">
                         <div class="settings-card glass-panel">
                             <h2>Sistemdeki Öğretmenler</h2>
-                            <div class="action-bar glass-panel" style="margin-bottom: 1rem; padding: 0.5rem 1rem;">
-                                <div class="search-box">
+                            <div class="action-bar glass-panel" style="margin-bottom: 1rem; padding: 0.5rem 1rem; display: flex; gap: 10px; align-items: center;">
+                                <div class="search-box" style="flex: 1;">
                                     <i class="fa-solid fa-search"></i>
                                     <input type="text" id="teacherSearch" placeholder="Öğretmen, branş ara...">
                                 </div>
+                                <button id="btnAutoCleanTeachers" class="btn btn-secondary btn-sm" title="Aynı isimli olan hesapların verilerini birleştirerek fazla olanı siler.">
+                                    <i class="fa-solid fa-broom"></i> Auto Temizle
+                                </button>
                             </div>
+                            <!-- Context Menu -->
+                            <div id="teacherContextMenu" class="glass-panel" style="display: none; position: absolute; z-index: 1000; padding: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); border-radius: 5px; min-width: 180px;">
+                                <button id="btnContextMerge" style="background: transparent; border: none; padding: 8px 12px; cursor: pointer; display: flex; gap: 8px; align-items: center; width: 100%; text-align: left; color: var(--dark); font-size: 0.9rem;">
+                                    <i class="fa-solid fa-code-merge" style="color: var(--primary);"></i> Birleştir (Kopyala)
+                                </button>
+                            </div>
+                            
                             <div id="teachersGridContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
                                 <!-- Grid injected by js -->
                             </div>
