@@ -219,7 +219,7 @@ async function executePrintSession(id, mode, filterArray) {
         if (roomName && examTeachersData.classrooms[roomName]) {
             const gorevli = examTeachersData.classrooms[roomName].gorevli;
             if (gorevli) {
-                gorevliHtml = `<div style="font-size:12pt; font-weight:700; color:#dc2626; border: 2px dashed #ef4444; border-radius: 6px; padding: 4px 8px; background: #fef2f2; display: inline-block;">GÖREVLİ Öğretmen: ${gorevli}</div>`;
+                gorevliHtml = `<div style="font-size:12pt; font-weight:700; color:#dc2626; border: 2px dashed #ef4444; border-radius: 6px; padding: 4px 8px; background: #fef2f2; display: inline-block;">Görevli Öğretmen: ${gorevli}</div>`;
             }
         }
         
