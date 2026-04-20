@@ -277,6 +277,7 @@
                 Masası</div>
             <h2
                 style="margin:0; font-weight: 900; font-size: 1.5rem; line-height: 1.2; display: flex; align-items: center; gap: 10px;">
+                <i id="teacherGenderIcon" class="fa-solid fa-user"></i>
                 <span id="teacherNameDisplay"></span>
                 <button onclick="openTeacherSettings()"
                     style="background: none; border: none; color: white; cursor: pointer; font-size: 1.1rem; opacity: 0.8; transition: var(--transition);"
@@ -324,6 +325,15 @@
 
         document.getElementById('teacherNameDisplay').textContent = currentName;
         document.getElementById('teacherBranchDisplay').textContent = "Branş(lar): " + myBranches.join(', ');
+
+        const teacherGenderIcon = document.getElementById('teacherGenderIcon');
+        if (teacherGenderIcon) {
+            const cachedGender = sessionStorage.getItem('klbk_gender') || 'erkek';
+            let iconClass = 'fa-user-tie';
+            if (cachedGender === 'kadin') iconClass = 'fa-user-nurse';
+            else if (cachedGender === 'diger') iconClass = 'fa-user';
+            teacherGenderIcon.className = `fa-solid ${iconClass}`;
+        }
 
         const sortByNum = (a, b) => {
             const numA = parseInt(a.replace(/[a-zA-Z\u00C0-\u024F]+$/, '')) || 0;
@@ -947,6 +957,13 @@
                         <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">E-Posta Adresi</label>
                         <input type="email" id="profEmail" class="form-control" placeholder="E-Posta" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
 
+                        <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Cinsiyet</label>
+                        <select id="profGender" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                            <option value="erkek">Erkek</option>
+                            <option value="kadin">Kadın</option>
+                            <option value="diger">Belirtilmemiş</option>
+                        </select>
+
                         <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Yeni Şifre</label>
                         <input type="password" id="profPass" class="form-control" placeholder="Değiştirmek istemiyorsanız boş bırakın" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
                         
@@ -964,10 +981,11 @@
                         const res = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`);
                         if (res.ok) {
                             const db = await res.json();
-                            if (db) {
-                                if (db[currentUser]) {
-                                    document.getElementById('profEmail').value = db[currentUser].email || '';
-                                }
+                            if (db && db[currentUser]) {
+                                const emailEl = document.getElementById('profEmail');
+                                if (emailEl) emailEl.value = db[currentUser].email || '';
+                                const genderEl = document.getElementById('profGender');
+                                if (genderEl) genderEl.value = db[currentUser].gender || 'erkek';
                             }
                         }
                     } catch (e) { }
@@ -976,6 +994,7 @@
                 preConfirm: async () => {
                     const newUsername = document.getElementById('profUser').value.trim();
                     const email = document.getElementById('profEmail').value.trim();
+                    const gender = document.getElementById('profGender').value;
                     const pass = document.getElementById('profPass').value;
                     const currentPassVerify = document.getElementById('currentPassVerify').value;
 
@@ -1004,8 +1023,9 @@
                                     throw new Error("Bu kullanıcı adı zaten alınmış!");
                                 }
 
-                                const userData = db[currentUser] || {};
+                                const userData = db[currentUser];
                                 userData.email = email;
+                                userData.gender = gender;
                                 if (pass) userData.password = pass;
 
                                 // Key Renaming Logic
@@ -1016,13 +1036,22 @@
                                     db[currentUser] = userData;
                                 }
 
-                                await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`, {
+                                const putRes = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`, {
                                     method: 'PUT',
-                                    headers: {
-                                        'Content-Type': 'application/json'
-                                    },
+                                    headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify(db)
                                 });
+                                if (!putRes.ok) throw new Error("Kayıt sırasında hata oluştu");
+
+                                // Update Top Icon immediately
+                                const tIcon = document.getElementById('teacherGenderIcon');
+                                if (tIcon) {
+                                    let iconClass = 'fa-user-tie';
+                                    if (gender === 'kadin') iconClass = 'fa-user-nurse';
+                                    else if (gender === 'diger') iconClass = 'fa-user';
+                                    tIcon.className = `fa-solid ${iconClass}`;
+                                }
+                                sessionStorage.setItem('klbk_gender', gender);
 
                                 // Update current session in place
                                 if (newUsername !== currentUser) {

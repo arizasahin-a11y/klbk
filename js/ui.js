@@ -115,6 +115,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log("%c DIAGNOSIS: Using storage key: " + key, "color: orange; font-weight: bold;");
 
     document.getElementById('displayUsername').textContent = sessionStorage.getItem('klbk_currentUser') || 'Yönetici';
+    
+    // Set Sidebar Avatar based on gender
+    const sidebarAvatarIcon = document.getElementById('sidebarAvatarIcon');
+    if (sidebarAvatarIcon) {
+        const cachedGender = sessionStorage.getItem('klbk_gender') || 'erkek';
+        let iconClass = 'fa-user-tie';
+        if (cachedGender === 'kadin') iconClass = 'fa-user-nurse';
+        else if (cachedGender === 'diger') iconClass = 'fa-user';
+        sidebarAvatarIcon.className = `fa-solid ${iconClass}`;
+    }
 
     // --- Logout Action ---
     document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -164,6 +174,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">E-Posta Adresi</label>
                     <input type="email" id="profEmail" class="form-control" placeholder="E-Posta" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
 
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Cinsiyet</label>
+                    <select id="profGender" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                        <option value="erkek">Erkek</option>
+                        <option value="kadin">Kadın</option>
+                        <option value="diger">Belirtilmemiş</option>
+                    </select>
+
                     <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Yeni Şifre</label>
                     <input type="password" id="profPass" class="form-control" placeholder="Değiştirmek istemiyorsanız boş bırakın" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
                     
@@ -184,6 +201,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (db && db[currentUser]) {
                             const emailEl = document.getElementById('profEmail');
                             if (emailEl) emailEl.value = db[currentUser].email || '';
+                            const genderEl = document.getElementById('profGender');
+                            if (genderEl) genderEl.value = db[currentUser].gender || 'erkek';
                         }
                     }
                 } catch (e) { }
@@ -192,6 +211,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             preConfirm: async () => {
                 const newUsername = document.getElementById('profUser').value.trim();
                 const email = document.getElementById('profEmail').value.trim();
+                const gender = document.getElementById('profGender').value;
                 const pass = document.getElementById('profPass').value;
                 const currentPassVerify = document.getElementById('currentPassVerify').value;
 
@@ -224,6 +244,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     const userData = db[currentUser];
                     userData.email = email;
+                    userData.gender = gender;
                     if (pass) userData.password = pass;
 
                     // 3. Update DB
@@ -241,6 +262,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
 
                     if (!putRes.ok) throw new Error("Kayıt sırasında hata oluştu");
+
+                    // Update local icon immediately
+                    const sidebarAvatarIcon2 = document.getElementById('sidebarAvatarIcon');
+                    if (sidebarAvatarIcon2) {
+                        let iconClass = 'fa-user-tie';
+                        if (gender === 'kadin') iconClass = 'fa-user-nurse';
+                        else if (gender === 'diger') iconClass = 'fa-user';
+                        sidebarAvatarIcon2.className = `fa-solid ${iconClass}`;
+                    }
+                    sessionStorage.setItem('klbk_gender', gender);
 
                     // 4. Update Session Data
                     if (newUsername !== currentUser) {

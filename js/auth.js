@@ -273,6 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     sessionStorage.setItem('klbk_schoolName', userData.schoolName || '');
                     sessionStorage.setItem('klbk_storeKey', userData.storeKey || (`klbk_data_${username}`));
                     sessionStorage.setItem('klbk_role', userData.role || 'admin');
+                    sessionStorage.setItem('klbk_gender', userData.gender || 'erkek');
                     if (userData.branch) {
                         sessionStorage.setItem('klbk_branch', userData.branch);
                     }

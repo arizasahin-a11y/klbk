@@ -167,7 +167,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const user = teachersDb[uname];
             const name = user.name || uname;
             const role = user.role || 'ogretmen';
+            const gender = user.gender || 'erkek';
             
+            // Cinsiyet simgesi seçimi
+            let genderIcon = 'fa-user-tie'; // Varsayılan Erkek
+            if (gender === 'kadin') genderIcon = 'fa-user-nurse';
+            else if (gender === 'diger') genderIcon = 'fa-user';
+
             // "admin yeşil idareci kırmısı yazılsın"
             let nameColor = '#5a2c91'; // Normal: Mor-mavi
             if (role === 'admin' || role === 'master' || uname === 'admin') nameColor = '#198754'; // Bootstrap Yeşil
@@ -193,36 +199,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: nowrap; width: 100%;">
                     
                     <!-- Isim ve Kullanıcı Bilgisi (En Sol) -->
-                    <div style="display: flex; align-items: center; gap: 15px; width: 30%; min-width: 220px; flex-shrink: 0; justify-content: flex-start;">
-                        <div class="stat-icon ${user.role === 'admin' ? 'primary' : 'success'}" style="width: 40px; height: 40px; min-width: 40px; font-size: 1rem;"><i class="fa-solid fa-user-tie"></i></div>
+                    <div style="display: flex; align-items: center; gap: 12px; width: 22%; min-width: 180px; flex-shrink: 0; justify-content: flex-start;">
+                        <div id="genderIconContainer-${uname}" class="stat-icon ${user.role === 'admin' ? 'primary' : 'success'}" style="width: 40px; height: 40px; min-width: 40px; font-size: 1rem;">
+                            <i class="fa-solid ${genderIcon}"></i>
+                        </div>
                         <div style="text-align: left; overflow: hidden;">
                             <h3 id="teacherName-${uname}" style="font-size: 1.05rem; color: ${nameColor}; margin:0; font-weight: 800; letter-spacing: 0.1px; transition: color 0.3s ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${uname}">
                                 ${name}
-                                <span style="font-size: 0.75rem; font-weight: normal; color: var(--gray-500); margin-left: 5px; opacity: 0.8;">(@${uname})</span>
                             </h3>
-                            <p style="font-size: 0.75rem; color: var(--gray-500); margin: 2px 0 0 0;">Şifre: <b>${user.password}</b></p>
+                            <p style="font-size: 0.75rem; color: var(--gray-500); margin: 2px 0 0 0;">(@${uname})</p>
                         </div>
                     </div>
 
-                    <!-- Branşlar (Kolon Hizalama) -->
-                    <div style="display: flex; flex-direction: column; width: 35%; flex-shrink: 1;">
+                    <!-- Branşlar -->
+                    <div style="display: flex; flex-direction: column; width: 30%; flex-shrink: 1;">
                         <select multiple style="height: 48px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--gray-300); font-size: 0.85rem; background: rgba(255,255,255,0.8); border-left: 3px solid var(--primary-light);" onclick="event.stopPropagation()" onchange="window.updateTeacherData('${uname}', 'branch', this)">
                             ${branchOptions}
                         </select>
-                        <small style="font-size: 0.65rem; color: var(--gray-500); text-align: center; margin-top: 4px;">Branş Seçimi (CTRL ile çoklu)</small>
+                        <small style="font-size: 0.65rem; color: var(--gray-500); text-align: center; margin-top: 4px;">Branş (CTRL ile çoklu)</small>
                     </div>
 
-                    <!-- Yetki (Kolon Hizalama) -->
-                    <div style="display: flex; flex-direction: column; width: 20%; min-width: 110px;">
+                    <!-- Cinsiyet Seçimi -->
+                    <div style="display: flex; flex-direction: column; width: 18%; min-width: 100px;">
+                        <select class="form-control" style="height: 48px; border-radius: 8px; border: 1px solid var(--gray-300); font-size: 0.85rem; background: rgba(255,255,255,0.8);" onclick="event.stopPropagation()" onchange="window.updateTeacherData('${uname}', 'gender', this.value)">
+                            <option value="erkek" ${gender === 'erkek' ? 'selected' : ''}>Erkek</option>
+                            <option value="kadin" ${gender === 'kadin' ? 'selected' : ''}>Kadın</option>
+                            <option value="diger" ${gender === 'diger' ? 'selected' : ''}>Belirtilmemiş</option>
+                        </select>
+                        <small style="font-size: 0.65rem; color: var(--gray-500); text-align: center; margin-top: 4px;">Cinsiyet</small>
+                    </div>
+
+                    <!-- Yetki -->
+                    <div style="display: flex; flex-direction: column; width: 18%; min-width: 100px;">
                         <select class="form-control" style="height: 48px; border-radius: 8px; border: 1px solid var(--gray-300); font-size: 0.85rem; background: rgba(255,255,255,0.8); border-left: 3px solid var(--secondary-light);" onclick="event.stopPropagation()" onchange="window.updateTeacherData('${uname}', 'role', this.value)">
                             <option value="ogretmen" ${role === 'ogretmen' ? 'selected' : ''}>Öğretmen</option>
                             <option value="idareci" ${role === 'idareci' ? 'selected' : ''}>İdareci</option>
                             <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
                         </select>
-                        <small style="font-size: 0.65rem; color: var(--gray-500); text-align: center; margin-top: 4px;">Sistem Yetkisi</small>
+                        <small style="font-size: 0.65rem; color: var(--gray-500); text-align: center; margin-top: 4px;">Yetki</small>
                     </div>
 
-                    <!-- İşlemler (En Sağ) -->
+                    <!-- İşlemler -->
                     <div style="display: flex; width: 5%; min-width: 50px; justify-content: flex-end; flex-shrink: 0;">
                         <button type="button" class="btn btn-sm" style="width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; color: var(--danger); background: rgba(220, 53, 69, 0.05); border: 1px solid rgba(220, 53, 69, 0.1); font-size: 1.1rem; border-radius: 10px; transition: all 0.2s;" title="Sil" onmouseenter="this.style.background='rgba(220, 53, 69, 0.15)'" onmouseleave="this.style.background='rgba(220, 53, 69, 0.05)'" onclick="event.stopPropagation(); window.deleteTeacher('${uname}')">
                             <i class="fa-solid fa-trash-can"></i>
@@ -266,6 +283,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (newValue === 'admin' || newValue === 'master') heading.style.color = '#198754';
                 else if (newValue === 'idareci') heading.style.color = '#dc3545';
                 else heading.style.color = '#5a2c91';
+            }
+        }
+
+        // Cinsiyet değişiminin anında UI'ya yansıması
+        if (field === 'gender') {
+            const container = document.getElementById(`genderIconContainer-${uname}`);
+            if (container) {
+                let iconClass = 'fa-user-tie';
+                if (newValue === 'kadin') iconClass = 'fa-user-nurse';
+                else if (newValue === 'diger') iconClass = 'fa-user';
+                container.innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
             }
         }
         
@@ -514,6 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const uname = document.getElementById('teacherUsername').value.trim();
             const password = document.getElementById('teacherPassword').value;
             const email = document.getElementById('teacherEmail').value.trim();
+            const gender = document.getElementById('teacherGender').value;
             
             const options = Array.from(teacherBranch.options);
             const branch = options.filter(opt => opt.selected).map(opt => opt.value);
@@ -541,10 +570,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         name: name,
                         password: password,
                         email: email,
-                        role: 'ogretmen',
+                        gender: gender,
                         branch: branch,
-                        schoolName: currentSchoolName,
-                        storeKey: currentSchoolStoreKey
+                        role: 'ogretmen',
+                        storeKey: currentSchoolStoreKey,
+                        schoolName: currentSchoolName
                     };
                     await saveUsersToCloud(usersDb);
                     Swal.fire('Başarılı', `'${name}' öğretmeni başarıyla eklendi!`, 'success');

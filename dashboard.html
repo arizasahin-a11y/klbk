@@ -88,7 +88,7 @@
 
             <div class="sidebar-footer">
                 <div class="user-info" id="sidebarUserArea" style="cursor: pointer;" title="Hesap Ayarları">
-                    <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                    <div class="avatar"><i id="sidebarAvatarIcon" class="fa-solid fa-user"></i></div>
                     <div class="details">
                         <h4 id="displayUsername">Admin</h4>
                         <p>Yönetici (v5.0)</p>
@@ -596,6 +596,14 @@
                                         <label>Şifre</label>
                                         <input type="text" id="teacherPassword" placeholder="Örn: 123456" required>
                                     </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Cinsiyet</label>
+                                    <select id="teacherGender" style="height: 48px; border-radius: 6px; border: 1px solid var(--gray-300);">
+                                        <option value="erkek">Erkek</option>
+                                        <option value="kadin">Kadın</option>
+                                        <option value="diger">Belirtilmemiş</option>
+                                    </select>
                                 </div>
                                 <div class="form-group">
                                     <label>E-posta (İsteğe Bağlı)</label>
