@@ -1509,8 +1509,8 @@
                 if (!ses.screenViewEnabled || !ses.results) continue;
 
                 const targetTime = DataManager.parseSessionDateTime(ses.date, ses.time);
-                // Force 40 minute duration from actual scheduled start
-                const endTime = new Date(targetTime.getTime() + 40 * 60 * 1000);
+                const durationMins = ses.examDuration || 40;
+                const endTime = new Date(targetTime.getTime() + durationMins * 60 * 1000);
                 const diffMins = (targetTime - now) / 1000 / 60;
                 const diffEndMins = (endTime - now) / 1000 / 60;
 
@@ -1581,11 +1581,9 @@
             if (window.fullScreenTimerInterval) clearInterval(window.fullScreenTimerInterval);
 
             const examStartTime = DataManager.parseSessionDateTime(sessionData.date, sessionData.time).getTime();
-            // Force 40 minute duration from actual scheduled start
-            const examEndTime = examStartTime + (40 * 60 * 1000);
-            const totalDuration = examEndTime - examStartTime;
-            const halfTime = examStartTime + (totalDuration / 2);
-            const fiveMinBefore = examEndTime - (5 * 60 * 1000);
+            const durationMins = sessionData.examDuration || 40;
+            const examEndTime = examStartTime + (durationMins * 60 * 1000);
+            const totalDurationMs = examEndTime - examStartTime;
 
             // Timer Updater Function
             const updateTimerUI = () => {
@@ -1596,32 +1594,39 @@
                 let diff = 0;
                 let isFinished = false;
 
-                // Color and Border logic based on User Request
+                // Color and Border logic based on User Request (Percentage based)
+                const elapsedMs = now - examStartTime;
+                const progress = elapsedMs / totalDurationMs;
+
                 if (now < examStartTime) {
                     diff = examStartTime - now;
                     timerEl.style.color = '#39FF14'; // Phosphor Green (Before Start)
                     timerEl.style.borderColor = 'rgba(57, 255, 20, 0.4)';
-                } else if (now < halfTime) {
+                } else if (progress <= 0.5) {
                     diff = examEndTime - now;
                     timerEl.style.color = '#39FF14'; // Phosphor Green (First Half)
                     timerEl.style.borderColor = 'rgba(57, 255, 20, 0.4)';
-                } else if (now < fiveMinBefore) {
+                } else if (progress <= 0.75) {
                     diff = examEndTime - now;
-                    timerEl.style.color = '#FFFF00'; // pure Yellow (Middle Part)
+                    timerEl.style.color = '#FFFF00'; // Pure Yellow (50% - 75%)
                     timerEl.style.borderColor = 'rgba(255, 255, 0, 0.5)';
+                } else if (progress <= 0.875) {
+                    diff = examEndTime - now;
+                    timerEl.style.color = '#FFA500'; // Orange (75% - 87.5%)
+                    timerEl.style.borderColor = 'rgba(255, 165, 0, 0.5)';
                 } else if (now < examEndTime) {
                     diff = examEndTime - now;
-                    timerEl.style.color = '#FF3131'; // Neon Red (Last 5 Mins)
+                    timerEl.style.color = '#FF3131'; // Neon Red (> 87.5%)
                     timerEl.style.borderColor = 'rgba(255, 49, 49, 0.6)';
-                    
-                    // Trigger emergency invert alert in the last 60 seconds
-                    if (diff <= 60000) {
-                        timerEl.style.animation = 'invertAlert 1s infinite steps(2)';
-                    } else {
-                        timerEl.style.animation = 'none';
-                    }
                 } else {
                     isFinished = true;
+                }
+
+                // Trigger emergency invert alert in the last 60 seconds (independent of color rules)
+                if (!isFinished && now >= examStartTime && diff <= 60000) {
+                    timerEl.style.animation = 'invertAlert 1s infinite steps(2)';
+                } else {
+                    timerEl.style.animation = 'none';
                 }
 
                 if (isFinished) {
