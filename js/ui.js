@@ -5030,30 +5030,33 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 })()}
                         </div>
-                        <div class="modal-form-group" style="flex: 1; min-width: 250px; padding-top:10px;">
-                            <label style="font-weight:700; display:block; margin-bottom:5px;">Ekran Görünümü</label>
-                            <div style="display:flex; align-items:center; gap:0.5rem;">
-                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;" title="Öğrenci Panelinde oturma planını göster">
-                                    <input type="checkbox" id="meta-screen-check" ${ses.screenViewEnabled ? 'checked' : ''} style="width:18px; height:18px;">
-                                    <i class="fa-solid fa-desktop" style="color:var(--info);"></i>
-                                </label>
-                                <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit !== undefined ? ses.screenViewLimit : 20}" min="0" max="9999" style="width:85px; height:35px; text-align:center; border:1px solid var(--gray-300); border-radius:6px; font-weight:bold;">
-                                <span style="font-size:0.85rem; font-weight:600; color:var(--gray-500);">dk</span>
-                            </div>
-                        </div>
                     </div>
 
-                    <div class="modal-form-card" style="margin-bottom: 1.5rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
-                        <div style="display:flex; align-items:center; gap:1rem; flex:1;">
-                            <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary); font-size:1.5rem;"></i>
-                            <div style="flex:1;">
-                                <strong style="display:block; font-size:0.9rem;">Toplu Sınav No Uygula</strong>
-                                <small style="color:var(--gray-500)">Seçili tüm derslere aynı numarayı girin.</small>
+                    <div class="modal-form-card" style="margin-bottom: 1.5rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap; padding: 1rem; background: var(--gray-50); border-radius: 12px; border: 1px solid var(--gray-200);">
+                        <div style="display:flex; align-items:center; gap:0.8rem;">
+                            <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary); font-size:1.2rem;"></i>
+                            <div>
+                                <strong style="display:block; font-size:0.85rem;">Toplu Sınav No Uygula</strong>
+                                <small style="color:var(--gray-500); font-size:0.75rem;">Seçili tüm derslere aynı numarayı girin.</small>
                             </div>
                         </div>
-                        <div style="display:flex; gap:0.5rem; align-items:center;">
-                            <input type="text" id="bulk-exam-num" class="swal2-input" style="width:90px; margin:0; height:40px; text-align:center;" placeholder="No">
-                            <button type="button" class="btn btn-primary btn-sm" style="height:40px;" onclick="const val=document.getElementById('bulk-exam-num').value; document.querySelectorAll('.meta-subject-row').forEach(row => { const cb=row.querySelector('.meta-sub-check'); if(cb && cb.checked){ const input=row.querySelector('.meta-exam-num-input'); if(input) input.value=val; } })">Uygula</button>
+                        <div style="display:flex; gap:0.3rem; align-items:center;">
+                            <input type="text" id="bulk-exam-num" class="swal2-input" style="width:60px; margin:0; height:32px; text-align:center; font-size:0.8rem; padding:0;" placeholder="No">
+                            <button type="button" class="btn btn-primary btn-sm" style="height:32px; padding:0 10px; font-size:0.75rem;" onclick="const val=document.getElementById('bulk-exam-num').value; document.querySelectorAll('.meta-subject-row').forEach(row => { const cb=row.querySelector('.meta-sub-check'); if(cb && cb.checked){ const input=row.querySelector('.meta-exam-num-input'); if(input) input.value=val; } })">Uygula</button>
+                        </div>
+                        
+                        <div style="flex:1; min-width:20px;"></div>
+
+                        <div class="modal-form-group" style="display:flex; align-items:center; gap:0.8rem;">
+                            <label style="font-weight:700; margin:0; font-size:0.85rem; color: var(--gray-700);">Ekran Görünümü</label>
+                            <div style="display:flex; align-items:center; gap:0.5rem; background:white; padding:4px 8px; border-radius:8px; border:1px solid var(--gray-200);">
+                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer; margin:0;" title="Öğrenci Panelinde oturma planını göster">
+                                    <input type="checkbox" id="meta-screen-check" ${ses.screenViewEnabled ? 'checked' : ''} style="width:16px; height:16px;">
+                                    <i class="fa-solid fa-desktop" style="color:var(--info); font-size:0.9rem;"></i>
+                                </label>
+                                <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit !== undefined ? ses.screenViewLimit : 20}" min="0" max="9999" style="width:50px; height:28px; text-align:center; border:1px solid var(--gray-200); border-radius:4px; font-weight:bold; font-size:0.8rem;">
+                                <span style="font-size:0.75rem; font-weight:600; color:var(--gray-500);">dk</span>
+                            </div>
                         </div>
                     </div>
 
