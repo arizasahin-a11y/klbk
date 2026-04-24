@@ -5008,20 +5008,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             backdrop: true,
             html: `
                 <div class="modal-body-wrapper" style="text-align: left;">
-                    <div class="modal-form-card" style="margin-bottom: 1.5rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
-                        <div style="display:flex; align-items:center; gap:1rem; flex:1;">
-                            <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary); font-size:1.5rem;"></i>
-                            <div style="flex:1;">
-                                <strong style="display:block; font-size:0.9rem;">Toplu Sınav No Uygula</strong>
-                                <small style="color:var(--gray-500)">Seçili tüm derslere aynı numarayı girin.</small>
-                            </div>
-                        </div>
-                        <div style="display:flex; gap:0.5rem; align-items:center;">
-                            <input type="text" id="bulk-exam-num" class="swal2-input" style="width:90px; margin:0; height:40px; text-align:center;" placeholder="No">
-                            <button type="button" class="btn btn-primary btn-sm" style="height:40px;" onclick="const val=document.getElementById('bulk-exam-num').value; document.querySelectorAll('.meta-subject-row').forEach(row => { const cb=row.querySelector('.meta-sub-check'); if(cb && cb.checked){ const input=row.querySelector('.meta-exam-num-input'); if(input) input.value=val; } })">Uygula</button>
-                        </div>
-                    </div>
-
                     <div class="modal-row" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
                         <div class="modal-form-group" style="flex: 1; min-width: 200px; max-width: 250px;">
                             <label style="font-weight:700;">Sınav Tarihi</label>
@@ -5054,6 +5040,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit !== undefined ? ses.screenViewLimit : 20}" min="0" max="9999" style="width:85px; height:35px; text-align:center; border:1px solid var(--gray-300); border-radius:6px; font-weight:bold;">
                                 <span style="font-size:0.85rem; font-weight:600; color:var(--gray-500);">dk</span>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-form-card" style="margin-bottom: 1.5rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:1rem; flex:1;">
+                            <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary); font-size:1.5rem;"></i>
+                            <div style="flex:1;">
+                                <strong style="display:block; font-size:0.9rem;">Toplu Sınav No Uygula</strong>
+                                <small style="color:var(--gray-500)">Seçili tüm derslere aynı numarayı girin.</small>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <input type="text" id="bulk-exam-num" class="swal2-input" style="width:90px; margin:0; height:40px; text-align:center;" placeholder="No">
+                            <button type="button" class="btn btn-primary btn-sm" style="height:40px;" onclick="const val=document.getElementById('bulk-exam-num').value; document.querySelectorAll('.meta-subject-row').forEach(row => { const cb=row.querySelector('.meta-sub-check'); if(cb && cb.checked){ const input=row.querySelector('.meta-exam-num-input'); if(input) input.value=val; } })">Uygula</button>
                         </div>
                     </div>
 
