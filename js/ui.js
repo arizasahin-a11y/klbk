@@ -5009,11 +5009,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             html: `
                 <div class="modal-body-wrapper" style="text-align: left;">
                     <div class="modal-row" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
-                        <div class="modal-form-group" style="flex: 1; min-width: 200px; max-width: 250px;">
+                        <div class="modal-form-group" style="flex: 1; min-width: 180px; max-width: 220px;">
                             <label style="font-weight:700;">Sınav Tarihi</label>
                             <input type="date" id="meta-date" class="swal2-input" style="width:100%; margin:0; height:40px;" value="${window.formatDateToInput(ses.date) || ''}">
                         </div>
-                        <div class="modal-form-group" style="flex: 1; min-width: 200px; max-width: 250px;">
+                        <div class="modal-form-group" style="flex: 1; min-width: 180px; max-width: 220px;">
                             <label style="font-weight:700;">Sınav Saati / Ders</label>
                             ${(() => {
                     const school = DataManager.getSchoolSettings();
@@ -5029,6 +5029,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         return `<input type="text" id="meta-time" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem;" value="${ses.time || ''}" placeholder="10:00">`;
                     }
                 })()}
+                        </div>
+                        <div class="modal-form-group" style="flex: 1; min-width: 150px; max-width: 180px;">
+                            <label style="font-weight:700;">Sınav Süresi (dk)</label>
+                            <input type="number" id="meta-duration" class="swal2-input" style="width:100%; margin:0; height:40px; text-align:center;" value="${ses.examDuration || 40}" min="1">
+                            <div id="duration-timer-preview" style="font-size: 0.9rem; font-weight: 800; color: #ef4444; margin-top: 5px; text-align: center; font-family: monospace; background: #fee2e2; border-radius: 4px; padding: 2px 0;">00:40:00</div>
                         </div>
                     </div>
 
@@ -5054,7 +5059,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <input type="checkbox" id="meta-screen-check" ${ses.screenViewEnabled ? 'checked' : ''} style="width:16px; height:16px;">
                                     <i class="fa-solid fa-desktop" style="color:var(--info); font-size:0.9rem;"></i>
                                 </label>
-                                <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit !== undefined ? ses.screenViewLimit : 20}" min="0" max="9999" style="width:50px; height:28px; text-align:center; border:1px solid var(--gray-200); border-radius:4px; font-weight:bold; font-size:0.8rem;">
+                                <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit !== undefined ? ses.screenViewLimit : 20}" min="0" max="9999" style="width:65px; height:28px; text-align:center; border:1px solid var(--gray-200); border-radius:4px; font-weight:bold; font-size:0.85rem;">
                                 <span style="font-size:0.75rem; font-weight:600; color:var(--gray-500);">dk</span>
                             </div>
                         </div>
@@ -5099,6 +5104,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const timeInp = document.getElementById('meta-time');
                 if (dateInp && ses.date) dateInp.value = window.formatDateToInput(ses.date);
                 if (timeInp && ses.time) timeInp.value = ses.time;
+
+                const durationInp = document.getElementById('meta-duration');
+                const timerPreview = document.getElementById('duration-timer-preview');
+                const updateTimer = (mins) => {
+                    const m = parseInt(mins) || 0;
+                    const h = Math.floor(m / 60);
+                    const mm = m % 60;
+                    const hh = h.toString().padStart(2, '0');
+                    const mmm = mm.toString().padStart(2, '0');
+                    if (timerPreview) timerPreview.innerText = `${hh}.${mmm}:00`;
+                };
+                if (durationInp) {
+                    durationInp.addEventListener('input', (e) => updateTimer(e.target.value));
+                    updateTimer(durationInp.value);
+                }
             },
             preConfirm: () => {
                 const newMetadata = {};
@@ -5133,6 +5153,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     subjectMetadata: newMetadata,
                     date: window.formatDateToStandard(document.getElementById('meta-date').value),
                     time: document.getElementById('meta-time').value.trim(),
+                    examDuration: parseInt(document.getElementById('meta-duration').value) || 40,
                     studentMsg: document.getElementById('meta-std-msg').value.trim(),
                     teacherMsg: document.getElementById('meta-tch-msg').value.trim(),
                     screenViewEnabled: document.getElementById('meta-screen-check').checked,
