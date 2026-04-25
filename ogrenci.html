@@ -1507,7 +1507,7 @@
             let activeRoomData = null;
 
             for (let ses of sessions) {
-                if (!ses.screenViewEnabled || !ses.results) continue;
+                if (!ses.isPublished || !ses.screenViewEnabled || !ses.results) continue;
 
                 const targetTime = DataManager.parseSessionDateTime(ses.date, ses.time);
                 const durationMins = ses.examDuration || 40;
