@@ -567,7 +567,7 @@
                     const ses = item.session;
                     const subjectsObj = item.displaySubjects;
                     const targetTime = DataManager.parseSessionDateTime(ses.date, ses.time);
-                    const endTime = DataManager.getSessionEndDateTime(ses.date, ses.time);
+                    const endTime = DataManager.getSessionEndDateTime(ses.date, ses.time, ses.examDuration);
                     const diffMs = targetTime - now;
                     const diffMins = diffMs / 1000 / 60;
                     const diffEndMins = (endTime - now) / 1000 / 60;
@@ -754,7 +754,7 @@
                 const el = document.getElementById(`cd-${ses.id}`);
                 if (el) {
                     const targetTime = DataManager.parseSessionDateTime(ses.date, ses.time);
-                    const endTime = DataManager.getSessionEndDateTime(ses.date, ses.time);
+                    const endTime = DataManager.getSessionEndDateTime(ses.date, ses.time, ses.examDuration);
                     const diffMs = targetTime - now;
                     const diffMins = diffMs / 1000 / 60;
                     const diffEndMins = (endTime - now) / 1000 / 60;

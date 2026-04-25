@@ -680,9 +680,9 @@ const DataManager = {
         return isNaN(d.getTime()) ? new Date(0) : d;
     },
 
-    getSessionEndDateTime: function (dateStr, timeStr) {
+    getSessionEndDateTime: function (dateStr, timeStr, forcedDuration) {
         const start = this.parseSessionDateTime(dateStr, timeStr);
-        let duration = 40; // Default 40 mins
+        let duration = forcedDuration || 40; // Default 40 mins
 
         if (timeStr && timeStr.includes('. Ders')) {
             const lessonNum = parseInt(timeStr);
