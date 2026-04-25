@@ -1029,15 +1029,16 @@ const DataManager = {
             }
             const d = new Date(ds + 'T00:00:00');
             if (isNaN(d.getTime())) return null;
-            const days = ['Pz', 'Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct'];
+            const days = ['Pz', 'Pa', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct'];
             return days[d.getDay()];
         };
 
         const examDay = parseDay(session.date);
-        const examHourMatch = (session.time || '').match(/\d+/);
-        const examHour = examHourMatch ? examHourMatch[0] : null;
+        const timeStr = (session.time || '').trim();
+        const examHourMatch = timeStr.match(/\d+/);
+        const examHourNum = examHourMatch ? examHourMatch[0] : null;
 
-        if (!examDay || !examHour) return result;
+        if (!examDay || !timeStr) return result;
 
         const normalizeClass = (val) => String(val).toUpperCase().replace(/[^A-Z0-9ĞÜŞİÖÇ]/gi, '');
         
@@ -1048,7 +1049,13 @@ const DataManager = {
             const daySched = sched[examDay] || {};
 
             const hasAnyClassThisDay = Object.values(daySched).some(v => v && v !== '-');
-            const assignedClassAtThisHourRaw = daySched[examHour];
+            
+            // Try matching by exact string first, then by the first number found in the time string
+            let assignedClassAtThisHourRaw = daySched[timeStr];
+            if (!assignedClassAtThisHourRaw && examHourNum) {
+                assignedClassAtThisHourRaw = daySched[examHourNum];
+            }
+            
             const assignedClassAtThisHour = (assignedClassAtThisHourRaw && assignedClassAtThisHourRaw !== '-') ? assignedClassAtThisHourRaw : null;
 
             if (assignedClassAtThisHour) {
@@ -1069,10 +1076,17 @@ const DataManager = {
                 }
             } else {
                 // Bu ders saatinde boşta
-                const hasLaterClasses = Object.entries(daySched).some(([h, v]) => parseInt(h) > parseInt(examHour) && v && v !== '-');
+                const currentHourKey = daySched[timeStr] ? timeStr : (examHourNum && daySched[examHourNum] ? examHourNum : null);
+                
+                let hasLaterClasses = false;
+                if (currentHourKey) {
+                    hasLaterClasses = Object.entries(daySched).some(([h, v]) => parseInt(h) > parseInt(currentHourKey) && v && v !== '-');
+                } else if (examHourNum) {
+                    hasLaterClasses = Object.entries(daySched).some(([h, v]) => parseInt(h) > parseInt(examHourNum) && v && v !== '-');
+                }
+
                 const isIdareci = t.role === 'idareci' || t.role === 'admin' || t.role === 'master';
                 
-                // Sadece dersi olanları veya idarecileri ekle (Gereksiz kalabalığı önlemek için)
                 if (hasAnyClassThisDay || isIdareci) {
                     result.globalSpares.push({ 
                         uname, 
@@ -1098,25 +1112,25 @@ const DataManager = {
                         classroomInfo.gorevli = assignmentMatch.ogretmenler[0].name;
                         
                         const extras = assignmentMatch.ogretmenler.slice(1);
-                        // Ekstra öğretmenleri yedek havuzuna ekle
                         extras.forEach(extra => {
                             const t = teachersDb[extra.uname];
                             const daySched = (t && t.schedule) ? (t.schedule[examDay] || {}) : {};
+                            const currentHourKey = daySched[timeStr] ? timeStr : (examHourNum && daySched[examHourNum] ? examHourNum : null);
                             result.globalSpares.push({
                                 ...extra,
                                 isDouble: true,
-                                hasLaterClasses: Object.entries(daySched).some(([h, v]) => parseInt(h) > parseInt(examHour) && v && v !== '-'),
+                                hasLaterClasses: Object.entries(daySched).some(([h, v]) => parseInt(h) > (parseInt(currentHourKey) || parseInt(examHourNum) || 0) && v && v !== '-'),
                                 hasAnyClassThisDay: Object.values(daySched).some(v => v && v !== '-')
                             });
                         });
-                        // İdarecileri yedek havuzuna ekle
                         assignmentMatch.idareciler.forEach(idr => {
                             const t = teachersDb[idr.uname];
                             const daySched = (t && t.schedule) ? (t.schedule[examDay] || {}) : {};
+                            const currentHourKey = daySched[timeStr] ? timeStr : (examHourNum && daySched[examHourNum] ? examHourNum : null);
                             result.globalSpares.push({
                                 ...idr,
                                 isDouble: true,
-                                hasLaterClasses: Object.entries(daySched).some(([h, v]) => parseInt(h) > parseInt(examHour) && v && v !== '-'),
+                                hasLaterClasses: Object.entries(daySched).some(([h, v]) => parseInt(h) > (parseInt(currentHourKey) || parseInt(examHourNum) || 0) && v && v !== '-'),
                                 hasAnyClassThisDay: Object.values(daySched).some(v => v && v !== '-')
                             });
                         });
@@ -1127,10 +1141,11 @@ const DataManager = {
                         extras.forEach(extra => {
                             const t = teachersDb[extra.uname];
                             const daySched = (t && t.schedule) ? (t.schedule[examDay] || {}) : {};
+                            const currentHourKey = daySched[timeStr] ? timeStr : (examHourNum && daySched[examHourNum] ? examHourNum : null);
                             result.globalSpares.push({
                                 ...extra,
                                 isDouble: true,
-                                hasLaterClasses: Object.entries(daySched).some(([h, v]) => parseInt(h) > parseInt(examHour) && v && v !== '-'),
+                                hasLaterClasses: Object.entries(daySched).some(([h, v]) => parseInt(h) > (parseInt(currentHourKey) || parseInt(examHourNum) || 0) && v && v !== '-'),
                                 hasAnyClassThisDay: Object.values(daySched).some(v => v && v !== '-')
                             });
                         });
