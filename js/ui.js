@@ -6245,6 +6245,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     } finally {
         initializeNavigation();
 
+        // --- Anlık Senkronizasyon (Diğer sayfalardaki değişiklikleri dashboard'a yansıtır) ---
+        let lastSyncHash = JSON.stringify(DataManager.getExamSessions());
+        setInterval(async () => {
+            const sessionsTab = document.getElementById('view-exam');
+            // Sadece Sınav Dağıtımı sekmesi aktifse ve modal açık değilse yenile (UI akışını bozmamak için)
+            if (sessionsTab && !sessionsTab.classList.contains('hidden') && !document.querySelector('.swal2-container')) {
+                await DataManager.initCloud();
+                const currentHash = JSON.stringify(DataManager.getExamSessions());
+                if (currentHash !== lastSyncHash) {
+                    lastSyncHash = currentHash;
+                    console.log("Dış veri değişikliği algılandı, oturum listesi yenileniyor...");
+                    if (typeof renderExamSessionsList === 'function') renderExamSessionsList();
+                }
+            }
+        }, 5000); // Admin dashboard için 5 saniye yeterli
+
         // --- Font Pre-fetching for Speed ---
         (async function preFetchFonts() {
             const fonts = ['https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf', 'fonts/MonotypeCorsiva.ttf', 'fonts/SnapITC.ttf'];

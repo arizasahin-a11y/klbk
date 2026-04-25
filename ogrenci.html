@@ -785,9 +785,16 @@
 
             if (window.cloudSyncInterval) clearInterval(window.cloudSyncInterval);
             window.cloudSyncInterval = setInterval(async () => {
+                const oldData = JSON.stringify(DataManager.getExamSessions());
                 await DataManager.initCloud();
+                const newData = JSON.stringify(DataManager.getExamSessions());
+                
+                // Eğer veriler değişmişse listeyi tekrar çiz (Anlık yansıma)
+                if (oldData !== newData) {
+                    renderExams();
+                }
                 checkLiveMessages();
-            }, 3000);
+            }, 2000);
         }
 
         function logout() {
