@@ -712,10 +712,12 @@
                                     </div>`;
                             }
 
-                            if (stateCode === 'far' || stateCode === 'near') {
+                            if (stateCode === 'far' || stateCode === 'near' || stateCode === 'active') {
                                 html += papersHtml;
-                            } else if (stateCode === 'active') {
-                                html += `<div style="background: white; padding: 1.5rem; border-radius: 12px; border: 2px solid #fee2e2; box-shadow: var(--shadow-sm);" onclick="event.stopPropagation()">
+                            }
+                            
+                            if (stateCode === 'active') {
+                                html += `<div style="background: white; padding: 1.5rem; border-radius: 12px; border: 2px solid #fee2e2; box-shadow: var(--shadow-sm); margin-top: 1.25rem;" onclick="event.stopPropagation()">
                                              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                                                  <h5 style="color: var(--danger); margin:0; font-weight:900; display:flex; align-items:center; gap:8px;">
                                                      <i class="fa-solid fa-tower-broadcast fa-beat"></i> CANLI MESAJ GÖNDER
