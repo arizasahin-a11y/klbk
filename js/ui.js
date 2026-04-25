@@ -2793,27 +2793,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderExamSessionsList() {
         if (!examSessionsList) return;
         const sessions = DataManager.getSortedExamSessions();
-        examSessionsList.innerHTML = '';
-
-        if (sessions.length === 0) {
-            examSessionsList.innerHTML = `<div style="text-align:center; padding: 3rem; border: 2px dashed var(--gray-300); border-radius: 12px; color: var(--gray-500); background: var(--gray-50);">
-                <i class="fa-solid fa-calendar-plus" style="font-size: 2rem; display: block; margin-bottom: 1rem; opacity: 0.5;"></i>
-                Henüz oturum yok. Yeni oturum oluşturun.
-            </div>`;
-            return;
-        }
-
         const activeSessions = sessions.filter(s => !s.isArchived);
         const archivedSessions = sessions.filter(s => s.isArchived);
 
-        let tableHtml = '';
-
         const renderTable = (list, isArchivedTable) => {
-            if (list.length === 0) return '';
+            if (list.length === 0) return isArchivedTable ? '' : '<div class="empty-text" style="text-align:center; padding: 2rem; color: var(--gray-500);">Henüz aktif oturum yok.</div>';
             
             let html = `
-                <div class="session-table-container ${isArchivedTable ? 'archived-section' : ''}" style="${isArchivedTable ? 'margin-top: 2rem; border-top: 2px dashed var(--gray-300); padding-top: 1rem;' : ''}">
-                    ${isArchivedTable ? '<h4 style="color: var(--gray-500); margin-bottom: 1rem;"><i class="fa-solid fa-box-archive"></i> Arşivlenmiş Oturumlar</h4>' : ''}
+                <div class="session-table-container">
                     <table class="session-table">
                     <thead>
                         <tr>
@@ -2828,6 +2815,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             list.forEach((ses, idx) => {
                 const status = ses.isArchived ? 'archived' : (ses.isPublished ? 'published' : 'unpublished');
+                const val = status === 'published' ? 0 : (status === 'unpublished' ? 1 : 2);
+                
                 const hue = list.length > 1 ? 280 - (idx / (list.length - 1)) * 280 : 280;
                 const bgColor = status === 'published' ? `hsla(${hue}, 70%, 97%, 1)` : (status === 'archived' ? '#f1f5f9' : '#fef2f2');
                 const titleColor = status === 'published' ? 'var(--primary)' : 'var(--gray-500)';
@@ -2837,103 +2826,151 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <tr id="session-row-${ses.id}" class="session-row" style="background: ${bgColor}; ${status === 'archived' ? 'opacity: 0.8;' : ''}">
                         <td class="session-info-cell">
                             <div class="session-title-wrapper">
-                                <div class="klbk-tri-switch" 
-                                     data-status="${status}" 
-                                     onclick="window.cycleSessionStatus('${ses.id}')"
-                                     title="Durum: ${status === 'published' ? 'Yayında (Yeşil)' : (status === 'unpublished' ? 'Yayında Değil (Kırmızı)' : 'Arşivlendi (Gri)')}. Değiştirmek için tıklayın.">
-                                    <div class="tri-labels">
+                                <div class="tri-range-container" data-status="${status}" title="Durum: ${status === 'published' ? 'Yayında' : (status === 'unpublished' ? 'Yayında Değil' : 'Arşivlendi')}">
+                                    <div class="tri-range-labels">
                                         <i class="fa-solid fa-check"></i>
                                         <i class="fa-solid fa-xmark"></i>
                                         <i class="fa-solid fa-box-archive"></i>
                                     </div>
-                                    <span class="klbk-tri-slider"></span>
+                                    <input type="range" min="0" max="2" step="1" value="${val}" 
+                                           class="tri-status-range" 
+                                           onchange="window.updateSessionStatus('${ses.id}', this.value)">
                                 </div>
                                 <i class="fa-solid fa-chevron-right session-arrow-icon" id="arrow-${ses.id}" onclick="window.viewSessionDistribution('${ses.id}')"></i>
                                 <span onclick="window.viewSessionDistribution('${ses.id}')" class="session-title" style="color:${titleColor}; cursor: pointer;">
                                     ${titleText}
                                 </span>
                             </div>
-                        <div class="session-subjects" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:4px;">
-                            ${(() => {
-                                const subjectStats = {};
-                                if (ses.results) {
-                                    ses.results.forEach(room => {
-                                        Object.values(room.seats || {}).forEach(std => {
-                                            if (std._matchedSubject) subjectStats[std._matchedSubject] = true;
+                            <div class="session-subjects" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:4px;">
+                                ${(() => {
+                                    const subjectStats = {};
+                                    if (ses.results) {
+                                        ses.results.forEach(room => {
+                                            Object.values(room.seats || {}).forEach(std => {
+                                                if (std._matchedSubject) subjectStats[std._matchedSubject] = true;
+                                            });
                                         });
-                                    });
-                                }
-                                const subjectNames = Object.keys(subjectStats).length > 0
-                                    ? Object.keys(subjectStats).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }))
-                                    : (ses.subjects ? ses.subjects.map(s => typeof s === 'object' ? s.name : s) : (ses.subject ? [ses.subject] : []));
-                                
-                                return subjectNames.map(subName => {
-                                    const meta = DataManager.getSanitizedSubjectMetadata(ses, subName);
-                                    const papers = meta.papers || {};
-                                    let hasPdf = false;
-                                    if (typeof papers === 'string' && papers.trim().length > 0) hasPdf = true;
-                                    else if (typeof papers === 'object' && papers !== null) {
-                                        hasPdf = Object.values(papers).some(p => typeof p === 'string' && p.trim().length > 0);
                                     }
+                                    const subjectNames = Object.keys(subjectStats).length > 0
+                                        ? Object.keys(subjectStats).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }))
+                                        : (ses.subjects ? ses.subjects.map(s => typeof s === 'object' ? s.name : s) : (ses.subject ? [ses.subject] : []));
                                     
-                                    if (hasPdf) {
-                                        return '<span style="color: #10b981; font-weight: 700; font-size: 0.85rem; display:inline-flex; align-items:center; gap:4px;">' + subName + ' <span style="background:#10b981; color:white; padding:2px 5px; border-radius:4px; font-size:0.65rem; line-height:1; font-weight:bold;">PDF</span></span>';
-                                    } else {
-                                        return '<span style="color: var(--gray-500); font-size: 0.85rem;">' + subName + '</span>';
-                                    }
-                                }).join('<span style="color:var(--gray-300); font-size:0.8rem;">•</span>');
-                            })()}
-                        </div>
-                        <div class="session-datetime-mobile hide-desktop">
-                            <i class="fa-regular fa-clock"></i> ${ses.date || ''} - ${ses.time}
-                        </div>
-                    </td>
-                    <td class="session-datetime-desktop hide-mobile">
-                        <div class="font-weight-bold text-dark">${ses.date || ''}</div>
-                        <div class="font-size-0-8 text-gray-500">${ses.time}</div>
-                    </td>
-                    <td class="session-view-options-cell">
-                        <div class="mode-selector-container" style="display: flex; gap: 5px; justify-content: flex-start; align-items: center; white-space: nowrap; flex-wrap: nowrap;">
-                            <label class="mode-selector-label" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
-                                <input type="radio" name="mode-${ses.id}" value="class" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Sınıf
-                            </label>
-                            <label class="mode-selector-label" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
-                                <input type="radio" name="mode-${ses.id}" value="room" checked class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Salon
-                            </label>
-                            <label class="mode-selector-label" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
-                                <input type="radio" name="mode-${ses.id}" value="seating" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Şema
-                            </label>
-                        </div>
-                    </td>
-                    <td style="padding:1.25rem; text-align:center; display:flex; gap:0.5rem; justify-content:center;">
-                        <button class="btn btn-secondary" style="padding: 0.5rem 0.75rem;" onclick="window.openSessionMetadataEditor('${ses.id}')" title="Düzenle">
-                            <i class="fa-solid fa-pen"></i>
-                        </button>
-                        <button class="btn btn-secondary" style="padding: 0.5rem 0.75rem;" title="Yazdır"
-                            onclick="window.printSessionDistribution('${ses.id}')">
-                            <i class="fa-solid fa-print"></i>
-                        </button>
-                        <button class="btn btn-danger" style="padding: 0.5rem 0.75rem;" onclick="window.deleteExamSession('${ses.id}')" title="Sil">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    </td>
+                                    return subjectNames.map(subName => {
+                                        const meta = DataManager.getSanitizedSubjectMetadata(ses, subName);
+                                        const papers = meta.papers || {};
+                                        let hasPdf = false;
+                                        if (typeof papers === 'string' && papers.trim().length > 0) hasPdf = true;
+                                        else if (typeof papers === 'object' && papers !== null) {
+                                            hasPdf = Object.values(papers).some(p => typeof p === 'string' && p.trim().length > 0);
+                                        }
+                                        
+                                        if (hasPdf) {
+                                            return '<span style="color: #10b981; font-weight: 700; font-size: 0.85rem; display:inline-flex; align-items:center; gap:4px;">' + subName + ' <span style="background:#10b981; color:white; padding:2px 5px; border-radius:4px; font-size:0.65rem; line-height:1; font-weight:bold;">PDF</span></span>';
+                                        } else {
+                                            return '<span style="color: var(--gray-500); font-size: 0.85rem;">' + subName + '</span>';
+                                        }
+                                    }).join('<span style="color:var(--gray-300); font-size:0.8rem;">•</span>');
+                                })()}
+                            </div>
+                            <div class="session-datetime-mobile hide-desktop">
+                                <i class="fa-regular fa-clock"></i> ${ses.date || ''} - ${ses.time}
+                            </div>
+                        </td>
+                        <td class="session-datetime-desktop hide-mobile">
+                            <div class="font-weight-bold text-dark">${ses.date || ''}</div>
+                            <div class="font-size-0-8 text-gray-500">${ses.time}</div>
+                        </td>
+                        <td class="session-view-options-cell">
+                            <div class="mode-selector-container" style="display: flex; gap: 5px; justify-content: flex-start; align-items: center; white-space: nowrap; flex-wrap: nowrap;">
+                                <label class="mode-selector-label" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
+                                    <input type="radio" name="mode-${ses.id}" value="class" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Sınıf
+                                </label>
+                                <label class="mode-selector-label" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
+                                    <input type="radio" name="mode-${ses.id}" value="room" checked class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Salon
+                                </label>
+                                <label class="mode-selector-label" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
+                                    <input type="radio" name="mode-${ses.id}" value="seating" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Şema
+                                </label>
+                            </div>
+                        </td>
+                        <td style="padding:1.25rem; text-align:center; display:flex; gap:0.5rem; justify-content:center;">
+                            <button class="btn btn-secondary" style="padding: 0.5rem 0.75rem;" onclick="window.openSessionMetadataEditor('${ses.id}')" title="Düzenle">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button class="btn btn-secondary" style="padding: 0.5rem 0.75rem;" title="Yazdır"
+                                onclick="window.printSessionDistribution('${ses.id}')">
+                                <i class="fa-solid fa-print"></i>
+                            </button>
+                            <button class="btn btn-danger" style="padding: 0.5rem 0.75rem;" onclick="window.deleteExamSession('${ses.id}')" title="Sil">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr id="accordion-body-${ses.id}" class="hidden" style="background:#fafafa;">
+                        <td colspan="4" style="padding:0;">
+                            <div id="results-container-${ses.id}" style="padding:1.5rem; border-left:4px solid var(--primary);">
+                                <!-- Results will be injected here -->
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
 
-                </tr>
-                <tr id="accordion-body-${ses.id}" class="hidden" style="background:#fafafa;">
-                    <td colspan="4" style="padding:0;">
-                        <div id="results-container-${ses.id}" style="padding:1.5rem; border-left:4px solid var(--primary);">
-                            <!-- Results will be injected here -->
-                        </div>
-                    </td>
-                </tr>
+            return html + `</tbody></table></div>`;
+        };
+
+        let finalHtml = renderTable(activeSessions, false);
+        
+        if (archivedSessions.length > 0) {
+            finalHtml += `
+                <details class="archived-details">
+                    <summary><i class="fa-solid fa-box-archive"></i> Arşivlenmiş Oturumlar (${archivedSessions.length})</summary>
+                    <div class="archived-content">
+                        ${renderTable(archivedSessions, true)}
+                    </div>
+                </details>
             `;
-        });
-        html += `</tbody></table></div>`;
-        return html;
-    };
-
-            examSessionsList.innerHTML = renderTable(activeSessions, false) + renderTable(archivedSessions, true);
         }
+
+        examSessionsList.innerHTML = finalHtml;
+    }
+
+    window.updateSessionStatus = function (id, val) {
+        const sessions = DataManager.getExamSessions();
+        const ses = sessions.find(s => s.id === id);
+        if (!ses) return;
+
+        val = parseInt(val);
+        // 0: Published, 1: Unpublished, 2: Archived
+        if (val === 0) {
+            ses.isPublished = true;
+            ses.isArchived = false;
+        } else if (val === 1) {
+            ses.isPublished = false;
+            ses.isArchived = false;
+        } else if (val === 2) {
+            ses.isPublished = false;
+            ses.isArchived = true;
+        }
+
+        DataManager.addExamSession(ses);
+        renderExamSessionsList();
+
+        let msg = '';
+        let icon = 'success';
+        if (ses.isArchived) { msg = 'Sınav arşivlendi'; icon = 'info'; }
+        else if (ses.isPublished) { msg = 'Sınav yayınlandı'; }
+        else { msg = 'Sınav yayından kaldırıldı'; icon = 'warning'; }
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: icon,
+            title: msg,
+            showConfirmButton: false,
+            timer: 1500
+        });
+    };
 
     // ===== YEDEK KAĞIT YAZDIRMA (Sağ tıklama) =====
     document.body.addEventListener('contextmenu', function (e) {
@@ -3252,49 +3289,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     };
 
-    window.cycleSessionStatus = function (id) {
+    window.toggleSessionPublish = function (id) {
+        // This function is kept for backward compatibility if any other part of the app calls it,
+        // but it now just cycles via the new logic if needed, or we can just point it to a no-op/update logic.
         const sessions = DataManager.getExamSessions();
         const ses = sessions.find(s => s.id === id);
-        if (!ses) return;
-
-        // Current status sequence: Published (Green) -> Unpublished (Red) -> Archived (Grey) -> Published...
-        // But user request: Green (Left), Red (Middle), Grey (Right)
-        // Let's implement cycling logic
-        if (ses.isArchived) {
-            // From Archived (Grey) -> Published (Green)
-            ses.isArchived = false;
-            ses.isPublished = true;
-        } else if (ses.isPublished) {
-            // From Published (Green) -> Unpublished (Red)
-            ses.isPublished = false;
-            ses.isArchived = false;
-        } else {
-            // From Unpublished (Red) -> Archived (Grey)
-            ses.isPublished = false;
-            ses.isArchived = true;
+        if (ses) {
+            // Simply toggle between published and unpublished if called this way
+            window.updateSessionStatus(id, ses.isPublished ? 1 : 0);
         }
-
-        DataManager.addExamSession(ses);
-        renderExamSessionsList();
-
-        let msg = '';
-        let icon = 'success';
-        if (ses.isArchived) { msg = 'Sınav arşivlendi'; icon = 'info'; }
-        else if (ses.isPublished) { msg = 'Sınav yayınlandı'; }
-        else { msg = 'Sınav yayından kaldırıldı'; icon = 'warning'; }
-
-        Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: icon,
-            title: msg,
-            showConfirmButton: false,
-            timer: 1500
-        });
-    };
-
-    window.toggleSessionPublish = function (id) {
-        window.cycleSessionStatus(id);
     };
 
     // --- School Logo Handler ---
