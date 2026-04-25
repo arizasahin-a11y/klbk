@@ -921,6 +921,7 @@
                     text: text,
                     subject: subName,
                     author: authorRealName,
+                    gender: sessionStorage.getItem('klbk_gender') || 'erkek',
                     timestamp: Date.now(),
                     expireAt: Date.now() + (10 * 60 * 1000)
                 });
