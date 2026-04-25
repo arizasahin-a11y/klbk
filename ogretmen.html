@@ -367,13 +367,6 @@
             return a.localeCompare(b, 'tr');
         };
 
-        let timerInterval = null;
-        let trustedBaseTime = 0;
-        let performanceAtSync = 0;
-        let openSessions = new Set();
-        let openSubjects = new Set();
-        let lastSyncSessions = '';
-
         async function syncTime() {
             const statusEl = document.getElementById('timeSyncStatus');
             try {
