@@ -859,14 +859,31 @@
             const subName = decodeURIComponent(encodedSub);
             const inputId = groupLetter ? `pdfLink-${sesId}-${encodedSub}-${groupLetter}` : `pdfLink-${sesId}-${encodedSub}`;
             const linkInput = document.getElementById(inputId);
+            
+            // Eğer input kutusu yoksa (aktif sınavda gizlendiği için), mevcut veriyi korumak için session'dan oku
+            const sessions = DataManager.getExamSessions();
+            const session = sessions.find(s => s.id === sesId);
+            const safeSub = DataManager.sanitizeFirebaseKey(subName);
+            const existingMeta = (session && session.subjectMetadata && session.subjectMetadata[safeSub]) || {};
 
             if (!linkInput && directUrl === null) {
+                // Eğer hem input yok hem de direkt URL verilmemişse, muhtemelen sadece "Paylaş" checkbox'ı tetiklenmiştir.
+                // Bu durumda mevcut linki koruyup devam edeceğiz.
+                if (!session) return;
+            } else if (!linkInput && directUrl === null) {
                 console.error("Input element not found:", inputId);
                 Swal.fire('Hata', 'Giriş kutusu bulunamadı.', 'error');
                 return;
             }
 
-            const link = (directUrl !== null) ? directUrl : (linkInput ? linkInput.value.trim() : '');
+            let link = '';
+            if (directUrl !== null) {
+                link = directUrl;
+            } else if (linkInput) {
+                link = linkInput.value.trim();
+            } else if (existingMeta.papers) {
+                link = groupLetter ? (existingMeta.papers[groupLetter] || '') : (existingMeta.papers['default'] || '');
+            }
             
             const sessions = DataManager.getExamSessions();
             const session = sessions.find(s => s.id === sesId);
