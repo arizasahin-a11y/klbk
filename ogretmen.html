@@ -472,8 +472,8 @@
         }
 
         window.showExamDuties = function(sesId) {
-            const sessions = DataManager.getExamSessions();
-            const session = sessions.find(s => s.id === sesId);
+            const _dutySessions = DataManager.getExamSessions();
+            const session = _dutySessions.find(s => s.id === sesId);
             if (!session) return;
 
             let examTeachersData = { classrooms: {}, globalSpares: [] };
@@ -514,13 +514,13 @@
 
         function renderExams() {
             try {
-                const sessions = DataManager.getSortedExamSessions().filter(s => s.isPublished);
+                const _renderSessions = DataManager.getSortedExamSessions().filter(s => s.isPublished);
                 const listContainer = document.getElementById('examsList');
                 if (!listContainer) return;
                 const now = getNow();
 
                 let targetSessions = [];
-                sessions.forEach(ses => {
+                _renderSessions.forEach(ses => {
                     // Safety check for session structure
                     if (!ses || (!ses.subjects && (!ses.results || ses.results.length === 0))) return;
 
@@ -591,7 +591,7 @@
                             <div style="color: var(--gray-500); font-weight: 600; margin-bottom:10px;">Şu an size tanımlı herhangi bir sınav görünmüyor.</div>
                             <div style="font-size: 0.8rem; color: var(--gray-400);">
                                 <i class="fa-solid fa-info-circle"></i> Sınavların görünmesi için "Yayınla" durumunda olmaları ve branşınızla eşleşmeleri gerekir.
-                                <br>Sistemdeki toplam oturum sayısı: ${sessions.length}
+                                <br>Sistemdeki toplam oturum sayısı: ${_renderSessions.length}
                             </div>
                         </div>`;
                     return;
@@ -801,9 +801,9 @@
 
         function updateAllTimers() {
             const now = getNow();
-            const sessions = DataManager.getExamSessions().filter(s => s.isPublished);
+            const _timerSessions = DataManager.getExamSessions().filter(s => s.isPublished);
             let needsRender = false;
-            sessions.forEach(ses => {
+            _timerSessions.forEach(ses => {
                 const el = document.getElementById(`cd-${ses.id}`);
                 if (el) {
                     const targetTime = DataManager.parseSessionDateTime(ses.date, ses.time);
@@ -902,8 +902,8 @@
             const linkInput = document.getElementById(inputId);
             
             // Eğer input kutusu yoksa (aktif sınavda gizlendiği için), mevcut veriyi korumak için session'dan oku
-            const sessions = DataManager.getExamSessions();
-            const session = sessions.find(s => s.id === sesId);
+            const _saveSessions = DataManager.getExamSessions();
+            const session = _saveSessions.find(s => s.id === sesId);
             const safeSub = DataManager.sanitizeFirebaseKey(subName);
             const existingMeta = (session && session.subjectMetadata && session.subjectMetadata[safeSub]) || {};
 
@@ -926,9 +926,7 @@
                 link = groupLetter ? (existingMeta.papers[groupLetter] || '') : (existingMeta.papers['default'] || '');
             }
             
-            const sessions = DataManager.getExamSessions();
-            const session = sessions.find(s => s.id === sesId);
-
+            // session variable already defined above at line 906
             if (session) {
                 if (!session.subjectMetadata) session.subjectMetadata = {};
                 const safeSub = DataManager.sanitizeFirebaseKey(subName);
@@ -977,8 +975,8 @@
             // ... (rest same but with encodedSub in ID)
             if (!text) return;
 
-            const sessions = DataManager.getExamSessions();
-            const session = sessions.find(s => s.id === sesId);
+            const _liveSessions = DataManager.getExamSessions();
+            const session = _liveSessions.find(s => s.id === sesId);
             if (session) {
                 if (!session.liveMessages) session.liveMessages = [];
 
@@ -1164,8 +1162,8 @@
         // Removed redundant selectCloudFile definition here.
 
         async function openSessionSettings(id) {
-            const sessions = DataManager.getExamSessions();
-            const session = sessions.find(s => s.id === id);
+            const _settingsSessions = DataManager.getExamSessions();
+            const session = _settingsSessions.find(s => s.id === id);
             if (!session) return;
 
             const school = DataManager.getSchoolSettings();
@@ -1662,8 +1660,8 @@
                     examNo: '1'
                 };
 
-                const sessions = DataManager.getExamSessions();
-                const session = sessions.find(s => s.id === sesId) || {};
+                const _testSessions = DataManager.getExamSessions();
+                const session = _testSessions.find(s => s.id === sesId) || {};
                 const meta = DataManager.getSanitizedSubjectMetadata(session, subName);
 
                 // Render header using the shared logic
@@ -1689,8 +1687,8 @@
         };
 
         window.printSession = async function (id) {
-            const sessions = DataManager.getExamSessions();
-            const session = sessions.find(s => s.id === id);
+            const _printSessions = DataManager.getExamSessions();
+            const session = _printSessions.find(s => s.id === id);
 
             if (!session || !session.results || session.results.length === 0) {
                 Swal.fire('Bilgi', 'Bu oturum için henüz sınav dağıtımı yapılmamış.', 'info');
@@ -1814,8 +1812,8 @@
         }
 
         async function openStudentSelectionModal(id, mode, entityName) {
-            const sessions = DataManager.getExamSessions();
-            const session = sessions.find(s => s.id === id);
+            const _studentModalSessions = DataManager.getExamSessions();
+            const session = _studentModalSessions.find(s => s.id === id);
             if (!session || !session.results) return;
 
             let allStudentsForEntity = [];
@@ -1950,8 +1948,8 @@
         }
 
         async function executePrintSession(id, mode, filterArray, studentMsgOverride, teacherMsgOverride, pageSizeOverride) {
-            const sessions = DataManager.getExamSessions();
-            const session = sessions.find(s => s.id === id);
+            const _executePrintSessions = DataManager.getExamSessions();
+            const session = _executePrintSessions.find(s => s.id === id);
             if (!session || !session.results || session.results.length === 0) return;
 
             let examTeachersData = { classrooms: {}, globalSpares: [] };
@@ -2390,8 +2388,8 @@
         });
 
         window.openSparePaperModal = function (sessionId) {
-            const sessions = DataManager.getExamSessions();
-            const ses = sessions.find(s => s.id === sessionId);
+            const _spareModalSessions = DataManager.getExamSessions();
+            const ses = _spareModalSessions.find(s => s.id === sessionId);
             if (!ses) return;
 
             // Get matching subjects for this teacher (uses global myBranches)
@@ -2497,8 +2495,8 @@
             const A4W = 595.28, A4H = 841.89;
             const pdfLib = window.PDFLib;
             const PDFDocument = pdfLib.PDFDocument;
-            const sessions = DataManager.getExamSessions();
-            const ses = sessions.find(s => s.id === sessionId);
+            const _sparePrintSessions = DataManager.getExamSessions();
+            const ses = _sparePrintSessions.find(s => s.id === sessionId);
             if (!ses) return;
 
             Swal.fire({
