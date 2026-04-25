@@ -1615,5 +1615,116 @@ input:checked+.klbk-slider:before {
 }
 
 .archived-content {
-    padding: 0 1.5rem 1.5rem 1.5rem;
+    padding: 0 1rem 1rem 1rem;
 }
+
+.archived-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 1rem;
+}
+
+.archived-item {
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    background: white;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.archived-item-header {
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.archived-item-header:hover {
+    background: var(--gray-50);
+}
+
+.archived-item-header .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.archived-item-header .arrow {
+    font-size: 0.8rem;
+    color: var(--gray-400);
+    transition: transform 0.3s;
+}
+
+.archived-item.open .arrow {
+    transform: rotate(90deg);
+}
+
+.archived-item-header .session-name {
+    font-weight: 700;
+    color: var(--dark);
+    font-size: 0.95rem;
+}
+
+.archived-item-header .header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.archived-item-header .session-date {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+    font-weight: 500;
+}
+
+.archived-item-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+    background: #fafafa;
+    border-top: 1px solid transparent;
+}
+
+.archived-item.open .archived-item-body {
+    max-height: 500px;
+    padding: 18px;
+    border-top: 1px solid var(--gray-100);
+}
+
+.archived-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.archived-actions button {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--gray-200);
+    background: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--gray-600);
+    transition: all 0.2s;
+}
+
+.archived-actions button:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--gray-50);
+}
+
+.archived-actions button.danger:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: #fef2f2;
+}

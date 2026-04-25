@@ -2919,6 +2919,59 @@ document.addEventListener('DOMContentLoaded', async () => {
             return html + `</tbody></table></div>`;
         };
 
+        const renderArchivedList = (list) => {
+            if (list.length === 0) return '<div class="empty-text" style="text-align:center; padding: 2rem; color: var(--gray-500);">Arşivlenmiş oturum yok.</div>';
+            
+            return `
+                <div class="archived-list">
+                    ${list.map(ses => `
+                        <div class="archived-item">
+                            <div class="archived-item-header" onclick="this.parentElement.classList.toggle('open')">
+                                <div class="header-left">
+                                    <i class="fa-solid fa-chevron-right arrow"></i>
+                                    <span class="session-name">${ses.name}</span>
+                                </div>
+                                <div class="header-right">
+                                    <span class="session-date">${ses.date || ''}</span>
+                                    <div class="tri-range-container" data-status="archived" onclick="event.stopPropagation()" style="transform: scale(0.9);">
+                                        <div class="tri-range-labels">
+                                            <i class="fa-solid fa-check"></i>
+                                            <i class="fa-solid fa-xmark"></i>
+                                            <i class="fa-solid fa-box-archive"></i>
+                                        </div>
+                                        <input type="range" min="0" max="2" step="1" value="2" 
+                                               class="tri-status-range" 
+                                               onchange="window.updateSessionStatus('${ses.id}', this.value)">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="archived-item-body">
+                                <div style="margin-bottom: 15px; font-size: 0.9rem; color: var(--gray-600);">
+                                    <i class="fa-regular fa-clock"></i> <b>Sınav Saati:</b> ${ses.time} <br>
+                                    <i class="fa-solid fa-layer-group" style="margin-top:5px;"></i> <b>Dersler:</b> 
+                                    ${(ses.subjects || []).map(s => typeof s === 'object' ? s.name : s).join(', ') || 'Tanımsız'}
+                                </div>
+                                <div class="archived-actions">
+                                    <button onclick="window.viewSessionDistribution('${ses.id}')">
+                                        <i class="fa-solid fa-eye"></i> Görüntüle
+                                    </button>
+                                    <button onclick="window.printSessionDistribution('${ses.id}')">
+                                        <i class="fa-solid fa-print"></i> Yazdır
+                                    </button>
+                                    <button onclick="window.openSessionMetadataEditor('${ses.id}')">
+                                        <i class="fa-solid fa-pen"></i> Düzenle
+                                    </button>
+                                    <button class="danger" onclick="window.deleteExamSession('${ses.id}')">
+                                        <i class="fa-solid fa-trash"></i> Sil
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        };
+
         let finalHtml = renderTable(activeSessions, false);
         
         if (archivedSessions.length > 0) {
@@ -2926,7 +2979,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <details class="archived-details">
                     <summary><i class="fa-solid fa-box-archive"></i> Arşivlenmiş Oturumlar (${archivedSessions.length})</summary>
                     <div class="archived-content">
-                        ${renderTable(archivedSessions, true)}
+                        ${renderArchivedList(archivedSessions)}
                     </div>
                 </details>
             `;
