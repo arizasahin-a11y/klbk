@@ -496,7 +496,29 @@
             html += '<div style="display:flex; flex-wrap: wrap; gap: 8px;">';
             if (examTeachersData.globalSpares && examTeachersData.globalSpares.length > 0) {
                 examTeachersData.globalSpares.forEach(spare => {
-                    html += `<span style="background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">${spare.name}</span>`;
+                    const isIdr = ['idareci', 'admin', 'master'].includes(spare.role);
+                    let bgColor = '#fff7ed'; // Varsayılan Turuncu
+                    let textColor = '#c2410c';
+                    let borderColor = '#fed7aa';
+
+                    if (isIdr) {
+                        bgColor = '#f1f5f9';
+                        textColor = '#475569';
+                        borderColor = '#e2e8f0';
+                    } else if (spare.hasLaterClasses) {
+                        bgColor = '#f0fdf4';
+                        textColor = '#166534';
+                        borderColor = '#bbf7d0';
+                    } else if (spare.hasAnyClassThisDay && !spare.hasLaterClasses) {
+                        bgColor = '#fef2f2';
+                        textColor = '#991b1b';
+                        borderColor = '#fecaca';
+                    }
+
+                    const starHtml = spare.isDouble ? '<i class="fa-solid fa-star" style="color: #eab308; margin-left: 4px; font-size: 0.7rem;"></i>' : '';
+                    html += `<span style="background: ${bgColor}; color: ${textColor}; border: 1px solid ${borderColor}; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                ${spare.name}${isIdr ? ' (İd)' : ''}${starHtml}
+                             </span>`;
                 });
             } else {
                 html += '<span style="color: #94a3b8; font-size: 0.9rem;">Bu ders saatinde nöbetçi veya boşta kimse bulunamadı.</span>';

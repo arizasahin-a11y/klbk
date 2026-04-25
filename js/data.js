@@ -1013,7 +1013,7 @@ const DataManager = {
     calculateExamTeachers: function (session, teachersDb) {
         let result = {
             classrooms: {},      // roomName -> { gorevli: "", yedekler: [] }
-            globalSpares: []     // list of { name: "", uname: "", role: "" }
+            globalSpares: []     // list of { name: "", uname: "", role: "", hasLaterClasses: bool, hasAnyClassThisDay: bool }
         };
 
         if (!session || !teachersDb || Object.keys(teachersDb).length === 0) return result;
@@ -1047,8 +1047,9 @@ const DataManager = {
             const sched = t.schedule || {};
             const daySched = sched[examDay] || {};
 
-            const hasAnyClassThisDay = Object.keys(daySched).length > 0;
-            const assignedClassAtThisHour = daySched[examHour];
+            const hasAnyClassThisDay = Object.values(daySched).some(v => v && v !== '-');
+            const assignedClassAtThisHourRaw = daySched[examHour];
+            const assignedClassAtThisHour = (assignedClassAtThisHourRaw && assignedClassAtThisHourRaw !== '-') ? assignedClassAtThisHourRaw : null;
 
             if (assignedClassAtThisHour) {
                 const normalizedRoom = normalizeClass(assignedClassAtThisHour);
@@ -1066,8 +1067,21 @@ const DataManager = {
                 } else {
                     assignments[normalizedRoom].ogretmenler.push({ uname, name: t.name, role: t.role });
                 }
-            } else if (hasAnyClassThisDay) {
-                result.globalSpares.push({ uname, name: t.name, role: t.role });
+            } else {
+                // Bu ders saatinde boşta
+                const hasLaterClasses = Object.entries(daySched).some(([h, v]) => parseInt(h) > parseInt(examHour) && v && v !== '-');
+                const isIdareci = t.role === 'idareci' || t.role === 'admin' || t.role === 'master';
+                
+                // Sadece dersi olanları veya idarecileri ekle (Gereksiz kalabalığı önlemek için)
+                if (hasAnyClassThisDay || isIdareci) {
+                    result.globalSpares.push({ 
+                        uname, 
+                        name: t.name, 
+                        role: t.role,
+                        hasLaterClasses,
+                        hasAnyClassThisDay
+                    });
+                }
             }
         });
 
@@ -1084,13 +1098,42 @@ const DataManager = {
                         classroomInfo.gorevli = assignmentMatch.ogretmenler[0].name;
                         
                         const extras = assignmentMatch.ogretmenler.slice(1);
-                        assignmentMatch.idareciler.forEach(idr => result.globalSpares.push(idr));
-                        extras.forEach(extra => result.globalSpares.push(extra));
+                        // Ekstra öğretmenleri yedek havuzuna ekle
+                        extras.forEach(extra => {
+                            const t = teachersDb[extra.uname];
+                            const daySched = (t && t.schedule) ? (t.schedule[examDay] || {}) : {};
+                            result.globalSpares.push({
+                                ...extra,
+                                isDouble: true,
+                                hasLaterClasses: Object.entries(daySched).some(([h, v]) => parseInt(h) > parseInt(examHour) && v && v !== '-'),
+                                hasAnyClassThisDay: Object.values(daySched).some(v => v && v !== '-')
+                            });
+                        });
+                        // İdarecileri yedek havuzuna ekle
+                        assignmentMatch.idareciler.forEach(idr => {
+                            const t = teachersDb[idr.uname];
+                            const daySched = (t && t.schedule) ? (t.schedule[examDay] || {}) : {};
+                            result.globalSpares.push({
+                                ...idr,
+                                isDouble: true,
+                                hasLaterClasses: Object.entries(daySched).some(([h, v]) => parseInt(h) > parseInt(examHour) && v && v !== '-'),
+                                hasAnyClassThisDay: Object.values(daySched).some(v => v && v !== '-')
+                            });
+                        });
                     } else if (assignmentMatch.idareciler.length > 0) {
                         classroomInfo.gorevli = assignmentMatch.idareciler[0].name + " (İdare)";
                         
                         const extras = assignmentMatch.idareciler.slice(1);
-                        extras.forEach(extra => result.globalSpares.push(extra));
+                        extras.forEach(extra => {
+                            const t = teachersDb[extra.uname];
+                            const daySched = (t && t.schedule) ? (t.schedule[examDay] || {}) : {};
+                            result.globalSpares.push({
+                                ...extra,
+                                isDouble: true,
+                                hasLaterClasses: Object.entries(daySched).some(([h, v]) => parseInt(h) > parseInt(examHour) && v && v !== '-'),
+                                hasAnyClassThisDay: Object.values(daySched).some(v => v && v !== '-')
+                            });
+                        });
                     }
                 }
                 
