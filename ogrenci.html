@@ -1228,99 +1228,98 @@
         // --- FULL SCREEN SEATING PLAN LOGIC ---
         let currentFullScreenSessionId = null;
         let userClosedFullScreen = false;
-
         let activeMessages = new Map(); // Store active message windows
-        window.pdfTabs = []; // To track opened PDF tabs for automatic closing
+        window.pdfTabs = window.pdfTabs || []; // To track opened PDF tabs for automatic closing
 
         window.openPdfTab = async function (url) {
             if (!url) return;
             if (!window.pdfTabs) window.pdfTabs = [];
 
-            // EKRAN GÖRÜNÜMÜ (Smartboard) MODU: Kişiselleştirme yapmadan direkt aç
-            if (!window.currentStudent) {
-                const newWin = window.openSafePdf(url, 'Soru Kağıdı');
-                if (newWin) window.pdfTabs.push(newWin);
-                return;
-            }
-
             Swal.fire({
                 title: 'Soru Kağıdı Hazırlanıyor...',
-                text: 'Güvenli bağlantı üzerinden dosya indiriliyor ve bilgileriniz ekleniyor, lütfen bekleyin.',
+                text: 'Dosya güvenli şekilde hazırlanıyor, lütfen bekleyin.',
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading(); }
             });
 
             try {
-                // 1. Get bytes via GAS Proxy
+                // 1. Get bytes via GAS Proxy (Bypasses CORS and prevents direct download)
                 const bytes = await DataManager.getFileBytes(url);
-                if (!bytes) throw new Error("Dosya indirilemedi (Proxy hatası).");
+                if (!bytes) throw new Error("Dosya indirilemedi (Bağlantı hatası).");
 
-                // 2. Prepare student info for header
-                let info = null;
-                const session = window.currentRenderedSession;
+                let blobUrl;
+                let title = 'Soru Kağıdı';
+
                 const stdUser = window.currentStudent;
-                if (session && session.results && stdUser) {
-                    for (const room of session.results) {
-                        const seatId = Object.keys(room.seats || {}).find(sid => room.seats[sid].no === stdUser.no);
-                        if (seatId) {
-                            const stdData = room.seats[seatId];
-                            let seatNum = '-';
-                            let ctr = 1;
-                            for (let g = 1; g <= room.groups; g++) {
-                                const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
-                                for (let r = 1; r <= cf.rows; r++) {
-                                    for (let c = 1; c <= cf.cols; c++) {
-                                        const sid = `G${g}-S${r}-C${c}`;
-                                        if (!(room.disabledSeats || []).includes(sid)) {
-                                            if (sid === seatId) seatNum = ctr;
-                                            ctr++;
+                const session = window.currentRenderedSession;
+
+                if (!stdUser) {
+                    // SMARTBOARD MODE: Skip personalization, just open as Blob
+                    const blob = new Blob([bytes], { type: 'application/pdf' });
+                    blobUrl = URL.createObjectURL(blob);
+                } else {
+                    // STUDENT MODE: Personalize with header
+                    const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+                    const pages = pdfDoc.getPages();
+                    const firstPage = pages[0];
+                    const { width, height } = firstPage.getSize();
+
+                    let info = null;
+                    if (session && session.results) {
+                        for (const room of session.results) {
+                            const seatId = Object.keys(room.seats || {}).find(sid => room.seats[sid].no === stdUser.no);
+                            if (seatId) {
+                                const stdData = room.seats[seatId];
+                                let seatNum = '-';
+                                let ctr = 1;
+                                for (let g = 1; g <= room.groups; g++) {
+                                    const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
+                                    for (let r = 1; r <= cf.rows; r++) {
+                                        for (let c = 1; c <= cf.cols; c++) {
+                                            const sid = `G${g}-S${r}-C${c}`;
+                                            if (!(room.disabledSeats || []).includes(sid)) {
+                                                if (sid === seatId) seatNum = ctr;
+                                                ctr++;
+                                            }
                                         }
                                     }
                                 }
+                                info = {
+                                    name: stdData.name,
+                                    no: stdData.no,
+                                    class: stdData.class,
+                                    room: room.name,
+                                    seat: seatNum.toString(),
+                                    subject: stdData._matchedSubject || '',
+                                    examNo: DataManager.getSanitizedSubjectMetadata(session, stdData._matchedSubject || '').examNo || ''
+                                };
+                                break;
                             }
-                            info = {
-                                name: stdData.name,
-                                no: stdData.no,
-                                class: stdData.class,
-                                room: room.name,
-                                seat: seatNum.toString(),
-                                subject: stdData._matchedSubject || '',
-                                examNo: DataManager.getSanitizedSubjectMetadata(session, stdData._matchedSubject || '').examNo || ''
-                            };
-                            break;
                         }
                     }
+
+                    if (info) {
+                        title = 'Soru Kağıdı - ' + info.name;
+                        const A4_W = 595.28, A4_H = 841.89;
+                        const sf = 1 / Math.min(A4_W / width, A4_H / height);
+                        const fonts = await DataManager.loadRequiredFonts(pdfDoc);
+
+                        await window.renderStudentPDFHeader(pdfDoc, firstPage, info, {
+                            ...fonts,
+                            sf: sf,
+                            session: session,
+                            designType: DataManager.getSanitizedSubjectMetadata(session, info.subject).pdfHeaderDesign || '1'
+                        });
+                    }
+
+                    const modifiedPdfBytes = await pdfDoc.save();
+                    const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
+                    blobUrl = URL.createObjectURL(blob);
                 }
 
-                // 3. Render Header via PDFLib
-                const { PDFDocument } = PDFLib;
-                const pdfDoc = await PDFDocument.load(bytes);
-                const firstPage = pdfDoc.getPages()[0];
-                const { width, height } = firstPage.getSize();
-
-                // Scaling factors for A4
-                const A4_W = 595.28, A4_H = 841.89;
-                const sf = 1 / Math.min(A4_W / width, A4_H / height);
-
-                // Load fonts via DataManager
-                const fonts = await DataManager.loadRequiredFonts(pdfDoc);
-
-                // Render the common header (same design used in dashboard/teacher)
-                await window.renderStudentPDFHeader(pdfDoc, firstPage, info, {
-                    ...fonts,
-                    sf: sf,
-                    session: session,
-                    designType: DataManager.getSanitizedSubjectMetadata(session, info.subject).pdfHeaderDesign || '1'
-                });
-
-                // 4. Finalize and Show
-                const modifiedPdfBytes = await pdfDoc.save();
-                const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
-                const blobUrl = URL.createObjectURL(blob);
-                
                 Swal.close();
-                const newWin = window.openSafePdf(blobUrl, 'Soru Kağıdı - ' + (info ? info.name : 'Görüntüleyici'));
-                if (newWin) pdfTabs.push(newWin);
+                const newWin = window.openSafePdf(blobUrl, title);
+                if (newWin) window.pdfTabs.push(newWin);
 
             } catch (err) {
                 console.error("OpenPdfTab Error:", err);
