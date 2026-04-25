@@ -498,15 +498,21 @@
 
                 let targetSessions = [];
                 sessions.forEach(ses => {
-                    if (!ses.subjects && (!ses.results || ses.results.length === 0)) return;
+                    // Safety check for session structure
+                    if (!ses || (!ses.subjects && (!ses.results || ses.results.length === 0))) return;
 
                     const myMatchedSubjects = [];
                     const otherSharedSubjects = [];
                     const seenNames = new Set();
+                    
+                    const isAdmin = currentRole === 'idareci' || currentRole === 'admin' || currentRole === 'master';
+                    
                     const branchMatches = (sName) => {
                         if (!sName) return false;
+                        if (isAdmin) return true; // Admins match everything
                         const name = sName.toLowerCase().trim();
                         return myBranches.some(b => {
+                            if (!b) return false;
                             const bn = b.toLowerCase().trim();
                             return name === bn || name.startsWith(bn + " ");
                         });
@@ -548,7 +554,7 @@
                         processSubject(subName, sub);
                     });
 
-                    if (myMatchedSubjects.length > 0) {
+                    if (myMatchedSubjects.length > 0 || otherSharedSubjects.length > 0) {
                         targetSessions.push({ 
                             session: ses, 
                             displaySubjects: [...myMatchedSubjects, ...otherSharedSubjects] 
@@ -557,7 +563,14 @@
                 });
 
                 if (targetSessions.length === 0) {
-                    listContainer.innerHTML = '<div class="glass-panel" style="padding: 2rem; text-align: center; color: var(--gray-500); font-weight: 600;">Şu an size tanımlı herhangi bir sınav görünmüyor.</div>';
+                    listContainer.innerHTML = `
+                        <div class="glass-panel" style="padding: 2rem; text-align: center;">
+                            <div style="color: var(--gray-500); font-weight: 600; margin-bottom:10px;">Şu an size tanımlı herhangi bir sınav görünmüyor.</div>
+                            <div style="font-size: 0.8rem; color: var(--gray-400);">
+                                <i class="fa-solid fa-info-circle"></i> Sınavların görünmesi için "Yayınla" durumunda olmaları ve branşınızla eşleşmeleri gerekir.
+                                <br>Sistemdeki toplam oturum sayısı: ${sessions.length}
+                            </div>
+                        </div>`;
                     return;
                 }
 
