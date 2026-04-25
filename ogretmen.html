@@ -493,6 +493,7 @@
             try {
                 const sessions = DataManager.getSortedExamSessions().filter(s => s.isPublished);
                 const listContainer = document.getElementById('examsList');
+                if (!listContainer) return;
                 const now = getNow();
 
                 let targetSessions = [];
@@ -516,7 +517,7 @@
                         seenNames.add(subName);
                         
                         const isMine = branchMatches(subName);
-                        const meta = DataManager.getSanitizedSubjectMetadata(ses, subName);
+                        const meta = DataManager.getSanitizedSubjectMetadata(ses, subName) || {};
                         const isShared = meta.isShared === true;
 
                         const subObj = {
@@ -530,7 +531,6 @@
                         else if (isShared) otherSharedSubjects.push(subObj);
                     };
 
-                    // 1. Scan results for granular subjects
                     if (ses.results) {
                         ses.results.forEach(room => {
                             Object.values(room.seats || {}).forEach(std => {
@@ -543,7 +543,6 @@
                         });
                     }
 
-                    // 2. Fallback to session subjects
                     (ses.subjects || []).forEach(sub => {
                         const subName = (typeof sub === 'object' ? sub.name : sub);
                         processSubject(subName, sub);
@@ -625,19 +624,22 @@
 
                     subjectsObj.forEach(sub => {
                         const subNameStr = (typeof sub === 'object' ? sub.name : sub);
-                        const isMine = sub.isMine;
+                        const isMine = !!sub.isMine;
                         const encodedSub = encodeURIComponent(subNameStr);
                         const subId = ses.id + "|" + encodedSub;
                         const isSubOpen = openSubjects.has(subId);
 
-                        const meta = DataManager.getSanitizedSubjectMetadata(ses, subNameStr);
+                        const meta = DataManager.getSanitizedSubjectMetadata(ses, subNameStr) || {};
                         let currentPdf = '';
                         if (meta.papers) {
                             if (typeof meta.papers === 'string') currentPdf = meta.papers;
                             else currentPdf = meta.papers['default'] || Object.values(meta.papers)[0] || '';
                         }
 
-                        const hasAnyPdf = (currentPdf && currentPdf.trim().length > 5) || (meta.papers && Object.values(meta.papers).some(p => p && p.trim().length > 5));
+                        const papers = meta.papers || {};
+                        const hasAnyPdf = (currentPdf && currentPdf.length > 5) || 
+                                          (typeof papers === 'object' && Object.values(papers).some(p => p && p.length > 5));
+
                         const shareCheckboxHeader = (isMine && stateCode === 'active' && hasAnyPdf) ? `
                             <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 800; color: var(--primary); cursor: pointer; margin-right: 12px; background: #f5f3ff; padding: 6px 12px; border-radius: 8px; border: 1px solid #ddd6fe;" onclick="event.stopPropagation()">
                                 <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared === true ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 17px; height: 17px; accent-color: var(--primary);"> Soru Kağıdını Paylaş
@@ -647,18 +649,18 @@
                                     <div class="nested-header" onclick="toggleSubject('${ses.id}', '${encodedSub}')" style="${isSubOpen ? 'background: white; border-bottom: 1px solid var(--gray-100);' : ''}; display: flex; align-items: center; justify-content: space-between;">
                                         <div style="display:flex; align-items:center; gap:10px; flex:1; justify-content: space-between; margin-right: 10px;">
                                             <div style="display:flex; align-items:center; gap:10px;">
-                                            <div style="width:36px; height:36px; background: ${currentPdf ? 'var(--secondary)' : 'var(--gray-200)'}; color:white; border-radius:8px; display:flex; align-items:center; justify-content:center;">
-                                                <i class="fa-solid ${currentPdf ? 'fa-check' : 'fa-book'}"></i>
+                                                <div style="width:36px; height:36px; background: ${currentPdf ? 'var(--secondary)' : 'var(--gray-200)'}; color:white; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                                                    <i class="fa-solid ${currentPdf ? 'fa-check' : 'fa-book'}"></i>
+                                                </div>
+                                                <div>
+                                                    <div style="font-weight:900; font-size:1.1rem;">${subNameStr} ${!isMine ? '<span style="font-size:0.65rem; background:var(--primary-light); color:var(--primary); padding:2px 6px; border-radius:4px; margin-left:5px;">PAYLAŞILAN</span>' : ''}</div>
+                                                    <div style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">${currentPdf ? 'Sınav kağıdı yüklendi' : 'Sınav kağıdı bekleniyor...'}</div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <div style="font-weight:900; font-size:1.1rem;">${subNameStr} ${!isMine ? '<span style="font-size:0.65rem; background:var(--primary-light); color:var(--primary); padding:2px 6px; border-radius:4px; margin-left:5px;">PAYLAŞILAN</span>' : ''}</div>
-                                                <div style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">${currentPdf ? 'Sınav kağıdı yüklendi' : 'Sınav kağıdı bekleniyor...'}</div>
-                                            </div>
+                                            ${shareCheckboxHeader}
                                         </div>
-                                        ${shareCheckboxHeader}
+                                        <i class="fa-solid fa-angle-${isSubOpen ? 'up' : 'down'}" style="color:var(--gray-400)"></i>
                                     </div>
-                                    <i class="fa-solid fa-angle-${isSubOpen ? 'up' : 'down'}" style="color:var(--gray-400)"></i>
-                                </div>
                                     <div class="nested-content ${isSubOpen ? '' : 'hidden'}" style="background-color: #fafbfc; padding: 1.25rem;">`;
 
                         if (!isMine) {
@@ -729,7 +731,7 @@
                                 html += `<div style="background: white; padding: 1.5rem; border-radius: 12px; border: 2px solid #fee2e2; box-shadow: var(--shadow-sm); margin-top: 1.25rem;" onclick="event.stopPropagation()">
                                              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                                                  <h5 style="color: var(--danger); margin:0; font-weight:900; display:flex; align-items:center; gap:8px;">
-                                                     <i class="fa-solid fa-tower-broadcast fa-beat"></i> CANLI MESAJ GÖNDER
+                                                      <i class="fa-solid fa-tower-broadcast fa-beat"></i> CANLI MESAJ GÖNDER
                                                  </h5>
                                                  <span style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">Hedef: ${subNameStr}</span>
                                              </div>
@@ -748,11 +750,15 @@
                 });
 
                 if (html === '') {
-                    html = '<div class="glass-panel" style="padding: 2rem; text-align: center; color: var(--gray-500); font-weight: 600;">Şu an size tanımlı aktif bir sınav bulunmuyor.</div>';
+                    html = '<div class="glass-panel" style="padding: 2rem; text-align: center; color: var(--gray-500); font-weight: 600;">Şu an size tanımlı herhangi bir sınav görünmüyor.</div>';
                 }
                 listContainer.innerHTML = html;
             } catch (err) {
                 console.error("renderExams error:", err);
+                const listContainer = document.getElementById('examsList');
+                if (listContainer) {
+                    listContainer.innerHTML = `<div class="glass-panel" style="padding: 2rem; text-align: center; color: var(--danger); font-weight: 600;">Görüntüleme hatası oluştu: ${err.message}</div>`;
+                }
             }
         }
 
