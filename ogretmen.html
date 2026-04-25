@@ -644,22 +644,22 @@
                             </label>` : '';
 
                         html += `<div class="nested-accordion" style="margin-bottom: 1.5rem; border: 2px solid ${isSubOpen ? 'var(--primary-light)' : 'var(--gray-200)'};">
-                                    <div class="nested-header" onclick="toggleSubject('${ses.id}', '${encodedSub}')" style="${isSubOpen ? 'background: white; border-bottom: 1px solid var(--gray-100);' : ''}">
-                                        <div style="display:flex; align-items:center; gap:10px;">
+                                    <div class="nested-header" onclick="toggleSubject('${ses.id}', '${encodedSub}')" style="${isSubOpen ? 'background: white; border-bottom: 1px solid var(--gray-100);' : ''}; display: flex; align-items: center; justify-content: space-between;">
+                                        <div style="display:flex; align-items:center; gap:10px; flex:1; justify-content: space-between; margin-right: 10px;">
+                                            <div style="display:flex; align-items:center; gap:10px;">
                                             <div style="width:36px; height:36px; background: ${currentPdf ? 'var(--secondary)' : 'var(--gray-200)'}; color:white; border-radius:8px; display:flex; align-items:center; justify-content:center;">
                                                 <i class="fa-solid ${currentPdf ? 'fa-check' : 'fa-book'}"></i>
                                             </div>
+                                            <div>
                                             <div>
                                                 <div style="font-weight:900; font-size:1.1rem;">${subNameStr} ${!isMine ? '<span style="font-size:0.65rem; background:var(--primary-light); color:var(--primary); padding:2px 6px; border-radius:4px; margin-left:5px;">PAYLAŞILAN</span>' : ''}</div>
                                                 <div style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">${currentPdf ? 'Sınav kağıdı yüklendi' : 'Sınav kağıdı bekleniyor...'}</div>
                                             </div>
                                         </div>
-                                        </div>
-                                        <div style="display:flex; align-items:center;">
-                                            ${shareCheckboxHeader}
-                                            <i class="fa-solid fa-angle-${isSubOpen ? 'up' : 'down'}" style="color:var(--gray-400)"></i>
-                                        </div>
+                                        ${shareCheckboxHeader}
                                     </div>
+                                    <i class="fa-solid fa-angle-${isSubOpen ? 'up' : 'down'}" style="color:var(--gray-400)"></i>
+                                </div>
                                     <div class="nested-content ${isSubOpen ? '' : 'hidden'}" style="background-color: #fafbfc; padding: 1.25rem;">`;
 
                         if (!isMine) {
