@@ -1234,6 +1234,14 @@
 
         window.openPdfTab = async function (url) {
             if (!url) return;
+            if (!window.pdfTabs) window.pdfTabs = [];
+
+            // EKRAN GÖRÜNÜMÜ (Smartboard) MODU: Kişiselleştirme yapmadan direkt aç
+            if (!window.currentStudent) {
+                const newWin = window.openSafePdf(url, 'Soru Kağıdı');
+                if (newWin) window.pdfTabs.push(newWin);
+                return;
+            }
 
             Swal.fire({
                 title: 'Soru Kağıdı Hazırlanıyor...',

@@ -642,6 +642,23 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
 
 window.openSafePdf = function (url, title = 'PDF Görüntüleyici') {
     if (!url) return;
+    
+    // Google Drive linklerini iframe uyumlu /preview formatına çevir
+    if (url.includes('drive.google.com') && !url.includes('/preview')) {
+        url = url.replace(/\/view\?usp=sharing$/, '/preview')
+                 .replace(/\/view$/, '/preview')
+                 .replace(/\/edit\?usp=sharing$/, '/preview')
+                 .replace(/\/edit$/, '/preview');
+        
+        // Eğer hala /preview yoksa ve dosya ID'si varsa manuel ekle
+        if (!url.includes('/preview')) {
+            const driveIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (driveIdMatch) {
+                url = `https://drive.google.com/file/d/${driveIdMatch[1]}/preview`;
+            }
+        }
+    }
+
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     
     if (isMobile) {
