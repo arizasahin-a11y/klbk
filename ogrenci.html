@@ -1230,7 +1230,7 @@
         let userClosedFullScreen = false;
 
         let activeMessages = new Map(); // Store active message windows
-        let pdfTabs = []; // To track opened PDF tabs for automatic closing
+        window.pdfTabs = []; // To track opened PDF tabs for automatic closing
 
         window.openPdfTab = async function (url) {
             if (!url) return;
