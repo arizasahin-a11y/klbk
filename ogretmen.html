@@ -302,41 +302,62 @@
     <script src="js/data.js?v=5.9"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        // Path Enforcement: Doğrudan dosya ismini (ogretmen.html) yazanları engelle
+        // Path Enforcement
         if (window.location.pathname.endsWith('/ogretmen.html') || window.location.pathname.endsWith('/ogretmen')) {
             window.location.href = '/security_error';
         }
 
-        // Check Auth
-        const currentRole = (sessionStorage.getItem('klbk_role') || '').toLowerCase().trim();
-        if (sessionStorage.getItem('klbk_isLoggedIn') !== 'true' || (currentRole !== 'ogretmen' && currentRole !== 'idareci')) {
-            window.location.href = '/k9x7v2m4?logout=true';
-        }
-
-        const currentUser = sessionStorage.getItem('klbk_currentUser');
-        const currentName = sessionStorage.getItem('klbk_name') || currentUser;
-        const rawBranch = sessionStorage.getItem('klbk_branch') || '';
+        // Global state
+        let currentRole = '';
+        let currentUser = '';
+        let currentName = '';
         let myBranches = [];
+        let timerInterval = null;
+        let trustedBaseTime = 0;
+        let performanceAtSync = 0;
+        let openSessions = new Set();
+        let openSubjects = new Set();
+        let lastSyncSessions = '';
+
+        // Safe Initialization
         try {
-            // It could be a JSON array string or a comma-separated string depending on what auth.js stored.
-            if (rawBranch.startsWith('[')) myBranches = JSON.parse(rawBranch);
-            else myBranches = rawBranch.split(',').map(b => b.trim());
-        } catch (e) {
-            myBranches = rawBranch.split(',').map(b => b.trim());
-        }
+            currentRole = (sessionStorage.getItem('klbk_role') || '').toLowerCase().trim();
+            currentUser = sessionStorage.getItem('klbk_currentUser') || 'Bilinmeyen Kullanıcı';
+            currentName = sessionStorage.getItem('klbk_name') || currentUser;
+            
+            if (sessionStorage.getItem('klbk_isLoggedIn') !== 'true' || (currentRole !== 'ogretmen' && currentRole !== 'idareci' && currentRole !== 'admin' && currentRole !== 'master')) {
+                console.warn("Auth failure, redirecting...");
+                window.location.href = '/k9x7v2m4?logout=true';
+            }
 
-        document.getElementById('teacherNameDisplay').textContent = currentName;
-        document.getElementById('teacherBranchDisplay').textContent = "Branş(lar): " + myBranches.join(', ');
+            const rawBranch = sessionStorage.getItem('klbk_branch') || '';
+            try {
+                if (rawBranch.startsWith('[')) myBranches = JSON.parse(rawBranch);
+                else myBranches = rawBranch.split(',').filter(x => x).map(b => b.trim());
+            } catch (e) {
+                myBranches = rawBranch.split(',').filter(x => x).map(b => b.trim());
+            }
 
-        const teacherGenderIcon = document.getElementById('teacherGenderIcon');
-        if (teacherGenderIcon) {
-            const cachedGender = sessionStorage.getItem('klbk_gender') || 'erkek';
-            let iconClass = 'fa-user-tie';
-            let bg = '#2196f3';
-            if (cachedGender === 'kadin') { iconClass = 'fa-user-nurse'; bg = '#e91e63'; }
-            else if (cachedGender === 'diger') { iconClass = 'fa-user'; bg = '#6c757d'; }
-            teacherGenderIcon.className = `fa-solid ${iconClass}`;
-            document.getElementById('teacherGenderContainer').style.background = bg;
+            const nameEl = document.getElementById('teacherNameDisplay');
+            if (nameEl) nameEl.textContent = currentName;
+            
+            const branchEl = document.getElementById('teacherBranchDisplay');
+            if (branchEl) branchEl.textContent = "Branş(lar): " + (myBranches.length > 0 ? myBranches.join(', ') : 'Tanımlanmamış');
+
+            const teacherGenderIcon = document.getElementById('teacherGenderIcon');
+            if (teacherGenderIcon) {
+                const cachedGender = sessionStorage.getItem('klbk_gender') || 'erkek';
+                let iconClass = 'fa-user-tie';
+                let bg = '#2196f3';
+                if (cachedGender === 'kadin') { iconClass = 'fa-user-nurse'; bg = '#e91e63'; }
+                else if (cachedGender === 'diger') { iconClass = 'fa-user'; bg = '#6c757d'; }
+                teacherGenderIcon.className = `fa-solid ${iconClass}`;
+                const container = document.getElementById('teacherGenderContainer');
+                if (container) container.style.background = bg;
+            }
+        } catch (initErr) {
+            console.error("Dashboard init error:", initErr);
+            alert("Panel başlatılamadı: " + initErr.message);
         }
 
         const sortByNum = (a, b) => {
