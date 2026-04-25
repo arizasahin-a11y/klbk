@@ -2803,40 +2803,56 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        let tableHtml = `
-            <div class="session-table-container">
-                <table class="session-table">
-                <thead>
-                    <tr>
-                        <th>Sınav Oturumu</th>
-                        <th class="hide-mobile">Tarih & Saat</th>
-                        <th class="text-center">Görünüm</th>
-                        <th class="text-center">İşlem</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
+        const activeSessions = sessions.filter(s => !s.isArchived);
+        const archivedSessions = sessions.filter(s => s.isArchived);
 
-        sessions.forEach((ses, idx) => {
-            // Pastel gradient: Purple (280) to Red (0)
-            const hue = sessions.length > 1 ? 280 - (idx / (sessions.length - 1)) * 280 : 280;
-            const bgColor = ses.isPublished ? `hsla(${hue}, 70%, 97%, 1)` : '#f3f4f6'; // Gray for unpublished
-            const titleColor = ses.isPublished ? 'var(--primary)' : 'var(--gray-500)';
-            const titleText = ses.name;
+        let tableHtml = '';
 
-            tableHtml += `
-                <tr id="session-row-${ses.id}" class="session-row" style="background: ${bgColor};">
-                    <td class="session-info-cell">
-                        <div class="session-title-wrapper">
-                            <label class="klbk-switch" title="${ses.isPublished ? 'Yayından Kaldır' : 'Yayınla'}">
-                                <input type="checkbox" ${ses.isPublished ? 'checked' : ''} onchange="window.toggleSessionPublish('${ses.id}')">
-                                <span class="klbk-slider"></span>
-                            </label>
-                            <i class="fa-solid fa-chevron-right session-arrow-icon" id="arrow-${ses.id}" onclick="window.viewSessionDistribution('${ses.id}')"></i>
-                            <span onclick="window.viewSessionDistribution('${ses.id}')" class="session-title" style="color:${titleColor}; cursor: pointer;">
-                                ${titleText}
-                            </span>
-                        </div>
+        const renderTable = (list, isArchivedTable) => {
+            if (list.length === 0) return '';
+            
+            let html = `
+                <div class="session-table-container ${isArchivedTable ? 'archived-section' : ''}" style="${isArchivedTable ? 'margin-top: 2rem; border-top: 2px dashed var(--gray-300); padding-top: 1rem;' : ''}">
+                    ${isArchivedTable ? '<h4 style="color: var(--gray-500); margin-bottom: 1rem;"><i class="fa-solid fa-box-archive"></i> Arşivlenmiş Oturumlar</h4>' : ''}
+                    <table class="session-table">
+                    <thead>
+                        <tr>
+                            <th>Sınav Oturumu</th>
+                            <th class="hide-mobile">Tarih & Saat</th>
+                            <th class="text-center">Görünüm</th>
+                            <th class="text-center">İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            list.forEach((ses, idx) => {
+                const status = ses.isArchived ? 'archived' : (ses.isPublished ? 'published' : 'unpublished');
+                const hue = list.length > 1 ? 280 - (idx / (list.length - 1)) * 280 : 280;
+                const bgColor = status === 'published' ? `hsla(${hue}, 70%, 97%, 1)` : (status === 'archived' ? '#f1f5f9' : '#fef2f2');
+                const titleColor = status === 'published' ? 'var(--primary)' : 'var(--gray-500)';
+                const titleText = ses.name;
+
+                html += `
+                    <tr id="session-row-${ses.id}" class="session-row" style="background: ${bgColor}; ${status === 'archived' ? 'opacity: 0.8;' : ''}">
+                        <td class="session-info-cell">
+                            <div class="session-title-wrapper">
+                                <div class="klbk-tri-switch" 
+                                     data-status="${status}" 
+                                     onclick="window.cycleSessionStatus('${ses.id}')"
+                                     title="Durum: ${status === 'published' ? 'Yayında (Yeşil)' : (status === 'unpublished' ? 'Yayında Değil (Kırmızı)' : 'Arşivlendi (Gri)')}. Değiştirmek için tıklayın.">
+                                    <div class="tri-labels">
+                                        <i class="fa-solid fa-check"></i>
+                                        <i class="fa-solid fa-xmark"></i>
+                                        <i class="fa-solid fa-box-archive"></i>
+                                    </div>
+                                    <span class="klbk-tri-slider"></span>
+                                </div>
+                                <i class="fa-solid fa-chevron-right session-arrow-icon" id="arrow-${ses.id}" onclick="window.viewSessionDistribution('${ses.id}')"></i>
+                                <span onclick="window.viewSessionDistribution('${ses.id}')" class="session-title" style="color:${titleColor}; cursor: pointer;">
+                                    ${titleText}
+                                </span>
+                            </div>
                         <div class="session-subjects" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:4px;">
                             ${(() => {
                                 const subjectStats = {};
@@ -2912,10 +2928,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </tr>
             `;
         });
+        html += `</tbody></table></div>`;
+        return html;
+    };
 
-        tableHtml += `</tbody></table></div>`;
-        examSessionsList.innerHTML = tableHtml;
-    }
+            examSessionsList.innerHTML = renderTable(activeSessions, false) + renderTable(archivedSessions, true);
+        }
 
     // ===== YEDEK KAĞIT YAZDIRMA (Sağ tıklama) =====
     document.body.addEventListener('contextmenu', function (e) {
@@ -3234,22 +3252,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     };
 
-    window.toggleSessionPublish = function (id) {
+    window.cycleSessionStatus = function (id) {
         const sessions = DataManager.getExamSessions();
-        const session = sessions.find(s => s.id === id);
-        if (session) {
-            session.isPublished = !session.isPublished;
-            DataManager.addExamSession(session);
-            renderExamSessionsList();
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: session.isPublished ? 'Sınav yayınlandı' : 'Sınav yayından kaldırıldı',
-                showConfirmButton: false,
-                timer: 1500
-            });
+        const ses = sessions.find(s => s.id === id);
+        if (!ses) return;
+
+        // Current status sequence: Published (Green) -> Unpublished (Red) -> Archived (Grey) -> Published...
+        // But user request: Green (Left), Red (Middle), Grey (Right)
+        // Let's implement cycling logic
+        if (ses.isArchived) {
+            // From Archived (Grey) -> Published (Green)
+            ses.isArchived = false;
+            ses.isPublished = true;
+        } else if (ses.isPublished) {
+            // From Published (Green) -> Unpublished (Red)
+            ses.isPublished = false;
+            ses.isArchived = false;
+        } else {
+            // From Unpublished (Red) -> Archived (Grey)
+            ses.isPublished = false;
+            ses.isArchived = true;
         }
+
+        DataManager.addExamSession(ses);
+        renderExamSessionsList();
+
+        let msg = '';
+        let icon = 'success';
+        if (ses.isArchived) { msg = 'Sınav arşivlendi'; icon = 'info'; }
+        else if (ses.isPublished) { msg = 'Sınav yayınlandı'; }
+        else { msg = 'Sınav yayından kaldırıldı'; icon = 'warning'; }
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: icon,
+            title: msg,
+            showConfirmButton: false,
+            timer: 1500
+        });
+    };
+
+    window.toggleSessionPublish = function (id) {
+        window.cycleSessionStatus(id);
     };
 
     // --- School Logo Handler ---

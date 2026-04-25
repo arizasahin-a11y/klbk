@@ -1511,3 +1511,68 @@ input:focus+.klbk-slider {
 input:checked+.klbk-slider:before {
     transform: translateX(16px);
 }
+
+/* klbk-tri-switch styling */
+.klbk-tri-switch {
+    position: relative;
+    display: inline-flex;
+    width: 66px;
+    height: 24px;
+    background: #e2e8f0;
+    border-radius: 12px;
+    padding: 2px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.3s ease;
+    align-items: center;
+}
+
+.klbk-tri-slider {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    z-index: 2;
+}
+
+/* State 0: Published (Left - Green) */
+.klbk-tri-switch[data-status="published"] {
+    background-color: #10b981;
+}
+.klbk-tri-switch[data-status="published"] .klbk-tri-slider {
+    left: 2px;
+}
+
+/* State 1: Unpublished (Middle - Red) */
+.klbk-tri-switch[data-status="unpublished"] {
+    background-color: #ef4444;
+}
+.klbk-tri-switch[data-status="unpublished"] .klbk-tri-slider {
+    left: 23px;
+}
+
+/* State 2: Archived (Right - Grey) */
+.klbk-tri-switch[data-status="archived"] {
+    background-color: #94a3b8;
+}
+.klbk-tri-switch[data-status="archived"] .klbk-tri-slider {
+    left: 44px;
+}
+
+.klbk-tri-switch .tri-labels {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 6px;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.klbk-tri-switch .tri-labels i {
+    font-size: 10px;
+    color: white;
+    opacity: 0.6;
+}
