@@ -792,6 +792,7 @@
                 // Eğer veriler değişmişse listeyi tekrar çiz (Anlık yansıma)
                 if (oldData !== newData) {
                     renderExams();
+                    checkFullScreenTriggers();
                 }
                 checkLiveMessages();
             }, 2000);
@@ -1326,7 +1327,10 @@
 
                 Swal.close();
                 const newWin = window.openSafePdf(blobUrl, title);
-                if (newWin) window.pdfTabs.push(newWin);
+                if (newWin) {
+                    newWin._sessionId = session.id;
+                    window.pdfTabs.push(newWin);
+                }
 
             } catch (err) {
                 console.error("OpenPdfTab Error:", err);
@@ -1522,6 +1526,34 @@
 
             if (!myRoomName) return;
 
+            // --- PDF Otomatik Kapatma Mantığı ---
+            if (window.pdfTabs && window.pdfTabs.length > 0) {
+                window.pdfTabs = window.pdfTabs.filter(win => {
+                    try {
+                        if (!win || win.closed) return false;
+                        const sid = win._sessionId;
+                        if (sid) {
+                            const ses = sessions.find(s => s.id === sid);
+                            // Seans yayından kalkmışsa veya genel olarak paylaşılan kağıtlar temizlenmişse kapat
+                            if (!ses || !ses.isPublished) {
+                                win.close();
+                                return false;
+                            }
+                            // Eğer öğretmen "Soru Kağıdını Paylaş" tikini kaldırmışsa (Tüm branşlar için)
+                            if (ses.subjectMetadata) {
+                                let anyShared = false;
+                                Object.values(ses.subjectMetadata).forEach(m => { if (m.isShared) anyShared = true; });
+                                if (!anyShared) {
+                                    win.close();
+                                    return false;
+                                }
+                            }
+                        }
+                        return true;
+                    } catch (e) { return false; }
+                });
+            }
+
             let activeSession = null;
             let activeRoomData = null;
 
@@ -1536,7 +1568,6 @@
 
                 const limit = (ses.screenViewLimit === undefined) ? 20 : ses.screenViewLimit;
                 
-                // Visible between 20 mins before and 10 mins after finish
                 if (Math.floor(diffMins) <= limit && diffEndMins >= -10) {
                     const roomResult = ses.results.find(r => r.name === myRoomName);
                     if (roomResult) {
@@ -1548,9 +1579,13 @@
             }
 
             if (activeSession && activeRoomData) {
-                if (currentFullScreenSessionId !== activeSession.id && !userClosedFullScreen) {
-                    // Close previous session's PDF tabs if switching
-                    if (pdfTabs.length > 0) {
+                const sessionHash = JSON.stringify(activeSession);
+                // Eğer seans değişmişse VEYA seans içindeki veriler (örn: PDF paylaşımı) değişmişse yeniden çiz
+                if ((currentFullScreenSessionId !== activeSession.id || window._lastActiveSessionHash !== sessionHash) && !userClosedFullScreen) {
+                    window._lastActiveSessionHash = sessionHash;
+                    
+                    // Close previous session's PDF tabs if switching sessions
+                    if (currentFullScreenSessionId !== activeSession.id && pdfTabs.length > 0) {
                         pdfTabs.forEach(win => { try { win.close(); } catch (e) { } });
                         pdfTabs = [];
                     }
