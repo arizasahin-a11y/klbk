@@ -1311,7 +1311,8 @@
                 const blobUrl = URL.createObjectURL(blob);
                 
                 Swal.close();
-                window.openSafePdf(blobUrl, 'Soru Kağıdı - ' + (info ? info.name : 'Görüntüleyici'));
+                const newWin = window.openSafePdf(blobUrl, 'Soru Kağıdı - ' + (info ? info.name : 'Görüntüleyici'));
+                if (newWin) pdfTabs.push(newWin);
 
             } catch (err) {
                 console.error("OpenPdfTab Error:", err);
@@ -1515,7 +1516,9 @@
                 const diffEndMins = (endTime - now) / 1000 / 60;
 
                 const limit = (ses.screenViewLimit === undefined) ? 20 : ses.screenViewLimit;
-                if (Math.floor(diffMins) <= limit && diffEndMins >= 0) {
+                
+                // Visible between 20 mins before and 10 mins after finish
+                if (Math.floor(diffMins) <= limit && diffEndMins >= -10) {
                     const roomResult = ses.results.find(r => r.name === myRoomName);
                     if (roomResult) {
                         activeSession = ses;
@@ -1543,11 +1546,15 @@
                 }
             } else {
                 // Exam ended or no active session for this classroom
-                if (pdfTabs.length > 0) {
-                    pdfTabs.forEach(win => { try { win.close(); } catch (e) { } });
-                    pdfTabs = [];
+                if (window.currentFullScreenSessionId) {
+                    window.closeFullScreenPlan();
+                    if (pdfTabs.length > 0) {
+                        pdfTabs.forEach(win => { try { win.close(); } catch (e) { } });
+                        pdfTabs = [];
+                    }
                 }
-                closeFullScreenPlan();
+                currentFullScreenSessionId = null;
+                userClosedFullScreen = false;
             }
         }
 
@@ -1578,6 +1585,10 @@
 
         function renderFullScreenPlan(roomData, sessionData) {
             // Cleanup existing timer if any
+            window.currentRenderedSession = sessionData;
+            // Clear current student to ensure smartboard view doesn't use stale student info
+            window.currentStudent = null;
+
             if (window.fullScreenTimerInterval) clearInterval(window.fullScreenTimerInterval);
 
             const examStartTime = DataManager.parseSessionDateTime(sessionData.date, sessionData.time).getTime();
@@ -1620,6 +1631,11 @@
                     timerEl.style.borderColor = 'rgba(255, 49, 49, 0.6)';
                 } else {
                     isFinished = true;
+                    // Auto-close any opened PDF tabs when exam finishes
+                    if (pdfTabs.length > 0) {
+                        pdfTabs.forEach(win => { try { win.close(); } catch (e) { } });
+                        pdfTabs = [];
+                    }
                 }
 
                 // Trigger emergency invert alert in the last 60 seconds (independent of color rules)
@@ -1680,8 +1696,8 @@
                 Array.from(roomSubjects).sort().forEach(subj => {
                     const meta = DataManager.getSanitizedSubjectMetadata(sessionData, subj);
                     if (meta && meta.papers) {
-                        // Security: Only show if shared is not explicitly false (default true)
-                        if (meta.isShared === false) return;
+                        // Only show if the teacher has explicitly checked the "Paylaş" (Share) checkbox
+                        if (meta.isShared !== true) return;
 
                         // Extract link (support both string and object formats)
                         let link = typeof meta.papers === 'string' ? meta.papers : (meta.papers.default || Object.values(meta.papers)[0]);

@@ -690,4 +690,5 @@ window.openSafePdf = function (url, title = 'PDF Görüntüleyici') {
         </html>
     `);
     newWin.document.close();
+    return newWin;
 };
