@@ -302,10 +302,13 @@
     <script src="js/data.js?v=5.9"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        // Path Enforcement
+        // Path Enforcement (Disabled for local dev stability)
+        console.log("Dashboard starting...");
+        /*
         if (window.location.pathname.endsWith('/ogretmen.html') || window.location.pathname.endsWith('/ogretmen')) {
             window.location.href = '/security_error';
         }
+        */
 
         // Global state
         let currentRole = '';
