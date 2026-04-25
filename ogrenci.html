@@ -862,7 +862,7 @@
                 // Sınav biteli 30 dakikadan fazla olduysa GÖSTERME
                 if (diffEndMins < -30) return;
 
-                const limit = 20;
+                const limit = (ses.screenViewLimit === 0) ? 999999 : (ses.screenViewLimit || 20);
                 let stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
                 lastStates[ses.id] = stateCode;
 
@@ -908,7 +908,7 @@
                                 </div>
                             </div>
                             <div id="details-${ses.id}" class="${isOpen ? '' : 'hidden'}">
-                                ${isNearOrActive ? generateDetailsHtml(item) : (isMed ? `<div class="glass-panel" style="padding: 1.5rem; text-align: center; margin-top: 10px; border: 1px dashed var(--primary-light); color: var(--primary); font-weight: 600;"><i class="fa-solid fa-user-shield" style="margin-right: 8px;"></i> Sınav yerleri sınavdan 20 dakika önce burada açıklanacaktır.</div>` : '')}
+                                ${isNearOrActive ? generateDetailsHtml(item) : (isMed ? `<div class="glass-panel" style="padding: 1.5rem; text-align: center; margin-top: 10px; border: 1px dashed var(--primary-light); color: var(--primary); font-weight: 600;"><i class="fa-solid fa-user-shield" style="margin-right: 8px;"></i> Sınav yerleri sınavdan ${limit} dakika önce burada açıklanacaktır.</div>` : '')}
                             </div>
                         </div>`;
             });
@@ -938,7 +938,7 @@
 
                 let newState = 'hidden';
                 if (diffMins <= 36 * 60 && diffEndMins >= -30) {
-                    const limit = 20;
+                    const limit = (ses.screenViewLimit === 0) ? 999999 : (ses.screenViewLimit || 20);
                     newState = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
                 }
 
@@ -1174,7 +1174,7 @@
                         </div>
                         <div style="flex:1;">
                             <div style="font-size:0.85rem; opacity:0.9; font-weight:600; text-transform:uppercase; letter-spacing:1px;">Sınav Yeriniz</div>
-                            <div style="font-size:1.4rem; font-weight:900;">${myRoom.name} Salonu <span style="opacity:0.5; margin:0 5px;">|</span> Sıra No: ${mySeatNum}</div>
+                            <div style="font-size:1.4rem; font-weight:900;">${(ses.screenViewLimit === 0) ? myRoom.name + ' Salonu' : 'SINAV YERİNİZ'} <span style="opacity:0.5; margin:0 5px;">|</span> Sıra No: ${mySeatNum}</div>
                         </div>
                     </div>
 
@@ -1191,7 +1191,7 @@
                                             <th style="width:60px;">No</th>
                                             <th>Ad Soyad</th>
                                             <th>Sınav Dersi</th>
-                                            <th>Sınav Salonu</th>
+                                            ${(ses.screenViewLimit === 0) ? `<th>Sınav Salonu</th>` : ''}
                                             <th style="width:80px; text-align:center;">Yer No</th>
                                         </tr>
                                     </thead>
@@ -1201,7 +1201,7 @@
                                                 <td>${s.no}</td>
                                                 <td>${s.name} ${s.isMe ? '<span style="color:var(--secondary); font-size:0.7rem; margin-left:5px;">(SİZSİNİZ)</span>' : ''}</td>
                                                 <td style="font-size:0.85rem; color:var(--gray-600);">${s.subject}</td>
-                                                <td><i class="fa-solid fa-door-open" style="color:var(--gray-400); margin-right:5px; font-size:0.8rem;"></i> ${s.room}</td>
+                                                ${(ses.screenViewLimit === 0) ? `<td><i class="fa-solid fa-door-open" style="color:var(--gray-400); margin-right:5px; font-size:0.8rem;"></i> ${s.room}</td>` : ''}
                                                 <td style="text-align:center;"><span class="badge-seat">${s.sn}</span></td>
                                             </tr>`).join('')}
                                     </tbody>
@@ -1210,7 +1210,7 @@
                         </div>
                     </div>
 
-                    ${(false && ses.screenViewEnabled) ? `
+                    ${(ses.screenViewLimit === 0 && ses.screenViewEnabled) ? `
                     <div class="nested-accordion">
                         <div class="nested-header" onclick="toggleNested(this)">
                             <span><i class="fa-solid fa-thumbtack" style="color:var(--primary); margin-right:10px;"></i> ${myRoom.name} Salonu Oturma Planı</span>
