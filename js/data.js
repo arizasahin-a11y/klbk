@@ -684,7 +684,7 @@ const DataManager = {
         const start = this.parseSessionDateTime(dateStr, timeStr);
         let duration = forcedDuration || 40; // Default 40 mins
 
-        if (timeStr && timeStr.includes('. Ders')) {
+        if (!forcedDuration && timeStr && timeStr.includes('. Ders')) {
             const lessonNum = parseInt(timeStr);
             const school = this.getSchoolSettings();
             const lessonTimes = school.lessonTimes || {};
