@@ -495,6 +495,19 @@
             html += '<h4 style="color:#ea580c; border-bottom: 2px solid #ffedd5; padding-bottom: 5px; margin-bottom: 10px;">Boş Öğretmenler (Yedek Havuzu)</h4>';
             html += '<div style="display:flex; flex-wrap: wrap; gap: 8px;">';
             if (examTeachersData.globalSpares && examTeachersData.globalSpares.length > 0) {
+                // User Request: Sort by priority
+                // 1. Starred (isDouble), 2. Green (hasLater), 3. Red (no later), 4. Grey (Idr no class)
+                examTeachersData.globalSpares.sort((a, b) => {
+                    const getScore = (s) => {
+                        if (s.isDouble) return 1;
+                        const isIdr = ['idareci', 'admin', 'master'].includes(s.role);
+                        if (!isIdr && s.hasLaterClasses) return 2;
+                        if (!isIdr && s.hasAnyClassThisDay && !s.hasLaterClasses) return 3;
+                        return 4; // Idr or unknown
+                    };
+                    return getScore(a) - getScore(b);
+                });
+
                 examTeachersData.globalSpares.forEach(spare => {
                     const isIdr = ['idareci', 'admin', 'master'].includes(spare.role);
                     let bgColor = '#fff7ed'; // Varsayılan Turuncu
