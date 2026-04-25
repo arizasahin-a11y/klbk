@@ -637,6 +637,12 @@
                             else currentPdf = meta.papers['default'] || Object.values(meta.papers)[0] || '';
                         }
 
+                        const hasAnyPdf = (currentPdf && currentPdf.trim().length > 5) || (meta.papers && Object.values(meta.papers).some(p => p && p.trim().length > 5));
+                        const shareCheckboxHeader = (isMine && stateCode === 'active' && hasAnyPdf) ? `
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 800; color: var(--primary); cursor: pointer; margin-right: 12px; background: #f5f3ff; padding: 6px 12px; border-radius: 8px; border: 1px solid #ddd6fe;" onclick="event.stopPropagation()">
+                                <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared === true ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 17px; height: 17px; accent-color: var(--primary);"> Soru Kağıdını Paylaş
+                            </label>` : '';
+
                         html += `<div class="nested-accordion" style="margin-bottom: 1.5rem; border: 2px solid ${isSubOpen ? 'var(--primary-light)' : 'var(--gray-200)'};">
                                     <div class="nested-header" onclick="toggleSubject('${ses.id}', '${encodedSub}')" style="${isSubOpen ? 'background: white; border-bottom: 1px solid var(--gray-100);' : ''}">
                                         <div style="display:flex; align-items:center; gap:10px;">
@@ -648,7 +654,11 @@
                                                 <div style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">${currentPdf ? 'Sınav kağıdı yüklendi' : 'Sınav kağıdı bekleniyor...'}</div>
                                             </div>
                                         </div>
-                                        <i class="fa-solid fa-angle-${isSubOpen ? 'up' : 'down'}" style="color:var(--gray-400)"></i>
+                                        </div>
+                                        <div style="display:flex; align-items:center;">
+                                            ${shareCheckboxHeader}
+                                            <i class="fa-solid fa-angle-${isSubOpen ? 'up' : 'down'}" style="color:var(--gray-400)"></i>
+                                        </div>
                                     </div>
                                     <div class="nested-content ${isSubOpen ? '' : 'hidden'}" style="background-color: #fafbfc; padding: 1.25rem;">`;
 
@@ -712,7 +722,7 @@
                                     </div>`;
                             }
 
-                            if (stateCode === 'far' || stateCode === 'near' || stateCode === 'active') {
+                            if (stateCode === 'far' || stateCode === 'near') {
                                 html += papersHtml;
                             }
                             
