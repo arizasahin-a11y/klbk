@@ -6,12 +6,13 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const { width, height } = page.getSize();
     const sf = options.sf || 1;
 
-    const customFont = mainFont;
+    const getCustomFont = () => mainFont;
     const reflectsStandard = (f) => f && (f.name === 'Helvetica' || f.name === 'Helvetica-Bold' || f.name === 'Times-Roman' || f.name === 'Times-Bold' || f.name === 'Courier' || f.name === 'Courier-Bold');
     const cleanTurkishChars = (text) => {
         if (!text) return '';
+        const currentFont = getCustomFont();
         // Only skip cleaning if we have a non-standard (embedded) font
-        if (customFont && !reflectsStandard(customFont)) return text;
+        if (currentFont && !reflectsStandard(currentFont)) return text;
         return text
             .replace(/\u0130/g, 'I').replace(/\u0131/g, 'i')
             .replace(/\u011e/g, 'G').replace(/\u011f/g, 'g')
@@ -50,12 +51,13 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         page.drawText(cl, { x: tx, y: ty, size: s_sz, font: fnt || undefined, color: rgb(0, 0, 0) });
     };
 
-    const getFitSize = (txt, mw, bs, fnt = mainFont) => {
+    const getFitSize = (txt, mw, bs, fnt) => {
         let sz = bs;
-        let tw = (fnt || mainFont).widthOfTextAtSize(cleanTurkishChars(txt), sz * sf);
+        const useFont = fnt || mainFont;
+        let tw = useFont.widthOfTextAtSize(cleanTurkishChars(txt), sz * sf);
         while (tw > mw && sz > 4) {
             sz -= 0.5;
-            tw = (fnt || mainFont).widthOfTextAtSize(cleanTurkishChars(txt), sz * sf);
+            tw = useFont.widthOfTextAtSize(cleanTurkishChars(txt), sz * sf);
         }
         return sz;
     };
@@ -90,21 +92,23 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     try {
         if (!pdfDoc._cachedFonts) pdfDoc._cachedFonts = {};
         const fetchAndEmbed = async (fName) => {
-            if (!fName || fName === 'auto' || fName === 'Roboto') return null;
+            if (!fName || fName === 'auto') return null;
+            // Eğer Roboto seçilmişse ve zaten bir fontumuz varsa (DataManager'dan gelen), onu kullanabiliriz
+            // Ama garanti olsun diye her türlü yüklemeyi deneyebiliriz ya da cache kontrolü yapabiliriz.
             if (pdfDoc._cachedFonts[fName]) return pdfDoc._cachedFonts[fName];
             
             const folder = fName.toLowerCase().replace(/\s+/g, '-');
             try {
-                // Fontsource kütüphanesi üzerinden doğrudan çok hızlı WOFF fontlarını indiriyoruz. 
-                // Hiçbir proxy veya API beklemesine gerek yok.
                 const fontUrl = `https://cdn.jsdelivr.net/npm/@fontsource/${folder}/files/${folder}-latin-400-normal.woff`;
+                console.log(`Font yükleniyor: ${fName} -> ${fontUrl}`);
                 const bytes = await window.getFileBytes(fontUrl);
                 if (bytes) {
                     const font = await pdfDoc.embedFont(bytes);
                     pdfDoc._cachedFonts[fName] = font;
+                    console.log(`Font başarıyla yüklendi: ${fName}`);
                     return font;
                 }
-            } catch(e) { console.warn("Dinamik font yükleme hatası", e); }
+            } catch(e) { console.warn(`Font yükleme hatası (${fName}):`, e); }
             return null;
         };
         
