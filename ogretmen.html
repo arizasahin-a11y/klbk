@@ -1899,6 +1899,18 @@
                 window.openSafePdf(blobUrl, 'Örnek Sınav Kağıdı');
             } catch (err) {
                 Swal.close();
+                // Show a brief toast notification instead of a big popup
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+                Toast.fire({
+                    icon: 'info',
+                    title: 'Başlık eklenemedi, orijinal dosya açılıyor.'
+                });
                 window.openSafePdf(url, 'Soru Kağıdı');
             }
         };
