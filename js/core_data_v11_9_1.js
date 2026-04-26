@@ -5,6 +5,11 @@
 
 // --- SESSION RESTORATION (AUTO-LOGIN) ---
 (function() {
+    // Öğrenci sayfalarında (obfuscated veya değil) oturum geri yükleme yapma
+    const path = window.location.pathname;
+    const isStudentPage = path.includes('ogrenci') || path.includes('j2k5l0p8') || path.includes('j2k5');
+    if (isStudentPage) return;
+
     if (!sessionStorage.getItem('klbk_isLoggedIn')) {
         const persistent = localStorage.getItem('klbk_persistent_session');
         if (persistent) {

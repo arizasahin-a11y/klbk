@@ -6,11 +6,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>ÖĞRENCİ PANELİ</title>
-    <script>
-        if (window.location.pathname.endsWith('/ogrenci.html') || window.location.pathname.endsWith('/ogrenci')) {
-            window.location.href = '/security_error';
-        }
-    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -621,21 +616,17 @@
             const urlParams = new URLSearchParams(window.location.search);
             const q = urlParams.get('school');
             
-            // Priority 1: URL Parameter ?school=xyz (Updates the remembered school)
+            // Priority 1: URL Parameter ?school=xyz
             if (q) {
                 localStorage.setItem('klbk_last_school', q);
                 return `klbk_data_${q}`;
             }
 
-            // Priority 2: Logged in user in session (For teachers/admins testing the portal)
-            let user = sessionStorage.getItem('klbk_currentUser');
-            if (user) return `klbk_data_${user}`;
-
-            // Priority 3: Last used school (Persistent for students)
+            // Priority 2: Last used school
             const lastSchool = localStorage.getItem('klbk_last_school');
             if (lastSchool) return `klbk_data_${lastSchool}`;
 
-            // Priority 4: Default fallback
+            // Priority 3: Fallback
             return `klbk_data_admin`;
         };
 
