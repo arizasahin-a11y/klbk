@@ -229,15 +229,20 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             }
         };
         
-        const [cf1, cf2, cf3] = await Promise.all([
+        let [cf1, cf2, cf3, infoFont] = await Promise.all([
             fetchAndEmbed(finalFont1),
             fetchAndEmbed(finalFont2),
-            fetchAndEmbed(finalFont3)
+            fetchAndEmbed(finalFont3),
+            fetchAndEmbed("Arial")
         ]);
 
         if (cf1) { schoolFont = cf1; console.log("Uygulanan Okul Fontu:", cf1.name || cf1.getName()); }
         if (cf2) { mainFont = cf2; console.log("Uygulanan Ana Font:", cf2.name || cf2.getName()); }
         if (cf3) { nameFont = cf3; console.log("Uygulanan İsim Fontu:", cf3.name || cf3.getName()); }
+        if (!infoFont) infoFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica); // Fallback for labels
+        
+        // Expose infoFont to drawing helpers
+        options.infoFont = infoFont;
     } catch(e) { console.warn("Dinamik font yükleme hatası", e); }
 
     const margin = 14.17 * sf;
@@ -439,18 +444,19 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     };
 
     const drawCommon = (bx, by, bL, b2, b3, b4, b5, b6) => {
-        drawCenterText(lang.class, bx, by + row3H - 8 * sf, bL, 8 * sf, 6, mainFont);
-        drawCenterText(info?.class || '', bx, by - 2 * sf, bL, row3H, 16, mainFont);
-        drawCenterText(lang.no, bx + bL, by + row3H - 8 * sf, b2, 8 * sf, 6, mainFont);
-        drawCenterText(info?.no || '', bx + bL, by - 2 * sf, b2, row3H, 12, mainFont);
+        const infoFont = options.infoFont || mainFont;
+        drawCenterText(lang.class, bx, by + row3H - 8 * sf, bL, 8 * sf, 6, infoFont);
+        drawCenterText(info?.class || '', bx, by - 2 * sf, bL, row3H, 16, infoFont);
+        drawCenterText(lang.no, bx + bL, by + row3H - 8 * sf, b2, 8 * sf, 6, infoFont);
+        drawCenterText(info?.no || '', bx + bL, by - 2 * sf, b2, row3H, 12, infoFont);
         drawStudentName(bx + bL + b2, by, b3, row3H);
-        page.drawText(lang.room, { x: bx + bL + b2 + b3 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-        drawCenterText(info?.room || '', bx + bL + b2 + b3, by - 2.5 * sf, b4, row3H, 11, mainFont);
-        page.drawText(lang.exam, { x: bx + bL + b2 + b3 + b4 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+        page.drawText(lang.room, { x: bx + bL + b2 + b3 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
+        drawCenterText(info?.room || '', bx + bL + b2 + b3, by - 2.5 * sf, b4, row3H, 11, infoFont);
+        page.drawText(lang.exam, { x: bx + bL + b2 + b3 + b4 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
         const shortSubInBox = window.shortenSubject ? window.shortenSubject(info?.subject || '', 20) : (info?.subject || '');
-        drawCenterText(shortSubInBox.toUpperCase(), bx + bL + b2 + b3 + b4, by - 2.5 * sf, b5, row3H, 9.5, mainFont);
-        page.drawText(lang.seat, { x: bx + bL + b2 + b3 + b4 + b5 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-        drawCenterText(info?.seat || '', bx + bL + b2 + b3 + b4 + b5, by - 2.5 * sf, b6, row3H, 14, mainFont);
+        drawCenterText(shortSubInBox.toUpperCase(), bx + bL + b2 + b3 + b4, by - 2.5 * sf, b5, row3H, 9.5, infoFont);
+        page.drawText(lang.seat, { x: bx + bL + b2 + b3 + b4 + b5 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
+        drawCenterText(info?.seat || '', bx + bL + b2 + b3 + b4 + b5, by - 2.5 * sf, b6, row3H, 14, infoFont);
     };
 
     const drawDivs = (bx, by, bL, b2, b3, b4, b5, col, th) => {
@@ -709,20 +715,21 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             // Puan yazısının soluna dikey çizgi (YER kutusu sağındaki çizgi) - Üstten 3mm (8.5pt) kısaltıldı
             page.drawLine({ start: { x: scoreDivX, y: d9Oy }, end: { x: scoreDivX, y: lineTopY }, thickness: 0.5 * sf, color: gc });
 
-            drawRightText(lang.class, ox, d9Oy + row3H - 8 * sf, d9LeftW, 8 * sf, 6, mainFont);
-            drawRightText(info.class || '', ox, d9Oy - 2 * sf, d9LeftW, row3H, 16, mainFont);
+            const infoFont = options.infoFont || mainFont;
+            drawRightText(lang.class, ox, d9Oy + row3H - 8 * sf, d9LeftW, 8 * sf, 6, infoFont);
+            drawRightText(info.class || '', ox, d9Oy - 2 * sf, d9LeftW, row3H, 16, infoFont);
 
-            drawCenterText(lang.no, ox + d9LeftW, d9Oy + row3H - 8 * sf, d9MidCol2W, 8 * sf, 6, mainFont);
-            drawCenterText(info.no || '', ox + d9LeftW, d9Oy - 2 * sf, d9MidCol2W, row3H, 12, mainFont);
+            drawCenterText(lang.no, ox + d9LeftW, d9Oy + row3H - 8 * sf, d9MidCol2W, 8 * sf, 6, infoFont);
+            drawCenterText(info.no || '', ox + d9LeftW, d9Oy - 2 * sf, d9MidCol2W, row3H, 12, infoFont);
             drawStudentName(ox + d9LeftW + d9MidCol2W, d9Oy, d9MidCol3W, row3H);
-            page.drawText(lang.room, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-            drawCenterText(info.room || '', ox + d9LeftW + d9MidCol2W + d9MidCol3W, d9Oy - 2.5 * sf, midCol4W, row3H, 11, mainFont);
-            page.drawText(lang.exam, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-            drawCenterText((info.subject || '').toUpperCase(), ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W, d9Oy - 2.5 * sf, midCol5W, row3H, 9.5, mainFont);
-            page.drawText(lang.seat, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + midCol5W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
-            drawCenterText(info.seat || '', ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + midCol5W, d9Oy - 2.5 * sf, midCol6W, row3H, 14, mainFont);
+            page.drawText(lang.room, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
+            drawCenterText(info.room || '', ox + d9LeftW + d9MidCol2W + d9MidCol3W, d9Oy - 2.5 * sf, midCol4W, row3H, 11, infoFont);
+            page.drawText(lang.exam, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
+            drawCenterText((info.subject || '').toUpperCase(), ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W, d9Oy - 2.5 * sf, midCol5W, row3H, 9.5, infoFont);
+            page.drawText(lang.seat, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + midCol5W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
+            drawCenterText(info.seat || '', ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + midCol5W, d9Oy - 2.5 * sf, midCol6W, row3H, 14, infoFont);
         }
-        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: lineTopY - 10 * sf, size: 7 * sf, font: mainFont, color: rgb(0.2, 0.2, 0.2) });
+        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: lineTopY - 10 * sf, size: 7 * sf, font: options.infoFont || mainFont, color: rgb(0.2, 0.2, 0.2) });
 
     } else if (designType === '10') {
         // CLOUD THEME (FLATTER CURVES: 4x Length, Original Bulge)
