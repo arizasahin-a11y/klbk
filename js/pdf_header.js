@@ -1,10 +1,11 @@
 // PDF Başlık Render - ui.js ile ortak (dashboard + ogretmen)
 window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}) {
-    const { PDFLib, DataManager } = window;
-    const { rgb, degrees } = PDFLib;
-    let { mainFont, nameFont, schoolFont } = options;
-    const { width, height } = page.getSize();
-    const sf = options.sf || 1;
+    try {
+        const { PDFLib, DataManager } = window;
+        const { rgb, degrees } = PDFLib;
+        let { mainFont, nameFont, schoolFont } = options;
+        const { width, height } = page.getSize();
+        const sf = options.sf || 1;
 
     const getCustomFont = () => mainFont;
     const reflectsStandard = (f) => {
@@ -744,6 +745,9 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: mainFont, color: darkMetal });
         const lDim = 28 * sf;
         await drawLogo(ox + (leftW - lDim) / 2, oy + row3H + (oh - row3H - lDim) / 2, lDim);
+    }
+    } catch (globalErr) {
+        console.error("renderStudentPDFHeader CRITICAL:", globalErr);
     }
 };
 
