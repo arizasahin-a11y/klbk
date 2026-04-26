@@ -166,7 +166,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                 if (fName === 'Monotype Corsiva') localUrl = 'fonts/MonotypeCorsiva.ttf';
                 if (fName === 'Snap ITC') localUrl = 'fonts/SnapITC.ttf';
 
-                console.log(`%c FONT ATTEMPT [v10.0]: Loading local font '${fName}' from ${localUrl}`, "color: #3b82f6;");
+                console.log(`%c FONT ATTEMPT [v11.0]: Loading local font '${fName}' from ${localUrl}`, "color: #3b82f6;");
                 const localBytes = await window.getFileBytes(localUrl);
                 
                 if (localBytes && localBytes.byteLength > 1000) {

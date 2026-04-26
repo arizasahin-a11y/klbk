@@ -1899,14 +1899,14 @@
                 window.openSafePdf(blobUrl, 'Örnek Sınav Kağıdı');
             } catch (err) {
                 console.error("Test PDF Rendering Error:", err);
-                const isFetchError = (err.message === "Dosya içeriği boş veya hatalı.");
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Başlık Eklenemedi',
-                    text: (isFetchError ? 'PDF dosyası indirilemediği için başlık eklenemedi. ' : 'PDF indirildi ancak başlık şablonu uygulanamadı. ') + 'Hata: ' + err.message,
-                });
-                // Fallback attempt to at least open the original file
-                if (!isFetchError) window.openSafePdf(url, 'Soru Kağıdı');
+                const isFetchError = (err.message && err.message.includes("Dosya içeriği boş"));
+                
+                // Nuclear fallback: Just open the original URL without header
+                window.openSafePdf(url, 'Soru Kağıdı (Başlıksız)');
+
+                if (!isFetchError) {
+                    console.warn("PDF modified but save failed, opening original.");
+                }
             }
         };
 
