@@ -1898,7 +1898,7 @@
                 Swal.close();
                 window.openSafePdf(blobUrl, 'Örnek Sınav Kağıdı');
             } catch (err) {
-                // Total silence fallback: Just open the original URL without header
+                Swal.close();
                 window.openSafePdf(url, 'Soru Kağıdı');
             }
         };
