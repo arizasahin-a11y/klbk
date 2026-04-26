@@ -1,10 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Path Enforcement: Sadece doğrudan .html ismiyle geliniyorsa engelle
-    const path = window.location.pathname;
-    if (path.endsWith('/index.html') || path.endsWith('/index')) {
-        window.location.href = '/security_error';
-        return;
-    }
+    // Not: Bu kural Vercel rewriteları ile bazen çakışabildiği için esnetildi.
 
     const loginForm = document.getElementById('loginForm');
 
@@ -75,16 +71,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 sessionStorage.setItem('klbk_isLoggedIn', 'true');
 
-                // Auto-redirect
+                // Auto-redirect if not coming from a "Back" action
+                // We check if we are on the login page and NOT explicitly logging out
                 const role = (data.klbk_role || '').toLowerCase().trim();
-                if (role === 'ogretmen' || role === 'idareci') {
-                    window.location.href = '/h6t3y9w1';
-                } else if (role === 'master' || role === 'admin' || role === 'dashboard') {
-                    window.location.href = '/r1p5s8q3';
-                } else {
-                    window.location.href = '/j2k5l0p8';
+                const targetUrl = (role === 'ogretmen' || role === 'idareci') ? '/h6t3y9w1' : 
+                                 (role === 'master' || role === 'admin' || role === 'dashboard') ? '/r1p5s8q3' : '/j2k5l0p8';
+                
+                // If we are already on the login page and have a session, 
+                // we only redirect if we didn't just come from that page (to allow 'Back' button)
+                const lastRedirect = sessionStorage.getItem('klbk_last_redirect');
+                if (lastRedirect !== targetUrl) {
+                    sessionStorage.setItem('klbk_last_redirect', targetUrl);
+                    window.location.href = targetUrl;
                 }
-                return; // Stop further processing
+                return; 
             } else {
                 localStorage.removeItem('klbk_persistent_session');
             }

@@ -337,7 +337,7 @@
             
             if (sessionStorage.getItem('klbk_isLoggedIn') !== 'true' || (currentRole !== 'ogretmen' && currentRole !== 'idareci' && currentRole !== 'admin' && currentRole !== 'master')) {
                 console.warn("Auth failure, redirecting...");
-                window.location.href = '/k9x7v2m4?logout=true';
+                window.location.href = '/k9x7v2m4';
             }
 
             const rawBranch = sessionStorage.getItem('klbk_branch') || '';

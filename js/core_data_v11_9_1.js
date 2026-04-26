@@ -3,6 +3,37 @@
  * Manages school settings, classes, students, and classrooms using LocalStorage
  */
 
+// --- SESSION RESTORATION (AUTO-LOGIN) ---
+(function() {
+    if (!sessionStorage.getItem('klbk_isLoggedIn')) {
+        const persistent = localStorage.getItem('klbk_persistent_session');
+        if (persistent) {
+            try {
+                const data = JSON.parse(persistent);
+                // Ensure we have a valid login time
+                const loginTime = data.klbk_loginTime ? new Date(data.klbk_loginTime) : new Date();
+                const now = new Date();
+                const diffDays = (now - loginTime) / (1000 * 60 * 60 * 24);
+
+                // Session valid for 30 days
+                if (diffDays < 30) {
+                    for (const [key, value] of Object.entries(data)) {
+                        sessionStorage.setItem(key, value);
+                    }
+                    sessionStorage.setItem('klbk_isLoggedIn', 'true');
+                    console.log("Session restored from persistent storage.");
+                } else {
+                    localStorage.removeItem('klbk_persistent_session');
+                    console.log("Persistent session expired.");
+                }
+            } catch (e) {
+                console.error("Persistent session restoration failed", e);
+                localStorage.removeItem('klbk_persistent_session');
+            }
+        }
+    }
+})();
+
 // Default initial state
 const initialState = {
     school: {
@@ -1007,6 +1038,15 @@ const DataManager = {
                 customFonts.schoolFont = robotoFont;
                 customFonts.nameFont = robotoFont;
             }
+            
+            // Arial fontunu yükle (Puan ve sabit metinler için kullanıcı isteği)
+            try {
+                const arialBytes = await this.getFileBytes('fonts/arial.ttf');
+                if (arialBytes) {
+                    customFonts.infoFont = await pdfDoc.embedFont(arialBytes);
+                }
+            } catch (ae) { console.warn("Arial yüklenemedi, Helvetica kullanılacak."); }
+
         } catch (e) {
             console.warn("Temel font yükleme hatası (Roboto):", e);
         }

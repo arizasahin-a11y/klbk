@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!isLoginPage) {
         const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn');
         if (!isLoggedIn) {
-            window.location.href = '/security_error';
+            window.location.href = '/k9x7v2m4';
             return;
         }
     }
