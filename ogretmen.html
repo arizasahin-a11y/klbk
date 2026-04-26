@@ -716,6 +716,51 @@
                                 <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared === true ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 17px; height: 17px; accent-color: var(--primary);"> Soru Kağıdını Paylaş
                             </label>` : '';
 
+                        const showThemeFontSelects = (stateCode === 'far' || stateCode === 'near') && isMine;
+                        const fontsList20 = [
+                            "Roboto", "Open Sans", "Montserrat", "Lato", "Oswald",
+                            "Source Sans Pro", "Raleway", "PT Sans", "Merriweather", "Nunito",
+                            "Work Sans", "Fira Sans", "Rubik", "Mukta", "Quicksand",
+                            "Inter", "Ubuntu", "Karla", "Arimo", "Noto Sans"
+                        ];
+                        
+                        let themeFontHtml = '';
+                        if (showThemeFontSelects) {
+                            const sTheme = meta.pdfHeaderDesign || 'auto';
+                            const sFont = meta.pdfHeaderFont || 'auto';
+                            
+                            let fontOpts = '<option value="auto">Otomatik Font</option>';
+                            fontsList20.forEach(f => {
+                                fontOpts += `<option value="${f}" ${f === sFont ? 'selected' : ''}>${f}</option>`;
+                            });
+
+                            const themeOpts = `
+                                <option value="auto" ${sTheme==='auto'?'selected':''}>Otomatik Tema</option>
+                                <option value="1" ${sTheme==='1'?'selected':''}>Tema 1</option>
+                                <option value="2" ${sTheme==='2'?'selected':''}>Tema 2</option>
+                                <option value="3" ${sTheme==='3'?'selected':''}>Tema 3</option>
+                                <option value="4" ${sTheme==='4'?'selected':''}>Tema 4</option>
+                                <option value="5" ${sTheme==='5'?'selected':''}>Tema 5</option>
+                                <option value="6" ${sTheme==='6'?'selected':''}>Tema 6</option>
+                                <option value="7" ${sTheme==='7'?'selected':''}>Tema 7</option>
+                                <option value="8" ${sTheme==='8'?'selected':''}>Tema 8</option>
+                                <option value="9" ${sTheme==='9'?'selected':''}>Tema 9</option>
+                                <option value="10" ${sTheme==='10'?'selected':''}>Tema 10</option>
+                                <option value="11" ${sTheme==='11'?'selected':''}>Tema 11</option>
+                            `;
+
+                            themeFontHtml = `
+                                <div style="display:flex; gap: 8px; margin-left: auto; margin-right: 15px;" onclick="event.stopPropagation()">
+                                    <select class="form-control" style="font-size: 0.75rem; padding: 2px 6px; height: 26px; border-radius: 4px; width: 120px;" onchange="window.saveSubjectThemeFont('${ses.id}', '${encodedSub}', 'theme', this.value)">
+                                        ${themeOpts}
+                                    </select>
+                                    <select class="form-control" style="font-size: 0.75rem; padding: 2px 6px; height: 26px; border-radius: 4px; width: 120px;" onchange="window.saveSubjectThemeFont('${ses.id}', '${encodedSub}', 'font', this.value)">
+                                        ${fontOpts}
+                                    </select>
+                                </div>
+                            `;
+                        }
+
                         html += `<div class="nested-accordion" style="margin-bottom: 1.5rem; border: 2px solid ${isSubOpen ? 'var(--primary-light)' : 'var(--gray-200)'};">
                                     <div class="nested-header" onclick="toggleSubject('${ses.id}', '${encodedSub}')" style="${isSubOpen ? 'background: white; border-bottom: 1px solid var(--gray-100);' : ''}; display: flex; align-items: center; justify-content: space-between;">
                                         <div style="display:flex; align-items:center; gap:10px; flex:1; justify-content: space-between; margin-right: 10px;">
@@ -728,6 +773,7 @@
                                                     <div style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">${currentPdf ? 'Sınav kağıdı yüklendi' : 'Sınav kağıdı bekleniyor...'}</div>
                                                 </div>
                                             </div>
+                                            ${themeFontHtml}
                                             ${shareCheckboxHeader}
                                         </div>
                                         <i class="fa-solid fa-angle-${isSubOpen ? 'up' : 'down'}" style="color:var(--gray-400)"></i>
@@ -1256,42 +1302,6 @@
                                 ${lessonOptions}
                             </select>
                         </div>
-                        
-                        <hr style="margin: 1.5rem 0; border: 1px solid var(--gray-200);">
-                        <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 900; color: var(--primary);">Genel PDF Teması</label>
-                            <select id="swal-global-theme" class="swal2-input" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem;">
-                                <option value="auto">Otomatik (Her derse farklı tema)</option>
-                                <option value="1">Tema 1 (Standart Klasik)</option>
-                                <option value="2">Tema 2 (Modern Çizgili)</option>
-                                <option value="3">Tema 3 (Koyu Çerçeveli)</option>
-                                <option value="4">Tema 4 (Osmanlı Motifli)</option>
-                                <option value="5">Tema 5 (Japon Esintisi)</option>
-                                <option value="6">Tema 6 (Ahşap & Doğal)</option>
-                                <option value="7">Tema 7 (Latin Tarzı)</option>
-                                <option value="8">Tema 8 (Arap Mimarisi)</option>
-                                <option value="9">Tema 9 (Atatürk Temalı - Portre)</option>
-                                <option value="10">Tema 10 (Bulut & Yumuşak)</option>
-                                <option value="11">Tema 11 (Testere Dişi & Metalik)</option>
-                            </select>
-                        </div>
-                        <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 900; color: var(--primary);">PDF Font Ayarları</label>
-                            <div style="display:flex; flex-direction:column; gap:8px;">
-                                <div>
-                                    <span style="font-size:0.8rem; color:gray;">1. Satır (Okul İsmi):</span>
-                                    <select id="swal-global-font1" class="swal2-input" style="width: 100%; margin: 0; height: 35px; font-size:0.85rem;"></select>
-                                </div>
-                                <div>
-                                    <span style="font-size:0.8rem; color:gray;">2. Satır (Sınav Bilgisi):</span>
-                                    <select id="swal-global-font2" class="swal2-input" style="width: 100%; margin: 0; height: 35px; font-size:0.85rem;"></select>
-                                </div>
-                                <div>
-                                    <span style="font-size:0.8rem; color:gray;">3. Satır (Öğrenci & Salon Bilgisi):</span>
-                                    <select id="swal-global-font3" class="swal2-input" style="width: 100%; margin: 0; height: 35px; font-size:0.85rem;"></select>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 `,
                 didOpen: () => {
@@ -1300,19 +1310,6 @@
                     lessonSelect.addEventListener('change', (e) => {
                         if (e.target.value) timeInput.value = e.target.value;
                     });
-                    
-                    const fontsList = window.googleFonts100 || ["Roboto", "Montserrat", "Open Sans"];
-                    const buildOpts = (selVal) => {
-                        let html = '<option value="auto">Otomatik Sistem Seçimi</option>';
-                        fontsList.forEach(f => {
-                            html += `<option value="${f}" ${f === selVal ? 'selected' : ''}>${f}</option>`;
-                        });
-                        return html;
-                    };
-                    document.getElementById('swal-global-font1').innerHTML = buildOpts(session.globalFont1);
-                    document.getElementById('swal-global-font2').innerHTML = buildOpts(session.globalFont2);
-                    document.getElementById('swal-global-font3').innerHTML = buildOpts(session.globalFont3);
-                    if (session.globalTheme) document.getElementById('swal-global-theme').value = session.globalTheme;
                 },
                 focusConfirm: false,
                 showCancelButton: true,
@@ -1322,11 +1319,7 @@
                     return {
                         name: document.getElementById('swal-name').value,
                         date: DataManager.formatDateToStandard(document.getElementById('swal-date').value),
-                        time: document.getElementById('swal-time').value,
-                        globalTheme: document.getElementById('swal-global-theme').value,
-                        globalFont1: document.getElementById('swal-global-font1').value,
-                        globalFont2: document.getElementById('swal-global-font2').value,
-                        globalFont3: document.getElementById('swal-global-font3').value
+                        time: document.getElementById('swal-time').value
                     }
                 }
             });
@@ -1335,10 +1328,6 @@
                 session.name = formValues.name;
                 session.date = formValues.date;
                 session.time = formValues.time;
-                session.globalTheme = formValues.globalTheme;
-                session.globalFont1 = formValues.globalFont1;
-                session.globalFont2 = formValues.globalFont2;
-                session.globalFont3 = formValues.globalFont3;
 
                 // Update persistent data
                 DataManager.addExamSession(session);
@@ -1706,6 +1695,25 @@
                 Swal.fire('Hata', 'Toplu PDF oluşturulurken hata: ' + err.message, 'error');
             }
         }
+
+        window.saveSubjectThemeFont = function(sesId, encodedSub, type, val) {
+            const subName = decodeURIComponent(encodedSub);
+            const sessions = DataManager.getExamSessions();
+            const session = sessions.find(s => s.id === sesId);
+            if (!session) return;
+            
+            if (!session.subjectMetadata) session.subjectMetadata = {};
+            if (!session.subjectMetadata[subName]) session.subjectMetadata[subName] = {};
+            
+            if (type === 'theme') {
+                session.subjectMetadata[subName].pdfHeaderDesign = val === 'auto' ? null : val;
+            } else if (type === 'font') {
+                session.subjectMetadata[subName].pdfHeaderFont = val === 'auto' ? null : val;
+            }
+            
+            DataManager.addExamSession(session);
+            lastSyncSessions = JSON.stringify(DataManager.getExamSessions());
+        };
 
         window.testPdfLink = async function (sesId, encodedSub, groupLetter = null) {
             const inputId = groupLetter ? `pdfLink-${sesId}-${encodedSub}-${groupLetter}` : `pdfLink-${sesId}-${encodedSub}`;

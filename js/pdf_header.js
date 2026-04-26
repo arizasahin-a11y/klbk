@@ -68,18 +68,20 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     
     // Auto Theme & Font Selection Logic
     const subHash = subjectName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) || 1;
-    const fontsList = window.googleFonts100 || ["Roboto", "Montserrat", "Open Sans"];
-    const sTheme = sess.globalTheme || 'auto';
-    const sFont1 = sess.globalFont1 || 'auto';
-    const sFont2 = sess.globalFont2 || 'auto';
-    const sFont3 = sess.globalFont3 || 'auto';
+    const fontsList20 = [
+        "Roboto", "Open Sans", "Montserrat", "Lato", "Oswald",
+        "Source Sans Pro", "Raleway", "PT Sans", "Merriweather", "Nunito",
+        "Work Sans", "Fira Sans", "Rubik", "Mukta", "Quicksand",
+        "Inter", "Ubuntu", "Karla", "Arimo", "Noto Sans"
+    ];
+    
+    const sTheme = metadata.pdfHeaderDesign || 'auto';
+    const sFont = metadata.pdfHeaderFont || 'auto';
 
     const finalTheme = (sTheme === 'auto') ? (((subHash % 11) + 1).toString()) : sTheme;
-    const f1Name = (sFont1 === 'auto') ? fontsList[subHash % fontsList.length] : sFont1;
-    const f2Name = (sFont2 === 'auto') ? fontsList[(subHash * 2) % fontsList.length] : sFont2;
-    const f3Name = (sFont3 === 'auto') ? fontsList[(subHash * 3) % fontsList.length] : sFont3;
+    const finalFont = (sFont === 'auto') ? fontsList20[subHash % fontsList20.length] : sFont;
 
-    const designType = options.designType || metadata.pdfHeaderDesign || finalTheme || '1';
+    const designType = finalTheme || '1';
 
     try {
         if (!pdfDoc._cachedFonts) pdfDoc._cachedFonts = {};
@@ -99,14 +101,12 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             }
             return null;
         };
-        const [cf1, cf2, cf3] = await Promise.all([
-            fetchAndEmbed(f1Name),
-            fetchAndEmbed(f2Name),
-            fetchAndEmbed(f3Name)
-        ]);
-        if (cf1) schoolFont = cf1;
-        if (cf2) mainFont = cf2;
-        if (cf3) nameFont = cf3;
+        const customFont = await fetchAndEmbed(finalFont);
+        if (customFont) {
+            schoolFont = customFont;
+            mainFont = customFont;
+            nameFont = customFont;
+        }
     } catch(e) { console.warn("Dinamik font yükleme hatası", e); }
 
     const margin = 14.17 * sf;
