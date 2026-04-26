@@ -76,10 +76,14 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     ];
     
     const sTheme = metadata.pdfHeaderDesign || 'auto';
-    const sFont = metadata.pdfHeaderFont || 'auto';
+    const sFont1 = metadata.pdfHeaderFont1 || 'auto';
+    const sFont2 = metadata.pdfHeaderFont2 || 'auto';
+    const sFont3 = metadata.pdfHeaderFont3 || 'auto';
 
     const finalTheme = (sTheme === 'auto') ? (((subHash % 11) + 1).toString()) : sTheme;
-    const finalFont = (sFont === 'auto') ? fontsList20[subHash % fontsList20.length] : sFont;
+    const finalFont1 = (sFont1 === 'auto') ? fontsList20[subHash % fontsList20.length] : sFont1;
+    const finalFont2 = (sFont2 === 'auto') ? fontsList20[(subHash * 2) % fontsList20.length] : sFont2;
+    const finalFont3 = (sFont3 === 'auto') ? fontsList20[(subHash * 3) % fontsList20.length] : sFont3;
 
     const designType = finalTheme || '1';
 
@@ -101,12 +105,16 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             }
             return null;
         };
-        const customFont = await fetchAndEmbed(finalFont);
-        if (customFont) {
-            schoolFont = customFont;
-            mainFont = customFont;
-            nameFont = customFont;
-        }
+        
+        const [cf1, cf2, cf3] = await Promise.all([
+            fetchAndEmbed(finalFont1),
+            fetchAndEmbed(finalFont2),
+            fetchAndEmbed(finalFont3)
+        ]);
+
+        if (cf1) schoolFont = cf1;
+        if (cf2) mainFont = cf2;
+        if (cf3) nameFont = cf3;
     } catch(e) { console.warn("Dinamik font yükleme hatası", e); }
 
     const margin = 14.17 * sf;

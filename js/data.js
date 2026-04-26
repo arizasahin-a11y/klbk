@@ -854,32 +854,36 @@ const DataManager = {
             }
         };
 
-        // 1. Yol: Eğer Google Drive ID varsa, önce custom GAS Proxy dene (En güvenilir CORS çözümü)
+        const promises = [];
+
+        // 1. GAS Proxy
         if (driveId) {
-            try {
-                const proxyUrl = `${gasUrl}?id=${driveId}`;
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s maks
-                const res = await fetch(proxyUrl, { signal: controller.signal });
-                clearTimeout(timeoutId);
-                
-                if (res.ok) {
-                    const base64 = await res.text();
-                    if (base64 && base64.length > 100 && !base64.startsWith('<!DOCTYPE') && !base64.startsWith('Hata')) {
-                        const binaryString = atob(base64);
-                        const bytes = new Uint8Array(binaryString.length);
-                        for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+            const proxyUrl = `${gasUrl}?id=${driveId}`;
+            promises.push(
+                new Promise(async (resolve, reject) => {
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 10000);
+                        const res = await fetch(proxyUrl, { signal: controller.signal });
+                        clearTimeout(timeoutId);
                         
-                        if (this.validateBuffer(bytes.buffer)) {
-                            this._fileBytesCache[url] = bytes.buffer;
-                            return bytes.buffer;
-                        }
-                    }
-                }
-            } catch (e) { console.warn("GAS Proxy failed or timed out."); }
+                        if (res.ok) {
+                            const base64 = await res.text();
+                            if (base64 && base64.length > 100 && !base64.startsWith('<!DOCTYPE') && !base64.startsWith('Hata')) {
+                                const binaryString = atob(base64);
+                                const bytes = new Uint8Array(binaryString.length);
+                                for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+                                
+                                if (this.validateBuffer(bytes.buffer)) resolve(bytes.buffer);
+                                else reject("Invalid GAS buffer");
+                            } else reject("Invalid GAS content");
+                        } else reject("GAS HTTP Error");
+                    } catch (e) { reject(e); }
+                })
+            );
         }
 
-        // 2. Yol: Doğrudan indirme linklerini dene
+        // 2. Direct URLs
         const directUrls = [];
         if (driveId) {
             directUrls.push(`https://drive.usercontent.google.com/download?id=${driveId}&export=download`);
@@ -889,36 +893,31 @@ const DataManager = {
         }
 
         for (const dUrl of directUrls) {
-            const bytes = await fetchWithRetry(dUrl, true);
-            if (bytes && this.validateBuffer(bytes)) {
-                this._fileBytesCache[url] = bytes;
-                return bytes;
-            }
+            promises.push(
+                fetchWithRetry(dUrl, true).then(buf => {
+                    if (buf && this.validateBuffer(buf)) return buf;
+                    throw new Error("Invalid buffer from direct URL");
+                })
+            );
         }
 
-        // Eğer URL yerel (relative) bir dosya veya aynı domain içerisindeyse proxy kullanma, iptal et
-        if (!url.startsWith('http')) {
-            return null; // Local fetch failed so no point in trying internet proxies
-        }
-
-        // 3. Yol: CORS Proxyleri üzerinden Paralel deneme (ikinci döngüyü hızlandırmak için)
-        const proxies = [
-            "https://api.allorigins.win/raw?url=",
-            "https://corsproxy.io/?",
-            "https://api.codetabs.com/v1/proxy?quest="
-        ];
-
-        // Proxylere aynı anda istek gönder, dönen ilk başarılı sonucu al!
-        const promises = [];
-        for (const proxy of proxies) {
-            for (const dUrl of directUrls) {
-                const pUrl = proxy + encodeURIComponent(dUrl);
-                promises.push(
-                     fetchWithRetry(pUrl, true).then(buf => {
-                          if (buf && this.validateBuffer(buf)) return buf;
-                          throw new Error("Invalid buffer");
-                     })
-                );
+        // 3. CORS Proxies
+        if (url.startsWith('http')) {
+            const proxies = [
+                "https://api.allorigins.win/raw?url=",
+                "https://corsproxy.io/?",
+                "https://api.codetabs.com/v1/proxy?quest="
+            ];
+            for (const proxy of proxies) {
+                for (const dUrl of directUrls) {
+                    const pUrl = proxy + encodeURIComponent(dUrl);
+                    promises.push(
+                         fetchWithRetry(pUrl, true).then(buf => {
+                              if (buf && this.validateBuffer(buf)) return buf;
+                              throw new Error("Invalid buffer from proxy");
+                         })
+                    );
+                }
             }
         }
 
@@ -927,7 +926,6 @@ const DataManager = {
             this._fileBytesCache[url] = successBuffer;
             return successBuffer;
         } catch (e) {
-            // Hiçbiri başarılı olamadı
             return null;
         }
     },
