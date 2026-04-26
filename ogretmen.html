@@ -726,6 +726,7 @@
                                           (typeof papers === 'object' && Object.values(papers).some(p => p && p.length > 5));
 
                         const showThemeFont = (isMine && hasAnyPdf && diffMins > 5);
+                        const showShare = (isMine && hasAnyPdf);
                         let subjectControlsHtml = '';
                         if (showThemeFont || showShare) {
                             subjectControlsHtml += `<div style="margin-left: auto; display: flex; align-items: center; gap: 10px;" onclick="event.stopPropagation()">`;
