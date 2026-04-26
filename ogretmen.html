@@ -20,7 +20,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!-- Ortak PDF Başlık render fonksiyonu (dashboard ile aynı tema desteği) -->
-    <script src="js/pdf_header.js?v=6.5"></script>
+    <script src="js/pdf_header.js?v=6.6"></script>
 
 
     <style>
@@ -1800,12 +1800,13 @@
 
             if (formValues) {
                 if (!session.subjectMetadata) session.subjectMetadata = {};
-                if (!session.subjectMetadata[subName]) session.subjectMetadata[subName] = {};
+                const safeSubKey = DataManager.sanitizeFirebaseKey(subName);
+                if (!session.subjectMetadata[safeSubKey]) session.subjectMetadata[safeSubKey] = {};
                 
-                session.subjectMetadata[subName].pdfHeaderDesign = formValues.theme === 'auto' ? null : formValues.theme;
-                session.subjectMetadata[subName].pdfHeaderFont1 = formValues.f1 === 'auto' ? null : formValues.f1;
-                session.subjectMetadata[subName].pdfHeaderFont2 = formValues.f2 === 'auto' ? null : formValues.f2;
-                session.subjectMetadata[subName].pdfHeaderFont3 = formValues.f3 === 'auto' ? null : formValues.f3;
+                session.subjectMetadata[safeSubKey].pdfHeaderDesign = formValues.theme === 'auto' ? null : formValues.theme;
+                session.subjectMetadata[safeSubKey].pdfHeaderFont1 = formValues.f1 === 'auto' ? null : formValues.f1;
+                session.subjectMetadata[safeSubKey].pdfHeaderFont2 = formValues.f2 === 'auto' ? null : formValues.f2;
+                session.subjectMetadata[safeSubKey].pdfHeaderFont3 = formValues.f3 === 'auto' ? null : formValues.f3;
                 
                 DataManager.addExamSession(session);
                 lastSyncSessions = JSON.stringify(DataManager.getExamSessions());

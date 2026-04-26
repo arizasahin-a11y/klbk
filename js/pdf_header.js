@@ -133,20 +133,34 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                     try {
                         const font = await pdfDoc.embedFont(localBytes);
                         pdfDoc._cachedFonts[fName] = font;
+                        console.log(`%c FONT SUCCESS: Local font '${fName}' loaded.`, "color: #16a34a; font-weight: bold;");
                         return font;
-                    } catch (e) { console.error("Local Font Embed Error:", e); }
+                    } catch (e) { console.error(`Local Font Embed Error (${fName}):`, e); }
                 }
-                // İnternet fallback
-                const fontUrl = `https://cdn.jsdelivr.net/npm/@fontsource/${folder}/files/${folder}-latin-400-normal.woff`;
-                const bytes = await window.getFileBytes(fontUrl);
-                if (bytes) {
+
+                // İnternet fallback (CDN)
+                // Try woff first (better compatibility with pdf-lib)
+                const cdnPrefix = `https://cdn.jsdelivr.net/npm/@fontsource/${folder}/files/${folder}`;
+                const urlsToTry = [
+                    `${cdnPrefix}-latin-400-normal.woff`,
+                    `${cdnPrefix}-latin-regular-normal.woff`,
+                    `${cdnPrefix}-all-400-normal.woff`
+                ];
+
+                for (const urlToFetch of urlsToTry) {
                     try {
-                        const font = await pdfDoc.embedFont(bytes);
-                        pdfDoc._cachedFonts[fName] = font;
-                        return font;
-                    } catch (e) { console.error("CDN Font Embed Error:", e); }
+                        const bytes = await window.getFileBytes(urlToFetch);
+                        if (bytes && bytes.byteLength > 1000) {
+                            const font = await pdfDoc.embedFont(bytes);
+                            pdfDoc._cachedFonts[fName] = font;
+                            console.log(`%c FONT SUCCESS: CDN font '${fName}' loaded from ${urlToFetch}`, "color: #16a34a; font-weight: bold;");
+                            return font;
+                        }
+                    } catch (e) { /* silent try next */ }
                 }
-            } catch(e) { console.warn(`Font yükleme hatası (${fName}):`, e); }
+                
+                console.warn(`%c FONT FAIL: Font '${fName}' could not be loaded from local or CDN.`, "color: #ef4444; font-weight: bold;");
+            } catch(e) { console.warn(`Font yükleme genel hatası (${fName}):`, e); }
             return null;
         };
         
