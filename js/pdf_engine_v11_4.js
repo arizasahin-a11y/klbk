@@ -127,6 +127,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     // Auto Theme & Font Selection Logic
     const subHash = subjectName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) || 1;
     const fontsListTurkish = [
+        "Arial", "Segoe UI", "Tahoma", "Times New Roman", "Verdana",
         "Alfa Slab One", "Anton", "Archivo", "Archivo Black", "Arimo", "Assistant", "Bad Script", "Barlow", "Barlow Condensed", "Bebas Neue", "Bitter",
         "Bricolage Grotesque", "Bungee", "Cabin", "Cairo", "Caveat", "Comfortaa", "Cormorant Garamond", "Cousine", "Crimson Text", "Dancing Script", "DM Sans",
         "Dosis", "EB Garamond", "Exo 2", "Figtree", "Fira Sans", "Fjalla One", "Fredoka", "Great Vibes", "Heebo", "Hind", "IBM Plex Sans",
