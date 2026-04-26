@@ -99,25 +99,37 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             
             const folder = fName.toLowerCase().replace(/\s+/g, '-');
             try {
+                // 1. ÖNCE YEREL KLASÖRÜ DENE (EN HIZLI VE EN GÜVENLİ)
+                const localUrl = `fonts/${folder}-regular.ttf`;
+                const localBytes = await window.getFileBytes(localUrl);
+                if (localBytes) {
+                    const font = await pdfDoc.embedFont(localBytes);
+                    pdfDoc._cachedFonts[fName] = font;
+                    console.log(`Font başarıyla yerel klasörden yüklendi: ${fName}`);
+                    return font;
+                }
+
+                // 2. YERELDE YOKSA JSDELIVR DENE
+                console.warn(`Font yerel klasörde bulunamadı, JSDelivr deneniyor: ${fName}`);
                 const fontUrl = `https://cdn.jsdelivr.net/npm/@fontsource/${folder}/files/${folder}-latin-400-normal.woff`;
-                console.log(`Font yükleniyor: ${fName} -> ${fontUrl}`);
                 const bytes = await window.getFileBytes(fontUrl);
                 if (bytes) {
                     const font = await pdfDoc.embedFont(bytes);
                     pdfDoc._cachedFonts[fName] = font;
-                    console.log(`Font başarıyla yüklendi: ${fName}`);
+                    console.log(`Font başarıyla JSDelivr üzerinden yüklendi: ${fName}`);
                     return font;
                 } else {
+                    // 3. O DA YOKSA UNPKG DENE
                     console.warn(`JSDelivr fontu yüklenemedi, UNPKG deneniyor: ${fName}`);
                     const unpkgUrl = `https://unpkg.com/@fontsource/${folder}/files/${folder}-latin-400-normal.woff`;
                     const unpkgBytes = await window.getFileBytes(unpkgUrl);
                     if (unpkgBytes) {
                         const font = await pdfDoc.embedFont(unpkgBytes);
                         pdfDoc._cachedFonts[fName] = font;
-                        console.log(`Font başarıyla yüklendi (UNPKG): ${fName}`);
+                        console.log(`Font başarıyla UNPKG üzerinden yüklendi: ${fName}`);
                         return font;
                     }
-                    console.warn(`Font dosyası tüm kaynaklardan (JSDelivr/UNPKG) boş veya doğrulanamadı: ${fName}`);
+                    console.warn(`Font dosyası tüm kaynaklardan (Yerel/JSDelivr/UNPKG) boş veya doğrulanamadı: ${fName}`);
                 }
             } catch(e) { console.warn(`Font yükleme hatası (${fName}):`, e); }
             return null;
