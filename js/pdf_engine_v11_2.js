@@ -163,15 +163,20 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                 }
                 
                 const folder = fName.toLowerCase().replace(/\s+/g, '-');
+                const simpleName = fName.toLowerCase().replace(/\s+/g, '');
                 const sources = [];
                 
-                // Source 1: Local WOFF/TTF
+                // Source 1: Manual/User-provided TTF (Priority)
+                sources.push({ url: `fonts/${simpleName}.ttf`, type: 'user-ttf' });
+                sources.push({ url: `fonts/${folder}.ttf`, type: 'user-ttf-folder' });
+
+                // Source 2: Standard Local WOFF/TTF
                 let localUrl = `fonts/${folder}-regular.woff`;
                 if (fName === 'Monotype Corsiva') localUrl = 'fonts/MonotypeCorsiva.ttf';
                 else if (fName === 'Snap ITC') localUrl = 'fonts/SnapITC.ttf';
                 sources.push({ url: localUrl, type: 'local' });
 
-                // Source 2: CDN Repair (Google Fonts via JSDelivr/Fontsource) - PREFER LATIN-EXT for Turkish
+                // Source 3: CDN Repair (Google Fonts)
                 const cdnUrl = `https://cdn.jsdelivr.net/npm/@fontsource/${folder}/files/${folder}-latin-ext-400-normal.woff`;
                 const cdnUrlLatin = `https://cdn.jsdelivr.net/npm/@fontsource/${folder}/files/${folder}-latin-400-normal.woff`;
                 
@@ -190,8 +195,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                             try {
                                 font.widthOfTextAtSize("Test 123", 12);
                                 
-                                // Turkish Support Check: Only trust CDN-Ext or Roboto
-                                if (src.type === 'cdn-ext' || fName === 'Roboto') {
+                                // Turkish Support Check: Trust CDN-Ext, Roboto, or User-provided TTF
+                                if (src.type.includes('user-ttf') || src.type === 'cdn-ext' || fName === 'Roboto') {
                                     try {
                                         font.widthOfTextAtSize("İĞŞÇÖÜ", 12);
                                         font._supportsTR = true;
