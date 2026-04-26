@@ -172,13 +172,14 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                 if (localBytes && localBytes.byteLength > 1000) {
                     try {
                         const font = await pdfDoc.embedFont(localBytes);
-                        // CRITICAL: Dummy test to see if fontkit can actually handle this font
+                        // CRITICAL: Real-world test with Turkish characters and spaces
                         try {
-                            font.widthOfTextAtSize('A', 12);
+                            const testStr = "İĞŞÇÖÜ ığşçöü 123";
+                            font.widthOfTextAtSize(testStr, 12);
                             pdfDoc._cachedFonts[fName] = font;
                             return font;
                         } catch (drawErr) {
-                            console.error(`%c FONT CORRUPT: Embed ok but draw failed for '${fName}':`, "color: #ef4444;", drawErr);
+                            console.error(`%c FONT CORRUPT: Draw test failed for '${fName}':`, "color: #ef4444;", drawErr);
                         }
                     } catch (e) { 
                         console.error(`%c FONT ERROR: Embed failed for local '${fName}':`, "color: #ef4444;", e);
