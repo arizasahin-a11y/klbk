@@ -48,22 +48,35 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const tw = fnt ? fnt.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
         const tx = cx + cw - tw - (5 * sf);
         const ty = cy + (ch / 2) - (s_sz * 0.35);
-        page.drawText(cl, { x: tx, y: ty, size: s_sz, font: fnt || undefined, color: rgb(0, 0, 0) });
+        try {
+            page.drawText(cl, { x: tx, y: ty, size: s_sz, font: fnt || undefined, color: rgb(0, 0, 0) });
+        } catch (e) {
+            console.warn("drawText hatası, standart font deneniyor:", e);
+            try {
+                page.drawText(cl, { x: tx, y: ty, size: s_sz, color: rgb(0, 0, 0) });
+            } catch (e2) {
+                console.error("Standart fontla bile yazılamadı:", e2);
+            }
+        }
     };
 
     const getFitSize = (txt, mw, bs, fnt) => {
-        let sz = bs;
-        const useFont = fnt || mainFont;
-        let tw = useFont.widthOfTextAtSize(cleanTurkishChars(txt), sz * sf);
-        while (tw > mw && sz > 4) {
-            sz -= 0.5;
-            tw = useFont.widthOfTextAtSize(cleanTurkishChars(txt), sz * sf);
+        try {
+            let sz = bs;
+            const useFont = fnt || mainFont;
+            let tw = useFont.widthOfTextAtSize(cleanTurkishChars(txt), sz * sf);
+            while (tw > mw && sz > 4) {
+                sz -= 0.5;
+                tw = useFont.widthOfTextAtSize(cleanTurkishChars(txt), sz * sf);
+            }
+            return sz;
+        } catch (e) {
+            console.warn("getFitSize hatası, varsayılan boyut dönülüyor:", e);
+            return bs;
         }
-        return sz;
     };
 
     const school = options.school || (window.DataManager ? window.DataManager.getSchoolSettings() : {});
-
     const sess = options.session || window.currentRenderedSession || {};
     const subjectName = info?.subject || '';
     const metadata = options.metadata || (DataManager.getSanitizedSubjectMetadata ? DataManager.getSanitizedSubjectMetadata(sess, subjectName) : (sess.subjectMetadata?.[subjectName] || {})) || {};
@@ -101,8 +114,6 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             if (!fName || fName === 'auto') return null;
             if (pdfDoc._cachedFonts[fName]) return pdfDoc._cachedFonts[fName];
 
-            // GÜVENLİK KONTROLÜ: Sadece bizim onayladığımız (ve indirdiğimiz) fontları yükle.
-            // Eski verilerde kalmış uyumsuz fontların internetten çekilmesini engeller.
             if (!fontsListTurkish.includes(fName) && fName !== 'Roboto') {
                 console.warn(`Geçersiz veya uyumsuz font engellendi: ${fName}`);
                 return null;
@@ -110,37 +121,24 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             
             const folder = fName.toLowerCase().replace(/\s+/g, '-');
             try {
-                // 1. ÖNCE YEREL KLASÖRÜ DENE (EN HIZLI VE EN GÜVENLİ)
-                const localUrl = `fonts/${folder}-regular.ttf`;
+                const localUrl = `fonts/${folder}-regular.woff`;
                 const localBytes = await window.getFileBytes(localUrl);
                 if (localBytes) {
-                    const font = await pdfDoc.embedFont(localBytes);
-                    pdfDoc._cachedFonts[fName] = font;
-                    console.log(`Font başarıyla yerel klasörden yüklendi: ${fName}`);
-                    return font;
+                    try {
+                        const font = await pdfDoc.embedFont(localBytes);
+                        pdfDoc._cachedFonts[fName] = font;
+                        return font;
+                    } catch (e) { console.error("Local Font Embed Error:", e); }
                 }
-
-                // 2. YERELDE YOKSA JSDELIVR DENE
-                console.warn(`Font yerel klasörde bulunamadı, JSDelivr deneniyor: ${fName}`);
+                // İnternet fallback
                 const fontUrl = `https://cdn.jsdelivr.net/npm/@fontsource/${folder}/files/${folder}-latin-400-normal.woff`;
                 const bytes = await window.getFileBytes(fontUrl);
                 if (bytes) {
-                    const font = await pdfDoc.embedFont(bytes);
-                    pdfDoc._cachedFonts[fName] = font;
-                    console.log(`Font başarıyla JSDelivr üzerinden yüklendi: ${fName}`);
-                    return font;
-                } else {
-                    // 3. O DA YOKSA UNPKG DENE
-                    console.warn(`JSDelivr fontu yüklenemedi, UNPKG deneniyor: ${fName}`);
-                    const unpkgUrl = `https://unpkg.com/@fontsource/${folder}/files/${folder}-latin-400-normal.woff`;
-                    const unpkgBytes = await window.getFileBytes(unpkgUrl);
-                    if (unpkgBytes) {
-                        const font = await pdfDoc.embedFont(unpkgBytes);
+                    try {
+                        const font = await pdfDoc.embedFont(bytes);
                         pdfDoc._cachedFonts[fName] = font;
-                        console.log(`Font başarıyla UNPKG üzerinden yüklendi: ${fName}`);
                         return font;
-                    }
-                    console.warn(`Font dosyası tüm kaynaklardan (Yerel/JSDelivr/UNPKG) boş veya doğrulanamadı: ${fName}`);
+                    } catch (e) { console.error("CDN Font Embed Error:", e); }
                 }
             } catch(e) { console.warn(`Font yükleme hatası (${fName}):`, e); }
             return null;
