@@ -996,16 +996,10 @@ const DataManager = {
         };
 
         try {
-            // Fontları paralel yükle
+            // Sadece ana baz fontu (Roboto) yükle. 
+            // Okul ve isim fontları renderStudentPDFHeader içinde dinamik olarak yüklenecektir.
             const robotoUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf';
-            const nameFontUrl = 'fonts/MonotypeCorsiva.ttf';
-            const schoolFontUrl = 'fonts/SnapITC.ttf';
-
-            const [robotoBytes, nameFontBytes, schoolFontBytes] = await Promise.all([
-                this.getFileBytes(robotoUrl),
-                this.getFileBytes(nameFontUrl).catch(()=>null),
-                this.getFileBytes(schoolFontUrl).catch(()=>null)
-            ]);
+            const robotoBytes = await this.getFileBytes(robotoUrl);
 
             if (robotoBytes) {
                 const robotoFont = await pdfDoc.embedFont(robotoBytes);
@@ -1013,13 +1007,9 @@ const DataManager = {
                 customFonts.schoolFont = robotoFont;
                 customFonts.nameFont = robotoFont;
             }
-            if (nameFontBytes) {
-                try { customFonts.nameFont = await pdfDoc.embedFont(nameFontBytes); } catch(e){}
-            }
-            if (schoolFontBytes) {
-                try { customFonts.schoolFont = await pdfDoc.embedFont(schoolFontBytes); } catch(e){}
-            }
-        } catch (e) { console.warn("Font load failed:", e); }
+        } catch (e) {
+            console.warn("Temel font yükleme hatası (Roboto):", e);
+        }
 
         return customFonts;
     },

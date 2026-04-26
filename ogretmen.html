@@ -19,7 +19,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!-- Ortak PDF Başlık render fonksiyonu (dashboard ile aynı tema desteği) -->
-    <script src="js/pdf_header.js?v=5.4"></script>
+    <script src="js/pdf_header.js?v=6.0"></script>
 
 
     <style>
@@ -299,7 +299,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/data.js?v=5.9"></script>
+    <script src="js/data.js?v=6.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Rescue Error Handler: Catch errors before anything else fails
@@ -2676,37 +2676,11 @@
                 const metadata = ses.subjectMetadata || {};
                 const mergedPdf = await PDFDocument.create();
 
-                if (!window._cachedFonts) window._cachedFonts = {};
-                const fetchOrGet = async (key, urls) => {
-                    if (!window._cachedFonts[key]) {
-                        for (const url of urls) {
-                            try {
-                                const bytes = await window.getFileBytes(url);
-                                if (bytes && bytes.byteLength > 1000) { window._cachedFonts[key] = bytes; break; }
-                            } catch (e) {
-                                console.warn("Font fetch err for:", key, e);
-                            }
-                        }
-                    }
-                };
-
-                await fetchOrGet('main', ['https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf']);
-                await fetchOrGet('nameFont', ['fonts/MonotypeCorsiva.ttf']);
-                await fetchOrGet('schoolFont', ['fonts/SnapITC.ttf']);
-
                 if (typeof fontkit !== 'undefined') mergedPdf.registerFontkit(fontkit);
-                const fallbackFont = await mergedPdf.embedFont(pdfLib.StandardFonts.HelveticaBold);
-                let mainFont = null, nameFont = null, schoolFont = null;
-                try {
-                    if (window._cachedFonts?.main) mainFont = await mergedPdf.embedFont(window._cachedFonts.main);
-                    if (window._cachedFonts?.nameFont) nameFont = await mergedPdf.embedFont(window._cachedFonts.nameFont);
-                    if (window._cachedFonts?.schoolFont) schoolFont = await mergedPdf.embedFont(window._cachedFonts.schoolFont);
-                } catch (e) { }
-                mainFont = mainFont || fallbackFont;
-                nameFont = nameFont || mainFont;
-                schoolFont = schoolFont || mainFont;
-
+                const fonts = await DataManager.loadRequiredFonts(mergedPdf);
+                
                 let totalPages = 0;
+
 
                 for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
                     const item = items[itemIdx];

@@ -3693,8 +3693,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             await fetchOrGet('main', ['https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf']);
-            await fetchOrGet('nameFont', ['fonts/MonotypeCorsiva.ttf']);
-            await fetchOrGet('schoolFont', ['fonts/SnapITC.ttf']);
+
 
             const sessDom = window.currentRenderedSession || {};
             let termDom = '';
@@ -6379,9 +6378,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }, 5000); // Admin dashboard için 5 saniye yeterli
 
-        // --- Font Pre-fetching for Speed ---
         (async function preFetchFonts() {
-            const fonts = ['https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf', 'fonts/MonotypeCorsiva.ttf', 'fonts/SnapITC.ttf'];
+            const fonts = ['https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf'];
             fonts.forEach(url => window.getFileBytes(url));
         })();
     }
