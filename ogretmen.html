@@ -725,22 +725,30 @@
                         const hasAnyPdf = (currentPdf && currentPdf.length > 5) || 
                                           (typeof papers === 'object' && Object.values(papers).some(p => p && p.length > 5));
 
-                        const shareCheckboxHeader = (isMine && stateCode === 'active' && hasAnyPdf) ? `
-                            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 800; color: var(--primary); cursor: pointer; margin-right: 12px; background: #f5f3ff; padding: 6px 12px; border-radius: 8px; border: 1px solid #ddd6fe;" onclick="event.stopPropagation()">
-                                <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared === true ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 17px; height: 17px; accent-color: var(--primary);"> Soru Kağıdını Paylaş
-                            </label>` : '';
+                        const showThemeFont = (isMine && hasAnyPdf && diffMins > 5);
+                        const showShare = (isMine && hasAnyPdf);
 
-                        const showThemeFontSelects = (diffMins > 5) && isMine;
-                        let themeFontHtml = '';
-                        if (showThemeFontSelects) {
-                            themeFontHtml = `
-                                <div style="margin-left: auto; margin-right: 15px;" onclick="event.stopPropagation()">
-                                    <button type="button" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; font-weight: 700;" title="PDF Tema ve Font Ayarları" onclick="window.openSubjectPdfSettings('${ses.id}', '${encodedSub}')">
+                        let subjectControlsHtml = '';
+                        if (showThemeFont || showShare) {
+                            subjectControlsHtml += `<div style="margin-left: auto; display: flex; align-items: center; gap: 10px;" onclick="event.stopPropagation()">`;
+                            
+                            if (showThemeFont) {
+                                subjectControlsHtml += `
+                                    <button type="button" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 0.75rem; border-radius: 8px; font-weight: 700; background: white; color: var(--primary); border: 1px solid var(--primary-light);" title="PDF Tema ve Font Ayarları" onclick="window.openSubjectPdfSettings('${ses.id}', '${encodedSub}')">
                                         <i class="fa-solid fa-palette"></i> Tasarım
-                                    </button>
-                                </div>
-                            `;
+                                    </button>`;
+                            }
+
+                            if (showShare) {
+                                subjectControlsHtml += `
+                                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 800; color: var(--primary); cursor: pointer; background: #f5f3ff; padding: 6px 12px; border-radius: 8px; border: 1px solid #ddd6fe;">
+                                        <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared === true ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 17px; height: 17px; accent-color: var(--primary);"> Soru Kağıdını Paylaş
+                                    </label>`;
+                            }
+
+                            subjectControlsHtml += `</div>`;
                         }
+
 
                         html += `<div class="nested-accordion" style="margin-bottom: 1.5rem; border: 2px solid ${isSubOpen ? 'var(--primary-light)' : 'var(--gray-200)'};">
                                     <div class="nested-header" onclick="toggleSubject('${ses.id}', '${encodedSub}')" style="${isSubOpen ? 'background: white; border-bottom: 1px solid var(--gray-100);' : ''}; display: flex; align-items: center; justify-content: space-between;">
@@ -754,8 +762,7 @@
                                                     <div style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">${currentPdf ? 'Sınav kağıdı yüklendi' : 'Sınav kağıdı bekleniyor...'}</div>
                                                 </div>
                                             </div>
-                                            ${themeFontHtml}
-                                            ${shareCheckboxHeader}
+                                            ${subjectControlsHtml}
                                         </div>
                                         <i class="fa-solid fa-angle-${isSubOpen ? 'up' : 'down'}" style="color:var(--gray-400)"></i>
                                     </div>
@@ -790,9 +797,6 @@
                                         <div style="margin-bottom:12px; background:white; padding:15px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: var(--shadow-sm);">
                                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                                 <label style="font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform:uppercase; margin:0;">Grup ${groupLetter} Soru Kağıdı</label>
-                                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); cursor: pointer;" title="Öğrenci ekranında göster/gizle">
-                                                    <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared === true ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 16px; height: 16px; accent-color: var(--primary);"> Paylaş
-                                                </label>
                                             </div>
                                             <div style="display: flex; gap: 8px;">
                                                 <input type="text" id="pdfLink-${ses.id}-${encodedSub}-${groupLetter}" class="form-control" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" placeholder="https://..." value="${groupPdf}">
@@ -808,9 +812,6 @@
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                             <label style="font-size: 0.75rem; font-weight: 800; color: var(--gray-500); text-transform:uppercase; margin: 0;">
                                                 <i class="fa-solid fa-file-pdf" style="color:var(--danger)"></i> Soru Kağıdı Bağlantısı
-                                            </label>
-                                            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); cursor: pointer;" title="Öğrenci ekranında göster/gizle">
-                                                <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared === true ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 16px; height: 16px; accent-color: var(--primary);"> Paylaş
                                             </label>
                                         </div>
                                         <div style="display: flex; gap: 10px;">
