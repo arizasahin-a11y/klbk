@@ -20,7 +20,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!-- Ortak PDF Başlık render fonksiyonu (dashboard ile aynı tema desteği) -->
-    <script src="js/pdf_header.js?v=6.9"></script>
+    <script src="js/pdf_header.js?v=7.0"></script>
 
 
     <style>
@@ -300,7 +300,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/data.js?v=6.9"></script>
+    <script src="js/data.js?v=7.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Rescue Error Handler: Catch errors before anything else fails
@@ -1469,14 +1469,25 @@
                 } catch (e) { console.warn("Custom Proxy failed, trying alternatives...", e); }
             }
 
+            // Optimization: Skip proxies for local files or fonts
+            const isLocal = !fetchUrl.startsWith('http');
+            const isFont = fetchUrl.includes('/fonts/') || fetchUrl.endsWith('.woff') || fetchUrl.endsWith('.ttf');
+            
             // Stage 1: Direct Fetch
-            let result = await fetchWithRetry(fetchUrl);
-            if (validateBuffer(result)) {
-                window._fileBytesCache[url] = result;
-                return result;
+            try {
+                let result = await fetchWithRetry(fetchUrl);
+                if (validateBuffer(result)) {
+                    window._fileBytesCache[url] = result;
+                    return result;
+                }
+            } catch (err) {
+                console.warn("Direct fetch failed:", fetchUrl, err.message);
             }
-        } catch (err) {
-            console.warn("Direct fetch failed, trying Proxy Pool...", err.message);
+
+            // Stage 2: Proxy Pool (ONLY for external non-font URLs)
+            if (isLocal || isFont) return null;
+
+            console.warn("Trying Proxy Pool for external resource:", fetchUrl);
             const proxyList = [
                 (u) => "https://corsproxy.io/?" + encodeURIComponent(u),
                 (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),

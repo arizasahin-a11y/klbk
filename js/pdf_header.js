@@ -138,34 +138,22 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                         console.log(`%c FONT SUCCESS: Local font '${fName}' loaded successfully.`, "color: #16a34a; font-weight: bold;");
                         return font;
                     } catch (e) { 
-                        console.error(`%c FONT ERROR: Embed failed for local '${fName}':`, "color: #ef4444;", e); 
+                        console.error(`%c FONT ERROR: Embed failed for local '${fName}':`, "color: #ef4444;", e);
+                        // Fallback to Standard font to prevent crash
+                        const fallback = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+                        pdfDoc._cachedFonts[fName] = fallback;
+                        return fallback;
                     }
                 } else {
                     console.warn(`%c FONT WARN: Local file '${localUrl}' not found or empty.`, "color: #f59e0b;");
                 }
 
-                // İnternet fallback (CDN) - ONLY if local fails
-                console.log(`%c FONT ATTEMPT: Falling back to CDN for '${fName}'`, "color: #8b5cf6;");
-                const folderId = folder;
-                const subsets = ['latin', 'latin-ext', 'all'];
-                const weights = ['400', 'regular'];
-                
-                for (const sub of subsets) {
-                    for (const w of weights) {
-                        const urlToFetch = `https://cdn.jsdelivr.net/fontsource/fonts/${folderId}@latest/${sub}-${w}-normal.woff`;
-                        try {
-                            const bytes = await window.getFileBytes(urlToFetch);
-                            if (bytes && bytes.byteLength > 1000) {
-                                const font = await pdfDoc.embedFont(bytes);
-                                pdfDoc._cachedFonts[fName] = font;
-                                console.log(`%c FONT SUCCESS: CDN font '${fName}' loaded from ${urlToFetch}`, "color: #16a34a; font-weight: bold;");
-                                return font;
-                            }
-                        } catch (e) { }
-                    }
-                }
-                
-                console.warn(`%c FONT FAIL: Font '${fName}' could not be loaded from local OR CDN.`, "color: #ef4444; font-weight: bold;");
+                // Removed CDN fallback to respect user request and improve performance
+                console.warn(`%c FONT FAIL: Font '${fName}' not in local fonts/ folder. Falling back to Helvetica.`, "color: #ef4444; font-weight: bold;");
+                const fallback = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+                pdfDoc._cachedFonts[fName] = fallback;
+                return fallback;
+
             } catch(e) { console.warn(`Font yükleme genel hatası (${fName}):`, e); }
             return null;
         };
