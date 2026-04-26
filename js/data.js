@@ -789,7 +789,7 @@ const DataManager = {
 
     validateBuffer: function (buffer) {
         if (!buffer || buffer.byteLength < 10) return false;
-        const arr = new Uint8Array(buffer.slice(0, 500));
+        const arr = new Uint8Array(buffer.slice(0, 1024));
         const str = String.fromCharCode(...arr).toLowerCase();
         
         // Kesin PDF veya Font imzası varsa anında kabul et
@@ -798,15 +798,16 @@ const DataManager = {
         if (arr[0] === 0x4F && arr[1] === 0x54 && arr[2] === 0x54 && arr[3] === 0x4F) return true; // OTF
         if (arr[0] === 0x77 && arr[1] === 0x4F && arr[2] === 0x46 && arr[3] === 0x46) return true; // WOFF
 
-        // Hata sayfalarını ve JSON/metinleri reddet (CORS proxylerinden veya Google Drive hatalarından dönenler)
-        if (str.includes('<!doctype') || str.includes('<html') || str.includes('<body') || str.includes('<head') || str.includes('<script')) {
-            return false;
-        }
-        if (str.trim().startsWith('{') || str.trim().startsWith('[') || str.includes('hata oluştu') || str.includes('error') || str.includes('not found')) {
-            return false;
-        }
+        // Görüntü (Image) imzaları
+        if (arr[0] === 0xFF && arr[1] === 0xD8 && arr[2] === 0xFF) return true; // JPEG
+        if (arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4E && arr[3] === 0x47) return true; // PNG
+        if (arr[0] === 0x47 && arr[1] === 0x49 && arr[2] === 0x46) return true; // GIF
+        if (arr[0] === 0x52 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x46 && arr[8] === 0x57 && arr[9] === 0x45 && arr[10] === 0x42 && arr[11] === 0x50) return true; // WEBP
+        if (str.includes('<svg')) return true; // SVG
 
-        return true;
+        // Eğer yukarıdaki BİLİNEN formatlardan HİÇBİRİNE uymuyorsa, riske girmeyip reddet!
+        // Çünkü proxy sunucular, boş veya anlamsız metin hataları döndürebilir ve Promise.any bunları ilk sonuç olarak alıp PDFLib'i çökertebilir.
+        return false;
     },
 
     getFileBytes: async function (url) {
