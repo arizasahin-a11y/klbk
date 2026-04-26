@@ -87,14 +87,14 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     // Auto Theme & Font Selection Logic
     const subHash = subjectName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) || 1;
     const fontsListTurkish = [
-        "Alfa Slab One", "Anton", "Archivo", "Archivo Black", "Arimo", "Assistant", "Barlow", "Barlow Condensed", "Bebas Neue", "Bitter",
+        "Alfa Slab One", "Anton", "Archivo", "Archivo Black", "Arimo", "Assistant", "Bad Script", "Barlow", "Barlow Condensed", "Bebas Neue", "Bitter",
         "Bricolage Grotesque", "Bungee", "Cabin", "Cairo", "Caveat", "Comfortaa", "Cormorant Garamond", "Cousine", "Crimson Text", "Dancing Script", "DM Sans",
-        "Dosis", "EB Garamond", "Exo 2", "Figtree", "Fira Sans", "Fjalla One", "Fredoka", "Heebo", "Hind", "IBM Plex Sans",
-        "Inconsolata", "Instrument Serif", "Inter", "Inter Tight", "JetBrains Mono", "Josefin Sans", "Jost", "Kanit", "Karla", "Lato",
-        "Lexend", "Libre Baskerville", "Libre Franklin", "Lobster", "Lora", "Manrope", "Merriweather", "Merriweather Sans", "Montserrat", "Mukta",
+        "Dosis", "EB Garamond", "Exo 2", "Figtree", "Fira Sans", "Fjalla One", "Fredoka", "Great Vibes", "Heebo", "Hind", "IBM Plex Sans",
+        "Inconsolata", "Instrument Serif", "Inter", "Inter Tight", "JetBrains Mono", "Josefin Sans", "Jost", "Kalam", "Kanit", "Karla", "Lato",
+        "Lexend", "Libre Baskerville", "Libre Franklin", "Lobster", "Lora", "Manrope", "Marck Script", "Merriweather", "Merriweather Sans", "Montserrat", "Mukta",
         "Mulish", "Noto Sans", "Noto Serif", "Open Sans", "Oswald", "Outfit", "Oxygen", "Pacifico", "Playfair Display", "Plus Jakarta Sans",
         "Poppins", "Prompt", "PT Sans", "PT Sans Narrow", "PT Serif", "Public Sans", "Quicksand", "Rajdhani", "Raleway", "Red Hat Display",
-        "Roboto", "Roboto Condensed", "Roboto Flex", "Roboto Mono", "Roboto Slab", "Rubik", "Saira", "Schibsted Grotesk", "Slabo 27px", "Smooch Sans",
+        "Roboto", "Roboto Condensed", "Roboto Flex", "Roboto Mono", "Roboto Slab", "Rubik", "Saira", "Satisfy", "Schibsted Grotesk", "Shadows Into Light", "Slabo 27px", "Smooch Sans",
         "Sora", "Source Code Pro", "Source Sans 3", "Space Grotesk", "Tinos", "Titillium Web", "Ubuntu", "Urbanist", "Work Sans"
     ];
     
