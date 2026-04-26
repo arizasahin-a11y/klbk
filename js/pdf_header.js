@@ -128,18 +128,24 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                 if (fName === 'Monotype Corsiva') localUrl = 'fonts/MonotypeCorsiva.ttf';
                 if (fName === 'Snap ITC') localUrl = 'fonts/SnapITC.ttf';
 
+                console.log(`%c FONT ATTEMPT: Loading local font '${fName}' from ${localUrl}`, "color: #3b82f6;");
                 const localBytes = await window.getFileBytes(localUrl);
-                if (localBytes) {
+                
+                if (localBytes && localBytes.byteLength > 1000) {
                     try {
                         const font = await pdfDoc.embedFont(localBytes);
                         pdfDoc._cachedFonts[fName] = font;
-                        console.log(`%c FONT SUCCESS: Local font '${fName}' loaded.`, "color: #16a34a; font-weight: bold;");
+                        console.log(`%c FONT SUCCESS: Local font '${fName}' loaded successfully.`, "color: #16a34a; font-weight: bold;");
                         return font;
-                    } catch (e) { console.error(`Local Font Embed Error (${fName}):`, e); }
+                    } catch (e) { 
+                        console.error(`%c FONT ERROR: Embed failed for local '${fName}':`, "color: #ef4444;", e); 
+                    }
+                } else {
+                    console.warn(`%c FONT WARN: Local file '${localUrl}' not found or empty.`, "color: #f59e0b;");
                 }
 
-                // İnternet fallback (CDN)
-                // Official Fontsource CDN pattern (More robust)
+                // İnternet fallback (CDN) - ONLY if local fails
+                console.log(`%c FONT ATTEMPT: Falling back to CDN for '${fName}'`, "color: #8b5cf6;");
                 const folderId = folder;
                 const subsets = ['latin', 'latin-ext', 'all'];
                 const weights = ['400', 'regular'];
@@ -159,18 +165,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                     }
                 }
                 
-                // Legacy Fontsource URL pattern (Last resort)
-                const legacyUrl = `https://cdn.jsdelivr.net/npm/@fontsource/${folderId}/files/${folderId}-latin-400-normal.woff`;
-                try {
-                    const bytes = await window.getFileBytes(legacyUrl);
-                    if (bytes && bytes.byteLength > 1000) {
-                        const font = await pdfDoc.embedFont(bytes);
-                        pdfDoc._cachedFonts[fName] = font;
-                        return font;
-                    }
-                } catch (e) { }
-                
-                console.warn(`%c FONT FAIL: Font '${fName}' could not be loaded from local or CDN.`, "color: #ef4444; font-weight: bold;");
+                console.warn(`%c FONT FAIL: Font '${fName}' could not be loaded from local OR CDN.`, "color: #ef4444; font-weight: bold;");
             } catch(e) { console.warn(`Font yükleme genel hatası (${fName}):`, e); }
             return null;
         };
