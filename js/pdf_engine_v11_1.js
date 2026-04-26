@@ -15,8 +15,9 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     };
     const cleanTurkishChars = (text) => {
         if (!text) return '';
-        // If it's a custom font that MIGHT support Turkish, we still return the cleaned version 
-        // IF the user is reporting broken characters. For now, let's always clean if it's a standard font.
+        // If it's a standard font, we MUST clean it because standard fonts don't support Turkish chars.
+        // If it's a custom font, we only clean it IF it's one of our fallback-prone ones or if we want to be safe.
+        // For now, let's clean if it's a standard font.
         if (mainFont && !reflectsStandard(mainFont)) return text;
         
         return text
@@ -161,28 +162,39 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                 }
                 
                 const folder = fName.toLowerCase().replace(/\s+/g, '-');
-                // Special case for local TTF fonts
+                const sources = [];
+                
+                // Source 1: Local WOFF/TTF
                 let localUrl = `fonts/${folder}-regular.woff`;
                 if (fName === 'Monotype Corsiva') localUrl = 'fonts/MonotypeCorsiva.ttf';
-                if (fName === 'Snap ITC') localUrl = 'fonts/SnapITC.ttf';
+                else if (fName === 'Snap ITC') localUrl = 'fonts/SnapITC.ttf';
+                sources.push({ url: localUrl, type: 'local' });
 
-                console.log(`%c FONT ATTEMPT [v11.0]: Loading local font '${fName}' from ${localUrl}`, "color: #3b82f6;");
-                const localBytes = await window.getFileBytes(localUrl);
-                
-                if (localBytes && localBytes.byteLength > 1000) {
+                // Source 2: CDN Repair (Google Fonts via JSDelivr/Fontsource)
+                // This is only used if local fails, to 'repair' the experience.
+                const cdnUrl = `https://cdn.jsdelivr.net/npm/@fontsource/${folder}/files/${folder}-latin-400-normal.woff`;
+                if (fName !== 'Monotype Corsiva' && fName !== 'Snap ITC') {
+                    sources.push({ url: cdnUrl, type: 'cdn' });
+                }
+
+                for (const src of sources) {
                     try {
-                        const font = await pdfDoc.embedFont(localBytes);
-                        // CRITICAL: Real-world test with Turkish characters and spaces
-                        try {
-                            const testStr = "İĞŞÇÖÜ ığşçöü 123";
-                            font.widthOfTextAtSize(testStr, 12);
-                            pdfDoc._cachedFonts[fName] = font;
-                            return font;
-                        } catch (drawErr) {
-                            console.error(`%c FONT CORRUPT: Draw test failed for '${fName}':`, "color: #ef4444;", drawErr);
+                        console.log(`%c FONT ATTEMPT: Loading ${src.type} font '${fName}' from ${src.url}`, "color: #3b82f6;");
+                        const bytes = await window.getFileBytes(src.url);
+                        if (bytes && bytes.byteLength > 1000) {
+                            const font = await pdfDoc.embedFont(bytes);
+                            // REAL WORLD TEST: Can it draw Turkish?
+                            try {
+                                font.widthOfTextAtSize("İĞŞÇÖÜ ığşçöü", 12);
+                                pdfDoc._cachedFonts[fName] = font;
+                                console.log(`%c FONT SUCCESS: '${fName}' loaded from ${src.type}`, "color: #10b981;");
+                                return font;
+                            } catch (drawErr) {
+                                console.warn(`%c FONT TEST FAILED: ${fName} from ${src.type} is unusable.`, "color: #f59e0b;");
+                            }
                         }
-                    } catch (e) { 
-                        console.error(`%c FONT ERROR: Embed failed for local '${fName}':`, "color: #ef4444;", e);
+                    } catch (srcErr) {
+                        console.warn(`Source ${src.url} failed:`, srcErr);
                     }
                 }
                 
@@ -193,7 +205,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                 return fallback;
 
             } catch(e) { 
-                console.error(`Font yükleme hatası (${fName}), Helvetica'ya dönülüyor:`, e); 
+                console.error(`Critical font error (${fName}):`, e); 
                 return await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
             }
         };
