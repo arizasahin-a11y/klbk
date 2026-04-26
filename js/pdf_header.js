@@ -14,15 +14,17 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     };
     const cleanTurkishChars = (text) => {
         if (!text) return '';
-        // Eğer elimizde özel bir font varsa ve bu standart değilse temizleme yapma
+        // If it's a custom font that MIGHT support Turkish, we still return the cleaned version 
+        // IF the user is reporting broken characters. For now, let's always clean if it's a standard font.
         if (mainFont && !reflectsStandard(mainFont)) return text;
+        
         return text
-            .replace(/\u0130/g, 'I').replace(/\u0131/g, 'i')
-            .replace(/\u011e/g, 'G').replace(/\u011f/g, 'g')
-            .replace(/\u015e/g, 'S').replace(/\u015f/g, 's')
-            .replace(/\u00c7/g, 'C').replace(/\u00e7/g, 'c')
-            .replace(/\u00d6/g, 'O').replace(/\u00f6/g, 'o')
-            .replace(/\u00dc/g, 'U').replace(/\u00fc/g, 'u');
+            .replace(/İ/g, 'I').replace(/ı/g, 'i')
+            .replace(/Ğ/g, 'G').replace(/ğ/g, 'g')
+            .replace(/Ş/g, 'S').replace(/ş/g, 's')
+            .replace(/Ç/g, 'C').replace(/ç/g, 'c')
+            .replace(/Ö/g, 'O').replace(/ö/g, 'o')
+            .replace(/Ü/g, 'U').replace(/ü/g, 'u');
     };
 
     const drawCenterText = (str, cx, cy, cw, ch, sz, fnt) => {
@@ -32,7 +34,13 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const tw = fnt ? fnt.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
         const tx = cx + Math.max(0, (cw - tw) / 2);
         const ty = cy + (ch / 2) - (s_sz * 0.35);
-        page.drawText(cl, { x: tx, y: ty, size: s_sz, font: fnt || undefined, color: rgb(0, 0, 0) });
+        try {
+            page.drawText(cl, { x: tx, y: ty, size: s_sz, font: fnt || undefined, color: rgb(0, 0, 0) });
+        } catch (e) {
+            console.warn("drawText center error, fallback to ASCII:", e);
+            const ascii = cl.replace(/[^\x00-\x7F]/g, '?');
+            page.drawText(ascii, { x: tx, y: ty, size: s_sz, color: rgb(0, 0, 0) });
+        }
     };
 
     const drawLeftText = (str, cx, cy, cw, ch, sz, fnt) => {
@@ -41,7 +49,12 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const cl = cleanTurkishChars(str).toString();
         const tx = cx + (5 * sf);
         const ty = cy + (ch / 2) - (s_sz * 0.35);
-        page.drawText(cl, { x: tx, y: ty, size: s_sz, font: fnt || undefined, color: rgb(0, 0, 0) });
+        try {
+            page.drawText(cl, { x: tx, y: ty, size: s_sz, font: fnt || undefined, color: rgb(0, 0, 0) });
+        } catch (e) {
+            const ascii = cl.replace(/[^\x00-\x7F]/g, '?');
+            page.drawText(ascii, { x: tx, y: ty, size: s_sz, color: rgb(0, 0, 0) });
+        }
     };
 
     const drawRightText = (str, cx, cy, cw, ch, sz, fnt) => {
@@ -54,12 +67,9 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         try {
             page.drawText(cl, { x: tx, y: ty, size: s_sz, font: fnt || undefined, color: rgb(0, 0, 0) });
         } catch (e) {
-            console.warn("drawText hatası, standart font deneniyor:", e);
-            try {
-                page.drawText(cl, { x: tx, y: ty, size: s_sz, color: rgb(0, 0, 0) });
-            } catch (e2) {
-                console.error("Standart fontla bile yazılamadı:", e2);
-            }
+            console.warn("drawText right error, fallback to ASCII:", e);
+            const ascii = cl.replace(/[^\x00-\x7F]/g, '?');
+            page.drawText(ascii, { x: tx, y: ty, size: s_sz, color: rgb(0, 0, 0) });
         }
     };
 
@@ -113,49 +123,44 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     try {
         if (!pdfDoc._cachedFonts) pdfDoc._cachedFonts = {};
         const fetchAndEmbed = async (fName) => {
-            if (!fName || fName === 'auto') return null;
-            if (pdfDoc._cachedFonts[fName]) return pdfDoc._cachedFonts[fName];
-
-            if (!fontsListTurkish.includes(fName) && fName !== 'Roboto') {
-                console.warn(`Geçersiz veya uyumsuz font engellendi: ${fName}`);
-                return null;
-            }
-            
-            const folder = fName.toLowerCase().replace(/\s+/g, '-');
             try {
+                if (!fName || fName === 'auto') return null;
+                if (pdfDoc._cachedFonts[fName]) return pdfDoc._cachedFonts[fName];
+
+                if (!fontsListTurkish.includes(fName) && fName !== 'Roboto') {
+                    console.warn(`Geçersiz font: ${fName}`);
+                    return null;
+                }
+                
+                const folder = fName.toLowerCase().replace(/\s+/g, '-');
                 // Special case for local TTF fonts
                 let localUrl = `fonts/${folder}-regular.woff`;
                 if (fName === 'Monotype Corsiva') localUrl = 'fonts/MonotypeCorsiva.ttf';
                 if (fName === 'Snap ITC') localUrl = 'fonts/SnapITC.ttf';
 
-                console.log(`%c FONT ATTEMPT: Loading local font '${fName}' from ${localUrl}`, "color: #3b82f6;");
+                console.log(`%c FONT ATTEMPT [v10.0]: Loading local font '${fName}' from ${localUrl}`, "color: #3b82f6;");
                 const localBytes = await window.getFileBytes(localUrl);
                 
                 if (localBytes && localBytes.byteLength > 1000) {
                     try {
                         const font = await pdfDoc.embedFont(localBytes);
                         pdfDoc._cachedFonts[fName] = font;
-                        console.log(`%c FONT SUCCESS: Local font '${fName}' loaded successfully.`, "color: #16a34a; font-weight: bold;");
                         return font;
                     } catch (e) { 
                         console.error(`%c FONT ERROR: Embed failed for local '${fName}':`, "color: #ef4444;", e);
-                        // Fallback to Standard font to prevent crash
-                        const fallback = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-                        pdfDoc._cachedFonts[fName] = fallback;
-                        return fallback;
                     }
-                } else {
-                    console.warn(`%c FONT WARN: Local file '${localUrl}' not found or empty.`, "color: #f59e0b;");
                 }
-
-                // Removed CDN fallback to respect user request and improve performance
-                console.warn(`%c FONT FAIL: Font '${fName}' not in local fonts/ folder. Falling back to Helvetica.`, "color: #ef4444; font-weight: bold;");
+                
+                // Final fallback
+                console.warn(`%c FONT FAIL: Using Helvetica fallback for '${fName}'`, "color: #f59e0b;");
                 const fallback = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
                 pdfDoc._cachedFonts[fName] = fallback;
                 return fallback;
 
-            } catch(e) { console.warn(`Font yükleme genel hatası (${fName}):`, e); }
-            return null;
+            } catch(e) { 
+                console.error(`Font yükleme hatası (${fName}), Helvetica'ya dönülüyor:`, e); 
+                return await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+            }
         };
         
         const [cf1, cf2, cf3] = await Promise.all([
