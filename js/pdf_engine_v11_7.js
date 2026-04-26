@@ -126,27 +126,56 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     
     // Auto Theme & Font Selection Logic
     const subHash = subjectName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) || 1;
-    // Curated list of TTF fonts (Windows Standard) found in your fonts folder
+    // Expanded list of Windows-standard TTF fonts found in your folder
     const fontsListTurkish = [
-        "Arial", "Arial Black", "Bahnschrift", "Calibri", "Cambria", "Comic Sans MS", "Consolas", 
-        "Constantia", "Corbel", "Courier New", "Ebrima", "Gadugi", "Georgia", "Impact", 
-        "Lucida Console", "Microsoft Sans Serif", "Palatino Linotype", "Segoe Print", 
-        "Segoe Script", "Segoe UI", "Tahoma", "Times New Roman", "Trebuchet MS", "Verdana",
-        "Agency FB", "Algerian", "Book Antiqua", "Dubai", "Ink Free", "Jokerman", "Papyrus"
+        "Arial", "Arial Black", "Agency FB", "Algerian", "Bahnschrift", "Baskerville Old Face", 
+        "Bauhaus 93", "Bell MT", "Berlin Sans FB", "Bernard MT Condensed", "Blackadder ITC",
+        "Book Antiqua", "Bookman Old Style", "Bradley Hand ITC", "Britannic Bold", "Broadway",
+        "Brush Script MT", "Calibri", "California FB", "Calisto MT", "Cambria", "Candara",
+        "Castellar", "Centaur", "Century", "Century Schoolbook", "Chiller", "Colonna MT",
+        "Comic Sans MS", "Consolas", "Constantia", "Cooper Black", "Copperplate Gothic", "Corbel",
+        "Courier New", "Curlz MT", "Dubai", "Ebrima", "Edwardian Script ITC", "Elephant",
+        "Engravers MT", "Eras Bold ITC", "Felix Titling", "Footlight MT Light", "Forte",
+        "Franklin Gothic", "FreeStyle Script", "French Script MT", "Gabriola", "Gadugi",
+        "Garamond", "Georgia", "Gigi", "Gill Sans MT", "Gloucester MT Extra Condensed",
+        "Gotham", "Goudy Old Style", "Goudy Stout", "Haettenschweiler", "Harlow Solid Italic",
+        "Harrington", "High Tower Text", "Impact", "Imprint MT Shadow", "Informal Roman",
+        "Ink Free", "Jokerman", "Juice ITC", "Kristen ITC", "Kunstler Script", "Latin Wide",
+        "Leelawadee UI", "Lucida Bright", "Lucida Calligraphy", "Lucida Console", "Lucida Fax",
+        "Lucida Handwriting", "Lucida Sans", "Lucida Typewriter", "Magneto", "Maiandra GD",
+        "Matura MT Script Capitals", "Microsoft Sans Serif", "Microsoft Uighur", "Mistral",
+        "Modern No. 20", "Monotype Corsiva", "MV Boli", "Niagara Engraved", "Niagara Solid",
+        "OCR A Extended", "Old English Text MT", "Onyx", "Palace Script MT", "Palatino Linotype",
+        "Papyrus", "Parchment", "Perpetua", "Perpetua Titling MT", "Playbill", "Plus Jakarta Sans",
+        "Poor Richard", "Pristina", "Rage Italic", "Ravie", "Rockwell", "Script MT Bold",
+        "Segoe Print", "Segoe Script", "Segoe UI", "Showcard Gothic", "Snap ITC", "Stencil",
+        "Sylfaen", "Tahoma", "Tempus Sans ITC", "Times New Roman", "Trebuchet MS", "Verdana",
+        "Viner Hand ITC", "Vivaldi", "Vladimir Script"
     ];
 
-    // Mapping for Windows-style filenames (based on your folder content)
-    const ttfMapping = {
-        "arial": "arial.ttf", "arialblack": "ariblk.ttf", "agencyfb": "AGENCYR.TTF", "algerian": "ALGER.TTF",
-        "bahnschrift": "bahnschrift.ttf", "calibri": "calibri.ttf", "cambria": "cambria.ttc",
-        "comicsansms": "comic.ttf", "consolas": "consola.ttf", "constantia": "constan.ttf",
-        "corbel": "corbel.ttf", "couriernew": "cour.ttf", "ebrima": "ebrima.ttf", "gadugi": "gadugi.ttf",
-        "georgia": "georgia.ttf", "impact": "impact.ttf", "lucidaconsole": "lucon.ttf",
-        "microsoftsansserif": "micross.ttf", "palatinolinotype": "pala.ttf", "segoeprint": "segoepr.ttf",
-        "segoescript": "segoesc.ttf", "segoeui": "segoeui.ttf", "tahoma": "tahoma.ttf",
-        "timesnewroman": "times.ttf", "trebuchetms": "trebuc.ttf", "verdana": "verdana.ttf",
-        "bookantiqua": "BKANT.TTF", "dubai": "DUBAI-REGULAR.TTF", "inkfree": "Inkfree.ttf",
-        "jokerman": "JOKERMAN.TTF", "papyrus": "PAPYRUS.TTF"
+    // Helper to find the best filename match for a font name
+    const getTtfFileName = (fName) => {
+        const base = fName.toLowerCase();
+        const simple = base.replace(/\s+/g, '');
+        const folderStyle = base.replace(/\s+/g, '-');
+        
+        // Hardcoded special mappings for common Windows variations
+        const specials = {
+            "arial": "arial.ttf", "arialblack": "ariblk.ttf", "agencyfb": "AGENCYR.TTF", "algerian": "ALGER.TTF",
+            "bahnschrift": "bahnschrift.ttf", "calibri": "calibri.ttf", "cambria": "cambria.ttc",
+            "comicsansms": "comic.ttf", "consolas": "consola.ttf", "constantia": "constan.ttf",
+            "corbel": "corbel.ttf", "couriernew": "cour.ttf", "ebrima": "ebrima.ttf", "gadugi": "gadugi.ttf",
+            "georgia": "georgia.ttf", "impact": "impact.ttf", "lucidaconsole": "lucon.ttf",
+            "microsoftsansserif": "micross.ttf", "palatinolinotype": "pala.ttf", "segoeprint": "segoepr.ttf",
+            "segoescript": "segoesc.ttf", "segoeui": "segoeui.ttf", "tahoma": "tahoma.ttf",
+            "timesnewroman": "times.ttf", "trebuchetms": "trebuc.ttf", "verdana": "verdana.ttf",
+            "bookantiqua": "BKANT.TTF", "dubai": "DUBAI-REGULAR.TTF", "inkfree": "Inkfree.ttf",
+            "jokerman": "JOKERMAN.TTF", "papyrus": "PAPYRUS.TTF", "monotypecorsiva": "MTCORSVA.TTF",
+            "snapitc": "SNAP____.TTF", "palace script mt": "PALSCRI.TTF"
+        };
+        
+        if (specials[simple]) return specials[simple];
+        return `${simple}.ttf`; // Default guess
     };
     
     const sTheme = metadata.pdfHeaderDesign || 'auto';
@@ -168,31 +197,27 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                 if (!fName || fName === 'auto') return null;
                 if (pdfDoc._cachedFonts[fName]) return pdfDoc._cachedFonts[fName];
 
-                const simpleKey = fName.toLowerCase().replace(/\s+/g, '');
-                const fileName = ttfMapping[simpleKey];
+                const fileName = getTtfFileName(fName);
+                const urls = [
+                    `fonts/${fileName}`,
+                    `fonts/${fileName.toUpperCase()}`,
+                    `fonts/${fName.replace(/\s+/g, '')}.ttf`,
+                    `fonts/${fName.replace(/\s+/g, '-')}.ttf`
+                ];
                 
-                if (!fileName) {
-                    console.warn(`Font bulunamadı veya TTF değil: ${fName}`);
-                    return null;
+                for (const url of urls) {
+                    try {
+                        const bytes = await window.getFileBytes(url);
+                        if (bytes && bytes.byteLength > 1000) {
+                            const font = await pdfDoc.embedFont(bytes);
+                            font._supportsTR = true; 
+                            pdfDoc._cachedFonts[fName] = font;
+                            console.log(`%c FONT SUCCESS: '${fName}' loaded from ${url}`, "color: #10b981;");
+                            return font;
+                        }
+                    } catch (e) {}
                 }
                 
-                const url = `fonts/${fileName}`;
-                try {
-                    console.log(`%c FONT ATTEMPT: Loading TTF '${fName}' from ${url}`, "color: #3b82f6;");
-                    const bytes = await window.getFileBytes(url);
-                    if (bytes && bytes.byteLength > 1000) {
-                        const font = await pdfDoc.embedFont(bytes);
-                        // TTF fonts from Windows are trusted for TR support
-                        font._supportsTR = true; 
-                        pdfDoc._cachedFonts[fName] = font;
-                        console.log(`%c FONT SUCCESS: '${fName}' loaded`, "color: #10b981;");
-                        return font;
-                    }
-                } catch (srcErr) {
-                    console.warn(`Source ${url} failed:`, srcErr);
-                }
-                
-                // Final fallback
                 console.warn(`%c FONT FAIL: Using Helvetica fallback for '${fName}'`, "color: #f59e0b;");
                 const fallback = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
                 pdfDoc._cachedFonts[fName] = fallback;

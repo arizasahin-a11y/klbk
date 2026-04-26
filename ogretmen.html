@@ -20,7 +20,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!-- Ortak PDF Başlık render fonksiyonu (dashboard ile aynı tema desteği) -->
-    <script src="js/pdf_engine_v11_6.js"></script>
+    <script src="js/pdf_engine_v11_7.js"></script>
 
 
     <style>
@@ -300,7 +300,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/core_data_v11_6.js"></script>
+    <script src="js/core_data_v11_7.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Rescue Error Handler: Catch errors before anything else fails
@@ -1711,11 +1711,29 @@
             const f3 = meta.pdfHeaderFont3 || 'auto';
 
             const fontsListTurkish = [
-                "Arial", "Arial Black", "Bahnschrift", "Calibri", "Cambria", "Comic Sans MS", "Consolas", 
-                "Constantia", "Corbel", "Courier New", "Ebrima", "Gadugi", "Georgia", "Impact", 
-                "Lucida Console", "Microsoft Sans Serif", "Palatino Linotype", "Segoe Print", 
-                "Segoe Script", "Segoe UI", "Tahoma", "Times New Roman", "Trebuchet MS", "Verdana",
-                "Agency FB", "Algerian", "Book Antiqua", "Dubai", "Ink Free", "Jokerman", "Papyrus"
+                "Arial", "Arial Black", "Agency FB", "Algerian", "Bahnschrift", "Baskerville Old Face", 
+                "Bauhaus 93", "Bell MT", "Berlin Sans FB", "Bernard MT Condensed", "Blackadder ITC",
+                "Book Antiqua", "Bookman Old Style", "Bradley Hand ITC", "Britannic Bold", "Broadway",
+                "Brush Script MT", "Calibri", "California FB", "Calisto MT", "Cambria", "Candara",
+                "Castellar", "Centaur", "Century", "Century Schoolbook", "Chiller", "Colonna MT",
+                "Comic Sans MS", "Consolas", "Constantia", "Cooper Black", "Copperplate Gothic", "Corbel",
+                "Courier New", "Curlz MT", "Dubai", "Ebrima", "Edwardian Script ITC", "Elephant",
+                "Engravers MT", "Eras Bold ITC", "Felix Titling", "Footlight MT Light", "Forte",
+                "Franklin Gothic", "FreeStyle Script", "French Script MT", "Gabriola", "Gadugi",
+                "Garamond", "Georgia", "Gigi", "Gill Sans MT", "Gloucester MT Extra Condensed",
+                "Gotham", "Goudy Old Style", "Goudy Stout", "Haettenschweiler", "Harlow Solid Italic",
+                "Harrington", "High Tower Text", "Impact", "Imprint MT Shadow", "Informal Roman",
+                "Ink Free", "Jokerman", "Juice ITC", "Kristen ITC", "Kunstler Script", "Latin Wide",
+                "Leelawadee UI", "Lucida Bright", "Lucida Calligraphy", "Lucida Console", "Lucida Fax",
+                "Lucida Handwriting", "Lucida Sans", "Lucida Typewriter", "Magneto", "Maiandra GD",
+                "Matura MT Script Capitals", "Microsoft Sans Serif", "Microsoft Uighur", "Mistral",
+                "Modern No. 20", "Monotype Corsiva", "MV Boli", "Niagara Engraved", "Niagara Solid",
+                "OCR A Extended", "Old English Text MT", "Onyx", "Palace Script MT", "Palatino Linotype",
+                "Papyrus", "Parchment", "Perpetua", "Perpetua Titling MT", "Playbill", "Plus Jakarta Sans",
+                "Poor Richard", "Pristina", "Rage Italic", "Ravie", "Rockwell", "Script MT Bold",
+                "Segoe Print", "Segoe Script", "Segoe UI", "Showcard Gothic", "Snap ITC", "Stencil",
+                "Sylfaen", "Tahoma", "Tempus Sans ITC", "Times New Roman", "Trebuchet MS", "Verdana",
+                "Viner Hand ITC", "Vivaldi", "Vladimir Script"
             ];
 
             const ttfMapping = {
@@ -1728,7 +1746,8 @@
                 "segoescript": "segoesc.ttf", "segoeui": "segoeui.ttf", "tahoma": "tahoma.ttf",
                 "timesnewroman": "times.ttf", "trebuchetms": "trebuc.ttf", "verdana": "verdana.ttf",
                 "bookantiqua": "BKANT.TTF", "dubai": "DUBAI-REGULAR.TTF", "inkfree": "Inkfree.ttf",
-                "jokerman": "JOKERMAN.TTF", "papyrus": "PAPYRUS.TTF"
+                "jokerman": "JOKERMAN.TTF", "papyrus": "PAPYRUS.TTF", "monotypecorsiva": "MTCORSVA.TTF",
+                "snapitc": "SNAP____.TTF", "palace script mt": "PALSCRI.TTF"
             };
 
             // Local Fonts Preview (@font-face injection)
@@ -1738,10 +1757,8 @@
                 let css = '';
                 fontsListTurkish.forEach(f => {
                     const key = f.toLowerCase().replace(/\s+/g, '');
-                    const file = ttfMapping[key];
-                    if (file) {
-                        css += `@font-face { font-family: '${f}'; src: url('fonts/${file}'); }\n`;
-                    }
+                    const file = ttfMapping[key] || `${key}.ttf`;
+                    css += `@font-face { font-family: '${f}'; src: url('fonts/${file}'); }\n`;
                 });
                 style.textContent = css;
                 document.head.appendChild(style);
