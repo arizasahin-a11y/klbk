@@ -7,12 +7,15 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const sf = options.sf || 1;
 
     const getCustomFont = () => mainFont;
-    const reflectsStandard = (f) => f && (f.name === 'Helvetica' || f.name === 'Helvetica-Bold' || f.name === 'Times-Roman' || f.name === 'Times-Bold' || f.name === 'Courier' || f.name === 'Courier-Bold');
+    const reflectsStandard = (f) => {
+        if (!f) return true;
+        const n = (f.name || (typeof f.getName === 'function' ? f.getName() : '') || '').toLowerCase();
+        return n.includes('helvetica') || n.includes('times') || n.includes('courier') || n.includes('symbol') || n.includes('zapf');
+    };
     const cleanTurkishChars = (text) => {
         if (!text) return '';
-        const currentFont = getCustomFont();
-        // Only skip cleaning if we have a non-standard (embedded) font
-        if (currentFont && !reflectsStandard(currentFont)) return text;
+        // Eğer elimizde özel bir font varsa ve bu standart değilse temizleme yapma
+        if (mainFont && !reflectsStandard(mainFont)) return text;
         return text
             .replace(/\u0130/g, 'I').replace(/\u0131/g, 'i')
             .replace(/\u011e/g, 'G').replace(/\u011f/g, 'g')
@@ -150,9 +153,9 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             fetchAndEmbed(finalFont3)
         ]);
 
-        if (cf1) schoolFont = cf1;
-        if (cf2) mainFont = cf2;
-        if (cf3) nameFont = cf3;
+        if (cf1) { schoolFont = cf1; console.log("Uygulanan Okul Fontu:", cf1.name || cf1.getName()); }
+        if (cf2) { mainFont = cf2; console.log("Uygulanan Ana Font:", cf2.name || cf2.getName()); }
+        if (cf3) { nameFont = cf3; console.log("Uygulanan İsim Fontu:", cf3.name || cf3.getName()); }
     } catch(e) { console.warn("Dinamik font yükleme hatası", e); }
 
     const margin = 14.17 * sf;
