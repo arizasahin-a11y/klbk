@@ -726,25 +726,26 @@
                                           (typeof papers === 'object' && Object.values(papers).some(p => p && p.length > 5));
 
                         const showThemeFont = (isMine && hasAnyPdf && diffMins > 5);
-                        const showShare = (isMine && hasAnyPdf);
+                        let subjectControlsHtml = '';
+                        if (showThemeFont || showShare) {
+                            subjectControlsHtml += `<div style="margin-left: auto; display: flex; align-items: center; gap: 10px;" onclick="event.stopPropagation()">`;
+                            
+                            if (showThemeFont) {
+                                subjectControlsHtml += `
+                                    <button type="button" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 0.75rem; border-radius: 8px; font-weight: 700; background: white; color: var(--primary); border: 1px solid var(--primary-light);" title="PDF Tema ve Font Ayarları" onclick="window.openSubjectPdfSettings('${ses.id}', '${encodedSub}')">
+                                        <i class="fa-solid fa-palette"></i> Tasarım
+                                    </button>`;
+                            }
 
-                        let designBtnHtml = '';
-                        if (showThemeFont) {
-                            designBtnHtml = `
-                                <button type="button" class="btn btn-secondary btn-sm" style="padding: 5px 10px; font-size: 0.7rem; border-radius: 6px; font-weight: 700; background: white; color: var(--primary); border: 1px solid var(--primary-light);" title="PDF Tema ve Font Ayarları" onclick="window.openSubjectPdfSettings('${ses.id}', '${encodedSub}')">
-                                    <i class="fa-solid fa-palette"></i> Tasarım
-                                </button>`;
+                            if (showShare) {
+                                subjectControlsHtml += `
+                                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 800; color: var(--primary); cursor: pointer; background: #f5f3ff; padding: 6px 12px; border-radius: 8px; border: 1px solid #ddd6fe;">
+                                        <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared === true ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 17px; height: 17px; accent-color: var(--primary);"> Soru Kağıdını Paylaş
+                                    </label>`;
+                            }
+
+                            subjectControlsHtml += `</div>`;
                         }
-
-                        let shareCheckHtml = '';
-                        if (showShare) {
-                            shareCheckHtml = `
-                                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 800; color: var(--primary); cursor: pointer; background: #f5f3ff; padding: 5px 10px; border-radius: 6px; border: 1px solid #ddd6fe; margin:0;">
-                                    <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared === true ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 15px; height: 15px; accent-color: var(--primary);"> Soru Kağıdını Paylaş
-                                </label>`;
-                        }
-
-                        let subjectControlsHtml = ''; // Removed from header per request
 
 
                         html += `<div class="nested-accordion" style="margin-bottom: 1.5rem; border: 2px solid ${isSubOpen ? 'var(--primary-light)' : 'var(--gray-200)'};">
@@ -810,10 +811,6 @@
                                             <label style="font-size: 0.75rem; font-weight: 800; color: var(--gray-500); text-transform:uppercase; margin: 0;">
                                                 <i class="fa-solid fa-file-pdf" style="color:var(--danger)"></i> Soru Kağıdı Bağlantısı
                                             </label>
-                                            <div style="display: flex; align-items: center; gap: 8px;" onclick="event.stopPropagation()">
-                                                ${designBtnHtml}
-                                                ${shareCheckHtml}
-                                            </div>
                                         </div>
                                         <div style="display: flex; gap: 10px;">
                                             <input type="text" id="pdfLink-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.75rem; border:2px solid var(--gray-200); border-radius:10px; font-weight:600;" placeholder="https://..." value="${currentPdf}">
