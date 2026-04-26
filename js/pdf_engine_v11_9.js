@@ -17,9 +17,23 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         if (!text) return '';
         const useFnt = fnt || mainFont;
         const isStandard = reflectsStandard(useFnt);
-        const supportsTR = useFnt && useFnt._supportsTR;
+        
+        // Smart Detection: Check if the font actually has the 'Ğ' glyph
+        // If the width of 'Ğ' is the same as '?' or 0, it likely doesn't support TR
+        let supportsTR = false;
+        if (useFnt && !isStandard) {
+            try {
+                const wTR = useFnt.widthOfTextAtSize('Ğ', 10);
+                const wQ = useFnt.widthOfTextAtSize('?', 10);
+                if (wTR > 0 && Math.abs(wTR - wQ) > 0.001) {
+                    supportsTR = true;
+                }
+            } catch (e) {
+                supportsTR = false;
+            }
+        }
 
-        if (!isStandard && supportsTR) return text;
+        if (supportsTR) return text;
         
         return text
             .replace(/İ/g, 'I').replace(/ı/g, 'i')
