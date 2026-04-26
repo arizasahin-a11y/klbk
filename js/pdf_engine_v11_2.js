@@ -13,11 +13,9 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const n = (f.name || (typeof f.getName === 'function' ? f.getName() : '') || '').toLowerCase();
         return n.includes('helvetica') || n.includes('times') || n.includes('courier') || n.includes('symbol') || n.includes('zapf');
     };
-    const cleanTurkishChars = (text) => {
+    const cleanTurkishChars = (text, fnt) => {
         if (!text) return '';
-        // If it's a standard font, we MUST clean it.
-        // If it's a custom font, we only SKIP cleaning if we've verified it supports Turkish.
-        const useFnt = mainFont;
+        const useFnt = fnt || mainFont;
         const isStandard = reflectsStandard(useFnt);
         const supportsTR = useFnt && useFnt._supportsTR;
 
@@ -35,7 +33,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const drawCenterText = (str, cx, cy, cw, ch, sz, fnt) => {
         const s_sz = sz * sf;
         if (!str) return;
-        const cl = cleanTurkishChars(str).toString();
+        const cl = cleanTurkishChars(str, fnt).toString();
         let tw;
         try {
             tw = fnt ? fnt.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
@@ -61,7 +59,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const drawLeftText = (str, cx, cy, cw, ch, sz, fnt) => {
         const s_sz = sz * sf;
         if (!str) return;
-        const cl = cleanTurkishChars(str).toString();
+        const cl = cleanTurkishChars(str, fnt).toString();
         const tx = cx + (5 * sf);
         const ty = cy + (ch / 2) - (s_sz * 0.35);
         try {
@@ -77,7 +75,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const drawRightText = (str, cx, cy, cw, ch, sz, fnt) => {
         const s_sz = sz * sf;
         if (!str) return;
-        const cl = cleanTurkishChars(str).toString();
+        const cl = cleanTurkishChars(str, fnt).toString();
         let tw;
         try {
             tw = fnt ? fnt.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
@@ -101,7 +99,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         try {
             let sz = bs;
             const useFont = fnt || mainFont;
-            const cl = cleanTurkishChars(txt);
+            const cl = cleanTurkishChars(txt, useFont);
             const calcTw = (s) => {
                 try {
                     return useFont ? useFont.widthOfTextAtSize(cl, s * sf) : cl.length * (s * sf * 0.6);
@@ -188,20 +186,25 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                         const bytes = await window.getFileBytes(src.url);
                         if (bytes && bytes.byteLength > 1000) {
                             const font = await pdfDoc.embedFont(bytes);
-                            // REAL WORLD TEST: Can it draw Turkish?
+                            // REAL WORLD TEST: Can it even draw?
                             try {
-                                font.widthOfTextAtSize("İĞŞÇÖÜ ığşçöü", 12);
-                                font._supportsTR = true; // Flag for Turkish support
+                                font.widthOfTextAtSize("Test 123", 12);
+                                
+                                // Turkish Support Check: Only trust CDN-Ext or Roboto
+                                if (src.type === 'cdn-ext' || fName === 'Roboto') {
+                                    try {
+                                        font.widthOfTextAtSize("İĞŞÇÖÜ", 12);
+                                        font._supportsTR = true;
+                                    } catch (e) { font._supportsTR = false; }
+                                } else {
+                                    font._supportsTR = false; 
+                                }
+
                                 pdfDoc._cachedFonts[fName] = font;
-                                console.log(`%c FONT SUCCESS: '${fName}' loaded from ${src.type} with Turkish support`, "color: #10b981;");
+                                console.log(`%c FONT SUCCESS: '${fName}' loaded from ${src.type} (TR Support: ${font._supportsTR})`, "color: #10b981;");
                                 return font;
                             } catch (drawErr) {
-                                console.warn(`%c FONT TEST SEMI-FAILED: ${fName} from ${src.type} lacks Turkish characters.`, "color: #f59e0b;");
-                                // We still return the font but without the _supportsTR flag
-                                // This means the cleanTurkishChars function will ASCII-fy the text for this font.
-                                font._supportsTR = false;
-                                pdfDoc._cachedFonts[fName] = font;
-                                return font;
+                                console.warn(`%c FONT TEST FAILED: ${fName} from ${src.type} is unusable.`, "color: #f59e0b;");
                             }
                         }
                     } catch (srcErr) {
