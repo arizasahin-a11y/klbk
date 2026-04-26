@@ -789,12 +789,23 @@ const DataManager = {
 
     validateBuffer: function (buffer) {
         if (!buffer || buffer.byteLength < 10) return false;
-        const arr = new Uint8Array(buffer.slice(0, 100));
+        const arr = new Uint8Array(buffer.slice(0, 500));
         const str = String.fromCharCode(...arr).toLowerCase();
-        // Sadece HTML hata sayfalarını reddet (CORS proxylerinden dönenleri engellemek için)
-        if (str.includes('<!doctype html') || str.includes('<html') || str.includes('<body') || str.includes('hata oluştu')) {
+        
+        // Kesin PDF veya Font imzası varsa anında kabul et
+        if (str.includes('%pdf-')) return true;
+        if (arr[0] === 0x00 && arr[1] === 0x01 && arr[2] === 0x00 && arr[3] === 0x00) return true; // TTF
+        if (arr[0] === 0x4F && arr[1] === 0x54 && arr[2] === 0x54 && arr[3] === 0x4F) return true; // OTF
+        if (arr[0] === 0x77 && arr[1] === 0x4F && arr[2] === 0x46 && arr[3] === 0x46) return true; // WOFF
+
+        // Hata sayfalarını ve JSON/metinleri reddet (CORS proxylerinden veya Google Drive hatalarından dönenler)
+        if (str.includes('<!doctype') || str.includes('<html') || str.includes('<body') || str.includes('<head') || str.includes('<script')) {
             return false;
         }
+        if (str.trim().startsWith('{') || str.trim().startsWith('[') || str.includes('hata oluştu') || str.includes('error') || str.includes('not found')) {
+            return false;
+        }
+
         return true;
     },
 
