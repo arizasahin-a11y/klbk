@@ -107,6 +107,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                     pdfDoc._cachedFonts[fName] = font;
                     console.log(`Font başarıyla yüklendi: ${fName}`);
                     return font;
+                } else {
+                    console.warn(`Font dosyası boş veya doğrulanamadı: ${fName} (${fontUrl})`);
                 }
             } catch(e) { console.warn(`Font yükleme hatası (${fName}):`, e); }
             return null;

@@ -947,16 +947,21 @@ const DataManager = {
 
         try {
             // First race GAS proxy and Direct URLs
+            console.log(`Dosya indiriliyor (Direct/GAS): ${url}`);
             const successBuffer = await Promise.any(promises);
+            console.log(`Dosya başarıyla indirildi: ${url} (${successBuffer.byteLength} bytes)`);
             this._fileBytesCache[url] = successBuffer;
             return successBuffer;
         } catch (e) {
+            console.warn(`Doğrudan indirme başarısız (${url}), proxy deneniyor...`, e);
             // If all reliable methods fail, fallback to CORS proxies
             try {
                 const proxyBuffer = await runCorsProxies();
+                if (proxyBuffer) console.log(`Dosya proxy üzerinden indirildi: ${url}`);
                 this._fileBytesCache[url] = proxyBuffer;
                 return proxyBuffer;
             } catch (e2) {
+                console.error(`Dosya indirme TAMAMEN başarısız: ${url}`, e2);
                 return null;
             }
         }
