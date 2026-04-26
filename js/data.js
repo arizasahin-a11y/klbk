@@ -788,25 +788,34 @@ const DataManager = {
     _fileBytesCache: {},
 
     validateBuffer: function (buffer) {
-        if (!buffer || buffer.byteLength < 10) return false;
-        const arr = new Uint8Array(buffer.slice(0, 1024));
-        const str = String.fromCharCode(...arr).toLowerCase();
+        if (!buffer || buffer.byteLength < 16) return false;
         
-        // Kesin PDF veya Font imzası varsa anında kabul et
-        if (str.includes('%pdf-')) return true;
-        if (arr[0] === 0x00 && arr[1] === 0x01 && arr[2] === 0x00 && arr[3] === 0x00) return true; // TTF
-        if (arr[0] === 0x4F && arr[1] === 0x54 && arr[2] === 0x54 && arr[3] === 0x4F) return true; // OTF
-        if (arr[0] === 0x77 && arr[1] === 0x4F && arr[2] === 0x46 && arr[3] === 0x46) return true; // WOFF
+        const arr = new Uint8Array(buffer.slice(0, 50));
+        const str = String.fromCharCode(...arr);
+        
+        // Kesin PDF imzası (Baştaki 1024 byte içinde %PDF- olmalı)
+        const headerStr = String.fromCharCode(...new Uint8Array(buffer.slice(0, 1024)));
+        if (headerStr.includes('%PDF-')) return true;
 
-        // Görüntü (Image) imzaları
-        if (arr[0] === 0xFF && arr[1] === 0xD8 && arr[2] === 0xFF) return true; // JPEG
-        if (arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4E && arr[3] === 0x47) return true; // PNG
-        if (arr[0] === 0x47 && arr[1] === 0x49 && arr[2] === 0x46) return true; // GIF
-        if (arr[0] === 0x52 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x46 && arr[8] === 0x57 && arr[9] === 0x45 && arr[10] === 0x42 && arr[11] === 0x50) return true; // WEBP
-        if (str.includes('<svg')) return true; // SVG
+        // TTF: 0x00 0x01 0x00 0x00
+        if (arr[0] === 0x00 && arr[1] === 0x01 && arr[2] === 0x00 && arr[3] === 0x00) return true;
+        // OTF: 'OTTO'
+        if (arr[0] === 0x4F && arr[1] === 0x54 && arr[2] === 0x54 && arr[3] === 0x4F) return true;
+        // WOFF: 'wOFF'
+        if (arr[0] === 0x77 && arr[1] === 0x4F && arr[2] === 0x46 && arr[3] === 0x46) return true;
+        // WOFF2: 'wOF2'
+        if (arr[0] === 0x77 && arr[1] === 0x4F && arr[2] === 0x46 && arr[3] === 0x32) return true;
 
-        // Eğer yukarıdaki BİLİNEN formatlardan HİÇBİRİNE uymuyorsa, riske girmeyip reddet!
-        // Çünkü proxy sunucular, boş veya anlamsız metin hataları döndürebilir ve Promise.any bunları ilk sonuç olarak alıp PDFLib'i çökertebilir.
+        // JPEG: FF D8 FF
+        if (arr[0] === 0xFF && arr[1] === 0xD8 && arr[2] === 0xFF) return true;
+        // PNG: 89 50 4E 47
+        if (arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4E && arr[3] === 0x47) return true;
+        // GIF: GIF8
+        if (arr[0] === 0x47 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x38) return true;
+        // WEBP: RIFF .... WEBP
+        if (arr[0] === 0x52 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x46 && arr[8] === 0x57 && arr[9] === 0x45 && arr[10] === 0x42 && arr[11] === 0x50) return true;
+
+        // Kesin emin olamadıysak reddet.
         return false;
     },
 
@@ -913,17 +922,19 @@ const DataManager = {
             );
         }
 
-        // 3. CORS Proxies
-        if (url.startsWith('http')) {
+        // 3. CORS Proxies (Only used as a fallback if everything else fails)
+        const runCorsProxies = async () => {
+            if (!url.startsWith('http')) return null;
             const proxies = [
                 "https://api.allorigins.win/raw?url=",
                 "https://corsproxy.io/?",
                 "https://api.codetabs.com/v1/proxy?quest="
             ];
+            const corsPromises = [];
             for (const proxy of proxies) {
                 for (const dUrl of directUrls) {
                     const pUrl = proxy + encodeURIComponent(dUrl);
-                    promises.push(
+                    corsPromises.push(
                          fetchWithRetry(pUrl, true).then(buf => {
                               if (buf && this.validateBuffer(buf)) return buf;
                               throw new Error("Invalid buffer from proxy");
@@ -931,14 +942,23 @@ const DataManager = {
                     );
                 }
             }
-        }
+            return Promise.any(corsPromises);
+        };
 
         try {
+            // First race GAS proxy and Direct URLs
             const successBuffer = await Promise.any(promises);
             this._fileBytesCache[url] = successBuffer;
             return successBuffer;
         } catch (e) {
-            return null;
+            // If all reliable methods fail, fallback to CORS proxies
+            try {
+                const proxyBuffer = await runCorsProxies();
+                this._fileBytesCache[url] = proxyBuffer;
+                return proxyBuffer;
+            } catch (e2) {
+                return null;
+            }
         }
     },
 

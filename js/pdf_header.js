@@ -94,15 +94,21 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             if (pdfDoc._cachedFonts[fName]) return pdfDoc._cachedFonts[fName];
             
             const folder = fName.toLowerCase().replace(/\s+/g, '');
-            const file = fName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('') + '-Regular.ttf';
-            const url = `https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/${folder}/${file}`;
-            
-            const bytes = await window.getFileBytes(url);
-            if (bytes) {
-                const font = await pdfDoc.embedFont(bytes);
-                pdfDoc._cachedFonts[fName] = font;
-                return font;
-            }
+            try {
+                // Use Google Webfonts Helper API to get the direct TTF url
+                const apiRes = await fetch(`https://gwfh.mranftl.com/api/fonts/${folder}`);
+                if (!apiRes.ok) return null;
+                const apiData = await apiRes.json();
+                const variant = apiData.variants.find(v => v.id === 'regular') || apiData.variants[0];
+                if (!variant || !variant.ttf) return null;
+
+                const bytes = await window.getFileBytes(variant.ttf);
+                if (bytes) {
+                    const font = await pdfDoc.embedFont(bytes);
+                    pdfDoc._cachedFonts[fName] = font;
+                    return font;
+                }
+            } catch(e) { console.warn("Dinamik font yükleme hatası", e); }
             return null;
         };
         
