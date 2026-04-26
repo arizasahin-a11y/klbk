@@ -126,18 +126,28 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     
     // Auto Theme & Font Selection Logic
     const subHash = subjectName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) || 1;
+    // Curated list of TTF fonts (Windows Standard) found in your fonts folder
     const fontsListTurkish = [
-        "Arial", "Segoe UI", "Tahoma", "Times New Roman", "Verdana",
-        "Alfa Slab One", "Anton", "Archivo", "Archivo Black", "Arimo", "Assistant", "Bad Script", "Barlow", "Barlow Condensed", "Bebas Neue", "Bitter",
-        "Bricolage Grotesque", "Bungee", "Cabin", "Cairo", "Caveat", "Comfortaa", "Cormorant Garamond", "Cousine", "Crimson Text", "Dancing Script", "DM Sans",
-        "Dosis", "EB Garamond", "Exo 2", "Figtree", "Fira Sans", "Fjalla One", "Fredoka", "Great Vibes", "Heebo", "Hind", "IBM Plex Sans",
-        "Inconsolata", "Instrument Serif", "Inter", "Inter Tight", "JetBrains Mono", "Josefin Sans", "Jost", "Kalam", "Kanit", "Karla", "Lato",
-        "Lexend", "Libre Baskerville", "Libre Franklin", "Lobster", "Lora", "Manrope", "Marck Script", "Merriweather", "Merriweather Sans", "Monotype Corsiva", "Montserrat", "Mukta",
-        "Mulish", "Noto Sans", "Noto Serif", "Open Sans", "Oswald", "Outfit", "Oxygen", "Pacifico", "Playfair Display", "Plus Jakarta Sans",
-        "Poppins", "Prompt", "PT Sans", "PT Sans Narrow", "PT Serif", "Public Sans", "Quicksand", "Rajdhani", "Raleway", "Red Hat Display",
-        "Roboto", "Roboto Condensed", "Roboto Flex", "Roboto Mono", "Roboto Slab", "Rubik", "Saira", "Satisfy", "Schibsted Grotesk", "Shadows Into Light", "Slabo 27px", "Smooch Sans",
-        "Snap ITC", "Sora", "Source Code Pro", "Source Sans 3", "Space Grotesk", "Tinos", "Titillium Web", "Ubuntu", "Urbanist", "Work Sans"
+        "Arial", "Arial Black", "Bahnschrift", "Calibri", "Cambria", "Comic Sans MS", "Consolas", 
+        "Constantia", "Corbel", "Courier New", "Ebrima", "Gadugi", "Georgia", "Impact", 
+        "Lucida Console", "Microsoft Sans Serif", "Palatino Linotype", "Segoe Print", 
+        "Segoe Script", "Segoe UI", "Tahoma", "Times New Roman", "Trebuchet MS", "Verdana",
+        "Agency FB", "Algerian", "Book Antiqua", "Dubai", "Ink Free", "Jokerman", "Papyrus"
     ];
+
+    // Mapping for Windows-style filenames (based on your folder content)
+    const ttfMapping = {
+        "arial": "arial.ttf", "arialblack": "ariblk.ttf", "agencyfb": "AGENCYR.TTF", "algerian": "ALGER.TTF",
+        "bahnschrift": "bahnschrift.ttf", "calibri": "calibri.ttf", "cambria": "cambria.ttc",
+        "comicsansms": "comic.ttf", "consolas": "consola.ttf", "constantia": "constan.ttf",
+        "corbel": "corbel.ttf", "couriernew": "cour.ttf", "ebrima": "ebrima.ttf", "gadugi": "gadugi.ttf",
+        "georgia": "georgia.ttf", "impact": "impact.ttf", "lucidaconsole": "lucon.ttf",
+        "microsoftsansserif": "micross.ttf", "palatinolinotype": "pala.ttf", "segoeprint": "segoepr.ttf",
+        "segoescript": "segoesc.ttf", "segoeui": "segoeui.ttf", "tahoma": "tahoma.ttf",
+        "timesnewroman": "times.ttf", "trebuchetms": "trebuc.ttf", "verdana": "verdana.ttf",
+        "bookantiqua": "BKANT.TTF", "dubai": "DUBAI-REGULAR.TTF", "inkfree": "Inkfree.ttf",
+        "jokerman": "JOKERMAN.TTF", "papyrus": "PAPYRUS.TTF"
+    };
     
     const sTheme = metadata.pdfHeaderDesign || 'auto';
     const sFont1 = metadata.pdfHeaderFont1 || 'auto';
@@ -158,64 +168,28 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                 if (!fName || fName === 'auto') return null;
                 if (pdfDoc._cachedFonts[fName]) return pdfDoc._cachedFonts[fName];
 
-                if (!fontsListTurkish.includes(fName) && fName !== 'Roboto') {
-                    console.warn(`Geçersiz font: ${fName}`);
+                const simpleKey = fName.toLowerCase().replace(/\s+/g, '');
+                const fileName = ttfMapping[simpleKey];
+                
+                if (!fileName) {
+                    console.warn(`Font bulunamadı veya TTF değil: ${fName}`);
                     return null;
                 }
                 
-                const folder = fName.toLowerCase().replace(/\s+/g, '-');
-                const simpleName = fName.toLowerCase().replace(/\s+/g, '');
-                const sources = [];
-                
-                // Source 1: Manual/User-provided TTF (Priority)
-                sources.push({ url: `fonts/${simpleName}.ttf`, type: 'user-ttf' });
-                sources.push({ url: `fonts/${folder}.ttf`, type: 'user-ttf-folder' });
-
-                // Source 2: Standard Local WOFF/TTF
-                let localUrl = `fonts/${folder}-regular.woff`;
-                if (fName === 'Monotype Corsiva') localUrl = 'fonts/MonotypeCorsiva.ttf';
-                else if (fName === 'Snap ITC') localUrl = 'fonts/SnapITC.ttf';
-                sources.push({ url: localUrl, type: 'local' });
-
-                // Source 3: CDN Repair (Google Fonts)
-                const cdnUrl = `https://cdn.jsdelivr.net/npm/@fontsource/${folder}/files/${folder}-latin-ext-400-normal.woff`;
-                const cdnUrlLatin = `https://cdn.jsdelivr.net/npm/@fontsource/${folder}/files/${folder}-latin-400-normal.woff`;
-                
-                if (fName !== 'Monotype Corsiva' && fName !== 'Snap ITC') {
-                    sources.push({ url: cdnUrl, type: 'cdn-ext' });
-                    sources.push({ url: cdnUrlLatin, type: 'cdn-latin' });
-                }
-
-                for (const src of sources) {
-                    try {
-                        console.log(`%c FONT ATTEMPT: Loading ${src.type} font '${fName}' from ${src.url}`, "color: #3b82f6;");
-                        const bytes = await window.getFileBytes(src.url);
-                        if (bytes && bytes.byteLength > 1000) {
-                            const font = await pdfDoc.embedFont(bytes);
-                            // REAL WORLD TEST: Can it even draw?
-                            try {
-                                font.widthOfTextAtSize("Test 123", 12);
-                                
-                                // Turkish Support Check: Trust CDN-Ext, Roboto, or User-provided TTF
-                                if (src.type.includes('user-ttf') || src.type === 'cdn-ext' || fName === 'Roboto') {
-                                    try {
-                                        font.widthOfTextAtSize("İĞŞÇÖÜ", 12);
-                                        font._supportsTR = true;
-                                    } catch (e) { font._supportsTR = false; }
-                                } else {
-                                    font._supportsTR = false; 
-                                }
-
-                                pdfDoc._cachedFonts[fName] = font;
-                                console.log(`%c FONT SUCCESS: '${fName}' loaded from ${src.type} (TR Support: ${font._supportsTR})`, "color: #10b981;");
-                                return font;
-                            } catch (drawErr) {
-                                console.warn(`%c FONT TEST FAILED: ${fName} from ${src.type} is unusable.`, "color: #f59e0b;");
-                            }
-                        }
-                    } catch (srcErr) {
-                        console.warn(`Source ${src.url} failed:`, srcErr);
+                const url = `fonts/${fileName}`;
+                try {
+                    console.log(`%c FONT ATTEMPT: Loading TTF '${fName}' from ${url}`, "color: #3b82f6;");
+                    const bytes = await window.getFileBytes(url);
+                    if (bytes && bytes.byteLength > 1000) {
+                        const font = await pdfDoc.embedFont(bytes);
+                        // TTF fonts from Windows are trusted for TR support
+                        font._supportsTR = true; 
+                        pdfDoc._cachedFonts[fName] = font;
+                        console.log(`%c FONT SUCCESS: '${fName}' loaded`, "color: #10b981;");
+                        return font;
                     }
+                } catch (srcErr) {
+                    console.warn(`Source ${url} failed:`, srcErr);
                 }
                 
                 // Final fallback
