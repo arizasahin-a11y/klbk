@@ -1688,6 +1688,12 @@
                 "Mukta", "Caveat", "Fredoka", "Rajdhani", "Crimson Text", "PT Sans Narrow", "Comfortaa", "JetBrains Mono", "Urbanist", "Merriweather Sans"
             ];
 
+            // Güvenlik: Eğer eski veriden gelen font artık listede yoksa 'auto'ya çek
+            const checkF = (f) => (f === 'auto' || fontsListTurkish.includes(f)) ? f : 'auto';
+            const safeF1 = checkF(f1);
+            const safeF2 = checkF(f2);
+            const safeF3 = checkF(f3);
+
             const buildFontOpts = (sel) => {
                 let html = '<option value="auto">Otomatik Font (Derse Özgü)</option>';
                 fontsListTurkish.forEach(f => {
@@ -1723,19 +1729,19 @@
                     <div style="text-align:left; margin-bottom: 1rem;">
                         <label style="display: block; margin-bottom: 5px; font-weight: 900; color: var(--primary);">1. Satır Fontu (Okul İsmi)</label>
                         <select id="swal-sub-font1" class="swal2-input" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem;">
-                            ${buildFontOpts(f1)}
+                            ${buildFontOpts(safeF1)}
                         </select>
                     </div>
                     <div style="text-align:left; margin-bottom: 1rem;">
                         <label style="display: block; margin-bottom: 5px; font-weight: 900; color: var(--primary);">2. Satır Fontu (Sınav Bilgisi)</label>
                         <select id="swal-sub-font2" class="swal2-input" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem;">
-                            ${buildFontOpts(f2)}
+                            ${buildFontOpts(safeF2)}
                         </select>
                     </div>
                     <div style="text-align:left; margin-bottom: 1rem;">
                         <label style="display: block; margin-bottom: 5px; font-weight: 900; color: var(--primary);">3. Satır Fontu (Öğrenci & Salon)</label>
                         <select id="swal-sub-font3" class="swal2-input" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem;">
-                            ${buildFontOpts(f3)}
+                            ${buildFontOpts(safeF3)}
                         </select>
                     </div>
                 `,

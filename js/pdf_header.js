@@ -99,9 +99,14 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         if (!pdfDoc._cachedFonts) pdfDoc._cachedFonts = {};
         const fetchAndEmbed = async (fName) => {
             if (!fName || fName === 'auto') return null;
-            // Eğer Roboto seçilmişse ve zaten bir fontumuz varsa (DataManager'dan gelen), onu kullanabiliriz
-            // Ama garanti olsun diye her türlü yüklemeyi deneyebiliriz ya da cache kontrolü yapabiliriz.
             if (pdfDoc._cachedFonts[fName]) return pdfDoc._cachedFonts[fName];
+
+            // GÜVENLİK KONTROLÜ: Sadece bizim onayladığımız (ve indirdiğimiz) fontları yükle.
+            // Eski verilerde kalmış uyumsuz fontların internetten çekilmesini engeller.
+            if (!fontsListTurkish.includes(fName) && fName !== 'Roboto') {
+                console.warn(`Geçersiz veya uyumsuz font engellendi: ${fName}`);
+                return null;
+            }
             
             const folder = fName.toLowerCase().replace(/\s+/g, '-');
             try {
