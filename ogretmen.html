@@ -5,7 +5,8 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>Öğretmen Sınav Yönetim Paneli</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="amblem.jpg">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -378,25 +379,38 @@
 
         async function syncTime() {
             const statusEl = document.getElementById('timeSyncStatus');
-            try {
-                // Add a 3-second timeout for worldtimeapi
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000);
+            const timeApis = [
+                'https://worldtimeapi.org/api/ip',
+                'https://ipapi.co/json/',
+                'https://worldclockapi.com/api/json/est/now'
+            ];
 
-                const startTime = Date.now();
-                const response = await fetch('https://worldtimeapi.org/api/ip', { signal: controller.signal });
-                clearTimeout(timeoutId);
+            let syncSuccess = false;
+            for (const apiUrl of timeApis) {
+                if (syncSuccess) break;
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 2500);
+                    const response = await fetch(apiUrl, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    const data = await response.json();
+                    
+                    let serverTime;
+                    if (data.datetime) serverTime = new Date(data.datetime).getTime();
+                    else if (data.utc_datetime) serverTime = new Date(data.utc_datetime).getTime();
+                    else if (data.currentDateTime) serverTime = new Date(data.currentDateTime).getTime();
+                    
+                    if (serverTime) {
+                        trustedBaseTime = serverTime;
+                        performanceAtSync = performance.now();
+                        statusEl.innerHTML = '<i class="fa-solid fa-cloud-check"></i> İnternet saati aktif';
+                        statusEl.style.color = 'var(--secondary)';
+                        syncSuccess = true;
+                    }
+                } catch (e) { /* Sessizce bir sonrakini dene */ }
+            }
 
-                const data = await response.json();
-                const serverTime = new Date(data.datetime).getTime();
-                const endTime = Date.now();
-                const latency = (endTime - startTime) / 2;
-                trustedBaseTime = serverTime + latency;
-                performanceAtSync = performance.now();
-                statusEl.innerHTML = '<i class="fa-solid fa-cloud-check"></i> İnternet saati ile senkronize';
-                statusEl.style.color = 'var(--secondary)';
-            } catch (err) {
-                console.error("Time sync failed or timed out:", err);
+            if (!syncSuccess) {
                 statusEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Cihaz saati kullanılıyor';
                 statusEl.style.color = 'var(--danger)';
                 trustedBaseTime = Date.now();
