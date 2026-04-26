@@ -139,25 +139,36 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                 }
 
                 // İnternet fallback (CDN)
-                // Try woff first (better compatibility with pdf-lib)
-                const cdnPrefix = `https://cdn.jsdelivr.net/npm/@fontsource/${folder}/files/${folder}`;
-                const urlsToTry = [
-                    `${cdnPrefix}-latin-400-normal.woff`,
-                    `${cdnPrefix}-latin-regular-normal.woff`,
-                    `${cdnPrefix}-all-400-normal.woff`
-                ];
-
-                for (const urlToFetch of urlsToTry) {
-                    try {
-                        const bytes = await window.getFileBytes(urlToFetch);
-                        if (bytes && bytes.byteLength > 1000) {
-                            const font = await pdfDoc.embedFont(bytes);
-                            pdfDoc._cachedFonts[fName] = font;
-                            console.log(`%c FONT SUCCESS: CDN font '${fName}' loaded from ${urlToFetch}`, "color: #16a34a; font-weight: bold;");
-                            return font;
-                        }
-                    } catch (e) { /* silent try next */ }
+                // Official Fontsource CDN pattern (More robust)
+                const folderId = folder;
+                const subsets = ['latin', 'latin-ext', 'all'];
+                const weights = ['400', 'regular'];
+                
+                for (const sub of subsets) {
+                    for (const w of weights) {
+                        const urlToFetch = `https://cdn.jsdelivr.net/fontsource/fonts/${folderId}@latest/${sub}-${w}-normal.woff`;
+                        try {
+                            const bytes = await window.getFileBytes(urlToFetch);
+                            if (bytes && bytes.byteLength > 1000) {
+                                const font = await pdfDoc.embedFont(bytes);
+                                pdfDoc._cachedFonts[fName] = font;
+                                console.log(`%c FONT SUCCESS: CDN font '${fName}' loaded from ${urlToFetch}`, "color: #16a34a; font-weight: bold;");
+                                return font;
+                            }
+                        } catch (e) { }
+                    }
                 }
+                
+                // Legacy Fontsource URL pattern (Last resort)
+                const legacyUrl = `https://cdn.jsdelivr.net/npm/@fontsource/${folderId}/files/${folderId}-latin-400-normal.woff`;
+                try {
+                    const bytes = await window.getFileBytes(legacyUrl);
+                    if (bytes && bytes.byteLength > 1000) {
+                        const font = await pdfDoc.embedFont(bytes);
+                        pdfDoc._cachedFonts[fName] = font;
+                        return font;
+                    }
+                } catch (e) { }
                 
                 console.warn(`%c FONT FAIL: Font '${fName}' could not be loaded from local or CDN.`, "color: #ef4444; font-weight: bold;");
             } catch(e) { console.warn(`Font yükleme genel hatası (${fName}):`, e); }
