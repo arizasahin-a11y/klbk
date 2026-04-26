@@ -95,19 +95,10 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             
             const folder = fName.toLowerCase().replace(/\s+/g, '-');
             try {
-                // API CORS desteklemediği için proxy üzerinden çekiyoruz
-                const apiUrl = `https://gwfh.mranftl.com/api/fonts/${folder}`;
-                let apiRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`);
-                if (!apiRes.ok) {
-                    apiRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(apiUrl)}`);
-                }
-                
-                if (!apiRes.ok) return null;
-                const apiData = await apiRes.json();
-                const variant = apiData.variants.find(v => v.id === 'regular') || apiData.variants[0];
-                if (!variant || !variant.ttf) return null;
-
-                const bytes = await window.getFileBytes(variant.ttf);
+                // Fontsource kütüphanesi üzerinden doğrudan çok hızlı WOFF fontlarını indiriyoruz. 
+                // Hiçbir proxy veya API beklemesine gerek yok.
+                const fontUrl = `https://cdn.jsdelivr.net/npm/@fontsource/${folder}/files/${folder}-latin-400-normal.woff`;
+                const bytes = await window.getFileBytes(fontUrl);
                 if (bytes) {
                     const font = await pdfDoc.embedFont(bytes);
                     pdfDoc._cachedFonts[fName] = font;
