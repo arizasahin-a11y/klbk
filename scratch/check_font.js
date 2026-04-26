@@ -1,10 +1,16 @@
 const https = require('https');
 
-https.get('https://gwfh.mranftl.com/api/fonts/open-sans', (res) => {
-    let data = '';
-    res.on('data', c => data+=c);
-    res.on('end', () => {
-        console.log("Status:", res.statusCode);
-        console.log("Data:", data.substring(0, 100));
-    });
+const options = {
+  hostname: 'gwfh.mranftl.com',
+  port: 443,
+  path: '/api/fonts/open-sans',
+  method: 'GET',
+  headers: {
+    'Origin': 'http://localhost:3000'
+  }
+};
+
+const req = https.request(options, res => {
+  console.log('Headers:', res.headers);
 });
+req.end();
