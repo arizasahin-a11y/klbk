@@ -93,7 +93,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             if (!fName || fName === 'auto' || fName === 'Roboto') return null;
             if (pdfDoc._cachedFonts[fName]) return pdfDoc._cachedFonts[fName];
             
-            const folder = fName.toLowerCase().replace(/\s+/g, '');
+            const folder = fName.toLowerCase().replace(/\s+/g, '-');
             try {
                 // Use Google Webfonts Helper API to get the direct TTF url
                 const apiRes = await fetch(`https://gwfh.mranftl.com/api/fonts/${folder}`);
