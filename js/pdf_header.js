@@ -123,7 +123,11 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             
             const folder = fName.toLowerCase().replace(/\s+/g, '-');
             try {
-                const localUrl = `fonts/${folder}-regular.woff`;
+                // Special case for local TTF fonts
+                let localUrl = `fonts/${folder}-regular.woff`;
+                if (fName === 'Monotype Corsiva') localUrl = 'fonts/MonotypeCorsiva.ttf';
+                if (fName === 'Snap ITC') localUrl = 'fonts/SnapITC.ttf';
+
                 const localBytes = await window.getFileBytes(localUrl);
                 if (localBytes) {
                     try {
