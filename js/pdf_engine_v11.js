@@ -32,7 +32,13 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const s_sz = sz * sf;
         if (!str) return;
         const cl = cleanTurkishChars(str).toString();
-        const tw = fnt ? fnt.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
+        let tw;
+        try {
+            tw = fnt ? fnt.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
+        } catch (e) {
+            console.warn("tw calculation error:", e);
+            tw = cl.length * (s_sz * 0.6);
+        }
         const tx = cx + Math.max(0, (cw - tw) / 2);
         const ty = cy + (ch / 2) - (s_sz * 0.35);
         try {
@@ -40,7 +46,11 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         } catch (e) {
             console.warn("drawText center error, fallback to ASCII:", e);
             const ascii = cl.replace(/[^\x00-\x7F]/g, '?');
-            page.drawText(ascii, { x: tx, y: ty, size: s_sz, color: rgb(0, 0, 0) });
+            try {
+                page.drawText(ascii, { x: tx, y: ty, size: s_sz, color: rgb(0, 0, 0) });
+            } catch (e2) {
+                console.error("Critical drawing failure:", e2);
+            }
         }
     };
 
@@ -54,7 +64,9 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             page.drawText(cl, { x: tx, y: ty, size: s_sz, font: fnt || undefined, color: rgb(0, 0, 0) });
         } catch (e) {
             const ascii = cl.replace(/[^\x00-\x7F]/g, '?');
-            page.drawText(ascii, { x: tx, y: ty, size: s_sz, color: rgb(0, 0, 0) });
+            try {
+                page.drawText(ascii, { x: tx, y: ty, size: s_sz, color: rgb(0, 0, 0) });
+            } catch (e2) {}
         }
     };
 
@@ -62,7 +74,12 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const s_sz = sz * sf;
         if (!str) return;
         const cl = cleanTurkishChars(str).toString();
-        const tw = fnt ? fnt.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
+        let tw;
+        try {
+            tw = fnt ? fnt.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
+        } catch (e) {
+            tw = cl.length * (s_sz * 0.6);
+        }
         const tx = cx + cw - tw - (5 * sf);
         const ty = cy + (ch / 2) - (s_sz * 0.35);
         try {
@@ -70,7 +87,9 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         } catch (e) {
             console.warn("drawText right error, fallback to ASCII:", e);
             const ascii = cl.replace(/[^\x00-\x7F]/g, '?');
-            page.drawText(ascii, { x: tx, y: ty, size: s_sz, color: rgb(0, 0, 0) });
+            try {
+                page.drawText(ascii, { x: tx, y: ty, size: s_sz, color: rgb(0, 0, 0) });
+            } catch (e2) {}
         }
     };
 
@@ -78,10 +97,18 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         try {
             let sz = bs;
             const useFont = fnt || mainFont;
-            let tw = useFont.widthOfTextAtSize(cleanTurkishChars(txt), sz * sf);
+            const cl = cleanTurkishChars(txt);
+            const calcTw = (s) => {
+                try {
+                    return useFont ? useFont.widthOfTextAtSize(cl, s * sf) : cl.length * (s * sf * 0.6);
+                } catch (e) {
+                    return cl.length * (s * sf * 0.6);
+                }
+            };
+            let tw = calcTw(sz);
             while (tw > mw && sz > 4) {
                 sz -= 0.5;
-                tw = useFont.widthOfTextAtSize(cleanTurkishChars(txt), sz * sf);
+                tw = calcTw(sz);
             }
             return sz;
         } catch (e) {
