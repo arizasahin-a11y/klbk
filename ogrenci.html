@@ -520,7 +520,6 @@
             <div class="login-header">
                 <div class="logo-icon"><i class="fa-solid fa-graduation-cap"></i></div>
                 <h2>Öğrenci Sorgu</h2>
-                <div id="schoolIndicator" style="font-size: 0.8rem; font-weight: 700; color: var(--primary); background: #eef2ff; padding: 4px 12px; border-radius: 20px; display: inline-block; margin-bottom: 10px;">Yükleniyor...</div>
                 <p>Okul numaranızı girerek sınav yerinizi öğrenin</p>
             </div>
             <div class="login-form">
@@ -684,13 +683,6 @@
                 console.log("Cloud initialization completed. Data state:", !!DataManager._getData());
                 
                 statusEl2.classList.add('hidden');
-                
-                // Update School Indicator in UI
-                const currentKey = DataManager._getStorageKey().replace('klbk_data_', '');
-                const indicator = document.getElementById('schoolIndicator');
-                if (indicator) {
-                    indicator.textContent = currentKey.toUpperCase();
-                }
 
                 // Final Check: If data was loaded but students array is empty, warn in console
                 const data = DataManager._getData();
@@ -738,16 +730,15 @@
                     return;
                 }
 
-                // Robust number normalization (Removes spaces, leading zeros, and non-numeric chars for comparison)
-                const normalizeNo = (val) => String(val || '').trim().replace(/^0+/, '').replace(/\D/g, '');
+                // Robust number normalization (Removes leading zeros for better matching)
+                const normalizeNo = (val) => String(val || '').trim().replace(/^0+/, '');
                 const targetNo = normalizeNo(no);
 
                 currentStudent = students.find(s => s && s.no && normalizeNo(s.no) === targetNo);
                 
                 if (!currentStudent) {
                     if (!isAutoLogin) {
-                        const schoolKey = DataManager._getStorageKey().replace('klbk_data_', '');
-                        alert(`Öğrenci bulunamadı! [${schoolKey}] kurumunda ${no} numaralı öğrenci kayıtlı değil. Numarayı doğru girdiğinizden emin olun.`);
+                        alert(`Öğrenci bulunamadı! Numarayı doğru girdiğinizden emin olun.`);
                     }
                     if (isAutoLogin) localStorage.removeItem('klbk_student_session');
                     return;
