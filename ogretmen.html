@@ -20,7 +20,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!-- Ortak PDF Başlık render fonksiyonu (dashboard ile aynı tema desteği) -->
-    <script src="js/pdf_header.js?v=7.0"></script>
+    <script src="js/pdf_header.js?v=7.1"></script>
 
 
     <style>
@@ -300,7 +300,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/data.js?v=7.0"></script>
+    <script src="js/data.js?v=7.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Rescue Error Handler: Catch errors before anything else fails
@@ -1512,6 +1512,9 @@
                 html: isFileProtocol ? 'Yerel sunucu gerekli.' : 'Google Drive erişimi engellendi. Proxy sunucuları da yanıt vermiyor.',
                 footer: "<details><summary>Teknik Detay</summary>URL: " + url + "<br>ID: " + driveId + "</details>"
             });
+            return null;
+        } catch (globalErr) {
+            console.error("getFileBytes Global Error:", globalErr);
             return null;
         }
     };
