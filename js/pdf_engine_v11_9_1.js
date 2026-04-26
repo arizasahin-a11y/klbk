@@ -596,7 +596,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         page.drawLine({ start: { x: ix, y: iy + row3H }, end: { x: ix + leftW + midW, y: iy + row3H }, thickness: 0.75 * sf });
         drawCenterText(sName, ix + leftW, iy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 11, schoolFont), schoolFont);
         drawCenterText(examText, ix + leftW, iy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
-        page.drawText(lang.score, { x: ix + leftW + midW + 5 * sf, y: iy + ih - 10 * sf, size: 7 * sf, font: mainFont, color: rgb(0.5, 0.5, 0.5) });
+        page.drawText(lang.score, { x: ix + leftW + midW + 5 * sf, y: iy + ih - 10 * sf, size: 7 * sf, font: options.infoFont || mainFont, color: rgb(0.5, 0.5, 0.5) });
         if (info) drawCommon(ix, iy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
         const lDim = 26 * sf;
         await drawLogo(ix + (leftW - lDim) / 2, iy + row3H + (ih - row3H - lDim) / 2, lDim);
@@ -617,7 +617,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12, schoolFont), schoolFont);
         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 15), mainFont);
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
-        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: mainFont, color: rgb(0.4, 0.4, 0.4) });
+        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: options.infoFont || mainFont, color: rgb(0.4, 0.4, 0.4) });
         const lDim = 28 * sf;
         await drawLogo(ox + (leftW - lDim) / 2, oy + row3H + (oh - row3H - lDim) / 2, lDim);
     } else if (designType === '3') {
@@ -634,7 +634,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12, schoolFont), schoolFont);
         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 13), mainFont);
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
-        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: mainFont, color: ac });
+        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: options.infoFont || mainFont, color: ac });
         const lDim = 25 * sf;
         await drawLogo(ox + (leftW - lDim) / 2, oy + row3H + (oh - row3H - lDim) / 2, lDim);
     } else if (designType === '4') {
@@ -652,7 +652,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12, schoolFont), schoolFont);
         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
-        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: mainFont, color: dr });
+        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: options.infoFont || mainFont, color: dr });
         const lDim = 28 * sf;
         await drawLogo(ox + (leftW - lDim) / 2, oy + row3H + (oh - row3H - lDim) / 2, lDim);
 
@@ -666,7 +666,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         page.drawLine({ start: { x: ox - 5 * sf, y: oy + oh + 2 * sf }, end: { x: ox + 15 * sf, y: oy + oh + 2 * sf }, thickness: 2 * sf, color: red });
         page.drawLine({ start: { x: ox + ow - 15 * sf, y: oy + oh + 2 * sf }, end: { x: ox + ow + 5 * sf, y: oy + oh + 2 * sf }, thickness: 2 * sf, color: red });
         page.drawRectangle({ x: ox + leftW + midW + 5 * sf, y: oy + oh - 25 * sf, width: rightW - 10 * sf, height: 20 * sf, color: rgb(1, 1, 1), borderColor: red, borderWidth: 1 * sf });
-        drawCenterText(lang.score, ox + leftW + midW + 5 * sf, oy + oh - 25 * sf, rightW - 10 * sf, 20 * sf, 8, mainFont);
+        drawCenterText(lang.score, ox + leftW + midW + 5 * sf, oy + oh - 25 * sf, rightW - 10 * sf, 20 * sf, 8, options.infoFont || mainFont);
         page.drawLine({ start: { x: ox + leftW, y: oy + row3H }, end: { x: ox + leftW, y: oy + oh - 5 * sf }, thickness: 0.5 * sf, color: rgb(0.7, 0.7, 0.7) });
         page.drawLine({ start: { x: ox, y: oy + row3H }, end: { x: ox + ow, y: oy + row3H }, thickness: 0.5 * sf, color: ink });
         drawDivs(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, rgb(0.8, 0.8, 0.8), 0.5 * sf);
@@ -696,7 +696,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 12, schoolFont), schoolFont);
         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
-        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: mainFont, color: ed });
+        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: options.infoFont || mainFont, color: ed });
         const lDim = 28 * sf;
         await drawLogo(ox + (leftW - lDim) / 2, oy + row3H + (oh - row3H - lDim) / 2, lDim);
     } else if (designType === '7') {
@@ -717,6 +717,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(sName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(sName, midW, 11, schoolFont), schoolFont);
         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
+        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: options.infoFont || mainFont, color: stone });
         const lDim = 28 * sf;
         await drawLogo(ox + (leftW - lDim) / 2, oy + row3H + (oh - row3H - lDim) / 2, lDim);
 
@@ -743,6 +744,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(spacedName, ox + leftW, oy + row3H + row2H, midW, row1H, getFitSize(spacedName, midW, 10.5, schoolFont), schoolFont);
         drawCenterText(examText, ox + leftW, oy + row3H + 2 * sf, midW, row2H - 4 * sf, getFitSize(examText, midW, 13.5), mainFont);
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W);
+        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 10 * sf, size: 7 * sf, font: options.infoFont || mainFont, color: emerald });
         const lDim = 30 * sf;
         await drawLogo(ox + (leftW - lDim) / 2, oy + row3H + (oh - row3H - lDim) / 2, lDim);
 
@@ -886,7 +888,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W, 0);
 
-        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: mainFont, color: edgeColor });
+        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: options.infoFont || mainFont, color: edgeColor });
         const lDim = 28 * sf;
         await drawLogo(ox + (leftW - lDim) / 2, oy + row3H + (oh - row3H - lDim) / 2, lDim);
     } else if (designType === '11') {
@@ -931,7 +933,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(examText, ox + leftW, oy + row3H, midW, row2H, getFitSize(examText, midW, 14), mainFont);
         if (info) drawCommon(ox, oy, leftW, midCol2W, midCol3W, midCol4W, midCol5W, midCol6W, tOff);
 
-        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: mainFont, color: darkMetal });
+        page.drawText(lang.score, { x: ox + leftW + midW + 5 * sf, y: oy + oh - 12 * sf, size: 7 * sf, font: options.infoFont || mainFont, color: darkMetal });
         const lDim = 28 * sf;
         await drawLogo(ox + (leftW - lDim) / 2, oy + row3H + (oh - row3H - lDim) / 2, lDim);
     }
