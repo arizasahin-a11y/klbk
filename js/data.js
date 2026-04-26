@@ -816,6 +816,8 @@ const DataManager = {
         if (arr[0] === 0x52 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x46 && arr[8] === 0x57 && arr[9] === 0x45 && arr[10] === 0x42 && arr[11] === 0x50) return true;
 
         // Kesin emin olamadıysak reddet.
+        const sig = Array.from(arr.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+        console.warn(`Tampon doğrulanamadı (Boyut: ${buffer.byteLength}). İmza: ${sig} | Metin: ${str.slice(0, 20)}`);
         return false;
     },
 
@@ -957,8 +959,10 @@ const DataManager = {
             // If all reliable methods fail, fallback to CORS proxies
             try {
                 const proxyBuffer = await runCorsProxies();
-                if (proxyBuffer) console.log(`Dosya proxy üzerinden indirildi: ${url}`);
-                this._fileBytesCache[url] = proxyBuffer;
+                if (proxyBuffer) {
+                    console.log(`Dosya proxy üzerinden indirildi: ${url}`);
+                    this._fileBytesCache[url] = proxyBuffer;
+                }
                 return proxyBuffer;
             } catch (e2) {
                 console.error(`Dosya indirme TAMAMEN başarısız: ${url}`, e2);

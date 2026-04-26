@@ -108,7 +108,16 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                     console.log(`Font başarıyla yüklendi: ${fName}`);
                     return font;
                 } else {
-                    console.warn(`Font dosyası boş veya doğrulanamadı: ${fName} (${fontUrl})`);
+                    console.warn(`JSDelivr fontu yüklenemedi, UNPKG deneniyor: ${fName}`);
+                    const unpkgUrl = `https://unpkg.com/@fontsource/${folder}/files/${folder}-latin-400-normal.woff`;
+                    const unpkgBytes = await window.getFileBytes(unpkgUrl);
+                    if (unpkgBytes) {
+                        const font = await pdfDoc.embedFont(unpkgBytes);
+                        pdfDoc._cachedFonts[fName] = font;
+                        console.log(`Font başarıyla yüklendi (UNPKG): ${fName}`);
+                        return font;
+                    }
+                    console.warn(`Font dosyası tüm kaynaklardan (JSDelivr/UNPKG) boş veya doğrulanamadı: ${fName}`);
                 }
             } catch(e) { console.warn(`Font yükleme hatası (${fName}):`, e); }
             return null;
