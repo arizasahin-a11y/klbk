@@ -18,14 +18,20 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const useFnt = fnt || mainFont;
         const isStandard = reflectsStandard(useFnt);
         
-        // Smart Detection: Check if the font actually has the 'Ğ' glyph
-        // If the width of 'Ğ' is the same as '?' or 0, it likely doesn't support TR
-        let supportsTR = false;
-        if (useFnt && !isStandard) {
+        // List of fonts we know for sure support TR characters in their Windows versions
+        const safeFonts = ["arial", "calibri", "tahoma", "segoe", "times", "verdana", "georgia", "trebuchet", "comic", "impact", "cambria", "consolas"];
+        const fNameLow = (useFnt.name || (typeof useFnt.getName === 'function' ? useFnt.getName() : '') || '').toLowerCase();
+        const isSafe = safeFonts.some(sf => fNameLow.includes(sf));
+
+        let supportsTR = isSafe;
+        if (useFnt && !isStandard && !isSafe) {
             try {
-                const wTR = useFnt.widthOfTextAtSize('Ğ', 10);
+                const wTR1 = useFnt.widthOfTextAtSize('Ğ', 10);
+                const wTR2 = useFnt.widthOfTextAtSize('Ş', 10);
                 const wQ = useFnt.widthOfTextAtSize('?', 10);
-                if (wTR > 0 && Math.abs(wTR - wQ) > 0.001) {
+                
+                // If widths are identical to '?' or 0, or if Ğ and Ş have identical widths (common in fallback glyphs)
+                if (wTR1 > 0 && wTR2 > 0 && Math.abs(wTR1 - wQ) > 0.001 && Math.abs(wTR1 - wTR2) > 0.001) {
                     supportsTR = true;
                 }
             } catch (e) {
