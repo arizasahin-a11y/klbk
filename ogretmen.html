@@ -716,6 +716,7 @@
                                 <input type="checkbox" id="pdfShared-${ses.id}-${encodedSub}" ${meta.isShared === true ? 'checked' : ''} onchange="savePdfLink('${ses.id}', '${encodedSub}')" style="width: 17px; height: 17px; accent-color: var(--primary);"> Soru Kağıdını Paylaş
                             </label>` : '';
 
+                        const showThemeFontSelects = (stateCode === 'far' || stateCode === 'near') && isMine;
                         let themeFontHtml = '';
                         if (showThemeFontSelects) {
                             themeFontHtml = `
