@@ -172,8 +172,14 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                 if (localBytes && localBytes.byteLength > 1000) {
                     try {
                         const font = await pdfDoc.embedFont(localBytes);
-                        pdfDoc._cachedFonts[fName] = font;
-                        return font;
+                        // CRITICAL: Dummy test to see if fontkit can actually handle this font
+                        try {
+                            font.widthOfTextAtSize('A', 12);
+                            pdfDoc._cachedFonts[fName] = font;
+                            return font;
+                        } catch (drawErr) {
+                            console.error(`%c FONT CORRUPT: Embed ok but draw failed for '${fName}':`, "color: #ef4444;", drawErr);
+                        }
                     } catch (e) { 
                         console.error(`%c FONT ERROR: Embed failed for local '${fName}':`, "color: #ef4444;", e);
                     }
