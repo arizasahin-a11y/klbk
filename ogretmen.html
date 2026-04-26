@@ -20,7 +20,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!-- Ortak PDF Başlık render fonksiyonu (dashboard ile aynı tema desteği) -->
-    <script src="js/pdf_engine_v11_5.js"></script>
+    <script src="js/pdf_engine_v11_6.js"></script>
 
 
     <style>
@@ -300,7 +300,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/core_data_v11_5.js"></script>
+    <script src="js/core_data_v11_6.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Rescue Error Handler: Catch errors before anything else fails
@@ -1710,39 +1710,40 @@
             const f3 = meta.pdfHeaderFont3 || 'auto';
 
             const fontsListTurkish = [
-                "Alfa Slab One", "Anton", "Archivo", "Archivo Black", "Arimo", "Assistant", "Bad Script", "Barlow", "Barlow Condensed", "Bebas Neue", "Bitter",
-                "Bricolage Grotesque", "Bungee", "Cabin", "Cairo", "Caveat", "Comfortaa", "Cormorant Garamond", "Cousine", "Crimson Text", "Dancing Script", "DM Sans",
-                "Dosis", "EB Garamond", "Exo 2", "Figtree", "Fira Sans", "Fjalla One", "Fredoka", "Great Vibes", "Heebo", "Hind", "IBM Plex Sans",
-                "Inconsolata", "Instrument Serif", "Inter", "Inter Tight", "JetBrains Mono", "Josefin Sans", "Jost", "Kalam", "Kanit", "Karla", "Lato",
-                "Lexend", "Libre Baskerville", "Libre Franklin", "Lobster", "Lora", "Manrope", "Marck Script", "Merriweather", "Merriweather Sans", "Monotype Corsiva", "Montserrat", "Mukta",
-                "Mulish", "Noto Sans", "Noto Serif", "Open Sans", "Oswald", "Outfit", "Oxygen", "Pacifico", "Playfair Display", "Plus Jakarta Sans",
-                "Poppins", "Prompt", "PT Sans", "PT Sans Narrow", "PT Serif", "Public Sans", "Quicksand", "Rajdhani", "Raleway", "Red Hat Display",
-                "Roboto", "Roboto Condensed", "Roboto Flex", "Roboto Mono", "Roboto Slab", "Rubik", "Saira", "Satisfy", "Schibsted Grotesk", "Shadows Into Light", "Slabo 27px", "Smooch Sans",
-                "Snap ITC", "Sora", "Source Code Pro", "Source Sans 3", "Space Grotesk", "Tinos", "Titillium Web", "Ubuntu", "Urbanist", "Work Sans"
+                "Arial", "Arial Black", "Bahnschrift", "Calibri", "Cambria", "Comic Sans MS", "Consolas", 
+                "Constantia", "Corbel", "Courier New", "Ebrima", "Gadugi", "Georgia", "Impact", 
+                "Lucida Console", "Microsoft Sans Serif", "Palatino Linotype", "Segoe Print", 
+                "Segoe Script", "Segoe UI", "Tahoma", "Times New Roman", "Trebuchet MS", "Verdana",
+                "Agency FB", "Algerian", "Book Antiqua", "Dubai", "Ink Free", "Jokerman", "Papyrus"
             ];
 
-            // Local Fonts Preview (for non-google fonts)
+            const ttfMapping = {
+                "arial": "arial.ttf", "arialblack": "ariblk.ttf", "agencyfb": "AGENCYR.TTF", "algerian": "ALGER.TTF",
+                "bahnschrift": "bahnschrift.ttf", "calibri": "calibri.ttf", "cambria": "cambria.ttc",
+                "comicsansms": "comic.ttf", "consolas": "consola.ttf", "constantia": "constan.ttf",
+                "corbel": "corbel.ttf", "couriernew": "cour.ttf", "ebrima": "ebrima.ttf", "gadugi": "gadugi.ttf",
+                "georgia": "georgia.ttf", "impact": "impact.ttf", "lucidaconsole": "lucon.ttf",
+                "microsoftsansserif": "micross.ttf", "palatinolinotype": "pala.ttf", "segoeprint": "segoepr.ttf",
+                "segoescript": "segoesc.ttf", "segoeui": "segoeui.ttf", "tahoma": "tahoma.ttf",
+                "timesnewroman": "times.ttf", "trebuchetms": "trebuc.ttf", "verdana": "verdana.ttf",
+                "bookantiqua": "BKANT.TTF", "dubai": "DUBAI-REGULAR.TTF", "inkfree": "Inkfree.ttf",
+                "jokerman": "JOKERMAN.TTF", "papyrus": "PAPYRUS.TTF"
+            };
+
+            // Local Fonts Preview (@font-face injection)
             if (!document.getElementById('local-fonts-preview')) {
                 const style = document.createElement('style');
                 style.id = 'local-fonts-preview';
-                style.textContent = `
-                    @font-face { font-family: 'Monotype Corsiva'; src: url('fonts/MonotypeCorsiva.ttf'); }
-                    @font-face { font-family: 'Snap ITC'; src: url('fonts/SnapITC.ttf'); }
-                `;
+                let css = '';
+                fontsListTurkish.forEach(f => {
+                    const key = f.toLowerCase().replace(/\s+/g, '');
+                    const file = ttfMapping[key];
+                    if (file) {
+                        css += `@font-face { font-family: '${f}'; src: url('fonts/${file}'); }\n`;
+                    }
+                });
+                style.textContent = css;
                 document.head.appendChild(style);
-            }
-
-
-
-
-            // Google Fonts Preview: Link tag oluştur (sadece modal açıldığında fontları göstermek için)
-            if (!document.getElementById('google-fonts-preview')) {
-                const fontFamilies = fontsListTurkish.map(f => `family=${f.replace(/\s+/g, '+')}`).join('&');
-                const link = document.createElement('link');
-                link.id = 'google-fonts-preview';
-                link.rel = 'stylesheet';
-                link.href = `https://fonts.googleapis.com/css2?${fontFamilies}&display=swap`;
-                document.head.appendChild(link);
             }
 
 
