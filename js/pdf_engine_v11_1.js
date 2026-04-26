@@ -15,10 +15,13 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     };
     const cleanTurkishChars = (text) => {
         if (!text) return '';
-        // If it's a standard font, we MUST clean it because standard fonts don't support Turkish chars.
-        // If it's a custom font, we only clean it IF it's one of our fallback-prone ones or if we want to be safe.
-        // For now, let's clean if it's a standard font.
-        if (mainFont && !reflectsStandard(mainFont)) return text;
+        // If it's a standard font, we MUST clean it.
+        // If it's a custom font, we only SKIP cleaning if we've verified it supports Turkish.
+        const useFnt = mainFont;
+        const isStandard = reflectsStandard(useFnt);
+        const supportsTR = useFnt && useFnt._supportsTR;
+
+        if (!isStandard && supportsTR) return text;
         
         return text
             .replace(/İ/g, 'I').replace(/ı/g, 'i')
@@ -170,11 +173,13 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                 else if (fName === 'Snap ITC') localUrl = 'fonts/SnapITC.ttf';
                 sources.push({ url: localUrl, type: 'local' });
 
-                // Source 2: CDN Repair (Google Fonts via JSDelivr/Fontsource)
-                // This is only used if local fails, to 'repair' the experience.
-                const cdnUrl = `https://cdn.jsdelivr.net/npm/@fontsource/${folder}/files/${folder}-latin-400-normal.woff`;
+                // Source 2: CDN Repair (Google Fonts via JSDelivr/Fontsource) - PREFER LATIN-EXT for Turkish
+                const cdnUrl = `https://cdn.jsdelivr.net/npm/@fontsource/${folder}/files/${folder}-latin-ext-400-normal.woff`;
+                const cdnUrlLatin = `https://cdn.jsdelivr.net/npm/@fontsource/${folder}/files/${folder}-latin-400-normal.woff`;
+                
                 if (fName !== 'Monotype Corsiva' && fName !== 'Snap ITC') {
-                    sources.push({ url: cdnUrl, type: 'cdn' });
+                    sources.push({ url: cdnUrl, type: 'cdn-ext' });
+                    sources.push({ url: cdnUrlLatin, type: 'cdn-latin' });
                 }
 
                 for (const src of sources) {
@@ -186,11 +191,17 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                             // REAL WORLD TEST: Can it draw Turkish?
                             try {
                                 font.widthOfTextAtSize("İĞŞÇÖÜ ığşçöü", 12);
+                                font._supportsTR = true; // Flag for Turkish support
                                 pdfDoc._cachedFonts[fName] = font;
-                                console.log(`%c FONT SUCCESS: '${fName}' loaded from ${src.type}`, "color: #10b981;");
+                                console.log(`%c FONT SUCCESS: '${fName}' loaded from ${src.type} with Turkish support`, "color: #10b981;");
                                 return font;
                             } catch (drawErr) {
-                                console.warn(`%c FONT TEST FAILED: ${fName} from ${src.type} is unusable.`, "color: #f59e0b;");
+                                console.warn(`%c FONT TEST SEMI-FAILED: ${fName} from ${src.type} lacks Turkish characters.`, "color: #f59e0b;");
+                                // We still return the font but without the _supportsTR flag
+                                // This means the cleanTurkishChars function will ASCII-fy the text for this font.
+                                font._supportsTR = false;
+                                pdfDoc._cachedFonts[fName] = font;
+                                return font;
                             }
                         }
                     } catch (srcErr) {
