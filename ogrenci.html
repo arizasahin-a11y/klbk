@@ -618,25 +618,24 @@
     <script src="js/core_data_v11_9_1.js"></script>
     <script>
         DataManager._getStorageKey = function () {
-            // Priority 1: Logged in user in session
+            const urlParams = new URLSearchParams(window.location.search);
+            const q = urlParams.get('school');
+            
+            // Priority 1: URL Parameter ?school=xyz (Updates the remembered school)
+            if (q) {
+                localStorage.setItem('klbk_last_school', q);
+                return `klbk_data_${q}`;
+            }
+
+            // Priority 2: Logged in user in session (For teachers/admins testing the portal)
             let user = sessionStorage.getItem('klbk_currentUser');
             if (user) return `klbk_data_${user}`;
 
-            // Priority 2: URL Parameter ?school=xyz
-            const urlParams = new URLSearchParams(window.location.search);
-            const q = urlParams.get('school');
-            if (q) return `klbk_data_${q}`;
+            // Priority 3: Last used school (Persistent for students)
+            const lastSchool = localStorage.getItem('klbk_last_school');
+            if (lastSchool) return `klbk_data_${lastSchool}`;
 
-            const path = window.location.pathname;
-            const isStudentPage = path.includes('ogrenci') || path.includes('j2k5l0p8');
-            
-            // If not student page and not logged in, this shouldn't be accessible directly
-            if (!isStudentPage) {
-                // Redirect to security error if trying to access dashboard/teacher logic without session
-                // We'll let data.js handle its own logic, but here we provide a safe fallback
-            }
-
-            // Priority 3: Default fallback (works for single-school deployments)
+            // Priority 4: Default fallback
             return `klbk_data_admin`;
         };
 
@@ -684,6 +683,12 @@
                 console.log("Cloud initialization completed. Data state:", !!DataManager._getData());
                 
                 statusEl2.classList.add('hidden');
+                
+                // Final Check: If data was loaded but students array is empty, warn in console
+                const data = DataManager._getData();
+                if (!data || !data.students || data.students.length === 0) {
+                    console.warn("DİKKAT: Veri yüklendi ancak öğrenci listesi boş. StoreKey:", DataManager._getStorageKey());
+                }
             } catch (err) {
                 console.error("Cloud init failed for student:", err);
                 const statusEl2 = document.getElementById('timeSyncStatus');
