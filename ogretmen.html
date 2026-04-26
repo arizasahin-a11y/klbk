@@ -19,7 +19,7 @@
     <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!-- Ortak PDF Başlık render fonksiyonu (dashboard ile aynı tema desteği) -->
-    <script src="js/pdf_header.js?v=6.0"></script>
+    <script src="js/pdf_header.js?v=6.1"></script>
 
 
     <style>
@@ -1676,17 +1676,27 @@
             const f3 = meta.pdfHeaderFont3 || 'auto';
 
             const fontsListTurkish = [
-                "Roboto", "Open Sans", "Inter", "Montserrat", "Poppins", "Lato", "Roboto Condensed", "Arimo",
-                "Roboto Mono", "Oswald", "Noto Sans", "Raleway", "Nunito", "Playfair Display", "DM Sans", "Nunito Sans", "Rubik", "Roboto Slab",
-                "Ubuntu", "Merriweather", "Archivo Black", "Work Sans", "PT Sans", "Outfit", "Manrope", "Kanit", "Fjalla One",
-                "Mulish", "Lora", "Figtree", "Bebas Neue", "Quicksand", "Prompt", "Barlow", "Saira", "IBM Plex Sans",
-                "Fira Sans", "Source Sans 3", "Titillium Web", "Karla", "Jost", "Heebo", "Bricolage Grotesque", "Smooch Sans", "Plus Jakarta Sans", "Noto Serif",
-                "Archivo", "PT Serif", "Inconsolata", "Source Code Pro", "Libre Baskerville", "Dancing Script", "Josefin Sans", "Cairo", "Libre Franklin",
-                "EB Garamond", "Barlow Condensed", "Anton", "Dosis", "Assistant", "Cabin", "Public Sans", "Space Grotesk", "Cormorant Garamond",
-                "Schibsted Grotesk", "Roboto Flex", "Instrument Serif", "Bungee", "Bitter", "Alfa Slab One", "Pacifico",
-                "Exo 2", "Inter Tight", "Red Hat Display", "Sora", "Oxygen", "Hind", "Slabo 27px", "Lobster", "Lexend",
-                "Mukta", "Caveat", "Fredoka", "Rajdhani", "Crimson Text", "PT Sans Narrow", "Comfortaa", "JetBrains Mono", "Urbanist", "Merriweather Sans"
+                "Alfa Slab One", "Anton", "Archivo", "Archivo Black", "Arimo", "Assistant", "Barlow", "Barlow Condensed", "Bebas Neue", "Bitter",
+                "Bricolage Grotesque", "Bungee", "Cabin", "Cairo", "Caveat", "Comfortaa", "Cormorant Garamond", "Crimson Text", "Dancing Script", "DM Sans",
+                "Dosis", "EB Garamond", "Exo 2", "Figtree", "Fira Sans", "Fjalla One", "Fredoka", "Heebo", "Hind", "IBM Plex Sans",
+                "Inconsolata", "Instrument Serif", "Inter", "Inter Tight", "JetBrains Mono", "Josefin Sans", "Jost", "Kanit", "Karla", "Lato",
+                "Lexend", "Libre Baskerville", "Libre Franklin", "Lobster", "Lora", "Manrope", "Merriweather", "Merriweather Sans", "Montserrat", "Mukta",
+                "Mulish", "Noto Sans", "Noto Serif", "Open Sans", "Oswald", "Outfit", "Oxygen", "Pacifico", "Playfair Display", "Plus Jakarta Sans",
+                "Poppins", "Prompt", "PT Sans", "PT Sans Narrow", "PT Serif", "Public Sans", "Quicksand", "Rajdhani", "Raleway", "Red Hat Display",
+                "Roboto", "Roboto Condensed", "Roboto Flex", "Roboto Mono", "Roboto Slab", "Rubik", "Saira", "Schibsted Grotesk", "Slabo 27px", "Smooch Sans",
+                "Sora", "Source Code Pro", "Source Sans 3", "Space Grotesk", "Titillium Web", "Ubuntu", "Urbanist", "Work Sans"
             ];
+
+            // Google Fonts Preview: Link tag oluştur (sadece modal açıldığında fontları göstermek için)
+            if (!document.getElementById('google-fonts-preview')) {
+                const fontFamilies = fontsListTurkish.map(f => `family=${f.replace(/\s+/g, '+')}`).join('&');
+                const link = document.createElement('link');
+                link.id = 'google-fonts-preview';
+                link.rel = 'stylesheet';
+                link.href = `https://fonts.googleapis.com/css2?${fontFamilies}&display=swap`;
+                document.head.appendChild(link);
+            }
+
 
             // Güvenlik: Eğer eski veriden gelen font artık listede yoksa 'auto'ya çek
             const checkF = (f) => (f === 'auto' || fontsListTurkish.includes(f)) ? f : 'auto';
@@ -1697,7 +1707,7 @@
             const buildFontOpts = (sel) => {
                 let html = '<option value="auto">Otomatik Font (Derse Özgü)</option>';
                 fontsListTurkish.forEach(f => {
-                    html += `<option value="${f}" ${f === sel ? 'selected' : ''}>${f}</option>`;
+                    html += `<option value="${f}" style="font-family: '${f}', sans-serif; font-size: 1.1rem;" ${f === sel ? 'selected' : ''}>${f}</option>`;
                 });
                 return html;
             };
