@@ -392,7 +392,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const midCol3W = midW - midCol2W - midCol4W - midCol5W - midCol6W;
     const getTranslations = (subject) => {
         const rawSub = (subject || '');
-        const shortenedSub = window.shortenSubject ? window.shortenSubject(rawSub, 35) : rawSub;
+        const shortenedSub = window.shortenSubject ? window.shortenSubject(rawSub, 25) : rawSub;
         // Normalize for comparison
         const normalized = rawSub.replace(/İ/g, 'i').replace(/I/g, 'ı').replace(/ı/g, 'i').replace(/İ/g, 'i').toLowerCase();
         
@@ -570,7 +570,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         page.drawText(lang.room, { x: bx + bL + b2 + b3 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
         drawCenterText(info?.room || '', bx + bL + b2 + b3, by - 2.5 * sf, b4, row3H, 11, infoFont);
         page.drawText(lang.exam, { x: bx + bL + b2 + b3 + b4 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
-        const shortSubInBox = window.shortenSubject ? window.shortenSubject(info?.subject || '', 20) : (info?.subject || '');
+        const shortSubInBox = window.shortenSubject ? window.shortenSubject(info?.subject || '', 15) : (info?.subject || '');
         drawCenterText(shortSubInBox.toUpperCase(), bx + bL + b2 + b3 + b4, by - 2.5 * sf, b5, row3H, 9.5, infoFont);
         page.drawText(lang.seat, { x: bx + bL + b2 + b3 + b4 + b5 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
         drawCenterText(info?.seat || '', bx + bL + b2 + b3 + b4 + b5, by - 2.5 * sf, b6, row3H, 14, infoFont);

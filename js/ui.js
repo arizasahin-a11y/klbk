@@ -37,27 +37,45 @@ document.addEventListener('DOMContentLoaded', async () => {
             n = n.replace(/\s+(\d+)$/, '').trim();
         }
 
-        // If fits within limit, don't shorten
-        if ((n + grade).length <= (limit || 20)) return n + grade;
-
-        // Exact overrides (Priority)
+        // Exact overrides (Priority) - Aggressive shortening
         const exacts = {
             "Türk Dili ve Edebiyatı": "TDE",
             "Din Kültürü ve Ahlak Bilgisi": "DKAB",
+            "Din Kültürü": "Din",
             "Beden Eğitimi ve Spor": "BES",
-            "T.C. İnkılap Tarihi ve Atatürkçülük": "İNK",
-            "Tarih ve Atatürkçülük": "İNK",
-            "İnkılap Tarihi": "İNK",
-            "Sağlık Bilgisi ve Trafik Kültürü": "SB",
+            "Beden Eğitimi": "Bed.",
             "Görsel Sanatlar": "Görsel",
+            "T.C. İnkılap Tarihi ve Atatürkçülük": "İNK.",
+            "Tarih ve Atatürkçülük": "İNK.",
+            "İnkılap Tarihi": "İNK.",
+            "Sağlık Bilgisi ve Trafik Kültürü": "SB.",
+            "Bilişim Teknolojileri": "Bilişim",
+            "Temel Dini Bilgiler": "TDB",
+            "Peygamberimizin Hayatı": "Siyer",
+            "Kur'an-ı Kerim": "Kur'an",
+            "Matematik": "Mat.",
+            "İngilizce": "İng.",
+            "Almanca": "Alm.",
+            "Fransızca": "Fra.",
+            "Fizik": "Fiz.",
+            "Kimya": "Kim.",
+            "Biyoloji": "Biyo.",
+            "Tarih": "Tar.",
+            "Coğrafya": "Coğ.",
+            "Felsefe": "Fel.",
+            "Astronomi ve Uzay Bilimleri": "Ast.",
+            "Demokrasi ve İnsan Hakları": "Dem.",
+            "Sosyal Etkinlik": "Sos.Etk.",
             "Müzik": "Müzik",
-            "Beden Eğitimi": "Bed. Eğt.",
-            "Bilişim Teknolojileri": "Bilişim"
+            "Seçmeli": "S.",
+            "Uygulamalı": "Uyg.",
+            "Proje Tasarımı": "Proje"
         };
         
+        let normalizedSearch = n.trim();
         let foundAbbr = null;
         for (let k in exacts) {
-            if (n.toLowerCase() === k.toLowerCase() || n.toLowerCase().includes(k.toLowerCase())) {
+            if (normalizedSearch.toLowerCase() === k.toLowerCase() || normalizedSearch.toLowerCase().includes(k.toLowerCase())) {
                 foundAbbr = exacts[k];
                 break;
             }
@@ -72,7 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             .replace(/Tarih/gi, 'Tar.')
             .replace(/Coğrafya/gi, 'Coğ.')
             .replace(/Felsefe/gi, 'Fel.')
-            .replace(/Din Kültürü/gi, 'Din.')
+            .replace(/Din Kültürü/gi, 'Din')
             .replace(/Almanca/gi, 'Alm.')
             .replace(/Görsel Sanatlar/gi, 'Grs.')
             .replace(/Müzik/gi, 'Müz.')
@@ -80,13 +98,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             .replace(/Bilişim/gi, 'Biliş.')
             .replace(/Seçmeli/gi, 'S.');
         
-        // Final length check and initials fallback if still too long
-        if ((res + grade).length > limit && !foundAbbr) {
-            const words = res.split(' ').filter(w => w.length > 1 && !['ve', 'ile', 'veya'].includes(w.toLowerCase()));
+        // Final length check and aggressive truncation if still too long
+        if ((res + grade).length > limit) {
+            // If it's still too long, try to take only initials of words
+            const words = res.split(/[\s\-]/).filter(w => w.length > 0 && !['ve', 'ile', 'veya', 'de', 'da'].includes(w.toLowerCase()));
             if (words.length >= 2) {
                 res = words.map(w => w[0].toUpperCase()).join('');
             } else {
-                res = res.substring(0, limit - grade.length - 1) + '.';
+                res = res.substring(0, limit - grade.length - 1).trim() + '.';
             }
         }
         
@@ -4562,7 +4581,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>`;
             };
 
-            const abbr = (n) => window.shortenSubject(n);
+            const abbr = (n, lim = 15) => window.shortenSubject(n, lim);
 
             let body = '';
 
@@ -4608,7 +4627,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             return `<tr>
                                 <td style="width:10%;"><b>${s.no}</b></td>
                                 <td style="width:40%;">${s.name}</td>
-                                <td style="width:30%;">${window.shortenSubject(s._matchedSubject || '-')}${eNum}</td>
+                                <td style="width:30%;">${window.shortenSubject(s._matchedSubject || '-', 18)}${eNum}</td>
                                 <td style="width:12%;">${s.room}</td>
                                 <td style="width:8%; text-align:center;"><b>${s.seatNum}</b></td></tr>`;
                         }).join('');
@@ -4658,7 +4677,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             if (s) {
                                 return `<tr><td style="text-align:center;"><b>${seatToNum[sid] || '-'}</b></td>
                                     <td>${s.class}</td><td style="text-align:center;"><b>${s.no}</b></td>
-                                    <td>${s.name}</td><td>${abbr(s._matchedSubject || '-')}</td>
+                                    <td>${s.name}</td><td>${abbr(s._matchedSubject || '-', 15)}</td>
                                     <td style="border-bottom:1px solid #eee;"></td></tr>`;
                             } else {
                                 return `<tr style="color: #64748b; background: #fff5f5;"><td style="text-align:center;"><b>${seatToNum[sid] || '-'}</b></td>
@@ -4677,7 +4696,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             const classExams = [...new Set(classStudents.map(s => s._matchedSubject || '-'))].sort();
                             classExams.forEach(ex => {
                                 const count = classStudents.filter(s => (s._matchedSubject || '-') === ex).length;
-                                summaryListHtml += `<div style="padding: 2px 0; border-bottom: 1px dashed #e2e8f0; font-size: 8.5pt;"><b>${cls}</b> ${abbr(ex)} => <b>${count}</b> Öğrenci</div>`;
+                                summaryListHtml += `<div style="padding: 2px 0; border-bottom: 1px dashed #e2e8f0; font-size: 8.5pt;"><b>${cls}</b> ${abbr(ex, 12)} => <b>${count}</b> Öğrenci</div>`;
                                 roomTotal += count;
                             });
                         });
@@ -5536,7 +5555,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td style="padding:8px; border-bottom:1px solid #eee;">${s.class}</td>
                     <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}${s._groupLabel ? ` (${s._groupLabel})` : ''}</b></td>
                     <td style="padding:8px; border-bottom:1px solid #eee;">${s.name}</td>
-                    <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${window.shortenSubject(s._matchedSubject || '-')}</td>
+                    <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${window.shortenSubject(s._matchedSubject || '-', 15)}</td>
                     <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">
                         ${checkboxHtml}
                     </td>
@@ -5663,7 +5682,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <tr>
                         <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}${s._groupLabel ? ` (${s._groupLabel})` : ''}</b></td>
                         <td style="padding:8px; border-bottom:1px solid #eee;">${s.name}</td>
-                        <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${window.shortenSubject(s._matchedSubject || '-')}</td>
+                        <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${window.shortenSubject(s._matchedSubject || '-', 15)}</td>
                         <td style="padding:8px; border-bottom:1px solid #eee;">${s.room}</td>
                         <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.seatNum}</b></td>
                         <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">

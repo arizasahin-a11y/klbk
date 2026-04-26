@@ -2517,7 +2517,7 @@
                 return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : d;
             };
 
-            const abbr = (n, lim = 20) => {
+            const abbr = (n, lim = 15) => {
                 if (!n || n === '-') return n;
                 return window.shortenSubject ? window.shortenSubject(n, lim) : n;
             };
@@ -2620,7 +2620,7 @@
                             const classExams = [...new Set(classStudents.map(s => s._matchedSubject || '-'))].sort();
                             classExams.forEach(ex => {
                                 const count = classStudents.filter(s => (s._matchedSubject || '-') === ex).length;
-                                summaryListHtml += `<div style="padding: 2px 0; border-bottom: 1px dashed #e2e8f0; font-size: 8.5pt;"> <b>${cls}</b> ${abbr(ex, 18)} => <b>${count}</b></div> `;
+                                summaryListHtml += `<div style="padding: 2px 0; border-bottom: 1px dashed #e2e8f0; font-size: 8.5pt;"> <b>${cls}</b> ${abbr(ex, 14)} => <b>${count}</b></div> `;
                                 roomTotal += count;
                             });
                         });
@@ -2684,7 +2684,7 @@
                                 const student = room.seats?.[sid];
                                 const num = seatToNum[sid] || '-';
                                 if (isDisabled) groupsHtml += `<div class="desk" style="opacity:0.3; border-style:dotted;">KAPALI</div>`;
-                                else if (student) groupsHtml += `<div class="desk"><div style="font-size:7pt;color:#64748b;font-weight:700;margin-bottom:2px;">${student.class} / ${student.no}</div><div style="font-weight:900;font-size:8.5pt;color:#1e293b; text-transform:uppercase;">${student.name}</div><div style="font-size:6.5pt;color:#4f46e5;margin-top:3px;font-weight:600;">${abbr(student._matchedSubject || '-', 16)}</div><div class="desk-num">${num}</div></div>`;
+                                else if (student) groupsHtml += `<div class="desk"><div style="font-size:7pt;color:#64748b;font-weight:700;margin-bottom:2px;">${student.class} / ${student.no}</div><div style="font-weight:900;font-size:8.5pt;color:#1e293b; text-transform:uppercase;">${student.name}</div><div style="font-size:6.5pt;color:#4f46e5;margin-top:3px;font-weight:600;">${abbr(student._matchedSubject || '-', 12)}</div><div class="desk-num">${num}</div></div>`;
                                 else groupsHtml += `<div class="desk empty">BOŞ<div class="desk-num" style="background:#fee2e2; color:#ef4444;">${num}</div></div>`;
                             }
                         }
