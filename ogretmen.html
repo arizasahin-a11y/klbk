@@ -1256,6 +1256,42 @@
                                 ${lessonOptions}
                             </select>
                         </div>
+                        
+                        <hr style="margin: 1.5rem 0; border: 1px solid var(--gray-200);">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 900; color: var(--primary);">Genel PDF Teması</label>
+                            <select id="swal-global-theme" class="swal2-input" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem;">
+                                <option value="auto">Otomatik (Her derse farklı tema)</option>
+                                <option value="1">Tema 1 (Standart Klasik)</option>
+                                <option value="2">Tema 2 (Modern Çizgili)</option>
+                                <option value="3">Tema 3 (Koyu Çerçeveli)</option>
+                                <option value="4">Tema 4 (Osmanlı Motifli)</option>
+                                <option value="5">Tema 5 (Japon Esintisi)</option>
+                                <option value="6">Tema 6 (Ahşap & Doğal)</option>
+                                <option value="7">Tema 7 (Latin Tarzı)</option>
+                                <option value="8">Tema 8 (Arap Mimarisi)</option>
+                                <option value="9">Tema 9 (Atatürk Temalı - Portre)</option>
+                                <option value="10">Tema 10 (Bulut & Yumuşak)</option>
+                                <option value="11">Tema 11 (Testere Dişi & Metalik)</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 900; color: var(--primary);">PDF Font Ayarları</label>
+                            <div style="display:flex; flex-direction:column; gap:8px;">
+                                <div>
+                                    <span style="font-size:0.8rem; color:gray;">1. Satır (Okul İsmi):</span>
+                                    <select id="swal-global-font1" class="swal2-input" style="width: 100%; margin: 0; height: 35px; font-size:0.85rem;"></select>
+                                </div>
+                                <div>
+                                    <span style="font-size:0.8rem; color:gray;">2. Satır (Sınav Bilgisi):</span>
+                                    <select id="swal-global-font2" class="swal2-input" style="width: 100%; margin: 0; height: 35px; font-size:0.85rem;"></select>
+                                </div>
+                                <div>
+                                    <span style="font-size:0.8rem; color:gray;">3. Satır (Öğrenci & Salon Bilgisi):</span>
+                                    <select id="swal-global-font3" class="swal2-input" style="width: 100%; margin: 0; height: 35px; font-size:0.85rem;"></select>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 `,
                 didOpen: () => {
@@ -1264,6 +1300,19 @@
                     lessonSelect.addEventListener('change', (e) => {
                         if (e.target.value) timeInput.value = e.target.value;
                     });
+                    
+                    const fontsList = window.googleFonts100 || ["Roboto", "Montserrat", "Open Sans"];
+                    const buildOpts = (selVal) => {
+                        let html = '<option value="auto">Otomatik Sistem Seçimi</option>';
+                        fontsList.forEach(f => {
+                            html += `<option value="${f}" ${f === selVal ? 'selected' : ''}>${f}</option>`;
+                        });
+                        return html;
+                    };
+                    document.getElementById('swal-global-font1').innerHTML = buildOpts(session.globalFont1);
+                    document.getElementById('swal-global-font2').innerHTML = buildOpts(session.globalFont2);
+                    document.getElementById('swal-global-font3').innerHTML = buildOpts(session.globalFont3);
+                    if (session.globalTheme) document.getElementById('swal-global-theme').value = session.globalTheme;
                 },
                 focusConfirm: false,
                 showCancelButton: true,
@@ -1273,7 +1322,11 @@
                     return {
                         name: document.getElementById('swal-name').value,
                         date: DataManager.formatDateToStandard(document.getElementById('swal-date').value),
-                        time: document.getElementById('swal-time').value
+                        time: document.getElementById('swal-time').value,
+                        globalTheme: document.getElementById('swal-global-theme').value,
+                        globalFont1: document.getElementById('swal-global-font1').value,
+                        globalFont2: document.getElementById('swal-global-font2').value,
+                        globalFont3: document.getElementById('swal-global-font3').value
                     }
                 }
             });
@@ -1282,6 +1335,10 @@
                 session.name = formValues.name;
                 session.date = formValues.date;
                 session.time = formValues.time;
+                session.globalTheme = formValues.globalTheme;
+                session.globalFont1 = formValues.globalFont1;
+                session.globalFont2 = formValues.globalFont2;
+                session.globalFont3 = formValues.globalFont3;
 
                 // Update persistent data
                 DataManager.addExamSession(session);
@@ -1689,7 +1746,7 @@
                     no: '123', 
                     name: 'ÖRNEK ÖĞRENCİ', 
                     class: '9-A', 
-                    room: 'Derslik 1',
+                    room: '9A',
                     seat: '1', 
                     subject: subName.toUpperCase(),
                     examNo: '1'

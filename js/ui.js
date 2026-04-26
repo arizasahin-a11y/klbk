@@ -13,6 +13,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.formatDateToStandard = (val) => DataManager.formatDateToStandard(val);
     window.formatDateToInput = (val) => DataManager.formatDateToInput(val);
 
+    window.googleFonts100 = [
+        "Roboto", "Open Sans", "Montserrat", "Lato", "Oswald", "Source Sans Pro", "Slabo 27px", "Raleway", "PT Sans", "Merriweather",
+        "Nunito", "Concert One", "Prompt", "Work Sans", "Fira Sans", "Rubik", "Mukta", "Quicksand", "Inter", "Ubuntu",
+        "Karla", "Arimo", "Noto Sans", "Playfair Display", "Mulish", "Nanum Gothic", "Zilla Slab", "Libre Baskerville", "Lora", "Oxygen",
+        "Cabin", "Varela Round", "Bitter", "Dosis", "Abel", "Inconsolata", "Anton", "Josefin Sans", "Hind", "Heebo",
+        "Teko", "Exo 2", "Pacifico", "Lobster", "Comfortaa", "Yanone Kaffeesatz", "Fjalla One", "Titillium Web", "Asap", "Bree Serif",
+        "Archivo Narrow", "Play", "Vollkorn", "Alegreya", "Signika", "Righteous", "Amatic SC", "Crimson Text", "Acme", "Monda",
+        "Francois One", "Rokkitt", "Orbitron", "Patua One", "Tinos", "Crete Round", "Russo One", "Gudea", "Kreon", "Marmelad",
+        "Philosopher", "Trocchi", "Coda", "Glegoo", "Bangers", "Jura", "Sura", "Tauri", "Krona One", "Syncopate",
+        "Changa One", "Racing Sans One", "Michroma", "Baumans", "Magra", "Iceberg", "Gafata", "Doppio One", "Knewave", "Candal",
+        "Oleo Script", "Spinnaker", "Fugaz One", "Salsa", "Coustard", "Vampiro One", "Supermercado One", "Lemon", "Carme", "Ovo"
+    ];
+
     window.shortenSubject = function (n, limit = 20) {
         if (!n || n === '-') return n;
         
@@ -68,9 +81,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             .replace(/Seçmeli/gi, 'S.');
         
         // Final length check and initials fallback if still too long
-        if (res.length > 25 && !foundAbbr) {
+        if ((res + grade).length > limit && !foundAbbr) {
             const words = res.split(' ').filter(w => w.length > 1 && !['ve', 'ile', 'veya'].includes(w.toLowerCase()));
-            if (words.length >= 2) res = words.map(w => w[0].toUpperCase()).join('');
+            if (words.length >= 2) {
+                res = words.map(w => w[0].toUpperCase()).join('');
+            } else {
+                res = res.substring(0, limit - grade.length - 1) + '.';
+            }
         }
         
         return res + grade;
@@ -6563,7 +6580,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 no: '123',
                 name: 'ÖRNEK ÖĞRENCİ',
                 class: '9-A',
-                room: 'SİSTEM TESTİ',
+                room: '9A',
                 seat: '1',
                 subject: subName,
                 examNo: '1'

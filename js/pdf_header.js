@@ -2,7 +2,7 @@
 window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}) {
     const { PDFLib, DataManager } = window;
     const { rgb, degrees } = PDFLib;
-    const { mainFont, nameFont, schoolFont } = options;
+    let { mainFont, nameFont, schoolFont } = options;
     const { width, height } = page.getSize();
     const sf = options.sf || 1;
 
@@ -65,7 +65,49 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const sess = options.session || window.currentRenderedSession || {};
     const subjectName = info?.subject || '';
     const metadata = options.metadata || (DataManager.getSanitizedSubjectMetadata ? DataManager.getSanitizedSubjectMetadata(sess, subjectName) : (sess.subjectMetadata?.[subjectName] || {})) || {};
-    const designType = options.designType || metadata.pdfHeaderDesign || '1';
+    
+    // Auto Theme & Font Selection Logic
+    const subHash = subjectName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) || 1;
+    const fontsList = window.googleFonts100 || ["Roboto", "Montserrat", "Open Sans"];
+    const sTheme = sess.globalTheme || 'auto';
+    const sFont1 = sess.globalFont1 || 'auto';
+    const sFont2 = sess.globalFont2 || 'auto';
+    const sFont3 = sess.globalFont3 || 'auto';
+
+    const finalTheme = (sTheme === 'auto') ? (((subHash % 11) + 1).toString()) : sTheme;
+    const f1Name = (sFont1 === 'auto') ? fontsList[subHash % fontsList.length] : sFont1;
+    const f2Name = (sFont2 === 'auto') ? fontsList[(subHash * 2) % fontsList.length] : sFont2;
+    const f3Name = (sFont3 === 'auto') ? fontsList[(subHash * 3) % fontsList.length] : sFont3;
+
+    const designType = options.designType || metadata.pdfHeaderDesign || finalTheme || '1';
+
+    try {
+        if (!pdfDoc._cachedFonts) pdfDoc._cachedFonts = {};
+        const fetchAndEmbed = async (fName) => {
+            if (!fName || fName === 'auto' || fName === 'Roboto') return null;
+            if (pdfDoc._cachedFonts[fName]) return pdfDoc._cachedFonts[fName];
+            
+            const folder = fName.toLowerCase().replace(/\s+/g, '');
+            const file = fName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('') + '-Regular.ttf';
+            const url = `https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/${folder}/${file}`;
+            
+            const bytes = await window.getFileBytes(url);
+            if (bytes) {
+                const font = await pdfDoc.embedFont(bytes);
+                pdfDoc._cachedFonts[fName] = font;
+                return font;
+            }
+            return null;
+        };
+        const [cf1, cf2, cf3] = await Promise.all([
+            fetchAndEmbed(f1Name),
+            fetchAndEmbed(f2Name),
+            fetchAndEmbed(f3Name)
+        ]);
+        if (cf1) schoolFont = cf1;
+        if (cf2) mainFont = cf2;
+        if (cf3) nameFont = cf3;
+    } catch(e) { console.warn("Dinamik font yükleme hatası", e); }
 
     const margin = 14.17 * sf;
     const limitY = 85.04 * sf;
