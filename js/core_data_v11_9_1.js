@@ -112,7 +112,7 @@ const DataManager = {
         const key = this._getStorageKey();
         try {
             const encodedKey = encodeURIComponent(key);
-            const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/${encodedKey}.json`);
+            const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/${encodedKey}.json?t=${Date.now()}`);
             if (res.ok) {
                 const data = await res.json();
                 if (data) { 
