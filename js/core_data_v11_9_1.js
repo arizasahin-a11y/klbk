@@ -857,9 +857,58 @@ const DataManager = {
         return false;
     },
 
+    _idbFileCache: null,
+    _initIdb: function() {
+        if (this._idbFileCache) return this._idbFileCache;
+        this._idbFileCache = new Promise((resolve) => {
+            try {
+                const req = indexedDB.open('klbk_files', 1);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('cache')) db.createObjectStore('cache');
+                };
+                req.onsuccess = (e) => resolve(e.target.result);
+                req.onerror = () => resolve(null);
+            } catch(e) { resolve(null); }
+        });
+        return this._idbFileCache;
+    },
+    _getIdbCache: async function(url) {
+        try {
+            const db = await this._initIdb();
+            if (!db) return null;
+            return new Promise((resolve) => {
+                const tx = db.transaction('cache', 'readonly');
+                const req = tx.objectStore('cache').get(url);
+                req.onsuccess = () => resolve(req.result ? req.result.buffer : null);
+                req.onerror = () => resolve(null);
+            });
+        } catch(e) { return null; }
+    },
+    _setIdbCache: async function(url, buffer) {
+        try {
+            const db = await this._initIdb();
+            if (!db) return;
+            return new Promise((resolve) => {
+                const tx = db.transaction('cache', 'readwrite');
+                const req = tx.objectStore('cache').put({ buffer: buffer, ts: Date.now() }, url);
+                req.onsuccess = () => resolve();
+                req.onerror = () => resolve();
+            });
+        } catch(e) {}
+    },
+
     getFileBytes: async function (url) {
         if (!url) return null;
         if (this._fileBytesCache[url]) return this._fileBytesCache[url];
+
+        // IndexedDB kalıcı önbellek kontrolü (Hız Optimizasyonu)
+        const idbBuffer = await this._getIdbCache(url);
+        if (idbBuffer && this.validateBuffer(idbBuffer)) {
+            console.log(`[IDB Cache Hit]: ${url}`);
+            this._fileBytesCache[url] = idbBuffer;
+            return idbBuffer;
+        }
 
         // Data URI ise proxy veya Drive mantığını tamamen atla
         if (url.startsWith('data:')) {
@@ -867,6 +916,7 @@ const DataManager = {
                 const res = await fetch(url);
                 const buf = await res.arrayBuffer();
                 this._fileBytesCache[url] = buf;
+                this._setIdbCache(url, buf);
                 return buf;
             } catch (e) { return null; }
         }
@@ -989,6 +1039,7 @@ const DataManager = {
             const successBuffer = await Promise.any(promises);
             console.log(`Dosya başarıyla indirildi: ${url} (${successBuffer.byteLength} bytes)`);
             this._fileBytesCache[url] = successBuffer;
+            this._setIdbCache(url, successBuffer);
             return successBuffer;
         } catch (e) {
             console.warn(`Doğrudan indirme başarısız (${url}), proxy deneniyor...`, e);
@@ -998,6 +1049,7 @@ const DataManager = {
                 if (proxyBuffer) {
                     console.log(`Dosya proxy üzerinden indirildi: ${url}`);
                     this._fileBytesCache[url] = proxyBuffer;
+                    this._setIdbCache(url, proxyBuffer);
                 }
                 return proxyBuffer;
             } catch (e2) {

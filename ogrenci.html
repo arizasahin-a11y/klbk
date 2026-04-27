@@ -1579,7 +1579,7 @@
 
                 const limit = (ses.screenViewLimit === undefined) ? 20 : ses.screenViewLimit;
                 
-                if (Math.floor(diffMins) <= limit && diffEndMins >= -10) {
+                if (Math.floor(diffMins) <= limit && diffEndMins >= -3) {
                     const roomResult = ses.results.find(r => r.name === myRoomName);
                     if (roomResult) {
                         activeSession = ses;
@@ -1752,7 +1752,7 @@
             const nowTime = getNow();
             const diffMs = nowTime - examStartTime;
 
-            if (diffMs >= 4 * 60 * 1000) {
+            if (nowTime >= examStartTime && nowTime <= examEndTime) {
                 const roomSubjects = new Set();
                 Object.values(roomData.seats).forEach(seat => {
                     if (seat._matchedSubject) roomSubjects.add(seat._matchedSubject);
