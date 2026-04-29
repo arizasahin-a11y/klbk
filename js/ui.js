@@ -4240,6 +4240,38 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const imageCache = {}; // Local image cache for this merged document
                 const docCache = {}; // Local document object cache for this batch
 
+                // PRE-SCAN: Load PDFs and find max page count to determine double-sided printing needs
+                let maxPageCount = 1;
+                for (let i = 0; i < targetStudents.length; i++) {
+                    const s = targetStudents[i];
+                    const subName = s._matchedSubject || '-';
+                    const groupLabel_s = s._groupLabel || s.group || 'default';
+                    const meta = DataManager.getSanitizedSubjectMetadata(session, subName);
+                    if (!meta) continue;
+                    const papers = meta.papers || {};
+                    let path = typeof papers === 'string' ? papers : (papers[groupLabel_s] || papers['default'] || '');
+                    if (!path) continue;
+                    let printPath = path;
+                    if (printPath.match(/^[a-zA-Z]:\\/) || printPath.match(/^[a-zA-Z]:\//)) printPath = 'file:///' + printPath.replace(/\\/g, '/');
+
+                    if (!docCache[printPath]) {
+                        try {
+                            if (!window._pdfTemplateCache) window._pdfTemplateCache = {};
+                            let bytes = window._pdfTemplateCache[printPath];
+                            if (!bytes) {
+                                bytes = await window.getFileBytes(printPath);
+                                window._pdfTemplateCache[printPath] = bytes;
+                            }
+                            if (bytes) docCache[printPath] = await PDFDocument.load(bytes);
+                        } catch (e) {}
+                    }
+                    if (docCache[printPath]) {
+                        const pc = docCache[printPath].getPageCount();
+                        if (pc > maxPageCount) maxPageCount = pc;
+                    }
+                }
+                const isDoubleSidedMode = maxPageCount > 1;
+
                 for (let i = 0; i < targetStudents.length; i++) {
                     const s = targetStudents[i];
                     const progressEl = document.getElementById('batch-progress');
@@ -4289,6 +4321,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const sf = 1 / Math.min(A4_W / width, A4_H / height);
                     await window.renderStudentPDFHeader(mergedPdf, firstPage, studentInfo, { ...fonts, sf, metadata: meta, imageCache });
                     pages.forEach(p => mergedPdf.addPage(p));
+                    if (isDoubleSidedMode && pages.length % 2 !== 0) {
+                        mergedPdf.addPage([A4_W, A4_H]);
+                    }
                 }
                 const mergedBytes = await mergedPdf.save();
                 const blob = new Blob([mergedBytes], { type: 'application/pdf' });
