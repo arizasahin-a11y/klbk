@@ -1703,18 +1703,11 @@
             const session = sessions.find(s => s.id === sesId);
             if (!session) return;
             
-            let savedPrefs = { theme: 'auto', f1: 'auto', f2: 'auto', f3: 'auto' };
-            try {
-                const sp = localStorage.getItem('klbk_pdf_design_prefs_' + currentUser);
-                if (sp) savedPrefs = JSON.parse(sp);
-            } catch (e) {}
-
             const meta = session.subjectMetadata?.[subName] || {};
-            // If it's undefined, use saved preference, if it's explicitly null it means 'auto' was chosen previously
-            const sTheme = meta.pdfHeaderDesign !== undefined ? (meta.pdfHeaderDesign || 'auto') : savedPrefs.theme;
-            const f1 = meta.pdfHeaderFont1 !== undefined ? (meta.pdfHeaderFont1 || 'auto') : savedPrefs.f1;
-            const f2 = meta.pdfHeaderFont2 !== undefined ? (meta.pdfHeaderFont2 || 'auto') : savedPrefs.f2;
-            const f3 = meta.pdfHeaderFont3 !== undefined ? (meta.pdfHeaderFont3 || 'auto') : savedPrefs.f3;
+            const sTheme = meta.pdfHeaderDesign !== undefined && meta.pdfHeaderDesign !== null ? meta.pdfHeaderDesign : 'auto';
+            const f1 = meta.pdfHeaderFont1 !== undefined && meta.pdfHeaderFont1 !== null ? meta.pdfHeaderFont1 : 'auto';
+            const f2 = meta.pdfHeaderFont2 !== undefined && meta.pdfHeaderFont2 !== null ? meta.pdfHeaderFont2 : 'auto';
+            const f3 = meta.pdfHeaderFont3 !== undefined && meta.pdfHeaderFont3 !== null ? meta.pdfHeaderFont3 : 'auto';
 
             const fontsListTurkish = [
                 "321impact",
@@ -1952,22 +1945,12 @@
                 session.subjectMetadata[safeSubKey].pdfHeaderFont2 = formValues.f2 === 'auto' ? null : formValues.f2;
                 session.subjectMetadata[safeSubKey].pdfHeaderFont3 = formValues.f3 === 'auto' ? null : formValues.f3;
                 
-                // Save user preference to localStorage
-                try {
-                    localStorage.setItem('klbk_pdf_design_prefs_' + currentUser, JSON.stringify({
-                        theme: formValues.theme,
-                        f1: formValues.f1,
-                        f2: formValues.f2,
-                        f3: formValues.f3
-                    }));
-                } catch (e) {}
-
                 DataManager.addExamSession(session);
                 lastSyncSessions = JSON.stringify(DataManager.getExamSessions());
                 Swal.fire({
                     icon: 'success',
                     title: 'Kaydedildi',
-                    text: 'Tasarım tercihleri bu ders için uygulandı ve sonraki kullanımlar için varsayılan olarak kaydedildi.',
+                    text: 'Tasarım tercihleri sadece bu sınav dersi için uygulandı.',
                     timer: 1500,
                     showConfirmButton: false
                 });
