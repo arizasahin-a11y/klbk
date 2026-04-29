@@ -4328,10 +4328,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const mergedBytes = await mergedPdf.save();
                 const blob = new Blob([mergedBytes], { type: 'application/pdf' });
                 const blobUrl = URL.createObjectURL(blob);
-                Swal.close();
-
-                // Always open in new tab for maximum speed and browser compatibility
-                window.finalizeAndPrint(blobUrl);
+                Swal.fire({
+                    title: 'Kağıtlar Hazır',
+                    html: `PDF dosyası başarıyla oluşturuldu.<br><br>
+                           <div style="background:var(--primary); color:white; padding:12px; border-radius:8px; font-weight:bold; font-size:1.1rem; margin-top:10px;">
+                           <i class="fa-solid fa-print"></i> Lütfen Yazıcınızı <br><u style="font-size:1.3rem;">${isDoubleSidedMode ? 'Arkalı Önlü' : 'Tek Yüze'}</u><br>Yazdıracak Şekilde Ayarlayın.
+                           </div>`,
+                    icon: 'success',
+                    confirmButtonText: '<i class="fa-solid fa-print"></i> Yazdır',
+                    confirmButtonColor: '#4f46e5',
+                    allowOutsideClick: false
+                }).then(() => {
+                    // Always open in new tab for maximum speed and browser compatibility
+                    window.finalizeAndPrint(blobUrl);
+                });
 
                 // Clear temporary batch cache
                 window._pdfTemplateCache = {};
