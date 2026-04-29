@@ -1019,6 +1019,7 @@
                 }
 
                 DataManager.addExamSession(session);
+                lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
 
                 if (directUrl === null) {
                     Swal.fire({
@@ -1056,6 +1057,7 @@
                 });
 
                 DataManager.addExamSession(session);
+                lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
 
                 Swal.fire({
                     toast: true, position: 'top-end', icon: 'success', title: 'Mesaj Gönderildi', showConfirmButton: false, timer: 1500
@@ -1313,7 +1315,7 @@
 
                 // Update persistent data
                 DataManager.addExamSession(session);
-                lastSyncSessions = JSON.stringify(DataManager.getExamSessions()); // Prevent immediate re-render from poller
+                lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished)); // Prevent immediate re-render from poller
 
                 Swal.fire({
                     icon: 'success',
@@ -1946,7 +1948,9 @@
                 session.subjectMetadata[safeSubKey].pdfHeaderFont3 = formValues.f3 === 'auto' ? null : formValues.f3;
                 
                 DataManager.addExamSession(session);
-                lastSyncSessions = JSON.stringify(DataManager.getExamSessions());
+                lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
+                renderExams();
+                
                 Swal.fire({
                     icon: 'success',
                     title: 'Kaydedildi',
