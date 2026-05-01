@@ -442,7 +442,14 @@
             }
         }
 
+        let lastLocalChangeTime = 0;
+        function markLocalChange() {
+            lastLocalChangeTime = Date.now();
+        }
+
         async function backgroundSync() {
+            // Eğer son 5 saniye içinde yerel bir değişiklik yapıldıysa senkronizasyonu atla
+            if (Date.now() - lastLocalChangeTime < 5000) return;
             try {
                 await DataManager.initCloud();
                 const current = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
@@ -989,8 +996,8 @@
                 link = groupLetter ? (existingMeta.papers[groupLetter] || '') : (existingMeta.papers['default'] || '');
             }
             
-            // session variable already defined above at line 906
             if (session) {
+                markLocalChange();
                 if (!session.subjectMetadata) session.subjectMetadata = {};
                 const safeSub = DataManager.sanitizeFirebaseKey(subName);
                 
@@ -1019,6 +1026,7 @@
                 }
 
                 DataManager.addExamSession(session);
+                markLocalChange();
                 lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
 
                 if (directUrl === null) {
@@ -1057,6 +1065,7 @@
                 });
 
                 DataManager.addExamSession(session);
+                markLocalChange();
                 lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
 
                 Swal.fire({
@@ -1315,6 +1324,7 @@
 
                 // Update persistent data
                 DataManager.addExamSession(session);
+                markLocalChange();
                 lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished)); // Prevent immediate re-render from poller
 
                 Swal.fire({
@@ -1757,6 +1767,10 @@
 
             const fontsListTurkish = [
                 "321impact",
+                "Aaaiight FatTR",
+                "Abaddon",
+                "Abbey M1",
+                "Aberatn",
                 "ACaslonPro Bold",
                 "ACaslonPro BoldItalic",
                 "ACaslonPro Italic",
@@ -1766,18 +1780,22 @@
                 "Achafont",
                 "Achafout",
                 "Achafsex",
+                "Acmesai",
                 "Actionsh",
                 "AdineKirnberg Script",
                 "Aerosol",
                 "Android Nation",
+                "Antsypan",
                 "Arial",
                 "Arial Bold",
                 "Arial Bold Italic",
                 "Arial Italic",
                 "BadaBoomBB",
+                "Bauerg",
                 "Beast Wars",
+                "Bloodrac",
                 "BottleRocket BB",
-                "CF One Two Trees",
+                "Brooklyn",
                 "Calibri",
                 "Calibri Bold",
                 "Calibri Bold Italic",
@@ -1786,11 +1804,16 @@
                 "Calibri Light Italic",
                 "Carnivalee Freakshow",
                 "Carolingia",
+                "CF One Two Trees",
                 "Chinacat",
                 "Citizen Dick",
                 "Comic Geek",
                 "Edo SZ",
                 "Edwardian Script ITC",
+                "Embossed Black Normal",
+                "Embossed Black Wide",
+                "Embossed Germanica",
+                "Emporium",
                 "Engravers MT",
                 "Franklin Gothic Book",
                 "Franklin Gothic Book Italic",
@@ -1817,12 +1840,11 @@
                 "Times New Roman Bold",
                 "Times New Roman Bold Italic",
                 "Times New Roman Italic",
-                "VTC Super Market",
                 "Verdana",
                 "Verdana Bold",
                 "Verdana Bold Italic",
                 "Verdana Italic",
-                "acmesai"
+                "VTC Super Market"
             ];
 
             const ttfMapping = {
@@ -1864,6 +1886,18 @@
                 "actionsh": "Actionsh_0.ttf",
                 "adinekirnbergscript": "AdineKirnberg-Script_0.ttf",
                 "aerosol": "Aerosol.ttf",
+                "antsypan": "ANTSYPAN.TTF",
+                "bauerg": "BAUERG_.TTF",
+                "brooklyn": "BROOKLYN.TTF",
+                "bloodrac": "Bloodrac.TTF",
+                "emporium": "EMPORIUM.TTF",
+                "embossedblacknormal": "Embossed Black Normal.ttf",
+                "embossedblackwide": "Embossed Black Wide.ttf",
+                "embossedgermanica": "Embossed Germanica.ttf",
+                "aaaiightfattr": "aaaiight-fatTR_1.ttf",
+                "abaddon": "abaddon_0.TTF",
+                "abbeym1": "abbey_m1_0.ttf",
+                "aberatn": "aberatn_0.ttf",
                 "arial": "arial.ttf",
                 "arialbold": "arialbd.ttf",
                 "arialbolditalic": "arialbi.ttf",
@@ -1992,6 +2026,7 @@
                 session.subjectMetadata[safeSubKey].pdfHeaderFont3 = formValues.f3 === 'auto' ? null : formValues.f3;
                 
                 DataManager.addExamSession(session);
+                markLocalChange();
                 lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
                 renderExams();
                 
