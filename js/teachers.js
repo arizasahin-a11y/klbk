@@ -217,6 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 ${name}
                             </h3>
                             <p style="font-size: 0.75rem; color: var(--gray-500); margin: 2px 0 0 0;">(@${uname})</p>
+                            <p style="font-size: 0.75rem; color: var(--primary); margin: 2px 0 0 0; font-weight: 700;">Şifre: ${user.password || '---'}</p>
                         </div>
                     </div>
 
