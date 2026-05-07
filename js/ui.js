@@ -2856,6 +2856,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function renderExamSessionsList() {
         if (!examSessionsList) return;
+        const scrollPos = window.scrollY;
+        
         const sessions = DataManager.getSortedExamSessions();
         const activeSessions = sessions.filter(s => !s.isArchived);
         const archivedSessions = sessions.filter(s => s.isArchived);
@@ -3061,6 +3063,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.viewSessionDistribution(window._currentlyOpenSessionId, null, false, true);
             }
         }
+
+        // Restore scroll position
+        window.scrollTo(0, scrollPos);
     }
 
 
