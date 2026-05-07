@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         myTeachers.forEach(uname => {
             const user = teachersDb[uname];
-            const name = user.name || uname;
+            const name = DataManager.formatTeacherName(user.name || uname);
             const role = user.role || 'ogretmen';
             const gender = user.gender || 'erkek';
             
@@ -550,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (teacherForm) {
         teacherForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = document.getElementById('teacherName').value.trim();
+            const name = DataManager.formatTeacherName(document.getElementById('teacherName').value.trim());
             const uname = document.getElementById('teacherUsername').value.trim();
             const password = document.getElementById('teacherPassword').value;
             const email = document.getElementById('teacherEmail').value.trim();
@@ -644,7 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const row = json[i];
                         if (!row || row.length === 0) continue;
                         
-                        let adSoyad = (row[0] || '').toString().trim();
+                        let adSoyad = DataManager.formatTeacherName((row[0] || '').toString().trim());
                         let unameVal = (row[1] || '').toString().trim();
                         let emailVal = (row[2] || '').toString().trim();
                         let passVal = (row[3] || '').toString().trim();
@@ -785,7 +785,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (usersDb[foundUname]) foundUname += Math.floor(Math.random() * 1000);
                             
                             usersDb[foundUname] = {
-                                name: rawTeacherName,
+                                name: DataManager.formatTeacherName(rawTeacherName),
                                 password: "12345",
                                 email: "",
                                 role: 'ogretmen',

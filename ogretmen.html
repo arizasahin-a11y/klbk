@@ -334,7 +334,7 @@
         try {
             currentRole = (sessionStorage.getItem('klbk_role') || '').toLowerCase().trim();
             currentUser = sessionStorage.getItem('klbk_currentUser') || 'Bilinmeyen Kullanıcı';
-            currentName = sessionStorage.getItem('klbk_name') || currentUser;
+            currentName = DataManager.formatTeacherName(sessionStorage.getItem('klbk_name') || currentUser);
             
             if (sessionStorage.getItem('klbk_isLoggedIn') !== 'true' || (currentRole !== 'ogretmen' && currentRole !== 'idareci' && currentRole !== 'admin' && currentRole !== 'master')) {
                 console.warn("Auth failure, redirecting...");

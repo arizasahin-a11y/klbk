@@ -63,6 +63,29 @@ const DataManager = {
     gasStorageUrl: "https://script.google.com/macros/s/AKfycbz6K2I5ylOxaDR_QbT2XnPA6wh2HrquAgM3mrbVZ4x-3nPqVf4KXJMTnGCWlPj2lvBZyQ/exec",
     _memoryData: null,
 
+    // Helper to format teacher names as "Proper SURNAME" (e.g., Ali Rıza ŞAHİN)
+    formatTeacherName: function (name) {
+        if (!name) return "";
+        // Clean multiple spaces and trim
+        const cleanName = name.trim().replace(/\s+/g, ' ');
+        const parts = cleanName.split(' ');
+        if (parts.length === 0) return "";
+        
+        if (parts.length === 1) {
+            // Single word - treat as surname if it's all that's provided
+            return parts[0].toLocaleUpperCase('tr-TR');
+        }
+
+        const surname = parts.pop().toLocaleUpperCase('tr-TR');
+        const firstNames = parts.map(n => {
+            if (!n) return "";
+            // Proper Case: First letter Upper, rest Lower
+            return n.charAt(0).toLocaleUpperCase('tr-TR') + n.slice(1).toLocaleLowerCase('tr-TR');
+        }).join(" ");
+
+        return `${firstNames} ${surname}`;
+    },
+
     // Get Key
     _getStorageKey: function () {
         const storeKey = sessionStorage.getItem('klbk_storeKey');
@@ -1216,9 +1239,9 @@ const DataManager = {
                 }
 
                 if (t.role === 'idareci' || t.role === 'admin' || t.role === 'master') {
-                    assignments[normalizedRoom].idareciler.push({ uname, name: t.name, role: t.role });
+                    assignments[normalizedRoom].idareciler.push({ uname, name: this.formatTeacherName(t.name), role: t.role });
                 } else {
-                    assignments[normalizedRoom].ogretmenler.push({ uname, name: t.name, role: t.role });
+                    assignments[normalizedRoom].ogretmenler.push({ uname, name: this.formatTeacherName(t.name), role: t.role });
                 }
             } else {
                 // Bu ders saatinde boşta
@@ -1241,7 +1264,7 @@ const DataManager = {
                 if (hasAnyClassThisDay || isIdareci) {
                     result.globalSpares.push({ 
                         uname, 
-                        name: t.name, 
+                        name: this.formatTeacherName(t.name), 
                         role: t.role,
                         hasLaterClasses,
                         hasAnyClassThisDay

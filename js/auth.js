@@ -45,6 +45,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return defaultUsers;
     }
 
+    // Helper to format teacher names as "Proper SURNAME" (e.g., Ali Rıza ŞAHİN)
+    function formatTeacherName(name) {
+        if (!name) return "";
+        const cleanName = name.trim().replace(/\s+/g, ' ');
+        const parts = cleanName.split(' ');
+        if (parts.length === 0) return "";
+        if (parts.length === 1) return parts[0].toLocaleUpperCase('tr-TR');
+        const surname = parts.pop().toLocaleUpperCase('tr-TR');
+        const firstNames = parts.map(n => {
+            if (!n) return "";
+            return n.charAt(0).toLocaleUpperCase('tr-TR') + n.slice(1).toLocaleLowerCase('tr-TR');
+        }).join(" ");
+        return `${firstNames} ${surname}`;
+    }
+
     // Check for logout request via URL parameter
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('logout') === 'true') {
@@ -250,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (role !== 'student' && role !== 'ogrenci') {
                                 const sessionData = {
                                     klbk_currentUser: username,
-                                    klbk_name: userData.name || username,
+                                    klbk_name: formatTeacherName(userData.name || username),
                                     klbk_schoolName: userData.schoolName || '',
                                     klbk_storeKey: userData.storeKey || (`klbk_data_${username}`),
                                     klbk_role: role,
@@ -269,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Setup session
                     sessionStorage.setItem('klbk_isLoggedIn', 'true');
                     sessionStorage.setItem('klbk_currentUser', username);
-                    sessionStorage.setItem('klbk_name', userData.name || username);
+                    sessionStorage.setItem('klbk_name', formatTeacherName(userData.name || username));
                     sessionStorage.setItem('klbk_schoolName', userData.schoolName || '');
                     sessionStorage.setItem('klbk_storeKey', userData.storeKey || (`klbk_data_${username}`));
                     sessionStorage.setItem('klbk_role', userData.role || 'admin');
