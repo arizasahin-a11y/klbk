@@ -3058,15 +3058,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     }
-                    <div class="archived-content">
-                        ${renderArchivedList(archivedSessions)}
-                    </div>
-                </details>
-            `;
-        }
 
-        examSessionsList.innerHTML = finalHtml;
-    }
 
     window.updateSessionStatus = function (id, val) {
         const sessions = DataManager.getExamSessions();
