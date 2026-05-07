@@ -151,15 +151,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log("%c DIAGNOSIS: Using storage key: " + key, "color: orange; font-weight: bold;");
 
     // --- Data Mutation Wrappers for UI Sync ---
+    window._lastLocalChangeTime = 0;
     const _origAddSession = DataManager.addExamSession;
     DataManager.addExamSession = function(s) {
         const res = _origAddSession.apply(DataManager, arguments);
+        window._lastLocalChangeTime = Date.now();
         if (window.updateSyncHash) window.updateSyncHash();
         return res;
     };
     const _origRemoveSession = DataManager.removeExamSession;
     DataManager.removeExamSession = function(id) {
         const res = _origRemoveSession.apply(DataManager, arguments);
+        window._lastLocalChangeTime = Date.now();
         if (window.updateSyncHash) window.updateSyncHash();
         return res;
     };
@@ -2848,6 +2851,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // List rendering
     const examSessionsList = document.getElementById('examSessionsList');
     window._currentlyOpenSessionId = null;
+    window._currentlyOpenSessionMode = {}; // sessionID -> mode
     window._activeResultsContainer = null;
 
     function renderExamSessionsList() {
@@ -2943,13 +2947,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <td class="session-view-options-cell">
                             <div class="mode-selector-container" style="display: flex; gap: 5px; justify-content: flex-start; align-items: center; white-space: nowrap; flex-wrap: nowrap;">
                                 <label class="mode-selector-label" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
-                                    <input type="radio" name="mode-${ses.id}" value="class" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Sınıf
+                                    <input type="radio" name="mode-${ses.id}" value="class" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)" ${(window._currentlyOpenSessionMode[ses.id] === 'class') ? 'checked' : ''}> Sınıf
                                 </label>
                                 <label class="mode-selector-label" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
-                                    <input type="radio" name="mode-${ses.id}" value="room" checked class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Salon
+                                    <input type="radio" name="mode-${ses.id}" value="room" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)" ${(window._currentlyOpenSessionMode[ses.id] === 'room' || !window._currentlyOpenSessionMode[ses.id]) ? 'checked' : ''}> Salon
                                 </label>
                                 <label class="mode-selector-label" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
-                                    <input type="radio" name="mode-${ses.id}" value="seating" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)"> Şema
+                                    <input type="radio" name="mode-${ses.id}" value="seating" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)" ${(window._currentlyOpenSessionMode[ses.id] === 'seating') ? 'checked' : ''}> Şema
                                 </label>
                             </div>
                         </td>
@@ -5540,6 +5544,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const modeEl = document.querySelector(`input[name="mode-${id}"]:checked`);
             const mode = forceMode || (modeEl ? modeEl.value : 'class');
+            
+            // Save current mode for state persistence
+            window._currentlyOpenSessionMode[id] = mode;
 
             if (!session.results) {
                 return window.startSessionDistribution(id);
@@ -6475,6 +6482,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         setInterval(async () => {
             const sessionsTab = document.getElementById('view-exam');
+            
+            // Skip sync if a local change was made recently (wait for cloud to catch up)
+            if (Date.now() - (window._lastLocalChangeTime || 0) < 15000) return;
+
             // Sadece Sınav Dağıtımı sekmesi aktifse ve modal açık değilse yenile (UI akışını bozmamak için)
             if (sessionsTab && !sessionsTab.classList.contains('hidden') && !document.querySelector('.swal2-container')) {
                 await DataManager.initCloud();
