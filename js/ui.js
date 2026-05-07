@@ -150,6 +150,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const key = DataManager._getStorageKey();
     console.log("%c DIAGNOSIS: Using storage key: " + key, "color: orange; font-weight: bold;");
 
+    // --- Data Mutation Wrappers for UI Sync ---
+    const _origAddSession = DataManager.addExamSession;
+    DataManager.addExamSession = function(s) {
+        const res = _origAddSession.apply(DataManager, arguments);
+        if (window.updateSyncHash) window.updateSyncHash();
+        return res;
+    };
+    const _origRemoveSession = DataManager.removeExamSession;
+    DataManager.removeExamSession = function(id) {
+        const res = _origRemoveSession.apply(DataManager, arguments);
+        if (window.updateSyncHash) window.updateSyncHash();
+        return res;
+    };
+
     document.getElementById('displayUsername').textContent = sessionStorage.getItem('klbk_currentUser') || 'Yönetici';
     
     // Set Sidebar Avatar based on gender
@@ -2833,6 +2847,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // List rendering
     const examSessionsList = document.getElementById('examSessionsList');
+    window._currentlyOpenSessionId = null;
+    window._activeResultsContainer = null;
+
     function renderExamSessionsList() {
         if (!examSessionsList) return;
         const sessions = DataManager.getSortedExamSessions();
@@ -2963,7 +2980,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         const renderArchivedList = (list) => {
-            if (list.length === 0) return '<div class="empty-text" style="text-align:center; padding: 2rem; color: var(--gray-500);">Arşivlenmiş oturum yok.</div>';
+            if (list.length === 0) return ''; // Handled by summary view
             
             return `
                 <div class="archived-list">
@@ -3015,12 +3032,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
         };
 
-        let finalHtml = renderTable(activeSessions, false);
-        
-        if (archivedSessions.length > 0) {
-            finalHtml += `
-                <details class="archived-details">
-                    <summary><i class="fa-solid fa-box-archive"></i> Arşivlenmiş Oturumlar (${archivedSessions.length})</summary>
+        const activeTableHtml = renderTable(activeSessions, false);
+        const archivedTableHtml = renderArchivedList(archivedSessions);
+
+        examSessionsList.innerHTML = `
+            <div class="active-sessions-section">
+                ${activeTableHtml}
+            </div>
+            ${archivedSessions.length > 0 ? `
+            <div class="archived-sessions-section" style="margin-top: 3rem;">
+                <h3 style="margin-bottom: 1rem; color: var(--gray-500); font-size: 1.1rem;"><i class="fa-solid fa-box-archive"></i> Arşivlenmiş Oturumlar</h3>
+                ${archivedTableHtml}
+            </div>` : ''}
+        `;
+
+        // Restore open accordion if it exists
+        if (window._currentlyOpenSessionId) {
+            const body = document.getElementById(`accordion-body-${window._currentlyOpenSessionId}`);
+            if (body) {
+                body.classList.remove('hidden');
+                const arrow = document.getElementById(`arrow-${window._currentlyOpenSessionId}`);
+                if (arrow) arrow.style.transform = 'rotate(90deg)';
+                // Also re-trigger distribution view to populate the container if it was recently updated
+                window.viewSessionDistribution(window._currentlyOpenSessionId, null, false, true);
+            }
+        }
+    }
                     <div class="archived-content">
                         ${renderArchivedList(archivedSessions)}
                     </div>
@@ -5472,7 +5509,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     };
 
-    window.viewSessionDistribution = function (id, forceMode = null, isModeSwitch = false) {
+    window.viewSessionDistribution = function (id, forceMode = null, isModeSwitch = false, isAutoRefresh = false) {
 
         try {
             const sessions = DataManager.getExamSessions();
@@ -5483,8 +5520,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const resultsContainer = document.getElementById(`results-container-${id}`);
             const arrow = document.getElementById(`arrow-${id}`);
 
-            // Toggle logic ONLY if it's NOT a mode switch
-            if (!isModeSwitch) {
+            // Toggle logic ONLY if it's NOT a mode switch or auto-refresh
+            if (!isModeSwitch && !isAutoRefresh) {
                 const isCurrentlyHidden = accordionBody.classList.contains('hidden');
 
                 // Close others
@@ -5494,15 +5531,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (isCurrentlyHidden) {
                     accordionBody.classList.remove('hidden');
                     if (arrow) arrow.style.transform = 'rotate(90deg)';
+                    window._currentlyOpenSessionId = id;
                 } else {
                     accordionBody.classList.add('hidden');
                     if (arrow) arrow.style.transform = 'rotate(0deg)';
+                    window._currentlyOpenSessionId = null;
+                    window._activeResultsContainer = null;
                     return; // Just closed it
                 }
             } else {
                 // If it's a mode switch but the accordion is closed (shouldn't happen but safe-guard)
-                if (accordionBody.classList.contains('hidden')) return;
+                if (accordionBody.classList.contains('hidden') && !isAutoRefresh) return;
             }
+
+            window._activeResultsContainer = resultsContainer;
 
             const modeEl = document.querySelector(`input[name="mode-${id}"]:checked`);
             const mode = forceMode || (modeEl ? modeEl.value : 'class');
@@ -6434,15 +6476,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         initializeNavigation();
 
         // --- Anlık Senkronizasyon (Diğer sayfalardaki değişiklikleri dashboard'a yansıtır) ---
-        let lastSyncHash = JSON.stringify(DataManager.getExamSessions());
+        window._lastSyncHash = JSON.stringify(DataManager.getExamSessions());
+        window.updateSyncHash = function() {
+            window._lastSyncHash = JSON.stringify(DataManager.getExamSessions());
+        };
+
         setInterval(async () => {
             const sessionsTab = document.getElementById('view-exam');
             // Sadece Sınav Dağıtımı sekmesi aktifse ve modal açık değilse yenile (UI akışını bozmamak için)
             if (sessionsTab && !sessionsTab.classList.contains('hidden') && !document.querySelector('.swal2-container')) {
                 await DataManager.initCloud();
                 const currentHash = JSON.stringify(DataManager.getExamSessions());
-                if (currentHash !== lastSyncHash) {
-                    lastSyncHash = currentHash;
+                if (currentHash !== window._lastSyncHash) {
+                    window._lastSyncHash = currentHash;
                     console.log("Dış veri değişikliği algılandı, oturum listesi yenileniyor...");
                     if (typeof renderExamSessionsList === 'function') renderExamSessionsList();
                 }
@@ -6499,8 +6545,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderResults() {
-        const r = window._currentExamResults;
-        if (r && window._renderExamResults) window._renderExamResults(r);
+        const s = window.currentRenderedSession;
+        if (s && window._renderExamResults) {
+            window._renderExamResults(s, window._activeResultsContainer);
+        }
     }
 
     // ── Called from oncontextmenu="examDeskRightClick(event, idx, seatId)"
@@ -6555,7 +6603,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 dstRoom.seats[seatId] = moving;
                 if (window.currentRenderedSession) {
                     window.currentRenderedSession.results = results;
-                    if (window.DataManager) DataManager.addExamSession(window.currentRenderedSession);
+                    if (window.DataManager) {
+                        DataManager.addExamSession(window.currentRenderedSession);
+                    }
                 }
                 renderResults();
             }
@@ -6587,7 +6637,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             delete results[roomIdx].seats[seatId];
             if (window.currentRenderedSession) {
                 window.currentRenderedSession.results = results;
-                if (window.DataManager) DataManager.addExamSession(window.currentRenderedSession);
+                if (window.DataManager) {
+                    DataManager.addExamSession(window.currentRenderedSession);
+                }
             }
             renderResults();
         });
