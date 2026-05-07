@@ -2020,6 +2020,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnWizardNext = document.getElementById('btnWizardNext');
     const btnWizardPrev = document.getElementById('btnWizardPrev');
     const btnWizardFinish = document.getElementById('btnWizardFinish');
+    const btnWizardCancel = document.getElementById('btnWizardCancel');
 
     let currentWizardStep = 1;
     let wizardSessionData = {
@@ -2109,6 +2110,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (btnWizardClose) {
         btnWizardClose.addEventListener('click', () => {
+            examWizardModal.classList.add('hidden');
+        });
+    }
+
+    if (btnWizardCancel) {
+        btnWizardCancel.addEventListener('click', () => {
             examWizardModal.classList.add('hidden');
         });
     }
