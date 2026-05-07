@@ -1885,10 +1885,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderExamResults(session, targetContainer = null, appendMode = false) {
         const results = session.results;
         const view = targetContainer || examClassroomsView;
+        const openRoomIds = Array.from(view.querySelectorAll('.nested-accordion-body:not(.hidden)')).map(el => el.id);
+        
         if (!appendMode) view.innerHTML = '';
 
         results.forEach((room, idx) => {
-            const roomId = `nested-room-schema-${idx}-${Math.random().toString(36).substr(2, 5)}`;
+            const roomId = `nested-room-schema-${session.id}-${idx}`;
             const roomEl = document.createElement('div');
             roomEl.className = 'exam-room-result';
             roomEl.style.marginBottom = '2.5rem';
@@ -1967,10 +1969,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <h3 style="margin:0; font-size:1.1rem;"><i class="fa-solid fa-table-cells" style="color:var(--primary);"></i> ${room.name} Salonu - Oturma Planı</h3>
                     <div style="display:flex; align-items:center; gap:15px;">
                         <i class="fa-solid fa-print" style="color:var(--gray-400); cursor:pointer;" title="Yazdır" onclick="event.stopPropagation(); window.printSessionDistribution('${session.id}', '${room.name}')"></i>
-                        <i id="icon-${roomId}" class="fa-solid fa-chevron-right" style="color:var(--gray-400);"></i>
+                        <i id="icon-${roomId}" class="fa-solid ${openRoomIds.includes(roomId) ? 'fa-chevron-down' : 'fa-chevron-right'}" style="color:var(--gray-400);"></i>
                     </div>
                 </div>
-                <div id="${roomId}" class="hidden" style="padding:0.5rem; border:1px solid var(--gray-200); border-top:none; border-bottom-left-radius:8px; border-bottom-right-radius:8px; background:#f8fafc; overflow:hidden;">
+                <div id="${roomId}" class="nested-accordion-body ${openRoomIds.includes(roomId) ? '' : 'hidden'}" style="padding:0.5rem; border:1px solid var(--gray-200); border-top:none; border-bottom-left-radius:8px; border-bottom-right-radius:8px; background:#f8fafc; overflow:hidden;">
                     <div class="schema-scroller" style="width:100%; display:flex; justify-content:center; align-items:center; min-height:400px; overflow-x:auto; padding:20px 0;">
                         <div class="classroom-walls" style="border:4px solid #334155; padding:40px; border-radius:24px; background:white; display:inline-block; transition: transform 0.3s ease; transform-origin:center; box-shadow:0 20px 50px rgba(0,0,0,0.1);">
                             ${groupsHtml}
