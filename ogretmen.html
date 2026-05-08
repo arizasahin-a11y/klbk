@@ -951,7 +951,10 @@
                     const diffEndMins = (endTime - now) / 1000 / 60;
 
                     if (diffEndMins < -30) {
-                        needsRender = true;
+                        if (el.dataset.prev !== 'archived') {
+                            el.dataset.prev = 'archived';
+                            needsRender = true;
+                        }
                     } else if (diffEndMins < 0) {
                         el.innerText = 'BİTTİ';
                         el.style.color = 'var(--gray-500)';
@@ -976,19 +979,21 @@
                 }
             });
 
-            // Görev Geri Sayımları
-            const myDuties = getMyDuties(_timerSessions);
-            myDuties.forEach(d => {
-                const el = document.getElementById(`duty-cd-${d.id}`);
-                if (el) {
-                    const targetTime = DataManager.parseSessionDateTime(d.date, d.time);
+            // Görev Geri Sayımları - DOM üzerinden hızlı güncelleme
+            document.querySelectorAll('[id^="duty-cd-"]').forEach(el => {
+                const sesId = el.id.replace('duty-cd-', '');
+                const _allSessions = DataManager.getExamSessions();
+                const ses = _allSessions.find(s => s.id === sesId);
+                
+                if (ses) {
+                    const targetTime = DataManager.parseSessionDateTime(ses.date, ses.time);
                     const diffMs = targetTime - now;
                     if (diffMs <= 0) {
                         el.innerText = 'GÖREV VAKTİ';
                         el.style.color = 'var(--danger)';
                     } else {
                         el.innerText = formatCountdown(diffMs);
-                        el.style.color = '#d97706'; // Mustard color
+                        el.style.color = '#d97706';
                     }
                 }
             });
