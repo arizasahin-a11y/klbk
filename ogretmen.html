@@ -1183,9 +1183,18 @@
             const duties = [];
             const myName = DataManager.formatTeacherName(sessionStorage.getItem('klbk_name'));
             const myUname = sessionStorage.getItem('klbk_uname');
+            const now = new Date();
             
             sessions.forEach(ses => {
                 if (!ses) return;
+
+                // Sınav bitişinden 5 dakika sonrasını hesapla
+                const endTime = DataManager.getSessionEndDateTime(ses.date, ses.time, ses.examDuration);
+                const removeTime = new Date(endTime.getTime() + (5 * 60 * 1000));
+                
+                // Eğer şimdiki zaman, silme zamanından büyükse bu görevi atla
+                if (now > removeTime) return;
+
                 const teachersData = DataManager.calculateExamTeachers(ses, window.globalTeachersDb || {});
                 // Gözetmenlikleri kontrol et
                 Object.entries(teachersData.classrooms || {}).forEach(([roomName, info]) => {
