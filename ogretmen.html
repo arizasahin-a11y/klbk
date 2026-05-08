@@ -573,6 +573,8 @@
         function renderExams() {
             try {
                 const _renderSessions = DataManager.getSortedExamSessions().filter(s => s.isPublished);
+                const listContainer = document.getElementById('examsList');
+                if (!listContainer) return;
                 const now = getNow();
 
                 let targetSessions = [];
