@@ -577,6 +577,27 @@
                 if (!listContainer) return;
                 const now = getNow();
 
+                const getMyDuties = (sessions) => {
+                    const duties = [];
+                    const myName = DataManager.formatTeacherName(currentName);
+                    sessions.forEach(ses => {
+                        const teachersData = DataManager.calculateExamTeachers(ses, window.globalTeachersDb || {});
+                        // Gözetmenlikleri kontrol et
+                        Object.entries(teachersData.classrooms).forEach(([roomName, info]) => {
+                            if (info.gorevli && info.gorevli.includes(myName)) {
+                                duties.push({ id: ses.id, name: ses.name, date: ses.date, time: ses.time, room: roomName, role: 'Gözetmen' });
+                            }
+                        });
+                        // Yedeklikleri kontrol et
+                        (teachersData.globalSpares || []).forEach(spare => {
+                            if (spare.name === myName || spare.uname === currentUser) {
+                                duties.push({ id: ses.id, name: ses.name, date: ses.date, time: ses.time, room: 'Yedek Gözetmen', role: 'Yedek' });
+                            }
+                        });
+                    });
+                    return duties;
+                };
+
                 let targetSessions = [];
                 _renderSessions.forEach(ses => {
                     // Safety check for session structure
@@ -665,8 +686,43 @@
                     }
                 });
 
+                let html = '';
+
+                // SINAV GÖREVLERİNİZ BÖLÜMÜ
+                const myDuties = getMyDuties(_renderSessions);
+                if (myDuties.length > 0) {
+                    html += `
+                    <div class="glass-panel" style="margin-bottom: 2rem; border-left: 5px solid var(--secondary); padding: 0; overflow: hidden;">
+                        <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(var(--secondary-rgb), 0.03);" onclick="document.getElementById('myDutiesList').classList.toggle('hidden'); this.querySelector('.fa-chevron-down').classList.toggle('fa-rotate-180')">
+                            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 900; color: var(--secondary); display: flex; align-items: center; gap: 10px;">
+                                <i class="fa-solid fa-clipboard-check"></i> SINAV GÖREVLERİNİZ
+                                <span style="background: var(--secondary); color: white; font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; font-weight: 700;">${myDuties.length}</span>
+                            </h3>
+                            <i class="fa-solid fa-chevron-down" style="color: var(--gray-400); transition: 0.3s;"></i>
+                        </div>
+                        <div id="myDutiesList" class="hidden" style="padding: 0 1.25rem 1.25rem 1.25rem; border-top: 1px dashed var(--gray-200); margin-top: 0;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-top: 15px;">
+                                ${myDuties.map(d => `
+                                    <div style="background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 5px; box-shadow: var(--shadow-sm); position: relative; overflow: hidden;">
+                                        <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: ${d.role === 'Yedek' ? 'var(--gray-400)' : 'var(--secondary)'};"></div>
+                                        <div style="font-weight: 800; color: var(--dark); font-size: 0.95rem; margin-left: 5px;">${d.name}</div>
+                                        <div style="display: flex; gap: 10px; font-size: 0.8rem; color: var(--gray-500); font-weight: 600; margin-left: 5px;">
+                                            <span><i class="fa-solid fa-calendar-day"></i> ${d.date}</span>
+                                            <span><i class="fa-solid fa-clock"></i> ${d.time}</span>
+                                        </div>
+                                        <div style="margin-top: 5px; display: flex; justify-content: space-between; align-items: center; margin-left: 5px;">
+                                            <span style="font-size: 0.85rem; font-weight: 700; color: var(--primary);"><i class="fa-solid fa-door-open"></i> ${d.room}</span>
+                                            <span style="font-size: 0.75rem; font-weight: 800; background: ${d.role === 'Yedek' ? 'var(--gray-100)' : 'var(--secondary-light)'}; color: ${d.role === 'Yedek' ? 'var(--gray-600)' : 'var(--secondary)'}; padding: 3px 8px; border-radius: 6px;">${d.role}</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>`;
+                }
+
                 if (targetSessions.length === 0) {
-                    listContainer.innerHTML = `
+                    listContainer.innerHTML = html + `
                         <div class="glass-panel" style="padding: 2rem; text-align: center;">
                             <div style="color: var(--gray-500); font-weight: 600; margin-bottom:10px;">Şu an size tanımlı herhangi bir sınav görünmüyor.</div>
                             <div style="font-size: 0.8rem; color: var(--gray-400);">
@@ -677,7 +733,6 @@
                     return;
                 }
 
-                let html = '';
                 targetSessions.forEach(item => {
                     const ses = item.session;
                     const subjectsObj = item.displaySubjects;
