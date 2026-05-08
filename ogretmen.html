@@ -445,6 +445,7 @@
         let lastLocalChangeTime = 0;
         function markLocalChange() {
             lastLocalChangeTime = Date.now();
+            localStorage.setItem('klbk_lastLocalChange', lastLocalChangeTime.toString());
         }
 
         async function backgroundSync() {
@@ -1058,7 +1059,7 @@
                         showConfirmButton: false, timer: 1500
                     });
                 }
-                renderExams();
+                setTimeout(() => renderExams(), 50);
             }
         }
 
@@ -2052,15 +2053,17 @@
                 DataManager.addExamSession(session);
                 markLocalChange();
                 lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
-                renderExams();
                 
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Kaydedildi',
-                    text: 'Tasarım tercihleri sadece bu sınav dersi için uygulandı.',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
+                setTimeout(() => {
+                    renderExams();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Kaydedildi',
+                        text: 'Tasarım tercihleri sadece bu sınav dersi için uygulandı.',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }, 100);
             }
         };
 

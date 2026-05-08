@@ -139,6 +139,13 @@ const DataManager = {
             if (res.ok) {
                 const data = await res.json();
                 if (data) { 
+                    // Race Condition Check: Don't overwrite memory if a local change just happened
+                    const lastLocal = parseInt(localStorage.getItem('klbk_lastLocalChange') || '0');
+                    if (Date.now() - lastLocal < 5000) {
+                        console.log("Skipping cloud load: Local change in progress...");
+                        return;
+                    }
+
                     this._memoryData = data;
                     localStorage.setItem(key, JSON.stringify(data)); // Sync cloud to local
                     console.log("%c CLOUD SUCCESS: Loaded data for " + key, "background: #22c55e; color: white; padding: 2px 5px;");
