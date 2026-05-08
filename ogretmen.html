@@ -1166,6 +1166,30 @@
             return `${dd}:${hh}:${mm}:${ss}`;
         }
 
+        const getMyDuties = (sessions) => {
+            const duties = [];
+            const myName = DataManager.formatTeacherName(sessionStorage.getItem('klbk_name'));
+            const myUname = sessionStorage.getItem('klbk_uname');
+            
+            sessions.forEach(ses => {
+                if (!ses) return;
+                const teachersData = DataManager.calculateExamTeachers(ses, window.globalTeachersDb || {});
+                // Gözetmenlikleri kontrol et
+                Object.entries(teachersData.classrooms || {}).forEach(([roomName, info]) => {
+                    if (info.gorevli && info.gorevli.includes(myName)) {
+                        duties.push({ id: ses.id, name: ses.name, date: ses.date, time: ses.time, room: roomName, role: 'Gözetmen' });
+                    }
+                });
+                // Yedeklikleri kontrol et
+                (teachersData.globalSpares || []).forEach(spare => {
+                    if (spare.name === myName || spare.uname === myUname) {
+                        duties.push({ id: ses.id, name: ses.name, date: ses.date, time: ses.time, room: 'Yedek Gözetmen', role: 'Yedek' });
+                    }
+                });
+            });
+            return duties;
+        };
+
         async function openTeacherSettings() {
             Swal.fire({
                 title: 'Hesap Ayarları',
