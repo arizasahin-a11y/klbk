@@ -649,6 +649,13 @@
                         processSubject(subName, sub);
                     });
 
+                    const getGradeScore = (name) => {
+                        const m = name.match(/\d+/);
+                        return m ? parseInt(m[0]) : 999;
+                    };
+                    myMatchedSubjects.sort((a, b) => getGradeScore(a.name) - getGradeScore(b.name));
+                    otherSharedSubjects.sort((a, b) => getGradeScore(a.name) - getGradeScore(b.name));
+
                     if (myMatchedSubjects.length > 0 || otherSharedSubjects.length > 0) {
                         targetSessions.push({ 
                             session: ses, 
@@ -1037,7 +1044,7 @@
                 if (shareCheck) {
                     session.subjectMetadata[safeSub].isShared = shareCheck.checked;
                 } else if (session.subjectMetadata[safeSub].isShared === undefined) {
-                    session.subjectMetadata[safeSub].isShared = true; // Default to true as requested
+                    session.subjectMetadata[safeSub].isShared = false; // Default to false
                 }
 
                 DataManager.addExamSession(session);
@@ -1850,6 +1857,7 @@
                 "Shark Crash",
                 "Shoguns Clan",
                 "Snap ITC",
+                "Arial Black",
                 "Tahoma",
                 "Times New Roman",
                 "Times New Roman Bold",
@@ -1933,6 +1941,7 @@
                 "monotypecorsiva": "MTCORSVA.TTF",
                 "ravie": "RAVIE.TTF",
                 "snapitc": "SNAP____.TTF",
+                "arialblack": "arialbd.ttf",
                 "tahoma": "tahoma.ttf",
                 "timesnewroman": "times.ttf",
                 "timesnewromanbold": "timesbd.ttf",

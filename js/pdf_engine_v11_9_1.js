@@ -217,6 +217,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         "Shark Crash",
         "Shoguns Clan",
         "Snap ITC",
+        "Arial Black",
         "Tahoma",
         "Times New Roman",
         "Times New Roman Bold",
@@ -305,6 +306,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             "monotypecorsiva": "MTCORSVA.TTF",
             "ravie": "RAVIE.TTF",
             "snapitc": "SNAP____.TTF",
+            "arialblack": "arialbd.ttf",
             "tahoma": "tahoma.ttf",
             "timesnewroman": "times.ttf",
             "timesnewromanbold": "timesbd.ttf",
@@ -324,10 +326,22 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const sFont2 = metadata.pdfHeaderFont2 || 'auto';
     const sFont3 = metadata.pdfHeaderFont3 || 'auto';
 
-    const finalTheme = (sTheme === 'auto') ? (((subHash % 11) + 1).toString()) : sTheme;
-    const finalFont1 = (sFont1 === 'auto') ? fontsListTurkish[subHash % fontsListTurkish.length] : sFont1;
-    const finalFont2 = (sFont2 === 'auto') ? fontsListTurkish[(subHash * 2) % fontsListTurkish.length] : sFont2;
-    const finalFont3 = (sFont3 === 'auto') ? fontsListTurkish[(subHash * 3) % fontsListTurkish.length] : sFont3;
+    // Grade detection for defaults
+    const gradeMatch = subjectName.match(/\d+/);
+    const grade = gradeMatch ? gradeMatch[0] : null;
+
+    let finalTheme = sTheme;
+    if (sTheme === 'auto') {
+        if (grade === '9') finalTheme = '9';
+        else if (grade === '10') finalTheme = '1';
+        else if (grade === '11') finalTheme = '2';
+        else if (grade === '12') finalTheme = '7';
+        else finalTheme = (((subHash % 11) + 1).toString());
+    }
+
+    const finalFont1 = (sFont1 === 'auto') ? "Snap ITC" : sFont1;
+    const finalFont2 = (sFont2 === 'auto') ? "Arial Black" : sFont2;
+    const finalFont3 = (sFont3 === 'auto') ? "Monotype Corsiva" : sFont3;
 
     const designType = finalTheme || '1';
 
