@@ -1109,7 +1109,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         let widgetHtml = '';
 
         classes.forEach((cls, index) => {
-            const clsStudents = classGroups[cls] || [];
+            const clsStudents = (classGroups[cls] || []).slice().sort((a, b) => {
+                const na = parseInt(a.no) || 0;
+                const nb = parseInt(b.no) || 0;
+                if (na !== nb) return na - nb;
+                return String(a.no).localeCompare(String(b.no));
+            });
             const count = clsStudents.length;
             const assignedRoom = DataManager.getSanitizedClassRoomMapping(cls) || '';
 
