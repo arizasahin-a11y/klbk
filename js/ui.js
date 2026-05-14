@@ -5437,6 +5437,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             let targetStudents = [];
             let targetRooms = [];
 
+            // Oturumun derslerini her iki dalda kullanmak için önceden hazırla
+            const sessionSubjectsForMerge = (session.subjects || []).map(s =>
+                typeof s === 'object' ? s.name : s
+            ).filter(Boolean);
+            if (!sessionSubjectsForMerge.length && session.subject) sessionSubjectsForMerge.push(session.subject);
+
             if (session.results && session.results.length) {
                 // Öğrencileri mevcut dağıtımdan al (_matchedSubject zaten var)
                 const seen = new Set();
@@ -5448,6 +5454,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     });
                 });
+
+                // ── YENİ: Sonradan eklenen öğrencileri DataManager'dan çek ve ekle ──
+                // Mevcut dağıtımda olmayan ama oturumun dersine uygun öğrencileri bul
+                const allStudentsNow = DataManager.getStudents();
+                allStudentsNow.forEach(s => {
+                    if (seen.has(s.no?.toString()) || seen.has(s.no)) return; // zaten var
+                    if (session.excludedStudents?.includes(s.no?.toString())) return; // hariç tutulan
+                    if (!s.dersler?.length) return;
+                    let matched = null;
+                    const ok = sessionSubjectsForMerge.length === 0 || s.dersler.some(d => {
+                        const dt = d.trim();
+                        const hit = sessionSubjectsForMerge.some(base =>
+                            dt === base || dt.startsWith(base + ' ') || dt.startsWith(base + '-')
+                        );
+                        if (hit) matched = dt;
+                        return hit;
+                    });
+                    if (ok) {
+                        const studentCopy = { ...s };
+                        if (matched) studentCopy._matchedSubject = matched;
+                        targetStudents.push(studentCopy);
+                        seen.add(s.no?.toString());
+                    }
+                });
+
                 // Derslik isimlerini sonuçlardan al, DataManager'dan eşleştir
                 const resultRoomNames = session.results.map(r => r.name);
                 targetRooms = allRooms.filter(r => resultRoomNames.includes(r.name));
@@ -5464,19 +5495,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!targetStudents.length || !targetRooms.length) {
                 const allStudents = DataManager.getStudents();
 
-                // Dersleri hem obje hem string formatını destekle
-                const sessionSubjects = (session.subjects || []).map(s =>
-                    typeof s === 'object' ? s.name : s
-                ).filter(Boolean);
-                if (!sessionSubjects.length && session.subject) sessionSubjects.push(session.subject);
-
                 targetStudents = allStudents.filter(s => {
                     if (session.excludedStudents?.includes(s.no?.toString())) return false;
                     if (!s.dersler?.length) return false;
                     let matched = null;
-                    const ok = s.dersler.some(d => {
+                    const ok = sessionSubjectsForMerge.length === 0 || s.dersler.some(d => {
                         const dt = d.trim();
-                        const hit = sessionSubjects.some(base =>
+                        const hit = sessionSubjectsForMerge.some(base =>
                             dt === base || dt.startsWith(base + ' ') || dt.startsWith(base + '-')
                         );
                         if (hit) matched = dt;
