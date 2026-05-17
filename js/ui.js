@@ -4303,15 +4303,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 const hasPaper = loaded.has(sub);
                                 const isChecked = hasPaper ? 'checked' : '';
                                 const paperStatusHtml = hasPaper 
-                                    ? \`<span style="color: #16a34a; font-size: 0.75rem; font-weight: bold; margin-left: auto;"><i class="fa-solid fa-circle-check"></i> Soru Kağıdı Var</span>\` 
-                                    : \`<span style="color: #ef4444; font-size: 0.75rem; font-weight: bold; margin-left: auto;"><i class="fa-solid fa-circle-xmark"></i> Soru Kağıdı Yok!</span>\`;
-                                return \`
-                                    <label style="display: flex; align-items: center; gap: 10px; cursor: \${hasPaper ? 'pointer' : 'not-allowed'}; font-size: 0.85rem; color: \${hasPaper ? '#1e293b' : '#94a3b8'}; padding: 4px 6px; border-radius: 4px; transition: background 0.2s;">
-                                        <input type="checkbox" class="swal-exam-checkbox" data-subject="\${sub}" \${isChecked} \${hasPaper ? '' : 'disabled'} style="width: 16px; height: 16px; accent-color: var(--primary);">
-                                        <span style="font-weight: 600;">\${sub}</span>
-                                        \${paperStatusHtml}
+                                    ? `<span style="color: #16a34a; font-size: 0.75rem; font-weight: bold; margin-left: auto;"><i class="fa-solid fa-circle-check"></i> Soru Kağıdı Var</span>` 
+                                    : `<span style="color: #ef4444; font-size: 0.75rem; font-weight: bold; margin-left: auto;"><i class="fa-solid fa-circle-xmark"></i> Soru Kağıdı Yok!</span>`;
+                                return `
+                                    <label style="display: flex; align-items: center; gap: 10px; cursor: ${hasPaper ? 'pointer' : 'not-allowed'}; font-size: 0.85rem; color: ${hasPaper ? '#1e293b' : '#94a3b8'}; padding: 4px 6px; border-radius: 4px; transition: background 0.2s;">
+                                        <input type="checkbox" class="swal-exam-checkbox" data-subject="${sub}" ${isChecked} ${hasPaper ? '' : 'disabled'} style="width: 16px; height: 16px; accent-color: var(--primary);">
+                                        <span style="font-weight: 600;">${sub}</span>
+                                        ${paperStatusHtml}
                                     </label>
-                                \`;
+                                `;
                             }).join('')}
                         </div>
                     </div>
@@ -4321,8 +4321,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const choiceResult = await Swal.fire({
                 title: 'Yazdırma Seçeneği',
                 html: hasAnyLoaded
-                    ? \`<b>\${filterValue}</b> için soru kağıtları ne yapılsın?\${statusHtml}\${selectionHtml}\`
-                    : \`<div style="color:var(--danger); font-weight:bold; margin-bottom:10px;">UYARI: Bu grup için henüz hiçbir soru kağıdı yüklenmemiş.</div>\${statusHtml}\`,
+                    ? `<b>${filterValue}</b> için soru kağıtları ne yapılsın?${statusHtml}${selectionHtml}`
+                    : `<div style="color:var(--danger); font-weight:bold; margin-bottom:10px;">UYARI: Bu grup için henüz hiçbir soru kağıdı yüklenmemiş.</div>${statusHtml}`,
                 icon: hasAnyLoaded ? 'question' : 'error',
                 showConfirmButton: hasAnyLoaded,
                 showDenyButton: hasAnyLoaded,
