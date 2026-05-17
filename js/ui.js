@@ -4404,6 +4404,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const isDoubleSidedMode = maxPageCount > 1;
 
                 for (let i = 0; i < targetStudents.length; i++) {
+                    // YIELD TO BROWSER TO PREVENT UI FREEZING
+                    if (i % 5 === 0) await new Promise(r => setTimeout(r, 5));
+
                     const s = targetStudents[i];
                     const progressEl = document.getElementById('batch-progress');
                     if (progressEl) progressEl.innerText = `${i + 1} / ${targetStudents.length}`;
@@ -4805,7 +4808,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const sorted = Object.keys(byClass).sort(sortByNum);
                 const studentMsg = (session.studentMsg || '').trim();
 
-                sorted.forEach(cls => {
+                for (let clsIdx = 0; clsIdx < sorted.length; clsIdx++) {
+                    const cls = sorted[clsIdx];
+                    await new Promise(r => setTimeout(r, 5)); // Yield to prevent thread lock
+
                     const students = byClass[cls].sort((a, b) => parseInt(a.no) - parseInt(b.no));
                     const PAGE_SIZE = 50;
                     for (let p = 0; p < students.length; p += PAGE_SIZE) {
@@ -4840,12 +4846,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                             ${(studentMsg && (p + PAGE_SIZE >= students.length)) ? `<div class="msg-box"><strong><span class="icon">!</span> Lütfen Dikkat!!!</strong>${studentMsg}</div>` : ""}
                         </div>`;
                     }
-                });
+                }
 
                 // ─────── SALON MODU ───────────────────────────────────────────
             } else if (mode === 'room') {
                 const sortedRooms = [...session.results].filter(r => !filterValue || r.name === filterValue).sort((a, b) => sortByNum(a.name, b.name));
-                sortedRooms.forEach(room => {
+                for (let rIdx = 0; rIdx < sortedRooms.length; rIdx++) {
+                    const room = sortedRooms[rIdx];
+                    await new Promise(r => setTimeout(r, 5)); // Yield thread execution
+
                     let ctr = 1; const seatToNum = {};
                     const seatIds = [];
                     for (let g = 1; g <= room.groups; g++) {
@@ -4949,11 +4958,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                             ${sigHtml}
                         </div>`;
                     }
-                });
+                }
 
                 // ─────── ŞEMA MODU ────────────────────────────────────────────
-            } else {
-                session.results.filter(r => !filterValue || r.name === filterValue).forEach(room => {
+                const seatingRooms = session.results.filter(r => !filterValue || r.name === filterValue);
+                for (let sIdx = 0; sIdx < seatingRooms.length; sIdx++) {
+                    const room = seatingRooms[sIdx];
+                    await new Promise(r => setTimeout(r, 5)); // Yield thread execution
                     let ctr = 1; const seatToNum = {};
                     for (let g = 1; g <= room.groups; g++) {
                         const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
@@ -5004,7 +5015,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="schema-container"><div class="classroom-walls">${groupsHtml}
                             <div class="front-side">${room.teacherDeskPos === 'left' ? `<div class="teacher-desk">ÖĞRETMEN<br>MASASI</div><div class="board">Y A Z I &nbsp; T A H T A S I</div><div style="width:110px;"></div>` : `<div style="width:110px;"></div><div class="board">Y A Z I &nbsp; T A H T A S I</div><div class="teacher-desk">ÖĞRETMEN<br>MASASI</div>`}</div>
                         </div></div></div>`;
-                });
+                }
 
                 body += `<script>
                     window.addEventListener('load', () => {

@@ -1807,6 +1807,9 @@
                 const isDoubleSidedMode = maxPageCount > 1;
 
                 for (let i = 0; i < targetStudents.length; i++) {
+                    // YIELD TO BROWSER TO PREVENT UI FREEZING
+                    if (i % 5 === 0) await new Promise(r => setTimeout(r, 5));
+
                     const s = targetStudents[i];
                     const progressEl = document.getElementById('batch-progress');
                     if (progressEl) progressEl.innerText = `${i + 1} / ${targetStudents.length}`;
@@ -2899,7 +2902,10 @@
                 const studentMsg = (studentMsgOverride !== undefined ? studentMsgOverride : (session.studentMsg || '')).trim();
                 const PAGE_SIZE = pageSizeOverride || 45;
 
-                sorted.forEach(cls => {
+                for (let clsIdx = 0; clsIdx < sorted.length; clsIdx++) {
+                    const cls = sorted[clsIdx];
+                    await new Promise(r => setTimeout(r, 5)); // Yield to prevent thread lock
+
                     const students = byClass[cls].sort((a, b) => parseInt(a.no) - parseInt(b.no));
                     for (let p = 0; p < students.length; p += PAGE_SIZE) {
                         const chunk = students.slice(p, p + PAGE_SIZE);
@@ -2908,12 +2914,15 @@
                         const rows = chunk.map(s => `<tr><td style="width:10%;" class="text-center text-bold">${s.no}</td><td style="width:40%; text-transform:uppercase; font-weight:600;">${s.name}</td><td style="width:28%;">${abbr(s._matchedSubject || '-', 25)}</td><td style="width:14%;" class="text-center">${s.room}</td><td style="width:8%;" class="text-center text-bold">${s.seatNum}</td></tr> `).join('');
                         body += `<div class="page portrait ${isHighDensity ? 'compact-header' : ''}"> ${hdr(`${cls} Sınıf Listesi`, cls)} <div class="table-responsive"><table class="${isHighDensity ? 'compact' : ''}"><thead><tr><th style="width:10%;" class="text-center">No</th><th style="width:40%;">Ad Soyad</th><th style="width:28%;">Sınav Dersi</th><th style="width:14%;" class="text-center">Derslik</th><th style="width:8%;" class="text-center">Sıra</th></tr></thead><tbody>${rows}</tbody></table></div>${(studentMsg && isLastPage) ? `<div class="msg-box ${isHighDensity ? 'compact-msg' : ''}"><strong><span class="icon">!</span> Dikkat: </strong>${studentMsg}</div>` : ""}</div> `;
                     }
-                });
+                }
 
                 // ─────── SALON MODU ───────────────────────────────────────────
             } else if (mode === 'room') {
                 const sortedRooms = [...session.results].filter(r => filterArray.includes(r.name)).sort((a, b) => sortByNum(a.name, b.name));
-                sortedRooms.forEach(room => {
+                for (let rIdx = 0; rIdx < sortedRooms.length; rIdx++) {
+                    const room = sortedRooms[rIdx];
+                    await new Promise(r => setTimeout(r, 5)); // Yield to prevent thread lock
+
                     let ctr = 1; const seatToNum = {}; const seatIds = [];
                     for (let g = 1; g <= room.groups; g++) {
                         const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
@@ -2985,12 +2994,15 @@
 
                         body += `<div class="page portrait ${isHighDensity ? 'compact-header' : ''}"> ${hdr(`${room.name} Salonu - Oturma Listesi`, room.name)} <div style="display:flex; flex:1;"><div style="flex:1;"><div class="table-responsive"><table class="${isHighDensity ? 'compact' : ''}"><thead><tr><th style="width:8%;" class="text-center">Sıra</th><th style="width:10%;" class="text-center">Sınıf</th><th style="width:10%;" class="text-center">No</th><th style="width:42%;">Ad Soyad</th><th style="width:15%;">Ders</th><th style="width:15%;">AÇIKLAMA</th></tr></thead><tbody>${rows}</tbody></table></div></div>${summaryContent}</div>${(teacherMsg && isLastPage) ? `<div class="msg-box ${isHighDensity ? 'compact-msg' : ''}" style="border-color:#ca8a04; background:#fffaf0; margin-bottom:5px;"><strong><span class="icon" style="background:#ea580c;">!</span> Dikkat: </strong>${teacherMsg}</div>` : ""}${sigHtml}</div> `;
                     }
-                });
+                }
 
                 // ─────── OTURMA ŞEMASI ───────────────────────────────────────────
             } else if (mode === 'seating') {
                 const sortedRooms = [...session.results].filter(r => filterArray.includes(r.name)).sort((a, b) => sortByNum(a.name, b.name));
-                sortedRooms.forEach(room => {
+                for (let rIdx = 0; rIdx < sortedRooms.length; rIdx++) {
+                    const room = sortedRooms[rIdx];
+                    await new Promise(r => setTimeout(r, 5)); // Yield to prevent thread lock
+
                     let ctr = 1; const seatToNum = {};
                     for (let g = 1; g <= room.groups; g++) {
                         const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
@@ -3019,7 +3031,7 @@
                     }
                     groupsHtml += '</div>';
                     body += `<div class="page landscape">${hdr(`${room.name} Salonu - Oturma Şeması`, room.name)}<div class="schema-container"><div class="classroom-walls">${groupsHtml}<div class="front-side">${room.teacherDeskPos === 'left' ? `<div class="teacher-desk">ÖĞRETMEN MASASI</div><div class="board">YAZI TAHTASI</div><div style="width:110px;"></div>` : `<div style="width:110px;"></div><div class="board">YAZI TAHTASI</div><div class="teacher-desk">ÖĞRETMEN MASASI</div>`}</div></div></div></div>`;
-                });
+                }
             }
 
             if (body !== '') {
