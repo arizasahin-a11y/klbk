@@ -1912,7 +1912,8 @@
             const session = sessions.find(s => s.id === sesId);
             if (!session) return;
             
-            const meta = session.subjectMetadata?.[subName] || {};
+            const safeSubKey = DataManager.sanitizeFirebaseKey(subName);
+            const meta = session.subjectMetadata?.[safeSubKey] || {};
             const sTheme = meta.pdfHeaderDesign !== undefined && meta.pdfHeaderDesign !== null ? meta.pdfHeaderDesign : 'auto';
             const f1 = meta.pdfHeaderFont1 !== undefined && meta.pdfHeaderFont1 !== null ? meta.pdfHeaderFont1 : 'auto';
             const f2 = meta.pdfHeaderFont2 !== undefined && meta.pdfHeaderFont2 !== null ? meta.pdfHeaderFont2 : 'auto';
