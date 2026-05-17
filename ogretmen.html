@@ -2587,8 +2587,23 @@
                     else missing.add(sub);
                 });
 
+                let groupByLevel = false;
+                let selectedExams = [];
+                let finalStudentsToPrint = allStudents;
+
                 if (missing.size > 0 || loaded.size > 0) {
-                    let statusHtml = '<div style="text-align:left; font-size:0.9rem; background:#f8fafc; padding:15px; border-radius:10px; border:1px solid #e2e8f0; margin-top:10px;">';
+                    const allExams = Array.from(new Set([...loaded, ...missing])).sort((a, b) => {
+                        const getGradeLevel = (subject) => {
+                            const match = subject.match(/\b(9|10|11|12)\b/) || subject.match(/\d+/);
+                            return match ? parseInt(match[0], 10) : 999;
+                        };
+                        const lvlA = getGradeLevel(a);
+                        const lvlB = getGradeLevel(b);
+                        if (lvlA !== lvlB) return lvlA - lvlB;
+                        return a.localeCompare(b, 'tr');
+                    });
+
+                    let statusHtml = '<div style="text-align:left; font-size:0.9rem; background:#f8fafc; padding:15px; border-radius:10px; border:1px solid #e2e8f0; margin-top:10px; margin-bottom:15px;">';
                     statusHtml += '<div style="font-weight:900; color:var(--primary); margin-bottom:10px; border-bottom:1px solid #e2e8f0; padding-bottom:5px;">Soru Kağıdı Yüklenme Durumu:</div>';
 
                     if (loaded.size > 0) {
@@ -2606,7 +2621,47 @@
                         });
                         statusHtml += '</div>';
                     }
-                    statusHtml += '</div><div style="margin-top:15px; font-weight:600;">Toplu yazdırma başlatılsın mı?</div>';
+                    statusHtml += '</div>';
+
+                    // Add Group by level checkbox
+                    statusHtml += `
+                        <div style="margin-top: 15px; margin-bottom: 15px; text-align: left; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                            <label style="display: flex; align-items: center; gap: 10px; font-weight: 700; cursor: pointer; color: var(--primary);">
+                                <input type="checkbox" id="swal-group-by-level" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                                Düzey Düzey Gruplandır
+                            </label>
+                            <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px; margin-left: 28px; line-height: 1.3;">
+                                Soru kağıtları düzey düzey (örneğin önce Fizik 9, sonra Fizik 10, Fizik 11 vb.) gruplandırılarak sırayla yazdırılır.
+                            </div>
+                        </div>
+                    `;
+
+                    // Add Exam selection checkboxes
+                    statusHtml += `
+                        <div style="text-align: left; margin-bottom: 15px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                            <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b; margin-bottom: 10px; border-bottom: 1px solid #cbd5e1; padding-bottom: 6px;">
+                                Yazdırılacak Sınavlar
+                            </div>
+                            <div style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+                                ${allExams.map(sub => {
+                                    const hasPaper = loaded.has(sub);
+                                    const isChecked = hasPaper ? 'checked' : '';
+                                    const paperStatusHtml = hasPaper 
+                                        ? \`<span style="color: #16a34a; font-size: 0.75rem; font-weight: bold; margin-left: auto;"><i class="fa-solid fa-circle-check"></i> Soru Kağıdı Var</span>\` 
+                                        : \`<span style="color: #ef4444; font-size: 0.75rem; font-weight: bold; margin-left: auto;"><i class="fa-solid fa-circle-xmark"></i> Soru Kağıdı Yok!</span>\`;
+                                    return \`
+                                        <label style="display: flex; align-items: center; gap: 10px; cursor: \${hasPaper ? 'pointer' : 'not-allowed'}; font-size: 0.85rem; color: \${hasPaper ? '#1e293b' : '#94a3b8'}; padding: 4px 6px; border-radius: 4px;">
+                                            <input type="checkbox" class="swal-exam-checkbox" data-subject="\${sub}" \${isChecked} \${hasPaper ? '' : 'disabled'} style="width: 16px; height: 16px; accent-color: var(--primary);">
+                                            <span style="font-weight: 600;">\${sub}</span>
+                                            \${paperStatusHtml}
+                                        </label>
+                                    \`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+
+                    statusHtml += '<div style="margin-top:15px; font-weight:600; text-align: center;">Toplu yazdırma başlatılsın mı?</div>';
 
                     const hasAnyLoaded = loaded.size > 0;
                     const confirm = await Swal.fire({
@@ -2617,9 +2672,40 @@
                         showCancelButton: true,
                         confirmButtonText: 'Evet, Yazdır',
                         cancelButtonText: hasAnyLoaded ? 'İptal' : 'Kapat',
-                        confirmButtonColor: missing.size > 0 ? '#ea580c' : '#4f46e5'
+                        confirmButtonColor: missing.size > 0 ? '#ea580c' : '#4f46e5',
+                        preConfirm: () => {
+                            return {
+                                groupByLevel: document.getElementById('swal-group-by-level')?.checked || false,
+                                selectedExams: Array.from(document.querySelectorAll('.swal-exam-checkbox:checked')).map(cb => cb.dataset.subject)
+                            };
+                        }
                     });
                     if (!confirm.isConfirmed) return;
+                    
+                    groupByLevel = confirm.value.groupByLevel;
+                    selectedExams = confirm.value.selectedExams;
+
+                    // Filter allStudents by selectedExams
+                    finalStudentsToPrint = allStudents.filter(s => {
+                        const subName = s._matchedSubject || '-';
+                        return selectedExams.includes(subName);
+                    });
+
+                    // If groupByLevel is true, sort finalStudentsToPrint
+                    if (groupByLevel) {
+                        finalStudentsToPrint.sort((a, b) => {
+                            const getGradeLevel = (subject) => {
+                                const match = subject.match(/\b(9|10|11|12)\b/) || subject.match(/\d+/);
+                                return match ? parseInt(match[0], 10) : 999;
+                            };
+                            const subA = a._matchedSubject || '';
+                            const subB = b._matchedSubject || '';
+                            const lvlA = getGradeLevel(subA);
+                            const lvlB = getGradeLevel(subB);
+                            if (lvlA !== lvlB) return lvlA - lvlB;
+                            return subA.localeCompare(subB, 'tr');
+                        });
+                    }
                 }
 
                 if (filterArray.length > 1) {
@@ -2642,7 +2728,7 @@
                     if (printModeChoice.isConfirmed) {
                         // DURAKLAMALI MOD: Her grup için ayrı ayrı dön ve onay iste
                         for (const item of filterArray) {
-                            const groupStudents = allStudents.filter(s => (mode === 'class' ? s.class : s.room) === item);
+                            const groupStudents = finalStudentsToPrint.filter(s => (mode === 'class' ? s.class : s.room) === item);
                             if (groupStudents.length === 0) continue;
 
                             const confirmEach = await Swal.fire({
@@ -2663,7 +2749,7 @@
                 }
 
                 // SÜREKLİ MOD (Varsayılan veya Denied seçimi): Tümünü tek seferde yazdır
-                await printPapersForGroupBatch(allStudents, session, "Soru Kağıtları");
+                await printPapersForGroupBatch(finalStudentsToPrint, session, "Soru Kağıtları");
                 return; // Exit, don't print normal lists
             }
 

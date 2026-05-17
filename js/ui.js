@@ -3636,7 +3636,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // ─── Toplu Soru Kağıdı ZIP İhracı ───────────────────────────────────────────
-    window.exportBatchPDFs = async function (session, mode, filterValue) {
+    window.exportBatchPDFs = async function (session, mode, filterValue, selectedExams = null, groupByLevel = false) {
         try {
             if (typeof JSZip === 'undefined') {
                 Swal.fire('Hata', 'JSZip kütüphanesi yüklenemedi. Lütfen sayfayı ctrl+f5 ile yenileyin.', 'error');
@@ -3679,6 +3679,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!filterValue) return true;
                 if (mode === 'class') return s.class === filterValue;
                 if (mode === 'room') return s.room === filterValue;
+                return true;
+            }).filter(s => {
+                const subName = s._matchedSubject || '-';
+                if (selectedExams && !selectedExams.includes(subName)) return false;
                 return true;
             });
 
@@ -3730,6 +3734,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (validStudents.length === 0) {
                 Swal.fire('Hata', 'Dışa aktarılacak geçerli soru kağıdı bulunamadı!', 'error');
                 return;
+            }
+
+            // If group by level is checked, sort validStudents by grade level and subject name
+            if (groupByLevel) {
+                validStudents.sort((a, b) => {
+                    const getGradeLevel = (subject) => {
+                        const match = subject.match(/\b(9|10|11|12)\b/) || subject.match(/\d+/);
+                        return match ? parseInt(match[0], 10) : 999;
+                    };
+                    const subA = a.info.subject || '';
+                    const subB = b.info.subject || '';
+                    const lvlA = getGradeLevel(subA);
+                    const lvlB = getGradeLevel(subB);
+                    if (lvlA !== lvlB) return lvlA - lvlB;
+                    return subA.localeCompare(subB, 'tr');
+                });
             }
 
             const zip = new JSZip();
@@ -4249,11 +4269,60 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const hasAnyLoaded = loaded.size > 0;
+            
+            let selectionHtml = '';
+            if (hasAnyLoaded) {
+                const allExams = Array.from(new Set([...loaded, ...missing])).sort((a, b) => {
+                    const getGradeLevel = (subject) => {
+                        const match = subject.match(/\b(9|10|11|12)\b/) || subject.match(/\d+/);
+                        return match ? parseInt(match[0], 10) : 999;
+                    };
+                    const lvlA = getGradeLevel(a);
+                    const lvlB = getGradeLevel(b);
+                    if (lvlA !== lvlB) return lvlA - lvlB;
+                    return a.localeCompare(b, 'tr');
+                });
+                
+                selectionHtml = `
+                    <div style="margin-top: 15px; margin-bottom: 15px; text-align: left; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <label style="display: flex; align-items: center; gap: 10px; font-weight: 700; cursor: pointer; color: var(--primary);">
+                            <input type="checkbox" id="swal-group-by-level" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                            Düzey Düzey Gruplandır
+                        </label>
+                        <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px; margin-left: 28px; line-height: 1.3;">
+                            Soru kağıtları düzey düzey (örneğin önce Fizik 9, sonra Fizik 10, Fizik 11 vb.) gruplandırılarak sırayla yazdırılır.
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: left; margin-bottom: 15px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b; margin-bottom: 10px; border-bottom: 1px solid #cbd5e1; padding-bottom: 6px;">
+                            Yazdırılacak Sınavlar
+                        </div>
+                        <div style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+                            ${allExams.map(sub => {
+                                const hasPaper = loaded.has(sub);
+                                const isChecked = hasPaper ? 'checked' : '';
+                                const paperStatusHtml = hasPaper 
+                                    ? \`<span style="color: #16a34a; font-size: 0.75rem; font-weight: bold; margin-left: auto;"><i class="fa-solid fa-circle-check"></i> Soru Kağıdı Var</span>\` 
+                                    : \`<span style="color: #ef4444; font-size: 0.75rem; font-weight: bold; margin-left: auto;"><i class="fa-solid fa-circle-xmark"></i> Soru Kağıdı Yok!</span>\`;
+                                return \`
+                                    <label style="display: flex; align-items: center; gap: 10px; cursor: \${hasPaper ? 'pointer' : 'not-allowed'}; font-size: 0.85rem; color: \${hasPaper ? '#1e293b' : '#94a3b8'}; padding: 4px 6px; border-radius: 4px; transition: background 0.2s;">
+                                        <input type="checkbox" class="swal-exam-checkbox" data-subject="\${sub}" \${isChecked} \${hasPaper ? '' : 'disabled'} style="width: 16px; height: 16px; accent-color: var(--primary);">
+                                        <span style="font-weight: 600;">\${sub}</span>
+                                        \${paperStatusHtml}
+                                    </label>
+                                \`;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
             const choiceResult = await Swal.fire({
                 title: 'Yazdırma Seçeneği',
                 html: hasAnyLoaded
-                    ? `<b>${filterValue}</b> için soru kağıtları ne yapılsın?${statusHtml}`
-                    : `<div style="color:var(--danger); font-weight:bold; margin-bottom:10px;">UYARI: Bu grup için henüz hiçbir soru kağıdı yüklenmemiş.</div>${statusHtml}`,
+                    ? \`<b>\${filterValue}</b> için soru kağıtları ne yapılsın?\${statusHtml}\${selectionHtml}\`
+                    : \`<div style="color:var(--danger); font-weight:bold; margin-bottom:10px;">UYARI: Bu grup için henüz hiçbir soru kağıdı yüklenmemiş.</div>\${statusHtml}\`,
                 icon: hasAnyLoaded ? 'question' : 'error',
                 showConfirmButton: hasAnyLoaded,
                 showDenyButton: hasAnyLoaded,
@@ -4262,13 +4331,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 denyButtonText: '<i class="fa-solid fa-file-zipper"></i> ZIP İndir',
                 cancelButtonText: hasAnyLoaded ? 'İptal' : 'Kapat',
                 confirmButtonColor: '#4f46e5',
-                denyButtonColor: '#10b981'
+                denyButtonColor: '#10b981',
+                preConfirm: () => {
+                    selectedGroupByLevel = document.getElementById('swal-group-by-level')?.checked || false;
+                    selectedExams = Array.from(document.querySelectorAll('.swal-exam-checkbox:checked')).map(cb => cb.dataset.subject);
+                    return true;
+                },
+                preDeny: () => {
+                    selectedGroupByLevel = document.getElementById('swal-group-by-level')?.checked || false;
+                    selectedExams = Array.from(document.querySelectorAll('.swal-exam-checkbox:checked')).map(cb => cb.dataset.subject);
+                    return true;
+                }
             });
 
             if (choiceResult.isConfirmed) {
                 forcePrintPapers = true;
             } else if (choiceResult.isDenied) {
-                setTimeout(() => window.exportBatchPDFs(session, mode, filterValue), 100);
+                setTimeout(() => window.exportBatchPDFs(session, mode, filterValue, selectedExams, selectedGroupByLevel), 100);
                 return; // Exit, as user chose ZIP
             } else {
                 return; // User cancelled
@@ -4426,7 +4505,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (mode === 'class') return s.class === fVal;
                 if (mode === 'room') return s.room === fVal;
                 return true;
+            }).filter(s => {
+                const subName = s._matchedSubject || '-';
+                if (selectedExams && !selectedExams.includes(subName)) return false;
+                return true;
             });
+
+            if (selectedGroupByLevel) {
+                studentsInFilter.sort((a, b) => {
+                    const getGradeLevel = (subject) => {
+                        const match = subject.match(/\b(9|10|11|12)\b/) || subject.match(/\d+/);
+                        return match ? parseInt(match[0], 10) : 999;
+                    };
+                    const subA = a._matchedSubject || '';
+                    const subB = b._matchedSubject || '';
+                    const lvlA = getGradeLevel(subA);
+                    const lvlB = getGradeLevel(subB);
+                    if (lvlA !== lvlB) return lvlA - lvlB;
+                    return subA.localeCompare(subB, 'tr');
+                });
+            }
 
             // QUICK VALIDATION
             const validStudents = [];
