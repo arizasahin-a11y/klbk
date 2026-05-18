@@ -38,6 +38,27 @@ const ExamAlgorithm = {
         const numRooms = classrooms.length;
         const isPrio = s => !!(s && s.ogrenciKodu?.trim());
 
+        // Helper to clean string for flexible comparison
+        const cleanString = str => (str || '')
+            .toString()
+            .trim()
+            .toLocaleUpperCase('tr-TR')
+            .replace(/[^A-Z0-9]/g, '');
+
+        // Helper to check if a student has a direct classroom assignment based on code matching classroom name
+        const getZorunluSalon = s => {
+            if (!s || !s.ogrenciKodu) return null;
+            const cleanKodu = cleanString(s.ogrenciKodu);
+            if (!cleanKodu) return null;
+            
+            // Find matching classroom name in classrooms list (e.g. code "10C" matches classroom "10-C", "10C" or "10/C")
+            const match = classrooms.find(room => {
+                const cleanRoomName = cleanString(room.name);
+                return cleanRoomName === cleanKodu || cleanRoomName.includes(cleanKodu) || cleanKodu.includes(cleanRoomName);
+            });
+            return match ? match.name : null;
+        };
+
         // ── 1. Seviye → Parity Slot (Even/Odd Columns) ──────────────────
         const levelSet = [...new Set(students.map(s => s._matchedSubject || 'Unknown'))];
         const levelSlot = {};
@@ -213,8 +234,10 @@ const ExamAlgorithm = {
         // ── 5. AŞAMA 1: Öncelikli Öğrenciler ─────────────────────────────
         let roomIdx = 0;
         pStudents.forEach(s => {
+            const targetSalonId = getZorunluSalon(s);
             for (let ri = 0; ri < numRooms; ri++) {
                 const node = roomNodes[(roomIdx + ri) % numRooms];
+                if (targetSalonId && node.id !== targetSalonId) continue; // Force student to the matching classroom
                 const seat = findSafe(node, s);
                 if (seat) {
                     node.assigned[seat.id] = s;
@@ -233,12 +256,14 @@ const ExamAlgorithm = {
         sortedN.forEach(s => {
             const lv = s._matchedSubject || 'Unknown';
             const cls = s.class || 'Unknown';
+            const targetSalonId = getZorunluSalon(s);
             let placed = false;
             for (let ri = 0; ri < numRooms; ri++) {
                 const node = roomNodes[(roomIdx + ri) % numRooms];
+                if (targetSalonId && node.id !== targetSalonId) continue; // Force student to the matching classroom
                 const totalLv = node.levelCount[lv] || 0;
                 const clsLv = node.classLevelCount[lv]?.[cls] || 0;
-                if (ri < numRooms - 1 && (totalLv >= levelQuota[lv] || clsLv >= (classLevelQuota[lv]?.[cls] || 99))) continue;
+                if (!targetSalonId && ri < numRooms - 1 && (totalLv >= levelQuota[lv] || clsLv >= (classLevelQuota[lv]?.[cls] || 99))) continue;
                 const seat = findSafe(node, s);
                 if (seat) {
                     node.assigned[seat.id] = s;
@@ -254,6 +279,7 @@ const ExamAlgorithm = {
                 // AMA: Yan ve Çapraz çakışma yasağına (hasCollision6) hala uymalıdır!
                 for (let ri = 0; ri < numRooms; ri++) {
                     const node = roomNodes[(roomIdx + ri) % numRooms];
+                    if (targetSalonId && node.id !== targetSalonId) continue; // Force student to the matching classroom
                     const lv = s._matchedSubject || 'Unknown';
                     const targetSlot = levelSlot[lv] ?? 0;
                     const otherSlot = 1 - targetSlot;
@@ -277,6 +303,7 @@ const ExamAlgorithm = {
                 // öğrenciyi ilk boş koltuğa yerleştir (hiçbir öğrenci yersiz kalmasın).
                 for (let ri = 0; ri < numRooms; ri++) {
                     const node = roomNodes[(roomIdx + ri) % numRooms];
+                    if (targetSalonId && node.id !== targetSalonId) continue; // Force student to the matching classroom
                     
                     let seat = node.slotSeats[0].find(st => !node.assigned[st.id]);
                     if (!seat) seat = node.slotSeats[1].find(st => !node.assigned[st.id]);
@@ -306,6 +333,7 @@ const ExamAlgorithm = {
             let moved = false;
             for (const [id, s] of Object.entries(nodeFrom.assigned)) {
                 if (isPrio(s)) continue; // ← Priority students NEVER moved between rooms
+                if (getZorunluSalon(s)) continue; // ← Direct assigned students NEVER moved between rooms
                 const targetSlot = levelSlot[s._matchedSubject || 'Unknown'] ?? 0;
                 const dest = nodeTo.slotSeats[targetSlot].find(st => !nodeTo.assigned[st.id] && !hasCollision6(nodeTo, s, st));
                 if (dest) {
@@ -550,6 +578,7 @@ const ExamAlgorithm = {
                         const sA1 = colA[r], sA2 = colA[r + 1];
                         const stA1 = nodeA.assigned[sA1.id], stA2 = nodeA.assigned[sA2.id];
                         if (!stA1 || !stA2 || stA1._matchedSubject !== stA2._matchedSubject) continue;
+                        if (getZorunluSalon(stA2)) continue; // Zorunlu salonu olan öğrenci yerinden oynatılamaz
                         if (resolvedAny) break;
 
                         // Try to move stA2 to any open slot in another room
@@ -565,6 +594,7 @@ const ExamAlgorithm = {
                                 const stB = nodeB.assigned[sB.id];
                                 // Never displace priority students
                                 if (stB && isPrio(stB)) continue;
+                                if (stB && getZorunluSalon(stB)) continue; // Zorunlu salonu olan öğrenci yerinden oynatılamaz
                                 // stB must not be same subject as stA2 (would just recreate collision)
                                 if (stB && stB._matchedSubject === lv) continue;
 
