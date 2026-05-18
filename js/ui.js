@@ -2057,7 +2057,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         subjects: [], // Now objects: {name, hasGroups}
         selectedClasses: [],
         excludedStudents: [],
-        selectedClassrooms: []
+        selectedClassrooms: [],
+        screenViewEnabled: true,
+        screenViewLimit: 8
     };
 
     function resetWizard() {
@@ -2065,7 +2067,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         wizardSessionData = {
             id: 'ws_' + Date.now(),
             name: '', date: '', time: '', subjects: [],
-            selectedClasses: [], excludedStudents: [], selectedClassrooms: []
+            selectedClasses: [], excludedStudents: [], selectedClassrooms: [],
+            screenViewEnabled: true,
+            screenViewLimit: 8
         };
         window._wizAvailableSubjects = null;
         window._wizSeenPools = null;
@@ -5433,7 +5437,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <label style="font-weight:700; margin:0; font-size:0.85rem; color: var(--gray-700);">Ekran Görünümü</label>
                             <div style="display:flex; align-items:center; gap:0.5rem; background:white; padding:4px 8px; border-radius:8px; border:1px solid var(--gray-200);">
                                 <label style="display:flex; align-items:center; gap:5px; cursor:pointer; margin:0;" title="Öğrenci Panelinde oturma planını göster">
-                                    <input type="checkbox" id="meta-screen-check" ${ses.screenViewEnabled ? 'checked' : ''} style="width:16px; height:16px;">
+                                    <input type="checkbox" id="meta-screen-check" ${ses.screenViewEnabled !== false ? 'checked' : ''} style="width:16px; height:16px;">
                                     <i class="fa-solid fa-desktop" style="color:var(--info); font-size:0.9rem;"></i>
                                 </label>
                                 <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit !== undefined ? ses.screenViewLimit : 8}" min="0" max="9999" style="width:65px; height:28px; text-align:center; border:1px solid var(--gray-200); border-radius:4px; font-weight:bold; font-size:0.85rem;">
