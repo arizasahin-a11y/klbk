@@ -873,7 +873,7 @@
                 // Sınav biteli 30 dakikadan fazla olduysa GÖSTERME
                 if (diffEndMins < -30) return;
 
-                const limit = (ses.screenViewLimit === 0) ? 999999 : (ses.screenViewLimit || 20);
+                const limit = (ses.screenViewLimit === 0) ? 999999 : (ses.screenViewLimit || 8);
                 let stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
                 lastStates[ses.id] = stateCode;
 
@@ -949,7 +949,7 @@
 
                 let newState = 'hidden';
                 if (diffMins <= 36 * 60 && diffEndMins >= -30) {
-                    const limit = (ses.screenViewLimit === 0) ? 999999 : (ses.screenViewLimit || 20);
+                    const limit = (ses.screenViewLimit === 0) ? 999999 : (ses.screenViewLimit || 8);
                     newState = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
                 }
 
@@ -1577,7 +1577,7 @@
                 const diffMins = (targetTime - now) / 1000 / 60;
                 const diffEndMins = (endTime - now) / 1000 / 60;
 
-                const limit = (ses.screenViewLimit === undefined) ? 20 : ses.screenViewLimit;
+                const limit = (ses.screenViewLimit === undefined) ? 8 : ses.screenViewLimit;
                 
                 if (Math.floor(diffMins) <= limit && diffEndMins >= -3) {
                     const roomResult = ses.results.find(r => r.name === myRoomName);
