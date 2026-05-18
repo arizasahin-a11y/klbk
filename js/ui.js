@@ -2361,9 +2361,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             subjectGroups.push({ subject: subObj, pools });
 
-            // Mark all students in these pools as "assigned" so they can't be picked up by the next subject
+            // Mark ONLY students from SELECTED (checked) pools as "assigned" so they can't be
+            // picked up by the next subject. Un-checked pools (e.g. 12A unchecked for Physics)
+            // must remain available for subsequent subjects (e.g. Maths).
             pools.forEach(p => {
-                p.students.forEach(s => studentsAssignedToASubject.add(s.no.toString()));
+                const isSelected = wizardSessionData.selectedClasses.includes(p.pid);
+                if (isSelected) {
+                    p.students.forEach(s => studentsAssignedToASubject.add(s.no.toString()));
+                }
             });
         });
 
