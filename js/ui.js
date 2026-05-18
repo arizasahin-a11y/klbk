@@ -2488,12 +2488,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         let html = '';
 
+        // Build a mapping of checked classes to their subject names
+        const checkedClassToSubject = {};
+        subjectGroups.forEach(grp => {
+            grp.pools.forEach(p => {
+                if (wizardSessionData.selectedClasses.includes(p.pid)) {
+                    checkedClassToSubject[p.class] = grp.subject.name;
+                }
+            });
+        });
+
         subjectGroups.forEach((grp, idx) => {
+            // Filter pools so that if a class is selected in another subject, we don't show it under this subject
+            const visiblePools = grp.pools.filter(inf => {
+                const selectedInSubject = checkedClassToSubject[inf.class];
+                return !selectedInSubject || selectedInSubject === grp.subject.name;
+            });
+
+            if (visiblePools.length === 0) return; // Skip subject header if no pools are visible
+
             html += `<h4 style="margin: 1.5rem 0 0.75rem 0; color: var(--primary); font-size: 1rem; border-bottom: 2px solid var(--gray-200); padding-bottom: 0.3rem;">
                 <i class="fa-solid fa-book"></i> ${grp.subject.name} Sınavına Girecek Sınıflar</h4>`;
             html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem;">`;
 
-            grp.pools.forEach(inf => {
+            visiblePools.forEach(inf => {
                 if (!window._wizSeenPools) window._wizSeenPools = new Set();
 
                 if (!window._wizSeenPools.has(inf.pid)) {
@@ -2531,7 +2549,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Bind events for live reactivity
         document.querySelectorAll('.wiz-class-cb').forEach(cb => {
-            cb.addEventListener('change', updateOccupancy);
+            cb.addEventListener('change', (e) => {
+                // Update selectedClasses list
+                wizardSessionData.selectedClasses = Array.from(document.querySelectorAll('.wiz-class-cb:checked')).map(c => c.value);
+                
+                // Preserve scroll position
+                const scrollTop = container.scrollTop;
+                
+                // Re-render classes dynamically to apply mutual exclusion
+                populateWizardClasses();
+                
+                // Restore scroll position
+                container.scrollTop = scrollTop;
+            });
         });
 
         // _wizInitialized is set and updateOccupancy is called at the end of this function
