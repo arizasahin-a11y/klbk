@@ -2492,20 +2492,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         let html = '';
 
-        // Build a mapping of checked classes to their subject names
-        const checkedClassToSubject = {};
+        // Build a mapping of checked POOL PIDs to their subject names.
+        // KEY = pid (subject_class_alan) — NOT just class name.
+        // This way "11C TM" checked under Psikoloji does NOT hide "11C FEN" from other subjects.
+        const checkedPidToSubject = {};
         subjectGroups.forEach(grp => {
             grp.pools.forEach(p => {
                 if (wizardSessionData.selectedClasses.includes(p.pid)) {
-                    checkedClassToSubject[p.class] = grp.subject.name;
+                    checkedPidToSubject[p.pid] = grp.subject.name;
                 }
             });
         });
 
         subjectGroups.forEach((grp, idx) => {
-            // Filter pools so that if a class is selected in another subject, we don't show it under this subject
+            // Filter pools: only hide a pool if that EXACT pid is checked under a DIFFERENT subject.
+            // Same-class different-alan pools are independent and must remain visible.
             const visiblePools = grp.pools.filter(inf => {
-                const selectedInSubject = checkedClassToSubject[inf.class];
+                const selectedInSubject = checkedPidToSubject[inf.pid];
                 return !selectedInSubject || selectedInSubject === grp.subject.name;
             });
 
