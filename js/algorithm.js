@@ -659,6 +659,10 @@ const ExamAlgorithm = {
         // ── FINAL SWEEP: Lateral/Diagonal Çakışma Sıfırlama ─────────────────
         // Tüm aşamalardan sonra hâlâ kırmızı (lateral/diagonal) çakışma kalmışsa
         // agresif takas ile sıfırla. Kırmızı kesinlikle sıfır olmalı.
+        //
+        // ÖNEMLİ: hasCollision6 kontrolü yapılmadan önce öğrenci mevcut koltuğundan
+        // geçici olarak silinmeli. Aksi hâlde kendi koltuğu hedef koltukla çapraz
+        // ilişkide olduğunda sahte çakışma üretilir (self-collision false positive).
         for (let iter = 0; iter < 30; iter++) {
             let anyFixed = false;
             for (const node of roomNodes) {
@@ -667,12 +671,16 @@ const ExamAlgorithm = {
                     if (!st || isPrio(st)) continue;
                     if (!hasCollision6(node, st, seat)) continue;
 
+                    // Öğrenciyi geçici olarak kaldır (self-collision'ı önlemek için)
+                    delete node.assigned[seat.id];
+
                     // Bu öğrenci lateral/diagonal çakışma içinde — başka bir yere taşı
-                    // Önce aynı odada çakışmasız boş koltuk ara
+                    // Önce aynı slotta boşluk ara
                     const targetSlot = levelSlot[st._matchedSubject || 'Unknown'] ?? 0;
                     let bestSeat = node.slotSeats[targetSlot].find(s2 =>
                         !node.assigned[s2.id] && !hasCollision6(node, st, s2)
                     );
+                    // Yoksa diğer slotta boşluk ara
                     if (!bestSeat) {
                         bestSeat = node.allSeats.find(s2 =>
                             !node.assigned[s2.id] && !hasCollision6(node, st, s2)
@@ -680,8 +688,7 @@ const ExamAlgorithm = {
                     }
 
                     if (bestSeat) {
-                        // Taşı: boş koltuğa çakışmasız yerleştir
-                        delete node.assigned[seat.id];
+                        // Boş koltuğa çakışmasız yerleştir
                         node.assigned[bestSeat.id] = st;
                         anyFixed = true;
                         continue;
@@ -695,16 +702,27 @@ const ExamAlgorithm = {
                         if (!other || isPrio(other)) continue;
                         if (other._matchedSubject === st._matchedSubject) continue;
 
-                        // Takas sonrası her iki öğrenci de lateral/diagonal çakışmadan kurtulmalı
+                        // Takas öncesi diğer öğrenciyi de geçici kaldır
+                        delete node.assigned[otherSeat.id];
+
                         const stSafe = !hasCollision6(node, st, otherSeat);
                         const otherSafe = !hasCollision6(node, other, seat);
+
                         if (stSafe && otherSafe) {
                             node.assigned[seat.id] = other;
                             node.assigned[otherSeat.id] = st;
                             swapped = true;
                             anyFixed = true;
                             break;
+                        } else {
+                            // Takas geçersiz — her ikisini de geri koy
+                            node.assigned[otherSeat.id] = other;
                         }
+                    }
+
+                    if (!swapped) {
+                        // Hiçbir çözüm bulunamadı — öğrenciyi eski yerine geri koy
+                        node.assigned[seat.id] = st;
                     }
                 }
             }
