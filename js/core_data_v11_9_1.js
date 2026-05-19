@@ -937,6 +937,95 @@ const DataManager = {
         return defaultType;
     },
 
+    detectMimeTypeOnline: async function (url) {
+        if (!url) return 'application/octet-stream';
+        const lowerUrl = url.toLowerCase();
+
+        // 1. Uzantı kontrolü (En hızlı yöntem, ağ gerektirmez)
+        if (lowerUrl.match(/\.(mp4|m4v)$/)) return 'video/mp4';
+        if (lowerUrl.match(/\.webm$/)) return 'video/webm';
+        if (lowerUrl.match(/\.(mp3|mpeg)$/)) return 'audio/mpeg';
+        if (lowerUrl.match(/\.wav$/)) return 'audio/wav';
+        if (lowerUrl.match(/\.ogg$/)) return 'audio/ogg';
+        if (lowerUrl.match(/\.pdf$/)) return 'application/pdf';
+        if (lowerUrl.match(/\.(jpg|jpeg)$/)) return 'image/jpeg';
+        if (lowerUrl.match(/\.png$/)) return 'image/png';
+        if (lowerUrl.match(/\.gif$/)) return 'image/gif';
+        if (lowerUrl.match(/\.webp$/)) return 'image/webp';
+
+        // 2. Google Drive ID Çıkarma
+        let driveId = null;
+        if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+            const parts = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || 
+                          url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || 
+                          url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+                          url.match(/\/open\?id=([a-zA-Z0-9_-]+)/);
+            if (parts) driveId = parts[1];
+        }
+
+        // 3. İlk chunk indirme & abort (Sadece ilk birkaç KB indirilip bağlantı kesilir!)
+        const targetUrls = [];
+        if (driveId) {
+            targetUrls.push(`https://drive.google.com/uc?export=download&id=${driveId}`);
+            targetUrls.push(`https://drive.usercontent.google.com/download?id=${driveId}&export=download`);
+        } else {
+            targetUrls.push(url);
+        }
+
+        const proxies = [
+            "https://corsproxy.io/?",
+            "https://api.allorigins.win/raw?url=",
+            "https://api.codetabs.com/v1/proxy?quest="
+        ];
+
+        const fetchFirstChunk = async (fetchUrl) => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            try {
+                const res = await fetch(fetchUrl, { signal: controller.signal });
+                if (!res.ok) throw new Error("Status " + res.status);
+                const reader = res.body.getReader();
+                const { value, done } = await reader.read();
+                clearTimeout(timeoutId);
+                reader.cancel(); // Kalan indirmeyi anında iptal et!
+                if (value && value.length > 0) {
+                    return value.buffer;
+                }
+            } catch (e) {
+                clearTimeout(timeoutId);
+                return null;
+            }
+            return null;
+        };
+
+        // Google Drive değilse önce doğrudan dene
+        if (!driveId) {
+            const buf = await fetchFirstChunk(url);
+            if (buf) {
+                const mime = this.detectMimeType(buf);
+                if (mime !== 'application/octet-stream') return mime;
+            }
+        }
+
+        // CORS Proxyleri üzerinden ilk paketleri çekmeyi dene
+        for (const tUrl of targetUrls) {
+            for (const proxy of proxies) {
+                const proxyUrl = proxy + encodeURIComponent(tUrl);
+                const buf = await fetchFirstChunk(proxyUrl);
+                if (buf) {
+                    const mime = this.detectMimeType(buf);
+                    if (mime !== 'application/octet-stream') return mime;
+                }
+            }
+        }
+
+        // Anahtar kelime eşleştirmesi (Fallback)
+        if (lowerUrl.includes('video') || lowerUrl.includes('movie')) return 'video/mp4';
+        if (lowerUrl.includes('audio') || lowerUrl.includes('sound') || lowerUrl.includes('music')) return 'audio/mpeg';
+
+        return 'application/octet-stream';
+    },
+
     _idbFileCache: null,
     _initIdb: function() {
         if (this._idbFileCache) return this._idbFileCache;

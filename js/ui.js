@@ -7145,68 +7145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // Medya Dosyasını İndirip Mime-Type Analiziyle Doğrudan Oynat/Önizle (CORS & Google Embed Bypass)
-        Swal.fire({
-            title: 'Medya Hazırlanıyor...',
-            html: '<div style="margin-bottom:10px;">Dosya güvenli bulut kanalından indiriliyor ve oynatıcı hazırlanıyor, lütfen bekleyin...</div><div class="fa-3x"><i class="fa-solid fa-spinner fa-spin" style="color:var(--primary);"></i></div>',
-            allowOutsideClick: false,
-            showConfirmButton: false,
-            showCloseButton: true
-        });
-
-        window.getFileBytes(url).then(bytes => {
-            if (!bytes) {
-                throw new Error("Dosya indirilemedi.");
-            }
-            const mimeType = DataManager.detectMimeType(bytes);
-            const blob = new Blob([bytes], { type: mimeType });
-            const blobUrl = URL.createObjectURL(blob);
-            
-            let swalConfig = {};
-            
-            if (mimeType.startsWith('video/')) {
-                swalConfig = {
-                    title: 'Video Oynatıcı',
-                    html: `<video controls autoplay style="width:100%; max-height:400px; border-radius:8px;"><source src="${blobUrl}" type="${mimeType}">Tarayıcınız video etiketini desteklemiyor.</video>`,
-                    width: '600px',
-                };
-            } else if (mimeType.startsWith('audio/')) {
-                swalConfig = {
-                    title: 'Ses Oynatıcı',
-                    html: `<audio controls autoplay style="width:100%; margin-top:10px;"><source src="${blobUrl}" type="${mimeType}">Tarayıcınız ses etiketini desteklemiyor.</audio>`,
-                    width: '400px',
-                };
-            } else if (mimeType.startsWith('image/')) {
-                swalConfig = {
-                    title: 'Görsel Önizleme',
-                    html: `<img src="${blobUrl}" style="width:100%; max-height:400px; object-fit:contain; border-radius:8px;">`,
-                    width: '600px',
-                };
-            } else if (mimeType === 'application/pdf') {
-                swalConfig = {
-                    title: 'Dosya Önizleme (PDF)',
-                    html: `<iframe src="${blobUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
-                    width: '700px',
-                };
-            } else {
-                const iframeUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
-                swalConfig = {
-                    title: 'Dosya Önizleme',
-                    html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
-                    width: '700px',
-                };
-            }
-            
-            Swal.fire({
-                ...swalConfig,
-                showCloseButton: true,
-                showConfirmButton: false,
-                willClose: () => {
-                    URL.revokeObjectURL(blobUrl);
-                }
-            });
-        }).catch(err => {
-            console.error("Uygulama Medya Test Hatası:", err);
+        const showMediaError = () => {
             if (isGoogleDrive && fileId) {
                 const iframeUrl = `https://drive.google.com/file/d/${fileId}/preview`;
                 Swal.fire({
@@ -7217,7 +7156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <i class="fa-solid fa-circle-exclamation" style="font-size: 1.2rem;"></i>
                             <span>Dosya Erişimi Engellendi veya Bağlantı Hatası</span>
                         </div>
-                        <p>Google Drive dosyanız indirilemedi. Bu hatanın en yaygın sebebi, dosyanın <strong>herkese açık paylaşım izinlerinin verilmemiş olmasıdır</strong>.</p>
+                        <p>Google Drive dosyanız oynatılamadı. Bu hatanın en yaygın sebebi, dosyanın <strong>herkese açık paylaşım izinlerinin verilmemiş olmasıdır</strong>.</p>
                         <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
                             <strong style="color: var(--primary); display: block; margin-bottom: 6px;"><i class="fa-solid fa-key"></i> Çözüm Adımları:</strong>
                             <ol style="margin: 0; padding-left: 20px; font-weight: 600; color: #475569; font-size: 0.85rem;">
@@ -7278,5 +7217,72 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 });
             }
+        };
+
+        window.handleUygulamaMediaError = function() {
+            Swal.close();
+            showMediaError();
+        };
+
+        // Medya Oynatıcı Hazırlanıyor Modalı
+        Swal.fire({
+            title: 'Medya Analiz Ediliyor...',
+            html: '<div style="margin-bottom:10px;">Dosya formatı kontrol ediliyor ve anlık oynatıcı hazırlanıyor, lütfen bekleyin...</div><div class="fa-3x"><i class="fa-solid fa-spinner fa-spin" style="color:var(--primary);"></i></div>',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            showCloseButton: true
+        });
+
+        DataManager.detectMimeTypeOnline(url).then(mimeType => {
+            const streamUrl = isGoogleDrive && fileId ? `https://docs.google.com/uc?export=open&id=${fileId}` : url;
+            
+            let swalConfig = {};
+            
+            if (mimeType.startsWith('video/')) {
+                swalConfig = {
+                    title: 'Video Oynatıcı',
+                    html: `<video controls autoplay style="width:100%; max-height:400px; border-radius:8px;" onerror="window.handleUygulamaMediaError()"><source src="${streamUrl}" type="${mimeType}">Tarayıcınız video etiketini desteklemiyor.</video>`,
+                    width: '600px',
+                };
+            } else if (mimeType.startsWith('audio/')) {
+                swalConfig = {
+                    title: 'Ses Oynatıcı',
+                    html: `<audio controls autoplay style="width:100%; margin-top:10px;" onerror="window.handleUygulamaMediaError()"><source src="${streamUrl}" type="${mimeType}">Tarayıcınız ses etiketini desteklemiyor.</audio>`,
+                    width: '400px',
+                };
+            } else if (mimeType.startsWith('image/')) {
+                swalConfig = {
+                    title: 'Görsel Önizleme',
+                    html: `<img src="${streamUrl}" style="width:100%; max-height:400px; object-fit:contain; border-radius:8px;" onerror="window.handleUygulamaMediaError()">`,
+                    width: '600px',
+                };
+            } else if (mimeType === 'application/pdf') {
+                const pdfViewerUrl = isGoogleDrive && fileId 
+                    ? `https://drive.google.com/file/d/${fileId}/preview` 
+                    : `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+                swalConfig = {
+                    title: 'Dosya Önizleme (PDF)',
+                    html: `<iframe src="${pdfViewerUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
+                    width: '700px',
+                };
+            } else {
+                const iframeUrl = isGoogleDrive && fileId 
+                    ? `https://drive.google.com/file/d/${fileId}/preview` 
+                    : `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+                swalConfig = {
+                    title: 'Dosya Önizleme',
+                    html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
+                    width: '700px',
+                };
+            }
+            
+            Swal.fire({
+                ...swalConfig,
+                showCloseButton: true,
+                showConfirmButton: false
+            });
+        }).catch(err => {
+            console.error("Uygulama Medya Analiz Hatası:", err);
+            showMediaError();
         });
     };
