@@ -735,14 +735,16 @@
                                             <div class="print-tools-header" style="display: flex; align-items: center; gap: 12px; background: #f8fafc; padding: 6px 12px; border-radius: 10px; border: 1px solid var(--gray-200);" onclick="event.stopPropagation()">
                                                 <div style="display: flex; gap: 10px; align-items: center; font-size: 0.8rem; font-weight: 700; color: var(--gray-600);">
                                                     <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                                                        <input type="radio" name="printMode-${ses.id}" value="class" style="accent-color: var(--primary);"> Sınıf
+                                                        <input type="radio" name="printMode-${ses.id}" value="class" ${ses.type === 'uygulama' ? 'checked' : ''} style="accent-color: var(--primary);"> Sınıf
                                                     </label>
+                                                    ${ses.type !== 'uygulama' ? `
                                                     <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
                                                         <input type="radio" name="printMode-${ses.id}" value="room" checked style="accent-color: var(--primary);"> Salon
                                                     </label>
                                                     <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
                                                         <input type="radio" name="printMode-${ses.id}" value="seating" style="accent-color: var(--primary);"> Şema
                                                     </label>
+                                                    ` : ''}
                                                     <div style="width: 1px; height: 16px; background: var(--gray-300); margin: 0 4px;"></div>
                                                     <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; color: var(--primary);">
                                                         <input type="checkbox" id="paperCheck-${ses.id}" style="accent-color: var(--primary); width: 16px; height: 16px;"> <b>Sınav Kağıdı</b>
@@ -782,8 +784,8 @@
                             const hasAnyPdf = (currentPdf && currentPdf.length > 5) || 
                                               (typeof papers === 'object' && Object.values(papers).some(p => p && p.length > 5));
 
-                            const showThemeFont = (isMine && hasAnyPdf && diffMins > 5);
-                            const showShare = (isMine && hasAnyPdf);
+                            const showThemeFont = (ses.type !== 'uygulama' && isMine && hasAnyPdf && diffMins > 5);
+                            const showShare = (ses.type !== 'uygulama' && isMine && hasAnyPdf);
                             let subjectControlsHtml = '';
                             if (showThemeFont || showShare) {
                                 subjectControlsHtml += `<div style="margin-left: auto; display: flex; align-items: center; gap: 10px;" onclick="event.stopPropagation()">`;
@@ -845,7 +847,39 @@
                                          <button type="button" class="btn btn-success btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="testPdfLink('${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-vial"></i> Test</button>
                                     </div>`;
 
-                                if (hasGroups) {
+                                if (ses.type === 'uygulama') {
+                                    const files = Array.isArray(meta.papers?.uygulamaFiles) ? meta.papers.uygulamaFiles : (typeof meta.papers === 'string' && meta.papers ? [meta.papers] : ['']);
+                                    
+                                    papersHtml = `
+                                        <div style="background: white; padding: 1.25rem; border-radius: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-100); margin-bottom: 1.25rem;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                                <label style="font-size: 0.75rem; font-weight: 800; color: var(--gray-500); text-transform:uppercase; margin: 0;">
+                                                    <i class="fa-solid fa-file-audio" style="color:var(--secondary)"></i> Uygulama Dosyaları
+                                                </label>
+                                            </div>
+                                            <div class="uygulama-files-container" id="uyg-container-${ses.id}-${encodedSub}">`;
+                                    
+                                    files.forEach((fileLink, fIdx) => {
+                                        papersHtml += `
+                                            <div class="input-group uygulama-file-row" style="display:flex; align-items:center; gap:5px; margin-top:8px;">
+                                                <span style="font-size:0.75rem; font-weight:700; color:var(--gray-500); min-width:60px;">${fIdx + 1}. dosya</span>
+                                                <input type="text" class="form-control meta-paper-input" data-uyg-idx="${fIdx}" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" value="${fileLink}" placeholder="Uygulama dosyası linki">
+                                                <button type="button" class="btn btn-secondary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.fire('Eksik', 'Önce bir link girin', 'warning');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
+                                                <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem; background:#6366f1; border-color:#6366f1;" onclick="testUygulamaMediaTeacher(this)" title="Medya Test"><i class="fa-solid fa-play"></i> Test</button>
+                                                <button type="button" class="btn btn-info btn-sm" style="padding: 0.65rem 0.85rem;" onclick="openCloudBrowserTeacher(this, '${ses.id}', '${encodedSub}')" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
+                                                <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="browseToInputTeacher(this, '${ses.id}', '${encodedSub}')" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+                                                <button type="button" class="btn btn-danger btn-sm" style="padding: 0.65rem 0.85rem;" onclick="this.closest('.uygulama-file-row').remove(); saveUygulamaFiles('${ses.id}', '${encodedSub}');" title="Sil"><i class="fa-solid fa-trash"></i></button>
+                                            </div>`;
+                                    });
+                                    
+                                    papersHtml += `
+                                            </div>
+                                            <div style="margin-top: 10px; display:flex; justify-content:space-between; align-items:center;">
+                                                <button type="button" class="btn btn-secondary btn-sm" onclick="addUygulamaFileRowTeacher('${ses.id}', '${encodedSub}')" style="font-size: 0.75rem; padding:6px 12px;"><i class="fa-solid fa-plus"></i> Ekle</button>
+                                                <button class="btn btn-primary" style="padding: 0.65rem 1.25rem; border-radius:10px; font-weight:800; font-size: 0.85rem;" onclick="saveUygulamaFiles('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-save"></i> TÜMÜNÜ KAYDET</button>
+                                            </div>
+                                        </div>`;
+                                } else if (hasGroups) {
                                     for (let i = 0; i < groupCount; i++) {
                                         const groupLetter = alphabet[i];
                                         const groupPdf = (meta.papers && meta.papers[groupLetter]) || '';
@@ -1159,6 +1193,202 @@
                 }
                 setTimeout(() => renderExams(), 50);
             }
+        }
+
+        function saveUygulamaFiles(sesId, encodedSub) {
+            const subName = decodeURIComponent(encodedSub);
+            const container = document.getElementById(`uyg-container-${sesId}-${encodedSub}`);
+            if (!container) return;
+            
+            const inputs = container.querySelectorAll('input.meta-paper-input');
+            const fileLinks = [];
+            inputs.forEach((inp, idx) => {
+                const val = inp.value.trim();
+                if (val) fileLinks.push(val);
+            });
+            
+            const _saveSessions = DataManager.getExamSessions();
+            const session = _saveSessions.find(s => s.id === sesId);
+            if (session) {
+                markLocalChange();
+                if (!session.subjectMetadata) session.subjectMetadata = {};
+                const safeSub = DataManager.sanitizeFirebaseKey(subName);
+                
+                if (!session.subjectMetadata[safeSub]) {
+                    session.subjectMetadata[safeSub] = { examNo: '', papers: {} };
+                }
+                
+                if (typeof session.subjectMetadata[safeSub].papers !== 'object' || session.subjectMetadata[safeSub].papers === null) {
+                    session.subjectMetadata[safeSub].papers = {};
+                }
+                
+                session.subjectMetadata[safeSub].papers.uygulamaFiles = fileLinks;
+                // Ayrıca geriye dönük uyumluluk için ilk linki varsayılan olarak da koyalım
+                session.subjectMetadata[safeSub].papers['default'] = fileLinks[0] || '';
+                
+                DataManager.addExamSession(session);
+                markLocalChange();
+                lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
+                
+                Swal.fire({
+                    toast: true, position: 'top-end', icon: 'success', 
+                    title: `Uygulama dosyaları kaydedildi!`, 
+                    showConfirmButton: false, timer: 1500
+                });
+                
+                setTimeout(() => renderExams(), 50);
+            }
+        }
+
+        function addUygulamaFileRowTeacher(sesId, encodedSub) {
+            const container = document.getElementById(`uyg-container-${sesId}-${encodedSub}`);
+            if (!container) return;
+            
+            const rowCount = container.querySelectorAll('.uygulama-file-row').length;
+            const fIdx = rowCount;
+            const newRow = document.createElement('div');
+            newRow.className = 'input-group uygulama-file-row';
+            newRow.style.cssText = 'display:flex; align-items:center; gap:5px; margin-top:8px;';
+            newRow.innerHTML = `
+                <span style="font-size:0.75rem; font-weight:700; color:var(--gray-500); min-width:60px;">${fIdx + 1}. dosya</span>
+                <input type="text" class="form-control meta-paper-input" data-uyg-idx="${fIdx}" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" value="" placeholder="Uygulama dosyası linki">
+                <button type="button" class="btn btn-secondary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.fire('Eksik', 'Önce bir link girin', 'warning');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
+                <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem; background:#6366f1; border-color:#6366f1;" onclick="testUygulamaMediaTeacher(this)" title="Medya Test"><i class="fa-solid fa-play"></i> Test</button>
+                <button type="button" class="btn btn-info btn-sm" style="padding: 0.65rem 0.85rem;" onclick="openCloudBrowserTeacher(this, '${sesId}', '${encodedSub}')" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
+                <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="browseToInputTeacher(this, '${sesId}', '${encodedSub}')" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+                <button type="button" class="btn btn-danger btn-sm" style="padding: 0.65rem 0.85rem;" onclick="this.closest('.uygulama-file-row').remove(); saveUygulamaFiles('${sesId}', '${encodedSub}');" title="Sil"><i class="fa-solid fa-trash"></i></button>
+            `;
+            container.appendChild(newRow);
+        }
+
+        function testUygulamaMediaTeacher(btn) {
+            const inp = btn.closest('div').querySelector('input.meta-paper-input');
+            if (!inp || !inp.value) {
+                Swal.fire('Eksik', 'Önce bir link girin', 'warning');
+                return;
+            }
+            const url = inp.value;
+            const lowerUrl = url.toLowerCase();
+            
+            if (lowerUrl.match(/\.(mp4|webm|ogg)$/i)) {
+                Swal.fire({
+                    title: 'Medya Testi',
+                    html: `<video controls autoplay style="width:100%; max-height:400px; border-radius:8px;"><source src="${url}" type="video/mp4">Tarayıcınız video etiketini desteklemiyor.</video>`,
+                    width: '600px',
+                    showCloseButton: true,
+                    showConfirmButton: false
+                });
+            } else if (lowerUrl.match(/\.(mp3|wav|ogg)$/i)) {
+                Swal.fire({
+                    title: 'Medya Testi',
+                    html: `<audio controls autoplay style="width:100%; margin-top:10px;"><source src="${url}" type="audio/mpeg">Tarayıcınız ses etiketini desteklemiyor.</audio>`,
+                    width: '400px',
+                    showCloseButton: true,
+                    showConfirmButton: false
+                });
+            } else if (lowerUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
+                Swal.fire({
+                    title: 'Görsel Testi',
+                    html: `<img src="${url}" style="width:100%; max-height:400px; object-fit:contain; border-radius:8px;">`,
+                    width: '600px',
+                    showCloseButton: true,
+                    showConfirmButton: false
+                });
+            } else {
+                window.open(url, '_blank');
+            }
+        }
+
+        async function openCloudBrowserTeacher(btn, sesId, encodedSub) {
+            const input = btn.closest('.uygulama-file-row').querySelector('input.meta-paper-input');
+            if (!input) return;
+            
+            Swal.fire({
+                title: 'Buluttaki Dosyalar',
+                html: '<div id="cloudFilesListTeacher" style="max-height: 400px; overflow-y: auto; text-align: left;"><i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...</div>',
+                showConfirmButton: false,
+                showCancelButton: true,
+                cancelButtonText: 'Kapat',
+                width: 600,
+                didOpen: async () => {
+                    try {
+                        const files = await DataManager.listSupabaseFiles(true);
+                        let html = '<ul style="list-style:none; padding:0; margin:0;">';
+                        if (files.length === 0) {
+                            html += '<li style="padding: 1rem; color: var(--gray-500); text-align: center;">Bulutta kayıtlı dosya yok.</li>';
+                        } else {
+                            files.forEach(f => {
+                                html += `<li style="padding: 0.75rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center;">
+                                            <div style="flex:1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem;" title="${f.name}">
+                                                <i class="fa-solid fa-file" style="color:var(--primary); margin-right: 8px;"></i> ${f.name}
+                                            </div>
+                                            <div style="display:flex; gap:5px;">
+                                                <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="selectCloudFileTeacher('${sesId}', '${encodedSub}', '${f.url}', '${input.dataset.uygIdx}')">Seç</button>
+                                                <button class="btn btn-danger" style="padding: 0.4rem 0.6rem; font-size: 0.8rem;" onclick="deleteCloudFileFromTeacher('${f.name}', this)"><i class="fa-solid fa-trash"></i></button>
+                                            </div>
+                                        </li>`;
+                            });
+                        }
+                        html += '</ul>';
+                        document.getElementById('cloudFilesListTeacher').innerHTML = html;
+                    } catch (e) {
+                        document.getElementById('cloudFilesListTeacher').innerHTML = '<div style="color:var(--danger); padding:1rem;">Dosyalar yüklenemedi.</div>';
+                    }
+                }
+            });
+        }
+
+        window.selectCloudFileTeacher = function (sesId, encodedSub, url, uygIdx) {
+            const container = document.getElementById(`uyg-container-${sesId}-${encodedSub}`);
+            if (container) {
+                const input = container.querySelector(`input.meta-paper-input[data-uyg-idx="${uygIdx}"]`);
+                if (input) {
+                    input.value = url;
+                    saveUygulamaFiles(sesId, encodedSub);
+                }
+            }
+            Swal.close();
+        }
+
+        function browseToInputTeacher(btn, sesId, encodedSub) {
+            const row = btn.closest('.uygulama-file-row');
+            const uygIdx = row.querySelector('input.meta-paper-input').dataset.uygIdx;
+            
+            let fileInp = row.querySelector('.temp-file-input');
+            if (!fileInp) {
+                fileInp = document.createElement('input');
+                fileInp.type = 'file';
+                fileInp.className = 'temp-file-input';
+                fileInp.style.display = 'none';
+                fileInp.onchange = async function() {
+                    const file = fileInp.files[0];
+                    if (!file) return;
+                    
+                    Swal.fire({
+                        title: 'Yükleniyor...',
+                        text: `${file.name} buluta aktarılıyor, lütfen bekleyin.`,
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading() }
+                    });
+                    
+                    try {
+                        const url = await DataManager.uploadFileToSupabase(file);
+                        const input = row.querySelector('input.meta-paper-input');
+                        if (input) input.value = url;
+                        
+                        saveUygulamaFiles(sesId, encodedSub);
+                        Swal.close();
+                        Swal.fire({
+                            toast: true, position: 'top-end', icon: 'success', title: 'Dosya yüklendi ve kaydedildi!', showConfirmButton: false, timer: 1500
+                        });
+                    } catch (err) {
+                        console.error(err);
+                        Swal.fire('Hata', 'Dosya yüklenemedi: ' + err.message, 'error');
+                    }
+                };
+                row.appendChild(fileInp);
+            }
+            fileInp.click();
         }
 
         function sendLiveMessage(sesId, encodedSub) {
@@ -2908,12 +3138,21 @@
                     await new Promise(r => setTimeout(r, 5)); // Yield to prevent thread lock
 
                     const students = byClass[cls].sort((a, b) => parseInt(a.no) - parseInt(b.no));
+                    let titleSuffix = '';
+                    const classRoomName = students[0]?.room;
+                    if (session.type === 'uygulama' && classRoomName) {
+                        const gorevli = examTeachersData.classrooms[classRoomName]?.gorevli;
+                        if (gorevli) {
+                            titleSuffix = ` - Görevli: ${gorevli}`;
+                        }
+                    }
+
                     for (let p = 0; p < students.length; p += PAGE_SIZE) {
                         const chunk = students.slice(p, p + PAGE_SIZE);
                         const isLastPage = (p + PAGE_SIZE >= students.length);
                         const isHighDensity = PAGE_SIZE > 42 || (isLastPage && studentMsg && PAGE_SIZE > 35);
                         const rows = chunk.map(s => `<tr><td style="width:10%;" class="text-center text-bold">${s.no}</td><td style="width:40%; text-transform:uppercase; font-weight:600;">${s.name}</td><td style="width:28%;">${abbr(s._matchedSubject || '-', 25)}</td><td style="width:14%;" class="text-center">${s.room}</td><td style="width:8%;" class="text-center text-bold">${s.seatNum}</td></tr> `).join('');
-                        body += `<div class="page portrait ${isHighDensity ? 'compact-header' : ''}"> ${hdr(`${cls} Sınıf Listesi`, cls)} <div class="table-responsive"><table class="${isHighDensity ? 'compact' : ''}"><thead><tr><th style="width:10%;" class="text-center">No</th><th style="width:40%;">Ad Soyad</th><th style="width:28%;">Sınav Dersi</th><th style="width:14%;" class="text-center">Derslik</th><th style="width:8%;" class="text-center">Sıra</th></tr></thead><tbody>${rows}</tbody></table></div>${(studentMsg && isLastPage) ? `<div class="msg-box ${isHighDensity ? 'compact-msg' : ''}"><strong><span class="icon">!</span> Dikkat: </strong>${studentMsg}</div>` : ""}</div> `;
+                        body += `<div class="page portrait ${isHighDensity ? 'compact-header' : ''}"> ${hdr(`${cls} Sınıf Listesi${titleSuffix}`, session.type === 'uygulama' ? classRoomName : null)} <div class="table-responsive"><table class="${isHighDensity ? 'compact' : ''}"><thead><tr><th style="width:10%;" class="text-center">No</th><th style="width:40%;">Ad Soyad</th><th style="width:28%;">Sınav Dersi</th><th style="width:14%;" class="text-center">Derslik</th><th style="width:8%;" class="text-center">Sıra</th></tr></thead><tbody>${rows}</tbody></table></div>${(studentMsg && isLastPage) ? `<div class="msg-box ${isHighDensity ? 'compact-msg' : ''}"><strong><span class="icon">!</span> Dikkat: </strong>${studentMsg}</div>` : ""}</div> `;
                     }
                 }
 
