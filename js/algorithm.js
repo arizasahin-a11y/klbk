@@ -422,32 +422,30 @@ const ExamAlgorithm = {
                     // Step 1: clear all non-priority seats in this column
                     freeSeats.forEach(s => { delete node.assigned[s.id]; });
 
-                    // Step 2: assign interleaved students — check lateral/diagonal collision before placing
-                    let fsIdx = 0;
-                    const unplacedInCol = [];
-                    for (const st of interleaved) {
-                        let placed = false;
-                        const startIdx = fsIdx;
-                        // Try all remaining free seats in order
-                        for (let fi = startIdx; fi < freeSeats.length; fi++) {
-                            const candidateSeat = freeSeats[fi];
-                            if (node.assigned[candidateSeat.id]) continue;
-                            if (!hasCollision6(node, st, candidateSeat)) {
-                                node.assigned[candidateSeat.id] = st;
-                                fsIdx = fi + 1;
-                                placed = true;
-                                break;
-                            }
+                    // Step 2: Seat-first assignment — for each seat, pick the best safe student.
+                    // Strictly no lateral/diagonal collision (red). Vertical (yellow) allowed as last resort.
+                    const remaining = [...interleaved];
+
+                    for (const freeSeat of freeSeats) {
+                        if (remaining.length === 0) break;
+
+                        // Find first student that has NO lateral/diagonal collision in this seat
+                        const safeIdx = remaining.findIndex(st => !hasCollision6(node, st, freeSeat));
+                        if (safeIdx !== -1) {
+                            node.assigned[freeSeat.id] = remaining[safeIdx];
+                            remaining.splice(safeIdx, 1);
                         }
-                        if (!placed) {
-                            // Can't find a safe seat right now — put in deferred list
-                            unplacedInCol.push(st);
-                        }
+                        // If no student is safe here right now, skip this seat;
+                        // a later student might fit after the adjacent seats are filled.
                     }
-                    // Assign deferred students to any remaining free seat (avoid collision if possible)
-                    for (const st of unplacedInCol) {
+
+                    // Deferred: place remaining students that couldn't find collision-free seats above.
+                    // Prefer collision-free; only fall back to collision seat if absolutely necessary.
+                    for (const st of remaining) {
+                        // Try any free seat without lateral/diagonal collision first
                         let seat = freeSeats.find(s => !node.assigned[s.id] && !hasCollision6(node, st, s));
-                        if (!seat) seat = freeSeats.find(s => !node.assigned[s.id]); // last resort
+                        // Absolute last resort: any free seat (single-subject full salon)
+                        if (!seat) seat = freeSeats.find(s => !node.assigned[s.id]);
                         if (seat) node.assigned[seat.id] = st;
                     }
                 }
@@ -656,6 +654,61 @@ const ExamAlgorithm = {
                 }
             }
             if (!resolvedAny) break;
+        }
+
+        // ── FINAL SWEEP: Lateral/Diagonal Çakışma Sıfırlama ─────────────────
+        // Tüm aşamalardan sonra hâlâ kırmızı (lateral/diagonal) çakışma kalmışsa
+        // agresif takas ile sıfırla. Kırmızı kesinlikle sıfır olmalı.
+        for (let iter = 0; iter < 30; iter++) {
+            let anyFixed = false;
+            for (const node of roomNodes) {
+                for (const seat of node.allSeats) {
+                    const st = node.assigned[seat.id];
+                    if (!st || isPrio(st)) continue;
+                    if (!hasCollision6(node, st, seat)) continue;
+
+                    // Bu öğrenci lateral/diagonal çakışma içinde — başka bir yere taşı
+                    // Önce aynı odada çakışmasız boş koltuk ara
+                    const targetSlot = levelSlot[st._matchedSubject || 'Unknown'] ?? 0;
+                    let bestSeat = node.slotSeats[targetSlot].find(s2 =>
+                        !node.assigned[s2.id] && !hasCollision6(node, st, s2)
+                    );
+                    if (!bestSeat) {
+                        bestSeat = node.allSeats.find(s2 =>
+                            !node.assigned[s2.id] && !hasCollision6(node, st, s2)
+                        );
+                    }
+
+                    if (bestSeat) {
+                        // Taşı: boş koltuğa çakışmasız yerleştir
+                        delete node.assigned[seat.id];
+                        node.assigned[bestSeat.id] = st;
+                        anyFixed = true;
+                        continue;
+                    }
+
+                    // Boş koltuk yoksa: farklı dersten non-priority biriyle takas
+                    let swapped = false;
+                    for (const otherSeat of node.allSeats) {
+                        if (otherSeat.id === seat.id) continue;
+                        const other = node.assigned[otherSeat.id];
+                        if (!other || isPrio(other)) continue;
+                        if (other._matchedSubject === st._matchedSubject) continue;
+
+                        // Takas sonrası her iki öğrenci de lateral/diagonal çakışmadan kurtulmalı
+                        const stSafe = !hasCollision6(node, st, otherSeat);
+                        const otherSafe = !hasCollision6(node, other, seat);
+                        if (stSafe && otherSafe) {
+                            node.assigned[seat.id] = other;
+                            node.assigned[otherSeat.id] = st;
+                            swapped = true;
+                            anyFixed = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!anyFixed) break;
         }
 
         return roomNodes.map(node => ({
