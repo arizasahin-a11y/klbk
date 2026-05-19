@@ -4928,6 +4928,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     await new Promise(r => setTimeout(r, 5)); // Yield to prevent thread lock
 
                     const students = byClass[cls].sort((a, b) => parseInt(a.no) - parseInt(b.no));
+                    
+                    let titleSuffix = '';
+                    const classRoomName = students[0]?.room;
+                    if (session.type === 'uygulama' && classRoomName) {
+                        const gorevli = examTeachersData.classrooms[classRoomName]?.gorevli;
+                        if (gorevli) {
+                            titleSuffix = ` - Görevli: ${gorevli}`;
+                        }
+                    }
+
                     const PAGE_SIZE = 50;
                     for (let p = 0; p < students.length; p += PAGE_SIZE) {
                         const chunk = students.slice(p, p + PAGE_SIZE);
@@ -4949,7 +4959,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }).join('');
 
                         body += `<div class="page">
-                            ${hdr(`${cls} Sınıf Listesi ${totalPages > 1 ? `(Sayfa ${pageNum}/${totalPages})` : ''}`)}
+                            ${hdr(`${cls} Sınıf Listesi${titleSuffix} ${totalPages > 1 ? `(Sayfa ${pageNum}/${totalPages})` : ''}`, session.type === 'uygulama' ? classRoomName : null)}
                             <table>
                                 <thead><tr>
                                     <th style="width:10%;">No</th><th style="width:40%;">Ad Soyad</th>
@@ -5550,7 +5560,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     <div class="form-group" style="margin-bottom: 1rem;">
                         <label style="display:block; margin-bottom:0.5rem; font-weight:bold;">Öğrenciye Mesaj / Uyarılar</label>
-                        <textarea id="meta-std-msg" class="swal2-textarea" style="width:100%; margin:0; height:80px;" placeholder="Optik formları dikkatli doldurun...">${ses.studentMsg || ''}</textarea>
+                        <textarea id="meta-std-msg" class="swal2-textarea" style="width:100%; margin:0; height:80px;" placeholder="Optik formları dikkatli doldurkan...">${ses.studentMsg || ''}</textarea>
                     </div>
                     <div class="form-group" style="margin-bottom: 1rem;">
                         <label style="display:block; margin-bottom:0.5rem; font-weight:bold;">Öğretmen Mesajı / Talimatlar</label>
@@ -6031,6 +6041,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             const classPanel = document.createElement('div');
             classPanel.style.marginBottom = '1rem';
 
+            let teacherSpan = '';
+            if (session.type === 'uygulama') {
+                const firstStudent = byClass[className]?.[0];
+
+                if (firstStudent && firstStudent.room) {
+                    const roomName = firstStudent.room;
+                    const teachersData = window._currentExamTeachersData || {};
+                    const gorevli = teachersData.classrooms?.[roomName]?.gorevli;
+                    if (gorevli) {
+                        teacherSpan = `<span style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:12px; margin-left:10px;">Görevli: ${gorevli}</span>`;
+                    }
+                }
+            }
+
             const metadata = session.subjectMetadata || {};
             let allHavePdf = true;
             let tableRows = byClass[className]
@@ -6074,7 +6098,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             classPanel.innerHTML = `
                 <div class="nested-accordion-header" onclick="toggleNestedAccordion('${classId}')" style="background:var(--gray-50); padding:1rem; border:1px solid var(--gray-200); border-radius:8px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-                    <h3 style="margin:0; font-size:1.1rem;"><i class="fa-solid fa-users" style="color:var(--primary);"></i> ${className} Sınıf Listesi</h3>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <h3 style="margin:0; font-size:1.1rem;"><i class="fa-solid fa-users" style="color:var(--primary);"></i> ${className} Sınıf Listesi</h3>
+                        ${teacherSpan}
+                    </div>
                     <div style="display:flex; align-items:center; gap:15px;">
                         ${allHavePdf ? `<label style="display:flex; align-items:center; gap:5px; margin:0; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--primary);" onclick="event.stopPropagation();">
                             <input type="checkbox" class="class-paper-check" data-class="${className}" style="width:16px; height:16px;"> Soru Kağıdı
