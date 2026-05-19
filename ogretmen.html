@@ -869,7 +869,7 @@
                                         papersHtml += `
                                             <div class="input-group uygulama-file-row" style="display:flex; align-items:center; gap:5px; margin-top:8px;">
                                                 <span style="font-size:0.75rem; font-weight:700; color:var(--gray-500); min-width:60px;">${fIdx + 1}. dosya</span>
-                                                <input type="text" class="form-control meta-paper-input" data-uyg-idx="${fIdx}" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" value="${fileLink}" placeholder="Uygulama dosyası linki">
+                                                <input type="text" class="form-control meta-paper-input" data-uyg-idx="${fIdx}" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" value="${fileLink}" placeholder="Uygulama dosyası linki" onchange="saveUygulamaFiles('${ses.id}', '${encodedSub}')">
                                                 <button type="button" class="btn btn-secondary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.fire('Eksik', 'Önce bir link girin', 'warning');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
                                                 <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem; background:#6366f1; border-color:#6366f1;" onclick="testUygulamaMediaTeacher(this)" title="Medya Test"><i class="fa-solid fa-play"></i> Test</button>
                                                 <button type="button" class="btn btn-info btn-sm" style="padding: 0.65rem 0.85rem;" onclick="openCloudBrowserTeacher(this, '${ses.id}', '${encodedSub}')" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
@@ -1256,8 +1256,8 @@
             newRow.className = 'input-group uygulama-file-row';
             newRow.style.cssText = 'display:flex; align-items:center; gap:5px; margin-top:8px;';
             newRow.innerHTML = `
-                <span style="font-size:0.75rem; font-weight:700; color:var(--gray-500); min-width:60px;">${fIdx + 1}. dosya</span>
-                <input type="text" class="form-control meta-paper-input" data-uyg-idx="${fIdx}" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" value="" placeholder="Uygulama dosyası linki">
+                <span style="font-size:0.75rem; font-weight:700; color:var(--gray-500); min-width:60px;">\${fIdx + 1}. dosya</span>
+                <input type="text" class="form-control meta-paper-input" data-uyg-idx="\${fIdx}" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" value="" placeholder="Uygulama dosyası linki" onchange="saveUygulamaFiles('\${sesId}', '\${encodedSub}')">
                 <button type="button" class="btn btn-secondary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.fire('Eksik', 'Önce bir link girin', 'warning');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
                 <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem; background:#6366f1; border-color:#6366f1;" onclick="testUygulamaMediaTeacher(this)" title="Medya Test"><i class="fa-solid fa-play"></i> Test</button>
                 <button type="button" class="btn btn-info btn-sm" style="padding: 0.65rem 0.85rem;" onclick="openCloudBrowserTeacher(this, '${sesId}', '${encodedSub}')" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
