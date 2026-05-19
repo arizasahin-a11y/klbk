@@ -1399,12 +1399,61 @@
                     const blob = new Blob([buffer], { type: mime });
                     const blobUrl = URL.createObjectURL(blob);
                     
-                    mediaElement.dataset.blobUrl = blobUrl;
-                    mediaElement.src = blobUrl;
-                    mediaElement.load();
-                    mediaElement.oncanplay = () => {
-                        mediaElement.play().catch(e => console.error("Playback failed after fallback:", e));
-                    };
+                    const isVideoMime = mime.startsWith('video/');
+                    const isAudioMime = mime.startsWith('audio/');
+                    const isImageMime = mime.startsWith('image/');
+                    const isPdfMime = mime === 'application/pdf';
+
+                    if (isVideoMime && mediaElement.tagName === 'AUDIO') {
+                        const parent = mediaElement.parentElement;
+                        const videoEl = document.createElement('video');
+                        videoEl.id = 'klbk-native-video';
+                        videoEl.controls = true;
+                        videoEl.autoplay = true;
+                        videoEl.style.cssText = 'width:100%; max-height:360px; border-radius:8px; background:#000;';
+                        videoEl.dataset.blobUrl = blobUrl;
+                        videoEl.src = blobUrl;
+                        videoEl.dataset.fallbackTriggered = "true";
+                        parent.replaceChild(videoEl, mediaElement);
+                        videoEl.load();
+                        videoEl.oncanplay = () => {
+                            videoEl.play().catch(e => console.error("Playback failed after fallback swap:", e));
+                        };
+                    } else if (isAudioMime && mediaElement.tagName === 'VIDEO') {
+                        const parent = mediaElement.parentElement;
+                        const audioEl = document.createElement('audio');
+                        audioEl.id = 'klbk-native-audio';
+                        audioEl.controls = true;
+                        audioEl.autoplay = true;
+                        audioEl.style.cssText = 'width:100%; max-width:500px; margin:20px 0;';
+                        audioEl.dataset.blobUrl = blobUrl;
+                        audioEl.src = blobUrl;
+                        audioEl.dataset.fallbackTriggered = "true";
+                        parent.replaceChild(audioEl, mediaElement);
+                        audioEl.load();
+                        audioEl.oncanplay = () => {
+                            audioEl.play().catch(e => console.error("Playback failed after fallback swap:", e));
+                        };
+                    } else if (isImageMime) {
+                        const parent = mediaElement.parentElement;
+                        const imgEl = document.createElement('img');
+                        imgEl.src = blobUrl;
+                        imgEl.style.cssText = 'width:100%; max-height:400px; object-fit:contain; border-radius:8px;';
+                        parent.replaceChild(imgEl, mediaElement);
+                    } else if (isPdfMime) {
+                        const parent = mediaElement.parentElement;
+                        const iframeEl = document.createElement('iframe');
+                        iframeEl.src = blobUrl;
+                        iframeEl.style.cssText = 'width:100%; height:450px; border:none; border-radius:8px;';
+                        parent.replaceChild(iframeEl, mediaElement);
+                    } else {
+                        mediaElement.dataset.blobUrl = blobUrl;
+                        mediaElement.src = blobUrl;
+                        mediaElement.load();
+                        mediaElement.oncanplay = () => {
+                            mediaElement.play().catch(e => console.error("Playback failed after fallback:", e));
+                        };
+                    }
 
                     if (statusEl) {
                         statusEl.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#34d399; margin-right:5px;"></i> <span style="color:#34d399; font-weight:600;">Yedek Mod (Bellek) ile oynatılıyor.</span>`;
@@ -1444,13 +1493,17 @@
                 }
             };
 
-            // Detect MIME type online (fast, non-blocking chunk/extension detection)
-            let mimeType = 'application/octet-stream';
-            try {
-                mimeType = await DataManager.detectMimeTypeOnline(url);
-            } catch (err) {
-                console.warn("Could not detect MIME type online, using octet-stream:", err);
-            }
+            // Guess MIME type synchronously to display player instantly
+            const guessMimeType = (u) => {
+                const lower = u.toLowerCase();
+                if (lower.match(/\.(mp4|m4v|webm)$/) || lower.includes('video') || lower.includes('mp4')) return 'video/mp4';
+                if (lower.match(/\.(mp3|mpeg|wav|ogg|m4a)$/) || lower.includes('audio') || lower.includes('ses') || lower.includes('sound') || lower.includes('mp3')) return 'audio/mpeg';
+                if (lower.match(/\.(jpg|jpeg|png|gif|webp)$/) || lower.includes('gorsel') || lower.includes('resim')) return 'image/jpeg';
+                if (lower.match(/\.pdf$/) || lower.includes('pdf')) return 'application/pdf';
+                if (u.includes('drive.google.com') || u.includes('docs.google.com')) return 'audio/mpeg'; // Default to audio for Google Drive
+                return 'audio/mpeg'; // Safe default for listening exam application links
+            };
+            const mimeType = guessMimeType(url);
 
             const isAudio = mimeType.startsWith('audio/') || lowerUrl.includes('.mp3') || lowerUrl.includes('.wav') || lowerUrl.includes('.m4a') || lowerUrl.includes('.ogg') || lowerUrl.includes('audio') || lowerUrl.includes('ses');
             const isVideo = mimeType.startsWith('video/') || lowerUrl.includes('.mp4') || lowerUrl.includes('.webm') || lowerUrl.includes('.m4v') || lowerUrl.includes('video');
