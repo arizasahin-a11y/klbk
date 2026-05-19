@@ -2317,18 +2317,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         const currentSubjects = wizardSessionData.subjects;
         const subjectGroups = [];
 
-        // Track ALL students who have been assigned to ANY subject group in this wizard session
-        // This ensures MUTUAL EXCLUSIVITY: a student cannot take two exams in the same session.
-        const studentsAssignedToASubject = new Set();
+        // Track which student is assigned to which subject (by subject name).
+        // Using Map<studentNo, subjectName> so a student in Biology pool doesn't
+        // block Psychology pool — only cross-subject overlap is blocked.
+        const studentSubjectMap = new Map(); // no → subjectName they're assigned to
 
         currentSubjects.forEach(subObj => {
             const subNameNorm = (subObj.name || "").trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
 
-            // Target students who REALLY take this specific subject 
-            // AND are NOT already sitting for a previously parsed subject in this session
+            // Target students who REALLY take this specific subject
+            // AND are NOT already assigned to a DIFFERENT subject in this session.
             const targetStudents = availableInSchool.filter(s => {
                 const sno = s.no.toString();
-                if (studentsAssignedToASubject.has(sno)) return false; // Already taking another exam!
+                const assignedTo = studentSubjectMap.get(sno);
+                // Block only if assigned to a DIFFERENT subject (not the same one being processed)
+                if (assignedTo && assignedTo !== subNameNorm) return false;
 
                 return (s.dersler || []).some(d => {
                     const dn = (d || "").trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
@@ -2365,13 +2368,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             subjectGroups.push({ subject: subObj, pools });
 
-            // Mark ONLY students from SELECTED (checked) pools as "assigned" so they can't be
-            // picked up by the next subject. Un-checked pools (e.g. 12A unchecked for Physics)
-            // must remain available for subsequent subjects (e.g. Maths).
+            // Lock ONLY students from SELECTED pools to this subject,
+            // so they can't be picked up by a subsequent DIFFERENT subject.
             pools.forEach(p => {
                 const isSelected = wizardSessionData.selectedClasses.includes(p.pid);
                 if (isSelected) {
-                    p.students.forEach(s => studentsAssignedToASubject.add(s.no.toString()));
+                    p.students.forEach(s => {
+                        const sno = s.no.toString();
+                        // Only write if not already locked (first-come first-served across subjects)
+                        if (!studentSubjectMap.has(sno)) {
+                            studentSubjectMap.set(sno, subNameNorm);
+                        }
+                    });
                 }
             });
         });
