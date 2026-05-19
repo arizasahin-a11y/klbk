@@ -1330,23 +1330,106 @@
                 }
             }
 
-            // Google Drive için anlık sıfır gecikmeli iframe oynatıcı
+            // Google Drive için anlık sıfır gecikmeli hibrit tablı oynatıcı
             if (isGoogleDrive && fileId) {
                 const isAudio = lowerUrl.includes('.mp3') || lowerUrl.includes('.wav') || lowerUrl.includes('.m4a') || lowerUrl.includes('.ogg') || lowerUrl.includes('audio') || lowerUrl.includes('ses');
                 const iframeUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-                const height = isAudio ? '200px' : '450px';
+                const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+                const iframeHeight = isAudio ? '200px' : '450px';
+                
+                // Global sekme geçiş fonksiyonu
+                window.switchKlbkPlayerTab = function(tabName) {
+                    const btnNative = document.getElementById('tab-btn-native');
+                    const btnIframe = document.getElementById('tab-btn-iframe');
+                    const contentNative = document.getElementById('player-content-native');
+                    const contentIframe = document.getElementById('player-content-iframe');
+                    
+                    // Diğer oynatıcı seslerini durdur
+                    const nativeAudio = document.getElementById('klbk-native-audio');
+                    const nativeVideo = document.getElementById('klbk-native-video');
+                    if (nativeAudio) nativeAudio.pause();
+                    if (nativeVideo) nativeVideo.pause();
+                    
+                    if (tabName === 'native') {
+                        btnNative.style.background = '#6366f1';
+                        btnNative.style.color = '#fff';
+                        btnIframe.style.background = '#334155';
+                        btnIframe.style.color = '#94a3b8';
+                        contentNative.style.display = 'flex';
+                        contentIframe.style.display = 'none';
+                    } else {
+                        btnNative.style.background = '#334155';
+                        btnNative.style.color = '#94a3b8';
+                        btnIframe.style.background = '#6366f1';
+                        btnIframe.style.color = '#fff';
+                        contentNative.style.display = 'none';
+                        contentIframe.style.display = 'block';
+                    }
+                };
                 
                 Swal.fire({
                     title: 'Google Drive Oynatıcı',
                     html: `
-                    <iframe src="${iframeUrl}" style="width:100%; height:${height}; border:none; border-radius:8px;" allow="autoplay"></iframe>
-                    <div style="margin-top: 10px; text-align: left; font-size: 0.75rem; color: #64748b; line-height: 1.4;">
-                        <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> 
-                        Eğer oynatılamazsa veya izin hatası verirse, dosya paylaşım ayarlarını Google Drive'da <strong>"Bağlantıya sahip olan herkes"</strong> olarak güncellediğinizden emin olun.
-                    </div>`,
+                    <div class="klbk-player-container" style="background:#1e293b; color:#fff; border-radius:12px; padding:15px; text-align:center;">
+                        <!-- Sekme Başlıkları -->
+                        <div class="klbk-player-tabs" style="display:flex; justify-content:center; gap:10px; margin-bottom:15px; border-bottom:1px solid #334155; padding-bottom:10px;">
+                            <button type="button" class="player-tab-btn active" onclick="window.switchKlbkPlayerTab('native')" id="tab-btn-native" style="background:#6366f1; color:#fff; border:none; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
+                                <i class="fa-solid fa-play"></i> Tarayıcı Oynatıcısı
+                            </button>
+                            <button type="button" class="player-tab-btn" onclick="window.switchKlbkPlayerTab('iframe')" id="tab-btn-iframe" style="background:#334155; color:#94a3b8; border:none; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
+                                <i class="fa-brands fa-google-drive"></i> Google Drive Oynatıcısı
+                            </button>
+                        </div>
+                        
+                        <!-- Sekme İçeriği: Yerel Tarayıcı Oynatıcısı -->
+                        <div id="player-content-native" class="player-tab-content" style="display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:120px;">
+                            \${isAudio ? `
+                                <audio id="klbk-native-audio" controls style="width:100%; max-width:500px; margin:20px 0;" onerror="document.getElementById('native-player-error').style.display='block'">
+                                    <source src="\${downloadUrl}" type="audio/mpeg">
+                                    <source src="\${downloadUrl}" type="audio/wav">
+                                    <source src="\${downloadUrl}" type="audio/ogg">
+                                    <source src="\${downloadUrl}" type="audio/mp4">
+                                    Tarayıcınız ses etiketini desteklemiyor.
+                                </audio>
+                            ` : `
+                                <video id="klbk-native-video" controls style="width:100%; max-height:360px; border-radius:8px; background:#000;" onerror="document.getElementById('native-player-error').style.display='block'">
+                                    <source src="\${downloadUrl}" type="video/mp4">
+                                    <source src="\${downloadUrl}" type="video/webm">
+                                    <source src="\${downloadUrl}" type="video/ogg">
+                                    Tarayıcınız video etiketini desteklemiyor.
+                                </video>
+                            `}
+                            <div id="native-player-error" style="display:none; background:#fee2e2; border-left:4px solid #ef4444; padding:8px 12px; border-radius:6px; color:#b91c1c; font-size:0.75rem; text-align:left; width:100%; margin-top:10px;">
+                                <i class="fa-solid fa-circle-exclamation"></i> Tarayıcınız bu dosyayı doğrudan oynatamadı. Lütfen yukarıdan <strong>Google Drive Oynatıcısı</strong> sekmesine geçin veya aşağıdaki alternatif butonları kullanın.
+                            </div>
+                        </div>
+                        
+                        <!-- Sekme İçeriği: Iframe Oynatıcı -->
+                        <div id="player-content-iframe" class="player-tab-content" style="display:none;">
+                            <iframe src="\${iframeUrl}" style="width:100%; height:\${iframeHeight}; border:none; border-radius:8px; background:#000;" allow="autoplay"></iframe>
+                        </div>
+                        
+                        <!-- Ortak Bilgilendirme ve Butonlar -->
+                        <div style="margin-top:15px; border-top:1px solid #334155; padding-top:12px; display:flex; flex-direction:column; gap:8px;">
+                            <div style="text-align:left; font-size:0.75rem; color:#94a3b8; line-height:1.4;">
+                                <i class="fa-solid fa-circle-info" style="color:#6366f1;"></i> 
+                                Google Drive oynatıcısında hata alırsanız, dosya formatı desteklenmiyor olabilir. Bu durumda <strong>Tarayıcı Oynatıcısı</strong> sekmesini veya aşağıdaki indirme/açma butonlarını kullanın.
+                            </div>
+                            <div style="display:flex; justify-content:center; gap:10px; margin-top:8px;">
+                                <a href="\${url}" target="_blank" class="btn btn-info btn-sm" style="padding:6px 12px; border-radius:6px; font-weight:600; font-size:0.8rem; display:flex; align-items:center; gap:4px; text-decoration:none; background:#0ea5e9; color:#fff; border:none;">
+                                    <i class="fa-solid fa-external-link"></i> Yeni Sekmede Aç
+                                </a>
+                                <a href="\${downloadUrl}" target="_blank" class="btn btn-success btn-sm" style="padding:6px 12px; border-radius:6px; font-weight:600; font-size:0.8rem; display:flex; align-items:center; gap:4px; text-decoration:none; background:#10b981; color:#fff; border:none;">
+                                    <i class="fa-solid fa-cloud-arrow-down"></i> Dosyayı İndir
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    `,
                     width: '700px',
                     showCloseButton: true,
-                    showConfirmButton: false
+                    showConfirmButton: false,
+                    background: '#1e293b'
                 });
                 return;
             }
