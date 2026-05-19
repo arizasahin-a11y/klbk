@@ -7156,7 +7156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <i class="fa-solid fa-circle-exclamation" style="font-size: 1.2rem;"></i>
                             <span>Dosya Erişimi Engellendi veya Bağlantı Hatası</span>
                         </div>
-                        <p>Google Drive dosyanız indirilemedi and oynatılamadı. Bu hatanın en yaygın sebebi, dosyanın <strong>herkese açık paylaşım izinlerinin verilmemiş olmasıdır</strong>.</p>
+                        <p>Google Drive dosyanız indirilemedi ve oynatılamadı. Bu hatanın en yaygın sebebi, dosyanın <strong>herkese açık paylaşım izinlerinin verilmemiş olmasıdır</strong>.</p>
                         <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
                             <strong style="color: var(--primary); display: block; margin-bottom: 6px;"><i class="fa-solid fa-key"></i> Çözüm Adımları:</strong>
                             <ol style="margin: 0; padding-left: 20px; font-weight: 600; color: #475569; font-size: 0.85rem;">
@@ -7219,179 +7219,205 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         };
 
-        // Medya Oynatıcı Hazırlanıyor Modalı
-        Swal.fire({
-            title: 'Medya Hazırlanıyor...',
-            html: `
-                <div style="text-align: center; padding: 15px;">
-                    <p style="font-size: 0.95rem; color: #475569; margin-bottom: 15px;">
-                        Dosya güvenli şekilde indiriliyor ve anlık oynatıcı için çözümleniyor.<br>
-                        Lütfen bekleyin...
-                    </p>
-                    <div class="fa-3x">
-                        <i class="fa-solid fa-spinner fa-spin" style="color: #6366f1;"></i>
+        window.currentShowMediaError = showMediaError;
+
+        window.handleKlbkPlayerError = async function(mediaElement, originalUrl) {
+            if (mediaElement.dataset.fallbackTriggered) return;
+            mediaElement.dataset.fallbackTriggered = "true";
+
+            console.warn("Direct streaming failed, trying background download...", originalUrl);
+            const statusEl = document.getElementById('klbk-player-status');
+            if (statusEl) {
+                statusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#ef4444; margin-right:5px;"></i> <span style="color:#f87171; font-weight:600;">Akış hatası! Dosya arka planda indiriliyor...</span>`;
+            }
+
+            try {
+                const buffer = await DataManager.getFileBytes(originalUrl);
+                if (!buffer || buffer.byteLength === 0) {
+                    throw new Error("Boş dosya");
+                }
+                let mime = DataManager.detectMimeType(buffer);
+                const blob = new Blob([buffer], { type: mime });
+                const blobUrl = URL.createObjectURL(blob);
+                
+                mediaElement.dataset.blobUrl = blobUrl;
+                mediaElement.src = blobUrl;
+                mediaElement.load();
+                mediaElement.oncanplay = () => {
+                    mediaElement.play().catch(e => console.error("Playback failed after fallback:", e));
+                };
+
+                if (statusEl) {
+                    statusEl.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#34d399; margin-right:5px;"></i> <span style="color:#34d399; font-weight:600;">Yedek Mod (Bellek) ile oynatılıyor.</span>`;
+                }
+            } catch (err) {
+                console.error("Fallback download error:", err);
+                if (statusEl) {
+                    statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#ef4444; margin-right:5px;"></i> <span style="color:#f87171; font-weight:600;">Dosya yüklenemedi!</span>`;
+                }
+                if (window.currentShowMediaError) {
+                    window.currentShowMediaError();
+                }
+            }
+        };
+
+        window.switchKlbkPlayerTab = function(tabName) {
+            const btnNative = document.getElementById('tab-btn-native');
+            const btnIframe = document.getElementById('tab-btn-iframe');
+            const contentNative = document.getElementById('player-content-native');
+            const contentIframe = document.getElementById('player-content-iframe');
+            
+            const nativeAudio = document.getElementById('klbk-native-audio');
+            const nativeVideo = document.getElementById('klbk-native-video');
+            if (nativeAudio) nativeAudio.pause();
+            if (nativeVideo) nativeVideo.pause();
+            
+            if (tabName === 'native') {
+                if (btnNative) { btnNative.style.background = '#6366f1'; btnNative.style.color = '#fff'; }
+                if (btnIframe) { btnIframe.style.background = '#334155'; btnIframe.style.color = '#94a3b8'; }
+                if (contentNative) contentNative.style.display = 'flex';
+                if (contentIframe) contentIframe.style.display = 'none';
+            } else {
+                if (btnNative) { btnNative.style.background = '#334155'; btnNative.style.color = '#94a3b8'; }
+                if (btnIframe) { btnIframe.style.background = '#6366f1'; btnIframe.style.color = '#fff'; }
+                if (contentNative) contentNative.style.display = 'none';
+                if (contentIframe) contentIframe.style.display = 'block';
+            }
+        };
+
+        // Detect MIME type online (fast, non-blocking chunk/extension detection)
+        let mimeType = 'application/octet-stream';
+        try {
+            mimeType = await DataManager.detectMimeTypeOnline(url);
+        } catch (err) {
+            console.warn("Could not detect MIME type online, using octet-stream:", err);
+        }
+
+        const isAudio = mimeType.startsWith('audio/') || lowerUrl.includes('.mp3') || lowerUrl.includes('.wav') || lowerUrl.includes('.m4a') || lowerUrl.includes('.ogg') || lowerUrl.includes('audio') || lowerUrl.includes('ses');
+        const isVideo = mimeType.startsWith('video/') || lowerUrl.includes('.mp4') || lowerUrl.includes('.webm') || lowerUrl.includes('.m4v') || lowerUrl.includes('video');
+        const isImage = mimeType.startsWith('image/') || lowerUrl.includes('.jpg') || lowerUrl.includes('.jpeg') || lowerUrl.includes('.png') || lowerUrl.includes('.gif') || lowerUrl.includes('.webp') || lowerUrl.includes('gorsel') || lowerUrl.includes('resim');
+        const isPdf = mimeType === 'application/pdf' || lowerUrl.includes('.pdf');
+
+        let swalConfig = {};
+
+        if (isGoogleDrive && fileId) {
+            const iframeHeight = isAudio ? '200px' : '450px';
+            swalConfig = {
+                title: 'Google Drive Oynatıcı',
+                html: `
+                <div class="klbk-player-container" style="background:#1e293b; color:#fff; border-radius:12px; padding:15px; text-align:center;">
+                    <!-- Sekme Başlıkları -->
+                    <div class="klbk-player-tabs" style="display:flex; justify-content:center; gap:10px; margin-bottom:15px; border-bottom:1px solid #334155; padding-bottom:10px;">
+                        <button type="button" class="player-tab-btn active" onclick="window.switchKlbkPlayerTab('native')" id="tab-btn-native" style="background:#6366f1; color:#fff; border:none; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
+                            <i class="fa-solid fa-play"></i> Tarayıcı Oynatıcısı
+                        </button>
+                        <button type="button" class="player-tab-btn" onclick="window.switchKlbkPlayerTab('iframe')" id="tab-btn-iframe" style="background:#334155; color:#94a3b8; border:none; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
+                            <i class="fa-brands fa-google-drive"></i> Google Drive Oynatıcısı
+                        </button>
                     </div>
-                    <div style="margin-top: 15px; font-size: 0.8rem; color: #94a3b8;">
-                        Bu işlem dosya boyutuna bağlı olarak birkaç saniye sürebilir.
+                    
+                    <!-- Sekme İçeriği: Yerel Tarayıcı Oynatıcısı -->
+                    <div id="player-content-native" class="player-tab-content" style="display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:120px;">
+                        <div id="klbk-player-status" style="font-size:0.8rem; color:#94a3b8; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            <i class="fa-solid fa-bolt" style="color:#eab308;"></i> <span>Anında Akış Modu</span>
+                        </div>
+                        ${isAudio ? `
+                            <audio id="klbk-native-audio" src="${downloadUrl}" controls autoplay style="width:100%; max-width:500px; margin:20px 0;" onerror="window.handleKlbkPlayerError(this, '${url}')">
+                                Tarayıcınız ses etiketini desteklemiyor.
+                            </audio>
+                        ` : `
+                            <video id="klbk-native-video" src="${downloadUrl}" controls autoplay style="width:100%; max-height:360px; border-radius:8px; background:#000;" onerror="window.handleKlbkPlayerError(this, '${url}')">
+                                Tarayıcınız video etiketini desteklemiyor.
+                            </video>
+                        `}
+                    </div>
+                    
+                    <!-- Sekme İçeriği: Iframe Oynatıcı -->
+                    <div id="player-content-iframe" class="player-tab-content" style="display:none;">
+                        <iframe src="${iframeUrl}" style="width:100%; height:${iframeHeight}; border:none; border-radius:8px; background:#000;" allow="autoplay"></iframe>
+                    </div>
+                    
+                    <!-- Ortak Bilgilendirme ve Butonlar -->
+                    <div style="margin-top:15px; border-top:1px solid #334155; padding-top:12px; display:flex; flex-direction:column; gap:8px;">
+                        <div style="text-align:left; font-size:0.75rem; color:#94a3b8; line-height:1.4;">
+                            <i class="fa-solid fa-circle-info" style="color:#6366f1;"></i> 
+                            Tarayıcı oynatıcısı doğrudan akış yapar ve anında başlar. Akış hatası durumunda otomatik olarak arka planda indirilir.
+                        </div>
+                        <div style="display:flex; justify-content:center; gap:10px; margin-top:8px;">
+                            <a href="${url}" target="_blank" class="btn btn-info btn-sm" style="padding:6px 12px; border-radius:6px; font-weight:600; font-size:0.8rem; display:flex; align-items:center; gap:4px; text-decoration:none; background:#0ea5e9; color:#fff; border:none;">
+                                <i class="fa-solid fa-external-link"></i> Yeni Sekmede Aç
+                            </a>
+                            <a href="${downloadUrl}" target="_blank" class="btn btn-success btn-sm" style="padding:6px 12px; border-radius:6px; font-weight:600; font-size:0.8rem; display:flex; align-items:center; gap:4px; text-decoration:none; background:#10b981; color:#fff; border:none;">
+                                <i class="fa-solid fa-cloud-arrow-down"></i> Dosyayı İndir
+                            </a>
+                        </div>
                     </div>
                 </div>
-            `,
-            allowOutsideClick: false,
-            showConfirmButton: false,
-            showCloseButton: true
-        });
-
-        try {
-            // Buffer'ı Arka Planda İndir
-            const buffer = await DataManager.getFileBytes(url);
-            if (!buffer || buffer.byteLength === 0) {
-                throw new Error("Boş dosya içeriği veya indirme hatası");
-            }
-
-            // MIME Türünü belirle
-            let mimeType = DataManager.detectMimeType(buffer);
-            if (mimeType === 'application/octet-stream') {
-                const onlineMime = await DataManager.detectMimeTypeOnline(url);
-                if (onlineMime && onlineMime !== 'application/octet-stream') {
-                    mimeType = onlineMime;
-                }
-            }
-
-            // Blob URL oluştur
-            const blob = new Blob([buffer], { type: mimeType });
-            const blobUrl = URL.createObjectURL(blob);
-
-            // Global sekme geçiş fonksiyonu
-            window.switchKlbkPlayerTab = function(tabName) {
-                const btnNative = document.getElementById('tab-btn-native');
-                const btnIframe = document.getElementById('tab-btn-iframe');
-                const contentNative = document.getElementById('player-content-native');
-                const contentIframe = document.getElementById('player-content-iframe');
-                
-                // Diğer oynatıcı seslerini durdur
-                const nativeAudio = document.getElementById('klbk-native-audio');
-                const nativeVideo = document.getElementById('klbk-native-video');
-                if (nativeAudio) nativeAudio.pause();
-                if (nativeVideo) nativeVideo.pause();
-                
-                if (tabName === 'native') {
-                    if (btnNative) { btnNative.style.background = '#6366f1'; btnNative.style.color = '#fff'; }
-                    if (btnIframe) { btnIframe.style.background = '#334155'; btnIframe.style.color = '#94a3b8'; }
-                    if (contentNative) contentNative.style.display = 'flex';
-                    if (contentIframe) contentIframe.style.display = 'none';
-                } else {
-                    if (btnNative) { btnNative.style.background = '#334155'; btnNative.style.color = '#94a3b8'; }
-                    if (btnIframe) { btnIframe.style.background = '#6366f1'; btnIframe.style.color = '#fff'; }
-                    if (contentNative) contentNative.style.display = 'none';
-                    if (contentIframe) contentIframe.style.display = 'block';
-                }
+                `,
+                width: '700px',
+                background: '#1e293b'
             };
-
-            // Medya tipine göre arayüz hazırla
-            let swalConfig = {};
-            if (isGoogleDrive && fileId) {
-                const isAudio = mimeType.startsWith('audio/') || lowerUrl.includes('.mp3') || lowerUrl.includes('.wav') || lowerUrl.includes('.m4a') || lowerUrl.includes('.ogg') || lowerUrl.includes('audio') || lowerUrl.includes('ses');
-                const iframeHeight = isAudio ? '200px' : '450px';
-
+        } else {
+            if (isVideo) {
                 swalConfig = {
-                    title: 'Google Drive Oynatıcı',
+                    title: 'Video Oynatıcı',
                     html: `
-                    <div class="klbk-player-container" style="background:#1e293b; color:#fff; border-radius:12px; padding:15px; text-align:center;">
-                        <!-- Sekme Başlıkları -->
-                        <div class="klbk-player-tabs" style="display:flex; justify-content:center; gap:10px; margin-bottom:15px; border-bottom:1px solid #334155; padding-bottom:10px;">
-                            <button type="button" class="player-tab-btn active" onclick="window.switchKlbkPlayerTab('native')" id="tab-btn-native" style="background:#6366f1; color:#fff; border:none; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
-                                <i class="fa-solid fa-play"></i> Tarayıcı Oynatıcısı (Blob)
-                            </button>
-                            <button type="button" class="player-tab-btn" onclick="window.switchKlbkPlayerTab('iframe')" id="tab-btn-iframe" style="background:#334155; color:#94a3b8; border:none; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
-                                <i class="fa-brands fa-google-drive"></i> Google Drive Oynatıcısı
-                            </button>
+                    <div style="background:#1e293b; color:#fff; border-radius:12px; padding:15px; text-align:center;">
+                        <div id="klbk-player-status" style="font-size:0.8rem; color:#94a3b8; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            <i class="fa-solid fa-bolt" style="color:#eab308;"></i> <span>Anında Akış Modu</span>
                         </div>
-                        
-                        <!-- Sekme İçeriği: Yerel Tarayıcı Oynatıcısı -->
-                        <div id="player-content-native" class="player-tab-content" style="display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:120px;">
-                            ${isAudio ? `
-                                <audio id="klbk-native-audio" controls autoplay style="width:100%; max-width:500px; margin:20px 0;">
-                                    <source src="${blobUrl}" type="${mimeType}">
-                                    Tarayıcınız ses etiketini desteklemiyor.
-                                </audio>
-                            ` : `
-                                <video id="klbk-native-video" controls autoplay style="width:100%; max-height:360px; border-radius:8px; background:#000;">
-                                    <source src="${blobUrl}" type="${mimeType}">
-                                    Tarayıcınız video etiketini desteklemiyor.
-                                </video>
-                            `}
-                        </div>
-                        
-                        <!-- Sekme İçeriği: Iframe Oynatıcı -->
-                        <div id="player-content-iframe" class="player-tab-content" style="display:none;">
-                            <iframe src="${iframeUrl}" style="width:100%; height:${iframeHeight}; border:none; border-radius:8px; background:#000;" allow="autoplay"></iframe>
-                        </div>
-                        
-                        <!-- Ortak Bilgilendirme ve Butonlar -->
-                        <div style="margin-top:15px; border-top:1px solid #334155; padding-top:12px; display:flex; flex-direction:column; gap:8px;">
-                            <div style="text-align:left; font-size:0.75rem; color:#94a3b8; line-height:1.4;">
-                                <i class="fa-solid fa-circle-info" style="color:#6366f1;"></i> 
-                                Blob oynatıcısı yerel bellekten oynatır ve sıfır gecikmelidir. Iframe oynatıcısında sorun yaşarsanız tarayıcı oynatıcısını tercih edin.
-                            </div>
-                            <div style="display:flex; justify-content:center; gap:10px; margin-top:8px;">
-                                <a href="${url}" target="_blank" class="btn btn-info btn-sm" style="padding:6px 12px; border-radius:6px; font-weight:600; font-size:0.8rem; display:flex; align-items:center; gap:4px; text-decoration:none; background:#0ea5e9; color:#fff; border:none;">
-                                    <i class="fa-solid fa-external-link"></i> Yeni Sekmede Aç
-                                </a>
-                                <a href="${downloadUrl}" target="_blank" class="btn btn-success btn-sm" style="padding:6px 12px; border-radius:6px; font-weight:600; font-size:0.8rem; display:flex; align-items:center; gap:4px; text-decoration:none; background:#10b981; color:#fff; border:none;">
-                                    <i class="fa-solid fa-cloud-arrow-down"></i> Dosyayı İndir
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    `,
-                    width: '700px',
+                        <video id="klbk-native-video" src="${downloadUrl}" controls autoplay style="width:100%; max-height:400px; border-radius:8px;" onerror="window.handleKlbkPlayerError(this, '${url}')">
+                            Tarayıcınız video etiketini desteklemiyor.
+                        </video>
+                    </div>`,
+                    width: '600px',
                     background: '#1e293b'
                 };
+            } else if (isAudio) {
+                swalConfig = {
+                    title: 'Ses Oynatıcı',
+                    html: `
+                    <div style="background:#1e293b; color:#fff; border-radius:12px; padding:15px; text-align:center;">
+                        <div id="klbk-player-status" style="font-size:0.8rem; color:#94a3b8; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            <i class="fa-solid fa-bolt" style="color:#eab308;"></i> <span>Anında Akış Modu</span>
+                        </div>
+                        <audio id="klbk-native-audio" src="${downloadUrl}" controls autoplay style="width:100%; margin-top:10px;" onerror="window.handleKlbkPlayerError(this, '${url}')">
+                            Tarayıcınız ses etiketini desteklemiyor.
+                        </audio>
+                    </div>`,
+                    width: '400px',
+                    background: '#1e293b'
+                };
+            } else if (isImage) {
+                swalConfig = {
+                    title: 'Görsel Önizleme',
+                    html: `<img src="${downloadUrl}" style="width:100%; max-height:400px; object-fit:contain; border-radius:8px;">`,
+                    width: '600px',
+                };
+            } else if (isPdf) {
+                swalConfig = {
+                    title: 'Dosya Önizleme (PDF)',
+                    html: `<iframe src="${downloadUrl}" style="width:100%; height:550px; border:none; border-radius:8px;"></iframe>`,
+                    width: '700px',
+                };
             } else {
-                if (mimeType.startsWith('video/')) {
-                    swalConfig = {
-                        title: 'Video Oynatıcı',
-                        html: `<video controls autoplay style="width:100%; max-height:400px; border-radius:8px;"><source src="${blobUrl}" type="${mimeType}">Tarayıcınız video etiketini desteklemiyor.</video>`,
-                        width: '600px',
-                    };
-                } else if (mimeType.startsWith('audio/')) {
-                    swalConfig = {
-                        title: 'Ses Oynatıcı',
-                        html: `<audio controls autoplay style="width:100%; margin-top:10px;"><source src="${blobUrl}" type="${mimeType}">Tarayıcınız ses etiketini desteklemiyor.</audio>`,
-                        width: '400px',
-                    };
-                } else if (mimeType.startsWith('image/')) {
-                    swalConfig = {
-                        title: 'Görsel Önizleme',
-                        html: `<img src="${blobUrl}" style="width:100%; max-height:400px; object-fit:contain; border-radius:8px;">`,
-                        width: '600px',
-                    };
-                } else if (mimeType === 'application/pdf') {
-                    swalConfig = {
-                        title: 'Dosya Önizleme (PDF)',
-                        html: `<iframe src="${blobUrl}" style="width:100%; height:550px; border:none; border-radius:8px;"></iframe>`,
-                        width: '700px',
-                    };
-                } else {
-                    swalConfig = {
-                        title: 'Dosya Önizleme',
-                        html: `<iframe src="${blobUrl}" style="width:100%; height:550px; border:none; border-radius:8px;"></iframe>`,
-                        width: '700px',
-                    };
-                }
+                swalConfig = {
+                    title: 'Dosya Önizleme',
+                    html: `<iframe src="${downloadUrl}" style="width:100%; height:550px; border:none; border-radius:8px;"></iframe>`,
+                    width: '700px',
+                };
             }
-
-            Swal.fire({
-                ...swalConfig,
-                showCloseButton: true,
-                showConfirmButton: false,
-                didClose: () => {
-                    URL.revokeObjectURL(blobUrl);
-                }
-            });
-
-        } catch (err) {
-            console.error("Medya Yükleme/Blob Çözümleme Hatası:", err);
-            showMediaError();
         }
+
+        Swal.fire({
+            ...swalConfig,
+            showCloseButton: true,
+            showConfirmButton: false,
+            didClose: () => {
+                const audio = document.getElementById('klbk-native-audio');
+                const video = document.getElementById('klbk-native-video');
+                if (audio && audio.dataset.blobUrl) URL.revokeObjectURL(audio.dataset.blobUrl);
+                if (video && video.dataset.blobUrl) URL.revokeObjectURL(video.dataset.blobUrl);
+            }
+        });
     };
