@@ -7091,24 +7091,76 @@ document.addEventListener('DOMContentLoaded', async () => {
         const url = inp.value;
         const lowerUrl = url.toLowerCase();
         
-        // Modalın z-index'inin altında kalmaması için
-        if (lowerUrl.match(/\.(mp4|webm|ogg)$/i)) {
+        // Extract Google Drive ID if present
+        let isGoogleDrive = false;
+        let fileId = '';
+        if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+            isGoogleDrive = true;
+            const dMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (dMatch) {
+                fileId = dMatch[1];
+            } else {
+                const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                if (idMatch) {
+                    fileId = idMatch[1];
+                }
+            }
+        }
+
+        let directStreamUrl = url;
+        if (isGoogleDrive && fileId) {
+            directStreamUrl = `https://docs.google.com/uc?export=open&id=${fileId}`;
+        }
+
+        const isVideo = lowerUrl.match(/\.(mp4|webm|ogg)$/i) || (isGoogleDrive && lowerUrl.includes('video'));
+        const isAudio = lowerUrl.match(/\.(mp3|wav|ogg)$/i) || (isGoogleDrive && lowerUrl.includes('audio'));
+        const isImage = lowerUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) || (isGoogleDrive && lowerUrl.includes('image'));
+        const isPdf = lowerUrl.match(/\.(pdf)$/i) || (isGoogleDrive && lowerUrl.includes('pdf'));
+
+        if (isVideo) {
             Swal.fire({
                 title: 'Medya Testi',
-                html: `<video controls autoplay style="width:100%; max-height:400px; border-radius:8px;"><source src="${url}" type="video/mp4">Tarayıcınız video etiketini desteklemiyor.</video>`,
+                html: `<video controls autoplay style="width:100%; max-height:400px; border-radius:8px;"><source src="${directStreamUrl}" type="video/mp4">Tarayıcınız video etiketini desteklemiyor.</video>`,
                 width: '600px',
                 showCloseButton: true,
                 showConfirmButton: false
             });
-        } else if (lowerUrl.match(/\.(mp3|wav|ogg)$/i)) {
+        } else if (isAudio) {
             Swal.fire({
                 title: 'Medya Testi',
-                html: `<audio controls autoplay style="width:100%; margin-top:10px;"><source src="${url}" type="audio/mpeg">Tarayıcınız ses etiketini desteklemiyor.</audio>`,
+                html: `<audio controls autoplay style="width:100%; margin-top:10px;"><source src="${directStreamUrl}" type="audio/mpeg">Tarayıcınız ses etiketini desteklemiyor.</audio>`,
                 width: '400px',
                 showCloseButton: true,
                 showConfirmButton: false
             });
+        } else if (isImage) {
+            Swal.fire({
+                title: 'Görsel Testi',
+                html: `<img src="${directStreamUrl}" style="width:100%; max-height:400px; object-fit:contain; border-radius:8px;">`,
+                width: '600px',
+                showCloseButton: true,
+                showConfirmButton: false
+            });
+        } else if (isPdf || (isGoogleDrive && fileId)) {
+            const iframeUrl = (isGoogleDrive && fileId) 
+                ? `https://drive.google.com/file/d/${fileId}/preview` 
+                : `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+            
+            Swal.fire({
+                title: 'Dosya Önizleme',
+                html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
+                width: '700px',
+                showCloseButton: true,
+                showConfirmButton: false
+            });
         } else {
-            window.open(url, '_blank');
+            const iframeUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+            Swal.fire({
+                title: 'Dosya Önizleme',
+                html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
+                width: '700px',
+                showCloseButton: true,
+                showConfirmButton: false
+            });
         }
     };
