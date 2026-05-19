@@ -881,10 +881,60 @@ const DataManager = {
         // WEBP: RIFF .... WEBP
         if (arr[0] === 0x52 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x46 && arr[8] === 0x57 && arr[9] === 0x45 && arr[10] === 0x42 && arr[11] === 0x50) return true;
 
+        // MP3 (ID3v2): ID3
+        if (arr[0] === 0x49 && arr[1] === 0x44 && arr[2] === 0x33) return true;
+        // MP3 (no ID3 tag): FF FB or FF F3 or FF F2
+        if (arr[0] === 0xFF && (arr[1] === 0xFB || arr[1] === 0xF3 || arr[1] === 0xF2)) return true;
+        // MP4 / M4A: starts with ftyp at index 4
+        if (arr[4] === 0x66 && arr[5] === 0x74 && arr[6] === 0x79 && arr[7] === 0x70) return true;
+        // WAV: RIFF at start and WAVE at byte 8
+        if (arr[0] === 0x52 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x46 && arr[8] === 0x57 && arr[9] === 0x41 && arr[10] === 0x56 && arr[11] === 0x45) return true;
+        // OGG: OggS
+        if (arr[0] === 0x4F && arr[1] === 0x67 && arr[2] === 0x67 && arr[3] === 0x53) return true;
+        // WEBM / MKV: EBML header (1A 45 DF A3)
+        if (arr[0] === 0x1A && arr[1] === 0x45 && arr[2] === 0xDF && arr[3] === 0xA3) return true;
+
         // Kesin emin olamadıysak reddet.
         const sig = Array.from(arr.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join(' ');
         console.warn(`Tampon doğrulanamadı (Boyut: ${buffer.byteLength}). İmza: ${sig} | Metin: ${str.slice(0, 20)}`);
         return false;
+    },
+
+    detectMimeType: function (buffer, defaultType = 'application/octet-stream') {
+        if (!buffer || buffer.byteLength < 12) return defaultType;
+        const arr = new Uint8Array(buffer.slice(0, 50));
+        
+        // PDF
+        const headerStr = String.fromCharCode(...new Uint8Array(buffer.slice(0, 1024)));
+        if (headerStr.includes('%PDF-')) return 'application/pdf';
+        
+        // JPEG
+        if (arr[0] === 0xFF && arr[1] === 0xD8 && arr[2] === 0xFF) return 'image/jpeg';
+        // PNG
+        if (arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4E && arr[3] === 0x47) return 'image/png';
+        // GIF
+        if (arr[0] === 0x47 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x38) return 'image/gif';
+        // WEBP
+        if (arr[0] === 0x52 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x46 && arr[8] === 0x57 && arr[9] === 0x45 && arr[10] === 0x42 && arr[11] === 0x50) return 'image/webp';
+        
+        // MP3
+        if (arr[0] === 0x49 && arr[1] === 0x44 && arr[2] === 0x33) return 'audio/mpeg';
+        if (arr[0] === 0xFF && (arr[1] === 0xFB || arr[1] === 0xF3 || arr[1] === 0xF2)) return 'audio/mpeg';
+        // WAV
+        if (arr[0] === 0x52 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x46 && arr[8] === 0x57 && arr[9] === 0x41 && arr[10] === 0x56 && arr[11] === 0x45) return 'audio/wav';
+        // OGG
+        if (arr[0] === 0x4F && arr[1] === 0x67 && arr[2] === 0x67 && arr[3] === 0x53) return 'audio/ogg';
+        // WEBM
+        if (arr[0] === 0x1A && arr[1] === 0x45 && arr[2] === 0xDF && arr[3] === 0xA3) return 'video/webm';
+        
+        // MP4 / M4A
+        if (arr[4] === 0x66 && arr[5] === 0x74 && arr[6] === 0x79 && arr[7] === 0x70) {
+            const brand = String.fromCharCode(arr[8], arr[9], arr[10], arr[11]);
+            if (brand.includes('m4a') || brand.includes('M4A')) return 'audio/mp4';
+            return 'video/mp4';
+        }
+        
+        return defaultType;
     },
 
     _idbFileCache: null,

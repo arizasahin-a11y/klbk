@@ -7145,60 +7145,86 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        let directStreamUrl = url;
-        if (isGoogleDrive && fileId) {
-            directStreamUrl = `https://docs.google.com/uc?export=open&id=${fileId}`;
-        }
+        // Medya Dosyasını İndirip Mime-Type Analiziyle Doğrudan Oynat/Önizle (CORS & Google Embed Bypass)
+        Swal.fire({
+            title: 'Medya Hazırlanıyor...',
+            html: '<div style="margin-bottom:10px;">Dosya güvenli bulut kanalından indiriliyor ve oynatıcı hazırlanıyor, lütfen bekleyin...</div><div class="fa-3x"><i class="fa-solid fa-spinner fa-spin" style="color:var(--primary);"></i></div>',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            showCloseButton: true
+        });
 
-        const isVideo = lowerUrl.match(/\.(mp4|webm|ogg)$/i) || (isGoogleDrive && lowerUrl.includes('video'));
-        const isAudio = lowerUrl.match(/\.(mp3|wav|ogg)$/i) || (isGoogleDrive && lowerUrl.includes('audio'));
-        const isImage = lowerUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) || (isGoogleDrive && lowerUrl.includes('image'));
-        const isPdf = lowerUrl.match(/\.(pdf)$/i) || (isGoogleDrive && lowerUrl.includes('pdf'));
-
-        if (isVideo) {
-            Swal.fire({
-                title: 'Medya Testi',
-                html: `<video controls autoplay style="width:100%; max-height:400px; border-radius:8px;"><source src="${directStreamUrl}" type="video/mp4">Tarayıcınız video etiketini desteklemiyor.</video>`,
-                width: '600px',
-                showCloseButton: true,
-                showConfirmButton: false
-            });
-        } else if (isAudio) {
-            Swal.fire({
-                title: 'Medya Testi',
-                html: `<audio controls autoplay style="width:100%; margin-top:10px;"><source src="${directStreamUrl}" type="audio/mpeg">Tarayıcınız ses etiketini desteklemiyor.</audio>`,
-                width: '400px',
-                showCloseButton: true,
-                showConfirmButton: false
-            });
-        } else if (isImage) {
-            Swal.fire({
-                title: 'Görsel Testi',
-                html: `<img src="${directStreamUrl}" style="width:100%; max-height:400px; object-fit:contain; border-radius:8px;">`,
-                width: '600px',
-                showCloseButton: true,
-                showConfirmButton: false
-            });
-        } else if (isPdf || (isGoogleDrive && fileId)) {
-            const iframeUrl = (isGoogleDrive && fileId) 
-                ? `https://drive.google.com/file/d/${fileId}/preview` 
-                : `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+        window.getFileBytes(url).then(bytes => {
+            if (!bytes) {
+                throw new Error("Dosya indirilemedi.");
+            }
+            const mimeType = DataManager.detectMimeType(bytes);
+            const blob = new Blob([bytes], { type: mimeType });
+            const blobUrl = URL.createObjectURL(blob);
+            
+            let swalConfig = {};
+            
+            if (mimeType.startsWith('video/')) {
+                swalConfig = {
+                    title: 'Video Oynatıcı',
+                    html: `<video controls autoplay style="width:100%; max-height:400px; border-radius:8px;"><source src="${blobUrl}" type="${mimeType}">Tarayıcınız video etiketini desteklemiyor.</video>`,
+                    width: '600px',
+                };
+            } else if (mimeType.startsWith('audio/')) {
+                swalConfig = {
+                    title: 'Ses Oynatıcı',
+                    html: `<audio controls autoplay style="width:100%; margin-top:10px;"><source src="${blobUrl}" type="${mimeType}">Tarayıcınız ses etiketini desteklemiyor.</audio>`,
+                    width: '400px',
+                };
+            } else if (mimeType.startsWith('image/')) {
+                swalConfig = {
+                    title: 'Görsel Önizleme',
+                    html: `<img src="${blobUrl}" style="width:100%; max-height:400px; object-fit:contain; border-radius:8px;">`,
+                    width: '600px',
+                };
+            } else if (mimeType === 'application/pdf') {
+                swalConfig = {
+                    title: 'Dosya Önizleme (PDF)',
+                    html: `<iframe src="${blobUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
+                    width: '700px',
+                };
+            } else {
+                const iframeUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+                swalConfig = {
+                    title: 'Dosya Önizleme',
+                    html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
+                    width: '700px',
+                };
+            }
             
             Swal.fire({
-                title: 'Dosya Önizleme',
-                html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
-                width: '700px',
+                ...swalConfig,
                 showCloseButton: true,
-                showConfirmButton: false
+                showConfirmButton: false,
+                willClose: () => {
+                    URL.revokeObjectURL(blobUrl);
+                }
             });
-        } else {
-            const iframeUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
-            Swal.fire({
-                title: 'Dosya Önizleme',
-                html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
-                width: '700px',
-                showCloseButton: true,
-                showConfirmButton: false
-            });
-        }
+        }).catch(err => {
+            console.error("Uygulama Medya Test Hatası:", err);
+            if (isGoogleDrive && fileId) {
+                const iframeUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+                Swal.fire({
+                    title: 'Dosya Önizleme (Yedek Mod)',
+                    html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
+                    width: '700px',
+                    showCloseButton: true,
+                    showConfirmButton: false
+                });
+            } else {
+                const iframeUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+                Swal.fire({
+                    title: 'Dosya Önizleme (Yedek Mod)',
+                    html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
+                    width: '700px',
+                    showCloseButton: true,
+                    showConfirmButton: false
+                });
+            }
+        });
     };
