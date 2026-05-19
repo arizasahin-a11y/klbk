@@ -7198,19 +7198,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     <!-- Sekme İçeriği: Yerel Tarayıcı Oynatıcısı -->
                     <div id="player-content-native" class="player-tab-content" style="display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:120px;">
-                        \${isAudio ? `
+                        ${isAudio ? `
                             <audio id="klbk-native-audio" controls style="width:100%; max-width:500px; margin:20px 0;" onerror="document.getElementById('native-player-error').style.display='block'">
-                                <source src="\${downloadUrl}" type="audio/mpeg">
-                                <source src="\${downloadUrl}" type="audio/wav">
-                                <source src="\${downloadUrl}" type="audio/ogg">
-                                <source src="\${downloadUrl}" type="audio/mp4">
+                                <source src="${downloadUrl}" type="audio/mpeg">
+                                <source src="${downloadUrl}" type="audio/wav">
+                                <source src="${downloadUrl}" type="audio/ogg">
+                                <source src="${downloadUrl}" type="audio/mp4">
                                 Tarayıcınız ses etiketini desteklemiyor.
                             </audio>
                         ` : `
                             <video id="klbk-native-video" controls style="width:100%; max-height:360px; border-radius:8px; background:#000;" onerror="document.getElementById('native-player-error').style.display='block'">
-                                <source src="\${downloadUrl}" type="video/mp4">
-                                <source src="\${downloadUrl}" type="video/webm">
-                                <source src="\${downloadUrl}" type="video/ogg">
+                                <source src="${downloadUrl}" type="video/mp4">
+                                <source src="${downloadUrl}" type="video/webm">
+                                <source src="${downloadUrl}" type="video/ogg">
                                 Tarayıcınız video etiketini desteklemiyor.
                             </video>
                         `}
@@ -7221,7 +7221,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     <!-- Sekme İçeriği: Iframe Oynatıcı -->
                     <div id="player-content-iframe" class="player-tab-content" style="display:none;">
-                        <iframe src="\${iframeUrl}" style="width:100%; height:\${iframeHeight}; border:none; border-radius:8px; background:#000;" allow="autoplay"></iframe>
+                        <iframe src="${iframeUrl}" style="width:100%; height:${iframeHeight}; border:none; border-radius:8px; background:#000;" allow="autoplay"></iframe>
                     </div>
                     
                     <!-- Ortak Bilgilendirme ve Butonlar -->
@@ -7231,10 +7231,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                             Google Drive oynatıcısında hata alırsanız, dosya formatı desteklenmiyor olabilir. Bu durumda <strong>Tarayıcı Oynatıcısı</strong> sekmesini veya aşağıdaki indirme/açma butonlarını kullanın.
                         </div>
                         <div style="display:flex; justify-content:center; gap:10px; margin-top:8px;">
-                            <a href="\${url}" target="_blank" class="btn btn-info btn-sm" style="padding:6px 12px; border-radius:6px; font-weight:600; font-size:0.8rem; display:flex; align-items:center; gap:4px; text-decoration:none; background:#0ea5e9; color:#fff; border:none;">
+                            <a href="${url}" target="_blank" class="btn btn-info btn-sm" style="padding:6px 12px; border-radius:6px; font-weight:600; font-size:0.8rem; display:flex; align-items:center; gap:4px; text-decoration:none; background:#0ea5e9; color:#fff; border:none;">
                                 <i class="fa-solid fa-external-link"></i> Yeni Sekmede Aç
                             </a>
-                            <a href="\${downloadUrl}" target="_blank" class="btn btn-success btn-sm" style="padding:6px 12px; border-radius:6px; font-weight:600; font-size:0.8rem; display:flex; align-items:center; gap:4px; text-decoration:none; background:#10b981; color:#fff; border:none;">
+                            <a href="${downloadUrl}" target="_blank" class="btn btn-success btn-sm" style="padding:6px 12px; border-radius:6px; font-weight:600; font-size:0.8rem; display:flex; align-items:center; gap:4px; text-decoration:none; background:#10b981; color:#fff; border:none;">
                                 <i class="fa-solid fa-cloud-arrow-down"></i> Dosyayı İndir
                             </a>
                         </div>
