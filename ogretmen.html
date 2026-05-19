@@ -1395,20 +1395,72 @@
                 if (isGoogleDrive && fileId) {
                     const iframeUrl = `https://drive.google.com/file/d/${fileId}/preview`;
                     Swal.fire({
-                        title: 'Dosya Önizleme (Yedek Mod)',
-                        html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
-                        width: '700px',
-                        showCloseButton: true,
-                        showConfirmButton: false
+                        title: 'Medya Yüklenemedi',
+                        html: `
+                        <div style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: var(--gray-700);">
+                            <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 12px; border-radius: 8px; margin-bottom: 15px; color: #b91c1c; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-circle-exclamation" style="font-size: 1.2rem;"></i>
+                                <span>Dosya Erişimi Engellendi veya Bağlantı Hatası</span>
+                            </div>
+                            <p>Google Drive dosyanız indirilemedi. Bu hatanın en yaygın sebebi, dosyanın <strong>herkese açık paylaşım izinlerinin verilmemiş olmasıdır</strong>.</p>
+                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                                <strong style="color: var(--primary); display: block; margin-bottom: 6px;"><i class="fa-solid fa-key"></i> Çözüm Adımları:</strong>
+                                <ol style="margin: 0; padding-left: 20px; font-weight: 600; color: #475569; font-size: 0.85rem;">
+                                    <li style="margin-bottom:4px;">Google Drive'da dosyanıza gidin, sağ tıklayıp <strong>Paylaş</strong> seçeneğine tıklayın.</li>
+                                    <li style="margin-bottom:4px;">Genel Erişim ayarını <strong>"Kısıtlanmış"</strong> yerine <strong>"Bağlantıya sahip olan herkes"</strong> olarak güncelleyin.</li>
+                                    <li>Rolün <strong>"Görüntüleyici"</strong> olduğundan emin olun ve <strong>Bağlantıyı Kopyala</strong> deyip buraya yeni linki yapıştırın.</li>
+                                </ol>
+                            </div>
+                            <p style="font-size: 0.85rem; color: var(--gray-500); margin: 0;">İzinleriniz tam olmasına rağmen bu hatayı alıyorsanız, aşağıdaki alternatif butonları kullanabilirsiniz.</p>
+                        </div>`,
+                        width: '600px',
+                        showCancelButton: true,
+                        showDenyButton: true,
+                        confirmButtonText: '<i class="fa-solid fa-window-restore"></i> Yedek Mod (Iframe)',
+                        denyButtonText: '<i class="fa-solid fa-external-link"></i> Yeni Sekmede Aç',
+                        cancelButtonText: 'Kapat',
+                        confirmButtonColor: '#6366f1',
+                        denyButtonColor: '#0ea5e9'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            Swal.fire({
+                                title: 'Dosya Önizleme (Yedek Mod)',
+                                html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
+                                width: '700px',
+                                showCloseButton: true,
+                                showConfirmButton: false
+                            });
+                        } else if (result.isDenied) {
+                            window.open(url, '_blank');
+                        }
                     });
                 } else {
                     const iframeUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
                     Swal.fire({
-                        title: 'Dosya Önizleme (Yedek Mod)',
-                        html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
-                        width: '700px',
-                        showCloseButton: true,
-                        showConfirmButton: false
+                        title: 'Medya Yüklenemedi',
+                        html: `
+                        <div style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: var(--gray-700);">
+                            <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 12px; border-radius: 8px; margin-bottom: 15px; color: #b91c1c; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-circle-exclamation" style="font-size: 1.2rem;"></i>
+                                <span>Dosya Bağlantı Hatası</span>
+                            </div>
+                            <p>Medya bağlantısına erişim sağlanamadı veya dosya formatı desteklenmiyor. Lütfen bağlantının doğruluğunu ve internet erişimini kontrol edin.</p>
+                        </div>`,
+                        width: '500px',
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fa-solid fa-window-restore"></i> Yedek Mod (Viewer)',
+                        cancelButtonText: 'Kapat',
+                        confirmButtonColor: '#6366f1'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            Swal.fire({
+                                title: 'Dosya Önizleme (Yedek Mod)',
+                                html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
+                                width: '700px',
+                                showCloseButton: true,
+                                showConfirmButton: false
+                            });
+                        }
                     });
                 }
             });

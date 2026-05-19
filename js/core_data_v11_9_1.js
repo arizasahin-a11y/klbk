@@ -1015,7 +1015,7 @@ const DataManager = {
 
         const fetchWithRetry = async (targetUrl, useTimeout = true) => {
             const controller = new AbortController();
-            const timeoutId = useTimeout ? setTimeout(() => controller.abort(), 6000) : null;
+            const timeoutId = useTimeout ? setTimeout(() => controller.abort(), 3000) : null;
             
             try {
                 const response = await fetch(targetUrl, { signal: controller.signal });
@@ -1052,7 +1052,7 @@ const DataManager = {
                 new Promise(async (resolve, reject) => {
                     try {
                         const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 10000);
+                        const timeoutId = setTimeout(() => controller.abort(), 4000);
                         const res = await fetch(proxyUrl, { signal: controller.signal });
                         clearTimeout(timeoutId);
                         
