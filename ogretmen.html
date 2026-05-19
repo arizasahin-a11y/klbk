@@ -1122,7 +1122,8 @@
                 const safeSub = DataManager.sanitizeFirebaseKey(subName);
                 
                 if (!session.subjectMetadata[safeSub]) {
-                    session.subjectMetadata[safeSub] = { examNo: '', pdfHeaderDesign: '1', papers: {} };
+                    // pdfHeaderDesign burada YAZILMAYACAk — kullanıcının kaydettiği tasarım korunmalı
+                    session.subjectMetadata[safeSub] = { examNo: '', papers: {} };
                 }
 
                 if (typeof session.subjectMetadata[safeSub].papers !== 'object' || session.subjectMetadata[safeSub].papers === null) {
