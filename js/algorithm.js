@@ -298,25 +298,27 @@ const ExamAlgorithm = {
                 }
             }
             if (!placed) {
-                // SÜPER FALLBACK: Tek ders senaryosu — tüm slotlar aynı dersle dolu ve
-                // hasCollision6 tüm boş koltukları bloke ediyor. Çakışma kuralını kır,
-                // öğrenciyi ilk boş koltuğa yerleştir (hiçbir öğrenci yersiz kalmasın).
+                // SÜPER FALLBACK: Tüm normal mekanizmalar başarısız olduğunda son çare.
+                // Önce çakışmasız boş koltuk dene; gerçekten bulunamazsa (tek ders dolu salon)
+                // çakışma kuralını kır ve ilk boş koltuğa yerleştir.
                 for (let ri = 0; ri < numRooms; ri++) {
                     const node = roomNodes[(roomIdx + ri) % numRooms];
-                    if (targetSalonId && node.id !== targetSalonId) continue; // Force student to the matching classroom
-                    
-                    let seat = node.slotSeats[0].find(st => !node.assigned[st.id]);
-                    if (!seat) seat = node.slotSeats[1].find(st => !node.assigned[st.id]);
-                    
-                    if (!seat) {
-                        // Eğer slotSeats içinde (herhangi bir sebeple) bulunamazsa tüm listeyi tara
-                        seat = node.allSeats.find(st => !node.assigned[st.id]);
-                    }
+                    if (targetSalonId && node.id !== targetSalonId) continue;
 
-                    if (seat) { 
-                        node.assigned[seat.id] = s; 
-                        roomIdx = (roomIdx + ri + 1) % numRooms; 
-                        placed = true; break; 
+                    // 1. Önce çakışmasız boş koltuk ara (her iki slot)
+                    let seat = node.slotSeats[0].find(st => !node.assigned[st.id] && !hasCollision6(node, s, st));
+                    if (!seat) seat = node.slotSeats[1].find(st => !node.assigned[st.id] && !hasCollision6(node, s, st));
+                    if (!seat) seat = node.allSeats.find(st => !node.assigned[st.id] && !hasCollision6(node, s, st));
+
+                    // 2. Gerçekten hiçbir çakışmasız koltuk yoksa (tek ders → zorunlu çakışma) ilk boşluğa yerleştir
+                    if (!seat) seat = node.slotSeats[0].find(st => !node.assigned[st.id]);
+                    if (!seat) seat = node.slotSeats[1].find(st => !node.assigned[st.id]);
+                    if (!seat) seat = node.allSeats.find(st => !node.assigned[st.id]);
+
+                    if (seat) {
+                        node.assigned[seat.id] = s;
+                        roomIdx = (roomIdx + ri + 1) % numRooms;
+                        placed = true; break;
                     }
                 }
             }
@@ -420,14 +422,33 @@ const ExamAlgorithm = {
                     // Step 1: clear all non-priority seats in this column
                     freeSeats.forEach(s => { delete node.assigned[s.id]; });
 
-                    // Step 2: assign interleaved students
+                    // Step 2: assign interleaved students — check lateral/diagonal collision before placing
                     let fsIdx = 0;
+                    const unplacedInCol = [];
                     for (const st of interleaved) {
-                        while (fsIdx < freeSeats.length && node.assigned[freeSeats[fsIdx].id]) fsIdx++;
-                        if (fsIdx < freeSeats.length) {
-                            node.assigned[freeSeats[fsIdx].id] = st;
-                            fsIdx++;
+                        let placed = false;
+                        const startIdx = fsIdx;
+                        // Try all remaining free seats in order
+                        for (let fi = startIdx; fi < freeSeats.length; fi++) {
+                            const candidateSeat = freeSeats[fi];
+                            if (node.assigned[candidateSeat.id]) continue;
+                            if (!hasCollision6(node, st, candidateSeat)) {
+                                node.assigned[candidateSeat.id] = st;
+                                fsIdx = fi + 1;
+                                placed = true;
+                                break;
+                            }
                         }
+                        if (!placed) {
+                            // Can't find a safe seat right now — put in deferred list
+                            unplacedInCol.push(st);
+                        }
+                    }
+                    // Assign deferred students to any remaining free seat (avoid collision if possible)
+                    for (const st of unplacedInCol) {
+                        let seat = freeSeats.find(s => !node.assigned[s.id] && !hasCollision6(node, st, s));
+                        if (!seat) seat = freeSeats.find(s => !node.assigned[s.id]); // last resort
+                        if (seat) node.assigned[seat.id] = st;
                     }
                 }
 
