@@ -7091,6 +7091,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         const url = inp.value;
         const lowerUrl = url.toLowerCase();
         
+        // YouTube / Vimeo Embed check
+        const getYoutubeOrVimeoEmbed = (u) => {
+            const lower = u.toLowerCase();
+            if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
+                let videoId = '';
+                if (lower.includes('youtu.be/')) {
+                    videoId = u.split('youtu.be/')[1]?.split(/[?#]/)[0];
+                } else if (lower.includes('youtube.com/shorts/')) {
+                    videoId = u.split('/shorts/')[1]?.split(/[?#]/)[0];
+                } else {
+                    const match = u.match(/[?&]v=([^&#]+)/);
+                    if (match) videoId = match[1];
+                    else {
+                        const embedMatch = u.match(/\/embed\/([^&#?]+)/);
+                        if (embedMatch) videoId = embedMatch[1];
+                    }
+                }
+                if (videoId) return `https://www.youtube.com/embed/${videoId}`;
+            }
+            if (lower.includes('vimeo.com')) {
+                const match = u.match(/vimeo\.com\/(\d+)/);
+                if (match) return `https://player.vimeo.com/video/${match[1]}`;
+            }
+            return null;
+        };
+
+        const embedUrl = getYoutubeOrVimeoEmbed(url);
+        if (embedUrl) {
+            Swal.fire({
+                title: 'Video Önizleme',
+                html: `<iframe src="${embedUrl}" style="width:100%; height:450px; border:none; border-radius:8px;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`,
+                width: '700px',
+                showCloseButton: true,
+                showConfirmButton: false
+            });
+            return;
+        }
+
         // Extract Google Drive ID if present
         let isGoogleDrive = false;
         let fileId = '';
