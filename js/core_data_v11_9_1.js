@@ -1282,6 +1282,18 @@ const DataManager = {
 
         // Loop over the known rooms in the session to properly link them up
         if (session.results) {
+            // Stable hash function to alternate between teachers deterministically across different sessions
+            const getHash = (str) => {
+                let hash = 0;
+                if (!str) return hash;
+                for (let i = 0; i < str.length; i++) {
+                    hash = (hash << 5) - hash + str.charCodeAt(i);
+                    hash |= 0;
+                }
+                return Math.abs(hash);
+            };
+            const sessionHash = getHash(session.id || session.name || "");
+
             session.results.forEach(room => {
                 const normRoom = normalizeClass(room.name);
                 const assignmentMatch = assignments[normRoom];
@@ -1290,9 +1302,14 @@ const DataManager = {
 
                 if (assignmentMatch) {
                     if (assignmentMatch.ogretmenler.length > 0) {
-                        classroomInfo.gorevli = assignmentMatch.ogretmenler[0].name;
+                        const chosenIdx = sessionHash % assignmentMatch.ogretmenler.length;
+                        const chosenTeacher = assignmentMatch.ogretmenler[chosenIdx];
+                        classroomInfo.gorevli = chosenTeacher.name;
                         
-                        const extras = assignmentMatch.ogretmenler.slice(1);
+                        const extras = [
+                            ...assignmentMatch.ogretmenler.slice(0, chosenIdx),
+                            ...assignmentMatch.ogretmenler.slice(chosenIdx + 1)
+                        ];
                         extras.forEach(extra => {
                             const t = teachersDb[extra.uname];
                             const daySched = (t && t.schedule) ? (t.schedule[examDay] || {}) : {};
@@ -1316,9 +1333,14 @@ const DataManager = {
                             });
                         });
                     } else if (assignmentMatch.idareciler.length > 0) {
-                        classroomInfo.gorevli = assignmentMatch.idareciler[0].name + " (İdare)";
+                        const chosenIdx = sessionHash % assignmentMatch.idareciler.length;
+                        const chosenIdr = assignmentMatch.idareciler[chosenIdx];
+                        classroomInfo.gorevli = chosenIdr.name + " (İdare)";
                         
-                        const extras = assignmentMatch.idareciler.slice(1);
+                        const extras = [
+                            ...assignmentMatch.idareciler.slice(0, chosenIdx),
+                            ...assignmentMatch.idareciler.slice(chosenIdx + 1)
+                        ];
                         extras.forEach(extra => {
                             const t = teachersDb[extra.uname];
                             const daySched = (t && t.schedule) ? (t.schedule[examDay] || {}) : {};

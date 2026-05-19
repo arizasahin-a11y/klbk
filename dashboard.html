@@ -723,6 +723,13 @@
                                                 <input type="text" id="wizSessionName"
                                                     placeholder="Örn: 1. Dönem 1. Ortak Fizik Sınavı" required>
                                             </div>
+                                            <div class="modal-form-group">
+                                                <label>Sınav Türü</label>
+                                                <select id="wizSessionType" required>
+                                                    <option value="yazili" selected>Yazılı Sınav</option>
+                                                    <option value="uygulama">Uygulama Sınavı</option>
+                                                </select>
+                                            </div>
 
                                             <div class="modal-row">
                                                 <div class="modal-form-group">
@@ -828,6 +835,15 @@
                                         <div id="wizSummaryBox" class="modal-form-card"
                                             style="background: var(--gray-50); font-size: 0.95rem;">
                                             <!-- JS Injected Summary -->
+                                        </div>
+                                        <div class="modal-form-card" style="margin-top: 1rem;">
+                                            <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+                                                <input type="checkbox" id="wizDistributeClasses" style="width: 20px; height: 20px; cursor: pointer;" checked>
+                                                <span style="font-weight: bold; color: var(--gray-700);">Sınıfları Dağıt (Öğrencileri dersliklere yerleştir)</span>
+                                            </label>
+                                            <p style="color: var(--gray-500); font-size: 0.85rem; margin-top: 0.5rem; margin-left: 28px;">
+                                                Eğer bu seçenek kaldırılırsa, her sınıf kendi dersliğinde (örn: 9-A, 9-A salonunda) sınava girecek şekilde ayarlanır.
+                                            </p>
                                         </div>
                                     </div>
 

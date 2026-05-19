@@ -2207,7 +2207,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const isSelected = !!wizardSessionData.subjects.find(s => (s.name || "").trim().toLocaleUpperCase('tr-TR') === normSub);
 
                 // If avail is null (initial) or has the subject, show it
-                const isAvailable = !avail || avail.has(normSub);
+                let isAvailable = !avail;
+                if (avail) {
+                    for (const dn of avail) {
+                        if (dn === normSub || dn.startsWith(normSub + " ") || normSub.startsWith(dn + " ")) {
+                            isAvailable = true;
+                            break;
+                        }
+                    }
+                }
 
                 if (!isSelected && isAvailable) {
                     select.innerHTML += `<option value="${sub}">${sub}</option>`;
@@ -2741,6 +2749,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 wizardSessionData.name = document.getElementById('wizSessionName').value.trim();
                 wizardSessionData.date = window.formatDateToStandard(document.getElementById('wizSessionDate').value);
                 wizardSessionData.time = document.getElementById('wizSessionTime').value.trim();
+                const typeEl = document.getElementById('wizSessionType');
+                if (typeEl) wizardSessionData.type = typeEl.value;
                 if (!wizardSessionData.name || !wizardSessionData.date || !wizardSessionData.time) {
                     Swal.fire('Eksik', 'Lütfen 1. Adımdaki tüm alanları doldurun.', 'warning');
                     return;
@@ -2757,7 +2767,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            if (currentWizardStep < 4) currentWizardStep++;
+            if (currentWizardStep < 4) {
+                currentWizardStep++;
+                if (currentWizardStep === 4) {
+                    const distCheck = document.getElementById('wizDistributeClasses');
+                    if (distCheck) {
+                        distCheck.checked = (wizardSessionData.type !== 'uygulama');
+                    }
+                }
+            }
             updateWizardUI();
         });
     }
@@ -2827,7 +2845,54 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             try {
-                wizardSessionData.results = ExamAlgorithm.distribute([...targetStudents], targetRooms, wizardSessionData);
+                if (wizardSessionData.type === 'uygulama' && !wizardSessionData.name.endsWith('(UYG)')) {
+                    wizardSessionData.name += ' (UYG)';
+                }
+
+                const distCheck = document.getElementById('wizDistributeClasses');
+                const doDistribute = distCheck ? distCheck.checked : true;
+
+                if (doDistribute) {
+                    wizardSessionData.results = ExamAlgorithm.distribute([...targetStudents], targetRooms, wizardSessionData);
+                } else {
+                    // Her sınıfı kendi dersliğinde bırak (Bypass Algorithm)
+                    const fakeResults = targetRooms.map(room => {
+                        const roomNameSafe = DataManager.getSanitizedClassRoomMapping(room.name);
+                        const assigned = {};
+                        const roomStudents = targetStudents.filter(s => {
+                            const clsSafe = DataManager.getSanitizedClassRoomMapping(s.class || "Bilinmeyen");
+                            return clsSafe === roomNameSafe || roomNameSafe.includes(clsSafe) || clsSafe.includes(roomNameSafe);
+                        });
+                        
+                        let g = 1, r = 1, c = 1;
+                        let studentIdx = 0;
+                        while(studentIdx < roomStudents.length) {
+                            if (g > (room.groups || 1)) break;
+                            const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
+                            const seatId = `G${g}-S${r}-C${c}`;
+                            if (!room.disabledSeats?.includes(seatId)) {
+                                assigned[seatId] = roomStudents[studentIdx];
+                                studentIdx++;
+                            }
+                            c++;
+                            if (c > cf.cols) {
+                                c = 1;
+                                r++;
+                                if (r > cf.rows) {
+                                    r = 1;
+                                    g++;
+                                }
+                            }
+                        }
+                        
+                        return {
+                            name: room.name, groups: room.groups, groupConfigs: room.groupConfigs,
+                            teacherDeskPos: room.teacherDeskPos || 'right', disabledSeats: room.disabledSeats || [],
+                            rows: room.rows, cols: room.cols, seats: assigned
+                        };
+                    });
+                    wizardSessionData.results = fakeResults;
+                }
 
                 // Expand subjects based on actual distributed students' matched subjects
                 const actualSubjects = [...new Set(targetStudents.map(s => s._matchedSubject))].filter(Boolean);
@@ -3006,12 +3071,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <td class="session-view-options-cell">
                             <div class="mode-selector-container" style="display: flex; gap: 5px; justify-content: flex-start; align-items: center; white-space: nowrap; flex-wrap: nowrap;">
                                 <label class="mode-selector-label" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
-                                    <input type="radio" name="mode-${ses.id}" value="class" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)" ${(window._currentlyOpenSessionMode[ses.id] === 'class') ? 'checked' : ''}> Sınıf
+                                    <input type="radio" name="mode-${ses.id}" value="class" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)" ${(window._currentlyOpenSessionMode[ses.id] === 'class' || (ses.type === 'uygulama')) ? 'checked' : ''}> Sınıf
                                 </label>
-                                <label class="mode-selector-label" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
-                                    <input type="radio" name="mode-${ses.id}" value="room" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)" ${(window._currentlyOpenSessionMode[ses.id] === 'room' || !window._currentlyOpenSessionMode[ses.id]) ? 'checked' : ''}> Salon
+                                <label class="mode-selector-label" style="display: ${ses.type === 'uygulama' ? 'none' : 'inline-flex'}; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
+                                    <input type="radio" name="mode-${ses.id}" value="room" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)" ${(window._currentlyOpenSessionMode[ses.id] === 'room' || (!window._currentlyOpenSessionMode[ses.id] && ses.type !== 'uygulama')) ? 'checked' : ''}> Salon
                                 </label>
-                                <label class="mode-selector-label" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
+                                <label class="mode-selector-label" style="display: ${ses.type === 'uygulama' ? 'none' : 'inline-flex'}; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
                                     <input type="radio" name="mode-${ses.id}" value="seating" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)" ${(window._currentlyOpenSessionMode[ses.id] === 'seating') ? 'checked' : ''}> Şema
                                 </label>
                             </div>
@@ -5339,7 +5404,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             const subHeader = data.pdfHeaderDesign || '1'; // Inject subHeader variable
 
             let paperInputs = '';
-            if (hasGroups) {
+            if (ses.type === 'uygulama') {
+                const files = Array.isArray(subPapers.uygulamaFiles) ? subPapers.uygulamaFiles : (typeof subPapers === 'string' && subPapers ? [subPapers] : ['']);
+                
+                paperInputs = `<div class="uygulama-files-container" id="uyg-container-${sub}">`;
+                files.forEach((fileLink, fIdx) => {
+                    paperInputs += `
+                    <div class="input-group uygulama-file-row" style="display:flex; align-items:center; gap:3px; margin-top:4px;">
+                        <span style="font-size:0.7rem; font-weight:700; color:var(--gray-500); min-width:60px;">${fIdx + 1}. dosya</span>
+                        <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-uyg-idx="${fIdx}" style="flex:1; margin:0; height:30px; font-size:0.8rem; padding:0 6px;" value="${fileLink}" placeholder="Uygulama dosyası linki">
+                        <button type="button" class="btn btn-secondary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir link girin');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
+                        <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem; background:#6366f1; border-color:#6366f1;" onclick="window.testUygulamaMedia(this)" title="Medya Test"><i class="fa-solid fa-play"></i> Test</button>
+                        <button type="button" class="btn btn-info btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
+                        <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+                        <button type="button" class="btn btn-danger btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="this.closest('.uygulama-file-row').remove();" title="Sil"><i class="fa-solid fa-trash"></i></button>
+                    </div>`;
+                });
+                paperInputs += `</div>
+                <div style="margin-top: 5px; text-align: right;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="window.addUygulamaFileRow('${sub}')" style="font-size: 0.75rem;"><i class="fa-solid fa-plus"></i> Ekle</button>
+                </div>`;
+            } else if (hasGroups) {
                 for (let i = 0; i < groupCount; i++) {
                     const groupLetter = alphabet[i];
                     paperInputs += `
@@ -5520,7 +5605,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const papers = {};
                     const paperInputs = document.querySelectorAll(`.meta-paper-input[data-sub="${sub}"]`);
 
-                    if (hasGroups) {
+                    if (ses.type === 'uygulama') {
+                        papers.uygulamaFiles = [];
+                        paperInputs.forEach(inp => {
+                            const val = inp.value.trim();
+                            if (val) papers.uygulamaFiles.push(val);
+                        });
+                    } else if (hasGroups) {
                         paperInputs.forEach(inp => {
                             const group = inp.dataset.group;
                             papers[group] = inp.value.trim();
@@ -6944,4 +7035,53 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.testDashboardPdf(input.value.trim(), select.value, subTitle);
     };
 
+    window.addUygulamaFileRow = function(sub) {
+        const container = document.getElementById(`uyg-container-${sub}`);
+        if (!container) return;
+        const rowCount = container.querySelectorAll('.uygulama-file-row').length;
+        const fIdx = rowCount;
+        const newRow = document.createElement('div');
+        newRow.className = 'input-group uygulama-file-row';
+        newRow.style.cssText = 'display:flex; align-items:center; gap:3px; margin-top:4px;';
+        newRow.innerHTML = `
+            <span style="font-size:0.7rem; font-weight:700; color:var(--gray-500); min-width:60px;">${fIdx + 1}. dosya</span>
+            <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-uyg-idx="${fIdx}" style="flex:1; margin:0; height:30px; font-size:0.8rem; padding:0 6px;" value="" placeholder="Uygulama dosyası linki">
+            <button type="button" class="btn btn-secondary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir link girin');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
+            <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem; background:#6366f1; border-color:#6366f1;" onclick="window.testUygulamaMedia(this)" title="Medya Test"><i class="fa-solid fa-play"></i> Test</button>
+            <button type="button" class="btn btn-info btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
+            <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+            <button type="button" class="btn btn-danger btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="this.closest('.uygulama-file-row').remove();" title="Sil"><i class="fa-solid fa-trash"></i></button>
+        `;
+        container.appendChild(newRow);
+    };
 
+    window.testUygulamaMedia = function(btn) {
+        const inp = btn.closest('div').querySelector('input.meta-paper-input');
+        if (!inp || !inp.value) {
+            Swal.fire('Eksik', 'Önce bir link girin', 'warning');
+            return;
+        }
+        const url = inp.value;
+        const lowerUrl = url.toLowerCase();
+        
+        // Modalın z-index'inin altında kalmaması için
+        if (lowerUrl.match(/\.(mp4|webm|ogg)$/i)) {
+            Swal.fire({
+                title: 'Medya Testi',
+                html: `<video controls autoplay style="width:100%; max-height:400px; border-radius:8px;"><source src="${url}" type="video/mp4">Tarayıcınız video etiketini desteklemiyor.</video>`,
+                width: '600px',
+                showCloseButton: true,
+                showConfirmButton: false
+            });
+        } else if (lowerUrl.match(/\.(mp3|wav|ogg)$/i)) {
+            Swal.fire({
+                title: 'Medya Testi',
+                html: `<audio controls autoplay style="width:100%; margin-top:10px;"><source src="${url}" type="audio/mpeg">Tarayıcınız ses etiketini desteklemiyor.</audio>`,
+                width: '400px',
+                showCloseButton: true,
+                showConfirmButton: false
+            });
+        } else {
+            window.open(url, '_blank');
+        }
+    };
