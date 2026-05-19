@@ -1330,6 +1330,27 @@
                 }
             }
 
+            // Google Drive için anlık sıfır gecikmeli iframe oynatıcı
+            if (isGoogleDrive && fileId) {
+                const isAudio = lowerUrl.includes('.mp3') || lowerUrl.includes('.wav') || lowerUrl.includes('.m4a') || lowerUrl.includes('.ogg') || lowerUrl.includes('audio') || lowerUrl.includes('ses');
+                const iframeUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+                const height = isAudio ? '200px' : '450px';
+                
+                Swal.fire({
+                    title: 'Google Drive Oynatıcı',
+                    html: `
+                    <iframe src="${iframeUrl}" style="width:100%; height:${height}; border:none; border-radius:8px;" allow="autoplay"></iframe>
+                    <div style="margin-top: 10px; text-align: left; font-size: 0.75rem; color: #64748b; line-height: 1.4;">
+                        <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> 
+                        Eğer oynatılamazsa veya izin hatası verirse, dosya paylaşım ayarlarını Google Drive'da <strong>"Bağlantıya sahip olan herkes"</strong> olarak güncellediğinizden emin olun.
+                    </div>`,
+                    width: '700px',
+                    showCloseButton: true,
+                    showConfirmButton: false
+                });
+                return;
+            }
+
             const showMediaError = () => {
                 if (isGoogleDrive && fileId) {
                     const iframeUrl = `https://drive.google.com/file/d/${fileId}/preview`;
