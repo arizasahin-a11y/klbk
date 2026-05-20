@@ -1383,19 +1383,31 @@
                     <i class="fa-solid fa-bolt" style="color:#eab308;"></i> <span>Anında Akış Modu</span>
                 </div>`;
 
-            try {
-                const cachedBytes = await DataManager.getFileBytes(url);
-                if (cachedBytes && cachedBytes.byteLength > 0) {
-                    const mime = DataManager.detectMimeType(cachedBytes);
-                    const blob = new Blob([cachedBytes], { type: mime });
-                    downloadUrl = URL.createObjectURL(blob);
-                    cacheInfoHtml = `
-                        <div id="klbk-player-status" style="font-size:0.8rem; color:#34d399; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px;">
-                            <i class="fa-solid fa-circle-check" style="color:#34d399;"></i> <span style="font-weight:600; color:#34d399;">Önbellekten Hızlı Oynatılıyor (0 Gecikme)</span>
-                        </div>`;
+            // Hızlı yerel önbellek kontrolü (Arayüzün açılmasını geciktirmez, <5ms)
+            let cachedBytes = DataManager._fileBytesCache[url];
+            if (!cachedBytes) {
+                try {
+                    const idbBuffer = await DataManager._getIdbCache(url);
+                    if (idbBuffer && DataManager.validateBuffer(idbBuffer)) {
+                        DataManager._fileBytesCache[url] = idbBuffer;
+                        cachedBytes = idbBuffer;
+                    }
+                } catch (e) {
+                    console.warn("Local IDB cache quick lookup failed", e);
                 }
-            } catch (err) {
-                console.warn("Fast-cached play lookup bypassed, using live URL", err);
+            }
+
+            if (cachedBytes && cachedBytes.byteLength > 0) {
+                const mime = DataManager.detectMimeType(cachedBytes);
+                const blob = new Blob([cachedBytes], { type: mime });
+                downloadUrl = URL.createObjectURL(blob);
+                cacheInfoHtml = `
+                    <div id="klbk-player-status" style="font-size:0.8rem; color:#34d399; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                        <i class="fa-solid fa-circle-check" style="color:#34d399;"></i> <span style="font-weight:600; color:#34d399;">Önbellekten Hızlı Oynatılıyor (0 Gecikme)</span>
+                    </div>`;
+            } else {
+                // Önbellekte yoksa, arka planda indirmeyi başlatıyoruz (oynatıcı akışla oynatırken arka planda önbelleğe alınır)
+                DataManager.getFileBytes(url).catch(err => console.warn("Background caching failed:", err));
             }
 
             const showMediaError = () => {

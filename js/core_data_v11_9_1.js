@@ -821,6 +821,7 @@ const DataManager = {
 
     // --- PDF & File Fetching Utilities ---
     _fileBytesCache: {},
+    _activePromises: {},
 
     validateBuffer: function (buffer) {
         if (!buffer || buffer.byteLength < 16) return false;
@@ -1040,161 +1041,176 @@ const DataManager = {
         if (!url) return null;
         if (this._fileBytesCache[url]) return this._fileBytesCache[url];
 
-        // IndexedDB kalıcı önbellek kontrolü (Hız Optimizasyonu)
-        const idbBuffer = await this._getIdbCache(url);
-        if (idbBuffer && this.validateBuffer(idbBuffer)) {
-            console.log(`[IDB Cache Hit]: ${url}`);
-            this._fileBytesCache[url] = idbBuffer;
-            return idbBuffer;
+        if (!this._activePromises) this._activePromises = {};
+        if (this._activePromises[url]) {
+            console.log(`[Request Coalescing] Reusing active promise for: ${url}`);
+            return this._activePromises[url];
         }
 
-        // Data URI ise proxy veya Drive mantığını tamamen atla
-        if (url.startsWith('data:')) {
+        const promise = (async () => {
             try {
-                const res = await fetch(url);
-                const buf = await res.arrayBuffer();
-                this._fileBytesCache[url] = buf;
-                this._setIdbCache(url, buf);
-                return buf;
-            } catch (e) { return null; }
-        }
-
-        let driveId = null;
-        // Gelişmiş Google Drive ID çıkarma regexi
-        if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
-            const parts = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || 
-                          url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || 
-                          url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
-                          url.match(/\/open\?id=([a-zA-Z0-9_-]+)/);
-            if (parts) driveId = parts[1];
-        }
-
-        const gasUrl = "https://script.google.com/macros/s/AKfycbzzq1WBvSNmM5yGVH49vt2EOkTA83sFFSiysuqg4x54L3Cn9DEOmixlHW8fd_bLJ_du/exec";
-
-        const fetchWithRetry = async (targetUrl, useTimeout = true) => {
-            const controller = new AbortController();
-            const timeoutId = useTimeout ? setTimeout(() => controller.abort(), 3000) : null;
-            
-            try {
-                const response = await fetch(targetUrl, { signal: controller.signal });
-                if (timeoutId) clearTimeout(timeoutId);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
-                // Google Drive "Virus Scan" veya "Large File" onay sayfasını kontrol et
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('text/html')) {
-                    const html = await response.text();
-                    if (html.includes('confirm=')) {
-                        const confirmToken = html.match(/confirm=([a-zA-Z0-9_-]+)/)?.[1];
-                        if (confirmToken) {
-                            const newUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'confirm=' + confirmToken;
-                            const retryRes = await fetch(newUrl);
-                            return await retryRes.arrayBuffer();
-                        }
-                    }
-                    throw new Error("Google Drive Preview page returned instead of file.");
+                // IndexedDB kalıcı önbellek kontrolü (Hız Optimizasyonu)
+                const idbBuffer = await this._getIdbCache(url);
+                if (idbBuffer && this.validateBuffer(idbBuffer)) {
+                    console.log(`[IDB Cache Hit]: ${url}`);
+                    this._fileBytesCache[url] = idbBuffer;
+                    return idbBuffer;
                 }
-                return await response.arrayBuffer();
-            } catch (e) {
-                if (timeoutId) clearTimeout(timeoutId);
-                return null;
-            }
-        };
 
-        const promises = [];
-
-        // 1. GAS Proxy
-        if (driveId) {
-            const proxyUrl = `${gasUrl}?id=${driveId}`;
-            promises.push(
-                new Promise(async (resolve, reject) => {
+                // Data URI ise proxy veya Drive mantığını tamamen atla
+                if (url.startsWith('data:')) {
                     try {
-                        const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 4000);
-                        const res = await fetch(proxyUrl, { signal: controller.signal });
-                        clearTimeout(timeoutId);
+                        const res = await fetch(url);
+                        const buf = await res.arrayBuffer();
+                        this._fileBytesCache[url] = buf;
+                        this._setIdbCache(url, buf);
+                        return buf;
+                    } catch (e) { return null; }
+                }
+
+                let driveId = null;
+                // Gelişmiş Google Drive ID çıkarma regexi
+                if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+                    const parts = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || 
+                                  url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || 
+                                  url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+                                  url.match(/\/open\?id=([a-zA-Z0-9_-]+)/);
+                    if (parts) driveId = parts[1];
+                }
+
+                const gasUrl = "https://script.google.com/macros/s/AKfycbzzq1WBvSNmM5yGVH49vt2EOkTA83sFFSiysuqg4x54L3Cn9DEOmixlHW8fd_bLJ_du/exec";
+
+                const fetchWithRetry = async (targetUrl, useTimeout = true) => {
+                    const controller = new AbortController();
+                    const timeoutId = useTimeout ? setTimeout(() => controller.abort(), 3000) : null;
+                    
+                    try {
+                        const response = await fetch(targetUrl, { signal: controller.signal });
+                        if (timeoutId) clearTimeout(timeoutId);
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                         
-                        if (res.ok) {
-                            const base64 = await res.text();
-                            if (base64 && base64.length > 100 && !base64.startsWith('<!DOCTYPE') && !base64.startsWith('Hata')) {
-                                const binaryString = atob(base64);
-                                const bytes = new Uint8Array(binaryString.length);
-                                for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+                        // Google Drive "Virus Scan" veya "Large File" onay sayfasını kontrol et
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('text/html')) {
+                            const html = await response.text();
+                            if (html.includes('confirm=')) {
+                                const confirmToken = html.match(/confirm=([a-zA-Z0-9_-]+)/)?.[1];
+                                if (confirmToken) {
+                                    const newUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'confirm=' + confirmToken;
+                                    const retryRes = await fetch(newUrl);
+                                    return await retryRes.arrayBuffer();
+                                }
+                            }
+                            throw new Error("Google Drive Preview page returned instead of file.");
+                        }
+                        return await response.arrayBuffer();
+                    } catch (e) {
+                        if (timeoutId) clearTimeout(timeoutId);
+                        return null;
+                    }
+                };
+
+                const promises = [];
+
+                // 1. GAS Proxy
+                if (driveId) {
+                    const proxyUrl = `${gasUrl}?id=${driveId}`;
+                    promises.push(
+                        new Promise(async (resolve, reject) => {
+                            try {
+                                const controller = new AbortController();
+                                const timeoutId = setTimeout(() => controller.abort(), 4000);
+                                const res = await fetch(proxyUrl, { signal: controller.signal });
+                                clearTimeout(timeoutId);
                                 
-                                if (this.validateBuffer(bytes.buffer)) resolve(bytes.buffer);
-                                else reject("Invalid GAS buffer");
-                            } else reject("Invalid GAS content");
-                        } else reject("GAS HTTP Error");
-                    } catch (e) { reject(e); }
-                })
-            );
-        }
-
-        // 2. Direct URLs
-        const directUrls = [];
-        if (driveId) {
-            directUrls.push(`https://drive.usercontent.google.com/download?id=${driveId}&export=download`);
-            directUrls.push(`https://drive.google.com/uc?export=download&id=${driveId}`);
-        } else {
-            directUrls.push(url);
-        }
-
-        for (const dUrl of directUrls) {
-            promises.push(
-                fetchWithRetry(dUrl, true).then(buf => {
-                    if (buf && this.validateBuffer(buf)) return buf;
-                    throw new Error("Invalid buffer from direct URL");
-                })
-            );
-        }
-
-        // 3. CORS Proxies (Only used as a fallback if everything else fails)
-        const runCorsProxies = async () => {
-            if (!url.startsWith('http')) return null;
-            const proxies = [
-                "https://api.allorigins.win/raw?url=",
-                "https://corsproxy.io/?",
-                "https://api.codetabs.com/v1/proxy?quest="
-            ];
-            const corsPromises = [];
-            for (const proxy of proxies) {
-                for (const dUrl of directUrls) {
-                    const pUrl = proxy + encodeURIComponent(dUrl);
-                    corsPromises.push(
-                         fetchWithRetry(pUrl, true).then(buf => {
-                              if (buf && this.validateBuffer(buf)) return buf;
-                              throw new Error("Invalid buffer from proxy");
-                         })
+                                if (res.ok) {
+                                    const base64 = await res.text();
+                                    if (base64 && base64.length > 100 && !base64.startsWith('<!DOCTYPE') && !base64.startsWith('Hata')) {
+                                        const binaryString = atob(base64);
+                                        const bytes = new Uint8Array(binaryString.length);
+                                        for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+                                        
+                                        if (this.validateBuffer(bytes.buffer)) resolve(bytes.buffer);
+                                        else reject("Invalid GAS buffer");
+                                    } else reject("Invalid GAS content");
+                                } else reject("GAS HTTP Error");
+                            } catch (e) { reject(e); }
+                        })
                     );
                 }
-            }
-            return Promise.any(corsPromises);
-        };
 
-        try {
-            // First race GAS proxy and Direct URLs
-            console.log(`Dosya indiriliyor (Direct/GAS): ${url}`);
-            const successBuffer = await Promise.any(promises);
-            console.log(`Dosya başarıyla indirildi: ${url} (${successBuffer.byteLength} bytes)`);
-            this._fileBytesCache[url] = successBuffer;
-            this._setIdbCache(url, successBuffer);
-            return successBuffer;
-        } catch (e) {
-            console.warn(`Doğrudan indirme başarısız (${url}), proxy deneniyor...`, e);
-            // If all reliable methods fail, fallback to CORS proxies
-            try {
-                const proxyBuffer = await runCorsProxies();
-                if (proxyBuffer) {
-                    console.log(`Dosya proxy üzerinden indirildi: ${url}`);
-                    this._fileBytesCache[url] = proxyBuffer;
-                    this._setIdbCache(url, proxyBuffer);
+                // 2. Direct URLs
+                const directUrls = [];
+                if (driveId) {
+                    directUrls.push(`https://drive.usercontent.google.com/download?id=${driveId}&export=download`);
+                    directUrls.push(`https://drive.google.com/uc?export=download&id=${driveId}`);
+                } else {
+                    directUrls.push(url);
                 }
-                return proxyBuffer;
-            } catch (e2) {
-                console.error(`Dosya indirme TAMAMEN başarısız: ${url}`, e2);
-                return null;
+
+                for (const dUrl of directUrls) {
+                    promises.push(
+                        fetchWithRetry(dUrl, true).then(buf => {
+                            if (buf && this.validateBuffer(buf)) return buf;
+                            throw new Error("Invalid buffer from direct URL");
+                        })
+                    );
+                }
+
+                // 3. CORS Proxies (Only used as a fallback if everything else fails)
+                const runCorsProxies = async () => {
+                    if (!url.startsWith('http')) return null;
+                    const proxies = [
+                        "https://api.allorigins.win/raw?url=",
+                        "https://corsproxy.io/?",
+                        "https://api.codetabs.com/v1/proxy?quest="
+                    ];
+                    const corsPromises = [];
+                    for (const proxy of proxies) {
+                        for (const dUrl of directUrls) {
+                            const pUrl = proxy + encodeURIComponent(dUrl);
+                            corsPromises.push(
+                                 fetchWithRetry(pUrl, true).then(buf => {
+                                      if (buf && this.validateBuffer(buf)) return buf;
+                                      throw new Error("Invalid buffer from proxy");
+                                 })
+                            );
+                        }
+                    }
+                    return Promise.any(corsPromises);
+                };
+
+                try {
+                    // First race GAS proxy and Direct URLs
+                    console.log(`Dosya indiriliyor (Direct/GAS): ${url}`);
+                    const successBuffer = await Promise.any(promises);
+                    console.log(`Dosya başarıyla indirildi: ${url} (${successBuffer.byteLength} bytes)`);
+                    this._fileBytesCache[url] = successBuffer;
+                    this._setIdbCache(url, successBuffer);
+                    return successBuffer;
+                } catch (e) {
+                    console.warn(`Doğrudan indirme başarısız (${url}), proxy deneniyor...`, e);
+                    // If all reliable methods fail, fallback to CORS proxies
+                    try {
+                        const proxyBuffer = await runCorsProxies();
+                        if (proxyBuffer) {
+                            console.log(`Dosya proxy üzerinden indirildi: ${url}`);
+                            this._fileBytesCache[url] = proxyBuffer;
+                            this._setIdbCache(url, proxyBuffer);
+                        }
+                        return proxyBuffer;
+                    } catch (e2) {
+                        console.error(`Dosya indirme TAMAMEN başarısız: ${url}`, e2);
+                        return null;
+                    }
+                }
+            } finally {
+                delete this._activePromises[url];
             }
-        }
+        })();
+
+        this._activePromises[url] = promise;
+        return promise;
     },
 
     loadRequiredFonts: async function (pdfDoc) {

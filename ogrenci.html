@@ -1111,10 +1111,29 @@
                 const papers = meta.papers || {};
                 const files = (Array.isArray(papers.uygulamaFiles) ? papers.uygulamaFiles : (typeof papers === 'string' && papers ? [papers] : [])).filter(f => f && f.trim().length > 5);
 
-                // Arka planda dosyaları IndexedDB önbelleğine almaya başla (Hızlı oynatma için)
+                // Arka planda dosyaları IndexedDB önbelleğine almaya başla (Hızlı oynatma için, kademeli ve akıllı gecikmeli)
                 if (files && files.length > 0) {
-                    files.forEach(fUrl => {
-                        DataManager.getFileBytes(fUrl).catch(() => {});
+                    files.forEach((fUrl, index) => {
+                        // Bellek önbelleğinde varsa zaten işlem yapmaya gerek yok
+                        if (DataManager._fileBytesCache[fUrl]) return;
+                        
+                        // Önce IndexedDB'yi yerel olarak kontrol et (ağ çağrısı yapmaz)
+                        DataManager._getIdbCache(fUrl).then(idbBuffer => {
+                            if (idbBuffer && DataManager.validateBuffer(idbBuffer)) {
+                                DataManager._fileBytesCache[fUrl] = idbBuffer;
+                                return;
+                            }
+                            
+                            // Önbellekte yoksa, okul ağını tıkamamak için kademeli/gecikmeli olarak indirmeye başla
+                            // Sıra (seatNum) bilgisine göre her öğrencinin isteğini farklı zaman dilimlerine yayıyoruz
+                            const seatOffset = (mySeatNum && !isNaN(mySeatNum)) ? (parseInt(mySeatNum) % 10) * 1500 : Math.random() * 8000;
+                            const fileOffset = index * 2000; // Aynı öğrencinin birden fazla dosyası varsa aralarında 2 saniye bekle
+                            const totalDelay = 500 + seatOffset + fileOffset;
+                            
+                            setTimeout(() => {
+                                DataManager.getFileBytes(fUrl).catch(() => {});
+                            }, totalDelay);
+                        }).catch(() => {});
                     });
                 }
 
@@ -1521,19 +1540,31 @@
                     <i class="fa-solid fa-bolt" style="color:#eab308;"></i> <span>Anında Akış Modu</span>
                 </div>`;
 
-            try {
-                const cachedBytes = await DataManager.getFileBytes(url);
-                if (cachedBytes && cachedBytes.byteLength > 0) {
-                    const mime = DataManager.detectMimeType(cachedBytes);
-                    const blob = new Blob([cachedBytes], { type: mime });
-                    downloadUrl = URL.createObjectURL(blob);
-                    cacheInfoHtml = `
-                        <div id="klbk-player-status" style="font-size:0.8rem; color:#34d399; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px;">
-                            <i class="fa-solid fa-circle-check" style="color:#34d399;"></i> <span style="font-weight:600; color:#34d399;">Önbellekten Hızlı Oynatılıyor (0 Gecikme)</span>
-                        </div>`;
+            // Hızlı yerel önbellek kontrolü (Arayüzün açılmasını geciktirmez, <5ms)
+            let cachedBytes = DataManager._fileBytesCache[url];
+            if (!cachedBytes) {
+                try {
+                    const idbBuffer = await DataManager._getIdbCache(url);
+                    if (idbBuffer && DataManager.validateBuffer(idbBuffer)) {
+                        DataManager._fileBytesCache[url] = idbBuffer;
+                        cachedBytes = idbBuffer;
+                    }
+                } catch (e) {
+                    console.warn("Local IDB cache quick lookup failed", e);
                 }
-            } catch (err) {
-                console.warn("Fast-cached play lookup bypassed, using live URL", err);
+            }
+
+            if (cachedBytes && cachedBytes.byteLength > 0) {
+                const mime = DataManager.detectMimeType(cachedBytes);
+                const blob = new Blob([cachedBytes], { type: mime });
+                downloadUrl = URL.createObjectURL(blob);
+                cacheInfoHtml = `
+                    <div id="klbk-player-status" style="font-size:0.8rem; color:#34d399; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                        <i class="fa-solid fa-circle-check" style="color:#34d399;"></i> <span style="font-weight:600; color:#34d399;">Önbellekten Hızlı Oynatılıyor (0 Gecikme)</span>
+                    </div>`;
+            } else {
+                // Önbellekte yoksa, arka planda indirmeyi başlatıyoruz (oynatıcı akışla oynatırken arka planda önbelleğe alınır)
+                DataManager.getFileBytes(url).catch(err => console.warn("Background caching failed:", err));
             }
 
             const showMediaError = () => {
