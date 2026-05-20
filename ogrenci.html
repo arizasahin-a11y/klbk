@@ -988,13 +988,16 @@
                     if (diffEndMins < 0) {
                         text = 'SINAV BİTTİ';
                         dtEl.style.color = '#ef4444';
+                        dtEl.style.textShadow = '0 0 18px rgba(239,68,68,0.6)';
                     } else if (diffMins <= 0) {
                         const remainingMs = endTime - now;
-                        text = 'KALAN SÜRE: ' + formatCountdown(remainingMs);
-                        dtEl.style.color = '#10b981';
+                        text = formatCountdownHMS(remainingMs);
+                        dtEl.style.color = '#39FF14';
+                        dtEl.style.textShadow = '0 0 18px rgba(57,255,20,0.6)';
                     } else {
-                        text = 'SINAV BAŞLAMADI (Kalan: ' + formatCountdown(diffMs) + ')';
+                        text = formatCountdownHMS(diffMs);
                         dtEl.style.color = '#eab308';
+                        dtEl.style.textShadow = '0 0 18px rgba(234,179,8,0.6)';
                     }
                     if (dtEl.innerText !== text) {
                         dtEl.innerText = text;
@@ -1014,6 +1017,15 @@
             const s = Math.floor(ms / 1000);
             const m = Math.floor(s / 60);
             return `${m.toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+        }
+
+        function formatCountdownHMS(ms) {
+            if (ms < 0) return '00:00:00';
+            const totalSec = Math.floor(ms / 1000);
+            const h = Math.floor(totalSec / 3600);
+            const m = Math.floor((totalSec % 3600) / 60);
+            const s = totalSec % 60;
+            return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
         }
 
         function toggleDetails(id) {
@@ -1201,7 +1213,7 @@
                             <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #39FF14; letter-spacing: 1.5px; margin-bottom: 8px; opacity:0.85;">
                                 <i class="fa-solid fa-stopwatch" style="margin-right: 6px;"></i> KALAN SÜRENİZ
                             </div>
-                            <div id="detail-timer-${ses.id}" style="font-size: 2.6rem; font-weight: 900; font-family: 'JetBrains Mono', 'Courier New', monospace; color: #39FF14; letter-spacing: 3px; text-shadow: 0 0 18px rgba(57,255,20,0.6); padding: 8px 0;">--:--</div>
+                            <div id="detail-timer-${ses.id}" style="font-size: 2.6rem; font-weight: 900; font-family: 'JetBrains Mono', 'Courier New', monospace; color: #39FF14; letter-spacing: 3px; text-shadow: 0 0 18px rgba(57,255,20,0.6); padding: 8px 0;">--:--:--</div>
                         </div>
 
                         <!-- Dosyalar / Bekleme Ekranı -->
