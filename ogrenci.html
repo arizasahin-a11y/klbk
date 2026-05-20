@@ -862,7 +862,7 @@
             myExams.forEach(item => {
                 const ses = item.session;
                 const targetTime = parseDateTime(ses.date, ses.time);
-                const endTime = getExamEndTime(ses.date, ses.time);
+                const endTime = getExamEndTime(ses.date, ses.time, ses.examDuration);
                 const diffMs = targetTime - now;
                 const diffMins = diffMs / 1000 / 60;
                 const diffEndMins = (endTime - now) / 1000 / 60;
@@ -875,7 +875,9 @@
 
                 const limit = (ses.screenViewLimit === 0) ? 999999 : (ses.screenViewLimit || 8);
                 let stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
-                lastStates[ses.id] = stateCode;
+                
+                const stateKey = stateCode + (ses.type === 'uygulama' ? `_unlocked_${((now - targetTime) / 1000 / 60) >= 3}` : '');
+                lastStates[ses.id] = stateKey;
 
                 const displayTime = ses.time.includes('. Ders') ? `${ses.time} (${targetTime.getHours().toString().padStart(2, '0')}:${targetTime.getMinutes().toString().padStart(2, '0')})` : ses.time;
                 const isFar = (stateCode === 'far');
@@ -942,7 +944,7 @@
                 const card = document.querySelector(`.exam-card[data-ses-id="${ses.id}"]`);
                 if (!card) return;
                 const targetTime = DataManager.parseSessionDateTime(ses.date, ses.time);
-                const endTime = DataManager.getSessionEndDateTime(ses.date, ses.time);
+                const endTime = DataManager.getSessionEndDateTime(ses.date, ses.time, ses.examDuration);
                 const diffMs = targetTime - now;
                 const diffMins = diffMs / 1000 / 60;
                 const diffEndMins = (endTime - now) / 1000 / 60;
@@ -953,8 +955,10 @@
                     newState = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
                 }
 
+                const newStateKey = newState === 'hidden' ? 'hidden' : (newState + (ses.type === 'uygulama' ? `_unlocked_${((now - targetTime) / 1000 / 60) >= 3}` : ''));
+
                 // Only trigger full render if state actually changes
-                if (newState !== lastStates[ses.id]) {
+                if (newStateKey !== lastStates[ses.id]) {
                     needsFullRender = true;
                     return;
                 }
@@ -975,6 +979,25 @@
                         if (diffEndMins < 0) cdEl.style.color = 'var(--gray-500)';
                         else if (diffMins <= 0) cdEl.style.color = 'var(--danger)';
                         else cdEl.style.color = '';
+                    }
+                }
+
+                const dtEl = document.getElementById(`detail-timer-${ses.id}`);
+                if (dtEl) {
+                    let text = '';
+                    if (diffEndMins < 0) {
+                        text = 'SINAV BİTTİ';
+                        dtEl.style.color = '#ef4444';
+                    } else if (diffMins <= 0) {
+                        const remainingMs = endTime - now;
+                        text = 'KALAN SÜRE: ' + formatCountdown(remainingMs);
+                        dtEl.style.color = '#10b981';
+                    } else {
+                        text = 'SINAV BAŞLAMADI (Kalan: ' + formatCountdown(diffMs) + ')';
+                        dtEl.style.color = '#eab308';
+                    }
+                    if (dtEl.innerText !== text) {
+                        dtEl.innerText = text;
                     }
                 }
             });
@@ -1062,6 +1085,150 @@
             const mySeatId = item.seatId;
             const mySeatNum = item.seatNum;
             const myClass = currentStudent.class;
+
+            const std = myRoom.seats[mySeatId];
+            const matchedSubject = std ? std._matchedSubject : '';
+
+            if (ses.type === 'uygulama') {
+                // Application Exam View: No seating plan schema, has duration timer & file launcher
+                const now = getNow();
+                const targetTime = parseDateTime(ses.date, ses.time);
+                const diffStartMins = (now - targetTime) / 1000 / 60;
+
+                const meta = DataManager.getSanitizedSubjectMetadata(ses, matchedSubject) || {};
+                const papers = meta.papers || {};
+                const files = (Array.isArray(papers.uygulamaFiles) ? papers.uygulamaFiles : (typeof papers === 'string' && papers ? [papers] : [])).filter(f => f && f.trim().length > 5);
+
+                const turkishNumbers = ["BİRİNCİ", "İKİNCİ", "ÜÇÜNCÜ", "DÖRDÜNCÜ", "BEŞİNCİ", "ALTINCI", "YEDİNCİ", "SEKİZİNCİ", "DOKUZUNCU", "ONUNCU"];
+
+                let filesSection = '';
+                if (diffStartMins < 3) {
+                    filesSection = `
+                        <div class="glass-panel" style="padding: 2rem; border-radius: 16px; text-align: center; border: 1.5px dashed var(--warning); color: #c2410c; background: rgba(245, 158, 11, 0.04); margin-bottom: 1.5rem; box-shadow: var(--shadow-sm);">
+                            <i class="fa-solid fa-clock-rotate-left" style="font-size: 2.5rem; margin-bottom: 15px; display: block; color: var(--warning);"></i>
+                            <div style="font-size: 1.05rem; font-weight: 800; line-height: 1.6; color: #7c2d12;">
+                                Uygulama Sınavı dosyaları Görevli Öğretmen sınıfa geldiğinde aktif olacaktır.<br>
+                                <span style="font-size: 0.9rem; font-weight: 600; color: var(--gray-600); opacity: 0.95;">Eğer zamanı geldiği halde dosyalar görünmüyorsa sayfayı yenileyin.</span>
+                            </div>
+                        </div>`;
+                } else {
+                    if (files.length === 0) {
+                        filesSection = `
+                            <div class="glass-panel" style="padding: 2rem; border-radius: 16px; text-align: center; border: 1.5px dashed var(--gray-300); color: var(--gray-500); background: var(--gray-50); margin-bottom: 1.5rem;">
+                                <i class="fa-solid fa-folder-open" style="font-size: 2.5rem; margin-bottom: 15px; display: block; color: var(--gray-400);"></i>
+                                <div style="font-size: 1rem; font-weight: 700;">Bu sınav için tanımlanmış uygulama dosyası bulunamadı.</div>
+                            </div>`;
+                    } else {
+                        filesSection = `
+                            <div style="background: white; border-radius: 16px; border: 1px solid var(--gray-200); padding: 1.5rem; box-shadow: var(--shadow-md); margin-bottom: 1.5rem;">
+                                <label style="display: block; font-weight: 800; font-size: 0.85rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
+                                    <i class="fa-solid fa-play" style="margin-right: 6px;"></i> Uygulama Sınavı Dosyası Seçin
+                                </label>
+                                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                                    <select id="uygulama-select-${ses.id}" style="flex: 1; min-width: 200px; padding: 0.75rem 1rem; border-radius: 10px; border: 2px solid var(--primary-light); font-weight: 700; font-size: 0.95rem; color: var(--dark); background-color: var(--gray-50); cursor: pointer; outline: none; transition: 0.2s;">
+                                        <option value="" disabled selected>Bir dosya seçin...</option>
+                                        ${files.map((fileUrl, fIdx) => {
+                                            const labelName = `${turkishNumbers[fIdx] || (fIdx + 1) + '.'} DOSYA`;
+                                            return `<option value="${encodeURIComponent(fileUrl)}">${labelName}</option>`;
+                                        }).join('')}
+                                    </select>
+                                    <button type="button" class="btn btn-primary" onclick="const sel=document.getElementById('uygulama-select-${ses.id}'); if(sel && sel.value) { window.playUygulamaMediaStudent(decodeURIComponent(sel.value)); } else { Swal.fire('Eksik', 'Lütfen önce listeden bir dosya seçin.', 'warning'); }" style="padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, var(--secondary), #059669); border: none; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);">
+                                        <i class="fa-solid fa-circle-play" style="font-size: 1.1rem;"></i> DOSYAYI AÇ
+                                    </button>
+                                </div>
+                            </div>`;
+                    }
+                }
+
+                // Prepare Class-wise students (like renderClasswiseList)
+                const classStudents = [];
+                ses.results.forEach(r => {
+                    let roomSeatCounter = 1;
+                    const seatToNum = {};
+                    for (let g = 1; g <= r.groups; g++) {
+                        const conf = r.groupConfigs ? r.groupConfigs[g - 1] : { rows: r.rows || 1, cols: r.cols || 1 };
+                        for (let rr = 1; rr <= conf.rows; rr++) {
+                            for (let cc = 1; cc <= conf.cols; cc++) {
+                                const sid = `G${g}-S${rr}-C${cc}`;
+                                if (!(r.disabledSeats && r.disabledSeats.includes(sid))) {
+                                    seatToNum[sid] = roomSeatCounter++;
+                                }
+                            }
+                        }
+                    }
+                    Object.entries(r.seats).forEach(([sid, s]) => {
+                        if (s.class === myClass) {
+                            classStudents.push({
+                                name: s.name,
+                                no: s.no,
+                                room: r.name,
+                                sn: seatToNum[sid] || '-',
+                                isMe: s.no.toString() === currentStudent.no.toString(),
+                                subject: s._matchedSubject || '-'
+                            });
+                        }
+                    });
+                });
+                classStudents.sort((a, b) => parseInt(a.no) - parseInt(b.no));
+
+                return `
+                    <div class="details-panel">
+                        <!-- Salon / Sıra Bilgisi -->
+                        <div style="background: linear-gradient(135deg, var(--secondary), #059669); color:white; padding:1.25rem; border-radius:16px; margin-bottom:1.5rem; display:flex; align-items:center; gap:1.25rem; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); position: relative;">
+                            <div style="width:48px; height:48px; background:rgba(255,255,255,0.2); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
+                                <i class="fa-solid fa-location-dot"></i>
+                            </div>
+                            <div style="flex:1;">
+                                <div style="font-size:0.85rem; opacity:0.9; font-weight:600; text-transform:uppercase; letter-spacing:1px;">Sınav Yeriniz</div>
+                                <div style="font-size:1.4rem; font-weight:900;">${myRoom.name} Salonu <span style="opacity:0.5; margin:0 5px;">|</span> Sıra No: ${mySeatNum}</div>
+                            </div>
+                        </div>
+
+                        <!-- Sınav Süre Sayacı -->
+                        <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1.25rem; margin-bottom: 1.5rem; text-align: center; color: white; box-shadow: var(--shadow-md);">
+                            <div style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #a5b4fc; letter-spacing: 1.5px; margin-bottom: 6px;">
+                                <i class="fa-solid fa-hourglass-half" style="margin-right: 6px;"></i> SINAV SÜRE SAYACI
+                            </div>
+                            <div id="detail-timer-${ses.id}" style="font-size: 2.2rem; font-weight: 900; font-family: 'Courier New', Courier, monospace; color: #38bdf8;">--:--</div>
+                        </div>
+
+                        <!-- Dosyalar / Bekleme Ekranı -->
+                        ${filesSection}
+
+                        <!-- Dağılım Listesi -->
+                        <div class="nested-accordion">
+                            <div class="nested-header" onclick="toggleNested(this)">
+                                <span><i class="fa-solid fa-users-viewfinder" style="color:var(--primary); margin-right:10px;"></i> ${myClass} Sınıfı Dağılım Listesi</span>
+                                <i class="fa-solid fa-chevron-down" style="font-size:0.8rem; transition: 0.3s;"></i>
+                            </div>
+                            <div class="nested-content hidden">
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="width:60px;">No</th>
+                                                <th>Ad Soyad</th>
+                                                <th>Sınav Dersi</th>
+                                                <th>Sınav Salonu</th>
+                                                <th style="width:80px; text-align:center;">Yer No</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${classStudents.map(s => `
+                                                <tr style="${s.isMe ? 'background:rgba(16, 185, 129, 0.05); font-weight:bold;' : ''}">
+                                                    <td>${s.no}</td>
+                                                    <td>${s.name} ${s.isMe ? '<span style="color:var(--secondary); font-size:0.7rem; margin-left:5px;">(SİZSİNİZ)</span>' : ''}</td>
+                                                    <td style="font-size:0.85rem; color:var(--gray-600);">${s.subject}</td>
+                                                    <td><i class="fa-solid fa-door-open" style="color:var(--gray-400); margin-right:5px; font-size:0.8rem;"></i> ${s.room}</td>
+                                                    <td style="text-align:center;"><span class="badge-seat">${s.sn}</span></td>
+                                                </tr>`).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            }
 
             // 1. Prepare Class-wise students (like renderClasswiseList)
             const classStudents = [];
@@ -1243,6 +1410,359 @@
                     </div>` : ''}
                 </div>`;
         }
+
+        // --- APPLICATION EXAM MEDIA PLAYER FOR STUDENTS ---
+        window.playUygulamaMediaStudent = async function(url) {
+            if (!url) {
+                Swal.fire('Eksik', 'Geçersiz dosya bağlantısı', 'warning');
+                return;
+            }
+            const lowerUrl = url.toLowerCase();
+
+            // Extract Google Drive ID if present
+            let isGoogleDrive = false;
+            let fileId = '';
+            if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+                isGoogleDrive = true;
+                const parts = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || 
+                              url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || 
+                              url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+                              url.match(/\/open\?id=([a-zA-Z0-9_-]+)/);
+                if (parts) {
+                    fileId = parts[1];
+                }
+            }
+
+            const iframeUrl = isGoogleDrive && fileId ? `https://drive.google.com/file/d/${fileId}/preview` : '';
+            const downloadUrl = isGoogleDrive && fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : url;
+
+            const showMediaError = () => {
+                if (isGoogleDrive && fileId) {
+                    Swal.fire({
+                        title: 'Medya Yüklenemedi',
+                        html: `
+                        <div style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: var(--gray-700);">
+                            <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 12px; border-radius: 8px; margin-bottom: 15px; color: #b91c1c; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-circle-exclamation" style="font-size: 1.2rem;"></i>
+                                <span>Dosya Erişimi Engellendi veya Bağlantı Hatası</span>
+                            </div>
+                            <p>Google Drive dosyanız indirilemedi ve oynatılamadı. Bu hatanın en yaygın sebebi, dosyanın <strong>herkese açık paylaşım izinlerinin verilmemiş olmasıdır</strong>.</p>
+                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                                <strong style="color: var(--primary); display: block; margin-bottom: 6px;"><i class="fa-solid fa-key"></i> Çözüm Adımları:</strong>
+                                <ol style="margin: 0; padding-left: 20px; font-weight: 600; color: #475569; font-size: 0.85rem;">
+                                    <li style="margin-bottom:4px;">Sınav görevlisi öğretmenin, dosyanın Genel Erişim ayarını <strong>"Bağlantıya sahip olan herkes"</strong> olarak güncellemesi gerekmektedir.</li>
+                                    <li>Lütfen öğretmeninize durumu bildirerek izinleri kontrol etmesini rica edin.</li>
+                                </ol>
+                            </div>
+                            <p style="font-size: 0.85rem; color: var(--gray-500); margin: 0;">İzinleriniz tam olmasına rağmen bu hatayı alıyorsanız, aşağıdaki alternatif butonları kullanabilirsiniz.</p>
+                        </div>`,
+                        width: '600px',
+                        showCancelButton: true,
+                        showDenyButton: true,
+                        confirmButtonText: '<i class="fa-solid fa-window-restore"></i> Yedek Mod (Iframe)',
+                        denyButtonText: '<i class="fa-solid fa-external-link"></i> Yeni Sekmede Aç',
+                        cancelButtonText: 'Kapat',
+                        confirmButtonColor: '#6366f1',
+                        denyButtonColor: '#0ea5e9'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            Swal.fire({
+                                title: 'Dosya Önizleme (Yedek Mod)',
+                                html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
+                                width: '700px',
+                                showCloseButton: true,
+                                showConfirmButton: false
+                            });
+                        } else if (result.isDenied) {
+                            window.open(url, '_blank');
+                        }
+                    });
+                } else {
+                    const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+                    Swal.fire({
+                        title: 'Medya Yüklenemedi',
+                        html: `
+                        <div style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: var(--gray-700);">
+                            <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 12px; border-radius: 8px; margin-bottom: 15px; color: #b91c1c; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-circle-exclamation" style="font-size: 1.2rem;"></i>
+                                <span>Dosya Bağlantı Hatası</span>
+                            </div>
+                            <p>Medya bağlantısına erişim sağlanamadı veya dosya formatı desteklenmiyor. Lütfen bağlantının doğruluğunu ve internet erişimini kontrol edin.</p>
+                        </div>`,
+                        width: '500px',
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fa-solid fa-window-restore"></i> Yedek Mod (Viewer)',
+                        cancelButtonText: 'Kapat',
+                        confirmButtonColor: '#6366f1'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            Swal.fire({
+                                title: 'Dosya Önizleme (Yedek Mod)',
+                                html: `<iframe src="${viewerUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
+                                width: '700px',
+                                showCloseButton: true,
+                                showConfirmButton: false
+                            });
+                        }
+                    });
+                }
+            };
+
+            window.currentShowMediaError = showMediaError;
+
+            window.handleKlbkPlayerError = async function(mediaElement, originalUrl) {
+                if (mediaElement.dataset.fallbackTriggered) return;
+                mediaElement.dataset.fallbackTriggered = "true";
+
+                console.warn("Direct streaming failed, trying background download...", originalUrl);
+                const statusEl = document.getElementById('klbk-player-status');
+                if (statusEl) {
+                    statusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#ef4444; margin-right:5px;"></i> <span style="color:#f87171; font-weight:600;">Akış hatası! Dosya arka planda indiriliyor...</span>`;
+                }
+
+                try {
+                    const buffer = await DataManager.getFileBytes(originalUrl);
+                    if (!buffer || buffer.byteLength === 0) {
+                        throw new Error("Boş dosya");
+                    }
+                    let mime = DataManager.detectMimeType(buffer);
+                    const blob = new Blob([buffer], { type: mime });
+                    const blobUrl = URL.createObjectURL(blob);
+                    
+                    const isVideoMime = mime.startsWith('video/');
+                    const isAudioMime = mime.startsWith('audio/');
+                    const isImageMime = mime.startsWith('image/');
+                    const isPdfMime = mime === 'application/pdf';
+
+                    if (isVideoMime && mediaElement.tagName === 'AUDIO') {
+                        const parent = mediaElement.parentElement;
+                        const videoEl = document.createElement('video');
+                        videoEl.id = 'klbk-native-video';
+                        videoEl.controls = true;
+                        videoEl.autoplay = true;
+                        videoEl.style.cssText = 'width:100%; max-height:360px; border-radius:8px; background:#000;';
+                        videoEl.dataset.blobUrl = blobUrl;
+                        videoEl.src = blobUrl;
+                        videoEl.dataset.fallbackTriggered = "true";
+                        parent.replaceChild(videoEl, mediaElement);
+                        videoEl.load();
+                        videoEl.oncanplay = () => {
+                            videoEl.play().catch(e => console.error("Playback failed after fallback swap:", e));
+                        };
+                    } else if (isAudioMime && mediaElement.tagName === 'VIDEO') {
+                        const parent = mediaElement.parentElement;
+                        const audioEl = document.createElement('audio');
+                        audioEl.id = 'klbk-native-audio';
+                        audioEl.controls = true;
+                        audioEl.autoplay = true;
+                        audioEl.style.cssText = 'width:100%; max-width:500px; margin:20px 0;';
+                        audioEl.dataset.blobUrl = blobUrl;
+                        audioEl.src = blobUrl;
+                        audioEl.dataset.fallbackTriggered = "true";
+                        parent.replaceChild(audioEl, mediaElement);
+                        audioEl.load();
+                        audioEl.oncanplay = () => {
+                            audioEl.play().catch(e => console.error("Playback failed after fallback swap:", e));
+                        };
+                    } else if (isImageMime) {
+                        const parent = mediaElement.parentElement;
+                        const imgEl = document.createElement('img');
+                        imgEl.src = blobUrl;
+                        imgEl.style.cssText = 'width:100%; max-height:400px; object-fit:contain; border-radius:8px;';
+                        parent.replaceChild(imgEl, mediaElement);
+                    } else if (isPdfMime) {
+                        const parent = mediaElement.parentElement;
+                        const iframeEl = document.createElement('iframe');
+                        iframeEl.src = blobUrl;
+                        iframeEl.style.cssText = 'width:100%; height:450px; border:none; border-radius:8px;';
+                        parent.replaceChild(iframeEl, mediaElement);
+                    } else {
+                        mediaElement.dataset.blobUrl = blobUrl;
+                        mediaElement.src = blobUrl;
+                        mediaElement.load();
+                        mediaElement.oncanplay = () => {
+                            mediaElement.play().catch(e => console.error("Playback failed after fallback:", e));
+                        };
+                    }
+
+                    if (statusEl) {
+                        statusEl.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#34d399; margin-right:5px;"></i> <span style="color:#34d399; font-weight:600;">Yedek Mod (Bellek) ile oynatılıyor.</span>`;
+                    }
+                } catch (err) {
+                    console.error("Fallback download error:", err);
+                    if (statusEl) {
+                        statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#ef4444; margin-right:5px;"></i> <span style="color:#f87171; font-weight:600;">Dosya yüklenemedi!</span>`;
+                    }
+                    if (window.currentShowMediaError) {
+                        window.currentShowMediaError();
+                    }
+                }
+            };
+
+            window.switchKlbkPlayerTab = function(tabName) {
+                const btnNative = document.getElementById('tab-btn-native');
+                const btnIframe = document.getElementById('tab-btn-iframe');
+                const contentNative = document.getElementById('player-content-native');
+                const contentIframe = document.getElementById('player-content-iframe');
+                
+                const nativeAudio = document.getElementById('klbk-native-audio');
+                const nativeVideo = document.getElementById('klbk-native-video');
+                if (nativeAudio) nativeAudio.pause();
+                if (nativeVideo) nativeVideo.pause();
+                
+                if (tabName === 'native') {
+                    if (btnNative) { btnNative.style.background = '#6366f1'; btnNative.style.color = '#fff'; }
+                    if (btnIframe) { btnIframe.style.background = '#334155'; btnIframe.style.color = '#94a3b8'; }
+                    if (contentNative) contentNative.style.display = 'flex';
+                    if (contentIframe) contentIframe.style.display = 'none';
+                } else {
+                    if (btnNative) { btnNative.style.background = '#334155'; btnNative.style.color = '#94a3b8'; }
+                    if (btnIframe) { btnIframe.style.background = '#6366f1'; btnIframe.style.color = '#fff'; }
+                    if (contentNative) contentNative.style.display = 'none';
+                    if (contentIframe) contentIframe.style.display = 'block';
+                }
+            };
+
+            // Guess MIME type synchronously to display player instantly
+            const guessMimeType = (u) => {
+                const lower = u.toLowerCase();
+                if (lower.match(/\.(mp4|m4v|webm)$/) || lower.includes('video') || lower.includes('mp4')) return 'video/mp4';
+                if (lower.match(/\.(mp3|mpeg|wav|ogg|m4a)$/) || lower.includes('audio') || lower.includes('ses') || lower.includes('sound') || lower.includes('mp3')) return 'audio/mpeg';
+                if (lower.match(/\.(jpg|jpeg|png|gif|webp)$/) || lower.includes('gorsel') || lower.includes('resim')) return 'image/jpeg';
+                if (lower.match(/\.pdf$/) || lower.includes('pdf')) return 'application/pdf';
+                if (u.includes('drive.google.com') || u.includes('docs.google.com')) return 'audio/mpeg'; // Default to audio for Google Drive
+                return 'audio/mpeg'; // Safe default for listening exam application links
+            };
+            const mimeType = guessMimeType(url);
+
+            const isAudio = mimeType.startsWith('audio/') || lowerUrl.includes('.mp3') || lowerUrl.includes('.wav') || lowerUrl.includes('.m4a') || lowerUrl.includes('.ogg') || lowerUrl.includes('audio') || lowerUrl.includes('ses');
+            const isVideo = mimeType.startsWith('video/') || lowerUrl.includes('.mp4') || lowerUrl.includes('.webm') || lowerUrl.includes('.m4v') || lowerUrl.includes('video');
+            const isImage = mimeType.startsWith('image/') || lowerUrl.includes('.jpg') || lowerUrl.includes('.jpeg') || lowerUrl.includes('.png') || lowerUrl.includes('.gif') || lowerUrl.includes('.webp') || lowerUrl.includes('gorsel') || lowerUrl.includes('resim');
+            const isPdf = mimeType === 'application/pdf' || lowerUrl.includes('.pdf');
+
+            let swalConfig = {};
+
+            if (isGoogleDrive && fileId) {
+                const iframeHeight = isAudio ? '200px' : '450px';
+                swalConfig = {
+                    title: 'Google Drive Oynatıcı',
+                    html: `
+                    <div class="klbk-player-container" style="background:#1e293b; color:#fff; border-radius:12px; padding:15px; text-align:center;">
+                        <!-- Sekme Başlıkları -->
+                        <div class="klbk-player-tabs" style="display:flex; justify-content:center; gap:10px; margin-bottom:15px; border-bottom:1px solid #334155; padding-bottom:10px;">
+                            <button type="button" class="player-tab-btn active" onclick="window.switchKlbkPlayerTab('native')" id="tab-btn-native" style="background:#6366f1; color:#fff; border:none; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
+                                <i class="fa-solid fa-play"></i> Tarayıcı Oynatıcısı
+                            </button>
+                            <button type="button" class="player-tab-btn" onclick="window.switchKlbkPlayerTab('iframe')" id="tab-btn-iframe" style="background:#334155; color:#94a3b8; border:none; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
+                                <i class="fa-brands fa-google-drive"></i> Google Drive Oynatıcısı
+                            </button>
+                        </div>
+                        
+                        <!-- Sekme İçeriği: Yerel Tarayıcı Oynatıcısı -->
+                        <div id="player-content-native" class="player-tab-content" style="display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:120px;">
+                            <div id="klbk-player-status" style="font-size:0.8rem; color:#94a3b8; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                                <i class="fa-solid fa-bolt" style="color:#eab308;"></i> <span>Anında Akış Modu</span>
+                            </div>
+                            ${isAudio ? `
+                                <audio id="klbk-native-audio" src="${downloadUrl}" controls autoplay style="width:100%; max-width:500px; margin:20px 0;" onerror="window.handleKlbkPlayerError(this, '${url}')">
+                                    Tarayıcınız ses etiketini desteklemiyor.
+                                </audio>
+                            ` : `
+                                <video id="klbk-native-video" src="${downloadUrl}" controls autoplay style="width:100%; max-height:360px; border-radius:8px; background:#000;" onerror="window.handleKlbkPlayerError(this, '${url}')">
+                                    Tarayıcınız video etiketini desteklemiyor.
+                                </video>
+                            `}
+                        </div>
+                        
+                        <!-- Sekme İçeriği: Iframe Oynatıcı -->
+                        <div id="player-content-iframe" class="player-tab-content" style="display:none;">
+                            <iframe src="${iframeUrl}" style="width:100%; height:${iframeHeight}; border:none; border-radius:8px; background:#000;" allow="autoplay"></iframe>
+                        </div>
+                        
+                        <!-- Ortak Bilgilendirme ve Butonlar -->
+                        <div style="margin-top:15px; border-top:1px solid #334155; padding-top:12px; display:flex; flex-direction:column; gap:8px;">
+                            <div style="text-align:left; font-size:0.75rem; color:#94a3b8; line-height:1.4;">
+                                <i class="fa-solid fa-circle-info" style="color:#6366f1;"></i> 
+                                Tarayıcı oynatıcısı doğrudan akış yapar ve anında başlar. Akış hatası durumunda otomatik olarak arka planda indirilir.
+                            </div>
+                            <div style="display:flex; justify-content:center; gap:10px; margin-top:8px;">
+                                <a href="${url}" target="_blank" class="btn btn-info btn-sm" style="padding:6px 12px; border-radius:6px; font-weight:600; font-size:0.8rem; display:flex; align-items:center; gap:4px; text-decoration:none; background:#0ea5e9; color:#fff; border:none;">
+                                    <i class="fa-solid fa-external-link"></i> Yeni Sekmede Aç
+                                </a>
+                                <a href="${downloadUrl}" target="_blank" class="btn btn-success btn-sm" style="padding:6px 12px; border-radius:6px; font-weight:600; font-size:0.8rem; display:flex; align-items:center; gap:4px; text-decoration:none; background:#10b981; color:#fff; border:none;">
+                                    <i class="fa-solid fa-cloud-arrow-down"></i> Dosyayı İndir
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    `,
+                    width: '700px',
+                    background: '#1e293b'
+                };
+            } else {
+                if (isVideo) {
+                    swalConfig = {
+                        title: 'Video Oynatıcı',
+                        html: `
+                        <div style="background:#1e293b; color:#fff; border-radius:12px; padding:15px; text-align:center;">
+                            <div id="klbk-player-status" style="font-size:0.8rem; color:#94a3b8; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                                <i class="fa-solid fa-bolt" style="color:#eab308;"></i> <span>Anında Akış Modu</span>
+                            </div>
+                            <video id="klbk-native-video" src="${downloadUrl}" controls autoplay style="width:100%; max-height:400px; border-radius:8px;" onerror="window.handleKlbkPlayerError(this, '${url}')">
+                                Tarayıcınız video etiketini desteklemiyor.
+                            </video>
+                        </div>`,
+                        width: '600px',
+                        background: '#1e293b'
+                    };
+                } else if (isAudio) {
+                    swalConfig = {
+                        title: 'Ses Oynatıcı',
+                        html: `
+                        <div style="background:#1e293b; color:#fff; border-radius:12px; padding:15px; text-align:center;">
+                            <div id="klbk-player-status" style="font-size:0.8rem; color:#94a3b8; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                                <i class="fa-solid fa-bolt" style="color:#eab308;"></i> <span>Anında Akış Modu</span>
+                            </div>
+                            <audio id="klbk-native-audio" src="${downloadUrl}" controls autoplay style="width:100%; margin-top:10px;" onerror="window.handleKlbkPlayerError(this, '${url}')">
+                                Tarayıcınız ses etiketini desteklemiyor.
+                            </audio>
+                        </div>`,
+                        width: '400px',
+                        background: '#1e293b'
+                    };
+                } else if (isImage) {
+                    swalConfig = {
+                        title: 'Görsel Önizleme',
+                        html: `<img src="${downloadUrl}" style="width:100%; max-height:400px; object-fit:contain; border-radius:8px;">`,
+                        width: '600px',
+                    };
+                } else if (isPdf) {
+                    swalConfig = {
+                        title: 'Dosya Önizleme (PDF)',
+                        html: `<iframe src="${downloadUrl}" style="width:100%; height:550px; border:none; border-radius:8px;"></iframe>`,
+                        width: '700px',
+                    };
+                } else {
+                    swalConfig = {
+                        title: 'Dosya Önizleme',
+                        html: `<iframe src="${downloadUrl}" style="width:100%; height:550px; border:none; border-radius:8px;"></iframe>`,
+                        width: '700px',
+                    };
+                }
+            }
+
+            Swal.fire({
+                ...swalConfig,
+                showCloseButton: true,
+                showConfirmButton: false,
+                didClose: () => {
+                    const audio = document.getElementById('klbk-native-audio');
+                    const video = document.getElementById('klbk-native-video');
+                    if (audio && audio.dataset.blobUrl) URL.revokeObjectURL(audio.dataset.blobUrl);
+                    if (video && video.dataset.blobUrl) URL.revokeObjectURL(video.dataset.blobUrl);
+                }
+            });
+        };
 
         // --- FULL SCREEN SEATING PLAN LOGIC ---
         let currentFullScreenSessionId = null;
