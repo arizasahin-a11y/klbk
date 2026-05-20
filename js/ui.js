@@ -7256,7 +7256,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.warn("Direct streaming failed, trying background download...", originalUrl);
             const statusEl = document.getElementById('klbk-player-status');
             if (statusEl) {
-                statusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#ef4444; margin-right:5px;"></i> <span style="color:#f87171; font-weight:600;">Akış hatası! Dosya arka planda indiriliyor...</span>`;
+                statusEl.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin" style="color:#818cf8; margin-right:6px;"></i> <span style="color:#a5b4fc; font-weight:600;">İlk oynatım için dosya hazırlanıyor...</span>`;
             }
 
             try {
@@ -7325,7 +7325,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 if (statusEl) {
-                    statusEl.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#34d399; margin-right:5px;"></i> <span style="color:#34d399; font-weight:600;">Yedek Mod (Bellek) ile oynatılıyor.</span>`;
+                    statusEl.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#34d399; margin-right:6px;"></i> <span style="color:#34d399; font-weight:600;">Hazır (Bellekten Oynatılıyor)</span>`;
                 }
             } catch (err) {
                 console.error("Fallback download error:", err);
@@ -7422,7 +7422,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div style="margin-top:15px; border-top:1px solid #334155; padding-top:12px; display:flex; flex-direction:column; gap:8px;">
                         <div style="text-align:left; font-size:0.75rem; color:#94a3b8; line-height:1.4;">
                             <i class="fa-solid fa-circle-info" style="color:#6366f1;"></i> 
-                            Tarayıcı oynatıcısı doğrudan akış yapar ve anında başlar. Akış hatası durumunda otomatik olarak arka planda indirilir.
+                            Tarayıcı doğrudan akış yapar. İlk oynatımda gerekirse dosya arka planda otomatik olarak hazırlanır.
                         </div>
                         <div style="display:flex; justify-content:center; gap:10px; margin-top:8px;">
                             <a href="${url}" target="_blank" class="btn btn-info btn-sm" style="padding:6px 12px; border-radius:6px; font-weight:600; font-size:0.8rem; display:flex; align-items:center; gap:4px; text-decoration:none; background:#0ea5e9; color:#fff; border:none;">
