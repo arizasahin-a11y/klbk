@@ -37,7 +37,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             n = n.replace(/\s+(\d+)$/, '').trim();
         }
 
-        // Exact overrides (Priority) - Aggressive shortening
+        // Robust Turkish normalization helper
+        const robustClean = (str) => {
+            if (!str) return "";
+            let s = str.normalize("NFD");
+            s = s.replace(/İ/g, 'i').replace(/ı/g, 'i').replace(/I/g, 'i')
+                 .replace(/[âÂ]/g, 'a').replace(/[êÊ]/g, 'e').replace(/[îÎ]/g, 'i').replace(/[ôÔ]/g, 'o').replace(/[ûÛ]/g, 'u')
+                 .replace(/ğ/g, 'g').replace(/Ğ/g, 'g').replace(/ş/g, 's').replace(/Ş/g, 's')
+                 .replace(/ç/g, 'c').replace(/Ç/g, 'c').replace(/ö/g, 'o').replace(/Ö/g, 'o')
+                 .replace(/ü/g, 'u').replace(/Ü/g, 'u');
+            s = s.toLowerCase();
+            s = s.replace(/[\u0300-\u036f]/g, ""); // strip combining marks
+            s = s.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+            return s;
+        };
+
+        const cleanN = robustClean(n);
+
+        // Predefined overrides
         const exacts = {
             "Türk Dili ve Edebiyatı": "TDE",
             "Din Kültürü ve Ahlak Bilgisi": "DKAB",
@@ -71,44 +88,111 @@ document.addEventListener('DOMContentLoaded', async () => {
             "Uygulamalı": "Uyg.",
             "Proje Tasarımı": "Proje"
         };
-        
-        let normalizedSearch = n.trim();
+
+        // Predefined high-priority rules based on robust cleaned string
         let foundAbbr = null;
-        for (let k in exacts) {
-            if (normalizedSearch.toLowerCase() === k.toLowerCase() || normalizedSearch.toLowerCase().includes(k.toLowerCase())) {
-                foundAbbr = exacts[k];
-                break;
+
+        if (cleanN.includes("din kulturu") || (cleanN.includes("din") && (cleanN.includes("ahlak") || cleanN.includes("kultur") || cleanN.includes("ab")))) {
+            foundAbbr = "DKAB";
+        } else if (cleanN.includes("turk dili") || (cleanN.includes("turkce") && cleanN.includes("edebiyat"))) {
+            foundAbbr = "TDE";
+        } else if (cleanN.includes("beden") && cleanN.includes("spor")) {
+            foundAbbr = "BES";
+        } else if (cleanN.includes("beden egitimi") || (cleanN.includes("beden") && cleanN.includes("egitim"))) {
+            foundAbbr = "Bed.";
+        } else if (cleanN.includes("inkilap")) {
+            foundAbbr = "İNK.";
+        } else if (cleanN.includes("temel dini")) {
+            foundAbbr = "TDB";
+        } else if (cleanN.includes("peygamber") || cleanN.includes("siyer")) {
+            foundAbbr = "Siyer";
+        } else if (cleanN.includes("kuran")) {
+            foundAbbr = "Kur'an";
+        } else if (cleanN.includes("gorsel sanat")) {
+            foundAbbr = "Görsel";
+        } else if (cleanN.includes("bilisim")) {
+            foundAbbr = "Bilişim";
+        } else if (cleanN.includes("proje tasarim") || cleanN.includes("proje hazirlama")) {
+            foundAbbr = "Proje";
+        } else if (cleanN.includes("saglik bilgisi") || cleanN.includes("trafik")) {
+            foundAbbr = "SB.";
+        } else if (cleanN.includes("sosyal etkinlik")) {
+            foundAbbr = "Sos.Etk.";
+        } else if (cleanN.includes("demokrasi")) {
+            foundAbbr = "Dem.";
+        } else if (cleanN.includes("astronomi")) {
+            foundAbbr = "Ast.";
+        }
+
+        // Fallback exact override search using cleaned versions
+        if (!foundAbbr) {
+            // First pass: exact matches
+            for (let k in exacts) {
+                const cleanK = robustClean(k);
+                if (cleanN === cleanK) {
+                    foundAbbr = exacts[k];
+                    break;
+                }
+            }
+        }
+        if (!foundAbbr) {
+            // Second pass: multi-word key matching (so we don't accidentally match "Kimya" in "Kimya Teknolojisi")
+            for (let k in exacts) {
+                const cleanK = robustClean(k);
+                if (cleanK.includes(" ")) { // Only multi-word keys can match via substring
+                    if (cleanN.includes(cleanK)) {
+                        foundAbbr = exacts[k];
+                        break;
+                    }
+                }
             }
         }
 
-        let res = foundAbbr || n.replace(/Matematik/gi, 'Mat.')
-            .replace(/Edebiyat/gi, 'Edb.')
-            .replace(/İngilizce/gi, 'İng.')
-            .replace(/Fizik/gi, 'Fiz.')
-            .replace(/Kimya/gi, 'Kim.')
-            .replace(/Biyoloji/gi, 'Biyo.')
-            .replace(/Tarih/gi, 'Tar.')
-            .replace(/Coğrafya/gi, 'Coğ.')
-            .replace(/Felsefe/gi, 'Fel.')
-            .replace(/Din Kültürü/gi, 'Din')
-            .replace(/Almanca/gi, 'Alm.')
-            .replace(/Görsel Sanatlar/gi, 'Grs.')
-            .replace(/Müzik/gi, 'Müz.')
-            .replace(/Beden Eğitimi/gi, 'Bed.')
-            .replace(/Bilişim/gi, 'Biliş.')
-            .replace(/Seçmeli/gi, 'S.');
-        
-        // Final length check and aggressive truncation if still too long
+        // Apply general replacements with robust regular expressions to solve case-insensitivity on Turkish letters
+        let res = foundAbbr;
+        if (!res) {
+            res = n;
+            const repPairs = [
+                { pat: /Matematik|matematik|MATEMATİK/g, rep: 'Mat.' },
+                { pat: /Edebiyat|edebiyat|EDEBİYAT/g, rep: 'Edb.' },
+                { pat: /İngilizce|ingilizce|İNGİLİZCE/g, rep: 'İng.' },
+                { pat: /Fizik|fizik|FİZİK/g, rep: 'Fiz.' },
+                { pat: /Kimya|kimya|KİMYA/g, rep: 'Kim.' },
+                { pat: /Biyoloji|biyoloji|BİYOLOJİ/g, rep: 'Biyo.' },
+                { pat: /Tarih|tarih|TARİH/g, rep: 'Tar.' },
+                { pat: /Coğrafya|cografya|coğrafya|COĞRAFYA/g, rep: 'Coğ.' },
+                { pat: /Felsefe|felsefe|FELSEFE/g, rep: 'Fel.' },
+                { pat: /Din Kültürü|din kültürü|DİN KÜLTÜRÜ/gi, rep: 'Din' },
+                { pat: /Almanca|almanca|ALMANCA/g, rep: 'Alm.' },
+                { pat: /Görsel Sanatlar|görsel sanatlar|GÖRSEL SANATLAR/g, rep: 'Grs.' },
+                { pat: /Müzik|müzik|MÜZİK/g, rep: 'Müz.' },
+                { pat: /Beden Eğitimi|beden eğitimi|BEDEN EĞİTİMİ/g, rep: 'Bed.' },
+                { pat: /Bilişim|bilişim|BİLİŞİM/g, rep: 'Biliş.' },
+                { pat: /Seçmeli|seçmeli|SEÇMELİ/g, rep: 'S.' }
+            ];
+            for (let i = 0; i < repPairs.length; i++) {
+                res = res.replace(repPairs[i].pat, repPairs[i].rep);
+            }
+        }
+
+        // Final length check and aggressive Turkish-safe initials abbreviation if still too long
         if ((res + grade).length > limit) {
-            // If it's still too long, try to take only initials of words
-            const words = res.split(/[\s\-]/).filter(w => w.length > 0 && !['ve', 'ile', 'veya', 'de', 'da'].includes(w.toLowerCase()));
+            const normalizedRes = res.normalize("NFC");
+            const words = normalizedRes.split(/[\s\-]/).filter(w => {
+                const cleanW = robustClean(w);
+                return cleanW.length > 0 && !['ve', 'ile', 'veya', 'de', 'da'].includes(cleanW);
+            });
             if (words.length >= 2) {
-                res = words.map(w => w[0].toUpperCase()).join('');
+                res = words.map(w => {
+                    const firstChar = w.charAt(0);
+                    if (firstChar === 'i' || firstChar === 'ı') return 'İ';
+                    return firstChar.toUpperCase();
+                }).join('');
             } else {
                 res = res.substring(0, limit - grade.length - 1).trim() + '.';
             }
         }
-        
+
         return res + grade;
     };
 
