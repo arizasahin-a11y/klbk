@@ -3774,6 +3774,7 @@
 
                 if (typeof fontkit !== 'undefined') mergedPdf.registerFontkit(fontkit);
                 const fonts = await DataManager.loadRequiredFonts(mergedPdf);
+                const { mainFont, nameFont, schoolFont } = fonts;
                 
                 let totalPages = 0;
 
