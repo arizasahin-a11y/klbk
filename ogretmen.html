@@ -937,7 +937,7 @@
                                         </div>`;
                                 }
 
-                                if (stateCode === 'far' || stateCode === 'near') {
+                                if (stateCode === 'far' || stateCode === 'near' || (stateCode === 'active' && ses.type === 'uygulama')) {
                                     html += papersHtml;
                                 }
                                 
