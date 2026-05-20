@@ -3669,16 +3669,6 @@
             const ses = _spareModalSessions.find(s => s.id === sessionId);
             if (!ses) return;
 
-            // Get matching subjects for this teacher (uses global myBranches)
-            const branchMatches = (sName) => {
-                if (!sName) return false;
-                const name = sName.toLowerCase().trim();
-                return myBranches.some(b => {
-                    const bn = b.toLowerCase().trim();
-                    return name === bn || name.startsWith(bn + " ");
-                });
-            };
-
             const seenNames = new Set();
             const subjectNames = [];
 
@@ -3686,7 +3676,7 @@
                 ses.results.forEach(room => {
                     Object.values(room.seats || {}).forEach(std => {
                         const subName = std._matchedSubject || "";
-                        if (subName && branchMatches(subName) && !seenNames.has(subName)) {
+                        if (subName && !seenNames.has(subName)) {
                             seenNames.add(subName);
                             subjectNames.push(subName);
                         }
@@ -3696,7 +3686,7 @@
 
             (ses.subjects || []).forEach(sub => {
                 const subName = (typeof sub === 'object' ? sub.name : sub);
-                if (branchMatches(subName) && !seenNames.has(subName)) {
+                if (!seenNames.has(subName)) {
                     const hasGranular = Array.from(seenNames).some(n => n.startsWith(subName + " "));
                     if (!hasGranular) {
                         seenNames.add(subName);
@@ -3706,7 +3696,7 @@
             });
 
             if (subjectNames.length === 0) {
-                Swal.fire('Uyarı', 'Size ait tanımlı ders bulunamadı.', 'warning');
+                Swal.fire('Uyarı', 'Bu oturumda tanımlı ders bulunamadı.', 'warning');
                 return;
             }
 
