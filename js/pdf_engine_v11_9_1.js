@@ -1053,7 +1053,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             page.drawText(lang.room, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
             drawCenterText(info.room || '', ox + d9LeftW + d9MidCol2W + d9MidCol3W, d9Oy - 2.5 * sf, midCol4W, row3H, 11, infoFont);
             page.drawText(lang.exam, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
-            drawCenterText((info.subject || '').toUpperCase(), ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W, d9Oy - 2.5 * sf, midCol5W, row3H, 9.5, infoFont);
+            drawCenterText(shortSubInBox.toUpperCase(), ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W, d9Oy - 2.5 * sf, midCol5W, row3H, 9.5, infoFont);
             page.drawText(lang.seat, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + midCol5W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
             drawCenterText(info.seat || '', ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + midCol5W, d9Oy - 2.5 * sf, midCol6W, row3H, 14, infoFont);
         }
