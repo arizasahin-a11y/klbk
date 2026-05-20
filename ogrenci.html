@@ -1118,23 +1118,28 @@
                                 <i class="fa-solid fa-folder-open" style="font-size: 2.5rem; margin-bottom: 15px; display: block; color: var(--gray-400);"></i>
                                 <div style="font-size: 1rem; font-weight: 700;">Bu sınav için tanımlanmış uygulama dosyası bulunamadı.</div>
                             </div>`;
-                    } else {
+                     } else {
                         filesSection = `
                             <div style="background: white; border-radius: 16px; border: 1px solid var(--gray-200); padding: 1.5rem; box-shadow: var(--shadow-md); margin-bottom: 1.5rem;">
-                                <label style="display: block; font-weight: 800; font-size: 0.85rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
-                                    <i class="fa-solid fa-play" style="margin-right: 6px;"></i> Uygulama Sınavı Dosyası Seçin
+                                <label style="display: block; font-weight: 800; font-size: 0.85rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">
+                                    <i class="fa-solid fa-folder-open" style="margin-right: 6px;"></i> Sınav Uygulama Dosyaları
                                 </label>
-                                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                                    <select id="uygulama-select-${ses.id}" style="flex: 1; min-width: 200px; padding: 0.75rem 1rem; border-radius: 10px; border: 2px solid var(--primary-light); font-weight: 700; font-size: 0.95rem; color: var(--dark); background-color: var(--gray-50); cursor: pointer; outline: none; transition: 0.2s;">
-                                        <option value="" disabled selected>Bir dosya seçin...</option>
-                                        ${files.map((fileUrl, fIdx) => {
-                                            const labelName = `${turkishNumbers[fIdx] || (fIdx + 1) + '.'} DOSYA`;
-                                            return `<option value="${encodeURIComponent(fileUrl)}">${labelName}</option>`;
-                                        }).join('')}
-                                    </select>
-                                    <button type="button" class="btn btn-primary" onclick="const sel=document.getElementById('uygulama-select-${ses.id}'); if(sel && sel.value) { window.playUygulamaMediaStudent(decodeURIComponent(sel.value)); } else { Swal.fire('Eksik', 'Lütfen önce listeden bir dosya seçin.', 'warning'); }" style="padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, var(--secondary), #059669); border: none; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);">
-                                        <i class="fa-solid fa-circle-play" style="font-size: 1.1rem;"></i> DOSYAYI AÇ
-                                    </button>
+                                <div style="display: flex; flex-direction: column; gap: 12px;">
+                                    ${files.map((fileUrl, fIdx) => {
+                                        const labelName = `${turkishNumbers[fIdx] || (fIdx + 1) + '.'} DOSYA`;
+                                        const encodedUrl = encodeURIComponent(fileUrl);
+                                        return `
+                                            <button type="button" class="btn btn-primary" onclick="window.playUygulamaMediaStudent(decodeURIComponent('${encodedUrl}'))" style="width: 100%; padding: 1rem 1.5rem; border-radius: 12px; font-weight: 800; font-size: 1rem; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, var(--secondary), #059669); border: none; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15); transition: all 0.2s; text-align: left; color: white; cursor: pointer;">
+                                                <span style="display: flex; align-items: center; gap: 12px;">
+                                                    <span style="width: 32px; height: 32px; background: rgba(255, 255, 255, 0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 900;">
+                                                        ${fIdx + 1}
+                                                    </span>
+                                                    <span>${labelName}</span>
+                                                </span>
+                                                <i class="fa-solid fa-circle-play" style="font-size: 1.3rem; opacity: 0.9;"></i>
+                                            </button>
+                                        `;
+                                    }).join('')}
                                 </div>
                             </div>`;
                     }
