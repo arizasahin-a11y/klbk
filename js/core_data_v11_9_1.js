@@ -675,47 +675,16 @@ const DataManager = {
         const sessions = this.getExamSessions();
         if (!sessions || sessions.length === 0) return [];
 
-        const now = new Date();
-        const school = this.getSchoolSettings();
-        const lessonTimes = school.lessonTimes || {};
-
-        // Helper to get a stable sortable score
-        const getSessionScore = (ses) => {
-            const start = this.parseSessionDateTime(ses.date, ses.time);
-            const end = this.getSessionEndDateTime(ses.date, ses.time);
-
-            const isFinished = now > end;
-
-            // Score components:
-            // 1. Finished status (0 for upcoming/ongoing, 1 for finished)
-            // 2. Date/Time difference (Absolute value for future/past?)
-            // We want: 
-            // - Upcoming/Ongoing: Sorted by Date ASC (nearest first)
-            // - Finished: Sorted by Date DESC (most recent first) and placed at the bottom
-
-            return {
-                isFinished,
-                startTime: start.getTime(),
-                endTime: end.getTime()
-            };
-        };
+        const nowTime = new Date().getTime();
 
         return [...sessions].sort((a, b) => {
-            const scoreA = getSessionScore(a);
-            const scoreB = getSessionScore(b);
+            const startA = this.parseSessionDateTime(a.date, a.time).getTime();
+            const startB = this.parseSessionDateTime(b.date, b.time).getTime();
 
-            // 1. Not finished comes first
-            if (scoreA.isFinished !== scoreB.isFinished) {
-                return scoreA.isFinished ? 1 : -1;
-            }
+            const diffA = Math.abs(startA - nowTime);
+            const diffB = Math.abs(startB - nowTime);
 
-            if (!scoreA.isFinished) {
-                // Upcoming/Ongoing: Nearest start time first (ASC)
-                return scoreA.startTime - scoreB.startTime;
-            } else {
-                // Finished: Most recently finished first (DESC)
-                return scoreB.endTime - scoreA.endTime;
-            }
+            return diffA - diffB;
         });
     },
 

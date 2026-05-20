@@ -3240,7 +3240,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.openSparePaperModal = function (sessionId) {
         const sessions = DataManager.getExamSessions();
         const ses = sessions.find(s => s.id === sessionId);
-        if (!ses) return;
+        if (!ses || ses.type === 'uygulama') return;
 
         const metaKeys = Object.keys(ses.subjectMetadata || {});
         const subjectNames = metaKeys.length > 0
@@ -5548,6 +5548,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 </label>
                                 <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit !== undefined ? ses.screenViewLimit : 8}" min="0" max="9999" style="width:65px; height:28px; text-align:center; border:1px solid var(--gray-200); border-radius:4px; font-weight:bold; font-size:0.85rem;">
                                 <span style="font-size:0.75rem; font-weight:600; color:var(--gray-500);">dk</span>
+                                <div style="width:1px; height:16px; background:var(--gray-300); margin:0 4px;"></div>
+                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer; margin:0;" title="Akıllı Tahta Yansıtma Modunda Zaman Sayacını Göster">
+                                    <input type="checkbox" id="meta-screen-timer-check" ${ses.screenViewTimerEnabled !== false ? 'checked' : ''} style="width:16px; height:16px;">
+                                    <i class="fa-solid fa-stopwatch" style="color:var(--warning); font-size:0.9rem;"></i>
+                                    <span style="font-size:0.75rem; font-weight:600; color:var(--gray-600);">Sayaç</span>
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -5650,6 +5656,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     studentMsg: document.getElementById('meta-std-msg').value.trim(),
                     teacherMsg: document.getElementById('meta-tch-msg').value.trim(),
                     screenViewEnabled: document.getElementById('meta-screen-check').checked,
+                    screenViewTimerEnabled: document.getElementById('meta-screen-timer-check').checked,
                     screenViewLimit: (function() {
                         const val = parseInt(document.getElementById('meta-screen-limit').value);
                         return isNaN(val) ? 8 : val;
@@ -7144,7 +7151,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const iframeUrl = isGoogleDrive && fileId ? `https://drive.google.com/file/d/${fileId}/preview` : '';
-        const downloadUrl = isGoogleDrive && fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : url;
+        
+        // Proactive Cache (IndexedDB) Lookup
+        let downloadUrl = isGoogleDrive && fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : url;
+        let cacheInfoHtml = `
+            <div id="klbk-player-status" style="font-size:0.8rem; color:#94a3b8; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                <i class="fa-solid fa-bolt" style="color:#eab308;"></i> <span>Anında Akış Modu</span>
+            </div>`;
+
+        try {
+            const cachedBytes = await DataManager.getFileBytes(url);
+            if (cachedBytes && cachedBytes.byteLength > 0) {
+                const mime = DataManager.detectMimeType(cachedBytes);
+                const blob = new Blob([cachedBytes], { type: mime });
+                downloadUrl = URL.createObjectURL(blob);
+                cacheInfoHtml = `
+                    <div id="klbk-player-status" style="font-size:0.8rem; color:#34d399; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                        <i class="fa-solid fa-circle-check" style="color:#34d399;"></i> <span style="font-weight:600; color:#34d399;">Önbellekten Hızlı Oynatılıyor (0 Gecikme)</span>
+                    </div>`;
+            }
+        } catch (err) {
+            console.warn("Fast-cached play lookup bypassed, using live URL", err);
+        }
 
         const showMediaError = () => {
             if (isGoogleDrive && fileId) {
