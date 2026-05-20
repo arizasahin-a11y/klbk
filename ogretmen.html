@@ -3669,6 +3669,17 @@
             const ses = _spareModalSessions.find(s => s.id === sessionId);
             if (!ses) return;
 
+            const hasPdf = (subName) => {
+                const meta = DataManager.getSanitizedSubjectMetadata(ses, subName) || {};
+                const papers = meta.papers || {};
+                let currentPdf = '';
+                if (typeof papers === 'string') currentPdf = papers;
+                else currentPdf = papers['default'] || Object.values(papers)[0] || '';
+
+                return (currentPdf && currentPdf.length > 5) || 
+                       (typeof papers === 'object' && Object.values(papers).some(p => p && p.length > 5));
+            };
+
             const seenNames = new Set();
             const subjectNames = [];
 
@@ -3676,7 +3687,7 @@
                 ses.results.forEach(room => {
                     Object.values(room.seats || {}).forEach(std => {
                         const subName = std._matchedSubject || "";
-                        if (subName && !seenNames.has(subName)) {
+                        if (subName && !seenNames.has(subName) && hasPdf(subName)) {
                             seenNames.add(subName);
                             subjectNames.push(subName);
                         }
@@ -3686,7 +3697,7 @@
 
             (ses.subjects || []).forEach(sub => {
                 const subName = (typeof sub === 'object' ? sub.name : sub);
-                if (!seenNames.has(subName)) {
+                if (!seenNames.has(subName) && hasPdf(subName)) {
                     const hasGranular = Array.from(seenNames).some(n => n.startsWith(subName + " "));
                     if (!hasGranular) {
                         seenNames.add(subName);
@@ -3696,7 +3707,7 @@
             });
 
             if (subjectNames.length === 0) {
-                Swal.fire('Uyarı', 'Bu oturumda tanımlı ders bulunamadı.', 'warning');
+                Swal.fire('Uyarı', 'Bu oturumda yazdırılabilir PDF sınav kağıdı yüklü olan ders bulunamadı.', 'warning');
                 return;
             }
 
