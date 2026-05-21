@@ -1387,12 +1387,55 @@ const DataManager = {
                 let hasLaterClasses = false;
                 const refHour = parseInt(currentHourKey || mappedLessonNum || examHourNum || 0);
                 if (refHour > 0) {
-                    hasLaterClasses = Object.entries(daySched).some(([h, v]) => parseInt(h) > refHour && v && v !== '-');
+                    hasLaterClasses = Object.entries(daySched).some(([h, v]) => {
+                        let hNum = parseInt(h);
+                        if (isNaN(hNum) && h.includes(':')) {
+                            for (let i = 1; i <= 20; i++) {
+                                if (lessonTimes[`${i}_start`] === h) {
+                                    hNum = i;
+                                    break;
+                                }
+                            }
+                        }
+                        return !isNaN(hNum) && hNum > refHour && v && v !== '-';
+                    });
                 }
 
                 const isIdareci = t.role === 'idareci' || t.role === 'admin' || t.role === 'master';
                 
-                if (hasAnyClassThisDay || isIdareci) {
+                // Gelişmiş Yedek Gözetmen Uygunluk Algoritması:
+                // Sadece dersi başlamış veya dersi sınav saatinde de olanlar, artı dersi biteli 1 saat olmuş olanlar yedek gözetmen olabilir.
+                let isEligibleSpare = isIdareci;
+                if (!isEligibleSpare) {
+                    const activeHours = [];
+                    Object.entries(daySched).forEach(([key, val]) => {
+                        if (val && val !== '-') {
+                            let hNum = parseInt(key);
+                            if (isNaN(hNum) && key.includes(':')) {
+                                for (let i = 1; i <= 20; i++) {
+                                    if (lessonTimes[`${i}_start`] === key) {
+                                        hNum = i;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (!isNaN(hNum) && hNum > 0) {
+                                activeHours.push(hNum);
+                            }
+                        }
+                    });
+
+                    if (activeHours.length > 0) {
+                        const firstLesson = Math.min(...activeHours);
+                        const lastLesson = Math.max(...activeHours);
+                        const examHour = parseInt(mappedLessonNum || examHourNum || 0);
+                        if (examHour > 0) {
+                            isEligibleSpare = (examHour >= firstLesson && examHour <= lastLesson + 1);
+                        }
+                    }
+                }
+                
+                if (isEligibleSpare) {
                     result.globalSpares.push({ 
                         uname, 
                         name: this.formatTeacherName(t.name), 
