@@ -696,7 +696,7 @@
                     };
                     myMatchedSubjects.sort((a, b) => getGradeScore(a.name) - getGradeScore(b.name));
                     otherSharedSubjects.sort((a, b) => getGradeScore(a.name) - getGradeScore(b.name));
-                    if (myMatchedSubjects.length > 0 || otherSharedSubjects.length > 0) {
+                    if (myMatchedSubjects.length > 0) {
                         targetSessions.push({ 
                             session: ses, 
                             displaySubjects: [...myMatchedSubjects, ...otherSharedSubjects] 
