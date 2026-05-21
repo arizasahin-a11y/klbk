@@ -874,6 +874,7 @@
                 if (diffEndMins < -30) return;
 
                 let stateCode;
+                let limit = 8;
                 if (ses.type === 'uygulama') {
                     if (diffEndMins < 0) {
                         stateCode = 'finished';
@@ -885,8 +886,8 @@
                         stateCode = 'near';
                     }
                 } else {
-                    const limit = (ses.screenViewLimit === 0) ? 999999 : (ses.screenViewLimit || 8);
-                    stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
+                    limit = (ses.screenViewLimit === 0) ? 999999 : (ses.screenViewLimit || 8);
+                    stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : ((diffMins > 60 && ses.screenViewLimit !== 0) ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
                 }
                 
                 const stateKey = stateCode + (ses.type === 'uygulama' ? `_unlocked_${((now - targetTime) / 1000 / 60) >= 3}` : '');
@@ -976,7 +977,7 @@
                         }
                     } else {
                         const limit = (ses.screenViewLimit === 0) ? 999999 : (ses.screenViewLimit || 8);
-                        newState = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
+                        newState = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : ((diffMins > 60 && ses.screenViewLimit !== 0) ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
                     }
                 }
 
@@ -2116,7 +2117,7 @@
                 const diffMins = (targetTime - now) / 1000 / 60;
                 const diffEndMins = (endTime - now) / 1000 / 60;
 
-                const limit = (ses.screenViewLimit === undefined) ? 8 : ses.screenViewLimit;
+                const limit = (ses.screenViewLimit === 0) ? 999999 : ((ses.screenViewLimit === undefined) ? 8 : ses.screenViewLimit);
                 
                 if (Math.floor(diffMins) <= limit && diffEndMins >= -3) {
                     const roomResult = ses.results.find(r => r.name === myRoomName);
