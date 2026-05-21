@@ -886,8 +886,8 @@
                         stateCode = 'near';
                     }
                 } else {
-                    limit = (ses.screenViewLimit === 0) ? 999999 : (ses.screenViewLimit || 8);
-                    stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : ((diffMins > 60 && ses.screenViewLimit !== 0) ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
+                    limit = 20; // Sınav yerleri daima 20 dakika önce açılır
+                    stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
                 }
                 
                 const stateKey = stateCode + (ses.type === 'uygulama' ? `_unlocked_${((now - targetTime) / 1000 / 60) >= 3}` : '');
@@ -976,8 +976,7 @@
                             newState = 'near';
                         }
                     } else {
-                        const limit = (ses.screenViewLimit === 0) ? 999999 : (ses.screenViewLimit || 8);
-                        newState = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : ((diffMins > 60 && ses.screenViewLimit !== 0) ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
+                        newState = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > 20 ? 'med' : 'near')));
                     }
                 }
 
@@ -1448,26 +1447,40 @@
                         </div>
                     </div>
 
-                    ${(ses.screenViewEnabled) ? `
-                    <div class="nested-accordion">
-                        <div class="nested-header" onclick="toggleNested(this)">
-                            <span><i class="fa-solid fa-thumbtack" style="color:var(--primary); margin-right:10px;"></i> ${myRoom.name} Salonu Oturma Planı</span>
-                            <i class="fa-solid fa-chevron-down" style="font-size:0.8rem; transition: 0.3s;"></i>
-                        </div>
-                        <div class="nested-content hidden">
-                            <div class="schema-container">
-                                <div class="classroom-walls">
-                                    ${groupsHtml}
-                                    ${frontAreaHtml}
+                    ${(ses.screenViewEnabled) ? (() => {
+                        const now = getNow();
+                        const targetTime = parseDateTime(ses.date, ses.time);
+                        const diffMins = (targetTime - now) / 1000 / 60;
+                        const schemaLimit = (ses.screenViewLimit === 0) ? 999999 : (ses.screenViewLimit || 8);
+                        const isSchemaActive = Math.floor(diffMins) <= schemaLimit;
+
+                        return `
+                        <div class="nested-accordion">
+                            <div class="nested-header" onclick="toggleNested(this)">
+                                <span><i class="fa-solid fa-thumbtack" style="color:var(--primary); margin-right:10px;"></i> ${myRoom.name} Salonu Oturma Planı</span>
+                                <i class="fa-solid fa-chevron-down" style="font-size:0.8rem; transition: 0.3s;"></i>
+                            </div>
+                            <div class="nested-content hidden">
+                                ${isSchemaActive ? `
+                                <div class="schema-container">
+                                    <div class="classroom-walls">
+                                        ${groupsHtml}
+                                        ${frontAreaHtml}
+                                    </div>
                                 </div>
+                                <div style="margin-top:1.5rem; display:flex; gap:15px; flex-wrap:wrap; justify-content:center; font-size:0.8rem;">
+                                    <div style="display:flex; align-items:center; gap:6px;"><div style="width:12px; height:12px; background:#ecfdf5; border:2px solid var(--secondary); border-radius:3px;"></div> Sizin Yeriniz</div>
+                                    <div style="display:flex; align-items:center; gap:6px;"><div style="width:12px; height:12px; background:rgba(239, 68, 68, 0.15); border:1.5px solid var(--danger); border-radius:3px;"></div> Aynı Ders (Yan/Çapraz)</div>
+                                    <div style="display:flex; align-items:center; gap:6px;"><div style="width:12px; height:12px; background:rgba(245, 158, 11, 0.15); border:1.5px solid var(--warning); border-radius:3px;"></div> Aynı Ders (Arka/Ön)</div>
+                                </div>
+                                ` : `
+                                <div class="glass-panel" style="padding: 1.5rem; text-align: center; border: 1px dashed var(--gray-300); color: var(--gray-500); font-weight: 600;">
+                                    <i class="fa-solid fa-clock" style="margin-right: 8px;"></i> Oturma planı grafiği sınavdan ${schemaLimit} dakika önce aktif olacaktır.
+                                </div>
+                                `}
                             </div>
-                            <div style="margin-top:1.5rem; display:flex; gap:15px; flex-wrap:wrap; justify-content:center; font-size:0.8rem;">
-                                <div style="display:flex; align-items:center; gap:6px;"><div style="width:12px; height:12px; background:#ecfdf5; border:2px solid var(--secondary); border-radius:3px;"></div> Sizin Yeriniz</div>
-                                <div style="display:flex; align-items:center; gap:6px;"><div style="width:12px; height:12px; background:rgba(239, 68, 68, 0.15); border:1.5px solid var(--danger); border-radius:3px;"></div> Aynı Ders (Yan/Çapraz)</div>
-                                <div style="display:flex; align-items:center; gap:6px;"><div style="width:12px; height:12px; background:rgba(245, 158, 11, 0.15); border:1.5px solid var(--warning); border-radius:3px;"></div> Aynı Ders (Arka/Ön)</div>
-                            </div>
-                        </div>
-                    </div>` : ''}
+                        </div>`;
+                    })() : ''}
                 </div>`;
         }
 

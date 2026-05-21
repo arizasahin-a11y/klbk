@@ -1,0 +1,289 @@
+﻿diff --git a/js/ui.js b/js/ui.js
+index 259f8a8..5ad0cb0 100644
+--- a/js/ui.js
++++ b/js/ui.js
+@@ -7145,51 +7145,234 @@ document.addEventListener('DOMContentLoaded', async () => {
+             }
+         }
+ 
+-        // Medya Dosyas─▒n─▒ ─░ndirip Mime-Type Analiziyle Do─şrudan Oynat/├ûnizle (CORS & Google Embed Bypass)
++        // Google Drive i├ğin anl─▒k s─▒f─▒r gecikmeli hibrit tabl─▒ oynat─▒c─▒
++        if (isGoogleDrive && fileId) {
++            const isAudio = lowerUrl.includes('.mp3') || lowerUrl.includes('.wav') || lowerUrl.includes('.m4a') || lowerUrl.includes('.ogg') || lowerUrl.includes('audio') || lowerUrl.includes('ses');
++            const iframeUrl = `https://drive.google.com/file/d/${fileId}/preview`;
++            const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
++            const iframeHeight = isAudio ? '200px' : '450px';
++            
++            // Global sekme ge├ği┼ş fonksiyonu
++            window.switchKlbkPlayerTab = function(tabName) {
++                const btnNative = document.getElementById('tab-btn-native');
++                const btnIframe = document.getElementById('tab-btn-iframe');
++                const contentNative = document.getElementById('player-content-native');
++                const contentIframe = document.getElementById('player-content-iframe');
++                
++                // Di─şer oynat─▒c─▒ seslerini durdur
++                const nativeAudio = document.getElementById('klbk-native-audio');
++                const nativeVideo = document.getElementById('klbk-native-video');
++                if (nativeAudio) nativeAudio.pause();
++                if (nativeVideo) nativeVideo.pause();
++                
++                if (tabName === 'native') {
++                    btnNative.style.background = '#6366f1';
++                    btnNative.style.color = '#fff';
++                    btnIframe.style.background = '#334155';
++                    btnIframe.style.color = '#94a3b8';
++                    contentNative.style.display = 'flex';
++                    contentIframe.style.display = 'none';
++                } else {
++                    btnNative.style.background = '#334155';
++                    btnNative.style.color = '#94a3b8';
++                    btnIframe.style.background = '#6366f1';
++                    btnIframe.style.color = '#fff';
++                    contentNative.style.display = 'none';
++                    contentIframe.style.display = 'block';
++                }
++            };
++            
++            Swal.fire({
++                title: 'Google Drive Oynat─▒c─▒',
++                html: `
++                <div class="klbk-player-container" style="background:#1e293b; color:#fff; border-radius:12px; padding:15px; text-align:center;">
++                    <!-- Sekme Ba┼şl─▒klar─▒ -->
++                    <div class="klbk-player-tabs" style="display:flex; justify-content:center; gap:10px; margin-bottom:15px; border-bottom:1px solid #334155; padding-bottom:10px;">
++                        <button type="button" class="player-tab-btn active" onclick="window.switchKlbkPlayerTab('native')" id="tab-btn-native" style="background:#6366f1; color:#fff; border:none; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
++                            <i class="fa-solid fa-play"></i> Taray─▒c─▒ Oynat─▒c─▒s─▒
++                        </button>
++                        <button type="button" class="player-tab-btn" onclick="window.switchKlbkPlayerTab('iframe')" id="tab-btn-iframe" style="background:#334155; color:#94a3b8; border:none; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
++                            <i class="fa-brands fa-google-drive"></i> Google Drive Oynat─▒c─▒s─▒
++                        </button>
++                    </div>
++                    
++                    <!-- Sekme ─░├ğeri─şi: Yerel Taray─▒c─▒ Oynat─▒c─▒s─▒ -->
++                    <div id="player-content-native" class="player-tab-content" style="display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:120px;">
++                        ${isAudio ? `
++                            <audio id="klbk-native-audio" controls style="width:100%; max-width:500px; margin:20px 0;" onerror="document.getElementById('native-player-error').style.display='block'">
++                                <source src="${downloadUrl}" type="audio/mpeg">
++                                <source src="${downloadUrl}" type="audio/wav">
++                                <source src="${downloadUrl}" type="audio/ogg">
++                                <source src="${downloadUrl}" type="audio/mp4">
++                                Taray─▒c─▒n─▒z ses etiketini desteklemiyor.
++                            </audio>
++                        ` : `
++                            <video id="klbk-native-video" controls style="width:100%; max-height:360px; border-radius:8px; background:#000;" onerror="document.getElementById('native-player-error').style.display='block'">
++                                <source src="${downloadUrl}" type="video/mp4">
++                                <source src="${downloadUrl}" type="video/webm">
++                                <source src="${downloadUrl}" type="video/ogg">
++                                Taray─▒c─▒n─▒z video etiketini desteklemiyor.
++                            </video>
++                        `}
++                        <div id="native-player-error" style="display:none; background:#fee2e2; border-left:4px solid #ef4444; padding:8px 12px; border-radius:6px; color:#b91c1c; font-size:0.75rem; text-align:left; width:100%; margin-top:10px;">
++                            <i class="fa-solid fa-circle-exclamation"></i> Taray─▒c─▒n─▒z bu dosyay─▒ do─şrudan oynatamad─▒. L├╝tfen yukar─▒dan <strong>Google Drive Oynat─▒c─▒s─▒</strong> sekmesine ge├ğin veya a┼şa─ş─▒daki alternatif butonlar─▒ kullan─▒n.
++                        </div>
++                    </div>
++                    
++                    <!-- Sekme ─░├ğeri─şi: Iframe Oynat─▒c─▒ -->
++                    <div id="player-content-iframe" class="player-tab-content" style="display:none;">
++                        <iframe src="${iframeUrl}" style="width:100%; height:${iframeHeight}; border:none; border-radius:8px; background:#000;" allow="autoplay"></iframe>
++                    </div>
++                    
++                    <!-- Ortak Bilgilendirme ve Butonlar -->
++                    <div style="margin-top:15px; border-top:1px solid #334155; padding-top:12px; display:flex; flex-direction:column; gap:8px;">
++                        <div style="text-align:left; font-size:0.75rem; color:#94a3b8; line-height:1.4;">
++                            <i class="fa-solid fa-circle-info" style="color:#6366f1;"></i> 
++                            Google Drive oynat─▒c─▒s─▒nda hata al─▒rsan─▒z, dosya format─▒ desteklenmiyor olabilir. Bu durumda <strong>Taray─▒c─▒ Oynat─▒c─▒s─▒</strong> sekmesini veya a┼şa─ş─▒daki indirme/a├ğma butonlar─▒n─▒ kullan─▒n.
++                        </div>
++                        <div style="display:flex; justify-content:center; gap:10px; margin-top:8px;">
++                            <a href="${url}" target="_blank" class="btn btn-info btn-sm" style="padding:6px 12px; border-radius:6px; font-weight:600; font-size:0.8rem; display:flex; align-items:center; gap:4px; text-decoration:none; background:#0ea5e9; color:#fff; border:none;">
++                                <i class="fa-solid fa-external-link"></i> Yeni Sekmede A├ğ
++                            </a>
++                            <a href="${downloadUrl}" target="_blank" class="btn btn-success btn-sm" style="padding:6px 12px; border-radius:6px; font-weight:600; font-size:0.8rem; display:flex; align-items:center; gap:4px; text-decoration:none; background:#10b981; color:#fff; border:none;">
++                                <i class="fa-solid fa-cloud-arrow-down"></i> Dosyay─▒ ─░ndir
++                            </a>
++                        </div>
++                    </div>
++                </div>
++                `,
++                width: '700px',
++                showCloseButton: true,
++                showConfirmButton: false,
++                background: '#1e293b'
++            });
++            return;
++        }
++
++        const showMediaError = () => {
++            if (isGoogleDrive && fileId) {
++                const iframeUrl = `https://drive.google.com/file/d/${fileId}/preview`;
++                Swal.fire({
++                    title: 'Medya Y├╝klenemedi',
++                    html: `
++                    <div style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: var(--gray-700);">
++                        <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 12px; border-radius: 8px; margin-bottom: 15px; color: #b91c1c; font-weight: 700; display: flex; align-items: center; gap: 8px;">
++                            <i class="fa-solid fa-circle-exclamation" style="font-size: 1.2rem;"></i>
++                            <span>Dosya Eri┼şimi Engellendi veya Ba─şlant─▒ Hatas─▒</span>
++                        </div>
++                        <p>Google Drive dosyan─▒z oynat─▒lamad─▒. Bu hatan─▒n en yayg─▒n sebebi, dosyan─▒n <strong>herkese a├ğ─▒k payla┼ş─▒m izinlerinin verilmemi┼ş olmas─▒d─▒r</strong>.</p>
++                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
++                            <strong style="color: var(--primary); display: block; margin-bottom: 6px;"><i class="fa-solid fa-key"></i> ├ç├Âz├╝m Ad─▒mlar─▒:</strong>
++                            <ol style="margin: 0; padding-left: 20px; font-weight: 600; color: #475569; font-size: 0.85rem;">
++                                <li style="margin-bottom:4px;">Google Drive'da dosyan─▒za gidin, sa─ş t─▒klay─▒p <strong>Payla┼ş</strong> se├ğene─şine t─▒klay─▒n.</li>
++                                <li style="margin-bottom:4px;">Genel Eri┼şim ayar─▒n─▒ <strong>"K─▒s─▒tlanm─▒┼ş"</strong> yerine <strong>"Ba─şlant─▒ya sahip olan herkes"</strong> olarak g├╝ncelleyin.</li>
++                                <li>Rol├╝n <strong>"G├Âr├╝nt├╝leyici"</strong> oldu─şundan emin olun ve <strong>Ba─şlant─▒y─▒ Kopyala</strong> deyip buraya yeni linki yap─▒┼şt─▒r─▒n.</li>
++                            </ol>
++                        </div>
++                        <p style="font-size: 0.85rem; color: var(--gray-500); margin: 0;">─░zinleriniz tam olmas─▒na ra─şmen bu hatay─▒ al─▒yorsan─▒z, a┼şa─ş─▒daki alternatif butonlar─▒ kullanabilirsiniz.</p>
++                    </div>`,
++                    width: '600px',
++                    showCancelButton: true,
++                    showDenyButton: true,
++                    confirmButtonText: '<i class="fa-solid fa-window-restore"></i> Yedek Mod (Iframe)',
++                    denyButtonText: '<i class="fa-solid fa-external-link"></i> Yeni Sekmede A├ğ',
++                    cancelButtonText: 'Kapat',
++                    confirmButtonColor: '#6366f1',
++                    denyButtonColor: '#0ea5e9'
++                }).then((result) => {
++                    if (result.isConfirmed) {
++                        Swal.fire({
++                            title: 'Dosya ├ûnizleme (Yedek Mod)',
++                            html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
++                            width: '700px',
++                            showCloseButton: true,
++                            showConfirmButton: false
++                        });
++                    } else if (result.isDenied) {
++                        window.open(url, '_blank');
++                    }
++                });
++            } else {
++                const iframeUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
++                Swal.fire({
++                    title: 'Medya Y├╝klenemedi',
++                    html: `
++                    <div style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: var(--gray-700);">
++                        <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 12px; border-radius: 8px; margin-bottom: 15px; color: #b91c1c; font-weight: 700; display: flex; align-items: center; gap: 8px;">
++                            <i class="fa-solid fa-circle-exclamation" style="font-size: 1.2rem;"></i>
++                            <span>Dosya Ba─şlant─▒ Hatas─▒</span>
++                        </div>
++                        <p>Medya ba─şlant─▒s─▒na eri┼şim sa─şlanamad─▒ veya dosya format─▒ desteklenmiyor. L├╝tfen ba─şlant─▒n─▒n do─şrulu─şunu ve internet eri┼şimini kontrol edin.</p>
++                    </div>`,
++                    width: '500px',
++                    showCancelButton: true,
++                    confirmButtonText: '<i class="fa-solid fa-window-restore"></i> Yedek Mod (Viewer)',
++                    cancelButtonText: 'Kapat',
++                    confirmButtonColor: '#6366f1'
++                }).then((result) => {
++                    if (result.isConfirmed) {
++                        Swal.fire({
++                            title: 'Dosya ├ûnizleme (Yedek Mod)',
++                            html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
++                            width: '700px',
++                            showCloseButton: true,
++                            showConfirmButton: false
++                        });
++                    }
++                });
++            }
++        };
++
++        window.handleUygulamaMediaError = function() {
++            Swal.close();
++            showMediaError();
++        };
++
++        // Medya Oynat─▒c─▒ Haz─▒rlan─▒yor Modal─▒
+         Swal.fire({
+-            title: 'Medya Haz─▒rlan─▒yor...',
+-            html: '<div style="margin-bottom:10px;">Dosya g├╝venli bulut kanal─▒ndan indiriliyor ve oynat─▒c─▒ haz─▒rlan─▒yor, l├╝tfen bekleyin...</div><div class="fa-3x"><i class="fa-solid fa-spinner fa-spin" style="color:var(--primary);"></i></div>',
++            title: 'Medya Analiz Ediliyor...',
++            html: '<div style="margin-bottom:10px;">Dosya format─▒ kontrol ediliyor ve anl─▒k oynat─▒c─▒ haz─▒rlan─▒yor, l├╝tfen bekleyin...</div><div class="fa-3x"><i class="fa-solid fa-spinner fa-spin" style="color:var(--primary);"></i></div>',
+             allowOutsideClick: false,
+             showConfirmButton: false,
+             showCloseButton: true
+         });
+ 
+-        window.getFileBytes(url).then(bytes => {
+-            if (!bytes) {
+-                throw new Error("Dosya indirilemedi.");
+-            }
+-            const mimeType = DataManager.detectMimeType(bytes);
+-            const blob = new Blob([bytes], { type: mimeType });
+-            const blobUrl = URL.createObjectURL(blob);
++        DataManager.detectMimeTypeOnline(url).then(mimeType => {
++            const streamUrl = isGoogleDrive && fileId ? `https://docs.google.com/uc?export=open&id=${fileId}` : url;
+             
+             let swalConfig = {};
+             
+             if (mimeType.startsWith('video/')) {
+                 swalConfig = {
+                     title: 'Video Oynat─▒c─▒',
+-                    html: `<video controls autoplay style="width:100%; max-height:400px; border-radius:8px;"><source src="${blobUrl}" type="${mimeType}">Taray─▒c─▒n─▒z video etiketini desteklemiyor.</video>`,
++                    html: `<video controls autoplay style="width:100%; max-height:400px; border-radius:8px;" onerror="window.handleUygulamaMediaError()"><source src="${streamUrl}" type="${mimeType}">Taray─▒c─▒n─▒z video etiketini desteklemiyor.</video>`,
+                     width: '600px',
+                 };
+             } else if (mimeType.startsWith('audio/')) {
+                 swalConfig = {
+                     title: 'Ses Oynat─▒c─▒',
+-                    html: `<audio controls autoplay style="width:100%; margin-top:10px;"><source src="${blobUrl}" type="${mimeType}">Taray─▒c─▒n─▒z ses etiketini desteklemiyor.</audio>`,
++                    html: `<audio controls autoplay style="width:100%; margin-top:10px;" onerror="window.handleUygulamaMediaError()"><source src="${streamUrl}" type="${mimeType}">Taray─▒c─▒n─▒z ses etiketini desteklemiyor.</audio>`,
+                     width: '400px',
+                 };
+             } else if (mimeType.startsWith('image/')) {
+                 swalConfig = {
+                     title: 'G├Ârsel ├ûnizleme',
+-                    html: `<img src="${blobUrl}" style="width:100%; max-height:400px; object-fit:contain; border-radius:8px;">`,
++                    html: `<img src="${streamUrl}" style="width:100%; max-height:400px; object-fit:contain; border-radius:8px;" onerror="window.handleUygulamaMediaError()">`,
+                     width: '600px',
+                 };
+             } else if (mimeType === 'application/pdf') {
++                const pdfViewerUrl = isGoogleDrive && fileId 
++                    ? `https://drive.google.com/file/d/${fileId}/preview` 
++                    : `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+                 swalConfig = {
+                     title: 'Dosya ├ûnizleme (PDF)',
+-                    html: `<iframe src="${blobUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
++                    html: `<iframe src="${pdfViewerUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
+                     width: '700px',
+                 };
+             } else {
+-                const iframeUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
++                const iframeUrl = isGoogleDrive && fileId 
++                    ? `https://drive.google.com/file/d/${fileId}/preview` 
++                    : `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+                 swalConfig = {
+                     title: 'Dosya ├ûnizleme',
+                     html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
+@@ -7200,31 +7383,10 @@ document.addEventListener('DOMContentLoaded', async () => {
+             Swal.fire({
+                 ...swalConfig,
+                 showCloseButton: true,
+-                showConfirmButton: false,
+-                willClose: () => {
+-                    URL.revokeObjectURL(blobUrl);
+-                }
++                showConfirmButton: false
+             });
+         }).catch(err => {
+-            console.error("Uygulama Medya Test Hatas─▒:", err);
+-            if (isGoogleDrive && fileId) {
+-                const iframeUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+-                Swal.fire({
+-                    title: 'Dosya ├ûnizleme (Yedek Mod)',
+-                    html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
+-                    width: '700px',
+-                    showCloseButton: true,
+-                    showConfirmButton: false
+-                });
+-            } else {
+-                const iframeUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+-                Swal.fire({
+-                    title: 'Dosya ├ûnizleme (Yedek Mod)',
+-                    html: `<iframe src="${iframeUrl}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>`,
+-                    width: '700px',
+-                    showCloseButton: true,
+-                    showConfirmButton: false
+-                });
+-            }
++            console.error("Uygulama Medya Analiz Hatas─▒:", err);
++            showMediaError();
+         });
+     };
