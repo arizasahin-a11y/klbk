@@ -614,14 +614,15 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         if (isEnglish) {
             if (translatedSubject.includes('İNGİLİZCE')) translatedSubject = translatedSubject.replace(/İNGİLİZCE/g, 'ENGLISH');
             else if (translatedSubject.includes('INGILIZCE')) translatedSubject = translatedSubject.replace(/INGILIZCE/g, 'ENGLISH');
+            translatedSubject = translatedSubject.replace(/İNG\./g, 'ENGLISH ').replace(/ING\./g, 'ENGLISH ');
             return { year: 'ACADEMIC YEAR', term: 'TERM', class: 'CLASS', no: 'NO', name: 'NAME SURNAME', room: 'ROOM', exam: 'EXAM', seat: 'SEAT', score: 'SCORE', written: 'WRITTEN EXAM', listening: 'LISTENING EXAM', listeningShort: 'LISTENING', subject: translatedSubject };
         }
         if (isGerman) {
-            translatedSubject = translatedSubject.replace(/ALMANCA/g, 'DEUTSCH');
+            translatedSubject = translatedSubject.replace(/ALMANCA/g, 'DEUTSCH').replace(/ALM\./g, 'DEUTSCH');
             return { year: 'SCHULJAHR', term: 'HALBJAHR', class: 'KLASSE', no: 'NR', name: 'NAME VORNAME', room: 'RAUM', exam: 'PRÜFUNG', seat: 'PLATZ', score: 'PUNKTE', written: 'SCHRIFTLICHE PRÜFUNG', listening: 'HÖRPRÜFUNG', listeningShort: 'HÖREN', subject: translatedSubject };
         }
         if (isFrench) {
-            translatedSubject = translatedSubject.replace(/FRANSIZCA/g, 'FRANÇAIS');
+            translatedSubject = translatedSubject.replace(/FRANSIZCA/g, 'FRANÇAIS').replace(/FR\./g, 'FRANÇAIS');
             return { year: 'ANNÉE SCOLAIRE', term: 'SEMESTRE', class: 'CLASSE', no: 'N°', name: 'NOM PRÉNOM', room: 'SALLE', exam: 'EXAMEN', seat: 'PLACE', score: 'NOTE', written: 'EXAMEN ÉCRIT', listening: 'ÉPREUVE D\'ÉCOUTE', listeningShort: 'ÉCOUTE', subject: translatedSubject };
         }
         return { year: 'ÖĞRETİM YILI', term: 'DÖNEM', class: 'SINIFI', no: 'NO', name: 'ADI SOYADI', room: 'DERSLİK', exam: 'SINAV', seat: 'YER', score: 'PUAN', written: 'YAZILI SINAVI', listening: 'DİNLEME SINAVI', listeningShort: 'DİNLEME', subject: translatedSubject };

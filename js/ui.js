@@ -6929,7 +6929,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    window.testSpecificRow = function(btn) {
+    window.testSpecificRow = function(btn, sessType = 'klasik') {
         const row = btn.closest('.meta-subject-row');
         const inputGroup = btn.closest('.input-group');
         let input = null;
@@ -6948,7 +6948,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        const sessType = (window.currentEditingSession && window.currentEditingSession.type) ? window.currentEditingSession.type : 'klasik';
         window.testDashboardPdf(input.value.trim(), select.value, subTitle, sessType);
     };
 
