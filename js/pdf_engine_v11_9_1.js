@@ -614,17 +614,17 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         if (isEnglish) {
             if (translatedSubject.includes('İNGİLİZCE')) translatedSubject = translatedSubject.replace(/İNGİLİZCE/g, 'ENGLISH');
             else if (translatedSubject.includes('INGILIZCE')) translatedSubject = translatedSubject.replace(/INGILIZCE/g, 'ENGLISH');
-            return { year: 'ACADEMIC YEAR', term: 'TERM', class: 'CLASS', no: 'NO', name: 'NAME SURNAME', room: 'ROOM', exam: 'EXAM', seat: 'SEAT', score: 'SCORE', written: 'WRITTEN EXAM', subject: translatedSubject };
+            return { year: 'ACADEMIC YEAR', term: 'TERM', class: 'CLASS', no: 'NO', name: 'NAME SURNAME', room: 'ROOM', exam: 'EXAM', seat: 'SEAT', score: 'SCORE', written: 'WRITTEN EXAM', listening: 'LISTENING EXAM', subject: translatedSubject };
         }
         if (isGerman) {
             translatedSubject = translatedSubject.replace(/ALMANCA/g, 'DEUTSCH');
-            return { year: 'SCHULJAHR', term: 'HALBJAHR', class: 'KLASSE', no: 'NR', name: 'NAME VORNAME', room: 'RAUM', exam: 'PRÜFUNG', seat: 'PLATZ', score: 'PUNKTE', written: 'SCHRIFTLICHE PRÜFUNG', subject: translatedSubject };
+            return { year: 'SCHULJAHR', term: 'HALBJAHR', class: 'KLASSE', no: 'NR', name: 'NAME VORNAME', room: 'RAUM', exam: 'PRÜFUNG', seat: 'PLATZ', score: 'PUNKTE', written: 'SCHRIFTLICHE PRÜFUNG', listening: 'HÖRPRÜFUNG', subject: translatedSubject };
         }
         if (isFrench) {
             translatedSubject = translatedSubject.replace(/FRANSIZCA/g, 'FRANÇAIS');
-            return { year: 'ANNÉE SCOLAIRE', term: 'SEMESTRE', class: 'CLASSE', no: 'N°', name: 'NOM PRÉNOM', room: 'SALLE', exam: 'EXAMEN', seat: 'PLACE', score: 'NOTE', written: 'EXAMEN ÉCRIT', subject: translatedSubject };
+            return { year: 'ANNÉE SCOLAIRE', term: 'SEMESTRE', class: 'CLASSE', no: 'N°', name: 'NOM PRÉNOM', room: 'SALLE', exam: 'EXAMEN', seat: 'PLACE', score: 'NOTE', written: 'EXAMEN ÉCRIT', listening: 'ÉPREUVE D\'ÉCOUTE', subject: translatedSubject };
         }
-        return { year: 'ÖĞRETİM YILI', term: 'DÖNEM', class: 'SINIFI', no: 'NO', name: 'ADI SOYADI', room: 'DERSLİK', exam: 'SINAV', seat: 'YER', score: 'PUAN', written: 'YAZILI SINAVI', subject: translatedSubject };
+        return { year: 'ÖĞRETİM YILI', term: 'DÖNEM', class: 'SINIFI', no: 'NO', name: 'ADI SOYADI', room: 'DERSLİK', exam: 'SINAV', seat: 'YER', score: 'PUAN', written: 'YAZILI SINAVI', listening: 'DİNLEME SINAVI', subject: translatedSubject };
     };
 
 
@@ -691,6 +691,11 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     if (schoolFont.widthOfTextAtSize(cleanTurkishChars(sName), 9 * sf) > midW) sName = rawSchoolName;
 
     let examText = '';
+    const isUygulama = sess.type === 'uygulama';
+    const examTypeStrEng = isUygulama ? lang.listening : 'Exam';
+    const examTypeStrOther = isUygulama ? lang.listening : lang.written;
+    const examTypeStrTr = isUygulama ? lang.listening : 'SINAVI';
+
     if (isEnglishSubject) {
         // English: "2025-2026 ACADEMIC YEAR 1st Term 1st English Exam for 9th Graders"
         let engExamNo = getOrdinal(parseInt(examNoStr) || 1);
@@ -698,13 +703,13 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         let gradeStr = gradeLevel ? ` for ${getOrdinal(parseInt(gradeLevel[0]))} Graders` : '';
         let subjectClean = (lang.subject || '').replace(/\d+/g, '').replace(/İ/g,'i').toLowerCase();
         subjectClean = subjectClean.charAt(0).toUpperCase() + subjectClean.slice(1).trim();
-        examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${engExamNo} ${subjectClean} Exam${gradeStr}`.toUpperCase();
+        examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${engExamNo} ${subjectClean} ${examTypeStrEng}${gradeStr}`.toUpperCase();
     } else if (isGermanSubject || isFrenchSubject) {
         // German/French: use localized year, term and subject labels
-        examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} ${examNoStr ? `${examNoStr}. ` : ''}${lang.written}`.toUpperCase();
+        examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} ${examNoStr ? `${examNoStr}. ` : ''}${examTypeStrOther}`.toUpperCase();
     } else {
         // Turkish: "2023-2024 ÖĞRETİM YILI I. DÖNEM FİZİK 9 DERSİ 1. SINAVI"
-        examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} DERSİ ${examNoStr ? `${examNoStr}. ` : ''}SINAVI`.toUpperCase();
+        examText = `${school.academicYear || ''} ${lang.year} ${termStr} ${lang.subject || ''} DERSİ ${examNoStr ? `${examNoStr}. ` : ''}${examTypeStrTr}`.toUpperCase();
     }
     
 
@@ -780,7 +785,34 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         drawCenterText(info?.room || '', bx + bL + b2 + b3, by - 2.5 * sf, b4, row3H, 11, infoFont);
         page.drawText(lang.exam, { x: bx + bL + b2 + b3 + b4 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
         const shortSubInBox = window.shortenSubject ? window.shortenSubject(info?.subject || '', 15) : (info?.subject || '');
-        drawCenterText(shortSubInBox.toUpperCase(), bx + bL + b2 + b3 + b4, by - 2.5 * sf, b5, row3H, 9.5, infoFont);
+        
+        if (sess.type === 'uygulama') {
+            const cl = cleanTurkishChars(shortSubInBox.toUpperCase(), infoFont).toString();
+            const s_sz = 9.5 * sf;
+            const tw = infoFont ? infoFont.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
+            
+            const totalW = tw + 13 * sf; // text width + icon + gap
+            const startX = bx + bL + b2 + b3 + b4 + (b5 - totalW) / 2;
+            
+            const spX = startX;
+            const spY = by - 2.5 * sf + (row3H / 2) - 4 * sf;
+            const col = rgb(0.2, 0.2, 0.2); // dark gray
+            
+            // Draw speaker box and cone
+            page.drawRectangle({ x: spX, y: spY + 2.5*sf, width: 2.5*sf, height: 3*sf, color: col });
+            page.drawLine({ start: { x: spX + 2*sf, y: spY + 2.5*sf }, end: { x: spX + 5*sf, y: spY }, thickness: 1*sf, color: col });
+            page.drawLine({ start: { x: spX + 2*sf, y: spY + 5.5*sf }, end: { x: spX + 5*sf, y: spY + 8*sf }, thickness: 1*sf, color: col });
+            page.drawLine({ start: { x: spX + 5*sf, y: spY }, end: { x: spX + 5*sf, y: spY + 8*sf }, thickness: 1*sf, color: col });
+            // Draw sound waves
+            page.drawLine({ start: { x: spX + 7*sf, y: spY + 3*sf }, end: { x: spX + 7*sf, y: spY + 5*sf }, thickness: 1*sf, color: col });
+            page.drawLine({ start: { x: spX + 9*sf, y: spY + 1.5*sf }, end: { x: spX + 9*sf, y: spY + 6.5*sf }, thickness: 1*sf, color: col });
+            
+            const ty = by - 2.5 * sf + (row3H / 2) - (s_sz * 0.35);
+            page.drawText(cl, { x: startX + 13 * sf, y: ty, size: s_sz, font: infoFont, color: rgb(0, 0, 0) });
+        } else {
+            drawCenterText(shortSubInBox.toUpperCase(), bx + bL + b2 + b3 + b4, by - 2.5 * sf, b5, row3H, 9.5, infoFont);
+        }
+
         page.drawText(lang.seat, { x: bx + bL + b2 + b3 + b4 + b5 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
         drawCenterText(info?.seat || '', bx + bL + b2 + b3 + b4 + b5, by - 2.5 * sf, b6, row3H, 14, infoFont);
     };

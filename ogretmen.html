@@ -864,12 +864,10 @@
                                                         <input type="radio" name="printMode-${ses.id}" value="seating" style="accent-color: var(--primary);"> Şema
                                                     </label>
                                                     ` : ''}
-                                                    ${ses.type !== 'uygulama' ? `
                                                     <div style="width: 1px; height: 16px; background: var(--gray-300); margin: 0 4px;"></div>
                                                     <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; color: var(--primary);">
                                                         <input type="checkbox" id="paperCheck-${ses.id}" style="accent-color: var(--primary); width: 16px; height: 16px;"> <b>Sınav Kağıdı</b>
                                                     </label>
-                                                    ` : ''}
                                                 </div>
                                                 <button class="btn btn-primary btn-sm" style="padding: 4px 10px; font-size: 0.75rem;" onclick="printSession('${ses.id}')" title="Yazdır">
                                                     <i class="fa-solid fa-print"></i>
@@ -981,8 +979,21 @@
 
                                 if (ses.type === 'uygulama') {
                                     const files = Array.isArray(meta.papers?.uygulamaFiles) ? meta.papers.uygulamaFiles : (typeof meta.papers === 'string' && meta.papers ? [meta.papers] : ['']);
+                                    const currentPdf = (typeof meta.papers === 'object' && meta.papers !== null && typeof meta.papers['default'] === 'string') ? meta.papers['default'] : '';
                                     
                                     papersHtml = `
+                                        <div style="background: white; padding: 1.25rem; border-radius: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-100); margin-bottom: 1.25rem;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                                <label style="font-size: 0.75rem; font-weight: 800; color: var(--gray-500); text-transform:uppercase; margin: 0;">
+                                                    <i class="fa-solid fa-file-pdf" style="color:var(--danger)"></i> Soru Kağıdı Bağlantısı
+                                                </label>
+                                            </div>
+                                            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                                                <input type="text" id="pdfLink-${ses.id}-${encodedSub}" class="form-control meta-paper-pdf-input" style="flex:1; padding:0.75rem; border:2px solid var(--gray-200); border-radius:10px; font-weight:600;" placeholder="https://..." value="${currentPdf}" onchange="savePdfLink('${ses.id}', '${encodedSub}')">
+                                                <button class="btn btn-primary" style="padding: 0.75rem 1.25rem; border-radius:10px; font-weight:800; font-size: 0.85rem;" onclick="savePdfLink('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-save"></i> KAYDET</button>
+                                            </div>
+                                            ${renderActions(null)}
+                                        </div>
                                         <div style="background: white; padding: 1.25rem; border-radius: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-100); margin-bottom: 1.25rem;">
                                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                                 <label style="font-size: 0.75rem; font-weight: 800; color: var(--gray-500); text-transform:uppercase; margin: 0;">

@@ -5275,7 +5275,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (ses.type === 'uygulama') {
                 const files = Array.isArray(subPapers.uygulamaFiles) ? subPapers.uygulamaFiles : (typeof subPapers === 'string' && subPapers ? [subPapers] : ['']);
                 
-                paperInputs = `<div class="uygulama-files-container" id="uyg-container-${sub}">`;
+                paperInputs = `
+                    <div class="input-group" style="display:flex; align-items:center; gap:3px; margin-top:4px; margin-bottom:8px;">
+                        <span style="font-size:0.7rem; font-weight:700; color:var(--danger); min-width:60px;"><i class="fa-solid fa-file-pdf"></i> Soru Kağıdı</span>
+                        <input type="text" class="swal2-input meta-paper-pdf-input" data-sub="${sub}" style="flex:1; margin:0; height:30px; font-size:0.8rem; padding:0 6px;" value="${typeof subPapers['default'] === 'string' ? subPapers['default'] : ''}" placeholder="Soru kağıdı PDF / URL">
+                        <button type="button" class="btn btn-secondary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-pdf-input'); if(inp && inp.value) window.openSafePdf(inp.value, 'Soru Kağıdı Önizleme'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
+                        <button type="button" class="btn btn-info btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
+                        <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+                    </div>
+                    <div class="uygulama-files-container" id="uyg-container-${sub}">`;
                 files.forEach((fileLink, fIdx) => {
                     paperInputs += `
                     <div class="input-group uygulama-file-row" style="display:flex; align-items:center; gap:3px; margin-top:4px;">
@@ -5485,6 +5493,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                             const val = inp.value.trim();
                             if (val) papers.uygulamaFiles.push(val);
                         });
+                        const pdfInp = document.querySelector(`.meta-paper-pdf-input[data-sub="${sub}"]`);
+                        if (pdfInp) papers['default'] = pdfInp.value.trim();
                     } else if (hasGroups) {
                         paperInputs.forEach(inp => {
                             const group = inp.dataset.group;
