@@ -4452,11 +4452,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     icon: 'success',
                     confirmButtonText: '<i class="fa-solid fa-print"></i> Yazdır',
                     confirmButtonColor: '#4f46e5',
-                    allowOutsideClick: false
+                    allowOutsideClick: false,
+                    preConfirm: () => {
+                        window.finalizeAndPrint(blobUrl);
+                        return true;
+                    }
                 });
-                
-                // Always open in new tab for maximum speed and browser compatibility
-                window.finalizeAndPrint(blobUrl);
+
 
                 // Clear temporary batch cache
                 window._pdfTemplateCache = {};
