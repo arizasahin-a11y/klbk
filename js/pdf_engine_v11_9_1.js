@@ -691,7 +691,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     if (schoolFont.widthOfTextAtSize(cleanTurkishChars(sName), 9 * sf) > midW) sName = rawSchoolName;
 
     let examText = '';
-    const isUygulama = sess.type === 'uygulama';
+    const isUygulama = sess && sess.type && sess.type.toString().toLowerCase() === 'uygulama';
     const examTypeStrEng = isUygulama ? lang.listening : 'Exam';
     const examTypeStrOther = isUygulama ? lang.listening : lang.written;
     const examTypeStrTr = isUygulama ? lang.listening : 'SINAVI';
@@ -786,7 +786,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         page.drawText(lang.exam, { x: bx + bL + b2 + b3 + b4 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
         const shortSubInBox = window.shortenSubject ? window.shortenSubject(info?.subject || '', 15) : (info?.subject || '');
         
-        if (sess.type === 'uygulama') {
+        if (isUygulama) {
             const cl = cleanTurkishChars(shortSubInBox.toUpperCase(), infoFont).toString();
             const s_sz = 9.5 * sf;
             const tw = infoFont ? infoFont.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
@@ -1085,7 +1085,33 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             page.drawText(lang.room, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
             drawCenterText(info.room || '', ox + d9LeftW + d9MidCol2W + d9MidCol3W, d9Oy - 2.5 * sf, midCol4W, row3H, 11, infoFont);
             page.drawText(lang.exam, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
-            drawCenterText((window.shortenSubject ? window.shortenSubject(info?.subject || '', 15) : (info?.subject || '')).toUpperCase(), ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W, d9Oy - 2.5 * sf, midCol5W, row3H, 9.5, infoFont);
+            const shortSubInBox = window.shortenSubject ? window.shortenSubject(info?.subject || '', 15) : (info?.subject || '');
+            if (isUygulama) {
+                const cl = cleanTurkishChars(shortSubInBox.toUpperCase(), infoFont).toString();
+                const s_sz = 9.5 * sf;
+                const tw = infoFont ? infoFont.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
+                
+                const totalW = tw + 13 * sf;
+                const startX = ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + (midCol5W - totalW) / 2;
+                
+                const spX = startX + tw + 3 * sf;
+                const spY = d9Oy - 2.5 * sf + (row3H / 2) - 4 * sf;
+                
+                page.drawText(cl, { x: startX, y: d9Oy - 2.5 * sf + (row3H - s_sz) / 2 + 1 * sf, size: s_sz, font: infoFont, color: rgb(0, 0, 0) });
+                
+                // Kulaklik/Hoparlor sembolu (Ders isminin saginda)
+                page.drawRectangle({ x: spX + 2 * sf, y: spY + 2 * sf, width: 3 * sf, height: 4 * sf, color: rgb(0.2, 0.2, 0.2) });
+                page.drawLine({ start: { x: spX + 5 * sf, y: spY + 2 * sf }, end: { x: spX + 8 * sf, y: spY }, thickness: 1 * sf, color: rgb(0.2, 0.2, 0.2) });
+                page.drawLine({ start: { x: spX + 5 * sf, y: spY + 6 * sf }, end: { x: spX + 8 * sf, y: spY + 8 * sf }, thickness: 1 * sf, color: rgb(0.2, 0.2, 0.2) });
+                page.drawLine({ start: { x: spX + 8 * sf, y: spY }, end: { x: spX + 8 * sf, y: spY + 8 * sf }, thickness: 1 * sf, color: rgb(0.2, 0.2, 0.2) });
+                page.drawCircle({ x: spX + 9 * sf, y: spY + 4 * sf, size: 2.5 * sf, color: rgb(1, 1, 1), borderColor: rgb(0.2, 0.2, 0.2), borderWidth: 0.5 * sf });
+                page.drawCircle({ x: spX + 9 * sf, y: spY + 4 * sf, size: 4 * sf, color: rgb(1, 1, 1), borderColor: rgb(0.2, 0.2, 0.2), borderWidth: 0.5 * sf });
+                page.drawRectangle({ x: spX + 5 * sf, y: spY - 1 * sf, width: 4 * sf, height: 10 * sf, color: rgb(1, 1, 1) });
+                page.drawLine({ start: { x: spX + 9 * sf, y: spY + 1.5 * sf }, end: { x: spX + 9 * sf, y: spY + 6.5 * sf }, thickness: 0.5 * sf, color: rgb(0.2, 0.2, 0.2) });
+                page.drawLine({ start: { x: spX + 10.5 * sf, y: spY }, end: { x: spX + 10.5 * sf, y: spY + 8 * sf }, thickness: 0.5 * sf, color: rgb(0.2, 0.2, 0.2) });
+            } else {
+                drawCenterText(shortSubInBox.toUpperCase(), ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W, d9Oy - 2.5 * sf, midCol5W, row3H, 9.5, infoFont);
+            }
             page.drawText(lang.seat, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + midCol5W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
             drawCenterText(info.seat || '', ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + midCol5W, d9Oy - 2.5 * sf, midCol6W, row3H, 14, infoFont);
         }
