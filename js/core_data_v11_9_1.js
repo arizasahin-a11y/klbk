@@ -1532,7 +1532,25 @@ const DataManager = {
                     }
                 }
                 if (session.customProctors && session.customProctors[room.name]) {
-                    classroomInfo.gorevli = session.customProctors[room.name];
+                    const originalName = classroomInfo.gorevli;
+                    const customName = session.customProctors[room.name];
+                    
+                    if (originalName && originalName !== customName && originalName !== "Belirlenmedi") {
+                        const cleanName = originalName.replace(" (İdare)", "");
+                        const tMatch = Object.values(teachersDb).find(t => (t.name === cleanName) || (t.name.toUpperCase() === cleanName.toUpperCase()));
+                        
+                        if (tMatch) {
+                            result.globalSpares.push({
+                                uname: tMatch.uname,
+                                name: cleanName + (originalName.includes(" (İdare)") ? " (İdare)" : ""),
+                                role: tMatch.role,
+                                isDouble: false,
+                                hasLaterClasses: false,
+                                hasAnyClassThisDay: true
+                            });
+                        }
+                    }
+                    classroomInfo.gorevli = customName;
                 }
                 
                 result.classrooms[room.name] = classroomInfo;
