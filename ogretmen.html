@@ -1887,9 +1887,13 @@
             sessions.forEach(ses => {
                 if (!ses) return;
 
-                // Sınav bitişinden 5 dakika sonrasını hesapla
+                const schoolDefs = DataManager.getSchoolSettings()?.defaultTimes || {
+                    teacherExamRemovalMinutes: 5
+                };
+                
+                // Sınav bitişinden sonraki silme zamanını hesapla
                 const endTime = DataManager.getSessionEndDateTime(ses.date, ses.time, ses.examDuration);
-                const removeTime = new Date(endTime.getTime() + (5 * 60 * 1000));
+                const removeTime = new Date(endTime.getTime() + (schoolDefs.teacherExamRemovalMinutes * 60 * 1000));
                 
                 // Eğer şimdiki zaman, silme zamanından büyükse bu görevi atla
                 if (now > removeTime) return;

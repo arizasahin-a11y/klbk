@@ -130,131 +130,62 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- Account Settings Action ---
-    async function openAccountSettings() {
-        const currentUser = sessionStorage.getItem('klbk_currentUser');
-        if (!currentUser) return;
+    // --- System Settings Action ---
+    async function openSystemSettings() {
+        const school = DataManager.getSchoolSettings();
+        const defs = school.defaultTimes || {
+            studentLocationMinutes: 20,
+            studentExamEndHideMinutes: 30,
+            teacherExamRemovalMinutes: 5,
+            examFilesActiveMinutes: 3,
+            defaultExamDuration: 40
+        };
 
         Swal.fire({
-            title: 'Hesap Ayarları',
+            title: 'Sınav Sistem Ayarları',
             html: `
                 <div style="text-align: left; margin-top: 10px;">
-                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Kullanıcı Adı</label>
-                    <input type="text" id="profUser" class="form-control" value="${currentUser}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Sınav Yerleri Görünme Süresi (Sınavdan kaç dakika önce)</label>
+                    <input type="number" id="sysLocMin" class="form-control" value="${defs.studentLocationMinutes}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
 
-                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">E-Posta Adresi</label>
-                    <input type="email" id="profEmail" class="form-control" placeholder="E-Posta" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Öğrenciden Sınavı Gizleme Süresi (Sınav bitiminden kaç dakika sonra)</label>
+                    <input type="number" id="sysStudHideMin" class="form-control" value="${defs.studentExamEndHideMinutes}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
 
-                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Cinsiyet</label>
-                    <select id="profGender" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
-                        <option value="erkek">Erkek</option>
-                        <option value="kadin">Kadın</option>
-                        <option value="diger">Belirtilmemiş</option>
-                    </select>
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Öğretmen Listesinden Sınavı Kaldırma Süresi (Sınav bitiminden kaç dakika sonra)</label>
+                    <input type="number" id="sysTchHideMin" class="form-control" value="${defs.teacherExamRemovalMinutes}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
 
-                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Yeni Şifre</label>
-                    <input type="password" id="profPass" class="form-control" placeholder="Değiştirmek istemiyorsanız boş bırakın" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
-                    
-                    <hr style="margin: 15px 0; border: 0; border-top: 1px solid var(--gray-200);">
-                    <label style="display:block; font-size: 0.85rem; font-weight: 700; color: var(--danger); margin-bottom: 4px;">Değişiklikleri Onaylamak İçin Güncel Şifreniz</label>
-                    <input type="password" id="currentPassVerify" class="form-control" placeholder="Mevcut şifrenizi girin" style="width: 100%; padding: 0.75rem; border: 2px solid var(--danger); border-radius: 6px; font-family: inherit;">
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Uygulama Dosyaları İndirme Gecikmesi (Sınav başladıktan kaç dakika sonra)</label>
+                    <input type="number" id="sysFileActMin" class="form-control" value="${defs.examFilesActiveMinutes}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Varsayılan Sınav Süresi (Dakika)</label>
+                    <input type="number" id="sysDefDur" class="form-control" value="${defs.defaultExamDuration}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
                 </div>
             `,
             showCancelButton: true,
             confirmButtonText: 'Kaydet',
             cancelButtonText: 'İptal',
-            didOpen: async () => {
-                Swal.showLoading();
-                try {
-                    const res = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`);
-                    if (res.ok) {
-                        const db = await res.json();
-                        if (db && db[currentUser]) {
-                            const emailEl = document.getElementById('profEmail');
-                            if (emailEl) emailEl.value = db[currentUser].email || '';
-                            const genderEl = document.getElementById('profGender');
-                            if (genderEl) genderEl.value = db[currentUser].gender || 'erkek';
-                        }
-                    }
-                } catch (e) { }
-                Swal.hideLoading();
-            },
-            preConfirm: async () => {
-                const newUsername = document.getElementById('profUser').value.trim();
-                const email = document.getElementById('profEmail').value.trim();
-                const gender = document.getElementById('profGender').value;
-                const pass = document.getElementById('profPass').value;
-                const currentPassVerify = document.getElementById('currentPassVerify').value;
+            preConfirm: () => {
+                const locMin = parseInt(document.getElementById('sysLocMin').value);
+                const studHideMin = parseInt(document.getElementById('sysStudHideMin').value);
+                const tchHideMin = parseInt(document.getElementById('sysTchHideMin').value);
+                const fileActMin = parseInt(document.getElementById('sysFileActMin').value);
+                const defDur = parseInt(document.getElementById('sysDefDur').value);
 
-                if (!newUsername) {
-                    Swal.showValidationMessage('Kullanıcı adı boş olamaz');
-                    return false;
-                }
-                if (!currentPassVerify) {
-                    Swal.showValidationMessage('İşlemi onaylamak için güncel şifrenizi girmelisiniz');
+                if (isNaN(locMin) || isNaN(studHideMin) || isNaN(tchHideMin) || isNaN(fileActMin) || isNaN(defDur)) {
+                    Swal.showValidationMessage('Tüm alanlara geçerli sayılar girmelisiniz');
                     return false;
                 }
 
-                Swal.showLoading();
                 try {
-                    const res = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`);
-                    if (!res.ok) throw new Error("Veritabanı bağlantı hatası");
-                    
-                    const db = await res.json();
-                    if (!db || !db[currentUser]) throw new Error("Kullanıcı bulunamadı");
-
-                    // 1. Verify current password
-                    if (db[currentUser].password !== currentPassVerify) {
-                        throw new Error("Güncel şifreniz hatalı!");
-                    }
-
-                    // 2. Check if new username is taken
-                    if (newUsername !== currentUser && db[newUsername]) {
-                        throw new Error("Bu kullanıcı adı zaten alınmış!");
-                    }
-
-                    const userData = db[currentUser];
-                    userData.email = email;
-                    userData.gender = gender;
-                    if (pass) userData.password = pass;
-
-                    // 3. Update DB
-                    if (newUsername !== currentUser) {
-                        db[newUsername] = userData;
-                        delete db[currentUser];
-                    } else {
-                        db[currentUser] = userData;
-                    }
-
-                    const putRes = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(db)
-                    });
-
-                    if (!putRes.ok) throw new Error("Kayıt sırasında hata oluştu");
-
-                    // Update local icon immediately
-                    const sidebarAvatarIcon2 = document.getElementById('sidebarAvatarIcon');
-                    if (sidebarAvatarIcon2) {
-                        let iconClass = 'fa-user-tie';
-                        let bg = '#2196f3';
-                        if (gender === 'kadin') { iconClass = 'fa-user-nurse'; bg = '#e91e63'; }
-                        else if (gender === 'diger') { iconClass = 'fa-user'; bg = '#6c757d'; }
-                        sidebarAvatarIcon2.className = `fa-solid ${iconClass}`;
-                        sidebarAvatarIcon2.parentElement.style.background = bg;
-                        sidebarAvatarIcon2.parentElement.style.color = 'white';
-                    }
-                    sessionStorage.setItem('klbk_gender', gender);
-
-                    // 4. Update Session Data
-                    if (newUsername !== currentUser) {
-                        sessionStorage.setItem('klbk_currentUser', newUsername);
-                        const oldStoreKey = sessionStorage.getItem('klbk_storeKey');
-                        if (oldStoreKey === `klbk_data_${currentUser}`) {
-                            sessionStorage.setItem('klbk_storeKey', `klbk_data_${newUsername}`);
-                        }
-                    }
+                    const currentSchool = DataManager.getSchoolSettings();
+                    currentSchool.defaultTimes = {
+                        studentLocationMinutes: locMin,
+                        studentExamEndHideMinutes: studHideMin,
+                        teacherExamRemovalMinutes: tchHideMin,
+                        examFilesActiveMinutes: fileActMin,
+                        defaultExamDuration: defDur
+                    };
+                    DataManager.saveSchoolSettings(currentSchool);
                     return true;
                 } catch (e) {
                     Swal.showValidationMessage(e.message);
@@ -265,10 +196,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (result.isConfirmed) {
                 Swal.fire({
                     title: 'Başarılı',
-                    text: 'Profil ayarlarınız güncellendi. Sistem tutarlılığı için sayfa yenilenecektir.',
-                    icon: 'success'
-                }).then(() => {
-                    window.location.reload();
+                    text: 'Sistem ayarları güncellendi.',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
                 });
             }
         });
@@ -276,11 +207,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const accountSettingsBtn = document.getElementById('accountSettingsBtn');
     if (accountSettingsBtn) {
-        accountSettingsBtn.addEventListener('click', openAccountSettings);
+        accountSettingsBtn.addEventListener('click', openSystemSettings);
     }
     const sidebarUserArea = document.getElementById('sidebarUserArea');
     if (sidebarUserArea) {
-        sidebarUserArea.addEventListener('click', openAccountSettings);
+        sidebarUserArea.addEventListener('click', openSystemSettings);
     }
 
     // --- Global Event Delegation for Accordion Classroom Editor ---
@@ -5485,7 +5416,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                     <div class="form-group" style="margin-bottom: 1rem;">
                         <label style="display:block; margin-bottom:0.5rem; font-weight:bold;">Öğretmen Mesajı / Talimatlar</label>
-                        <textarea id="meta-tch-msg" class="swal2-textarea" style="width:100%; margin:0; height:80px;" placeholder="Sınav süresi 40 dakikadır...">${ses.teacherMsg || ''}</textarea>
+                        <textarea id="meta-tch-msg" class="swal2-textarea" style="width:100%; margin:0; height:80px;" placeholder="Sınav süresi ${DataManager.getSchoolSettings().defaultTimes?.defaultExamDuration || 40} dakikadır...">${ses.teacherMsg || ''}</textarea>
                     </div>
 
                     <hr style="margin:1.5rem 0; border:0; border-top:2px dashed #6366f1;">

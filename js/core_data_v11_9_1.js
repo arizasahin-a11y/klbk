@@ -49,7 +49,14 @@ const initialState = {
         classCount: '',   // Sınıf Sayısı
         roomCount: '',    // Derslik Sayısı
         gradeLevels: [],  // [9, 10, 11, 12]
-        subjects: []      // ['Matematik', 'Fizik']
+        subjects: [],     // ['Matematik', 'Fizik']
+        defaultTimes: {
+            studentLocationMinutes: 20,
+            studentExamEndHideMinutes: 30,
+            teacherExamRemovalMinutes: 5,
+            examFilesActiveMinutes: 3,
+            defaultExamDuration: 40
+        }
     },
     students: [],         // Array of student objects
     classrooms: [],       // Array of classroom layout objects
@@ -717,7 +724,9 @@ const DataManager = {
 
     getSessionEndDateTime: function (dateStr, timeStr, forcedDuration) {
         const start = this.parseSessionDateTime(dateStr, timeStr);
-        let duration = forcedDuration || 40; // Default 40 mins
+        const school = this.getSchoolSettings();
+        const defaultDuration = (school.defaultTimes && school.defaultTimes.defaultExamDuration) || 40;
+        let duration = forcedDuration || defaultDuration;
 
         if (!forcedDuration && timeStr && timeStr.includes('. Ders')) {
             const lessonNum = parseInt(timeStr);

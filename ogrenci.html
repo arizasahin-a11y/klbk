@@ -827,6 +827,11 @@
             const sessions = DataManager.getSortedExamSessions().filter(s => s.isPublished);
             const listContainer = document.getElementById('examsList');
             const now = getNow();
+            const schoolDefs = DataManager.getSchoolSettings()?.defaultTimes || {
+                studentLocationMinutes: 20,
+                studentExamEndHideMinutes: 30,
+                examFilesActiveMinutes: 3
+            };
 
             const myExams = [];
             sessions.forEach(ses => {
@@ -871,26 +876,25 @@
                 if (diffMins > 36 * 60) return;
 
                 // Sınav biteli 30 dakikadan fazla olduysa GÖSTERME
-                if (diffEndMins < -30) return;
+                if (diffEndMins < -schoolDefs.studentExamEndHideMinutes) return;
 
                 let stateCode;
-                let limit = 8;
+                let limit = schoolDefs.studentLocationMinutes;
                 if (ses.type === 'uygulama') {
                     if (diffEndMins < 0) {
                         stateCode = 'finished';
                     } else if (diffMins <= 0) {
                         stateCode = 'active';
-                    } else if (diffMins > 20) {
+                    } else if (diffMins > limit) {
                         stateCode = 'far';
                     } else {
                         stateCode = 'near';
                     }
                 } else {
-                    limit = 20; // Sınav yerleri daima 20 dakika önce açılır
                     stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
                 }
                 
-                const stateKey = stateCode + (ses.type === 'uygulama' ? `_unlocked_${((now - targetTime) / 1000 / 60) >= 3}` : '');
+                const stateKey = stateCode + (ses.type === 'uygulama' ? `_unlocked_${((now - targetTime) / 1000 / 60) >= schoolDefs.examFilesActiveMinutes}` : '');
                 lastStates[ses.id] = stateKey;
 
                 const displayTime = ses.time.includes('. Ders') ? `${ses.time} (${targetTime.getHours().toString().padStart(2, '0')}:${targetTime.getMinutes().toString().padStart(2, '0')})` : ses.time;
@@ -953,6 +957,11 @@
             if (!currentStudent) return;
             const sessions = DataManager.getExamSessions().filter(s => s.isPublished);
             const now = getNow();
+            const schoolDefs = DataManager.getSchoolSettings()?.defaultTimes || {
+                studentLocationMinutes: 20,
+                studentExamEndHideMinutes: 30,
+                examFilesActiveMinutes: 3
+            };
             let needsFullRender = false;
             sessions.forEach(ses => {
                 const card = document.querySelector(`.exam-card[data-ses-id="${ses.id}"]`);
@@ -964,23 +973,23 @@
                 const diffEndMins = (endTime - now) / 1000 / 60;
 
                 let newState = 'hidden';
-                if (diffMins <= 36 * 60 && diffEndMins >= -30) {
+                if (diffMins <= 36 * 60 && diffEndMins >= -schoolDefs.studentExamEndHideMinutes) {
                     if (ses.type === 'uygulama') {
                         if (diffEndMins < 0) {
                             newState = 'finished';
                         } else if (diffMins <= 0) {
                             newState = 'active';
-                        } else if (diffMins > 20) {
+                        } else if (diffMins > schoolDefs.studentLocationMinutes) {
                             newState = 'far';
                         } else {
                             newState = 'near';
                         }
                     } else {
-                        newState = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > 20 ? 'med' : 'near')));
+                        newState = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > schoolDefs.studentLocationMinutes ? 'med' : 'near')));
                     }
                 }
 
-                const newStateKey = newState === 'hidden' ? 'hidden' : (newState + (ses.type === 'uygulama' ? `_unlocked_${((now - targetTime) / 1000 / 60) >= 3}` : ''));
+                const newStateKey = newState === 'hidden' ? 'hidden' : (newState + (ses.type === 'uygulama' ? `_unlocked_${((now - targetTime) / 1000 / 60) >= schoolDefs.examFilesActiveMinutes}` : ''));
 
                 // Only trigger full render if state actually changes
                 if (newStateKey !== lastStates[ses.id]) {
@@ -1122,6 +1131,9 @@
             const mySeatId = item.seatId;
             const mySeatNum = item.seatNum;
             const myClass = currentStudent.class;
+            const schoolDefs = DataManager.getSchoolSettings()?.defaultTimes || {
+                examFilesActiveMinutes: 3
+            };
 
             const std = myRoom.seats[mySeatId];
             const matchedSubject = std ? std._matchedSubject : '';
@@ -1165,12 +1177,12 @@
                 const turkishNumbers = ["BİRİNCİ", "İKİNCİ", "ÜÇÜNCÜ", "DÖRDÜNCÜ", "BEŞİNCİ", "ALTINCI", "YEDİNCİ", "SEKİZİNCİ", "DOKUZUNCU", "ONUNCU"];
 
                 let filesSection = '';
-                if (diffStartMins < 3) {
+                if (diffStartMins < schoolDefs.examFilesActiveMinutes) {
                     filesSection = `
                         <div class="glass-panel" style="padding: 2rem; border-radius: 16px; text-align: center; border: 1.5px dashed var(--warning); color: #c2410c; background: rgba(245, 158, 11, 0.04); margin-bottom: 1.5rem; box-shadow: var(--shadow-sm);">
                             <i class="fa-solid fa-clock-rotate-left" style="font-size: 2.5rem; margin-bottom: 15px; display: block; color: var(--warning);"></i>
                             <div style="font-size: 1.05rem; font-weight: 800; line-height: 1.6; color: #7c2d12;">
-                                Uygulama Sınavı dosyaları sınav başlama saatinden 3 dakika sonra aktif olacaktır.<br>
+                                Uygulama Sınavı dosyaları sınav başlama saatinden ${schoolDefs.examFilesActiveMinutes} dakika sonra aktif olacaktır.<br>
                                 <span style="font-size: 0.9rem; font-weight: 600; color: var(--gray-600); opacity: 0.95;">Eğer zamanı geldiği halde dosyalar görünmüyorsa sayfayı yenileyin.</span>
                             </div>
                         </div>`;
