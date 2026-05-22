@@ -44,9 +44,12 @@
             "Peygamberimizin Hayatı": "Siyer",
             "Kur'an-ı Kerim": "Kur'an",
             "Matematik": "Mat.",
-            "İngilizce": "İng.",
-            "Almanca": "Alm.",
-            "Fransızca": "Fra.",
+            "İngilizce": "ENG",
+            "English": "ENG",
+            "Almanca": "DEU",
+            "Deutsch": "DEU",
+            "Fransızca": "FRA",
+            "Français": "FRA",
             "Fizik": "Fiz.",
             "Kimya": "Kim.",
             "Biyoloji": "Biyo.",
@@ -128,7 +131,7 @@
             const repPairs = [
                 { pat: /Matematik|matematik|MATEMATİK/g, rep: 'Mat.' },
                 { pat: /Edebiyat|edebiyat|EDEBİYAT/g, rep: 'Edb.' },
-                { pat: /İngilizce|ingilizce|İNGİLİZCE/g, rep: 'İng.' },
+                { pat: /İngilizce|ingilizce|İNGİLİZCE/g, rep: 'ENG' },
                 { pat: /Fizik|fizik|FİZİK/g, rep: 'Fiz.' },
                 { pat: /Kimya|kimya|KİMYA/g, rep: 'Kim.' },
                 { pat: /Biyoloji|biyoloji|BİYOLOJİ/g, rep: 'Biyo.' },
@@ -136,12 +139,13 @@
                 { pat: /Coğrafya|cografya|coğrafya|COĞRAFYA/g, rep: 'Coğ.' },
                 { pat: /Felsefe|felsefe|FELSEFE/g, rep: 'Fel.' },
                 { pat: /Din Kültürü|din kültürü|DİN KÜLTÜRÜ/gi, rep: 'Din' },
-                { pat: /Almanca|almanca|ALMANCA/g, rep: 'Alm.' },
+                { pat: /Almanca|almanca|ALMANCA/g, rep: 'DEU' },
                 { pat: /Görsel Sanatlar|görsel sanatlar|GÖRSEL SANATLAR/g, rep: 'Grs.' },
                 { pat: /Müzik|müzik|MÜZİK/g, rep: 'Müz.' },
                 { pat: /Beden Eğitimi|beden eğitimi|BEDEN EĞİTİMİ/g, rep: 'Bed.' },
                 { pat: /Bilişim|bilişim|BİLİŞİM/g, rep: 'Biliş.' },
-                { pat: /Seçmeli|seçmeli|SEÇMELİ/g, rep: 'S.' }
+                { pat: /Seçmeli|seçmeli|SEÇMELİ/g, rep: 'S.' },
+                { pat: /Fransızca|fransızca|FRANSIZCA/g, rep: 'FRA' }
             ];
             for (let i = 0; i < repPairs.length; i++) {
                 res = res.replace(repPairs[i].pat, repPairs[i].rep);
@@ -150,19 +154,27 @@
 
         // Final length check and aggressive Turkish-safe initials abbreviation if still too long
         if ((res + grade).length > limit) {
-            const normalizedRes = res.normalize("NFC");
-            const words = normalizedRes.split(/[\s\-]/).filter(w => {
-                const cleanW = robustClean(w);
-                return cleanW.length > 0 && !['ve', 'ile', 'veya', 'de', 'da'].includes(cleanW);
-            });
-            if (words.length >= 2) {
-                res = words.map(w => {
-                    const firstChar = w.charAt(0);
-                    if (firstChar === 'i' || firstChar === 'ı') return 'İ';
-                    return firstChar.toUpperCase();
-                }).join('');
+            if (cleanN.includes("english") || cleanN.includes("ingilizce")) {
+                res = "ENG";
+            } else if (cleanN.includes("deutsch") || cleanN.includes("almanca")) {
+                res = "DEU";
+            } else if (cleanN.includes("francais") || cleanN.includes("fransizca")) {
+                res = "FRA";
             } else {
-                res = res.substring(0, limit - grade.length - 1).trim() + '.';
+                const normalizedRes = res.normalize("NFC");
+                const words = normalizedRes.split(/[\s\-]/).filter(w => {
+                    const cleanW = robustClean(w);
+                    return cleanW.length > 0 && !['ve', 'ile', 'veya', 'de', 'da'].includes(cleanW);
+                });
+                if (words.length >= 2) {
+                    res = words.map(w => {
+                        const firstChar = w.charAt(0);
+                        if (firstChar === 'i' || firstChar === 'ı') return 'İ';
+                        return firstChar.toUpperCase();
+                    }).join('');
+                } else {
+                    res = res.substring(0, limit - grade.length - 1).trim() + '.';
+                }
             }
         }
 
@@ -609,7 +621,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const isGerman = normalized.includes('almanca') || normalized.includes('deutsch');
         const isFrench = normalized.includes('fransizca') || normalized.includes('francais');
 
-        let translatedSubject = shortenedSub.replace(/i/g, 'İ').toUpperCase();
+        let translatedSubject = rawSub.replace(/i/g, 'İ').toUpperCase();
 
         if (isEnglish) {
             if (translatedSubject.includes('İNGİLİZCE')) translatedSubject = translatedSubject.replace(/İNGİLİZCE/g, 'ENGLISH');
@@ -785,7 +797,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         page.drawText(lang.room, { x: bx + bL + b2 + b3 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
         drawCenterText(info?.room || '', bx + bL + b2 + b3, by - 2.5 * sf, b4, row3H, 11, infoFont);
         page.drawText(lang.exam, { x: bx + bL + b2 + b3 + b4 + 2 * sf, y: by + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
-        const shortSubInBox = window.shortenSubject ? window.shortenSubject(info?.subject || '', 15) : (info?.subject || '');
+        const activeSub = lang.subject || info?.subject || '';
+        const shortSubInBox = window.shortenSubject ? window.shortenSubject(activeSub, 15) : activeSub;
         
         if (isUygulama) {
             const cl = cleanTurkishChars((shortSubInBox + ' ' + lang.listeningShort).toUpperCase(), infoFont).toString();
@@ -799,7 +812,10 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             const totalW = tw + 14 * sf; // text width + icon + gap
             const startX = bx + bL + b2 + b3 + b4 + (b5 - totalW) / 2;
             
-            const spX = startX;
+            const ty = by - 2.5 * sf + (row3H / 2) - (s_sz * 0.35);
+            page.drawText(cl, { x: startX, y: ty, size: s_sz, font: infoFont, color: rgb(0, 0, 0) });
+            
+            const spX = startX + tw + 4 * sf;
             const spY = by - 2.5 * sf + (row3H / 2) - 4 * sf;
             const col = rgb(0, 0, 0); // solid black for prominence
             
@@ -813,9 +829,6 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             // Draw bold sound waves
             page.drawLine({ start: { x: spX + 7.5*sf, y: spY + 2.5*sf }, end: { x: spX + 7.5*sf, y: spY + 5.5*sf }, thickness: 1.5*sf, color: col });
             page.drawLine({ start: { x: spX + 10*sf, y: spY + 1*sf }, end: { x: spX + 10*sf, y: spY + 7*sf }, thickness: 1.5*sf, color: col });
-            
-            const ty = by - 2.5 * sf + (row3H / 2) - (s_sz * 0.35);
-            page.drawText(cl, { x: startX + 14 * sf, y: ty, size: s_sz, font: infoFont, color: rgb(0, 0, 0) });
         } else {
             drawCenterText(shortSubInBox.toUpperCase(), bx + bL + b2 + b3 + b4, by - 2.5 * sf, b5, row3H, 9.5, infoFont);
         }
@@ -1092,7 +1105,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             page.drawText(lang.room, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
             drawCenterText(info.room || '', ox + d9LeftW + d9MidCol2W + d9MidCol3W, d9Oy - 2.5 * sf, midCol4W, row3H, 11, infoFont);
             page.drawText(lang.exam, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
-            const shortSubInBox = window.shortenSubject ? window.shortenSubject(info?.subject || '', 15) : (info?.subject || '');
+            const activeSub = lang.subject || info?.subject || '';
+            const shortSubInBox = window.shortenSubject ? window.shortenSubject(activeSub, 15) : activeSub;
             if (isUygulama) {
                 const cl = cleanTurkishChars((shortSubInBox + ' ' + lang.listeningShort).toUpperCase(), infoFont).toString();
                 let s_sz = 9.5 * sf;
@@ -1101,14 +1115,15 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                     s_sz = 7.5 * sf;
                     tw = infoFont ? infoFont.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
                 }
-                
                 const totalW = tw + 14 * sf;
                 const startX = ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + (midCol5W - totalW) / 2;
+                const ty = d9Oy - 2.5 * sf + (row3H / 2) - (s_sz * 0.35);
+                page.drawText(cl, { x: startX, y: ty, size: s_sz, font: infoFont, color: rgb(0, 0, 0) });
                 
-                const spX = startX;
+                const spX = startX + tw + 4 * sf;
                 const spY = d9Oy - 2.5 * sf + (row3H / 2) - 4 * sf;
-                const col = rgb(0, 0, 0); // solid black for prominence
-                
+                const col = rgb(0, 0, 0);
+
                 // Draw bold speaker box and cone
                 page.drawRectangle({ x: spX, y: spY + 2.5*sf, width: 2.5*sf, height: 3*sf, color: col });
                 for(let i = 0; i <= 6; i++) {
@@ -1119,9 +1134,6 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                 // Draw bold sound waves
                 page.drawLine({ start: { x: spX + 7.5*sf, y: spY + 2.5*sf }, end: { x: spX + 7.5*sf, y: spY + 5.5*sf }, thickness: 1.5*sf, color: col });
                 page.drawLine({ start: { x: spX + 10*sf, y: spY + 1*sf }, end: { x: spX + 10*sf, y: spY + 7*sf }, thickness: 1.5*sf, color: col });
-                
-                const ty = d9Oy - 2.5 * sf + (row3H / 2) - (s_sz * 0.35);
-                page.drawText(cl, { x: startX + 14 * sf, y: ty, size: s_sz, font: infoFont, color: rgb(0, 0, 0) });
             } else {
                 drawCenterText(shortSubInBox.toUpperCase(), ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W, d9Oy - 2.5 * sf, midCol5W, row3H, 9.5, infoFont);
             }

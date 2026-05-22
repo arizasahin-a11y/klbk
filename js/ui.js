@@ -4224,6 +4224,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 Object.values(room.seats || {}).forEach(s => {
                     if (mode === 'class' && s.class !== filterValue) return;
                     if (mode === 'room' && room.name !== filterValue) return;
+                    if (mode === 'seating' && room.name !== filterValue) return;
                     const sub = s._matchedSubject || '-';
                     if (sub === '-') return;
                     const meta = DataManager.getSanitizedSubjectMetadata(session, sub);
@@ -4356,6 +4357,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const papers = meta.papers || {};
                     let path = typeof papers === 'string' ? papers : (papers[groupLabel_s] || papers['default'] || '');
                     if (!path) continue;
+                    if (path.toLowerCase().match(/\.(mp3|wav|ogg|m4a|aac)$/)) continue;
                     let printPath = path;
                     if (printPath.match(/^[a-zA-Z]:\\/) || printPath.match(/^[a-zA-Z]:\//)) printPath = 'file:///' + printPath.replace(/\\/g, '/');
 
@@ -4392,6 +4394,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const papers = meta.papers || {};
                     let path = typeof papers === 'string' ? papers : (papers[groupLabel_s] || papers['default'] || '');
                     if (!path) continue;
+                    if (path.toLowerCase().match(/\.(mp3|wav|ogg|m4a|aac)$/)) continue;
                     let printPath = path;
                     if (printPath.match(/^[a-zA-Z]:\\/) || printPath.match(/^[a-zA-Z]:\//)) printPath = 'file:///' + printPath.replace(/\\/g, '/');
 
@@ -4485,6 +4488,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const studentsInFilter = allStudentsInSession.filter(s => {
                 if (mode === 'class') return s.class === fVal;
                 if (mode === 'room') return s.room === fVal;
+                if (mode === 'seating') return s.room === fVal;
                 return true;
             }).filter(s => {
                 const subName = s._matchedSubject || '-';
@@ -4561,6 +4565,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const currentMode = modeEl ? modeEl.value : 'class';
             if (currentMode === 'class') return cb.dataset.class === filterValue;
             if (currentMode === 'room') return cb.dataset.room === filterValue;
+            if (currentMode === 'seating') return cb.dataset.room === filterValue;
             return true;
         });
 
@@ -4949,7 +4954,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 // ─────── ŞEMA MODU ────────────────────────────────────────────
-                const seatingRooms = session.results.filter(r => !filterValue || r.name === filterValue);
+                } else if (mode === 'seating') {
+                    const seatingRooms = session.results.filter(r => !filterValue || r.name === filterValue);
                 for (let sIdx = 0; sIdx < seatingRooms.length; sIdx++) {
                     const room = seatingRooms[sIdx];
                     await new Promise(r => setTimeout(r, 5)); // Yield thread execution
@@ -5027,14 +5033,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             </body></html>`);
             win.document.close();
 
-            // Interleaved Paper Printing Trigger
-            if (forcePrintPapers && filterValue) {
-                await printPapersForGroup(filterValue);
-            }
         };
 
         if (filterValue) {
-            await startPrint(false);
+            if (forcePrintPapers) {
+                await printPapersForGroup(filterValue);
+            } else {
+                await startPrint(false);
+            }
         } else {
             await startPrint(false);
         }
@@ -6890,6 +6896,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const bytes = await window.getFileBytes(testUrl);
             if (!bytes) throw new Error("Dosya indirilemedi (Proxy hatası).");
             
+            const uint8 = new Uint8Array(bytes);
+            if (uint8[0] !== 0x25 || uint8[1] !== 0x50 || uint8[2] !== 0x44 || uint8[3] !== 0x46) {
+                throw new Error("Seçili dosya geçerli bir PDF formatında değil! Lütfen MP3, Word veya Resim dosyası yerine doğru bir PDF soru kağıdı yüklediğinizden emin olun.");
+            }
+            
             const { PDFDocument } = PDFLib;
             const pdfDoc = await PDFDocument.load(bytes);
             const firstPage = pdfDoc.getPages()[0];
@@ -6945,6 +6956,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (!input || !input.value) {
             Swal.showValidationMessage('Lütfen önce bir PDF linki girin.');
+            return;
+        }
+        
+        if (input.value.toLowerCase().match(/\.(mp3|wav|ogg|m4a|aac)$/)) {
+            Swal.showValidationMessage('Örnek Öğrenci Kağıdı özelliği sadece Soru Kağıdı (PDF) için çalışır. Lütfen seçili olan dinleme dosyası (MP3) yerine PDF girdiğinizden emin olun.');
             return;
         }
         
