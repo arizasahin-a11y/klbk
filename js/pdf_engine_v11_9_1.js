@@ -804,7 +804,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             
             // Draw bold speaker box and cone
             page.drawRectangle({ x: spX, y: spY + 2.5*sf, width: 2.5*sf, height: 3*sf, color: col });
-            for(let step = 0; step <= 3*sf; step += 0.5*sf) {
+            for(let i = 0; i <= 6; i++) {
+                const step = i * 0.5 * sf;
                 const h = 3*sf + step * (5*sf / (3*sf));
                 page.drawLine({ start: { x: spX + 2.5*sf + step, y: spY + 4*sf - h/2 }, end: { x: spX + 2.5*sf + step, y: spY + 4*sf + h/2 }, thickness: 0.6*sf, color: col });
             }
@@ -1109,7 +1110,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
                 
                 // Draw bold speaker box and cone
                 page.drawRectangle({ x: spX, y: spY + 2.5*sf, width: 2.5*sf, height: 3*sf, color: col });
-                for(let step = 0; step <= 3*sf; step += 0.5*sf) {
+                for(let i = 0; i <= 6; i++) {
+                    const step = i * 0.5 * sf;
                     const h = 3*sf + step * (5*sf / (3*sf));
                     page.drawLine({ start: { x: spX + 2.5*sf + step, y: spY + 4*sf - h/2 }, end: { x: spX + 2.5*sf + step, y: spY + 4*sf + h/2 }, thickness: 0.6*sf, color: col });
                 }
