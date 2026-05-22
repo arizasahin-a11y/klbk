@@ -4132,7 +4132,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (sub === '-') return;
                     const meta = DataManager.getSanitizedSubjectMetadata(session, sub);
                     const papers = meta.papers || {};
-                    const hasPaper = typeof papers === 'string' ? papers.trim().length > 0 : Object.values(papers).some(p => p && p.trim().length > 0);
+                    const hasPaper = typeof papers === 'string' ? papers.trim().length > 0 : Object.values(papers).some(p => typeof p === 'string' && p.trim().length > 0);
                     if (hasPaper) loaded.add(sub);
                     else missing.add(sub);
                 });
@@ -4228,7 +4228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (sub === '-') return;
                     const meta = DataManager.getSanitizedSubjectMetadata(session, sub);
                     const papers = meta.papers || {};
-                    const hasPaper = typeof papers === 'string' ? papers.trim().length > 0 : Object.values(papers).some(p => p && p.trim().length > 0);
+                    const hasPaper = typeof papers === 'string' ? papers.trim().length > 0 : Object.values(papers).some(p => typeof p === 'string' && p.trim().length > 0);
                     if (hasPaper) loaded.add(sub);
                     else missing.add(sub);
                 });
