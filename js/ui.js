@@ -4062,6 +4062,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             Swal.fire('Bilgi', 'Bu oturum için dağıtım henüz yapılmamış.', 'info');
             return;
         }
+        window.currentRenderedSession = session;
 
         // Seçili modu DOM'dan oku
         const modeEl = document.querySelector(`input[name="mode-${id}"]:checked`);
@@ -4426,7 +4427,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const { width, height } = firstPage.getSize();
                     const A4_W = 595.28, A4_H = 841.89;
                     const sf = 1 / Math.min(A4_W / width, A4_H / height);
-                    await window.renderStudentPDFHeader(mergedPdf, firstPage, studentInfo, { ...fonts, sf, metadata: meta, imageCache });
+                    await window.renderStudentPDFHeader(mergedPdf, firstPage, studentInfo, { ...fonts, sf, session: session, metadata: meta, imageCache });
                     pages.forEach(p => mergedPdf.addPage(p));
                     if (isDoubleSidedMode && pages.length % 2 !== 0) {
                         mergedPdf.addPage([A4_W, A4_H]);
@@ -5279,7 +5280,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="input-group" style="display:flex; align-items:center; gap:3px; margin-top:4px; margin-bottom:8px;">
                         <span style="font-size:0.7rem; font-weight:700; color:var(--danger); min-width:60px;"><i class="fa-solid fa-file-pdf"></i> Soru Kağıdı</span>
                         <input type="text" class="swal2-input meta-paper-pdf-input" data-sub="${sub}" style="flex:1; margin:0; height:30px; font-size:0.8rem; padding:0 6px;" value="${typeof subPapers['default'] === 'string' ? subPapers['default'] : ''}" placeholder="Soru kağıdı PDF / URL">
-                        <button type="button" class="btn btn-secondary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-pdf-input'); if(inp && inp.value) window.openSafePdf(inp.value, 'Soru Kağıdı Önizleme'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
+                        <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem; background:#6366f1; border-color:#6366f1;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-pdf-input'); if(inp && inp.value) window.openSafePdf(inp.value, 'Soru Kağıdı Önizleme'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Soru Kağıdı Test"><i class="fa-solid fa-eye"></i> Test</button>
                         <button type="button" class="btn btn-info btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
                         <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
                     </div>
