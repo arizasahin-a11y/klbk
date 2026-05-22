@@ -5077,7 +5077,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const publicUrl = await DataManager.uploadFileToSupabase(file);
                     // More robust way to find the input within the same group
                     const inputGroup = btn.closest('.input-group');
-                    const input = inputGroup ? inputGroup.querySelector('input.meta-paper-input') : null;
+                    const input = inputGroup ? inputGroup.querySelector('input.meta-paper-input, input.meta-paper-pdf-input') : null;
 
                     if (input) {
                         input.value = publicUrl;
@@ -5134,7 +5134,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.showCloudFiles = async function (btn) {
         const inputGroup = btn.closest('.input-group') || btn.parentElement;
-        const input = inputGroup ? inputGroup.querySelector('input.meta-paper-input') : null;
+        const input = inputGroup ? inputGroup.querySelector('input.meta-paper-input, input.meta-paper-pdf-input') : null;
         if (!input) {
             console.error("Target input not found for cloud selection");
             btn.innerHTML = '<i class="fa-solid fa-cloud"></i> Buluttan Seç';
