@@ -1066,7 +1066,7 @@
                                     let flaggedStudents = [];
                                     ses.results.forEach(room => {
                                         if (room.seats) {
-                                            room.seats.forEach(seat => {
+                                            Object.values(room.seats).forEach(seat => {
                                                 if (seat.student && seat.student._matchedSubject === subNameStr) {
                                                     const status = ses.studentStatuses[seat.student.no];
                                                     if (status) {
@@ -1149,7 +1149,7 @@
                                             const roomMatch = targetSes.results.find(r => r.name === d.room);
                                             if (roomMatch && roomMatch.seats) {
                                                 const statuses = targetSes.studentStatuses || {};
-                                                roomMatch.seats.forEach(seat => {
+                                                Object.values(roomMatch.seats).forEach(seat => {
                                                     if (!seat.student) return;
                                                     const std = seat.student;
                                                     studCount++;
