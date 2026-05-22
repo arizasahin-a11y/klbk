@@ -1142,7 +1142,7 @@
                                         const dutyDiffMs = dutyTargetTime - now;
                                         const dutyTimerHtml = dutyDiffMs <= 0 ? '<span style="color:var(--danger)">GÖREV VAKTİ</span>' : formatCountdown(dutyDiffMs);
 
-                                        const targetSes = _allSessions.find(s => s.id === d.id);
+                                        const targetSes = _renderSessions.find(s => s.id === d.id);
                                         let studentsHtml = '';
                                         let studCount = 0;
                                         if (targetSes && targetSes.results) {
