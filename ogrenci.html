@@ -1128,6 +1128,20 @@
         function generateDetailsHtml(item) {
             const ses = item.session;
             const myRoom = item.room;
+            
+            // Öğrenci durumu (GELMEDİ veya KOPYA) kontrolü
+            if (ses.studentStatuses && ses.studentStatuses[currentStudent.no]) {
+                const status = ses.studentStatuses[currentStudent.no];
+                if (status === 'GELMEDİ' || status === 'KOPYA') {
+                    return `
+                    <div class="glass-panel" style="padding: 2rem; text-align: center; margin-top: 10px; border: 2px solid #fecaca; background: #fef2f2; border-radius: 12px;">
+                        <i class="fa-solid fa-ban" style="font-size: 2rem; color: var(--danger); margin-bottom: 10px; display:block;"></i>
+                        <h4 style="color: var(--danger); margin:0; font-weight: 900; font-size:1.2rem;">Erişim Engellendi</h4>
+                        <p style="color: #7f1d1d; margin-top: 8px; font-weight: 600;">Bu Sınav Bilgilerini Görmeniz mümkün değildir.</p>
+                    </div>`;
+                }
+            }
+
             const mySeatId = item.seatId;
             const mySeatNum = item.seatNum;
             const myClass = currentStudent.class;
