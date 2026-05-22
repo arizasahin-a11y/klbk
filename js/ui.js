@@ -6874,7 +6874,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (_ctx.moveMode) { _ctx.moveMode = false; _ctx.moveSrc = null; clearHighlights(); }
     });
     }());
-    window.testDashboardPdf = async function(customUrl = null, customDesignId = null, customSubject = null) {
+    window.testDashboardPdf = async function(customUrl = null, customDesignId = null, customSubject = null, sessType = 'klasik') {
         const testUrl = customUrl || "https://drive.google.com/file/d/1UZRlx5JA_Qx8Lx4edyP1GkSssDBQNwAc/view?usp=sharing";
         const designId = customDesignId || 'design9';
         const subName = customSubject || 'MATEMATİK';
@@ -6915,7 +6915,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             await window.renderStudentPDFHeader(pdfDoc, firstPage, mockStudent, { 
                 ...fonts,
                 sf: sf,
-                session: { date: new Date().toLocaleDateString('tr-TR'), time: new Date().toLocaleTimeString('tr-TR') },
+                session: { date: new Date().toLocaleDateString('tr-TR'), time: new Date().toLocaleTimeString('tr-TR'), type: sessType },
                 designType: designId
             });
 
@@ -6931,7 +6931,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.testSpecificRow = function(btn) {
         const row = btn.closest('.meta-subject-row');
-        const input = row.querySelector('.meta-paper-input');
+        const inputGroup = btn.closest('.input-group');
+        let input = null;
+        if (inputGroup) {
+            input = inputGroup.querySelector('.meta-paper-pdf-input') || inputGroup.querySelector('.meta-paper-input');
+        }
+        if (!input) {
+            input = row.querySelector('.meta-paper-pdf-input') || row.querySelector('.meta-paper-input');
+        }
+        
         const select = row.querySelector('.meta-header-design-select');
         const subTitle = row.querySelector('strong').textContent;
         
@@ -6940,7 +6948,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        window.testDashboardPdf(input.value.trim(), select.value, subTitle);
+        const sessType = (window.currentEditingSession && window.currentEditingSession.type) ? window.currentEditingSession.type : 'klasik';
+        window.testDashboardPdf(input.value.trim(), select.value, subTitle, sessType);
     };
 
     window.addUygulamaFileRow = function(sub) {
