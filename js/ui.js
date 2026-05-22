@@ -4104,7 +4104,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             DataManager.addExamSession(session);
         }
 
-        const isSessionWideBatch = !filterValue && session.batchPaperPrintEnabled;
+        const isSessionWideBatch = !filterValue && session.batchPaperPrintEnabled && mode !== 'seating';
 
         if (isSessionWideBatch) {
             // 1. Get List of Groups
