@@ -1539,6 +1539,22 @@ const DataManager = {
             });
         }
 
+        // Eğer yedeklerden biri gözetmen (custom veya otomatik) yapılmışsa yedek listesinden çıkaralım
+        const assignedProctors = Object.values(result.classrooms).map(c => c.gorevli);
+        result.globalSpares = result.globalSpares.filter(spare => {
+            return !assignedProctors.includes(spare.name) && 
+                   !assignedProctors.includes(spare.name + " (İdare)");
+        });
+
+        // Aynı kişiyi birden fazla kez yedek listesinde göstermemek için benzersiz hale getirelim
+        const uniqueSparesMap = new Map();
+        result.globalSpares.forEach(spare => {
+            if (!uniqueSparesMap.has(spare.name)) {
+                uniqueSparesMap.set(spare.name, spare);
+            }
+        });
+        result.globalSpares = Array.from(uniqueSparesMap.values());
+
         return result;
     }
 };
