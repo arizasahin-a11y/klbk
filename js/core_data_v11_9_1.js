@@ -1531,6 +1531,9 @@ const DataManager = {
                         });
                     }
                 }
+                if (session.customProctors && session.customProctors[room.name]) {
+                    classroomInfo.gorevli = session.customProctors[room.name];
+                }
                 
                 result.classrooms[room.name] = classroomInfo;
             });
