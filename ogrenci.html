@@ -2128,7 +2128,8 @@
                 const diffMins = (targetTime - now) / 1000 / 60;
                 const diffEndMins = (endTime - now) / 1000 / 60;
 
-                const limit = (ses.screenViewLimit === 0) ? 999999 : ((ses.screenViewLimit === undefined) ? 8 : ses.screenViewLimit);
+                const defaultScreenLimit = DataManager.getSchoolSettings()?.defaultTimes?.defaultScreenViewLimit || 8;
+                const limit = (ses.screenViewLimit === 0) ? 999999 : ((ses.screenViewLimit === undefined) ? defaultScreenLimit : ses.screenViewLimit);
                 
                 if (Math.floor(diffMins) <= limit && diffEndMins >= -3) {
                     const roomResult = ses.results.find(r => r.name === myRoomName);

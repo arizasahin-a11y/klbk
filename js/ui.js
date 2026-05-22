@@ -138,7 +138,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             studentExamEndHideMinutes: 30,
             teacherExamRemovalMinutes: 5,
             examFilesActiveMinutes: 3,
-            defaultExamDuration: 40
+            defaultExamDuration: 40,
+            defaultScreenViewLimit: 8
         };
 
         Swal.fire({
@@ -159,6 +160,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Varsayılan Sınav Süresi (Dakika)</label>
                     <input type="number" id="sysDefDur" class="form-control" value="${defs.defaultExamDuration}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Ekran Görünümü Varsayılan Süresi (Dakika)</label>
+                    <input type="number" id="sysScreenLimit" class="form-control" value="${defs.defaultScreenViewLimit}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
                 </div>
             `,
             showCancelButton: true,
@@ -170,8 +174,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const tchHideMin = parseInt(document.getElementById('sysTchHideMin').value);
                 const fileActMin = parseInt(document.getElementById('sysFileActMin').value);
                 const defDur = parseInt(document.getElementById('sysDefDur').value);
+                const screenLimit = parseInt(document.getElementById('sysScreenLimit').value);
 
-                if (isNaN(locMin) || isNaN(studHideMin) || isNaN(tchHideMin) || isNaN(fileActMin) || isNaN(defDur)) {
+                if (isNaN(locMin) || isNaN(studHideMin) || isNaN(tchHideMin) || isNaN(fileActMin) || isNaN(defDur) || isNaN(screenLimit)) {
                     Swal.showValidationMessage('Tüm alanlara geçerli sayılar girmelisiniz');
                     return false;
                 }
@@ -183,7 +188,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         studentExamEndHideMinutes: studHideMin,
                         teacherExamRemovalMinutes: tchHideMin,
                         examFilesActiveMinutes: fileActMin,
-                        defaultExamDuration: defDur
+                        defaultExamDuration: defDur,
+                        defaultScreenViewLimit: screenLimit
                     };
                     DataManager.saveSchoolSettings(currentSchool);
                     return true;
@@ -1905,7 +1911,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         excludedStudents: [],
         selectedClassrooms: [],
         screenViewEnabled: true,
-        screenViewLimit: 8
+        screenViewLimit: DataManager.getSchoolSettings()?.defaultTimes?.defaultScreenViewLimit || 8
     };
 
     function resetWizard() {
@@ -1915,7 +1921,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             name: '', date: '', time: '', subjects: [],
             selectedClasses: [], excludedStudents: [], selectedClassrooms: [],
             screenViewEnabled: true,
-            screenViewLimit: 8
+            screenViewLimit: DataManager.getSchoolSettings()?.defaultTimes?.defaultScreenViewLimit || 8
         };
         window._wizAvailableSubjects = null;
         window._wizSeenPools = null;
@@ -5392,7 +5398,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <input type="checkbox" id="meta-screen-check" ${ses.screenViewEnabled !== false ? 'checked' : ''} style="width:16px; height:16px;">
                                     <i class="fa-solid fa-desktop" style="color:var(--info); font-size:0.9rem;"></i>
                                 </label>
-                                <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit !== undefined ? ses.screenViewLimit : 8}" min="0" max="9999" style="width:65px; height:28px; text-align:center; border:1px solid var(--gray-200); border-radius:4px; font-weight:bold; font-size:0.85rem;">
+                                <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit !== undefined ? ses.screenViewLimit : (DataManager.getSchoolSettings()?.defaultTimes?.defaultScreenViewLimit || 8)}" min="0" max="9999" style="width:65px; height:28px; text-align:center; border:1px solid var(--gray-200); border-radius:4px; font-weight:bold; font-size:0.85rem;">
                                 <span style="font-size:0.75rem; font-weight:600; color:var(--gray-500);">dk</span>
                                 <div style="width:1px; height:16px; background:var(--gray-300); margin:0 4px;"></div>
                                 <label style="display:flex; align-items:center; gap:5px; cursor:pointer; margin:0;" title="Akıllı Tahta Yansıtma Modunda Zaman Sayacını Göster">
@@ -5505,7 +5511,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     screenViewTimerEnabled: document.getElementById('meta-screen-timer-check').checked,
                     screenViewLimit: (function() {
                         const val = parseInt(document.getElementById('meta-screen-limit').value);
-                        return isNaN(val) ? 8 : val;
+                        return isNaN(val) ? (DataManager.getSchoolSettings()?.defaultTimes?.defaultScreenViewLimit || 8) : val;
                     })()
                 };
             }
