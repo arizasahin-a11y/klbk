@@ -4057,6 +4057,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ─── Oturumu Yazdır ────────────────────────────────────────────────────────
     window.printSessionDistribution = async function (id, filterValue = null, forcePrintPapers = false) {
+        let selectedExams = null;
+        let selectedGroupByLevel = false;
         const session = DataManager.getExamSessions().find(s => s.id === id);
         if (!session || !session.results) {
             Swal.fire('Bilgi', 'Bu oturum için dağıtım henüz yapılmamış.', 'info');
