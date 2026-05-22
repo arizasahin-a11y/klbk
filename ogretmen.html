@@ -2478,8 +2478,11 @@
         };
 
         const fetchWithRetry = async (target, retryCount = 0) => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
             try {
-                const res = await fetch(target, { mode: 'cors', cache: 'no-store' });
+                const res = await fetch(target, { mode: 'cors', cache: 'no-store', signal: controller.signal });
+                clearTimeout(timeoutId);
                 if (res.ok) {
                     const ct = res.headers.get('content-type') || '';
                     if (ct.includes('text/html')) {
@@ -2491,7 +2494,10 @@
                     return await res.arrayBuffer();
                 }
                 throw new Error("HTTP_" + res.status);
-            } catch (e) { throw e; }
+            } catch (e) {
+                clearTimeout(timeoutId);
+                throw e;
+            }
         };
 
         try {
@@ -2500,7 +2506,10 @@
                 try {
                     console.log("Using Custom GAS Proxy for ID:", driveId);
                     const gasUrl = "https://script.google.com/macros/s/AKfycbzzq1WBvSNmM5yGVH49vt2EOkTA83sFFSiysuqg4x54L3Cn9DEOmixlHW8fd_bLJ_du/exec" + "?id=" + driveId;
-                    const res = await fetch(gasUrl);
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000);
+                    const res = await fetch(gasUrl, { signal: controller.signal });
+                    clearTimeout(timeoutId);
                     const b64 = await res.text();
                     if (b64 && !b64.startsWith("Hata") && b64.length > 100) {
                         const buf = decodeB64(b64);
@@ -2533,8 +2542,7 @@
             console.warn("Trying Proxy Pool for external resource:", fetchUrl);
             const proxyList = [
                 (u) => "https://corsproxy.io/?" + encodeURIComponent(u),
-                (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
-                (u) => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u)
+                (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u)
             ];
 
             for (let i = 0; i < proxyList.length; i++) {

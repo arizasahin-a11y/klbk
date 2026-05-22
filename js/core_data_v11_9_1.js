@@ -1093,7 +1093,7 @@ const DataManager = {
 
                 const fetchWithRetry = async (targetUrl, useTimeout = true) => {
                     const controller = new AbortController();
-                    const timeoutId = useTimeout ? setTimeout(() => controller.abort(), 3000) : null;
+                    const timeoutId = useTimeout ? setTimeout(() => controller.abort(), 10000) : null;
                     
                     try {
                         const response = await fetch(targetUrl, { signal: controller.signal });
@@ -1130,7 +1130,7 @@ const DataManager = {
                         new Promise(async (resolve, reject) => {
                             try {
                                 const controller = new AbortController();
-                                const timeoutId = setTimeout(() => controller.abort(), 4000);
+                                const timeoutId = setTimeout(() => controller.abort(), 15000);
                                 const res = await fetch(proxyUrl, { signal: controller.signal });
                                 clearTimeout(timeoutId);
                                 
@@ -1172,9 +1172,8 @@ const DataManager = {
                 const runCorsProxies = async () => {
                     if (!url.startsWith('http')) return null;
                     const proxies = [
-                        "https://api.allorigins.win/raw?url=",
                         "https://corsproxy.io/?",
-                        "https://api.codetabs.com/v1/proxy?quest="
+                        "https://api.allorigins.win/raw?url="
                     ];
                     const corsPromises = [];
                     for (const proxy of proxies) {
