@@ -137,6 +137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             studentLocationMinutes: 20,
             studentExamEndHideMinutes: 30,
             teacherExamRemovalMinutes: 5,
+            branchTeacherExamRemovalMinutes: 120,
             examFilesActiveMinutes: 3,
             defaultExamDuration: 40,
             defaultScreenViewLimit: 8
@@ -152,8 +153,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Öğrenciden Sınavı Gizleme Süresi (Sınav bitiminden kaç dakika sonra)</label>
                     <input type="number" id="sysStudHideMin" class="form-control" value="${defs.studentExamEndHideMinutes}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
 
-                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Öğretmen Listesinden Sınavı Kaldırma Süresi (Sınav bitiminden kaç dakika sonra)</label>
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Gözetmen Listesinden Sınavı Kaldırma Süresi (Sınav bitiminden kaç dakika sonra)</label>
                     <input type="number" id="sysTchHideMin" class="form-control" value="${defs.teacherExamRemovalMinutes}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Branş Öğretmeninden Sınavı Kaldırma Süresi (Sınav bitiminden kaç dakika sonra)</label>
+                    <input type="number" id="sysBranchTchHideMin" class="form-control" value="${defs.branchTeacherExamRemovalMinutes !== undefined ? defs.branchTeacherExamRemovalMinutes : 120}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
 
                     <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Uygulama Dosyaları İndirme Gecikmesi (Sınav başladıktan kaç dakika sonra)</label>
                     <input type="number" id="sysFileActMin" class="form-control" value="${defs.examFilesActiveMinutes}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
@@ -172,11 +176,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const locMin = parseInt(document.getElementById('sysLocMin').value);
                 const studHideMin = parseInt(document.getElementById('sysStudHideMin').value);
                 const tchHideMin = parseInt(document.getElementById('sysTchHideMin').value);
+                const branchTchHideMin = parseInt(document.getElementById('sysBranchTchHideMin').value);
                 const fileActMin = parseInt(document.getElementById('sysFileActMin').value);
                 const defDur = parseInt(document.getElementById('sysDefDur').value);
                 const screenLimit = parseInt(document.getElementById('sysScreenLimit').value);
 
-                if (isNaN(locMin) || isNaN(studHideMin) || isNaN(tchHideMin) || isNaN(fileActMin) || isNaN(defDur) || isNaN(screenLimit)) {
+                if (isNaN(locMin) || isNaN(studHideMin) || isNaN(tchHideMin) || isNaN(branchTchHideMin) || isNaN(fileActMin) || isNaN(defDur) || isNaN(screenLimit)) {
                     Swal.showValidationMessage('Tüm alanlara geçerli sayılar girmelisiniz');
                     return false;
                 }
@@ -187,6 +192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         studentLocationMinutes: locMin,
                         studentExamEndHideMinutes: studHideMin,
                         teacherExamRemovalMinutes: tchHideMin,
+                        branchTeacherExamRemovalMinutes: branchTchHideMin,
                         examFilesActiveMinutes: fileActMin,
                         defaultExamDuration: defDur,
                         defaultScreenViewLimit: screenLimit

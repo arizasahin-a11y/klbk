@@ -54,6 +54,7 @@ const initialState = {
             studentLocationMinutes: 20,
             studentExamEndHideMinutes: 30,
             teacherExamRemovalMinutes: 5,
+            branchTeacherExamRemovalMinutes: 120,
             examFilesActiveMinutes: 3,
             defaultExamDuration: 40,
             defaultScreenViewLimit: 8
