@@ -4077,7 +4077,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 html: `<div style="text-align: left; font-size: 10.5pt; color: #1e293b; line-height: 1.5;">
                         Tüm <b>${modeLabelsMap[mode]}</b> listeleri yazdırılacaktır.<br>
                         Onaylıyor musunuz?<br><br>
-                        <div style="padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <div style="padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; display: ${(session.type !== 'uygulama' || mode === 'class') ? 'block' : 'none'};">
                             <label style="display: flex; align-items: center; gap:10px; cursor: pointer; font-weight: 700; color:var(--primary);">
                                 <input type="checkbox" id="meta-batch-paper-print" style="width: 20px; height: 20px;">
                                 <i class="fa-solid fa-file-pdf" style="font-size:1.2rem; color:var(--secondary);"></i> Soru Kağıdı Yazdır (Toplu)
@@ -5837,7 +5837,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             `<span style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca; font-size:0.75rem; font-weight:800; padding:2px 8px; border-radius:12px; margin-left:10px;">Görevli: ${window._currentExamTeachersData.classrooms[room.name].gorevli}</span>` : ''}
                     </div>
                     <div style="display:flex; align-items:center; gap:15px;">
-                        ${allHavePdf ? `<label style="display:flex; align-items:center; gap:5px; margin:0; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--primary);" onclick="event.stopPropagation();">
+                        ${(allHavePdf && session.type !== 'uygulama') ? `<label style="display:flex; align-items:center; gap:5px; margin:0; cursor:pointer; font-size:0.85rem; font-weight:700; color:var(--primary);" onclick="event.stopPropagation();">
                             <input type="checkbox" class="room-paper-check" data-room="${room.name}" style="width:16px; height:16px;"> Soru Kağıdı
                         </label>` : ''}
                         <i class="fa-solid fa-print" style="color:var(--gray-400); cursor:pointer;" title="Bu Salonu Yazdır" onclick="event.stopPropagation(); window.printSessionDistribution('${session.id}', '${room.name}')"></i>
