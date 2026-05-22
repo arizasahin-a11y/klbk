@@ -614,17 +614,17 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         if (isEnglish) {
             if (translatedSubject.includes('İNGİLİZCE')) translatedSubject = translatedSubject.replace(/İNGİLİZCE/g, 'ENGLISH');
             else if (translatedSubject.includes('INGILIZCE')) translatedSubject = translatedSubject.replace(/INGILIZCE/g, 'ENGLISH');
-            return { year: 'ACADEMIC YEAR', term: 'TERM', class: 'CLASS', no: 'NO', name: 'NAME SURNAME', room: 'ROOM', exam: 'EXAM', seat: 'SEAT', score: 'SCORE', written: 'WRITTEN EXAM', listening: 'LISTENING EXAM', subject: translatedSubject };
+            return { year: 'ACADEMIC YEAR', term: 'TERM', class: 'CLASS', no: 'NO', name: 'NAME SURNAME', room: 'ROOM', exam: 'EXAM', seat: 'SEAT', score: 'SCORE', written: 'WRITTEN EXAM', listening: 'LISTENING EXAM', listeningShort: 'LISTENING', subject: translatedSubject };
         }
         if (isGerman) {
             translatedSubject = translatedSubject.replace(/ALMANCA/g, 'DEUTSCH');
-            return { year: 'SCHULJAHR', term: 'HALBJAHR', class: 'KLASSE', no: 'NR', name: 'NAME VORNAME', room: 'RAUM', exam: 'PRÜFUNG', seat: 'PLATZ', score: 'PUNKTE', written: 'SCHRIFTLICHE PRÜFUNG', listening: 'HÖRPRÜFUNG', subject: translatedSubject };
+            return { year: 'SCHULJAHR', term: 'HALBJAHR', class: 'KLASSE', no: 'NR', name: 'NAME VORNAME', room: 'RAUM', exam: 'PRÜFUNG', seat: 'PLATZ', score: 'PUNKTE', written: 'SCHRIFTLICHE PRÜFUNG', listening: 'HÖRPRÜFUNG', listeningShort: 'HÖREN', subject: translatedSubject };
         }
         if (isFrench) {
             translatedSubject = translatedSubject.replace(/FRANSIZCA/g, 'FRANÇAIS');
-            return { year: 'ANNÉE SCOLAIRE', term: 'SEMESTRE', class: 'CLASSE', no: 'N°', name: 'NOM PRÉNOM', room: 'SALLE', exam: 'EXAMEN', seat: 'PLACE', score: 'NOTE', written: 'EXAMEN ÉCRIT', listening: 'ÉPREUVE D\'ÉCOUTE', subject: translatedSubject };
+            return { year: 'ANNÉE SCOLAIRE', term: 'SEMESTRE', class: 'CLASSE', no: 'N°', name: 'NOM PRÉNOM', room: 'SALLE', exam: 'EXAMEN', seat: 'PLACE', score: 'NOTE', written: 'EXAMEN ÉCRIT', listening: 'ÉPREUVE D\'ÉCOUTE', listeningShort: 'ÉCOUTE', subject: translatedSubject };
         }
-        return { year: 'ÖĞRETİM YILI', term: 'DÖNEM', class: 'SINIFI', no: 'NO', name: 'ADI SOYADI', room: 'DERSLİK', exam: 'SINAV', seat: 'YER', score: 'PUAN', written: 'YAZILI SINAVI', listening: 'DİNLEME SINAVI', subject: translatedSubject };
+        return { year: 'ÖĞRETİM YILI', term: 'DÖNEM', class: 'SINIFI', no: 'NO', name: 'ADI SOYADI', room: 'DERSLİK', exam: 'SINAV', seat: 'YER', score: 'PUAN', written: 'YAZILI SINAVI', listening: 'DİNLEME SINAVI', listeningShort: 'DİNLEME', subject: translatedSubject };
     };
 
 
@@ -787,28 +787,33 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const shortSubInBox = window.shortenSubject ? window.shortenSubject(info?.subject || '', 15) : (info?.subject || '');
         
         if (isUygulama) {
-            const cl = cleanTurkishChars(shortSubInBox.toUpperCase(), infoFont).toString();
-            const s_sz = 9.5 * sf;
-            const tw = infoFont ? infoFont.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
+            const cl = cleanTurkishChars((shortSubInBox + ' ' + lang.listeningShort).toUpperCase(), infoFont).toString();
+            let s_sz = 9.5 * sf;
+            let tw = infoFont ? infoFont.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
+            if (tw > b5 - 18 * sf) {
+                s_sz = 7.5 * sf;
+                tw = infoFont ? infoFont.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
+            }
             
-            const totalW = tw + 13 * sf; // text width + icon + gap
+            const totalW = tw + 14 * sf; // text width + icon + gap
             const startX = bx + bL + b2 + b3 + b4 + (b5 - totalW) / 2;
             
             const spX = startX;
             const spY = by - 2.5 * sf + (row3H / 2) - 4 * sf;
-            const col = rgb(0.2, 0.2, 0.2); // dark gray
+            const col = rgb(0, 0, 0); // solid black for prominence
             
-            // Draw speaker box and cone
+            // Draw bold speaker box and cone
             page.drawRectangle({ x: spX, y: spY + 2.5*sf, width: 2.5*sf, height: 3*sf, color: col });
-            page.drawLine({ start: { x: spX + 2*sf, y: spY + 2.5*sf }, end: { x: spX + 5*sf, y: spY }, thickness: 1*sf, color: col });
-            page.drawLine({ start: { x: spX + 2*sf, y: spY + 5.5*sf }, end: { x: spX + 5*sf, y: spY + 8*sf }, thickness: 1*sf, color: col });
-            page.drawLine({ start: { x: spX + 5*sf, y: spY }, end: { x: spX + 5*sf, y: spY + 8*sf }, thickness: 1*sf, color: col });
-            // Draw sound waves
-            page.drawLine({ start: { x: spX + 7*sf, y: spY + 3*sf }, end: { x: spX + 7*sf, y: spY + 5*sf }, thickness: 1*sf, color: col });
-            page.drawLine({ start: { x: spX + 9*sf, y: spY + 1.5*sf }, end: { x: spX + 9*sf, y: spY + 6.5*sf }, thickness: 1*sf, color: col });
+            for(let step = 0; step <= 3*sf; step += 0.5*sf) {
+                const h = 3*sf + step * (5*sf / (3*sf));
+                page.drawLine({ start: { x: spX + 2.5*sf + step, y: spY + 4*sf - h/2 }, end: { x: spX + 2.5*sf + step, y: spY + 4*sf + h/2 }, thickness: 0.6*sf, color: col });
+            }
+            // Draw bold sound waves
+            page.drawLine({ start: { x: spX + 7.5*sf, y: spY + 2.5*sf }, end: { x: spX + 7.5*sf, y: spY + 5.5*sf }, thickness: 1.5*sf, color: col });
+            page.drawLine({ start: { x: spX + 10*sf, y: spY + 1*sf }, end: { x: spX + 10*sf, y: spY + 7*sf }, thickness: 1.5*sf, color: col });
             
             const ty = by - 2.5 * sf + (row3H / 2) - (s_sz * 0.35);
-            page.drawText(cl, { x: startX + 13 * sf, y: ty, size: s_sz, font: infoFont, color: rgb(0, 0, 0) });
+            page.drawText(cl, { x: startX + 14 * sf, y: ty, size: s_sz, font: infoFont, color: rgb(0, 0, 0) });
         } else {
             drawCenterText(shortSubInBox.toUpperCase(), bx + bL + b2 + b3 + b4, by - 2.5 * sf, b5, row3H, 9.5, infoFont);
         }
@@ -1087,28 +1092,33 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
             page.drawText(lang.exam, { x: ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + 2 * sf, y: d9Oy + row3H - 6.5 * sf, size: 5.5 * sf, font: infoFont, color: rgb(0.4, 0.4, 0.4) });
             const shortSubInBox = window.shortenSubject ? window.shortenSubject(info?.subject || '', 15) : (info?.subject || '');
             if (isUygulama) {
-                const cl = cleanTurkishChars(shortSubInBox.toUpperCase(), infoFont).toString();
-                const s_sz = 9.5 * sf;
-                const tw = infoFont ? infoFont.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
+                const cl = cleanTurkishChars((shortSubInBox + ' ' + lang.listeningShort).toUpperCase(), infoFont).toString();
+                let s_sz = 9.5 * sf;
+                let tw = infoFont ? infoFont.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
+                if (tw > midCol5W - 18 * sf) {
+                    s_sz = 7.5 * sf;
+                    tw = infoFont ? infoFont.widthOfTextAtSize(cl, s_sz) : cl.length * (s_sz * 0.6);
+                }
                 
-                const totalW = tw + 13 * sf;
+                const totalW = tw + 14 * sf;
                 const startX = ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W + (midCol5W - totalW) / 2;
                 
-                const spX = startX + tw + 3 * sf;
+                const spX = startX;
                 const spY = d9Oy - 2.5 * sf + (row3H / 2) - 4 * sf;
+                const col = rgb(0, 0, 0); // solid black for prominence
                 
-                page.drawText(cl, { x: startX, y: d9Oy - 2.5 * sf + (row3H - s_sz) / 2 + 1 * sf, size: s_sz, font: infoFont, color: rgb(0, 0, 0) });
+                // Draw bold speaker box and cone
+                page.drawRectangle({ x: spX, y: spY + 2.5*sf, width: 2.5*sf, height: 3*sf, color: col });
+                for(let step = 0; step <= 3*sf; step += 0.5*sf) {
+                    const h = 3*sf + step * (5*sf / (3*sf));
+                    page.drawLine({ start: { x: spX + 2.5*sf + step, y: spY + 4*sf - h/2 }, end: { x: spX + 2.5*sf + step, y: spY + 4*sf + h/2 }, thickness: 0.6*sf, color: col });
+                }
+                // Draw bold sound waves
+                page.drawLine({ start: { x: spX + 7.5*sf, y: spY + 2.5*sf }, end: { x: spX + 7.5*sf, y: spY + 5.5*sf }, thickness: 1.5*sf, color: col });
+                page.drawLine({ start: { x: spX + 10*sf, y: spY + 1*sf }, end: { x: spX + 10*sf, y: spY + 7*sf }, thickness: 1.5*sf, color: col });
                 
-                // Kulaklik/Hoparlor sembolu (Ders isminin saginda)
-                page.drawRectangle({ x: spX + 2 * sf, y: spY + 2 * sf, width: 3 * sf, height: 4 * sf, color: rgb(0.2, 0.2, 0.2) });
-                page.drawLine({ start: { x: spX + 5 * sf, y: spY + 2 * sf }, end: { x: spX + 8 * sf, y: spY }, thickness: 1 * sf, color: rgb(0.2, 0.2, 0.2) });
-                page.drawLine({ start: { x: spX + 5 * sf, y: spY + 6 * sf }, end: { x: spX + 8 * sf, y: spY + 8 * sf }, thickness: 1 * sf, color: rgb(0.2, 0.2, 0.2) });
-                page.drawLine({ start: { x: spX + 8 * sf, y: spY }, end: { x: spX + 8 * sf, y: spY + 8 * sf }, thickness: 1 * sf, color: rgb(0.2, 0.2, 0.2) });
-                page.drawCircle({ x: spX + 9 * sf, y: spY + 4 * sf, size: 2.5 * sf, color: rgb(1, 1, 1), borderColor: rgb(0.2, 0.2, 0.2), borderWidth: 0.5 * sf });
-                page.drawCircle({ x: spX + 9 * sf, y: spY + 4 * sf, size: 4 * sf, color: rgb(1, 1, 1), borderColor: rgb(0.2, 0.2, 0.2), borderWidth: 0.5 * sf });
-                page.drawRectangle({ x: spX + 5 * sf, y: spY - 1 * sf, width: 4 * sf, height: 10 * sf, color: rgb(1, 1, 1) });
-                page.drawLine({ start: { x: spX + 9 * sf, y: spY + 1.5 * sf }, end: { x: spX + 9 * sf, y: spY + 6.5 * sf }, thickness: 0.5 * sf, color: rgb(0.2, 0.2, 0.2) });
-                page.drawLine({ start: { x: spX + 10.5 * sf, y: spY }, end: { x: spX + 10.5 * sf, y: spY + 8 * sf }, thickness: 0.5 * sf, color: rgb(0.2, 0.2, 0.2) });
+                const ty = d9Oy - 2.5 * sf + (row3H / 2) - (s_sz * 0.35);
+                page.drawText(cl, { x: startX + 14 * sf, y: ty, size: s_sz, font: infoFont, color: rgb(0, 0, 0) });
             } else {
                 drawCenterText(shortSubInBox.toUpperCase(), ox + d9LeftW + d9MidCol2W + d9MidCol3W + midCol4W, d9Oy - 2.5 * sf, midCol5W, row3H, 9.5, infoFont);
             }
