@@ -4443,20 +4443,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const mergedBytes = await mergedPdf.save();
                 const blob = new Blob([mergedBytes], { type: 'application/pdf' });
                 const blobUrl = URL.createObjectURL(blob);
-                await Swal.fire({
-                    title: 'Kağıtlar Hazır',
-                    html: `PDF dosyası başarıyla oluşturuldu.<br><br>
-                           <div style="background:var(--primary); color:white; padding:12px; border-radius:8px; font-weight:bold; font-size:1.1rem; margin-top:10px;">
-                           <i class="fa-solid fa-print"></i> Lütfen Yazıcınızı <br><u style="font-size:1.3rem;">${isDoubleSidedMode ? 'Arkalı Önlü' : 'Tek Yüze'}</u><br>Yazdıracak Şekilde Ayarlayın.
-                           </div>`,
-                    icon: 'success',
-                    confirmButtonText: '<i class="fa-solid fa-print"></i> Yazdır',
-                    confirmButtonColor: '#4f46e5',
-                    allowOutsideClick: false,
-                    preConfirm: () => {
-                        window.finalizeAndPrint(blobUrl);
-                        return true;
-                    }
+                await new Promise((resolve) => {
+                    Swal.fire({
+                        title: 'Kağıtlar Hazır',
+                        html: `PDF dosyası başarıyla oluşturuldu.<br><br>
+                               <button id="direct-print-btn" style="background:#4f46e5; color:white; padding:12px; border-radius:8px; font-weight:bold; font-size:1.1rem; margin-top:10px; width:100%; border:none; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:5px;">
+                                   <span><i class="fa-solid fa-print"></i> Yazdır</span>
+                                   <span style="font-size:0.85rem; font-weight:normal;">Lütfen Yazıcınızı <u style="font-weight:bold;">${isDoubleSidedMode ? 'Arkalı Önlü' : 'Tek Yüze'}</u> Yazdıracak Şekilde Ayarlayın.</span>
+                               </button>`,
+                        icon: 'success',
+                        showConfirmButton: false,
+                        showCancelButton: true,
+                        cancelButtonText: 'Kapat',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            const btn = document.getElementById('direct-print-btn');
+                            if (btn) {
+                                btn.addEventListener('click', () => {
+                                    window.finalizeAndPrint(blobUrl);
+                                    Swal.close();
+                                });
+                            }
+                        }
+                    }).then(() => resolve());
                 });
 
 
