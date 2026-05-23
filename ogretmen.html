@@ -17,9 +17,9 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
     <!-- PDF Modification Libraries -->
-    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
-    <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js" defer></script>
+    <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
     <!-- Ortak PDF Başlık render fonksiyonu (dashboard ile aynı tema desteği) -->
     <script src="js/pdf_engine_v11_9_1.js"></script>
 
@@ -403,7 +403,6 @@
             if (numA !== numB) return numA - numB;
             return a.localeCompare(b, 'tr');
         };
-
         async function syncTime() {
             const statusEl = document.getElementById('timeSyncStatus');
             const timeApis = [
@@ -412,67 +411,73 @@
                 'https://worldclockapi.com/api/json/est/now'
             ];
 
-            let syncSuccess = false;
-            for (const apiUrl of timeApis) {
-                if (syncSuccess) break;
-                try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 2500);
-                    const response = await fetch(apiUrl, { signal: controller.signal });
-                    clearTimeout(timeoutId);
-                    const data = await response.json();
-                    
-                    let serverTime;
-                    if (data.datetime) serverTime = new Date(data.datetime).getTime();
-                    else if (data.utc_datetime) serverTime = new Date(data.utc_datetime).getTime();
-                    else if (data.currentDateTime) serverTime = new Date(data.currentDateTime).getTime();
-                    
-                    if (serverTime) {
-                        trustedBaseTime = serverTime;
-                        performanceAtSync = performance.now();
-                        statusEl.innerHTML = '<i class="fa-solid fa-cloud-check"></i> İnternet saati aktif';
-                        statusEl.style.color = 'var(--secondary)';
-                        syncSuccess = true;
-                    }
-                } catch (e) { /* Sessizce bir sonrakini dene */ }
-            }
+            // Set local fallback base time immediately so timers can start instantly!
+            trustedBaseTime = Date.now();
+            performanceAtSync = performance.now();
 
-            if (!syncSuccess) {
-                statusEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Cihaz saati kullanılıyor';
-                statusEl.style.color = 'var(--danger)';
-                trustedBaseTime = Date.now();
-                performanceAtSync = performance.now();
-            }
-
+            // Run initial load (Cloud Data) instantly!
             try {
-                statusEl.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Veriler İndiriliyor...';
-                statusEl.style.color = 'var(--primary)';
+                if (statusEl) {
+                    statusEl.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Veriler Yükleniyor...';
+                    statusEl.style.color = 'var(--primary)';
+                }
                 await DataManager.initCloud();
                 lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
             } catch (err) {
-                console.error("Cloud init failed:", err);
-            } finally {
-                statusEl.classList.add('hidden');
-                // Ensure body is visible after initial sync/check
-                document.body.style.visibility = 'visible';
-                
-                // Load teachers database asynchronously without blocking UI rendering
-                if (window.DataManager && window.DataManager.getSchoolTeachers) {
-                    window.DataManager.getSchoolTeachers()
-                        .then(db => {
-                            window.globalTeachersDb = db;
-                            try { renderExams(); } catch (e) { console.error("Render exams failed after loading teachers:", e); }
-                        })
-                        .catch(err => console.error("Failed to load teachers database in background:", err));
-                }
-
-                try { renderExams(); } catch (e) { console.error("Initial renderExams failed:", e); }
-                try { if (typeof renderPublishedFiles === 'function') renderPublishedFiles(); } catch (e) { console.error("Initial renderPublishedFiles failed:", e); }
-                
-                if (timerInterval) clearInterval(timerInterval);
-                timerInterval = setInterval(updateAllTimers, 1000);
-                setInterval(backgroundSync, 2000); // Her 2 saniyede bir eşitle (Anlık yansıma için)
+                console.error("Initial Cloud load failed:", err);
             }
+
+            // Render UI instantly!
+            if (statusEl) statusEl.classList.add('hidden');
+            document.body.style.visibility = 'visible';
+
+            if (window.DataManager && window.DataManager.getSchoolTeachers) {
+                window.DataManager.getSchoolTeachers()
+                    .then(db => {
+                        window.globalTeachersDb = db;
+                        try { renderExams(); } catch (e) { console.error(e); }
+                    })
+                    .catch(err => console.error(err));
+            }
+
+            try { renderExams(); } catch (e) { console.error("Initial renderExams failed:", e); }
+            try { if (typeof renderPublishedFiles === 'function') renderPublishedFiles(); } catch (e) { console.error(e); }
+            
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateAllTimers, 1000);
+            
+            // Set sync interval
+            if (!window.hasSyncInterval) {
+                window.hasSyncInterval = true;
+                setInterval(backgroundSync, 2000);
+            }
+
+            // Fetch high-accuracy internet clock asynchronously in the background!
+            (async () => {
+                let syncSuccess = false;
+                for (const apiUrl of timeApis) {
+                    if (syncSuccess) break;
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 2000);
+                        const response = await fetch(apiUrl, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        const data = await response.json();
+                        
+                        let serverTime;
+                        if (data.datetime) serverTime = new Date(data.datetime).getTime();
+                        else if (data.utc_datetime) serverTime = new Date(data.utc_datetime).getTime();
+                        else if (data.currentDateTime) serverTime = new Date(data.currentDateTime).getTime();
+                        
+                        if (serverTime) {
+                            trustedBaseTime = serverTime;
+                            performanceAtSync = performance.now();
+                            console.log("Internet clock successfully synced in background!");
+                            syncSuccess = true;
+                        }
+                    } catch (e) { /* silent fail, try next API */ }
+                }
+            })();
         }
 
         let lastLocalChangeTime = 0;
@@ -1436,8 +1441,8 @@
                                                     if (!std || !std.no) return;
                                                     studCount++;
                                                     const status = statuses[std.no] || '';
-                                                    const statusColor = status === 'GELMEDİ' ? 'var(--danger)' : (status === 'KOPYA' ? '#7f1d1d' : 'var(--gray-500)');
-                                                    const statusText = status || '<i class="fa-solid fa-circle-info" title="Durum İşaretle" style="font-size:0.9rem;"></i>';
+                                                    const statusColor = status === 'GELMEDİ' ? 'var(--danger)' : (status === 'KOPYA' ? '#7f1d1d' : 'var(--danger)');
+                                                    const statusText = status || '<i class="fa-solid fa-circle-info" title="Durum İşaretle" style="font-size:1.3rem; vertical-align: middle;"></i>';
                                                     studentsHtml += `
                                                         <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--gray-100);">
                                                             <div style="font-size:0.85rem; font-weight:700; color:var(--dark);">
