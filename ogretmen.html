@@ -716,14 +716,14 @@
                 }
 
                 DataManager.addExamSession(session);
+                renderExams();
                 Swal.fire({
-                    title: 'Kaydedildi',
-                    text: 'Öğrenci durumu başarıyla güncellendi.',
+                    toast: true,
+                    position: 'top-end',
                     icon: 'success',
-                    timer: 1500,
-                    showConfirmButton: false
-                }).then(() => {
-                    renderExams();
+                    title: 'Durum güncellendi',
+                    showConfirmButton: false,
+                    timer: 800
                 });
             });
         };
