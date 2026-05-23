@@ -887,7 +887,12 @@
             <body>
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <h2>Oturum Bilgilendirme Raporu</h2>
-                    <button onclick="window.print()" style="padding: 8px 15px; background: #4f46e5; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px;">Yazdır</button>
+                    <button onclick="window.print()" style="display: flex; align-items: center; gap: 8px; padding: 8px 15px; background: #4f46e5; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
+                            <path fill-rule="evenodd" d="M7.875 1.5C6.839 1.5 6 2.34 6 3.375v2.99c-.536.095-1.063.222-1.58.378H4.375A2.375 2.375 0 002 9.118v6.75A2.375 2.375 0 004.375 18.24h1.125V21c0 1.036.84 1.875 1.875 1.875h9.75c1.035 0 1.875-.84 1.875-1.875v-2.76h1.125a2.375 2.375 0 002.375-2.375V9.119a2.375 2.375 0 00-2.375-2.375h-.045a48.163 48.163 0 00-1.58-.378V3.375c0-1.036-.84-1.875-1.875-1.875H7.875zM7.5 3.375c0-.207.168-.375.375-.375h8.25c.207 0 .375.168.375.375v3.023A46.732 46.732 0 017.5 6.398V3.375zm-.375 14.865h9.75c.207 0 .375.168.375.375v3c0 .207-.168.375-.375.375H7.875c-.207 0-.375-.168-.375-.375v-3c0-.207.168-.375.375-.375z" clip-rule="evenodd" />
+                        </svg>
+                        Yazdır
+                    </button>
                 </div>
                 <h4><strong>Sınav:</strong> ${ses.name} | <strong>Ders:</strong> ${subName} | <strong>Tarih:</strong> ${ses.date} ${ses.time}</h4>
                 <table>
@@ -907,11 +912,6 @@
                 <div style="margin-top: 40px; text-align: right; font-size: 12px; color: #888;">
                     Rapor Oluşturulma Tarihi: ${new Date().toLocaleString('tr-TR')}
                 </div>
-                <script>
-                    window.onload = function() {
-                        setTimeout(function() { window.print(); }, 300);
-                    }
-                <\/script>
             </body>
             </html>`;
 
@@ -981,7 +981,12 @@
             <body>
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <h2>Genel Oturum Bilgilendirme Raporu</h2>
-                    <button onclick="window.print()" style="padding: 8px 15px; background: #4f46e5; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px;">Yazdır</button>
+                    <button onclick="window.print()" style="display: flex; align-items: center; gap: 8px; padding: 8px 15px; background: #4f46e5; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
+                            <path fill-rule="evenodd" d="M7.875 1.5C6.839 1.5 6 2.34 6 3.375v2.99c-.536.095-1.063.222-1.58.378H4.375A2.375 2.375 0 002 9.118v6.75A2.375 2.375 0 004.375 18.24h1.125V21c0 1.036.84 1.875 1.875 1.875h9.75c1.035 0 1.875-.84 1.875-1.875v-2.76h1.125a2.375 2.375 0 002.375-2.375V9.119a2.375 2.375 0 00-2.375-2.375h-.045a48.163 48.163 0 00-1.58-.378V3.375c0-1.036-.84-1.875-1.875-1.875H7.875zM7.5 3.375c0-.207.168-.375.375-.375h8.25c.207 0 .375.168.375.375v3.023A46.732 46.732 0 017.5 6.398V3.375zm-.375 14.865h9.75c.207 0 .375.168.375.375v3c0 .207-.168.375-.375.375H7.875c-.207 0-.375-.168-.375-.375v-3c0-.207.168-.375.375-.375z" clip-rule="evenodd" />
+                        </svg>
+                        Yazdır
+                    </button>
                 </div>
                 <h4><strong>Sınav:</strong> ${ses.name} | <strong>Tarih:</strong> ${ses.date} ${ses.time}</h4>
                 <table>
@@ -1002,11 +1007,6 @@
                 <div style="margin-top: 40px; text-align: right; font-size: 12px; color: #888;">
                     Rapor Oluşturulma Tarihi: ${new Date().toLocaleString('tr-TR')}
                 </div>
-                <script>
-                    window.onload = function() {
-                        setTimeout(function() { window.print(); }, 300);
-                    }
-                <\/script>
             </body>
             </html>`;
 
