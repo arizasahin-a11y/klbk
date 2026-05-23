@@ -1437,7 +1437,7 @@
                                                     studCount++;
                                                     const status = statuses[std.no] || '';
                                                     const statusColor = status === 'GELMEDİ' ? 'var(--danger)' : (status === 'KOPYA' ? '#7f1d1d' : 'var(--gray-500)');
-                                                    const statusText = status || 'Durum İşaretle';
+                                                    const statusText = status || '<i class="fa-solid fa-circle-info" title="Durum İşaretle" style="font-size:0.9rem;"></i>';
                                                     studentsHtml += `
                                                         <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--gray-100);">
                                                             <div style="font-size:0.85rem; font-weight:700; color:var(--dark);">
