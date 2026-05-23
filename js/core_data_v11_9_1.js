@@ -600,18 +600,20 @@ const DataManager = {
 
     resetAllStudentRuleAcceptances: function () {
         const data = this._getData();
-        if (!data.students) return 0;
+        if (!data.school) data.school = {};
+        data.school.rulesResetAt = Date.now();
+
         let count = 0;
-        data.students.forEach(s => {
-            if (s.rulesAcceptedAt) {
-                s.rulesAcceptedAt = 0; // Reset
-                count++;
-            }
-        });
-        if (count > 0) {
-            this._saveData(data);
+        if (data.students) {
+            data.students.forEach(s => {
+                if (s.rulesAcceptedAt) {
+                    s.rulesAcceptedAt = 0; // Reset
+                    count++;
+                }
+            });
         }
-        return count;
+        this._saveData(data);
+        return count > 0 ? count : 1;
     },
 
     // --- Classrooms API ---

@@ -756,6 +756,13 @@
             // Read mostly from local device to prevent DB race conditions
             let lastAccepted = parseInt(localStorage.getItem(`klbk_rules_${currentStudent.no}`) || '0');
             
+            // Sync with global admin reset timestamp
+            const school = DataManager.getSchoolSettings() || {};
+            const rulesResetAt = parseInt(school.rulesResetAt || '0');
+            if (lastAccepted < rulesResetAt) {
+                lastAccepted = 0;
+            }
+            
             // Legacy check
             if (currentStudent.rulesAcceptedAt && currentStudent.rulesAcceptedAt > lastAccepted) {
                 lastAccepted = currentStudent.rulesAcceptedAt;
