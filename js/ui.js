@@ -3309,14 +3309,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         const activeTableHtml = renderTable(activeSessions, false);
         const archivedTableHtml = renderArchivedList(archivedSessions);
 
+        const isArchivedOpen = sessionStorage.getItem('klbk_archivedSectionOpen') === 'true';
+
         examSessionsList.innerHTML = `
             <div class="active-sessions-section">
                 ${activeTableHtml}
             </div>
             ${archivedSessions.length > 0 ? `
             <div class="archived-sessions-section" style="margin-top: 3rem;">
-                <h3 style="margin-bottom: 1rem; color: var(--gray-500); font-size: 1.1rem;"><i class="fa-solid fa-box-archive"></i> Arşivlenmiş Oturumlar</h3>
-                ${archivedTableHtml}
+                <div class="archived-section-header" onclick="const wrapper = document.getElementById('archived-sessions-list-wrapper'); wrapper.classList.toggle('hidden'); const isOpen = !wrapper.classList.contains('hidden'); sessionStorage.setItem('klbk_archivedSectionOpen', isOpen); this.querySelector('.arrow').style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';" style="cursor: pointer; display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; user-select: none;">
+                    <h3 style="margin: 0; color: var(--gray-500); font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-chevron-right arrow" style="transition: transform 0.3s; font-size: 0.85rem; transform: ${isArchivedOpen ? 'rotate(90deg)' : 'rotate(0deg)'}"></i>
+                        <i class="fa-solid fa-box-archive"></i> Arşivlenmiş Oturumlar (${archivedSessions.length})
+                    </h3>
+                </div>
+                <div id="archived-sessions-list-wrapper" class="${isArchivedOpen ? '' : 'hidden'}">
+                    ${archivedTableHtml}
+                </div>
             </div>` : ''}
         `;
 
