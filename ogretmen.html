@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="tr">
 
 <head>
@@ -696,40 +696,58 @@
             if (!session) return;
 
             Swal.fire({
-                title: 'Öğrenci Durumu',
-                text: `${studentNo} numaralı öğrenci için durum seçin:`,
-                icon: 'question',
-                showDenyButton: true,
+                title: '<div style="font-weight:900; font-size:1.25rem; display:flex; align-items:center; gap:8px; justify-content:center;"><i class="fa-solid fa-user-pen" style="color:var(--primary);"></i> Öğrenci Durumu</div>',
+                html: `
+                    <div style="margin-bottom: 20px; font-weight: 700; font-size: 0.95rem; color: var(--gray-600);">
+                        <span style="color:var(--primary); font-weight:900;">${studentNo}</span> numaralı öğrenci için durum seçin:
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <button id="btn-kopya" class="btn" style="background: #7f1d1d; border: none; padding: 12px; font-weight: 800; color: white; border-radius: 8px; font-size: 0.9rem; cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">KOPYA</button>
+                        <button id="btn-gelmedi" class="btn" style="background: var(--danger); border: none; padding: 12px; font-weight: 800; color: white; border-radius: 8px; font-size: 0.9rem; cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">GELMEDİ</button>
+                        <button id="btn-rahatsiz" class="btn" style="background: #0284c7; border: none; padding: 12px; font-weight: 800; color: white; border-radius: 8px; font-size: 0.9rem; cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">RAHATSIZLANDI</button>
+                        <button id="btn-temizle" class="btn" style="background: var(--gray-500); border: none; padding: 12px; font-weight: 800; color: white; border-radius: 8px; font-size: 0.9rem; cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">TEMİZLE (İPTAL)</button>
+                    </div>
+                `,
+                showConfirmButton: false,
                 showCancelButton: true,
-                confirmButtonText: 'KOPYA',
-                denyButtonText: 'GELMEDİ',
-                cancelButtonText: 'TEMİZLE',
-                confirmButtonColor: '#7f1d1d',
-                denyButtonColor: 'var(--danger)',
-                cancelButtonColor: 'var(--gray-500)'
-            }).then((result) => {
-                if (!session.studentStatuses) session.studentStatuses = {};
-                
-                if (result.isConfirmed) {
-                    session.studentStatuses[studentNo] = 'KOPYA';
-                } else if (result.isDenied) {
-                    session.studentStatuses[studentNo] = 'GELMEDİ';
-                } else if (result.dismiss === Swal.DismissReason.cancel) {
-                    delete session.studentStatuses[studentNo];
-                } else {
-                    return; // closed dialog without clicking buttons
+                cancelButtonText: 'Kapat',
+                cancelButtonColor: '#e2e8f0',
+                customClass: {
+                    cancelButton: 'text-dark font-weight-bold'
+                },
+                didOpen: () => {
+                    const popup = Swal.getPopup();
+                    popup.querySelector('#btn-kopya').onclick = () => Swal.clickConfirm('KOPYA');
+                    popup.querySelector('#btn-gelmedi').onclick = () => Swal.clickConfirm('GELMEDİ');
+                    popup.querySelector('#btn-rahatsiz').onclick = () => Swal.clickConfirm('RAHATSIZLANDI');
+                    popup.querySelector('#btn-temizle').onclick = () => Swal.clickConfirm('TEMİZLE');
                 }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const statusVal = result.value;
+                    if (!session.studentStatuses) session.studentStatuses = {};
+                    
+                    if (statusVal === 'KOPYA') {
+                        session.studentStatuses[studentNo] = 'KOPYA';
+                    } else if (statusVal === 'GELMEDİ') {
+                        session.studentStatuses[studentNo] = 'GELMEDİ';
+                    } else if (statusVal === 'RAHATSIZLANDI') {
+                        session.studentStatuses[studentNo] = 'RAHATSIZLANDI';
+                    } else if (statusVal === 'TEMİZLE') {
+                        delete session.studentStatuses[studentNo];
+                    }
 
-                DataManager.addExamSession(session);
-                renderExams();
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'success',
-                    title: 'Durum güncellendi',
-                    showConfirmButton: false,
-                    timer: 800
-                });
+                    DataManager.addExamSession(session);
+                    renderExams();
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Durum güncellendi',
+                        showConfirmButton: false,
+                        timer: 800
+                    });
+                }
             });
         };
 
@@ -769,7 +787,7 @@
                     <td>${std.class}</td>
                     <td>${std.no}</td>
                     <td>${std.name} ${std.surname || ''}</td>
-                    <td style="font-weight: bold; color: ${std.status === 'GELMEDİ' ? '#dc2626' : '#7f1d1d'};">${std.status}</td>
+                    <td style="font-weight: bold; color: ${std.status === 'GELMEDİ' ? '#dc2626' : (std.status === 'RAHATSIZLANDI' ? '#0284c7' : '#7f1d1d')};">${std.status}</td>
                 </tr>`;
             }).join('');
 
@@ -863,7 +881,7 @@
                     <td>${std.no}</td>
                     <td>${std.name} ${std.surname || ''}</td>
                     <td>${std._matchedSubject || '-'}</td>
-                    <td style="font-weight: bold; color: ${std.status === 'GELMEDİ' ? '#dc2626' : '#7f1d1d'};">${std.status}</td>
+                    <td style="font-weight: bold; color: ${std.status === 'GELMEDİ' ? '#dc2626' : (std.status === 'RAHATSIZLANDI' ? '#0284c7' : '#7f1d1d')};">${std.status}</td>
                 </tr>`;
             }).join('');
 
@@ -1324,7 +1342,7 @@
                                                         </thead>
                                                         <tbody>
                                                             ${flaggedStudents.map(std => {
-                                                                const statusColor = std.status === 'GELMEDİ' ? 'var(--danger)' : '#7f1d1d';
+                                                                const statusColor = std.status === 'GELMEDİ' ? 'var(--danger)' : (std.status === 'RAHATSIZLANDI' ? '#0284c7' : '#7f1d1d');
                                                                 return `
                                                                 <tr style="border-bottom: 1px solid var(--gray-100);">
                                                                     <td style="padding: 8px; font-weight: 700;">${std.roomName}</td>
@@ -1388,7 +1406,7 @@
                                                 </thead>
                                                 <tbody>
                                                     ${sessionFlaggedStudents.map(std => {
-                                                        const statusColor = std.status === 'GELMEDİ' ? 'var(--danger)' : '#7f1d1d';
+                                                        const statusColor = std.status === 'GELMEDİ' ? 'var(--danger)' : (std.status === 'RAHATSIZLANDI' ? '#0284c7' : '#7f1d1d');
                                                         return `
                                                         <tr style="border-bottom: 1px solid var(--gray-100);">
                                                             <td style="padding: 8px; font-weight: 700;">${std.roomName}</td>
@@ -1441,7 +1459,7 @@
                                                     if (!std || !std.no) return;
                                                     studCount++;
                                                     const status = statuses[std.no] || '';
-                                                    const statusColor = status === 'GELMEDİ' ? 'var(--danger)' : (status === 'KOPYA' ? '#7f1d1d' : 'var(--danger)');
+                                                    const statusColor = status === 'GELMEDİ' ? 'var(--danger)' : (status === 'KOPYA' ? '#7f1d1d' : (status === 'RAHATSIZLANDI' ? '#0284c7' : 'var(--danger)'));
                                                     const statusText = status || '<i class="fa-solid fa-circle-info" title="Durum İşaretle" style="font-size:1.3rem; vertical-align: middle;"></i>';
                                                     studentsHtml += `
                                                         <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--gray-100);">
