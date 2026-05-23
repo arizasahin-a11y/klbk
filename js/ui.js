@@ -226,6 +226,236 @@ document.addEventListener('DOMContentLoaded', async () => {
         sidebarUserArea.addEventListener('click', openSystemSettings);
     }
 
+    const displayUsernameEl = document.getElementById('displayUsername');
+    if (displayUsernameEl) {
+        displayUsernameEl.style.cursor = 'pointer';
+        displayUsernameEl.style.transition = 'color 0.2s ease, text-decoration 0.2s ease';
+        displayUsernameEl.title = 'Hesap Ayarları';
+        displayUsernameEl.addEventListener('mouseenter', () => {
+            displayUsernameEl.style.color = 'var(--primary)';
+            displayUsernameEl.style.textDecoration = 'underline';
+        });
+        displayUsernameEl.addEventListener('mouseleave', () => {
+            displayUsernameEl.style.color = '';
+            displayUsernameEl.style.textDecoration = '';
+        });
+        displayUsernameEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openAccountSettings();
+        });
+    }
+
+    async function openAccountSettings() {
+        const currentUser = sessionStorage.getItem('klbk_currentUser');
+        if (!currentUser) {
+            Swal.fire('Hata', 'Kullanıcı oturumu bulunamadı!', 'error');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Lütfen Bekleyin',
+            text: 'Hesap bilgileri yükleniyor...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const firebaseDatabaseUrl = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
+            const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
+            if (!res.ok) throw new Error('Bulut veritabanı yanıt vermedi.');
+            const usersDb = await res.json();
+            if (!usersDb) throw new Error('Kullanıcı veritabanı boş.');
+
+            const findDeepUser = (obj, targetPath) => {
+                const parts = targetPath.split('.');
+                let current = obj;
+                for (const p of parts) {
+                    if (current && typeof current === 'object' && p in current) {
+                        current = current[p];
+                    } else {
+                        return null;
+                    }
+                }
+                return (current && typeof current === 'object') ? current : null;
+            };
+
+            let matchedUser = usersDb[currentUser];
+            if (!matchedUser && currentUser.includes('.')) {
+                matchedUser = findDeepUser(usersDb, currentUser);
+            }
+
+            if (!matchedUser) {
+                throw new Error('Kullanıcı bilgisi bulunamadı.');
+            }
+
+            Swal.close();
+
+            const currentName = matchedUser.name || currentUser;
+            const currentEmail = matchedUser.email || '';
+            const currentPassword = matchedUser.password || '';
+            const currentGender = matchedUser.gender || 'erkek';
+
+            Swal.fire({
+                title: 'Hesap Ayarlarım',
+                html: `
+                    <div style="text-align: left; margin-top: 10px;">
+                        <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Adı Soyadı</label>
+                        <input type="text" id="accName" class="form-control" value="${currentName}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+
+                        <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">E-posta Adresi</label>
+                        <input type="email" id="accEmail" class="form-control" value="${currentEmail}" placeholder="ornek@okul.com" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+
+                        <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Giriş Şifresi</label>
+                        <input type="text" id="accPassword" class="form-control" value="${currentPassword}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+
+                        <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Cinsiyet</label>
+                        <select id="accGender" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit; height: auto;">
+                            <option value="erkek" ${currentGender === 'erkek' ? 'selected' : ''}>Erkek</option>
+                            <option value="kadin" ${currentGender === 'kadin' ? 'selected' : ''}>Kadın</option>
+                            <option value="diger" ${currentGender === 'diger' ? 'selected' : ''}>Belirtilmemiş</option>
+                        </select>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Kaydet',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#4f46e5',
+                preConfirm: () => {
+                    const nameVal = document.getElementById('accName').value.trim();
+                    const emailVal = document.getElementById('accEmail').value.trim();
+                    const passVal = document.getElementById('accPassword').value;
+                    const genderVal = document.getElementById('accGender').value;
+
+                    if (!nameVal) {
+                        Swal.showValidationMessage('Adı Soyadı alanı boş olamaz.');
+                        return false;
+                    }
+                    if (passVal.length < 4) {
+                        Swal.showValidationMessage('Şifre en az 4 karakter olmalıdır.');
+                        return false;
+                    }
+
+                    return {
+                        name: nameVal,
+                        email: emailVal,
+                        password: passVal,
+                        gender: genderVal
+                    };
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Güncelleniyor',
+                        text: 'Bilgiler buluta kaydediliyor...',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    try {
+                        const setDeepValue = (obj, targetPath, value) => {
+                            const parts = targetPath.split('.');
+                            let current = obj;
+                            for (let i = 0; i < parts.length - 1; i++) {
+                                const p = parts[i];
+                                if (!current[p]) current[p] = {};
+                                current = current[p];
+                            }
+                            const last = parts[parts.length - 1];
+                            current[last] = {
+                                ...current[last],
+                                ...value
+                            };
+                        };
+
+                        const updatePayload = {
+                            name: result.value.name,
+                            email: result.value.email,
+                            password: result.value.password,
+                            gender: result.value.gender
+                        };
+
+                        if (currentUser.includes('.')) {
+                            setDeepValue(usersDb, currentUser, updatePayload);
+                        } else {
+                            usersDb[currentUser] = {
+                                ...usersDb[currentUser],
+                                ...updatePayload
+                            };
+                        }
+
+                        const putRes = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(usersDb)
+                        });
+
+                        if (!putRes.ok) throw new Error('Veritabanına kaydedilemedi.');
+
+                        const formattedName = (name) => {
+                            if (!name) return "";
+                            const cleanName = name.trim().replace(/\s+/g, ' ');
+                            const parts = cleanName.split(' ');
+                            if (parts.length === 0) return "";
+                            if (parts.length === 1) return parts[0].toLocaleUpperCase('tr-TR');
+                            const surname = parts.pop().toLocaleUpperCase('tr-TR');
+                            const firstNames = parts.map(n => {
+                                if (!n) return "";
+                                return n.charAt(0).toLocaleUpperCase('tr-TR') + n.slice(1).toLocaleLowerCase('tr-TR');
+                            }).join(" ");
+                            return `${firstNames} ${surname}`;
+                        };
+
+                        const displayFormattedName = formattedName(result.value.name);
+
+                        sessionStorage.setItem('klbk_name', displayFormattedName);
+                        sessionStorage.setItem('klbk_gender', result.value.gender);
+
+                        const persistentSession = localStorage.getItem('klbk_persistent_session');
+                        if (persistentSession) {
+                            try {
+                                const data = JSON.parse(persistentSession);
+                                data.klbk_name = displayFormattedName;
+                                data.klbk_gender = result.value.gender;
+                                localStorage.setItem('klbk_persistent_session', JSON.stringify(data));
+                            } catch (e) {
+                                console.error(e);
+                            }
+                        }
+
+                        const sidebarAvatarIcon = document.getElementById('sidebarAvatarIcon');
+                        if (sidebarAvatarIcon) {
+                            let iconClass = 'fa-user-tie';
+                            let bg = '#2196f3';
+                            if (result.value.gender === 'kadin') { iconClass = 'fa-user-nurse'; bg = '#e91e63'; }
+                            else if (result.value.gender === 'diger') { iconClass = 'fa-user'; bg = '#6c757d'; }
+                            sidebarAvatarIcon.className = `fa-solid ${iconClass}`;
+                            sidebarAvatarIcon.parentElement.style.background = bg;
+                            sidebarAvatarIcon.parentElement.style.color = 'white';
+                        }
+
+                        Swal.fire({
+                            title: 'Başarılı!',
+                            text: 'Hesap ayarlarınız başarıyla güncellendi.',
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+
+                    } catch (e) {
+                        Swal.fire('Hata', 'Güncelleme sırasında hata oluştu: ' + e.message, 'error');
+                    }
+                }
+            });
+
+        } catch (e) {
+            Swal.fire('Hata', 'Bilgiler alınırken hata oluştu: ' + e.message, 'error');
+        }
+    }
+
     // --- Global Event Delegation for Accordion Classroom Editor ---
     document.body.addEventListener('change', (e) => {
         if (e.target.matches('.desk-pos-select')) {
