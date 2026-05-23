@@ -1160,10 +1160,10 @@
             const ses = item.session;
             const myRoom = item.room;
             
-            // Öğrenci durumu (GELMEDİ veya KOPYA) kontrolü
+            // Öğrenci durumu (GELMEDİ, KOPYA veya RAHATSIZLANDI) kontrolü
             if (ses.studentStatuses && ses.studentStatuses[currentStudent.no]) {
                 const status = ses.studentStatuses[currentStudent.no];
-                if (status === 'GELMEDİ' || status === 'KOPYA') {
+                if (status === 'GELMEDİ' || status === 'KOPYA' || status === 'RAHATSIZLANDI') {
                     return `
                     <div class="glass-panel" style="padding: 2rem; text-align: center; margin-top: 10px; border: 2px solid #fecaca; background: #fef2f2; border-radius: 12px;">
                         <i class="fa-solid fa-ban" style="font-size: 2rem; color: var(--danger); margin-bottom: 10px; display:block;"></i>
