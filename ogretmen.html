@@ -717,38 +717,38 @@
                 },
                 didOpen: () => {
                     const popup = Swal.getPopup();
-                    popup.querySelector('#btn-kopya').onclick = () => Swal.clickConfirm('KOPYA');
-                    popup.querySelector('#btn-gelmedi').onclick = () => Swal.clickConfirm('GELMEDİ');
-                    popup.querySelector('#btn-rahatsiz').onclick = () => Swal.clickConfirm('RAHATSIZLANDI');
-                    popup.querySelector('#btn-temizle').onclick = () => Swal.clickConfirm('TEMİZLE');
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const statusVal = result.value;
-                    if (!session.studentStatuses) session.studentStatuses = {};
-                    
-                    if (statusVal === 'KOPYA') {
-                        session.studentStatuses[studentNo] = 'KOPYA';
-                    } else if (statusVal === 'GELMEDİ') {
-                        session.studentStatuses[studentNo] = 'GELMEDİ';
-                    } else if (statusVal === 'RAHATSIZLANDI') {
-                        session.studentStatuses[studentNo] = 'RAHATSIZLANDI';
-                    } else if (statusVal === 'TEMİZLE') {
-                        delete session.studentStatuses[studentNo];
-                    }
+                    const processChange = (statusVal) => {
+                        if (!session.studentStatuses) session.studentStatuses = {};
+                        
+                        if (statusVal === 'KOPYA') {
+                            session.studentStatuses[studentNo] = 'KOPYA';
+                        } else if (statusVal === 'GELMEDİ') {
+                            session.studentStatuses[studentNo] = 'GELMEDİ';
+                        } else if (statusVal === 'RAHATSIZLANDI') {
+                            session.studentStatuses[studentNo] = 'RAHATSIZLANDI';
+                        } else if (statusVal === 'TEMİZLE') {
+                            delete session.studentStatuses[studentNo];
+                        }
 
-                    DataManager.addExamSession(session);
-                    markLocalChange();
-                    lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
-                    renderExams();
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'success',
-                        title: 'Durum güncellendi',
-                        showConfirmButton: false,
-                        timer: 800
-                    });
+                        DataManager.addExamSession(session);
+                        markLocalChange();
+                        lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
+                        renderExams();
+                        Swal.close();
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'success',
+                            title: 'Durum güncellendi',
+                            showConfirmButton: false,
+                            timer: 800
+                        });
+                    };
+
+                    popup.querySelector('#btn-kopya').onclick = () => processChange('KOPYA');
+                    popup.querySelector('#btn-gelmedi').onclick = () => processChange('GELMEDİ');
+                    popup.querySelector('#btn-rahatsiz').onclick = () => processChange('RAHATSIZLANDI');
+                    popup.querySelector('#btn-temizle').onclick = () => processChange('TEMİZLE');
                 }
             });
         };
