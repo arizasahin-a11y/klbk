@@ -1081,10 +1081,11 @@
                                     ses.results.forEach(room => {
                                         if (room.seats) {
                                             Object.values(room.seats).forEach(seat => {
-                                                if (seat.student && seat.student._matchedSubject === subNameStr) {
-                                                    const status = ses.studentStatuses[seat.student.no];
+                                                const std = seat.student || seat;
+                                                if (std && std.no && std._matchedSubject === subNameStr) {
+                                                    const status = ses.studentStatuses[std.no];
                                                     if (status) {
-                                                        flaggedStudents.push({ ...seat.student, roomName: room.name, status });
+                                                        flaggedStudents.push({ ...std, roomName: room.name, status });
                                                     }
                                                 }
                                             });
@@ -1164,8 +1165,8 @@
                                             if (roomMatch && roomMatch.seats) {
                                                 const statuses = targetSes.studentStatuses || {};
                                                 Object.values(roomMatch.seats).forEach(seat => {
-                                                    if (!seat.student) return;
-                                                    const std = seat.student;
+                                                    const std = seat.student || seat;
+                                                    if (!std || !std.no) return;
                                                     studCount++;
                                                     const status = statuses[std.no] || '';
                                                     const statusColor = status === 'GELMEDİ' ? 'var(--danger)' : (status === 'KOPYA' ? '#7f1d1d' : 'var(--gray-500)');
