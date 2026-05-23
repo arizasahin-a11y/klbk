@@ -128,6 +128,64 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
         });
+
+        // Right click context menu to edit rules text
+        resetRulesBtn.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            const school = DataManager.getSchoolSettings() || {};
+            let rules = school.rules;
+            if (!rules || !Array.isArray(rules) || rules.length === 0) {
+                // Fallback default rules
+                rules = [
+                    "Tüm öğrenciler sınav başlamadan önce sınavda kendilerine ayrılmış derslikte ve oturma planında gösterilen yerde hazır bulunacaktır. Farklı bir dersliğe ve oturma yerine oturmanız yasaktır.",
+                    "Sınav süresince cep telefonu tablet, akıllı saatler kapalı olsa dahi öğrencinin yanında bulunması kesinlikle yasaktır. Yanınızda bu tür cihazlar varsa sınav başlamadan önce ulaşamayacağınız bir yere koyunuz.",
+                    "Sınav yerinizde size ait olsun olmasın, sınav dersine ait ders notu, kitap defter vb. araç gereç olup olmadığını kontrol edip kaldırınız. Sınav esnasında yanınızda olmaması gereken araç-gereç bulunması durumunda sorumlusu sizsiniz.",
+                    "İlk 4 maddeyi yerine getirmemenizden dolayı olabilecek gecikmeler toplam sınav süresine dâhildir. Bu nedenle tüm gerekli iş, işlem ve kontrolleri yapınız.",
+                    "Sınav esnasında konuşmak, silgi kalem alış verişi yasaktır. Sınava gerekli ve yeterli araç gereçle geliniz.",
+                    "Sınav süresi bittiğinde sınav kâğıtları mutlaka görevli öğretmene teslim ediniz. Süre bittikten sonra kâğıda bir şey yazmaya çalışmayınız.",
+                    "Sınavı biten öğrenci ders sonuna kadar beklemek zorundadır. Sınavınızın bitmesi size dışarı çıkma hakkı vermez. Bu konuda görevli öğretmenin talimatları dışına çıkmayınız",
+                    "Sınav kurallarıyla ilgili görevli öğretmen herhangi bir uyarı ya da hatırlatma yapmak zorunda değildir. Sınav kurallarını bildiğiniz ve kurallara uymamanız durumunda sonuçlarından haberdar olduğunuzu sorumluluğu kabul ettiğinizi unutmayınız.",
+                    "Sınava katılmayan öğrencilerin yazılı olabilmeleri için mazeretlerini belgelendirmeleri gerekmektedir. Aksi halde sınav notları G girilecek bu da ortalama alınırken sıfır sayılacaktır."
+                ];
+            }
+
+            const rulesText = rules.join('\n');
+
+            Swal.fire({
+                title: 'Sınav Kurallarını Düzenle',
+                html: `
+                    <p style="font-size: 0.85rem; color: var(--gray-500); text-align: left; margin-bottom: 10px;">
+                        Her bir kuralı yeni bir satıra yazınız. Boş satırlar otomatik elenecektir.
+                    </p>
+                    <textarea id="rulesEditorText" class="form-control" style="width: 100%; height: 300px; padding: 10px; font-family: inherit; font-size: 0.9rem; border: 1px solid var(--gray-300); border-radius: 8px; resize: vertical; line-height: 1.5;">${rulesText}</textarea>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Kaydet',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#4f46e5',
+                preConfirm: () => {
+                    const editorVal = document.getElementById('rulesEditorText').value;
+                    const parsedRules = editorVal.split('\n').map(r => r.trim()).filter(Boolean);
+                    if (parsedRules.length === 0) {
+                        Swal.showValidationMessage('En az bir kural girilmelidir.');
+                        return false;
+                    }
+                    return parsedRules;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    school.rules = result.value;
+                    DataManager.saveSchoolSettings(school);
+                    Swal.fire({
+                        title: 'Başarılı!',
+                        text: 'Sınav kuralları güncellendi. Yeni kurallar öğrencilerin bir sonraki kural ekranı açılışında gösterilecektir.',
+                        icon: 'success',
+                        timer: 2500,
+                        showConfirmButton: false
+                    });
+                }
+            });
+        });
     }
 
     // --- System Settings Action ---

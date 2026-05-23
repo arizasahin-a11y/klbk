@@ -566,7 +566,7 @@
         </div>
         <div class="query-container" style="margin-top: 0;">
             <div class="glass-panel" style="padding: 2rem; border-left: 5px solid var(--warning);">
-                <ol
+                <ol id="rulesListContainer"
                     style="font-weight: 500; font-size: 1rem; color: var(--gray-700); line-height: 1.6; padding-left: 1.5rem; display: flex; flex-direction: column; gap: 10px;">
                     <li>Tüm öğrenciler sınav başlamadan önce sınavda kendilerine ayrılmış derslikte ve oturma planında
                         gösterilen yerde hazır bulunacaktır. Farklı bir dersliğe ve oturma yerine oturmanız yasaktır.
@@ -773,6 +773,7 @@
 
             if (now - lastAccepted > thirtyDaysMs) {
                 // Show rules
+                renderRulesList();
                 document.getElementById('rulesView').classList.remove('hidden');
                 document.getElementById('resultsView').classList.add('hidden');
             } else {
@@ -792,6 +793,29 @@
             
             document.getElementById('rulesView').classList.add('hidden');
             showResultsScreen();
+        }
+
+        function renderRulesList() {
+            const school = DataManager.getSchoolSettings() || {};
+            const container = document.getElementById('rulesListContainer');
+            if (!container) return;
+
+            let rules = school.rules;
+            if (!rules || !Array.isArray(rules) || rules.length === 0) {
+                rules = [
+                    "Tüm öğrenciler sınav başlamadan önce sınavda kendilerine ayrılmış derslikte ve oturma planında gösterilen yerde hazır bulunacaktır. Farklı bir dersliğe ve oturma yerine oturmanız yasaktır.",
+                    "Sınav süresince cep telefonu tablet, akıllı saatler kapalı olsa dahi öğrencinin yanında bulunması kesinlikle yasaktır. Yanınızda bu tür cihazlar varsa sınav başlamadan önce ulaşamayacağınız bir yere koyunuz.",
+                    "Sınav yerinizde size ait olsun olmasın, sınav dersine ait ders notu, kitap defter vb. araç gereç olup olmadığını kontrol edip kaldırınız. Sınav esnasında yanınızda olmaması gereken araç-gereç bulunması durumunda sorumlusu sizsiniz.",
+                    "İlk 4 maddeyi yerine getirmemenizden dolayı olabilecek gecikmeler toplam sınav süresine dâhildir. Bu nedenle tüm gerekli iş, işlem ve kontrolleri yapınız.",
+                    "Sınav esnasında konuşmak, silgi kalem alış verişi yasaktır. Sınava gerekli ve yeterli araç gereçle geliniz.",
+                    "Sınav süresi bittiğinde sınav kâğıtları mutlaka görevli öğretmene teslim ediniz. Süre bittikten sonra kâğıda bir şey yazmaya çalışmayınız.",
+                    "Sınavı biten öğrenci ders sonuna kadar beklemek zorundadır. Sınavınızın bitmesi size dışarı çıkma hakkı vermez. Bu konuda görevli öğretmenin talimatları dışına çıkmayınız",
+                    "Sınav kurallarıyla ilgili görevli öğretmen herhangi bir uyarı ya da hatırlatma yapmak zorunda değildir. Sınav kurallarını bildiğiniz ve kurallara uymamanız durumunda sonuçlarından haberdar olduğunuzu sorumluluğu kabul ettiğinizi unutmayınız.",
+                    "Sınava katılmayan öğrencilerin yazılı olabilmeleri için mazeretlerini belgelendirmeleri gerekmektedir. Aksi halde sınav notları G girilecek bu da ortalama alınırken sıfır sayılacaktır."
+                ];
+            }
+
+            container.innerHTML = rules.map(rule => `<li>${rule}</li>`).join('');
         }
 
         function showResultsScreen() {
