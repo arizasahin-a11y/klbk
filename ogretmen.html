@@ -1327,12 +1327,17 @@
                                                                     <td style="padding: 8px; font-weight: 600; color:var(--dark);">${std.name} ${std.surname || ''}</td>
                                                                     <td style="padding: 8px; font-weight: 800; color:${statusColor};">${std.status}</td>
                                                                 </tr>`;
-                                                            }).join('')}
-                                                        </tbody>
-                                  html += sessionInfoHtml;
+                                                            }).join('')}                                                         </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>`;
+                                    }
+                                }
+                                html += sessionInfoHtml;
+                            }
 
-                                html += `   </div></div>`;
-                            });
+                            html += `   </div></div>`;
+                        });
 
                             // Genel Oturum Bilgilendirme (Tüm Derslerin Ortak Devamsız/Kopya Raporu)
                             let globalSessionInfoHtml = '';
