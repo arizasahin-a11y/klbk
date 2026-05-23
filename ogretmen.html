@@ -353,6 +353,7 @@
         let performanceAtSync = 0;
         let openSessions = new Set();
         let openSubjects = new Set();
+        let openDuties = new Set();
         let lastSyncSessions = '';
 
         // Safe Initialization
@@ -530,6 +531,19 @@
             else openSubjects.add(compositeId);
             renderExams(); // Re-render to show/hide
         }
+
+        window.toggleMyDuties = function() {
+            const open = sessionStorage.getItem('klbk_myDutiesOpen') === 'true';
+            sessionStorage.setItem('klbk_myDutiesOpen', !open);
+            renderExams();
+        };
+
+        window.toggleDutyAttendance = function(sesId, roomName) {
+            const key = sesId + "|" + roomName;
+            if (openDuties.has(key)) openDuties.delete(key);
+            else openDuties.add(key);
+            renderExams();
+        };
 
         window.showExamDuties = function(sesId) {
             const _dutySessions = DataManager.getExamSessions();
@@ -712,6 +726,100 @@
                     renderExams();
                 });
             });
+        };
+
+        window.printFlaggedStudents = function(sesId, encodedSub) {
+            const subName = decodeURIComponent(encodedSub);
+            const sessions = DataManager.getExamSessions();
+            const ses = sessions.find(s => s.id === sesId);
+            if (!ses || !ses.results || !ses.studentStatuses) return;
+
+            let flaggedStudents = [];
+            ses.results.forEach(room => {
+                if (room.seats) {
+                    Object.values(room.seats).forEach(seat => {
+                        const std = seat.student || seat;
+                        if (std && std.no && std._matchedSubject === subName) {
+                            const status = ses.studentStatuses[std.no];
+                            if (status) {
+                                flaggedStudents.push({ ...std, roomName: room.name, status });
+                            }
+                        }
+                    });
+                }
+            });
+
+            if (flaggedStudents.length === 0) return;
+
+            const printWin = window.open('', '', 'width=800,height=600');
+            if (!printWin) {
+                Swal.fire('Hata', 'Yazdırma penceresi engellendi. Pop-up engelleyiciyi kapatın.', 'error');
+                return;
+            }
+
+            const rowsHtml = flaggedStudents.map(std => {
+                return `
+                <tr>
+                    <td>${std.roomName}</td>
+                    <td>${std.class}</td>
+                    <td>${std.no}</td>
+                    <td>${std.name} ${std.surname || ''}</td>
+                    <td style="font-weight: bold; color: ${std.status === 'GELMEDİ' ? '#dc2626' : '#7f1d1d'};">${std.status}</td>
+                </tr>`;
+            }).join('');
+
+            const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Oturum Bilgilendirme - ${ses.name} (${subName})</title>
+                <style>
+                    body { font-family: 'Arial', sans-serif; padding: 20px; color: #333; }
+                    h2 { margin-bottom: 5px; color: #111; }
+                    h4 { margin-top: 0; color: #666; font-weight: normal; margin-bottom: 20px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 13px; }
+                    th { background-color: #f3f4f6; color: #374151; font-weight: bold; }
+                    tr:nth-child(even) { background-color: #f9fafb; }
+                    @media print {
+                        body { padding: 0; }
+                        button { display: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2>Oturum Bilgilendirme Raporu</h2>
+                    <button onclick="window.print()" style="padding: 8px 15px; background: #4f46e5; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px;">Yazdır</button>
+                </div>
+                <h4><strong>Sınav:</strong> ${ses.name} | <strong>Ders:</strong> ${subName} | <strong>Tarih:</strong> ${ses.date} ${ses.time}</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Salon</th>
+                            <th>Sınıf</th>
+                            <th>No</th>
+                            <th>Ad Soyad</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+                <div style="margin-top: 40px; text-align: right; font-size: 12px; color: #888;">
+                    Rapor Oluşturulma Tarihi: ${new Date().toLocaleString('tr-TR')}
+                </div>
+                <script>
+                    window.onload = function() {
+                        setTimeout(function() { window.print(); }, 300);
+                    }
+                </script>
+            </body>
+            </html>`;
+
+            printWin.document.write(htmlContent);
+            printWin.document.close();
         };
 
         function renderExams() {
@@ -1096,9 +1204,12 @@
                                         sessionInfoHtml = `
                                             <div style="background: white; border-radius: 12px; border: 1px solid var(--warning); margin-top: 1.25rem; overflow: hidden; box-shadow: var(--shadow-sm);">
                                                 <div onclick="this.nextElementSibling.classList.toggle('hidden');" style="padding: 12px 15px; background: #fef3c7; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-                                                    <h5 style="color: #b45309; margin: 0; font-weight: 900; font-size: 0.95rem;">
+                                                    <h5 style="color: #b45309; margin: 0; font-weight: 900; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
                                                         <i class="fa-solid fa-circle-exclamation"></i> Oturum Bilgilendirme (${flaggedStudents.length} Öğrenci)
                                                     </h5>
+                                                    <button class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.75rem; font-weight: 700; background: white; color: #b45309; border: 1px solid #f59e0b; margin-left: auto; margin-right: 10px;" onclick="event.stopPropagation(); window.printFlaggedStudents('${ses.id}', '${encodedSub}')" title="Yazdır">
+                                                        <i class="fa-solid fa-print"></i> Yazdır
+                                                    </button>
                                                     <i class="fa-solid fa-chevron-down" style="color: #b45309;"></i>
                                                 </div>
                                                 <div class="hidden" style="padding: 15px;">
@@ -1118,7 +1229,7 @@
                                                                 <tr style="border-bottom: 1px solid var(--gray-100);">
                                                                     <td style="padding: 8px; font-weight: 700;">${std.roomName}</td>
                                                                     <td style="padding: 8px;"><span style="color:var(--gray-500);">${std.class}</span> <span style="color:var(--primary); font-weight:700;">${std.no}</span></td>
-                                                                    <td style="padding: 8px; font-weight: 600; color:var(--dark);">${std.name} ${std.surname}</td>
+                                                                    <td style="padding: 8px; font-weight: 600; color:var(--dark);">${std.name} ${std.surname || ''}</td>
                                                                     <td style="padding: 8px; font-weight: 800; color:${statusColor};">${std.status}</td>
                                                                 </tr>`;
                                                             }).join('')}
@@ -1141,16 +1252,17 @@
                     const isAdmin = currentRole === 'idareci' || currentRole === 'admin' || currentRole === 'master';
                     const myDuties = isAdmin ? [] : getMyDuties(_renderSessions);
                     if (myDuties.length > 0) {
+                        const isDutiesOpen = sessionStorage.getItem('klbk_myDutiesOpen') === 'true';
                         html += `
                         <div class="glass-panel" style="margin-top: 2.5rem; margin-bottom: 2rem; border-left: 5px solid #d97706; padding: 0; overflow: hidden;">
-                            <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(217, 119, 6, 0.05);" onclick="document.getElementById('myDutiesList').classList.toggle('hidden'); this.querySelector('.fa-chevron-down').classList.toggle('fa-rotate-180')">
+                            <div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(217, 119, 6, 0.05);" onclick="window.toggleMyDuties()">
                                 <h3 style="margin: 0; font-size: 1.1rem; font-weight: 900; color: #d97706; display: flex; align-items: center; gap: 10px;">
                                     <i class="fa-solid fa-clipboard-check"></i> SINAV GÖREVLERİNİZ
                                     <span style="background: #d97706; color: white; font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; font-weight: 700;">${myDuties.length}</span>
                                 </h3>
-                                <i class="fa-solid fa-chevron-down" style="color: var(--gray-400); transition: 0.3s;"></i>
+                                <i class="fa-solid fa-chevron-down ${isDutiesOpen ? 'fa-rotate-180' : ''}" style="color: var(--gray-400); transition: 0.3s;"></i>
                             </div>
-                            <div id="myDutiesList" class="hidden" style="padding: 0 1.25rem 1.25rem 1.25rem; border-top: 1px dashed var(--gray-200); margin-top: 0;">
+                            <div id="myDutiesList" class="${isDutiesOpen ? '' : 'hidden'}" style="padding: 0 1.25rem 1.25rem 1.25rem; border-top: 1px dashed var(--gray-200); margin-top: 0;">
                                 <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
                                     ${myDuties.map(d => {
                                         const dutyTargetTime = DataManager.parseSessionDateTime(d.date, d.time);
@@ -1176,7 +1288,7 @@
                                                             <div style="font-size:0.85rem; font-weight:700; color:var(--dark);">
                                                                 <span style="color:var(--gray-500); width:40px; display:inline-block;">${std.class}</span> 
                                                                 <span style="color:var(--primary); width:45px; display:inline-block;">${std.no}</span> 
-                                                                ${std.name} ${std.surname}
+                                                                ${std.name} ${std.surname || ''}
                                                             </div>
                                                             <button onclick="window.setStudentStatus('${d.id}', '${std.no}')" style="background:white; border:1px solid ${statusColor}; color:${statusColor}; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:800; cursor:pointer;">
                                                                 ${statusText}
@@ -1186,9 +1298,11 @@
                                             }
                                         }
 
+                                        const isDutyOpen = openDuties.has(`${d.id}|${d.room}`);
+
                                         return `
                                         <div style="background: white; border: 1px solid var(--gray-200); border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; margin-bottom: 5px;">
-                                            <div onclick="this.nextElementSibling.classList.toggle('hidden');" style="padding: 12px 16px 12px 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; position: relative; min-height: 60px; cursor: pointer;">
+                                            <div onclick="window.toggleDutyAttendance('${d.id}', '${d.room}')" style="padding: 12px 16px 12px 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; position: relative; min-height: 60px; cursor: pointer;">
                                                 <div style="position: absolute; top: 0; left: 0; width: 6px; height: 100%; background: ${d.role === 'Yedek' ? 'var(--gray-400)' : '#d97706'};"></div>
                                                 
                                                 <div style="flex: 1 1 100%; min-width: 0;">
@@ -1214,7 +1328,7 @@
                                                     <div id="duty-cd-${d.id}" style="font-size: 1rem; font-weight: 900; color: #d97706; font-family: monospace; background: #fffbeb; padding: 6px 12px; border-radius: 8px; border: 1px solid #fde68a; min-width: 0; width: 100%; max-width: 160px; text-align: center; box-shadow: inset 0 0 5px rgba(0,0,0,0.02);">${dutyTimerHtml}</div>
                                                 </div>
                                             </div>
-                                            <div class="hidden" style="padding: 10px 15px 15px 22px; background: #fafafa; border-top: 1px solid var(--gray-200);">
+                                            <div class="${isDutyOpen ? '' : 'hidden'}" style="padding: 10px 15px 15px 22px; background: #fafafa; border-top: 1px solid var(--gray-200);">
                                                 <h5 style="font-size: 0.85rem; color: var(--gray-500); font-weight: 800; margin-bottom: 10px;">Yoklama ve Öğrenci Listesi</h5>
                                                 ${studentsHtml || '<div style="font-size:0.8rem; color:var(--gray-500);">Öğrenci bulunamadı.</div>'}
                                             </div>
