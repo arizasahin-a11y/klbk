@@ -913,7 +913,7 @@
                                 (papers['default'] && papers['default'].trim().length > 5)
                             );
 
-                            const showThemeFont = (isMine && hasAnyPdf);
+                            const showThemeFont = (isMine && hasAnyPdf && diffMins > 5);
                             const showShare = (isMine && hasAnyPdf);
                             let subjectControlsHtml = '';
                             if (showThemeFont || showShare) {
