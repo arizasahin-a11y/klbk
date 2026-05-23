@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 
 <head>
@@ -738,6 +738,8 @@
                     }
 
                     DataManager.addExamSession(session);
+                    markLocalChange();
+                    lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
                     renderExams();
                     Swal.fire({
                         toast: true,
