@@ -741,11 +741,37 @@
             const session = sessions.find(s => s.id === sesId);
             if (!session) return;
 
+            let studentClass = '';
+            let studentName = '';
+            if (session.results) {
+                for (const room of session.results) {
+                    if (room.seats) {
+                        const seatMatch = Object.values(room.seats).find(seat => {
+                            const std = seat.student || seat;
+                            return std && String(std.no) === String(studentNo);
+                        });
+                        if (seatMatch) {
+                            const std = seatMatch.student || seatMatch;
+                            studentClass = std.class || '';
+                            studentName = `${std.name || ''} ${std.surname || ''}`.trim();
+                            break;
+                        }
+                    }
+                }
+            }
+
+            let displayHtml = '';
+            if (studentClass && studentName) {
+                displayHtml = `<span style="color:var(--primary); font-weight:900;">${studentClass}/${studentNo}</span> numaralı <span style="font-weight:900;">${studentName}</span> adlı öğrenci için durum seçin:`;
+            } else {
+                displayHtml = `<span style="color:var(--primary); font-weight:900;">${studentNo}</span> numaralı öğrenci için durum seçin:`;
+            }
+
             Swal.fire({
                 title: '<div style="font-weight:900; font-size:1.25rem; display:flex; align-items:center; gap:8px; justify-content:center;"><i class="fa-solid fa-user-pen" style="color:var(--primary);"></i> Öğrenci Durumu</div>',
                 html: `
                     <div style="margin-bottom: 20px; font-weight: 700; font-size: 0.95rem; color: var(--gray-600);">
-                        <span style="color:var(--primary); font-weight:900;">${studentNo}</span> numaralı öğrenci için durum seçin:
+                        ${displayHtml}
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 10px;">
                         <button id="btn-kopya" class="btn" style="background: #7f1d1d; border: none; padding: 12px; font-weight: 800; color: white; border-radius: 8px; font-size: 0.9rem; cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">KOPYA</button>
