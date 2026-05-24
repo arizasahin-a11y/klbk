@@ -1190,7 +1190,7 @@
                                                 </div>
                                             </div>
                                             ${timerDisplayHtml}
-                                            <i class="fa-solid fa-chevron-down" style="color:var(--gray-400); transition:0.3s; transform: ${isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}"></i>
+                                            <i class="fa-solid fa-chevron-down" style="color: ${isOpen ? 'var(--primary)' : 'var(--gray-400)'}; font-size: 1.3rem; -webkit-text-stroke: 1.2px currentColor; transition: 0.3s; transform: ${isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}"></i>
                                         </div>
                                     </div>
                                     <div class="details-panel ${isOpen ? '' : 'hidden'}">`;
@@ -1517,7 +1517,7 @@
                                     <i class="fa-solid fa-clipboard-check"></i> SINAV GÖREVLERİNİZ
                                     <span style="background: #d97706; color: white; font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; font-weight: 700;">${myDuties.length}</span>
                                 </h3>
-                                <i class="fa-solid fa-chevron-down ${isDutiesOpen ? 'fa-rotate-180' : ''}" style="color: var(--gray-400); transition: 0.3s;"></i>
+                                <i class="fa-solid fa-chevron-down ${isDutiesOpen ? 'fa-rotate-180' : ''}" style="color: ${isDutiesOpen ? '#d97706' : 'var(--gray-400)'}; font-size: 1.3rem; -webkit-text-stroke: 1.2px currentColor; transition: 0.3s;"></i>
                             </div>
                             <div id="myDutiesList" class="${isDutiesOpen ? '' : 'hidden'}" style="padding: 0 1.25rem 1.25rem 1.25rem; border-top: 1px dashed var(--gray-200); margin-top: 0;">
                                 <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
