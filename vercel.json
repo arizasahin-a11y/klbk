@@ -11,6 +11,8 @@
     { "source": "/r1p5s8q3(|.html)", "destination": "/dashboard.html" },
     { "source": "/n4b9v1c7(|.html)", "destination": "/master.html" },
     { "source": "/j2k5l0p8(|.html)", "destination": "/ogrenci.html" },
+    { "source": "/yoklama_ogretmen(|.html)", "destination": "/yoklama_ogretmen.html" },
+    { "source": "/yoklama_idareci(|.html)", "destination": "/yoklama_idareci.html" },
     { "source": "/security_error", "destination": "/404.html" }
   ]
 }

@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Öğretmen Yoklama Paneli</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="amblem.jpg">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- Base Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Core DataManager -->
+    <script src="js/core_data_v11_9_1.js"></script>
+
+    <style>
+        :root {
+            --geldi-color: #10b981;
+            --gelmedi-color: #ef4444;
+            --gec-color: #f59e0b;
+            --rahatsiz-color: #3b82f6;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            min-height: 100vh;
+        }
+
+        .yoklama-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .premium-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .premium-header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 150px;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(79, 70, 229, 0.05));
+            pointer-events: none;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        .control-panel {
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .grid-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .form-select-custom {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            font-family: var(--font-family);
+            font-size: 0.95rem;
+            font-weight: 600;
+            background: white;
+            color: var(--dark);
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .form-select-custom:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .auto-detected-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-top: 10px;
+            animation: pulse-blue 2s infinite;
+        }
+
+        @keyframes pulse-blue {
+            0% { box-shadow: 0 0 0 0 rgba(3, 105, 161, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(3, 105, 161, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(3, 105, 161, 0); }
+        }
+
+        .student-list-panel {
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .search-bar-wrapper {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-bar-wrapper i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+            font-size: 1.1rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.85rem 1rem 0.85rem 2.75rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            outline: none;
+            font-family: var(--font-family);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .student-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .student-table th {
+            text-align: left;
+            padding: 1rem;
+            border-bottom: 2px solid var(--gray-200);
+            color: var(--gray-500);
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .student-row {
+            border-bottom: 1px solid var(--gray-100);
+            transition: var(--transition);
+        }
+
+        .student-row:hover {
+            background-color: #fafbfc;
+        }
+
+        .student-info {
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .student-avatar {
+            width: 36px;
+            height: 36px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .student-no {
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .student-name {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .status-button-group {
+            display: flex;
+            gap: 6px;
+            padding: 1rem;
+            justify-content: flex-end;
+        }
+
+        .status-btn {
+            border: 2px solid var(--gray-200);
+            background: white;
+            color: var(--gray-500);
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Status Colors */
+        .status-btn[data-status="GELDİ"]:hover,
+        .status-btn[data-status="GELDİ"].active {
+            background-color: #ecfdf5;
+            border-color: var(--geldi-color);
+            color: var(--geldi-color);
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+        }
+
+        .status-btn[data-status="GELMEDİ"]:hover,
+        .status-btn[data-status="GELMEDİ"].active {
+            background-color: #fef2f2;
+            border-color: var(--gelmedi-color);
+            color: var(--gelmedi-color);
+            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+        }
+
+        .status-btn[data-status="GEÇ"]:hover,
+        .status-btn[data-status="GEÇ"].active {
+            background-color: #fffbeb;
+            border-color: var(--gec-color);
+            color: var(--gec-color);
+            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.1);
+        }
+
+        .status-btn[data-status="RAHATSIZLANDI"]:hover,
+        .status-btn[data-status="RAHATSIZLANDI"].active {
+            background-color: #eff6ff;
+            border-color: var(--rahatsiz-color);
+            color: var(--rahatsiz-color);
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+        }
+
+        .stat-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .stat-badge.geldi { background: #d1fae5; color: #065f46; }
+        .stat-badge.gelmedi { background: #fee2e2; color: #991b1b; }
+        .stat-badge.gec { background: #fef3c7; color: #92400e; }
+        .stat-badge.rahatsiz { background: #dbeafe; color: #1e40af; }
+
+        .stat-counter-bar {
+            display: flex;
+            justify-content: space-around;
+            background: #fafbfc;
+            border: 1px solid var(--gray-200);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-counter-item {
+            text-align: center;
+        }
+
+        .stat-counter-num {
+            font-size: 1.3rem;
+            font-weight: 800;
+        }
+
+        .save-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid var(--gray-100);
+        }
+
+        .history-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            border: 1px solid var(--gray-200);
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+            transition: var(--transition);
+        }
+
+        .history-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .btn-logout {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+        }
+
+        .btn-logout:hover {
+            background: #fca5a5;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="yoklama-container">
+        
+        <!-- Premium Header -->
+        <div class="premium-header glass-panel">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="logo-icon" style="margin: 0; width: 48px; height: 48px; font-size: 1.4rem;">
+                    <i class="fa-solid fa-clipboard-user"></i>
+                </div>
+                <div>
+                    <h1 style="font-size: 1.35rem; font-weight: 800; color: var(--dark); margin: 0;" id="teacherWelcome">Yükleniyor...</h1>
+                    <p style="font-size: 0.8rem; color: var(--gray-500); margin: 2px 0 0 0;" id="schoolDisplay">...</p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-logout" onclick="logout()" title="Çıkış Yap">
+                    <i class="fa-solid fa-right-from-bracket"></i> Çıkış
+                </button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-buttons">
+            <button class="btn btn-primary" id="btnTabYoklama" onclick="switchTab('yoklama')">
+                <i class="fa-solid fa-clipboard-list"></i> Yoklama Al
+            </button>
+            <button class="btn btn-secondary" style="background: white; color: var(--gray-600); border: 1px solid var(--gray-300);" id="btnTabGecmis" onclick="switchTab('gecmis')">
+                <i class="fa-solid fa-clock-rotate-left"></i> Geçmiş Yoklamalarım
+            </button>
+        </div>
+
+        <!-- TAB 1: Yoklama Giriş Aracı -->
+        <div id="tabYoklama" class="tab-content">
+            
+            <!-- Control Panel Card -->
+            <div class="control-panel glass-panel">
+                <h3 style="font-weight: 800; font-size: 1.15rem; margin-bottom: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-sliders"></i> Ders ve Sınıf Bilgileri
+                </h3>
+                
+                <div class="grid-controls">
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-calendar-day"></i> Yoklama Tarihi</label>
+                        <input type="date" id="yoklamaDate" class="form-select-custom" onchange="checkAndAutoDetectClass()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-clock"></i> Ders Saati</label>
+                        <select id="lessonHour" class="form-select-custom" onchange="checkAndAutoDetectClass()">
+                            <option value="1">1. Ders</option>
+                            <option value="2">2. Ders</option>
+                            <option value="3">3. Ders</option>
+                            <option value="4">4. Ders</option>
+                            <option value="5">5. Ders</option>
+                            <option value="6">6. Ders</option>
+                            <option value="7">7. Ders</option>
+                            <option value="8">8. Ders</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-graduation-cap"></i> Sınıf</label>
+                        <select id="classSelect" class="form-select-custom" onchange="loadStudentList()">
+                            <option value="">-- Sınıf Seçin --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-book-open"></i> Ders</label>
+                        <select id="subjectSelect" class="form-select-custom">
+                            <option value="">-- Ders Seçin --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="autoDetectAlert" class="auto-detected-badge hidden">
+                    <i class="fa-solid fa-robot"></i> Ders programınıza göre sınıf otomatik tespit edildi!
+                </div>
+            </div>
+
+            <!-- Student List Card -->
+            <div class="student-list-panel glass-panel hidden" id="studentListContainer">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="font-weight: 800; font-size: 1.15rem; color: var(--dark); margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-users"></i> Sınıf Listesi (<span id="totalStudentsDisplay">0</span> Öğrenci)
+                    </h3>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="btn btn-sm" style="background:#e0f2fe; color:#0369a1; padding: 4px 10px; font-size:0.75rem;" onclick="setAllAttendance('GELDİ')">Tümünü Geldi Yap</button>
+                    </div>
+                </div>
+
+                <!-- Live Counter Bar -->
+                <div class="stat-counter-bar">
+                    <div class="stat-counter-item" style="color: var(--geldi-color);">
+                        <div class="stat-counter-num" id="countGeldi">0</div>
+                        <small style="font-weight: 700;">Geldi</small>
+                    </div>
+                    <div class="stat-counter-item" style="color: var(--gelmedi-color);">
+                        <div class="stat-counter-num" id="countGelmedi">0</div>
+                        <small style="font-weight: 700;">Gelmedi</small>
+                    </div>
+                    <div class="stat-counter-item" style="color: var(--gec-color);">
+                        <div class="stat-counter-num" id="countGec">0</div>
+                        <small style="font-weight: 700;">Geç</small>
+                    </div>
+                    <div class="stat-counter-item" style="color: var(--rahatsiz-color);">
+                        <div class="stat-counter-num" id="countRahatsiz">0</div>
+                        <small style="font-weight: 700;">Rahatsız</small>
+                    </div>
+                </div>
+
+                <!-- Search Input -->
+                <div class="search-bar-wrapper">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="studentSearch" class="search-input" placeholder="Öğrenci adı veya numarası ile ara..." oninput="filterStudents()">
+                </div>
+
+                <!-- Student Table -->
+                <div class="table-responsive">
+                    <table class="student-table">
+                        <thead>
+                            <tr>
+                                <th>Öğrenci Bilgisi</th>
+                                <th style="text-align: right; padding-right: 1.5rem;">Yoklama Durumu</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentTableBody">
+                            <!-- JS ile doldurulacak -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Save Actions -->
+                <div class="save-bar">
+                    <div style="font-size: 0.85rem; color: var(--gray-500); font-weight: 600;">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Son kayıt: <span id="lastSaveDisplay">Henüz kaydedilmedi</span>
+                    </div>
+                    <button class="btn btn-primary" onclick="saveAttendance()" style="padding: 0.85rem 2rem;">
+                        <i class="fa-solid fa-floppy-disk"></i> Yoklamayı Kaydet
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Empty State -->
+            <div class="glass-panel" id="emptyState" style="padding: 3rem; text-align: center; color: var(--gray-500);">
+                <i class="fa-solid fa-clipboard-question" style="font-size: 4rem; color: var(--gray-400); margin-bottom: 1.5rem;"></i>
+                <h4 style="font-weight: 800; font-size: 1.2rem; color: var(--dark); margin-bottom: 0.5rem;">Yoklama Listesi Hazır</h4>
+                <p style="font-size: 0.9rem; max-width: 400px; margin: 0 auto;">Lütfen yukarıdaki menüden yoklama almak istediğiniz sınıfı seçin.</p>
+            </div>
+
+        </div>
+
+        <!-- TAB 2: Geçmiş Yoklamalarım -->
+        <div id="tabGecmis" class="tab-content hidden">
+            <div class="glass-panel" style="padding: 2rem;">
+                <h3 style="font-weight: 800; font-size: 1.25rem; margin-bottom: 1.5rem; color: var(--dark); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Aldığınız Yoklamalar (Son 30 Gün)
+                </h3>
+                
+                <div id="historyListContainer">
+                    <!-- JS ile geçmiş doldurulacak -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Global variables
+        let schoolData = {};
+        let allStudents = [];
+        let teachersDb = {};
+        let activeTeacherUsername = "";
+        let activeTeacherObject = null;
+        let activeClassStudents = [];
+        
+        // Attendance records in memory for current selection
+        // studentNo -> status ('GELDİ', 'GELMEDİ', 'GEÇ', 'RAHATSIZLANDI')
+        let attendanceMap = {}; 
+
+        // Firebase URL
+        const firebaseDatabaseUrl = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. Auth Validation
+            const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true';
+            const role = sessionStorage.getItem('klbk_role') || '';
+            activeTeacherUsername = sessionStorage.getItem('klbk_currentUser') || '';
+
+            if (!isLoggedIn || !activeTeacherUsername) {
+                window.location.href = '/k9x7v2m4';
+                return;
+            }
+
+            // Set welcome message
+            const properName = sessionStorage.getItem('klbk_name') || activeTeacherUsername;
+            document.getElementById('teacherWelcome').textContent = `Merhaba, ${properName}`;
+            document.getElementById('schoolDisplay').textContent = sessionStorage.getItem('klbk_schoolName') || 'Okul Paneli';
+
+            // Set default date to today
+            const today = new Date().toISOString().slice(0, 10);
+            document.getElementById('yoklamaDate').value = today;
+
+            // 2. Fetch Data
+            Swal.fire({
+                title: 'Veriler Yükleniyor',
+                text: 'Lütfen bekleyin...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            try {
+                // Initialize DataManager
+                await DataManager.initCloud();
+                schoolData = DataManager.getSchoolSettings();
+                allStudents = DataManager.getStudents();
+                
+                // Fetch all users to get active teacher's schedule
+                const usersRes = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
+                if (usersRes.ok) {
+                    teachersDb = await usersRes.json();
+                    activeTeacherObject = teachersDb[activeTeacherUsername];
+                }
+
+                // Populate Class Dropdown
+                populateClasses();
+
+                // Populate Subject Dropdown
+                populateSubjects();
+
+                // Set default hour based on current time
+                setDefaultLessonHour();
+
+                // Auto detect class based on schedule
+                checkAndAutoDetectClass();
+
+                Swal.close();
+            } catch (e) {
+                console.error("Initialization error:", e);
+                Swal.fire('Hata', 'Veritabanına bağlanırken bir hata oluştu.', 'error');
+            }
+        });
+
+        function populateClasses() {
+            const classSelect = document.getElementById('classSelect');
+            // Extract unique class names
+            const classes = new Set();
+            allStudents.forEach(s => {
+                if (s.class) classes.add(s.class.trim());
+            });
+
+            const sortedClasses = Array.from(classes).sort((a, b) => a.localeCompare(b, 'tr'));
+            
+            sortedClasses.forEach(cls => {
+                const opt = document.createElement('option');
+                opt.value = cls;
+                opt.textContent = cls;
+                classSelect.appendChild(opt);
+            });
+        }
+
+        function populateSubjects() {
+            const subjectSelect = document.getElementById('subjectSelect');
+            const schoolSubjects = schoolData.subjects || [];
+            const teacherBranches = (activeTeacherObject && activeTeacherObject.branch) || [];
+
+            // Add teacher's own branches first
+            if (teacherBranches.length > 0) {
+                const grp = document.createElement('optgroup');
+                grp.label = "Branşlarınız";
+                teacherBranches.forEach(sub => {
+                    const opt = document.createElement('option');
+                    opt.value = sub;
+                    opt.textContent = sub;
+                    grp.appendChild(opt);
+                });
+                subjectSelect.appendChild(grp);
+            }
+
+            // Add other subjects
+            const otherSubjects = schoolSubjects.filter(s => !teacherBranches.includes(s));
+            if (otherSubjects.length > 0) {
+                const grp = document.createElement('optgroup');
+                grp.label = "Diğer Dersler";
+                otherSubjects.forEach(sub => {
+                    const opt = document.createElement('option');
+                    opt.value = sub;
+                    opt.textContent = sub;
+                    grp.appendChild(opt);
+                });
+                subjectSelect.appendChild(grp);
+            }
+
+            // Pre-select first branch if available
+            if (teacherBranches.length > 0) {
+                subjectSelect.value = teacherBranches[0];
+            }
+        }
+
+        function setDefaultLessonHour() {
+            const now = new Date();
+            const nowStr = now.toTimeString().slice(0, 5); // "HH:MM"
+            const lessonTimes = schoolData.lessonTimes || {};
+            
+            for (let i = 1; i <= 20; i++) {
+                const start = lessonTimes[`${i}_start`];
+                const end = lessonTimes[`${i}_end`];
+                if (start && end) {
+                    if (nowStr >= start && nowStr <= end) {
+                        document.getElementById('lessonHour').value = i.toString();
+                        break;
+                    }
+                }
+            }
+        }
+
+        function checkAndAutoDetectClass() {
+            if (!activeTeacherObject || !activeTeacherObject.schedule) return;
+
+            const selectedDateVal = document.getElementById('yoklamaDate').value;
+            if (!selectedDateVal) return;
+
+            // Map Date object's day index to schedule day key
+            const d = new Date(selectedDateVal);
+            const dayMap = { 1: 'Pa', 2: 'Sa', 3: 'Ça', 4: 'Pe', 5: 'Cu' };
+            const dayKey = dayMap[d.getDay()];
+
+            const hourVal = document.getElementById('lessonHour').value;
+
+            if (dayKey && hourVal) {
+                const schedClass = activeTeacherObject.schedule[dayKey]?.[hourVal];
+                if (schedClass && schedClass !== '-') {
+                    // Match found! Auto-select it
+                    const classSelect = document.getElementById('classSelect');
+                    
+                    // Check if class exists in dropdown options
+                    const options = Array.from(classSelect.options).map(o => o.value);
+                    if (options.includes(schedClass)) {
+                        classSelect.value = schedClass;
+                        document.getElementById('autoDetectAlert').classList.remove('hidden');
+                        loadStudentList();
+                        return;
+                    }
+                }
+            }
+
+            document.getElementById('autoDetectAlert').classList.add('hidden');
+        }
+
+        function loadStudentList() {
+            const classVal = document.getElementById('classSelect').value;
+            const emptyState = document.getElementById('emptyState');
+            const studentListContainer = document.getElementById('studentListContainer');
+
+            if (!classVal) {
+                emptyState.classList.remove('hidden');
+                studentListContainer.classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            studentListContainer.classList.remove('hidden');
+
+            // Filter students
+            activeClassStudents = allStudents.filter(s => s.class && s.class.trim() === classVal.trim());
+            // Sort by name
+            activeClassStudents.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr'));
+
+            document.getElementById('totalStudentsDisplay').textContent = activeClassStudents.length;
+
+            // Load existing attendance if any
+            loadExistingAttendanceRecord();
+        }
+
+        function loadExistingAttendanceRecord() {
+            const dateVal = document.getElementById('yoklamaDate').value;
+            const hourVal = document.getElementById('lessonHour').value;
+            const classVal = document.getElementById('classSelect').value;
+
+            // Fetch data from local DataManager memory
+            const dbData = DataManager._getData();
+            dbData.attendance = dbData.attendance || {};
+
+            attendanceMap = {};
+
+            const lessonRecord = dbData.attendance[dateVal]?.[hourVal]?.[classVal];
+            if (lessonRecord) {
+                attendanceMap = lessonRecord.records || {};
+                
+                // Pre-fill lesson subject if saved
+                if (lessonRecord.subject) {
+                    document.getElementById('subjectSelect').value = lessonRecord.subject;
+                }
+
+                document.getElementById('lastSaveDisplay').textContent = lessonRecord.lastUpdated || 'Kaydedildi';
+            } else {
+                document.getElementById('lastSaveDisplay').textContent = 'Kaydedilmedi';
+            }
+
+            // For students that don't have a record, set to 'GELDİ' by default
+            activeClassStudents.forEach(s => {
+                if (!attendanceMap[s.no]) {
+                    attendanceMap[s.no] = 'GELDİ';
+                }
+            });
+
+            renderStudentsTable();
+            updateLiveCounters();
+        }
+
+        function renderStudentsTable() {
+            const tbody = document.getElementById('studentTableBody');
+            tbody.innerHTML = '';
+
+            if (activeClassStudents.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding:2rem; color:var(--gray-400);">Bu sınıfta öğrenci bulunamadı.</td></tr>`;
+                return;
+            }
+
+            activeClassStudents.forEach(s => {
+                const currentStatus = attendanceMap[s.no] || 'GELDİ';
+                
+                const tr = document.createElement('tr');
+                tr.className = 'student-row';
+                tr.setAttribute('data-no', s.no);
+                tr.setAttribute('data-search', `${s.no} ${s.name} ${s.surname || ''}`.toLowerCase());
+
+                tr.innerHTML = `
+                    <td>
+                        <div class="student-info">
+                            <div class="student-avatar">${s.name ? s.name.charAt(0) : '?'}</div>
+                            <div>
+                                <span class="student-no">${s.no}</span>
+                                <div class="student-name">${s.name} ${s.surname || ''}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="status-button-group">
+                            <button type="button" class="status-btn ${currentStatus === 'GELDİ' ? 'active' : ''}" data-status="GELDİ" onclick="setStudentStatus('${s.no}', 'GELDİ')">
+                                <i class="fa-solid fa-circle-check"></i> Geldi
+                            </button>
+                            <button type="button" class="status-btn ${currentStatus === 'GELMEDİ' ? 'active' : ''}" data-status="GELMEDİ" onclick="setStudentStatus('${s.no}', 'GELMEDİ')">
+                                <i class="fa-solid fa-circle-xmark"></i> Gelmedi
+                            </button>
+                            <button type="button" class="status-btn ${currentStatus === 'GEÇ' ? 'active' : ''}" data-status="GEÇ" onclick="setStudentStatus('${s.no}', 'GEÇ')">
+                                <i class="fa-solid fa-clock"></i> Geç
+                            </button>
+                            <button type="button" class="status-btn ${currentStatus === 'RAHATSIZLANDI' ? 'active' : ''}" data-status="RAHATSIZLANDI" onclick="setStudentStatus('${s.no}', 'RAHATSIZLANDI')">
+                                <i class="fa-solid fa-house-medical"></i> Rahatsız
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function setStudentStatus(studentNo, status) {
+            attendanceMap[studentNo] = status;
+            
+            // Update button states in DOM directly for speed
+            const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
+            if (row) {
+                const buttons = row.querySelectorAll('.status-btn');
+                buttons.forEach(btn => {
+                    if (btn.getAttribute('data-status') === status) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            }
+
+            updateLiveCounters();
+        }
+
+        function setAllAttendance(status) {
+            activeClassStudents.forEach(s => {
+                attendanceMap[s.no] = status;
+            });
+            renderStudentsTable();
+            updateLiveCounters();
+        }
+
+        function updateLiveCounters() {
+            let geldi = 0, gelmedi = 0, gec = 0, rahatsiz = 0;
+            
+            Object.values(attendanceMap).forEach(v => {
+                if (v === 'GELDİ') geldi++;
+                else if (v === 'GELMEDİ') gelmedi++;
+                else if (v === 'GEÇ') gec++;
+                else if (v === 'RAHATSIZLANDI') rahatsiz++;
+            });
+
+            document.getElementById('countGeldi').textContent = geldi;
+            document.getElementById('countGelmedi').textContent = gelmedi;
+            document.getElementById('countGec').textContent = gec;
+            document.getElementById('countRahatsiz').textContent = rahatsiz;
+        }
+
+        function filterStudents() {
+            const query = document.getElementById('studentSearch').value.toLowerCase().trim();
+            const rows = document.querySelectorAll('.student-row');
+            
+            rows.forEach(row => {
+                const searchStr = row.getAttribute('data-search');
+                if (searchStr.includes(query)) {
+                    row.classList.remove('hidden');
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+        }
+
+        async function saveAttendance() {
+            const dateVal = document.getElementById('yoklamaDate').value;
+            const hourVal = document.getElementById('lessonHour').value;
+            const classVal = document.getElementById('classSelect').value;
+            const subjectVal = document.getElementById('subjectSelect').value;
+
+            if (!classVal) {
+                Swal.fire('Hata', 'Lütfen sınıf seçin!', 'error');
+                return;
+            }
+
+            if (!subjectVal) {
+                Swal.fire('Hata', 'Lütfen ders seçin!', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Kaydediliyor',
+                text: 'Yoklama buluta yükleniyor...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            try {
+                // Fetch full data
+                const dbData = DataManager._getData();
+                dbData.attendance = dbData.attendance || {};
+                dbData.attendance[dateVal] = dbData.attendance[dateVal] || {};
+                dbData.attendance[dateVal][hourVal] = dbData.attendance[dateVal][hourVal] || {};
+                
+                // Save record
+                dbData.attendance[dateVal][hourVal][classVal] = {
+                    teacher: activeTeacherUsername,
+                    teacherName: sessionStorage.getItem('klbk_name') || activeTeacherUsername,
+                    subject: subjectVal,
+                    records: attendanceMap,
+                    lastUpdated: new Date().toLocaleTimeString('tr-TR') + ' ' + new Date().toLocaleDateString('tr-TR')
+                };
+
+                // Sync via DataManager
+                await DataManager._saveData(dbData);
+
+                document.getElementById('lastSaveDisplay').textContent = dbData.attendance[dateVal][hourVal][classVal].lastUpdated;
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Başarıyla Kaydedildi',
+                    text: 'Yoklama verisi sisteme işlendi ve buluta aktarıldı.',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+                // If history is loaded, refresh it
+                loadHistory();
+
+            } catch (e) {
+                console.error("Save attendance error:", e);
+                Swal.fire('Hata', 'Yoklama kaydedilemedi. Lütfen bağlantınızı kontrol edin.', 'error');
+            }
+        }
+
+        // --- Tab Switching Logic ---
+        function switchTab(tabName) {
+            const tabYoklama = document.getElementById('tabYoklama');
+            const tabGecmis = document.getElementById('tabGecmis');
+            const btnYoklama = document.getElementById('btnTabYoklama');
+            const btnGecmis = document.getElementById('btnTabGecmis');
+
+            if (tabName === 'yoklama') {
+                tabYoklama.classList.remove('hidden');
+                tabGecmis.classList.add('hidden');
+                
+                btnYoklama.className = 'btn btn-primary';
+                btnGecmis.className = 'btn btn-secondary';
+                btnGecmis.style.background = 'white';
+                btnGecmis.style.color = 'var(--gray-600)';
+            } else {
+                tabYoklama.classList.add('hidden');
+                tabGecmis.classList.remove('hidden');
+                
+                btnGecmis.className = 'btn btn-primary';
+                btnYoklama.className = 'btn btn-secondary';
+                btnYoklama.style.background = 'white';
+                btnYoklama.style.color = 'var(--gray-600)';
+
+                loadHistory();
+            }
+        }
+
+        function loadHistory() {
+            const container = document.getElementById('historyListContainer');
+            container.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--gray-500);"><i class="fa-solid fa-spinner fa-spin"></i> Geçmiş yoklamalar yükleniyor...</div>';
+
+            const dbData = DataManager._getData();
+            const attendance = dbData.attendance || {};
+
+            const historyList = [];
+
+            // Filter records taken by this teacher
+            for (const date in attendance) {
+                for (const hour in attendance[date]) {
+                    for (const cls in attendance[date][hour]) {
+                        const record = attendance[date][hour][cls];
+                        if (record.teacher === activeTeacherUsername) {
+                            // Count statuses
+                            let gelmedi = 0, gec = 0, rahatsiz = 0;
+                            Object.values(record.records || {}).forEach(v => {
+                                if (v === 'GELMEDİ') gelmedi++;
+                                else if (v === 'GEÇ') gec++;
+                                else if (v === 'RAHATSIZLANDI') rahatsiz++;
+                            });
+
+                            historyList.push({
+                                date,
+                                hour,
+                                class: cls,
+                                subject: record.subject,
+                                lastUpdated: record.lastUpdated,
+                                stats: { gelmedi, gec, rahatsiz }
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Sort by date descending, hour descending
+            historyList.sort((a, b) => {
+                const dateCompare = b.date.localeCompare(a.date);
+                if (dateCompare !== 0) return dateCompare;
+                return parseInt(b.hour) - parseInt(a.hour);
+            });
+
+            if (historyList.length === 0) {
+                container.innerHTML = `<div style="text-align: center; padding: 3rem; color: var(--gray-500);">
+                    <i class="fa-solid fa-clock-rotate-left" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i><br>
+                    Son 30 güne ait alınmış bir yoklama kaydınız bulunmuyor.
+                </div>`;
+                return;
+            }
+
+            let html = '';
+            historyList.forEach(item => {
+                html += `
+                    <div class="history-card">
+                        <div>
+                            <div style="font-weight: 800; font-size: 1.05rem; color: var(--primary);">
+                                ${item.class} - ${item.subject}
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--gray-500); margin-top: 4px;">
+                                <i class="fa-solid fa-calendar"></i> ${item.date} | <i class="fa-solid fa-clock"></i> ${item.hour}. Ders | Güncelleme: ${item.lastUpdated}
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div style="display: flex; gap: 6px;">
+                                <span class="stat-badge gelmedi">Gelmedi: ${item.stats.gelmedi}</span>
+                                <span class="stat-badge gec">Geç: ${item.stats.gec}</span>
+                                <span class="stat-badge rahatsiz">Rahatsız: ${item.stats.rahatsiz}</span>
+                            </div>
+                            <button class="btn btn-secondary btn-sm" onclick="editPastAttendance('${item.date}', '${item.hour}', '${item.class}')">
+                                <i class="fa-solid fa-pen-to-square"></i> Düzenle
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function editPastAttendance(date, hour, className) {
+            document.getElementById('yoklamaDate').value = date;
+            document.getElementById('lessonHour').value = hour;
+            document.getElementById('classSelect').value = className;
+
+            switchTab('yoklama');
+            loadStudentList();
+
+            // Highlight animation on the students list panel to guide the teacher
+            const listPanel = document.getElementById('studentListContainer');
+            listPanel.style.animation = 'none';
+            listPanel.offsetHeight; // trigger reflow
+            listPanel.style.animation = 'pulse-blue 1.5s ease-out';
+        }
+
+        function logout() {
+            sessionStorage.clear();
+            localStorage.removeItem('klbk_persistent_session');
+            window.location.href = '/k9x7v2m4';
+        }
+    </script>
+</body>
+</html>
