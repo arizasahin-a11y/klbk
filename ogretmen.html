@@ -202,7 +202,8 @@
                 width: 100% !important;
             }
 
-            .print-tools-header label {
+            .print-tools-header label,
+            .print-tools-header .print-mode-select {
                 padding: 8px 10px !important;
                 background: white !important;
                 border: 1px solid var(--gray-200) !important;
@@ -213,6 +214,8 @@
                 font-size: 0.8rem !important;
                 display: flex !important;
                 align-items: center !important;
+                box-sizing: border-box !important;
+                height: 38px !important;
             }
 
             .print-tools-header > div:not(.print-actions-wrapper) > div {
@@ -1153,7 +1156,7 @@
                                         <div style="display: flex; align-items:center; gap: 15px;">
                                             <div class="print-tools-header" style="display: flex; align-items: center; gap: 12px; background: #f8fafc; padding: 6px 12px; border-radius: 10px; border: 1px solid var(--gray-200);" onclick="event.stopPropagation()">
                                                 <div style="display: flex; gap: 10px; align-items: center; font-size: 0.8rem; font-weight: 700; color: var(--gray-600);">
-                                                    <select id="printMode-${ses.id}" style="padding: 5px 8px; font-size: 0.8rem; font-weight: 700; border: 1.5px solid var(--gray-300); border-radius: 8px; color: var(--gray-700); background: white; cursor: pointer; outline: none; font-family: 'Outfit', sans-serif;">
+                                                    <select id="printMode-${ses.id}" class="print-mode-select" style="min-width: 120px; padding: 6px 12px; font-size: 0.8rem; font-weight: 700; border: 1.5px solid var(--gray-300); border-radius: 8px; color: var(--gray-700); background: white; cursor: pointer; outline: none; font-family: 'Outfit', sans-serif; transition: var(--transition);">
                                                         <option value="class" ${ses.type === 'uygulama' ? 'selected' : ''}>Sınıf</option>
                                                         ${ses.type !== 'uygulama' ? `
                                                         <option value="room" selected>Salon</option>
