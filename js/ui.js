@@ -3424,17 +3424,56 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.openSparePaperModal = function (sessionId) {
         const sessions = DataManager.getExamSessions();
         const ses = sessions.find(s => s.id === sessionId);
-        if (!ses || ses.type === 'uygulama') return;
+        if (!ses) return;
 
-        const metaKeys = Object.keys(ses.subjectMetadata || {});
-        const subjectNames = metaKeys.length > 0
-            ? metaKeys.sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }))
-            : (ses.subjects || []).map(s => typeof s === 'object' ? s.name : s);
+        const hasPdf = (subName) => {
+            const meta = DataManager.getSanitizedSubjectMetadata(ses, subName) || {};
+            const papers = meta.papers;
+            if (!papers) return false;
+            if (typeof papers === 'string') return papers.trim().length > 5;
+            if (typeof papers === 'object') {
+                return Object.entries(papers).some(([key, val]) => {
+                    if (key === 'uygulamaFiles') {
+                        return Array.isArray(val) && val.some(link => typeof link === 'string' && link.trim().length > 5);
+                    }
+                    return typeof val === 'string' && val.trim().length > 5;
+                });
+            }
+            return false;
+        };
+
+        const seenNames = new Set();
+        const subjectNames = [];
+
+        if (ses.results) {
+            ses.results.forEach(room => {
+                Object.values(room.seats || {}).forEach(std => {
+                    const subName = std._matchedSubject || "";
+                    if (subName && !seenNames.has(subName) && hasPdf(subName)) {
+                        seenNames.add(subName);
+                        subjectNames.push(subName);
+                    }
+                });
+            });
+        }
+
+        (ses.subjects || []).forEach(sub => {
+            const subName = (typeof sub === 'object' ? sub.name : sub);
+            if (!seenNames.has(subName) && hasPdf(subName)) {
+                const hasGranular = Array.from(seenNames).some(n => n.startsWith(subName + " "));
+                if (!hasGranular) {
+                    seenNames.add(subName);
+                    subjectNames.push(subName);
+                }
+            }
+        });
 
         if (subjectNames.length === 0) {
-            Swal.fire('Uyarı', 'Bu oturumda tanımlı ders bulunamadı.', 'warning');
+            Swal.fire('Uyarı', 'Bu oturumda yazdırılabilir PDF sınav kağıdı veya uygulama dosyası yüklü olan ders bulunamadı.', 'warning');
             return;
         }
+
+        subjectNames.sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }));
 
         let listHtml = subjectNames.map((sub, idx) => `
             <div style="display:flex; align-items:center; gap:12px; padding:12px; background:${idx % 2 === 0 ? 'rgba(79, 70, 229, 0.03)' : '#fff'}; border-radius:10px; margin-bottom:6px; border:1px solid rgba(0,0,0,0.03);">

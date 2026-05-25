@@ -1183,22 +1183,46 @@
                                                         ${ses.type !== 'uygulama' ? `
                                                         <option value="room" selected>Salon</option>
                                                         <option value="seating">Şema</option>
-                                                        ` : ''}
                                                         ${(() => {
-                                                            let hasPdf = false;
-                                                            if (ses.subjectMetadata) {
-                                                                hasPdf = Object.values(ses.subjectMetadata).some(meta => {
-                                                                    if (!meta || !meta.papers) return false;
-                                                                    return Object.entries(meta.papers).some(([key, val]) => {
-                                                                        if (key === 'uygulamaFiles') {
-                                                                            return Array.isArray(val) && val.some(link => typeof link === 'string' && link.trim() !== '');
-                                                                        }
-                                                                        return typeof val === 'string' && val.trim() !== '';
-                                                                    });
-                                                                });
-                                                            }
-                                                            return hasPdf ? '<option value="spare">Yedek Kağıt</option>' : '';
-                                                        })()}
+                                                             let hasPdf = false;
+                                                             if (ses.subjectMetadata) {
+                                                                 const activeSubs = new Set();
+                                                                 if (Array.isArray(ses.subjects)) {
+                                                                     ses.subjects.forEach(s => {
+                                                                         const name = typeof s === 'object' ? s.name : s;
+                                                                         if (name) activeSubs.add(name);
+                                                                     });
+                                                                 }
+                                                                 if (Array.isArray(ses.results)) {
+                                                                     ses.results.forEach(room => {
+                                                                         Object.values(room.seats || {}).forEach(std => {
+                                                                             const name = std._matchedSubject;
+                                                                             if (name) activeSubs.add(name);
+                                                                         });
+                                                                     });
+                                                                 }
+
+                                                                 hasPdf = Array.from(activeSubs).some(subName => {
+                                                                     const meta = DataManager.getSanitizedSubjectMetadata(ses, subName);
+                                                                     if (!meta || !meta.papers) return false;
+                                                                     const papers = meta.papers;
+                                                                     if (typeof papers === 'string') {
+                                                                         return papers.trim().length > 0;
+                                                                     }
+                                                                     if (typeof papers === 'object' && papers !== null) {
+                                                                         return Object.entries(papers).some(([key, val]) => {
+                                                                             if (key === 'uygulamaFiles') {
+                                                                                 return Array.isArray(val) && val.some(link => typeof link === 'string' && link.trim() !== '');
+                                                                             }
+                                                                             return typeof val === 'string' && val.trim() !== '';
+                                                                         });
+                                                                     }
+                                                                     return false;
+                                                                 });
+                                                             }
+                                                             return hasPdf ? '<option value="spare">Yedek Kağıt</option>' : '';
+                                                         })()}
+                                                        ` : ''}
                                                     </select>
                                                     <button class="btn btn-primary btn-sm btn-yazdir" style="padding: 5px 12px; font-size: 0.8rem; font-weight: 700; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;" onclick="printSession('${ses.id}')" oncontextmenu="event.preventDefault(); window.changePrintPageSize('${ses.id}')" title="Yazdır (Sağ Tık: Sayfa Başı Öğrenci)">
                                                         <i class="fa-solid fa-print"></i> Yazdır
@@ -4532,17 +4556,22 @@
         window.openSparePaperModal = function (sessionId) {
             const _spareModalSessions = DataManager.getExamSessions();
             const ses = _spareModalSessions.find(s => s.id === sessionId);
-            if (!ses || ses.type === 'uygulama') return;
+            if (!ses) return;
 
             const hasPdf = (subName) => {
                 const meta = DataManager.getSanitizedSubjectMetadata(ses, subName) || {};
-                const papers = meta.papers || {};
-                let currentPdf = '';
-                if (typeof papers === 'string') currentPdf = papers;
-                else currentPdf = papers['default'] || Object.values(papers)[0] || '';
-
-                return (currentPdf && currentPdf.length > 5) || 
-                       (typeof papers === 'object' && Object.values(papers).some(p => p && p.length > 5));
+                const papers = meta.papers;
+                if (!papers) return false;
+                if (typeof papers === 'string') return papers.trim().length > 5;
+                if (typeof papers === 'object') {
+                    return Object.entries(papers).some(([key, val]) => {
+                        if (key === 'uygulamaFiles') {
+                            return Array.isArray(val) && val.some(link => typeof link === 'string' && link.trim().length > 5);
+                        }
+                        return typeof val === 'string' && val.trim().length > 5;
+                    });
+                }
+                return false;
             };
 
             const seenNames = new Set();
