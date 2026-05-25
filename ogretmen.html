@@ -1255,15 +1255,23 @@
                             }
 
                             const papers = meta.papers || {};
-                            const hasAnyPdf = (currentPdf && currentPdf.length > 5) || 
-                                              (typeof papers === 'object' && Object.values(papers).some(p => p && p.length > 5));
+                            const hasAnyPdf = (() => {
+                                if (typeof papers === 'string') return papers.trim().length > 5;
+                                if (typeof papers === 'object' && papers !== null) {
+                                    return Object.entries(papers).some(([key, val]) => {
+                                        if (key === 'uygulamaFiles') return false;
+                                        return typeof val === 'string' && val.trim().length > 5;
+                                    });
+                                }
+                                return false;
+                            })();
 
                             const isUygLoaded = ses.type === 'uygulama' && (
                                 (Array.isArray(papers.uygulamaFiles) && papers.uygulamaFiles.some(f => f && f.trim().length > 5)) ||
                                 (papers['default'] && papers['default'].trim().length > 5)
                             );
 
-                            const showThemeFont = (isMine && hasAnyPdf && diffMins > 5);
+                            const showThemeFont = (isMine && hasAnyPdf);
                             const showShare = (isMine && hasAnyPdf);
                             let subjectControlsHtml = '';
                             if (showThemeFont || showShare) {
