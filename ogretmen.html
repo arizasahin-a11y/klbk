@@ -1182,7 +1182,7 @@
                                                         <option value="class" ${ses.type === 'uygulama' ? 'selected' : ''}>Sınıf</option>
                                                         ${ses.type !== 'uygulama' ? `
                                                         <option value="room" selected>Salon</option>
-                                                        <option value="seating">Şema</option>
+                                                        <option value="seating">Şema</option>` : ''}
                                                         ${(() => {
                                                              let hasPdf = false;
                                                              if (ses.subjectMetadata) {
@@ -1222,7 +1222,6 @@
                                                              }
                                                              return hasPdf ? '<option value="spare">Yedek Kağıt</option>' : '';
                                                          })()}
-                                                        ` : ''}
                                                     </select>
                                                     <button class="btn btn-primary btn-sm btn-yazdir" style="padding: 5px 12px; font-size: 0.8rem; font-weight: 700; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;" onclick="printSession('${ses.id}')" oncontextmenu="event.preventDefault(); window.changePrintPageSize('${ses.id}')" title="Yazdır (Sağ Tık: Sayfa Başı Öğrenci)">
                                                         <i class="fa-solid fa-print"></i> Yazdır
