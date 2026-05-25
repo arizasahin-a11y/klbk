@@ -2256,18 +2256,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('wizSessionName').value = '';
         document.getElementById('wizSessionDate').value = '';
 
-        // Dynamically populate session time datalist based on daily lessons
-        const timeSelect = document.getElementById('wizSessionTime');
-        const timeDatalist = document.getElementById('wizSessionTimeList');
-        if (timeSelect && timeDatalist) {
+        // Dynamically populate session lesson dropdown based on daily lessons
+        const lessonSelect = document.getElementById('wizSessionLesson');
+        if (lessonSelect) {
             const school = DataManager.getSchoolSettings();
+            const lessonTimes = school.lessonTimes || {};
             const lessonCount = parseInt(school.dailyLessons) || 0;
-            let timeHtml = '';
+            let lessonHtml = '<option value="">Seçin (Hızlı Seçim)</option>';
             for (let i = 1; i <= lessonCount; i++) {
-                timeHtml += `<option value="${i}. Ders"></option>`;
+                const start = lessonTimes[`${i}_start`];
+                if (start) {
+                    lessonHtml += `<option value="${start}">${i}. Ders (${start})</option>`;
+                }
             }
-            timeDatalist.innerHTML = timeHtml;
-            timeSelect.value = '';
+            lessonSelect.innerHTML = lessonHtml;
+            lessonSelect.value = '';
+            
+            lessonSelect.addEventListener('change', (e) => {
+                if (e.target.value && timeInput) {
+                    timeInput.value = e.target.value;
+                    wizardSessionData.time = e.target.value;
+                    if (currentWizardStep === 2) populateWizardClasses();
+                }
+            });
+        }
+        if (timeInput) {
+            timeInput.value = '';
         }
 
         const hasGroupsCheck = document.getElementById('wizSessionHasGroups');
@@ -5703,22 +5717,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <label style="font-weight:700;">Sınav Tarihi</label>
                             <input type="date" id="meta-date" class="swal2-input" style="width:100%; margin:0; height:40px;" value="${window.formatDateToInput(ses.date) || ''}">
                         </div>
-                        <div class="modal-form-group" style="flex: 1; min-width: 180px; max-width: 220px;">
-                            <label style="font-weight:700;">Sınav Saati / Ders</label>
+                        <div class="modal-form-group" style="flex: 1; min-width: 140px; max-width: 180px;">
+                            <label style="font-weight:700;">Ders Saati</label>
                             ${(() => {
                                 const school = DataManager.getSchoolSettings();
+                                const lessonTimes = school.lessonTimes || {};
                                 const dailyLessons = parseInt(school.dailyLessons) || 0;
-                                let options = '';
-                                if (dailyLessons > 0) {
-                                    for (let i = 1; i <= dailyLessons; i++) {
-                                        options += `<option value="${i}. Ders"></option>`;
+                                let options = '<option value="">Hızlı Seçim</option>';
+                                for (let i = 1; i <= dailyLessons; i++) {
+                                    const start = lessonTimes[`${i}_start`];
+                                    if (start) {
+                                        const isSelected = (ses.time === start || ses.time === `${i}. Ders`) ? 'selected' : '';
+                                        options += `<option value="${start}" ${isSelected}>${i}. Ders (${start})</option>`;
                                     }
                                 }
                                 return `
-                                    <input type="text" id="meta-time" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem;" value="${ses.time || ''}" placeholder="Örn: 3. Ders veya 10:15" list="editSessionTimeList" required>
-                                    <datalist id="editSessionTimeList">${options}</datalist>
+                                    <select id="meta-lesson" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem; padding:0 10px;">
+                                        ${options}
+                                    </select>
                                 `;
                             })()}
+                        </div>
+                        <div class="modal-form-group" style="flex: 1; min-width: 120px; max-width: 160px;">
+                            <label style="font-weight:700;">Saat / Dakika</label>
+                            <input type="time" id="meta-time" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem;" value="" required>
                         </div>
                         <div class="modal-form-group" style="flex: 1; min-width: 150px; max-width: 180px;">
                             <label style="font-weight:700;">Sınav Süresi (dk)</label>
@@ -5799,7 +5821,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const dateInp = document.getElementById('meta-date');
                 const timeInp = document.getElementById('meta-time');
                 if (dateInp && ses.date) dateInp.value = window.formatDateToInput(ses.date);
-                if (timeInp && ses.time) timeInp.value = ses.time;
+                
+                let timeVal = ses.time || "";
+                if (timeVal.includes('. Ders')) {
+                    const lNum = parseInt(timeVal);
+                    const school = DataManager.getSchoolSettings();
+                    const lessonTimes = school.lessonTimes || {};
+                    if (lessonTimes[`${lNum}_start`]) timeVal = lessonTimes[`${lNum}_start`];
+                }
+                if (timeVal.includes(':')) {
+                    const [h, m] = timeVal.split(':');
+                    timeVal = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+                }
+                if (timeInp) timeInp.value = timeVal;
+
+                const lessonSelect = document.getElementById('meta-lesson');
+                if (lessonSelect && timeInp) {
+                    lessonSelect.addEventListener('change', (e) => {
+                        if (e.target.value) timeInp.value = e.target.value;
+                    });
+                }
 
                 const durationInp = document.getElementById('meta-duration');
                 const timerPreview = document.getElementById('duration-timer-preview');

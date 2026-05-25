@@ -2659,17 +2659,33 @@
             if (!session) return;
 
             const school = DataManager.getSchoolSettings();
+            const lessonTimes = school.lessonTimes || {};
             const dailyLessons = parseInt(school.dailyLessons) || 0;
 
-            let options = '';
-            if (dailyLessons > 0) {
-                for (let i = 1; i <= dailyLessons; i++) {
-                    options += `<option value="${i}. Ders"></option>`;
+            let lessonOptions = '<option value="">Ders Saati Seçin (Hızlı Seçim)</option>';
+            let currentLessonValue = "";
+            for (let i = 1; i <= dailyLessons; i++) {
+                const start = lessonTimes[`${i}_start`];
+                if (start) {
+                    const isSelected = (session.time === start || session.time === `${i}. Ders`) ? 'selected' : '';
+                    if (isSelected) currentLessonValue = start;
+                    lessonOptions += `<option value="${start}" ${isSelected}>${i}. Ders (${start})</option>`;
                 }
             }
 
             // Format date for type="date" (YYYY-MM-DD)
             let dateVal = DataManager.formatDateToInput(session.date);
+
+            // Format time for type="time" (HH:MM)
+            let timeVal = session.time || "";
+            if (timeVal.includes('. Ders')) {
+                const lNum = parseInt(timeVal);
+                if (lessonTimes[`${lNum}_start`]) timeVal = lessonTimes[`${lNum}_start`];
+            }
+            if (timeVal.includes(':')) {
+                const [h, m] = timeVal.split(':');
+                timeVal = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+            }
 
             const { value: formValues } = await Swal.fire({
                 title: 'Oturum Ayarları',
@@ -2686,16 +2702,25 @@
                                 <input id="swal-date" class="swal2-input" type="date" value="${dateVal}" style="width: 100%; margin: 0; height: 40px;">
                             </div>
                             <div style="flex: 1; min-width: 180px; max-width: 250px;">
-                                <label style="display: block; margin-bottom: 5px; font-weight: 700; color: var(--gray-700);">Sınav Saati / Ders</label>
-                                <input id="swal-time" class="swal2-input" type="text" value="${session.time || ''}" placeholder="Örn: 3. Ders veya 10:15" list="editSessionTimeListTeacher" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem;" required>
-                                <datalist id="editSessionTimeListTeacher">${options}</datalist>
+                                <label style="display: block; margin-bottom: 5px; font-weight: 700; color: var(--gray-700);">Başlangıç Saati</label>
+                                <input id="swal-time" class="swal2-input" type="time" value="${timeVal}" style="width: 100%; margin: 0; height: 40px;">
                             </div>
+                        </div>
+
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 700; color: var(--gray-700);">Ders Saati (Otomatik Saat Belirle)</label>
+                            <select id="swal-lesson" class="swal2-input" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem;">
+                                ${lessonOptions}
+                            </select>
                         </div>
                     </div>
                 `,
                 didOpen: () => {
+                    const lessonSelect = document.getElementById('swal-lesson');
                     const timeInput = document.getElementById('swal-time');
-                    if (timeInput && session.time) timeInput.value = session.time;
+                    lessonSelect.addEventListener('change', (e) => {
+                        if (e.target.value) timeInput.value = e.target.value;
+                    });
                 },
                 focusConfirm: false,
                 showCancelButton: true,
@@ -2705,7 +2730,7 @@
                     return {
                         name: document.getElementById('swal-name').value,
                         date: DataManager.formatDateToStandard(document.getElementById('swal-date').value),
-                        time: document.getElementById('swal-time').value.trim()
+                        time: document.getElementById('swal-time').value
                     }
                 }
             });
