@@ -2256,16 +2256,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('wizSessionName').value = '';
         document.getElementById('wizSessionDate').value = '';
 
-        // Dynamically populate session time based on daily lessons
+        // Dynamically populate session time datalist based on daily lessons
         const timeSelect = document.getElementById('wizSessionTime');
-        if (timeSelect) {
+        const timeDatalist = document.getElementById('wizSessionTimeList');
+        if (timeSelect && timeDatalist) {
             const school = DataManager.getSchoolSettings();
             const lessonCount = parseInt(school.dailyLessons) || 0;
-            let timeHtml = '<option value="">-- Seçiniz --</option>';
+            let timeHtml = '';
             for (let i = 1; i <= lessonCount; i++) {
-                timeHtml += `<option value="${i}. Ders">${i}. Ders</option>`;
+                timeHtml += `<option value="${i}. Ders"></option>`;
             }
-            timeSelect.innerHTML = timeHtml;
+            timeDatalist.innerHTML = timeHtml;
             timeSelect.value = '';
         }
 
@@ -5705,19 +5706,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="modal-form-group" style="flex: 1; min-width: 180px; max-width: 220px;">
                             <label style="font-weight:700;">Sınav Saati / Ders</label>
                             ${(() => {
-                    const school = DataManager.getSchoolSettings();
-                    const dailyLessons = parseInt(school.dailyLessons) || 0;
-                    if (dailyLessons > 0) {
-                        let options = '<option value="">-- Seçin --</option>';
-                        for (let i = 1; i <= dailyLessons; i++) {
-                            const val = `${i}. Ders`;
-                            options += `<option value="${val}" ${ses.time === val ? 'selected' : ''}>${val}</option>`;
-                        }
-                        return `<select id="meta-time" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem; padding:0 10px;">${options}</select>`;
-                    } else {
-                        return `<input type="text" id="meta-time" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem;" value="${ses.time || ''}" placeholder="10:00">`;
-                    }
-                })()}
+                                const school = DataManager.getSchoolSettings();
+                                const dailyLessons = parseInt(school.dailyLessons) || 0;
+                                let options = '';
+                                if (dailyLessons > 0) {
+                                    for (let i = 1; i <= dailyLessons; i++) {
+                                        options += `<option value="${i}. Ders"></option>`;
+                                    }
+                                }
+                                return `
+                                    <input type="text" id="meta-time" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem;" value="${ses.time || ''}" placeholder="Örn: 3. Ders veya 10:15" list="editSessionTimeList" required>
+                                    <datalist id="editSessionTimeList">${options}</datalist>
+                                `;
+                            })()}
                         </div>
                         <div class="modal-form-group" style="flex: 1; min-width: 150px; max-width: 180px;">
                             <label style="font-weight:700;">Sınav Süresi (dk)</label>
