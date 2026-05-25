@@ -1328,20 +1328,57 @@ const DataManager = {
         const examDay = parseDay(session.date);
         const timeStr = (session.time || '').trim();
         const examHourMatch = timeStr.match(/\d+/);
-        const examHourNum = examHourMatch ? examHourMatch[0] : null;
+        let examHourNum = examHourMatch ? examHourMatch[0] : null;
+        if (timeStr.includes(':')) {
+            examHourNum = null; // Do not treat clock hour as a lesson number
+        }
 
         if (!examDay || !timeStr) return result;
 
         const school = this.getSchoolSettings() || {};
         const lessonTimes = school.lessonTimes || {};
         
-        // Saatten ders numarasını bul (Örn: "09:00" -> "1")
+        // Saatten ders numarasını bul (Örn: "09:00" -> "1" veya o saate karşılık gelen en yakın/uygun ders saati)
         let mappedLessonNum = null;
         if (timeStr.includes(':')) {
+            // 1. Önce tam başlangıç saati eşleşmesine bak
             for (let i = 1; i <= 20; i++) {
                 if (lessonTimes[`${i}_start`] === timeStr) {
                     mappedLessonNum = String(i);
                     break;
+                }
+            }
+            // 2. Tam eşleşme yoksa, dersin başlangıç ve bitiş aralığına bak
+            if (!mappedLessonNum) {
+                for (let i = 1; i <= 20; i++) {
+                    const start = lessonTimes[`${i}_start`];
+                    const end = lessonTimes[`${i}_end`];
+                    if (start && end) {
+                        if (timeStr >= start && timeStr <= end) {
+                            mappedLessonNum = String(i);
+                            break;
+                        }
+                    }
+                }
+            }
+            // 3. Hala bulunamadıysa (teneffüste ise), o saate en yakın ders saatine eşle
+            if (!mappedLessonNum) {
+                let closestLesson = null;
+                let minDiff = Infinity;
+                for (let i = 1; i <= 20; i++) {
+                    const start = lessonTimes[`${i}_start`];
+                    if (start) {
+                        const [sh, sm] = start.split(':').map(Number);
+                        const [th, tm] = timeStr.split(':').map(Number);
+                        const diff = Math.abs((sh * 60 + sm) - (th * 60 + tm));
+                        if (diff < minDiff) {
+                            minDiff = diff;
+                            closestLesson = String(i);
+                        }
+                    }
+                }
+                if (closestLesson) {
+                    mappedLessonNum = closestLesson;
                 }
             }
         }
