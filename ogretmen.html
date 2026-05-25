@@ -3354,7 +3354,7 @@
                 fontsListTurkish.forEach(f => {
                     const key = f.toLowerCase().replace(/\s+/g, '');
                     const file = ttfMapping[key] || `${key}.ttf`;
-                    css += `@font-face { font-family: '${f}'; src: url('fonts/${file}'); }\n`;
+                    css += `@font-face { font-family: '${f}'; src: url('/fonts/${file}'); }\n`;
                 });
                 style.textContent = css;
                 document.head.appendChild(style);
@@ -3401,19 +3401,19 @@
                     </div>
                     <div style="text-align:left; margin-bottom: 1rem;">
                         <label style="display: block; margin-bottom: 5px; font-weight: 900; color: var(--primary);">1. Satır Fontu (Okul İsmi)</label>
-                        <select id="swal-sub-font1" class="swal2-input" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem;">
+                        <select id="swal-sub-font1" class="swal2-input" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem; transition: var(--transition);">
                             ${buildFontOpts(safeF1)}
                         </select>
                     </div>
                     <div style="text-align:left; margin-bottom: 1rem;">
                         <label style="display: block; margin-bottom: 5px; font-weight: 900; color: var(--primary);">2. Satır Fontu (Sınav Bilgisi)</label>
-                        <select id="swal-sub-font2" class="swal2-input" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem;">
+                        <select id="swal-sub-font2" class="swal2-input" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem; transition: var(--transition);">
                             ${buildFontOpts(safeF2)}
                         </select>
                     </div>
                     <div style="text-align:left; margin-bottom: 1rem;">
                         <label style="display: block; margin-bottom: 5px; font-weight: 900; color: var(--primary);">3. Satır Fontu (Öğrenci & Salon)</label>
-                        <select id="swal-sub-font3" class="swal2-input" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem;">
+                        <select id="swal-sub-font3" class="swal2-input" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem; transition: var(--transition);">
                             ${buildFontOpts(safeF3)}
                         </select>
                     </div>
@@ -3422,6 +3422,38 @@
                 showCancelButton: true,
                 confirmButtonText: 'Kaydet',
                 cancelButtonText: 'İptal',
+                didOpen: () => {
+                    const updateFontStyles = () => {
+                        ['1', '2', '3'].forEach(num => {
+                            const sel = document.getElementById(`swal-sub-font${num}`);
+                            if (sel) {
+                                const val = sel.value;
+                                if (val && val !== 'auto') {
+                                    sel.style.fontFamily = `'${val}', sans-serif`;
+                                    sel.style.fontWeight = '700';
+                                    sel.style.fontSize = '1rem';
+                                    // Add minor visually appealing shadow/colors to selected items
+                                    sel.style.borderColor = 'var(--primary)';
+                                } else {
+                                    sel.style.fontFamily = 'inherit';
+                                    sel.style.fontWeight = 'normal';
+                                    sel.style.fontSize = '0.9rem';
+                                    sel.style.borderColor = '#ccc';
+                                }
+                            }
+                        });
+                    };
+
+                    ['1', '2', '3'].forEach(num => {
+                        const sel = document.getElementById(`swal-sub-font${num}`);
+                        if (sel) {
+                            sel.addEventListener('change', updateFontStyles);
+                        }
+                    });
+
+                    // Initial style setup
+                    updateFontStyles();
+                },
                 preConfirm: () => {
                     return {
                         theme: document.getElementById('swal-sub-theme').value,
