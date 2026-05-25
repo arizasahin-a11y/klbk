@@ -3777,7 +3777,7 @@
                                 <input type="checkbox" id="selectAllEntities" checked style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--primary);" onchange="document.querySelectorAll('input[name=printEntity]').forEach(cb => cb.checked = this.checked)">
                                 <span style="font-size: 1.1rem; font-weight: 900; color: var(--primary);">Tümünü Seç</span>
                             </label>
-                            ${(mode === 'class' || mode === 'room') && (session.type !== 'uygulama' || hasPdf) ? `
+                            ${(mode === 'class' || mode === 'room') && hasPdf ? `
                             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--primary); font-weight: bold; font-size: 1.05rem; margin: 0; user-select: none;">
                                 <input type="checkbox" id="swal-paper-check" style="accent-color: var(--primary); width: 20px; height: 20px; cursor: pointer;"> <span>Soru Kağıdı</span>
                             </label>
