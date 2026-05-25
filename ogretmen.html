@@ -1280,11 +1280,16 @@
                                     ? papers.uygulamaFiles.filter(f => typeof f === 'string' && f.trim().length > 5).length
                                     : 0;
                                 const pdfCount = hasAnyPdf ? 1 : 0;
-                                if (uygCount > 0 || pdfCount > 0) {
-                                    subStatusText = `<strong style="color:#ef4444; font-size:0.9rem; font-weight:900;">${uygCount}</strong> Uygulama dosyası ve <strong style="color:#ef4444; font-size:0.9rem; font-weight:900;">${pdfCount}</strong> Soru kağıdı PDF'i yüklendi`;
-                                } else {
-                                    subStatusText = 'Uygulama dosyası bekleniyor...';
-                                }
+
+                                const uygText = uygCount > 0
+                                    ? `<strong style="color:#ef4444; font-size:0.9rem; font-weight:900;">${uygCount}</strong> Uygulama dosyası yüklendi`
+                                    : `Uygulama dosyası yüklenmedi`;
+
+                                const pdfText = pdfCount > 0
+                                    ? `<strong style="color:#ef4444; font-size:0.9rem; font-weight:900;">${pdfCount}</strong> Soru kağıdı PDF'i yüklendi`
+                                    : `PDF dosyası yüklenmedi`;
+
+                                subStatusText = `${uygText}, ${pdfText}`;
                             } else {
                                 subStatusText = currentPdf ? 'Sınav kağıdı yüklendi' : 'Sınav kağıdı bekleniyor...';
                             }
