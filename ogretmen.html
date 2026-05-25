@@ -1273,6 +1273,22 @@
 
                             const showThemeFont = (isMine && hasAnyPdf && diffMins > 5);
                             const showShare = (isMine && hasAnyPdf);
+
+                            let subStatusText = '';
+                            if (ses.type === 'uygulama') {
+                                const uygCount = Array.isArray(papers.uygulamaFiles)
+                                    ? papers.uygulamaFiles.filter(f => typeof f === 'string' && f.trim().length > 5).length
+                                    : 0;
+                                const pdfCount = hasAnyPdf ? 1 : 0;
+                                if (uygCount > 0 || pdfCount > 0) {
+                                    subStatusText = `${uygCount} Uygulama dosyası ve ${pdfCount} Soru kağıdı PDF'i yüklendi`;
+                                } else {
+                                    subStatusText = 'Uygulama dosyası bekleniyor...';
+                                }
+                            } else {
+                                subStatusText = currentPdf ? 'Sınav kağıdı yüklendi' : 'Sınav kağıdı bekleniyor...';
+                            }
+
                             let subjectControlsHtml = '';
                             if (showThemeFont || showShare) {
                                 subjectControlsHtml += `<div style="margin-left: auto; display: flex; align-items: center; gap: 10px;" onclick="event.stopPropagation()">`;
@@ -1305,7 +1321,7 @@
                                                     </div>
                                                     <div>
                                                         <div style="font-weight:900; font-size:1.1rem;">${subNameStr} ${!isMine ? '<span style="font-size:0.65rem; background:var(--primary-light); color:var(--primary); padding:2px 6px; border-radius:4px; margin-left:5px;">PAYLAŞILAN</span>' : ''}</div>
-                                                        <div style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">${ses.type === 'uygulama' ? (isUygLoaded ? 'Uygulama dosyası yüklendi' : 'Uygulama dosyası bekleniyor...') : (currentPdf ? 'Sınav kağıdı yüklendi' : 'Sınav kağıdı bekleniyor...')}</div>
+                                                        <div style="font-size:0.75rem; color:var(--gray-500); font-weight:600;">${subStatusText}</div>
                                                     </div>
                                                 </div>
                                                 ${subjectControlsHtml}
