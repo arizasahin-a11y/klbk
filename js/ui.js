@@ -3433,9 +3433,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (typeof papers === 'string') return papers.trim().length > 5;
             if (typeof papers === 'object') {
                 return Object.entries(papers).some(([key, val]) => {
-                    if (key === 'uygulamaFiles') {
-                        return Array.isArray(val) && val.some(link => typeof link === 'string' && link.trim().length > 5);
-                    }
+                    if (key === 'uygulamaFiles') return false;
                     return typeof val === 'string' && val.trim().length > 5;
                 });
             }
