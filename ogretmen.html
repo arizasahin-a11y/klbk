@@ -1186,9 +1186,6 @@
                                                         <option value="seating">Şema</option>
                                                         ` : ''}
                                                     </select>
-                                                    <label class="print-paper-check-label" style="display: flex; align-items: center; gap: 4px; cursor: pointer; color: var(--primary);">
-                                                        <input type="checkbox" id="paperCheck-${ses.id}" style="accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer;"> <b>Soru Kağıdı</b>
-                                                    </label>
                                                 </div>
                                                 <div class="print-actions-wrapper" style="display: flex; gap: 6px; align-items: center;">
                                                     <button class="btn btn-primary btn-sm btn-yazdir" style="padding: 5px 12px; font-size: 0.8rem; font-weight: 700; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;" onclick="printSession('${ses.id}')" oncontextmenu="event.preventDefault(); window.changePrintPageSize('${ses.id}')" title="Yazdır (Sağ Tık: Sayfa Başı Öğrenci)">
@@ -3699,18 +3696,23 @@
                 </label>
             `).join('');
 
-            const paperCb = document.getElementById(`paperCheck-${id}`);
-            const isPaperChecked = paperCb && paperCb.checked;
             let singleSelectedEntity = null;
 
             Swal.fire({
                 title: `Yazdırılacak ${entityTypeStr}`,
                 html: `
                     <div style="text-align: left; padding: 10px; margin-bottom: 10px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; width: 100%;">
-                            <input type="checkbox" id="selectAllEntities" checked style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--primary);" onchange="document.querySelectorAll('input[name=printEntity]').forEach(cb => cb.checked = this.checked)">
-                            <span style="font-size: 1.1rem; font-weight: 900; color: var(--primary);">Tümünü Seç</span>
-                        </label>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; width: 100%;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; user-select: none;">
+                                <input type="checkbox" id="selectAllEntities" checked style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--primary);" onchange="document.querySelectorAll('input[name=printEntity]').forEach(cb => cb.checked = this.checked)">
+                                <span style="font-size: 1.1rem; font-weight: 900; color: var(--primary);">Tümünü Seç</span>
+                            </label>
+                            ${(mode === 'class' || mode === 'room') ? `
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--primary); font-weight: bold; font-size: 1.05rem; margin: 0; user-select: none;">
+                                <input type="checkbox" id="swal-paper-check" style="accent-color: var(--primary); width: 20px; height: 20px; cursor: pointer;"> <span>Soru Kağıdı</span>
+                            </label>
+                            ` : ''}
+                        </div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; max-height: 250px; overflow-y: auto; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 20px;">
                             ${checkboxesHtml}
                         </div>
@@ -3727,7 +3729,7 @@
                     </div>
                 `,
                 showCancelButton: true,
-                showDenyButton: isPaperChecked,
+                showDenyButton: (mode === 'class' || mode === 'room'),
                 confirmButtonText: '<i class="fa-solid fa-print"></i> YAZDIR',
                 denyButtonText: '<i class="fa-solid fa-list-check"></i> SEÇEREK YAZDIR',
                 cancelButtonText: 'İptal',
@@ -3736,11 +3738,14 @@
                 cancelButtonColor: 'var(--gray-500)',
                 width: 600,
                 didOpen: () => {
+                    const paperCheck = document.getElementById('swal-paper-check');
+
                     const toggleDenyButton = () => {
+                        const isPaperChecked = paperCheck && paperCheck.checked;
                         const checkedBoxes = Array.from(document.querySelectorAll('input[name="printEntity"]:checked')).map(cb => cb.value);
                         const dBtn = Swal.getDenyButton();
-                        if (dBtn && isPaperChecked) {
-                            if (checkedBoxes.length === 1) {
+                        if (dBtn) {
+                            if (isPaperChecked && checkedBoxes.length === 1) {
                                 dBtn.style.display = 'inline-flex';
                                 singleSelectedEntity = checkedBoxes[0];
                             } else {
@@ -3753,6 +3758,10 @@
                     document.querySelectorAll('input[name="printEntity"], #selectAllEntities').forEach(cb => {
                         cb.addEventListener('change', toggleDenyButton);
                     });
+
+                    if (paperCheck) {
+                        paperCheck.addEventListener('change', toggleDenyButton);
+                    }
                     toggleDenyButton();
                 },
                 preConfirm: () => {
@@ -3948,7 +3957,7 @@
             });
         }
 
-        async function executePrintSession(id, mode, filterArray, studentMsgOverride, teacherMsgOverride, pageSizeOverride) {
+        async function executePrintSession(id, mode, filterArray, studentMsgOverride, teacherMsgOverride, pageSizeOverride, isPaperCheckedOverride = false) {
             const _executePrintSessions = DataManager.getExamSessions();
             const session = _executePrintSessions.find(s => s.id === id);
             if (!session || !session.results || session.results.length === 0) return;
@@ -3960,7 +3969,8 @@
 
             // CHECK FOR PAPER PRINTING
             const paperCb = document.getElementById(`paperCheck-${id}`);
-            if (paperCb && paperCb.checked) {
+            const isPaperChecked = isPaperCheckedOverride || (paperCb && paperCb.checked);
+            if (isPaperChecked) {
                 // Collect target students
                 let allStudents = [];
                 session.results.forEach(room => {
