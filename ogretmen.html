@@ -3724,6 +3724,41 @@
                 return;
             }
 
+            let hasPdf = false;
+            if (session.subjectMetadata) {
+                const activeSubs = new Set();
+                if (Array.isArray(session.subjects)) {
+                    session.subjects.forEach(s => {
+                        const name = typeof s === 'object' ? s.name : s;
+                        if (name) activeSubs.add(name);
+                    });
+                }
+                if (Array.isArray(session.results)) {
+                    session.results.forEach(room => {
+                        Object.values(room.seats || {}).forEach(std => {
+                            const name = std._matchedSubject;
+                            if (name) activeSubs.add(name);
+                        });
+                    });
+                }
+
+                hasPdf = Array.from(activeSubs).some(subName => {
+                    const meta = DataManager.getSanitizedSubjectMetadata(session, subName);
+                    if (!meta || !meta.papers) return false;
+                    const papers = meta.papers;
+                    if (typeof papers === 'string') {
+                        return papers.trim().length > 0;
+                    }
+                    if (typeof papers === 'object' && papers !== null) {
+                        return Object.entries(papers).some(([key, val]) => {
+                            if (key === 'uygulamaFiles') return false;
+                            return typeof val === 'string' && val.trim() !== '';
+                        });
+                    }
+                    return false;
+                });
+            }
+
             let checkboxesHtml = entities.map(entity => `
                 <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px; background: white; border: 1px solid #e2e8f0; border-radius: 6px; transition: 0.2s;">
                     <input type="checkbox" name="printEntity" value="${entity}" checked style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary);">
@@ -3742,7 +3777,7 @@
                                 <input type="checkbox" id="selectAllEntities" checked style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--primary);" onchange="document.querySelectorAll('input[name=printEntity]').forEach(cb => cb.checked = this.checked)">
                                 <span style="font-size: 1.1rem; font-weight: 900; color: var(--primary);">Tümünü Seç</span>
                             </label>
-                            ${(mode === 'class' || mode === 'room') ? `
+                            ${(mode === 'class' || mode === 'room') && (session.type !== 'uygulama' || hasPdf) ? `
                             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--primary); font-weight: bold; font-size: 1.05rem; margin: 0; user-select: none;">
                                 <input type="checkbox" id="swal-paper-check" style="accent-color: var(--primary); width: 20px; height: 20px; cursor: pointer;"> <span>Soru Kağıdı</span>
                             </label>
@@ -3808,12 +3843,14 @@
                     const sMsg = document.getElementById('printStudentMsg').value;
                     const tMsg = document.getElementById('printTeacherMsg').value;
                     const pSize = parseInt(localStorage.getItem('printPageSize')) || 50;
+                    const paperCheck = document.getElementById('swal-paper-check');
+                    const isPaperChecked = !!(paperCheck && paperCheck.checked);
 
-                    return { selected, sMsg, tMsg, pSize };
+                    return { selected, sMsg, tMsg, pSize, isPaperChecked };
                 }
             }).then((result) => {
                 if (result.isConfirmed && result.value.selected.length > 0) {
-                    executePrintSession(id, mode, result.value.selected, result.value.sMsg, result.value.tMsg, result.value.pSize);
+                    executePrintSession(id, mode, result.value.selected, result.value.sMsg, result.value.tMsg, result.value.pSize, result.value.isPaperChecked);
                 } else if (result.isDenied && singleSelectedEntity) {
                     openStudentSelectionModal(id, mode, singleSelectedEntity);
                 }
