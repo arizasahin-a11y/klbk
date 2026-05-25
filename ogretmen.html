@@ -1191,7 +1191,7 @@
                                                     </label>
                                                 </div>
                                                 <div class="print-actions-wrapper" style="display: flex; gap: 6px; align-items: center;">
-                                                    <button class="btn btn-primary btn-sm btn-yazdir" style="padding: 5px 12px; font-size: 0.8rem; font-weight: 700; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;" onclick="printSession('${ses.id}')" title="Yazdır">
+                                                    <button class="btn btn-primary btn-sm btn-yazdir" style="padding: 5px 12px; font-size: 0.8rem; font-weight: 700; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;" onclick="printSession('${ses.id}')" oncontextmenu="event.preventDefault(); window.changePrintPageSize('${ses.id}')" title="Yazdır (Sağ Tık: Sayfa Başı Öğrenci)">
                                                         <i class="fa-solid fa-print"></i> Yazdır
                                                     </button>
                                                     ${ses.type !== 'uygulama' ? `
@@ -3715,19 +3715,13 @@
                             ${checkboxesHtml}
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 12px; background: #f1f5f9; padding: 15px; border-radius: 12px;">
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                <div style="flex:1;">
-                                    <label style="display: block; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); margin-bottom: 4px;">ÖĞRENCİLERE MESAJ</label>
-                                    <input type="text" id="printStudentMsg" class="form-control" style="font-size: 0.85rem; padding: 8px 12px;" value="${session.studentMsg || ''}" placeholder="Sınav kuralları vb...">
-                                </div>
-                                <div style="flex:1;">
-                                    <label style="display: block; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); margin-bottom: 4px;">GÖREVLİYE MESAJ</label>
-                                    <input type="text" id="printTeacherMsg" class="form-control" style="font-size: 0.85rem; padding: 8px 12px;" value="${session.teacherMsg || ''}" placeholder="Salon başkanı notu...">
-                                </div>
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); margin-bottom: 4px;">ÖĞRENCİLERE MESAJ</label>
+                                <input type="text" id="printStudentMsg" class="form-control" style="font-size: 0.85rem; padding: 8px 12px; width: 100%; box-sizing: border-box;" value="${session.studentMsg || ''}" placeholder="Sınav kuralları vb...">
                             </div>
-                            <div style="width: 150px;">
-                                <label style="display: block; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); margin-bottom: 4px;">SAYFA BAŞINA ÖĞRENCİ</label>
-                                <input type="number" id="printPageSize" class="form-control" style="font-size: 0.85rem; padding: 8px 12px;" min="1" max="50" value="45">
+                            <div>
+                                <label style="display: block; font-size: 0.75rem; font-weight: 800; color: var(--gray-600); margin-bottom: 4px;">GÖREVLİYE MESAJ</label>
+                                <input type="text" id="printTeacherMsg" class="form-control" style="font-size: 0.85rem; padding: 8px 12px; width: 100%; box-sizing: border-box;" value="${session.teacherMsg || ''}" placeholder="Salon başkanı notu...">
                             </div>
                         </div>
                     </div>
@@ -3769,9 +3763,7 @@
                     }
                     const sMsg = document.getElementById('printStudentMsg').value;
                     const tMsg = document.getElementById('printTeacherMsg').value;
-                    let pSize = parseInt(document.getElementById('printPageSize').value) || 45;
-                    if (pSize > 50) pSize = 50;
-                    if (pSize < 1) pSize = 1;
+                    const pSize = parseInt(localStorage.getItem('printPageSize')) || 50;
 
                     return { selected, sMsg, tMsg, pSize };
                 }
@@ -3782,7 +3774,43 @@
                     openStudentSelectionModal(id, mode, singleSelectedEntity);
                 }
             });
-        }
+        };
+
+        window.changePrintPageSize = async function (id) {
+            let currentSize = parseInt(localStorage.getItem('printPageSize')) || 50;
+            const { value: newSize } = await Swal.fire({
+                title: 'Sayfa Başı Öğrenci Sayısı',
+                text: 'PDF çıktısında tek sayfada gösterilecek maksimum öğrenci sayısı:',
+                input: 'number',
+                inputValue: currentSize,
+                inputAttributes: {
+                    min: 1,
+                    max: 100,
+                    step: 1
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Kaydet',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: 'var(--primary)',
+                cancelButtonColor: 'var(--gray-500)',
+                inputValidator: (value) => {
+                    const num = parseInt(value);
+                    if (!value || isNaN(num) || num < 1 || num > 100) {
+                        return 'Lütfen 1 ile 100 arasında geçerli bir sayı girin!';
+                    }
+                }
+            });
+            if (newSize) {
+                localStorage.setItem('printPageSize', newSize);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Kaydedildi',
+                    text: `Sayfa başına öğrenci sayısı ${newSize} olarak güncellendi.`,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+        };
 
         async function openStudentSelectionModal(id, mode, entityName) {
             const _studentModalSessions = DataManager.getExamSessions();
@@ -4282,7 +4310,7 @@
                 flatList.forEach(s => (byClass[s.class] = byClass[s.class] || []).push(s));
                 const sorted = Object.keys(byClass).filter(c => filterArray.includes(c)).sort(sortByNum);
                 const studentMsg = (studentMsgOverride !== undefined ? studentMsgOverride : (session.studentMsg || '')).trim();
-                const PAGE_SIZE = pageSizeOverride || 45;
+                const PAGE_SIZE = pageSizeOverride || 50;
 
                 for (let clsIdx = 0; clsIdx < sorted.length; clsIdx++) {
                     const cls = sorted[clsIdx];
@@ -4328,7 +4356,7 @@
                         for (let i = 0; i < pa.length; i++) if (pa[i] !== pb[i]) return pa[i] - pb[i];
                         return 0;
                     });
-                    const PAGE_SIZE = pageSizeOverride || 45;
+                    const PAGE_SIZE = pageSizeOverride || 50;
                     for (let p = 0; p < sortedSeatIds.length; p += PAGE_SIZE) {
                         const chunk = sortedSeatIds.slice(p, p + PAGE_SIZE);
                         const isLastPage = (p + PAGE_SIZE >= sortedSeatIds.length);
