@@ -42,6 +42,16 @@
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
         }
 
+        .custom-font-option-item:hover {
+            background-color: #f3f4f6 !important;
+            color: var(--primary) !important;
+        }
+
+        .custom-font-trigger:hover {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+        }
+
         .query-container {
             width: 1200px;
             max-width: 95%;
@@ -3367,12 +3377,32 @@
             const safeF2 = checkF(f2);
             const safeF3 = checkF(f3);
 
-            const buildFontOpts = (sel) => {
-                let html = '<option value="auto">Otomatik Font (Derse Özgü)</option>';
+            const buildCustomFontPicker = (num, sel) => {
+                let optionsHtml = `<div class="custom-font-option-item" data-value="auto" style="padding: 10px 15px; cursor: pointer; font-size: 0.95rem; font-weight: normal; transition: 0.2s; border-bottom: 1px solid #f1f5f9;">Otomatik Font (Derse Özgü)</div>`;
+                
                 fontsListTurkish.forEach(f => {
-                    html += `<option value="${f}" style="font-family: '${f}', sans-serif; font-size: 1.1rem;" ${f === sel ? 'selected' : ''}>${f}</option>`;
+                    optionsHtml += `
+                        <div class="custom-font-option-item" data-value="${f}" data-font="${f}" style="padding: 10px 15px; cursor: pointer; font-size: 1.1rem; transition: 0.2s; border-bottom: 1px solid #f8fafc;">
+                            ${f}
+                        </div>`;
                 });
-                return html;
+
+                const selectedLabel = sel === 'auto' ? 'Otomatik Font (Derse Özgü)' : sel;
+                const fontFamilyStyle = sel === 'auto' ? 'inherit' : `'${sel}', sans-serif`;
+                const fontWeightStyle = sel === 'auto' ? 'normal' : '700';
+
+                return `
+                    <div class="custom-font-select-wrapper" style="position: relative; width: 100%;">
+                        <div id="custom-font-trigger-${num}" class="custom-font-trigger" style="width: 100%; height: 42px; font-size: 1rem; line-height: 42px; padding: 0 15px; background: white; border: 1.5px solid #d1d5db; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; transition: 0.2s; font-family: ${fontFamilyStyle}; font-weight: ${fontWeightStyle}; user-select: none;">
+                            <span id="custom-font-selected-text-${num}">${selectedLabel}</span>
+                            <i class="fa-solid fa-chevron-down" style="color: var(--gray-400); font-size: 0.85rem; transition: 0.3s;"></i>
+                        </div>
+                        <div id="custom-font-options-${num}" class="custom-font-options-list hidden" style="position: absolute; top: 46px; left: 0; width: 100%; max-height: 220px; overflow-y: auto; background: white; border: 1.5px solid #d1d5db; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 9999; box-sizing: border-box; padding: 5px 0;">
+                            ${optionsHtml}
+                        </div>
+                        <input type="hidden" id="swal-sub-font${num}" value="${sel}">
+                    </div>
+                `;
             };
 
             const themeOpts = `
@@ -3393,29 +3423,23 @@
             const { value: formValues } = await Swal.fire({
                 title: `${subName} PDF Tasarımı`,
                 html: `
-                    <div style="text-align:left; margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 900; color: var(--primary);">PDF Teması</label>
-                        <select id="swal-sub-theme" class="swal2-input" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem;">
+                    <div style="text-align:left; margin-bottom: 1.25rem;">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 900; color: var(--primary);">PDF Teması</label>
+                        <select id="swal-sub-theme" class="swal2-input" style="width: 100%; margin: 0; height: 42px; font-size: 0.9rem;">
                             ${themeOpts}
                         </select>
                     </div>
-                    <div style="text-align:left; margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 900; color: var(--primary);">1. Satır Fontu (Okul İsmi)</label>
-                        <select id="swal-sub-font1" class="swal2-input" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem; transition: var(--transition);">
-                            ${buildFontOpts(safeF1)}
-                        </select>
+                    <div style="text-align:left; margin-bottom: 1.25rem;">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 900; color: var(--primary);">1. Satır Fontu (Okul İsmi)</label>
+                        ${buildCustomFontPicker('1', safeF1)}
                     </div>
-                    <div style="text-align:left; margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 900; color: var(--primary);">2. Satır Fontu (Sınav Bilgisi)</label>
-                        <select id="swal-sub-font2" class="swal2-input" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem; transition: var(--transition);">
-                            ${buildFontOpts(safeF2)}
-                        </select>
+                    <div style="text-align:left; margin-bottom: 1.25rem;">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 900; color: var(--primary);">2. Satır Fontu (Sınav Bilgisi)</label>
+                        ${buildCustomFontPicker('2', safeF2)}
                     </div>
-                    <div style="text-align:left; margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 900; color: var(--primary);">3. Satır Fontu (Öğrenci & Salon)</label>
-                        <select id="swal-sub-font3" class="swal2-input" style="width: 100%; margin: 0; height: 40px; font-size: 0.9rem; transition: var(--transition);">
-                            ${buildFontOpts(safeF3)}
-                        </select>
+                    <div style="text-align:left; margin-bottom: 1.25rem;">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 900; color: var(--primary);">3. Satır Fontu (Öğrenci & Salon)</label>
+                        ${buildCustomFontPicker('3', safeF3)}
                     </div>
                 `,
                 focusConfirm: false,
@@ -3423,36 +3447,93 @@
                 confirmButtonText: 'Kaydet',
                 cancelButtonText: 'İptal',
                 didOpen: () => {
-                    const updateFontStyles = () => {
-                        ['1', '2', '3'].forEach(num => {
-                            const sel = document.getElementById(`swal-sub-font${num}`);
-                            if (sel) {
-                                const val = sel.value;
-                                if (val && val !== 'auto') {
-                                    sel.style.fontFamily = `'${val}', sans-serif`;
-                                    sel.style.fontWeight = '700';
-                                    sel.style.fontSize = '1rem';
-                                    // Add minor visually appealing shadow/colors to selected items
-                                    sel.style.borderColor = 'var(--primary)';
-                                } else {
-                                    sel.style.fontFamily = 'inherit';
-                                    sel.style.fontWeight = 'normal';
-                                    sel.style.fontSize = '0.9rem';
-                                    sel.style.borderColor = '#ccc';
+                    const wrappers = document.querySelectorAll('.custom-font-select-wrapper');
+                    
+                    // Setup IntersectionObserver for lazy loading custom fonts in dropdown options
+                    const fontObserver = new IntersectionObserver((entries, obs) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                const item = entry.target;
+                                const font = item.getAttribute('data-font');
+                                if (font) {
+                                    item.style.fontFamily = `'${font}', sans-serif`;
                                 }
+                                obs.unobserve(item);
                             }
                         });
-                    };
-
-                    ['1', '2', '3'].forEach(num => {
-                        const sel = document.getElementById(`swal-sub-font${num}`);
-                        if (sel) {
-                            sel.addEventListener('change', updateFontStyles);
-                        }
+                    }, {
+                        root: null,
+                        rootMargin: '100px',
+                        threshold: 0.01
                     });
 
-                    // Initial style setup
-                    updateFontStyles();
+                    wrappers.forEach(wrap => {
+                        const trigger = wrap.querySelector('.custom-font-trigger');
+                        const list = wrap.querySelector('.custom-font-options-list');
+                        const hiddenInput = wrap.querySelector('input[type="hidden"]');
+                        const selectedSpan = wrap.querySelector('span[id^="custom-font-selected-text-"]');
+                        const chevron = wrap.querySelector('.fa-chevron-down');
+
+                        trigger.onclick = (e) => {
+                            e.stopPropagation();
+                            
+                            // Close all other lists first
+                            document.querySelectorAll('.custom-font-options-list').forEach(l => {
+                                if (l !== list) {
+                                    l.classList.add('hidden');
+                                    const siblingChevron = l.previousElementSibling.querySelector('.fa-chevron-down');
+                                    if (siblingChevron) siblingChevron.style.transform = 'rotate(0deg)';
+                                }
+                            });
+
+                            // Toggle current list
+                            const isHidden = list.classList.contains('hidden');
+                            if (isHidden) {
+                                list.classList.remove('hidden');
+                                if (chevron) chevron.style.transform = 'rotate(180deg)';
+                            } else {
+                                list.classList.add('hidden');
+                                if (chevron) chevron.style.transform = 'rotate(0deg)';
+                            }
+                        };
+
+                        const items = list.querySelectorAll('.custom-font-option-item');
+                        items.forEach(item => {
+                            // Observe each item for lazy font loading
+                            if (item.getAttribute('data-font')) {
+                                fontObserver.observe(item);
+                            }
+
+                            item.onclick = (e) => {
+                                e.stopPropagation();
+                                const val = item.getAttribute('data-value');
+                                hiddenInput.value = val;
+                                
+                                selectedSpan.textContent = item.textContent.trim();
+                                if (val && val !== 'auto') {
+                                    trigger.style.fontFamily = `'${val}', sans-serif`;
+                                    trigger.style.fontWeight = '700';
+                                    trigger.style.borderColor = 'var(--primary)';
+                                } else {
+                                    trigger.style.fontFamily = 'inherit';
+                                    trigger.style.fontWeight = 'normal';
+                                    trigger.style.borderColor = '#d1d5db';
+                                }
+
+                                list.classList.add('hidden');
+                                if (chevron) chevron.style.transform = 'rotate(0deg)';
+                            };
+                        });
+                    });
+
+                    // Close lists when clicking anywhere outside
+                    document.onclick = () => {
+                        document.querySelectorAll('.custom-font-options-list').forEach(l => {
+                            l.classList.add('hidden');
+                            const siblingChevron = l.previousElementSibling.querySelector('.fa-chevron-down');
+                            if (siblingChevron) siblingChevron.style.transform = 'rotate(0deg)';
+                        });
+                    };
                 },
                 preConfirm: () => {
                     return {
