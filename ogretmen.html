@@ -52,6 +52,14 @@
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
         }
 
+        /* Prevent SweetAlert2 popup and HTML container from clipping the custom absolute font dropdown lists */
+        .swal2-popup.swal2-modal {
+            overflow: visible !important;
+        }
+        .swal2-html-container {
+            overflow: visible !important;
+        }
+
         .query-container {
             width: 1200px;
             max-width: 95%;
@@ -3390,6 +3398,9 @@
                 const selectedLabel = sel === 'auto' ? 'Otomatik Font (Derse Özgü)' : sel;
                 const fontFamilyStyle = sel === 'auto' ? 'inherit' : `'${sel}', sans-serif`;
                 const fontWeightStyle = sel === 'auto' ? 'normal' : '700';
+                
+                // Position the 3rd dropdown to open upward (dropup) to prevent clipping/scrolling issues inside the SweetAlert modal
+                const listPositionStyle = num === '3' ? 'bottom: 46px; top: auto;' : 'top: 46px;';
 
                 return `
                     <div class="custom-font-select-wrapper" style="position: relative; width: 100%;">
@@ -3397,7 +3408,7 @@
                             <span id="custom-font-selected-text-${num}">${selectedLabel}</span>
                             <i class="fa-solid fa-chevron-down" style="color: var(--gray-400); font-size: 0.85rem; transition: 0.3s;"></i>
                         </div>
-                        <div id="custom-font-options-${num}" class="custom-font-options-list hidden" style="position: absolute; top: 46px; left: 0; width: 100%; max-height: 220px; overflow-y: auto; background: white; border: 1.5px solid #d1d5db; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 9999; box-sizing: border-box; padding: 5px 0;">
+                        <div id="custom-font-options-${num}" class="custom-font-options-list hidden" style="position: absolute; ${listPositionStyle} left: 0; width: 100%; max-height: 220px; overflow-y: auto; background: white; border: 1.5px solid #d1d5db; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 9999; box-sizing: border-box; padding: 5px 0;">
                             ${optionsHtml}
                         </div>
                         <input type="hidden" id="swal-sub-font${num}" value="${sel}">
