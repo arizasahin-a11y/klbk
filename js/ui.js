@@ -204,27 +204,41 @@ document.addEventListener('DOMContentLoaded', async () => {
         Swal.fire({
             title: 'Sınav Sistem Ayarları',
             html: `
-                <div style="text-align: left; margin-top: 10px;">
-                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Sınav Yerleri Görünme Süresi (Sınavdan kaç dakika önce)</label>
-                    <input type="number" id="sysLocMin" class="form-control" value="${defs.studentLocationMinutes}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                <div style="display: grid; grid-template-columns: 1fr 100px; gap: 15px; align-items: center; text-align: left; margin-top: 15px; background: #f8fafc; padding: 18px; border-radius: 12px; border: 1px solid #e2e8f0; box-sizing: border-box;">
+                    <label for="sysLocMin" style="font-size: 0.85rem; font-weight: 700; color: #334155; line-height: 1.4; padding-right: 10px;">
+                        Sınav Yerleri Görünme Süresi <span style="font-size:0.75rem; color:#64748b; font-weight:normal; display:block;">(Sınavdan kaç dakika önce)</span>
+                    </label>
+                    <input type="number" id="sysLocMin" class="form-control" value="${defs.studentLocationMinutes}" style="width: 100%; height: 38px; padding: 6px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 0.9rem; font-weight: bold; text-align: center; box-sizing: border-box; outline: none; margin: 0;">
 
-                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Öğrenciden Sınavı Gizleme Süresi (Sınav bitiminden kaç dakika sonra)</label>
-                    <input type="number" id="sysStudHideMin" class="form-control" value="${defs.studentExamEndHideMinutes}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                    <label for="sysStudHideMin" style="font-size: 0.85rem; font-weight: 700; color: #334155; line-height: 1.4; padding-right: 10px;">
+                        Öğrenciden Sınavı Gizleme Süresi <span style="font-size:0.75rem; color:#64748b; font-weight:normal; display:block;">(Sınav bitiminden kaç dakika sonra)</span>
+                    </label>
+                    <input type="number" id="sysStudHideMin" class="form-control" value="${defs.studentExamEndHideMinutes}" style="width: 100%; height: 38px; padding: 6px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 0.9rem; font-weight: bold; text-align: center; box-sizing: border-box; outline: none; margin: 0;">
 
-                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Gözetmen Listesinden Sınavı Kaldırma Süresi (Sınav bitiminden kaç dakika sonra)</label>
-                    <input type="number" id="sysTchHideMin" class="form-control" value="${defs.teacherExamRemovalMinutes}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                    <label for="sysTchHideMin" style="font-size: 0.85rem; font-weight: 700; color: #334155; line-height: 1.4; padding-right: 10px;">
+                        Gözetmen Listesinden Kaldırma Süresi <span style="font-size:0.75rem; color:#64748b; font-weight:normal; display:block;">(Sınav bitiminden kaç dakika sonra)</span>
+                    </label>
+                    <input type="number" id="sysTchHideMin" class="form-control" value="${defs.teacherExamRemovalMinutes}" style="width: 100%; height: 38px; padding: 6px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 0.9rem; font-weight: bold; text-align: center; box-sizing: border-box; outline: none; margin: 0;">
 
-                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Branş Öğretmeninden Sınavı Kaldırma Süresi (Sınav bitiminden kaç dakika sonra)</label>
-                    <input type="number" id="sysBranchTchHideMin" class="form-control" value="${defs.branchTeacherExamRemovalMinutes !== undefined ? defs.branchTeacherExamRemovalMinutes : 120}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                    <label for="sysBranchTchHideMin" style="font-size: 0.85rem; font-weight: 700; color: #334155; line-height: 1.4; padding-right: 10px;">
+                        Branş Öğretmeninden Kaldırma Süresi <span style="font-size:0.75rem; color:#64748b; font-weight:normal; display:block;">(Sınav bitiminden kaç dakika sonra)</span>
+                    </label>
+                    <input type="number" id="sysBranchTchHideMin" class="form-control" value="${defs.branchTeacherExamRemovalMinutes !== undefined ? defs.branchTeacherExamRemovalMinutes : 120}" style="width: 100%; height: 38px; padding: 6px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 0.9rem; font-weight: bold; text-align: center; box-sizing: border-box; outline: none; margin: 0;">
 
-                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Uygulama Dosyaları İndirme Gecikmesi (Sınav başladıktan kaç dakika sonra)</label>
-                    <input type="number" id="sysFileActMin" class="form-control" value="${defs.examFilesActiveMinutes}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                    <label for="sysFileActMin" style="font-size: 0.85rem; font-weight: 700; color: #334155; line-height: 1.4; padding-right: 10px;">
+                        Dosya İndirme Gecikmesi <span style="font-size:0.75rem; color:#64748b; font-weight:normal; display:block;">(Sınav başladıktan kaç dakika sonra)</span>
+                    </label>
+                    <input type="number" id="sysFileActMin" class="form-control" value="${defs.examFilesActiveMinutes}" style="width: 100%; height: 38px; padding: 6px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 0.9rem; font-weight: bold; text-align: center; box-sizing: border-box; outline: none; margin: 0;">
 
-                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Varsayılan Sınav Süresi (Dakika)</label>
-                    <input type="number" id="sysDefDur" class="form-control" value="${defs.defaultExamDuration}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                    <label for="sysDefDur" style="font-size: 0.85rem; font-weight: 700; color: #334155; line-height: 1.4; padding-right: 10px;">
+                        Varsayılan Sınav Süresi <span style="font-size:0.75rem; color:#64748b; font-weight:normal; display:block;">(Dakika cinsinden)</span>
+                    </label>
+                    <input type="number" id="sysDefDur" class="form-control" value="${defs.defaultExamDuration}" style="width: 100%; height: 38px; padding: 6px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 0.9rem; font-weight: bold; text-align: center; box-sizing: border-box; outline: none; margin: 0;">
 
-                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Ekran Görünümü Varsayılan Süresi (Dakika)</label>
-                    <input type="number" id="sysScreenLimit" class="form-control" value="${defs.defaultScreenViewLimit}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                    <label for="sysScreenLimit" style="font-size: 0.85rem; font-weight: 700; color: #334155; line-height: 1.4; padding-right: 10px;">
+                        Ekran Görünümü Varsayılan Süresi <span style="font-size:0.75rem; color:#64748b; font-weight:normal; display:block;">(Dakika cinsinden)</span>
+                    </label>
+                    <input type="number" id="sysScreenLimit" class="form-control" value="${defs.defaultScreenViewLimit}" style="width: 100%; height: 38px; padding: 6px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 0.9rem; font-weight: bold; text-align: center; box-sizing: border-box; outline: none; margin: 0;">
                 </div>
             `,
             showCancelButton: true,
