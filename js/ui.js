@@ -1282,7 +1282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             html += `
                 <div class="accordion-item glass-panel" style="border-radius:10px; overflow:hidden;">
                     <div class="accordion-header" style="padding:1.5rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="this.nextElementSibling.classList.toggle('hidden');">
-                        <div style="display:flex; align-items:center; gap:1rem;">
+                        <div class="accordion-header-left">
                             <h2 style="color:var(--primary); font-size:1.5rem; margin:0;">${cls} Sınıfı</h2>
                             <button class="btn btn-danger btn-sm" style="padding:0.4rem 0.85rem; font-size:0.95rem; font-weight:600; border-radius: 8px;" onclick="event.stopPropagation(); window.deleteClassCompletely('${cls}')">
                                 <i class="fa-solid fa-trash"></i> Sınıfı Sil

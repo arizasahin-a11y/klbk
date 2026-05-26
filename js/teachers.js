@@ -205,10 +205,10 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `
             <div class="stat-card glass-panel" style="display: flex; flex-direction: column; cursor: pointer; transition: all 0.2s ease; padding: 10px 15px; margin-bottom: 10px; ${cardStyle}" ${clickEvent} ${contextEvent}>
                 
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: nowrap; width: 100%;">
+                <div class="teacher-row-wrapper">
                     
                     <!-- Isim ve Kullanıcı Bilgisi (En Sol) -->
-                    <div style="display: flex; align-items: center; gap: 12px; width: 22%; min-width: 180px; flex-shrink: 0; justify-content: flex-start;">
+                    <div class="teacher-col teacher-col-info">
                         <div id="genderIconContainer-${uname}" class="stat-icon" style="width: 40px; height: 40px; min-width: 40px; font-size: 1rem; background: ${genderBg}; color: white; display: flex; align-items: center; justify-content: center; border-radius: 10px;">
                             <i class="fa-solid ${genderIcon}"></i>
                         </div>
@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
 
                     <!-- Branşlar -->
-                    <div style="display: flex; flex-direction: column; width: 30%; flex-shrink: 1;">
+                    <div class="teacher-col teacher-col-branch">
                         <select multiple style="height: 48px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--gray-300); font-size: 0.85rem; background: rgba(255,255,255,0.8); border-left: 3px solid var(--primary-light);" onclick="event.stopPropagation()" onchange="window.updateTeacherData('${uname}', 'branch', this)">
                             ${branchOptions}
                         </select>
@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
 
                     <!-- Cinsiyet Seçimi -->
-                    <div style="display: flex; flex-direction: column; width: 18%; min-width: 100px;">
+                    <div class="teacher-col teacher-col-gender">
                         <select class="form-control" style="height: 48px; border-radius: 8px; border: 1px solid var(--gray-300); font-size: 0.85rem; background: rgba(255,255,255,0.8);" onclick="event.stopPropagation()" onchange="window.updateTeacherData('${uname}', 'gender', this.value)">
                             <option value="erkek" ${gender === 'erkek' ? 'selected' : ''}>Erkek</option>
                             <option value="kadin" ${gender === 'kadin' ? 'selected' : ''}>Kadın</option>
@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
 
                     <!-- Yetki -->
-                    <div style="display: flex; flex-direction: column; width: 18%; min-width: 100px;">
+                    <div class="teacher-col teacher-col-role">
                         <select class="form-control" style="height: 48px; border-radius: 8px; border: 1px solid var(--gray-300); font-size: 0.85rem; background: rgba(255,255,255,0.8); border-left: 3px solid var(--secondary-light);" onclick="event.stopPropagation()" onchange="window.updateTeacherData('${uname}', 'role', this.value)">
                             <option value="ogretmen" ${role === 'ogretmen' ? 'selected' : ''}>Öğretmen</option>
                             <option value="idareci" ${role === 'idareci' ? 'selected' : ''}>İdareci</option>
@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
 
                     <!-- İşlemler -->
-                    <div style="display: flex; width: 5%; min-width: 50px; justify-content: flex-end; flex-shrink: 0;">
+                    <div class="teacher-col teacher-col-actions">
                         <button type="button" class="btn btn-sm" style="width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; color: var(--danger); background: rgba(220, 53, 69, 0.05); border: 1px solid rgba(220, 53, 69, 0.1); font-size: 1.1rem; border-radius: 10px; transition: all 0.2s;" title="Sil" onmouseenter="this.style.background='rgba(220, 53, 69, 0.15)'" onmouseleave="this.style.background='rgba(220, 53, 69, 0.05)'" onclick="event.stopPropagation(); window.deleteTeacher('${uname}')">
                             <i class="fa-solid fa-trash-can"></i>
                         </button>
