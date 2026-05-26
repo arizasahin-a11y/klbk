@@ -5902,7 +5902,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             },
             preConfirm: () => {
-                const newMetadata = {};
+                const newMetadata = ses.subjectMetadata ? JSON.parse(JSON.stringify(ses.subjectMetadata)) : {};
                 subjectNames.forEach(sub => {
                     const examNumInput = document.querySelector(`.meta-exam-num-input[data-sub="${sub}"]`);
                     const examNum = examNumInput ? examNumInput.value.trim() : '';
@@ -5930,7 +5930,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const headerDesign = headerSelect ? headerSelect.value : '1';
 
                     const safeSub = DataManager.sanitizeFirebaseKey(sub);
+                    const existingMeta = newMetadata[safeSub] || {};
                     newMetadata[safeSub] = {
+                        ...existingMeta,
                         examNo: examNum,
                         pdfHeaderDesign: headerDesign,
                         papers: papers
