@@ -70,11 +70,12 @@
         .exam-card {
             background: white;
             border-radius: var(--radius-lg);
-            padding: 1.5rem;
+            padding: 0;
             margin-bottom: 1.5rem;
             box-shadow: var(--shadow-md);
             border: 3px solid #4f46e5;
             transition: var(--transition);
+            overflow: hidden;
         }
 
         .exam-header {
@@ -82,6 +83,9 @@
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
+            padding: 1.5rem;
+            background-color: #e0f2fe; /* Uçuk / uçuç mavi */
+            transition: background-color 0.3s ease;
         }
 
         .countdown {
@@ -96,9 +100,8 @@
         }
 
         .details-panel {
-            margin-top: 1.5rem;
             border-top: 1px dashed var(--gray-300);
-            padding-top: 1.5rem;
+            padding: 1.5rem;
         }
 
         /* Nested Accordion for subjects */
@@ -196,9 +199,10 @@
             }
 
             .exam-card {
-                padding: 15px !important;
+                padding: 0 !important;
                 margin-bottom: 15px !important;
                 border-radius: 12px !important;
+                overflow: hidden !important;
             }
 
             .exam-header {
@@ -206,6 +210,11 @@
                 align-items: stretch !important;
                 gap: 12px !important;
                 width: 100% !important;
+                padding: 15px !important;
+            }
+
+            .details-panel {
+                padding: 15px !important;
             }
 
             .exam-header > div:first-child {
@@ -1166,7 +1175,7 @@
                             : (stateCode === 'active' ? `<div class="countdown" id="cd-${ses.id}" data-prev="active" style="color:var(--danger)">DEVAM EDİYOR</div>`
                                 : `<div class="countdown" id="cd-${ses.id}" data-prev="waiting">${formatCountdown(diffMs)}</div>`);
 
-                        html += `<div class="exam-card" data-ses-id="${ses.id}">
+                        html += `<div class="exam-card ${isOpen ? 'is-open' : ''}" data-ses-id="${ses.id}">
                                     <div class="exam-header" onclick="toggleSession('${ses.id}')">
                                         <div style="flex:1">
                                             <div style="font-size: 0.75rem; color: var(--secondary); font-weight: 700; margin-bottom: 4px;">
