@@ -713,15 +713,20 @@
                                                 <i class="fa-solid fa-calendar-check"></i>
                                             </div>
                                             <h3>Oturum Bilgileri</h3>
-                                            <p style="color: var(--gray-500); font-size: 0.9rem;">Sınav oturumu için
-                                                temel tanımlamaları yapın.</p>
+                                            <p style="color: var(--gray-500); font-size: 0.9rem;">Sınav oturumu için temel tanımlamaları yapın.</p>
                                         </div>
 
                                         <div class="modal-form-card">
-                                            <div class="modal-form-group">
-                                                <label>Sınav Adı</label>
-                                                <input type="text" id="wizSessionName"
-                                                    placeholder="Örn: 1. Dönem 1. Ortak Fizik Sınavı" required>
+                                            <div class="modal-row" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                                                <div class="modal-form-group" style="flex: 3; min-width: 200px;">
+                                                    <label>Sınav Adı</label>
+                                                    <input type="text" id="wizSessionName"
+                                                        placeholder="Örn: 1. Dönem 1. Ortak Fizik Sınavı" required style="width: 100%; box-sizing: border-box; height: 48px; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px;">
+                                                </div>
+                                                <div class="modal-form-group" style="flex: 1; min-width: 100px;">
+                                                    <label>Sınav No</label>
+                                                    <input type="number" id="wizSessionExamNo" min="1" max="10" value="1" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; font-family: inherit; box-sizing: border-box; height: 48px;">
+                                                </div>
                                             </div>
                                             <div class="modal-form-group">
                                                 <label>Sınav Türü</label>

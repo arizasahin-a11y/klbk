@@ -2227,6 +2227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         wizardSessionData = {
             id: 'ws_' + Date.now(),
             name: '', date: '', time: '', subjects: [],
+            examNo: '1',
             selectedClasses: [], excludedStudents: [], selectedClassrooms: [],
             screenViewEnabled: true,
             screenViewLimit: DataManager.getSchoolSettings()?.defaultTimes?.defaultScreenViewLimit || 8
@@ -2255,6 +2256,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         document.getElementById('wizSessionName').value = '';
         document.getElementById('wizSessionDate').value = '';
+        if (document.getElementById('wizSessionExamNo')) {
+            document.getElementById('wizSessionExamNo').value = '1';
+        }
 
         // Dynamically populate session lesson dropdown based on daily lessons
         const lessonSelect = document.getElementById('wizSessionLesson');
@@ -2352,6 +2356,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // On Step 2 Trigger: Save Step 1 & Populate Subjects
         if (currentWizardStep === 2) {
             wizardSessionData.name = document.getElementById('wizSessionName').value;
+            wizardSessionData.examNo = document.getElementById('wizSessionExamNo') ? document.getElementById('wizSessionExamNo').value : '1';
             wizardSessionData.date = document.getElementById('wizSessionDate').value;
             wizardSessionData.time = document.getElementById('wizSessionTime').value;
             wizardSessionData.hasGroups = document.getElementById('wizSessionHasGroups').checked;
@@ -2922,6 +2927,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Validations before moving explicitly
             if (currentWizardStep === 1) {
                 wizardSessionData.name = document.getElementById('wizSessionName').value.trim();
+                wizardSessionData.examNo = document.getElementById('wizSessionExamNo') ? document.getElementById('wizSessionExamNo').value.trim() : '1';
                 wizardSessionData.date = window.formatDateToStandard(document.getElementById('wizSessionDate').value);
                 wizardSessionData.time = document.getElementById('wizSessionTime').value.trim();
                 const typeEl = document.getElementById('wizSessionType');
@@ -3095,6 +3101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (!wizardSessionData.subjectMetadata[safeSub]) {
                         wizardSessionData.subjectMetadata[safeSub] = { papers: {}, examNo: '' };
                     }
+                    wizardSessionData.subjectMetadata[safeSub].examNo = wizardSessionData.examNo || '1';
                     
                     // Already set manually?
                     if (wizardSessionData.subjectMetadata[safeSub].pdfHeaderDesign) return;
