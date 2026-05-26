@@ -2755,13 +2755,30 @@
                 timeVal = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
             }
 
+            let currentExamNo = session.examNo || "";
+            if (!currentExamNo && session.subjectMetadata) {
+                for (const sub in session.subjectMetadata) {
+                    if (session.subjectMetadata[sub] && session.subjectMetadata[sub].examNo) {
+                        currentExamNo = session.subjectMetadata[sub].examNo;
+                        break;
+                    }
+                }
+            }
+            if (!currentExamNo) currentExamNo = "1";
+
             const { value: formValues } = await Swal.fire({
                 title: 'Oturum Ayarları',
                 html: `
                     <div style="text-align: left; padding: 10px;">
-                        <div style="margin-bottom: 1.5rem;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 700; color: var(--gray-700);">Sınav Adı</label>
-                            <input id="swal-name" class="swal2-input" type="text" value="${session.name || ""}" style="width: 100%; margin: 0; height: 40px;">
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                            <div style="flex: 3;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 700; color: var(--gray-700);">Sınav Adı</label>
+                                <input id="swal-name" class="swal2-input" type="text" value="${session.name || ""}" style="width: 100%; margin: 0; height: 40px; box-sizing: border-box;">
+                            </div>
+                            <div style="flex: 1; min-width: 100px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 700; color: var(--gray-700);">Toplu Sınav No</label>
+                                <input id="swal-exam-no" class="swal2-input" type="number" min="1" max="10" value="${currentExamNo}" style="width: 100%; margin: 0; height: 40px; box-sizing: border-box;" placeholder="Örn: 1">
+                            </div>
                         </div>
 
                         <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
@@ -2797,6 +2814,7 @@
                 preConfirm: () => {
                     return {
                         name: document.getElementById('swal-name').value,
+                        examNo: document.getElementById('swal-exam-no').value,
                         date: DataManager.formatDateToStandard(document.getElementById('swal-date').value),
                         time: document.getElementById('swal-time').value
                     }
@@ -2805,8 +2823,45 @@
 
             if (formValues) {
                 session.name = formValues.name;
+                session.examNo = formValues.examNo;
                 session.date = formValues.date;
                 session.time = formValues.time;
+
+                // Update subjectMetadata examNo for all subjects
+                if (!session.subjectMetadata) session.subjectMetadata = {};
+                
+                // Collect all active subject names in this session
+                const activeSubs = new Set();
+                if (Array.isArray(session.subjects)) {
+                    session.subjects.forEach(s => {
+                        const name = typeof s === 'object' ? s.name : s;
+                        if (name) activeSubs.add(name);
+                    });
+                }
+                if (Array.isArray(session.results)) {
+                    session.results.forEach(room => {
+                        Object.values(room.seats || {}).forEach(std => {
+                            const name = std._matchedSubject;
+                            if (name) activeSubs.add(name);
+                        });
+                    });
+                }
+
+                // Apply to metadata of all active subjects
+                activeSubs.forEach(subName => {
+                    const safeSub = DataManager.escapeKey ? DataManager.escapeKey(subName) : subName.replace(/\./g, '_');
+                    if (!session.subjectMetadata[safeSub]) {
+                        session.subjectMetadata[safeSub] = { examNo: '', papers: {} };
+                    }
+                    session.subjectMetadata[safeSub].examNo = formValues.examNo;
+                });
+
+                // Also update any existing keys in subjectMetadata
+                for (const key in session.subjectMetadata) {
+                    if (session.subjectMetadata[key]) {
+                        session.subjectMetadata[key].examNo = formValues.examNo;
+                    }
+                }
 
                 // Update persistent data
                 DataManager.addExamSession(session);
