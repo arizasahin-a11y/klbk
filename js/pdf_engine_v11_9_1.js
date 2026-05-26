@@ -621,7 +621,11 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const isGerman = normalized.includes('almanca') || normalized.includes('deutsch');
         const isFrench = normalized.includes('fransizca') || normalized.includes('francais');
 
-        let translatedSubject = rawSub.replace(/i/g, 'İ').toUpperCase();
+        let shortenedSubForHeader = rawSub;
+        if (rawSub.length > 7) {
+            shortenedSubForHeader = window.shortenSubject ? window.shortenSubject(rawSub, 7) : rawSub;
+        }
+        let translatedSubject = shortenedSubForHeader.replace(/i/g, 'İ').toUpperCase();
 
         if (isEnglish) {
             if (translatedSubject.includes('İNGİLİZCE')) translatedSubject = translatedSubject.replace(/İNGİLİZCE/g, 'ENGLISH');
