@@ -414,18 +414,43 @@
             }
 
             /* Horizontal Scrolling for Data Tables on Mobile */
-            .data-table,
-            .data-table tbody,
-            .data-table tr,
-            .data-table td,
-            .data-table th {
-                display: block !important;
+            .table-responsive {
+                width: 100%;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch;
+                margin: 0;
+                padding-bottom: 8px;
             }
 
             .data-table {
-                overflow-x: auto !important;
+                width: 100% !important;
+                min-width: 550px !important;
+                display: table !important;
+            }
+
+            .data-table thead {
+                display: table-header-group !important;
+            }
+
+            .data-table tbody {
+                display: table-row-group !important;
+            }
+            
+            .data-table tr {
+                display: table-row !important;
+            }
+
+            .data-table th,
+            .data-table td {
+                display: table-cell !important;
                 white-space: nowrap !important;
-                display: block !important;
+                padding: 10px 8px !important;
+                font-size: 0.85rem !important;
+            }
+
+            .nested-header {
+                font-size: 0.9rem !important;
+                padding: 0.8rem 1rem !important;
             }
 
             /* Scrollable Nested Views */
