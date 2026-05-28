@@ -3252,10 +3252,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </td>
                         <td class="session-view-options-cell">
                             <div class="mode-selector-container" style="display: flex; gap: 8px; justify-content: flex-start; align-items: center; white-space: nowrap; flex-wrap: nowrap; background: transparent; border: none; padding: 0;">
-                                <button class="btn btn-secondary mode-print-btn" style="padding: 0.5rem 0.75rem; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid var(--gray-200); background: white; color: var(--primary); font-size: 0.9rem; cursor: pointer; transition: all 0.2s;" title="Yazdır"
-                                    onclick="window.printSessionDistribution('${ses.id}')">
-                                    <i class="fa-solid fa-print"></i>
-                                </button>
                                 ${ses.type === 'uygulama' ? `
                                     <select id="mode-select-${ses.id}" class="mode-selector-select" onchange="window.viewSessionDistribution('${ses.id}', null, true)" style="border: 1px solid var(--gray-200); padding: 6px 10px; border-radius: 8px; font-size: 0.85rem; background: white; cursor: pointer; font-weight: 600; color: var(--dark); outline: none; height: 36px; font-family: 'Outfit', sans-serif;">
                                         <option value="class" selected>Sınıf</option>
@@ -3267,6 +3263,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                                         <option value="class" ${(window._currentlyOpenSessionMode[ses.id] === 'class') ? 'selected' : ''}>Sınıf</option>
                                     </select>
                                 `}
+                                <button class="btn btn-secondary mode-print-btn" style="padding: 0.5rem 0.75rem; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid var(--gray-200); background: white; color: var(--primary); font-size: 0.9rem; cursor: pointer; transition: all 0.2s;" title="Yazdır"
+                                    onclick="window.printSessionDistribution('${ses.id}')">
+                                    <i class="fa-solid fa-print"></i>
+                                </button>
                             </div>
                         </td>
                         <td style="padding:1.25rem; text-align:center; display:flex; gap:0.5rem; justify-content:center;">
