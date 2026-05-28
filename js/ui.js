@@ -3242,11 +3242,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     }).join('<span style="color:var(--gray-300); font-size:0.8rem;">•</span>');
                                 })()}
                             </div>
-                            <div class="session-datetime-mobile hide-desktop">
-                                <i class="fa-regular fa-clock"></i> ${ses.date || ''} - ${ses.time}
-                            </div>
                         </td>
-                        <td class="session-datetime-desktop hide-mobile">
+                        <td class="session-datetime-desktop">
                             <div class="font-weight-bold text-dark">${ses.date || ''}</div>
                             <div class="font-size-0-8 text-gray-500">${ses.time}</div>
                         </td>
