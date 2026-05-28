@@ -1407,6 +1407,59 @@ small {
     justify-content: center;
 }
 
+.mode-selector-select {
+    border: 1px solid var(--gray-200);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    background: white;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--dark);
+    outline: none;
+    height: 36px;
+    font-family: 'Outfit', sans-serif;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.mode-selector-select:hover {
+    border-color: var(--primary);
+    background-color: var(--gray-50);
+}
+
+.mode-selector-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.mode-print-btn {
+    padding: 0.5rem 0.75rem;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--gray-200);
+    background: white;
+    color: var(--primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.mode-print-btn:hover {
+    background-color: var(--primary);
+    color: white !important;
+    border-color: var(--primary);
+    transform: translateY(-1px);
+}
+
+.mode-print-btn:active {
+    transform: translateY(0);
+}
+
 @media (max-width: 600px) {
     .mode-selector-container {
         gap: 8px;
@@ -1915,7 +1968,7 @@ input:checked+.klbk-slider:before {
     .mode-selector-container {
         width: 100% !important;
         display: grid !important;
-        grid-template-columns: repeat(3, 1fr) !important;
+        grid-template-columns: auto 1fr !important;
         gap: 8px !important;
         padding: 6px !important;
         border-radius: var(--radius-md) !important;

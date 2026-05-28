@@ -3251,25 +3251,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div class="font-size-0-8 text-gray-500">${ses.time}</div>
                         </td>
                         <td class="session-view-options-cell">
-                            <div class="mode-selector-container" style="display: flex; gap: 5px; justify-content: flex-start; align-items: center; white-space: nowrap; flex-wrap: nowrap;">
-                                <label class="mode-selector-label" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
-                                    <input type="radio" name="mode-${ses.id}" value="class" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)" ${(window._currentlyOpenSessionMode[ses.id] === 'class' || (ses.type === 'uygulama')) ? 'checked' : ''}> Sınıf
-                                </label>
-                                <label class="mode-selector-label" style="display: ${ses.type === 'uygulama' ? 'none' : 'inline-flex'}; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
-                                    <input type="radio" name="mode-${ses.id}" value="room" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)" ${(window._currentlyOpenSessionMode[ses.id] === 'room' || (!window._currentlyOpenSessionMode[ses.id] && ses.type !== 'uygulama')) ? 'checked' : ''}> Salon
-                                </label>
-                                <label class="mode-selector-label" style="display: ${ses.type === 'uygulama' ? 'none' : 'inline-flex'}; align-items: center; gap: 4px; border: 1px solid var(--gray-200); padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin: 0; background: white;">
-                                    <input type="radio" name="mode-${ses.id}" value="seating" class="mode-selector-radio" onclick="window.viewSessionDistribution('${ses.id}', null, true)" ${(window._currentlyOpenSessionMode[ses.id] === 'seating') ? 'checked' : ''}> Şema
-                                </label>
+                            <div class="mode-selector-container" style="display: flex; gap: 8px; justify-content: flex-start; align-items: center; white-space: nowrap; flex-wrap: nowrap; background: transparent; border: none; padding: 0;">
+                                <button class="btn btn-secondary mode-print-btn" style="padding: 0.5rem 0.75rem; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid var(--gray-200); background: white; color: var(--primary); font-size: 0.9rem; cursor: pointer; transition: all 0.2s;" title="Yazdır"
+                                    onclick="window.printSessionDistribution('${ses.id}')">
+                                    <i class="fa-solid fa-print"></i>
+                                </button>
+                                ${ses.type === 'uygulama' ? `
+                                    <select id="mode-select-${ses.id}" class="mode-selector-select" onchange="window.viewSessionDistribution('${ses.id}', null, true)" style="border: 1px solid var(--gray-200); padding: 6px 10px; border-radius: 8px; font-size: 0.85rem; background: white; cursor: pointer; font-weight: 600; color: var(--dark); outline: none; height: 36px; font-family: 'Outfit', sans-serif;">
+                                        <option value="class" selected>Sınıf</option>
+                                    </select>
+                                ` : `
+                                    <select id="mode-select-${ses.id}" class="mode-selector-select" onchange="window.viewSessionDistribution('${ses.id}', null, true)" style="border: 1px solid var(--gray-200); padding: 6px 10px; border-radius: 8px; font-size: 0.85rem; background: white; cursor: pointer; font-weight: 600; color: var(--dark); outline: none; height: 36px; font-family: 'Outfit', sans-serif;">
+                                        <option value="seating" ${(window._currentlyOpenSessionMode[ses.id] === 'seating' || (!window._currentlyOpenSessionMode[ses.id] && ses.type !== 'uygulama')) ? 'selected' : ''}>Şema</option>
+                                        <option value="room" ${(window._currentlyOpenSessionMode[ses.id] === 'room') ? 'selected' : ''}>Salon</option>
+                                        <option value="class" ${(window._currentlyOpenSessionMode[ses.id] === 'class') ? 'selected' : ''}>Sınıf</option>
+                                    </select>
+                                `}
                             </div>
                         </td>
                         <td style="padding:1.25rem; text-align:center; display:flex; gap:0.5rem; justify-content:center;">
                             <button class="btn btn-secondary" style="padding: 0.5rem 0.75rem;" onclick="window.openSessionMetadataEditor('${ses.id}')" title="Düzenle">
                                 <i class="fa-solid fa-pen"></i>
-                            </button>
-                            <button class="btn btn-secondary" style="padding: 0.5rem 0.75rem;" title="Yazdır"
-                                onclick="window.printSessionDistribution('${ses.id}')">
-                                <i class="fa-solid fa-print"></i>
                             </button>
                             <button class="btn btn-danger" style="padding: 0.5rem 0.75rem;" onclick="window.deleteExamSession('${ses.id}')" title="Sil">
                                 <i class="fa-solid fa-trash"></i>
@@ -4437,8 +4439,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.currentRenderedSession = session;
 
         // Seçili modu DOM'dan oku
-        const modeEl = document.querySelector(`input[name="mode-${id}"]:checked`);
-        const mode = modeEl ? modeEl.value : 'class';
+        const modeEl = document.getElementById(`mode-select-${id}`);
+        const mode = modeEl ? modeEl.value : (session.type === 'uygulama' ? 'class' : 'seating');
 
         // SESSION-WIDE BATCH PRINT DETECTION
         // Ask for Print options if general print (no filterValue)
@@ -6138,8 +6140,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             window._activeResultsContainer = resultsContainer;
 
-            const modeEl = document.querySelector(`input[name="mode-${id}"]:checked`);
-            const mode = forceMode || (modeEl ? modeEl.value : 'class');
+            const modeEl = document.getElementById(`mode-select-${id}`);
+            const mode = forceMode || (modeEl ? modeEl.value : (session.type === 'uygulama' ? 'class' : 'seating'));
             
             // Save current mode for state persistence
             window._currentlyOpenSessionMode[id] = mode;
