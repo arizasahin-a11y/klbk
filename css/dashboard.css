@@ -1975,38 +1975,35 @@ input:checked+.klbk-slider:before {
         font-size: 0.85rem !important;
     }
     
-    .session-view-options-cell {
+    /* View options cell + action buttons — same flex row */
+    .session-table td.session-view-options-cell {
         margin: 0 !important;
         width: auto !important;
-        flex: 1 1 auto !important;
+        flex: 1 1 0 !important;
         min-width: 0 !important;
         display: flex !important;
         align-items: center !important;
+        padding: 0 !important;
     }
-    
-    .mode-selector-container {
-        width: auto !important;
+
+    .session-table td.session-view-options-cell .mode-selector-container {
+        width: 100% !important;
         flex: 1 !important;
-        display: grid !important;
-        grid-template-columns: 1fr auto !important;
-        gap: 8px !important;
-        padding: 6px !important;
-        border-radius: var(--radius-md) !important;
-        background: var(--gray-100) !important;
+        display: flex !important;
+        gap: 6px !important;
+        align-items: center !important;
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
         box-sizing: border-box !important;
     }
-    
-    .mode-selector-label {
+
+    .session-table td.session-view-options-cell .mode-selector-select {
         flex: 1 !important;
-        justify-content: center !important;
-        font-size: 0.8rem !important;
-        padding: 8px 4px !important;
-        background: white !important;
-        border-radius: 6px !important;
-        border: 1px solid var(--gray-200) !important;
-        margin: 0 !important;
+        min-width: 0 !important;
+        height: 36px !important;
     }
-    
+
     /* Action buttons cell on mobile - same row as view options */
     .session-table td:last-child {
         display: flex !important;
@@ -2016,8 +2013,9 @@ input:checked+.klbk-slider:before {
         margin: 0 !important;
         width: auto !important;
         flex: 0 0 auto !important;
+        padding: 0 !important;
     }
-    
+
     .session-table td:last-child button {
         height: 36px !important;
         width: 36px !important;
@@ -2026,17 +2024,9 @@ input:checked+.klbk-slider:before {
         justify-content: center !important;
         font-size: 0.9rem !important;
         margin: 0 !important;
+        padding: 0 !important;
         border-radius: 8px !important;
         flex: none !important;
     }
-
-    /* Bottom action row: view options + action buttons side by side */
-    .session-table tr.session-row {
-        align-items: flex-start !important;
-    }
-
-    .session-view-options-cell,
-    .session-table td:last-child {
-        align-self: center !important;
-    }
-}
+}
+
