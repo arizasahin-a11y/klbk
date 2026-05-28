@@ -1914,7 +1914,8 @@ input:checked+.klbk-slider:before {
     
     .session-table tr.session-row {
         display: flex !important;
-        flex-direction: column !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
         padding: 1.25rem !important;
         border-radius: var(--radius-lg) !important;
         border: 1px solid var(--gray-200) !important;
@@ -1963,10 +1964,14 @@ input:checked+.klbk-slider:before {
     
     .session-view-options-cell {
         margin: 5px 0 !important;
+        width: auto !important;
+        flex: 1 !important;
+        min-width: 0 !important;
     }
     
     .mode-selector-container {
-        width: 100% !important;
+        width: auto !important;
+        flex: 1 !important;
         display: grid !important;
         grid-template-columns: 1fr auto !important;
         gap: 8px !important;
@@ -1990,18 +1995,23 @@ input:checked+.klbk-slider:before {
     /* Action buttons cell on mobile */
     .session-table td:last-child {
         display: flex !important;
-        gap: 10px !important;
-        justify-content: stretch !important;
-        margin-top: 8px !important;
+        gap: 8px !important;
+        justify-content: flex-end !important;
+        align-items: center !important;
+        margin-top: 5px !important;
+        width: auto !important;
+        flex: 0 0 auto !important;
     }
     
     .session-table td:last-child button {
-        flex: 1 !important;
-        height: 48px !important;
-        display: flex !important;
+        height: 36px !important;
+        width: 36px !important;
+        display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
-        font-size: 1rem !important;
+        font-size: 0.9rem !important;
         margin: 0 !important;
+        border-radius: 8px !important;
+        flex: none !important;
     }
 }
