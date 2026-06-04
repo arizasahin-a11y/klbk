@@ -1970,9 +1970,20 @@ input:checked+.klbk-slider:before {
     }
     
     .session-datetime-desktop {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        gap: 15px !important;
         width: 100% !important;
         padding: 0 !important;
         font-size: 0.85rem !important;
+        margin-top: 5px !important;
+        margin-bottom: 5px !important;
+    }
+    
+    .session-datetime-desktop .session-time-wrapper {
+        margin-top: 0 !important;
     }
     
     /* View options cell + action buttons — same flex row */

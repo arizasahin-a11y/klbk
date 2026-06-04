@@ -3244,8 +3244,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                             </div>
                         </td>
                         <td class="session-datetime-desktop">
-                            <div class="font-weight-bold text-dark">${ses.date || ''}</div>
-                            <div class="font-size-0-8 text-gray-500">${ses.time}</div>
+                            <div class="session-date-wrapper font-weight-bold text-dark" style="display: inline-flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-calendar-day" style="color: var(--primary);"></i>
+                                <span>${ses.date || ''}</span>
+                            </div>
+                            <div class="session-time-wrapper font-size-0-8 text-gray-500" style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;">
+                                <i class="fa-solid fa-clock" style="color: var(--gray-400);"></i>
+                                <span>${ses.time || ''}</span>
+                            </div>
                         </td>
                         <td class="session-view-options-cell">
                             <div class="mode-selector-container" style="display: flex; gap: 8px; justify-content: flex-start; align-items: center; white-space: nowrap; flex-wrap: nowrap; background: transparent; border: none; padding: 0;">
