@@ -1788,6 +1788,52 @@ input:checked+.klbk-slider:before {
     background: #fef2f2;
 }
 
+/* Teachers View Desktop Layout */
+.teacher-row-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.teacher-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+}
+
+.teacher-col select {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.teacher-col-info {
+    flex: 2;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    justify-content: flex-start;
+}
+
+.teacher-col-branch {
+    flex: 1.5;
+}
+
+.teacher-col-gender {
+    flex: 1;
+}
+
+.teacher-col-role {
+    flex: 1;
+}
+
+.teacher-col-actions {
+    flex: 0 0 auto;
+    align-items: flex-end;
+}
+
 /* ================== Mobile Responsiveness Additions ================== */
 
 @media (max-width: 900px) {
