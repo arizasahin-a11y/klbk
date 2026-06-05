@@ -2464,12 +2464,83 @@
                     </div>
                 </div>
                 
-                <!-- Floating Info Panel Layer -->
-                <div style="position: fixed; left: 20px; top: 50%; transform: translateY(-50%); z-index: 10000; display: ${showTimer ? 'flex' : 'none'}; flex-direction: column; align-items: center; gap: 0; pointer-events: none;">
-                    <div id="fullScreenLessonLabel" style="padding: 6px 20px; background: #39FF14; color: black; font-weight: 900; font-size: 1.1rem; border-radius: 12px 12px 0 0; text-transform: uppercase; letter-spacing: 1.5px; width: 100%; text-align: center; box-shadow: 0 -5px 15px rgba(57, 255, 20, 0.2); border: 2px solid #39FF14; border-bottom: none;">
+                <!-- Floating Timer Panel — Draggable & Resizable -->
+                <div id="fsTimerWrapper" style="
+                    position: fixed;
+                    left: 20px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    z-index: 10000;
+                    display: ${showTimer ? 'flex' : 'none'};
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 0;
+                    user-select: none;
+                    cursor: default;
+                ">
+                    <!-- Drag Handle -->
+                    <div id="fsTimerDragHandle" style="
+                        width: 100%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 3px 10px;
+                        background: rgba(0,0,0,0.5);
+                        border-radius: 10px 10px 0 0;
+                        cursor: grab;
+                        gap: 6px;
+                        pointer-events: all;
+                    ">
+                        <span style="color: rgba(255,255,255,0.5); font-size: 0.65rem; letter-spacing: 1px;">⠿ TAŞI</span>
+                        <input id="fsTimerSizeSlider" type="range" min="1.2" max="7" step="0.1" value="3.2"
+                            title="Boyutu Ayarla"
+                            style="width: 80px; height: 4px; cursor: pointer; accent-color: #39FF14; pointer-events: all;"
+                            oninput="window._fsSizeChange(this.value)"
+                        />
+                        <span style="color: rgba(255,255,255,0.4); font-size: 0.6rem;">🔍</span>
+                    </div>
+                    <!-- Label -->
+                    <div id="fullScreenLessonLabel" style="
+                        padding: 6px 20px;
+                        background: #39FF14;
+                        color: black;
+                        font-weight: 900;
+                        font-size: 1.1rem;
+                        border-radius: 0;
+                        text-transform: uppercase;
+                        letter-spacing: 1.5px;
+                        width: 100%;
+                        text-align: center;
+                        box-shadow: 0 -5px 15px rgba(57, 255, 20, 0.2);
+                        border: 2px solid #39FF14;
+                        border-top: none;
+                        border-bottom: none;
+                        pointer-events: none;
+                    ">
                         KALAN SÜRENİZ
                     </div>
-                    <div id="fullScreenTimer" style="font-family: 'JetBrains Mono', 'Courier New', monospace; font-weight: 900; font-size: 3.2rem; color: #39FF14; background: rgba(0,0,0,0.75); padding: 10px 20px; border-radius: 0 0 16px 16px; border: 5px double rgba(57, 255, 20, 0.6); box-shadow: 0 15px 40px rgba(0,0,0,0.6); letter-spacing: 3px; text-align: center; text-shadow: 0 0 15px rgba(57, 255, 20, 0.4); line-height: 1; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); min-width: 320px;">
+                    <!-- Timer Display -->
+                    <div id="fullScreenTimer" style="
+                        font-family: 'JetBrains Mono', 'Courier New', monospace;
+                        font-weight: 900;
+                        font-size: 3.2rem;
+                        color: #39FF14;
+                        background: rgba(0,0,0,0.75);
+                        padding: 10px 20px;
+                        border-radius: 0 0 16px 16px;
+                        border: 5px double rgba(57, 255, 20, 0.6);
+                        box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+                        letter-spacing: 3px;
+                        text-align: center;
+                        text-shadow: 0 0 15px rgba(57, 255, 20, 0.4);
+                        line-height: 1;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        backdrop-filter: blur(8px);
+                        min-width: 200px;
+                        pointer-events: none;
+                    ">
                         --:--:--
                     </div>
                 </div>
@@ -2545,6 +2616,110 @@
 
             overlay.innerHTML = html;
             overlay.style.display = 'flex';
+
+            // ── Timer Panel: Drag & Resize ──────────────────────────────
+            const LS_POS  = 'fsTimer_pos';
+            const LS_SIZE = 'fsTimer_size';
+
+            const wrapper = document.getElementById('fsTimerWrapper');
+            const handle  = document.getElementById('fsTimerDragHandle');
+            const slider  = document.getElementById('fsTimerSizeSlider');
+            const timerDisp = document.getElementById('fullScreenTimer');
+            const timerLabel = document.getElementById('fullScreenLessonLabel');
+
+            // Restore saved size
+            const savedSize = parseFloat(localStorage.getItem(LS_SIZE) || '3.2');
+            if (slider) slider.value = savedSize;
+            if (timerDisp) timerDisp.style.fontSize = savedSize + 'rem';
+
+            // Restore saved position
+            const savedPos = JSON.parse(localStorage.getItem(LS_POS) || 'null');
+            if (savedPos && wrapper) {
+                wrapper.style.transform = 'none';
+                wrapper.style.left = savedPos.x + 'px';
+                wrapper.style.top  = savedPos.y + 'px';
+            }
+
+            // Size change handler
+            window._fsSizeChange = (val) => {
+                const v = parseFloat(val);
+                if (timerDisp) timerDisp.style.fontSize = v + 'rem';
+                localStorage.setItem(LS_SIZE, v);
+            };
+
+            // Drag logic
+            if (handle && wrapper) {
+                let dragging = false, ox = 0, oy = 0;
+
+                handle.addEventListener('mousedown', (e) => {
+                    if (e.target === slider) return; // don't drag when using slider
+                    dragging = true;
+                    const rect = wrapper.getBoundingClientRect();
+                    ox = e.clientX - rect.left;
+                    oy = e.clientY - rect.top;
+                    wrapper.style.transform = 'none';
+                    handle.style.cursor = 'grabbing';
+                    e.preventDefault();
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!dragging) return;
+                    let nx = e.clientX - ox;
+                    let ny = e.clientY - oy;
+                    // Clamp inside viewport
+                    const rw = wrapper.offsetWidth;
+                    const rh = wrapper.offsetHeight;
+                    nx = Math.max(0, Math.min(nx, window.innerWidth  - rw));
+                    ny = Math.max(0, Math.min(ny, window.innerHeight - rh));
+                    wrapper.style.left = nx + 'px';
+                    wrapper.style.top  = ny + 'px';
+                });
+
+                document.addEventListener('mouseup', () => {
+                    if (!dragging) return;
+                    dragging = false;
+                    handle.style.cursor = 'grab';
+                    localStorage.setItem(LS_POS, JSON.stringify({
+                        x: parseInt(wrapper.style.left),
+                        y: parseInt(wrapper.style.top)
+                    }));
+                });
+
+                // Touch support
+                handle.addEventListener('touchstart', (e) => {
+                    if (e.target === slider) return;
+                    const touch = e.touches[0];
+                    dragging = true;
+                    const rect = wrapper.getBoundingClientRect();
+                    ox = touch.clientX - rect.left;
+                    oy = touch.clientY - rect.top;
+                    wrapper.style.transform = 'none';
+                    e.preventDefault();
+                }, { passive: false });
+
+                document.addEventListener('touchmove', (e) => {
+                    if (!dragging) return;
+                    const touch = e.touches[0];
+                    let nx = touch.clientX - ox;
+                    let ny = touch.clientY - oy;
+                    const rw = wrapper.offsetWidth;
+                    const rh = wrapper.offsetHeight;
+                    nx = Math.max(0, Math.min(nx, window.innerWidth  - rw));
+                    ny = Math.max(0, Math.min(ny, window.innerHeight - rh));
+                    wrapper.style.left = nx + 'px';
+                    wrapper.style.top  = ny + 'px';
+                }, { passive: true });
+
+                document.addEventListener('touchend', () => {
+                    if (!dragging) return;
+                    dragging = false;
+                    localStorage.setItem(LS_POS, JSON.stringify({
+                        x: parseInt(wrapper.style.left),
+                        y: parseInt(wrapper.style.top)
+                    }));
+                });
+            }
+            // ────────────────────────────────────────────────────────────
 
             // Auto-scale it to fit screen perfectly
             setTimeout(scaleFullScreenPlan, 100);
