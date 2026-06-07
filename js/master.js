@@ -34,6 +34,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Firebase Configuration
     const firebaseDatabaseUrl = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
 
+    // === SECURITY: Password Hashing with Web Crypto API ===
+    async function hashPassword(password) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+    }
+
+    function isHashedPassword(password) {
+        return password && /^[a-f0-9]{64}$/i.test(password);
+    }
+
     // Global config
     let globalUsersDb = {};
     let uniqueSchools = []; // { storeKey: string, name: string }
@@ -277,7 +291,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Populate user data
             const user = globalUsersDb[uname];
-            regPasswordInput.value = user.password || '';
+            // Show masked password for hashed passwords
+            if (user.password && isHashedPassword(user.password)) {
+                regPasswordInput.value = '';
+                regPasswordInput.placeholder = '••••••• (Hashlenmiş - değiştirmek için yeni şifre girin)';
+            } else {
+                regPasswordInput.value = user.password || '';
+                regPasswordInput.placeholder = 'Şifre';
+            }
             regEmailInput.value = user.email || '';
             regRoleSelect.value = user.role || 'ogretmen';
 
@@ -555,7 +576,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 showMessage('Kullanıcı adı nokta (.) veya özel karakter ($ # [ ] /) içeremez.', 'error');
                 return;
             }
-            if (password.length < 4) {
+            
+            // Password validation - allow empty password for edit if not changing
+            const isEdit = regUsernameSelect.value && regUsernameSelect.value !== "_NEW_USER_";
+            const isPasswordEmpty = !password || password.trim() === '';
+            
+            if (!isEdit && isPasswordEmpty) {
+                showMessage('Yeni kullanıcı için şifre gereklidir.', 'error');
+                return;
+            }
+            
+            if (password && password.length < 4) {
                 showMessage('Şifre en az 4 karakter olmalıdır.', 'error');
                 return;
             }
@@ -567,7 +598,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const usersDb = await getCloudUsers();
 
-            const isEdit = regUsernameSelect.value && regUsernameSelect.value !== "_NEW_USER_";
             const originalUsername = isEdit ? regUsernameSelect.value : null;
             const finalUsername = regUsernameInput.value.trim(); // Always use input
 
@@ -588,9 +618,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Prepare password - hash if new or changed
+            let finalPassword;
+            if (isEdit && isPasswordEmpty) {
+                // Keep existing password (don't change)
+                finalPassword = usersDb[originalUsername].password;
+            } else {
+                // Hash new password
+                finalPassword = await hashPassword(password);
+            }
+
             // Save/Update user
             usersDb[finalUsername] = {
-                password: password,
+                password: finalPassword,
                 schoolName: schoolNameToUse,
                 storeKey: isEdit ? usersDb[originalUsername].storeKey : storeKeyToUse,
                 email: email,

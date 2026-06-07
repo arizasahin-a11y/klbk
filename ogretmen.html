@@ -2538,6 +2538,20 @@
             return `${dd}:${hh}:${mm}:${ss}`;
         }
 
+        // === SECURITY: Password Hashing Functions ===
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex;
+        }
+
+        function isHashedPassword(password) {
+            return password && /^[a-f0-9]{64}$/i.test(password);
+        }
+
         const getMyDuties = (sessions) => {
             const duties = [];
             const myName = DataManager.formatTeacherName(sessionStorage.getItem('klbk_name'));
@@ -2642,8 +2656,22 @@
                         if (res.ok) {
                             const db = await res.json();
                             if (db) {
-                                // 1. Verify current password
-                                if (!db[currentUser] || db[currentUser].password !== currentPassVerify) {
+                                // 1. Verify current password (support both hashed and plaintext)
+                                if (!db[currentUser]) {
+                                    throw new Error("Kullanıcı bulunamadı!");
+                                }
+
+                                let passwordMatch = false;
+                                const storedPassword = db[currentUser].password;
+                                
+                                if (isHashedPassword(storedPassword)) {
+                                    const verifyHash = await hashPassword(currentPassVerify);
+                                    passwordMatch = storedPassword === verifyHash;
+                                } else {
+                                    passwordMatch = storedPassword === currentPassVerify;
+                                }
+
+                                if (!passwordMatch) {
                                     throw new Error("Güncel şifreniz hatalı!");
                                 }
 
@@ -2655,7 +2683,11 @@
                                 const userData = db[currentUser];
                                 userData.email = email;
                                 userData.gender = gender;
-                                if (pass) userData.password = pass;
+                                
+                                // Hash new password if provided
+                                if (pass && pass.trim() !== '') {
+                                    userData.password = await hashPassword(pass);
+                                }
 
                                 // Key Renaming Logic
                                 if (newUsername !== currentUser) {

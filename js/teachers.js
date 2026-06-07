@@ -36,6 +36,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let teachersDb = {};
 
+    // === SECURITY: Password Hashing Functions ===
+    async function hashPassword(password) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+    }
+
+    function isHashedPassword(password) {
+        return password && /^[a-f0-9]{64}$/i.test(password);
+    }
+
     async function fetchAllUsers() {
         try {
             const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
@@ -578,9 +592,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (usersDb[uname]) {
                     Swal.fire('Hata', `'${uname}' kullanıcı adı zaten mevcut!`, 'error');
                 } else {
+                    // Hash password before saving
+                    const hashedPassword = await hashPassword(password);
+                    
                     usersDb[uname] = {
                         name: name,
-                        password: password,
+                        password: hashedPassword,
                         email: email,
                         gender: gender,
                         branch: branch,

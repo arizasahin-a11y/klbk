@@ -1,0 +1,29 @@
+# Security: Sensitive files with plaintext passwords
+users_final.json
+users_final_clean.json
+klbk_users_cloud.json
+test.txt
+app_store.json
+admin_data.json
+
+# API Keys
+API Key.txt
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp

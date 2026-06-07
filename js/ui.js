@@ -1,6 +1,20 @@
 document.addEventListener('DOMContentLoaded', async () => {
     try {
 
+    // === SECURITY: Password Hashing Functions ===
+    async function hashPassword(password) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+    }
+
+    function isHashedPassword(password) {
+        return password && /^[a-f0-9]{64}$/i.test(password);
+    }
+
     // Shared sort utility for Turkish alphanumeric strings (e.g. "9-A", "Salon 1")
     const sortByNum = (a, b) => {
         const numA = parseInt(a.replace(/[a-zA-Z\u00C0-\u024F]+$/, '')) || 0;
@@ -380,7 +394,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <input type="email" id="accEmail" class="form-control" value="${currentEmail}" placeholder="ornek@okul.com" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
 
                         <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Giriş Şifresi</label>
-                        <input type="text" id="accPassword" class="form-control" value="${currentPassword}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                        <input type="password" id="accPassword" class="form-control" placeholder="Yeni şifre (boş bırakırsanız değişmez)" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
 
                         <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Cinsiyet</label>
                         <select id="accGender" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit; height: auto;">
@@ -404,7 +418,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         Swal.showValidationMessage('Adı Soyadı alanı boş olamaz.');
                         return false;
                     }
-                    if (passVal.length < 4) {
+                    if (passVal && passVal.length < 4) {
                         Swal.showValidationMessage('Şifre en az 4 karakter olmalıdır.');
                         return false;
                     }
@@ -444,9 +458,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const updatePayload = {
                             name: result.value.name,
                             email: result.value.email,
-                            password: result.value.password,
                             gender: result.value.gender
                         };
+
+                        // Only update password if new one is provided
+                        if (result.value.password && result.value.password.trim() !== '') {
+                            updatePayload.password = await hashPassword(result.value.password);
+                        } else {
+                            // Keep existing password
+                            updatePayload.password = matchedUser.password;
+                        }
 
                         if (currentUser.includes('.')) {
                             setDeepValue(usersDb, currentUser, updatePayload);

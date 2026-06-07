@@ -14,6 +14,47 @@ document.addEventListener('DOMContentLoaded', () => {
     // Firebase Configuration
     const firebaseDatabaseUrl = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
 
+    // === SECURITY: Password Hashing with Web Crypto API ===
+    async function hashPassword(password) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+    }
+
+    // Check if password is already hashed (SHA-256 = 64 hex chars)
+    function isHashedPassword(password) {
+        return password && /^[a-f0-9]{64}$/i.test(password);
+    }
+
+    // Migrate plaintext password to hash (automatic on first login)
+    async function migratePasswordIfNeeded(username, userObj, usersDb) {
+        if (!userObj.password || isHashedPassword(userObj.password)) {
+            return false; // Already hashed or no password
+        }
+
+        // Hash the plaintext password
+        const hashedPassword = await hashPassword(userObj.password);
+        userObj.password = hashedPassword;
+
+        // Update in Firebase
+        try {
+            const encodedUsername = encodeURIComponent(username);
+            await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users/${encodedUsername}.json`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: hashedPassword })
+            });
+            console.log(`✓ Password migrated to hash for: ${username}`);
+            return true;
+        } catch (e) {
+            console.error('Password migration failed:', e);
+            return false;
+        }
+    }
+
     async function getCloudUsers() {
         try {
             const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
@@ -200,8 +241,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                // Validate credentials
-                if (matchedUser && matchedUser.password === password) {
+                // Validate credentials (Support both plaintext and hashed passwords)
+                let passwordMatch = false;
+                if (matchedUser && matchedUser.password) {
+                    if (isHashedPassword(matchedUser.password)) {
+                        // Password is hashed, hash input and compare
+                        const inputHash = await hashPassword(password);
+                        passwordMatch = matchedUser.password === inputHash;
+                    } else {
+                        // Legacy plaintext password - direct compare
+                        passwordMatch = matchedUser.password === password;
+                        
+                        // Auto-migrate to hash on successful login
+                        if (passwordMatch) {
+                            migratePasswordIfNeeded(actualUsername, matchedUser, usersDb).catch(e => 
+                                console.error('Background password migration failed:', e)
+                            );
+                        }
+                    }
+                }
+
+                if (passwordMatch) {
                     
                     // Sadece 'admin', '@arız@' ve '@rız@' hesabı storeKey (yeni sistem kaydı) olmadan girebilir.
                     // Diğer eski master kullanıcıları (örn: ariza) veya her türlü master yeni sistemdeyse girebilir.
