@@ -1445,8 +1445,8 @@
                                 const renderActions = (targetSuffix) => `
                                     <div style="display: flex; gap: 5px; margin-top: 8px;">
                                          <button type="button" class="btn btn-secondary btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="pasteLink('${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-paste"></i> Yapıştır</button>
-                                         <button type="button" class="btn btn-secondary btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="openCloudBrowser(this, '${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-cloud"></i> Bulut</button>
-                                         <input type="file" id="file-${ses.id}-${encodedSub}${targetSuffix ? '-' + targetSuffix : ''}" style="display:none;" accept="application/pdf" onchange="uploadPdf(this, '${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})">
+                                         <button type="button" class="btn btn-secondary btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="openCloudBrowserForPdf(this, '${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-cloud"></i> Bulut</button>
+                                         <input type="file" id="file-${ses.id}-${encodedSub}${targetSuffix ? '-' + targetSuffix : ''}" style="display:none;" accept=".pdf,application/pdf" onchange="uploadPdf(this, '${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})">
                                          <button type="button" class="btn btn-info btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="document.getElementById('file-${ses.id}-${encodedSub}${targetSuffix ? '-' + targetSuffix : ''}').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Yükle</button>
                                          <button type="button" class="btn btn-success btn-sm" style="flex:1; padding: 0.4rem; font-size:0.75rem;" onclick="testPdfLink('${ses.id}', '${encodedSub}', ${targetSuffix ? "'" + targetSuffix + "'" : 'null'})"><i class="fa-solid fa-vial"></i> Test</button>
                                     </div>`;
@@ -1463,7 +1463,7 @@
                                                 </label>
                                             </div>
                                             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                                                <input type="text" id="pdfLink-${ses.id}-${encodedSub}" class="form-control meta-paper-pdf-input" style="flex:1; padding:0.75rem; border:2px solid var(--gray-200); border-radius:10px; font-weight:600;" placeholder="https://..." value="${currentPdf}" onchange="savePdfLink('${ses.id}', '${encodedSub}')">
+                                                <input type="text" id="pdfLink-${ses.id}-${encodedSub}" class="form-control meta-paper-pdf-input" style="flex:1; padding:0.75rem; border:2px solid var(--gray-200); border-radius:10px; font-weight:600;" placeholder="PDF linki yazın veya yükleyin..." value="${currentPdf}" onchange="savePdfLink('${ses.id}', '${encodedSub}')">
                                                 <button class="btn btn-primary" style="padding: 0.75rem 1.25rem; border-radius:10px; font-weight:800; font-size: 0.85rem;" onclick="savePdfLink('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-save"></i> KAYDET</button>
                                             </div>
                                             ${renderActions(null)}
@@ -1480,11 +1480,11 @@
                                         papersHtml += `
                                             <div class="input-group uygulama-file-row" style="display:flex; align-items:center; gap:5px; margin-top:8px;">
                                                 <span style="font-size:0.75rem; font-weight:700; color:var(--gray-500); min-width:60px;">${fIdx + 1}. dosya</span>
-                                                <input type="text" class="form-control meta-paper-input" data-uyg-idx="${fIdx}" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" value="${fileLink}" placeholder="Uygulama dosyası linki" onchange="saveUygulamaFiles('${ses.id}', '${encodedSub}')">
+                                                <input type="text" class="form-control meta-paper-input" data-uyg-idx="${fIdx}" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" value="${fileLink}" placeholder="Ses/video dosyası linki" onchange="saveUygulamaFiles('${ses.id}', '${encodedSub}')">
                                                 <button type="button" class="btn btn-secondary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.fire('Eksik', 'Önce bir link girin', 'warning');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
                                                 <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem; background:#6366f1; border-color:#6366f1;" onclick="testUygulamaMediaTeacher(this)" title="Medya Test"><i class="fa-solid fa-play"></i> Test</button>
-                                                <button type="button" class="btn btn-info btn-sm" style="padding: 0.65rem 0.85rem;" onclick="openCloudBrowserTeacher(this, '${ses.id}', '${encodedSub}')" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
-                                                <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="browseToInputTeacher(this, '${ses.id}', '${encodedSub}')" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+                                                <button type="button" class="btn btn-info btn-sm" style="padding: 0.65rem 0.85rem;" onclick="openCloudBrowserForMedia(this, '${ses.id}', '${encodedSub}')" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
+                                                <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="browseMediaFileTeacher(this, '${ses.id}', '${encodedSub}')" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
                                                 <button type="button" class="btn btn-danger btn-sm" style="padding: 0.65rem 0.85rem;" onclick="this.closest('.uygulama-file-row').remove(); saveUygulamaFiles('${ses.id}', '${encodedSub}');" title="Sil"><i class="fa-solid fa-trash"></i></button>
                                             </div>`;
                                     });
@@ -1506,7 +1506,7 @@
                                                     <label style="font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform:uppercase; margin:0;">Grup ${groupLetter} Soru Kağıdı</label>
                                                 </div>
                                                 <div style="display: flex; gap: 8px;">
-                                                    <input type="text" id="pdfLink-${ses.id}-${encodedSub}-${groupLetter}" class="form-control" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" placeholder="https://..." value="${groupPdf}">
+                                                    <input type="text" id="pdfLink-${ses.id}-${encodedSub}-${groupLetter}" class="form-control" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" placeholder="PDF linki yazın veya yükleyin..." value="${groupPdf}">
                                                     <button class="btn btn-primary" style="padding: 0.65rem 1.25rem; border-radius:8px; font-weight:800;" onclick="savePdfLink('${ses.id}', '${encodedSub}', '${groupLetter}')"><i class="fa-solid fa-save"></i></button>
                                                 </div>
                                                 ${renderActions(groupLetter)}
@@ -1522,7 +1522,7 @@
                                                 </label>
                                             </div>
                                             <div style="display: flex; gap: 10px;">
-                                                <input type="text" id="pdfLink-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.75rem; border:2px solid var(--gray-200); border-radius:10px; font-weight:600;" placeholder="https://..." value="${currentPdf}">
+                                                <input type="text" id="pdfLink-${ses.id}-${encodedSub}" class="form-control" style="flex:1; padding:0.75rem; border:2px solid var(--gray-200); border-radius:10px; font-weight:600;" placeholder="PDF linki yazın veya yükleyin..." value="${currentPdf}">
                                                 <button class="btn btn-primary" style="padding: 0.75rem 1.25rem; border-radius:10px; font-weight:800; font-size: 0.85rem;" onclick="savePdfLink('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-save"></i> KAYDET</button>
                                             </div>
                                             ${renderActions(null)}
@@ -1776,6 +1776,15 @@
             const subName = decodeURIComponent(encodedSub);
             if (!file) return;
 
+            // Validate PDF file
+            if (!file.type || file.type !== 'application/pdf') {
+                if (!file.name.toLowerCase().endsWith('.pdf')) {
+                    Swal.fire('Hata', 'Lütfen sadece PDF dosyası yükleyin.', 'error');
+                    inputEl.value = '';
+                    return;
+                }
+            }
+
             // Show loading
             Swal.fire({
                 title: 'Yükleniyor...',
@@ -1796,7 +1805,7 @@
 
                 Swal.close();
                 Swal.fire({
-                    toast: true, position: 'top-end', icon: 'success', title: 'Dosya yüklendi ve kaydedildi!', showConfirmButton: false, timer: 1500
+                    toast: true, position: 'top-end', icon: 'success', title: 'PDF yüklendi ve kaydedildi!', showConfirmButton: false, timer: 1500
                 });
             } catch (err) {
                 console.error(err);
@@ -2394,42 +2403,10 @@
         }
 
         async function openCloudBrowserTeacher(btn, sesId, encodedSub) {
-            const input = btn.closest('.uygulama-file-row').querySelector('input.meta-paper-input');
-            if (!input) return;
-            
-            Swal.fire({
-                title: 'Buluttaki Dosyalar',
-                html: '<div id="cloudFilesListTeacher" style="max-height: 400px; overflow-y: auto; text-align: left;"><i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...</div>',
-                showConfirmButton: false,
-                showCancelButton: true,
-                cancelButtonText: 'Kapat',
-                width: 600,
-                didOpen: async () => {
-                    try {
-                        const files = await DataManager.listSupabaseFiles(true);
-                        let html = '<ul style="list-style:none; padding:0; margin:0;">';
-                        if (files.length === 0) {
-                            html += '<li style="padding: 1rem; color: var(--gray-500); text-align: center;">Bulutta kayıtlı dosya yok.</li>';
-                        } else {
-                            files.forEach(f => {
-                                html += `<li style="padding: 0.75rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center;">
-                                            <div style="flex:1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem;" title="${f.name}">
-                                                <i class="fa-solid fa-file" style="color:var(--primary); margin-right: 8px;"></i> ${f.name}
-                                            </div>
-                                            <div style="display:flex; gap:5px;">
-                                                <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="selectCloudFileTeacher('${sesId}', '${encodedSub}', '${f.url}', '${input.dataset.uygIdx}')">Seç</button>
-                                                <button class="btn btn-danger" style="padding: 0.4rem 0.6rem; font-size: 0.8rem;" onclick="deleteCloudFileFromTeacher('${f.name}', this)"><i class="fa-solid fa-trash"></i></button>
-                                            </div>
-                                        </li>`;
-                            });
-                        }
-                        html += '</ul>';
-                        document.getElementById('cloudFilesListTeacher').innerHTML = html;
-                    } catch (e) {
-                        document.getElementById('cloudFilesListTeacher').innerHTML = '<div style="color:var(--danger); padding:1rem;">Dosyalar yüklenemedi.</div>';
-                    }
-                }
-            });
+            // Legacy function - deprecated
+            // Use openCloudBrowserForMedia for media files instead
+            console.warn('openCloudBrowserTeacher is deprecated. Use openCloudBrowserForMedia instead.');
+            openCloudBrowserForMedia(btn, sesId, encodedSub);
         }
 
         window.selectCloudFileTeacher = function (sesId, encodedSub, url, uygIdx) {
@@ -2444,19 +2421,30 @@
             Swal.close();
         }
 
-        function browseToInputTeacher(btn, sesId, encodedSub) {
+        // Upload media file (audio/video) for Uygulama Dosyaları
+        function browseMediaFileTeacher(btn, sesId, encodedSub) {
             const row = btn.closest('.uygulama-file-row');
             const uygIdx = row.querySelector('input.meta-paper-input').dataset.uygIdx;
             
-            let fileInp = row.querySelector('.temp-file-input');
+            let fileInp = row.querySelector('.temp-media-file-input');
             if (!fileInp) {
                 fileInp = document.createElement('input');
                 fileInp.type = 'file';
-                fileInp.className = 'temp-file-input';
+                fileInp.className = 'temp-media-file-input';
                 fileInp.style.display = 'none';
+                // Accept audio and video files
+                fileInp.accept = 'audio/*,video/*,.mp3,.mp4,.wav,.ogg,.webm,.avi,.mov';
                 fileInp.onchange = async function() {
                     const file = fileInp.files[0];
                     if (!file) return;
+                    
+                    // Validate file type
+                    const isAudio = file.type.startsWith('audio/');
+                    const isVideo = file.type.startsWith('video/');
+                    if (!isAudio && !isVideo) {
+                        Swal.fire('Hata', 'Lütfen sadece ses veya video dosyası yükleyin.', 'error');
+                        return;
+                    }
                     
                     Swal.fire({
                         title: 'Yükleniyor...',
@@ -2473,7 +2461,7 @@
                         saveUygulamaFiles(sesId, encodedSub);
                         Swal.close();
                         Swal.fire({
-                            toast: true, position: 'top-end', icon: 'success', title: 'Dosya yüklendi ve kaydedildi!', showConfirmButton: false, timer: 1500
+                            toast: true, position: 'top-end', icon: 'success', title: 'Medya dosyası yüklendi!', showConfirmButton: false, timer: 1500
                         });
                     } catch (err) {
                         console.error(err);
@@ -2483,6 +2471,130 @@
                 row.appendChild(fileInp);
             }
             fileInp.click();
+        }
+
+        // Open cloud browser for media files (Uygulama Dosyaları)
+        function openCloudBrowserForMedia(btn, sesId, encodedSub) {
+            const row = btn.closest('.uygulama-file-row');
+            const input = row.querySelector('input.meta-paper-input');
+            
+            Swal.fire({
+                title: 'Buluttan Dosya Seç',
+                html: '<div id="cloudFilesMedia" style="max-height: 400px; overflow-y: auto;">Yükleniyor...</div>',
+                showCancelButton: true,
+                confirmButtonText: 'Seç',
+                cancelButtonText: 'İptal',
+                didOpen: async () => {
+                    try {
+                        const files = await DataManager.listSupabaseFiles();
+                        // Filter for media files
+                        const mediaFiles = files.filter(f => {
+                            const ext = f.name.split('.').pop().toLowerCase();
+                            return ['mp3', 'mp4', 'wav', 'ogg', 'webm', 'avi', 'mov', 'm4a', 'flac'].includes(ext);
+                        });
+                        
+                        if (mediaFiles.length === 0) {
+                            document.getElementById('cloudFilesMedia').innerHTML = '<p style="text-align:center; color:#999;">Bulutta medya dosyası bulunamadı.</p>';
+                            return;
+                        }
+                        
+                        let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+                        mediaFiles.forEach(file => {
+                            const icon = file.name.match(/\.(mp3|wav|ogg|m4a|flac)$/i) ? 'fa-file-audio' : 'fa-file-video';
+                            html += `
+                                <div class="cloud-file-item" data-url="${file.url}" style="padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='white'" onclick="this.classList.toggle('selected'); this.style.background=this.classList.contains('selected')?'#e3f2fd':'white';">
+                                    <i class="fa-solid ${icon}" style="margin-right: 8px;"></i>
+                                    <strong>${file.name}</strong>
+                                    <div style="font-size: 0.75rem; color: #666; margin-top: 4px;">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                                </div>`;
+                        });
+                        html += '</div>';
+                        document.getElementById('cloudFilesMedia').innerHTML = html;
+                    } catch (err) {
+                        document.getElementById('cloudFilesMedia').innerHTML = `<p style="color:red;">Hata: ${err.message}</p>`;
+                    }
+                },
+                preConfirm: () => {
+                    const selected = document.querySelector('.cloud-file-item.selected');
+                    if (!selected) {
+                        Swal.showValidationMessage('Lütfen bir dosya seçin');
+                        return false;
+                    }
+                    return selected.dataset.url;
+                }
+            }).then(result => {
+                if (result.isConfirmed && result.value) {
+                    input.value = result.value;
+                    saveUygulamaFiles(sesId, encodedSub);
+                    Swal.fire({
+                        toast: true, position: 'top-end', icon: 'success', title: 'Dosya seçildi!', showConfirmButton: false, timer: 1500
+                    });
+                }
+            });
+        }
+
+        // Open cloud browser for PDF files (Soru Kağıdı)
+        function openCloudBrowserForPdf(btn, sesId, encodedSub, groupLetter = null) {
+            Swal.fire({
+                title: 'Buluttan PDF Seç',
+                html: '<div id="cloudFilesPdf" style="max-height: 400px; overflow-y: auto;">Yükleniyor...</div>',
+                showCancelButton: true,
+                confirmButtonText: 'Seç',
+                cancelButtonText: 'İptal',
+                didOpen: async () => {
+                    try {
+                        const files = await DataManager.listSupabaseFiles();
+                        // Filter for PDF files only
+                        const pdfFiles = files.filter(f => f.name.toLowerCase().endsWith('.pdf'));
+                        
+                        if (pdfFiles.length === 0) {
+                            document.getElementById('cloudFilesPdf').innerHTML = '<p style="text-align:center; color:#999;">Bulutta PDF dosyası bulunamadı.</p>';
+                            return;
+                        }
+                        
+                        let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+                        pdfFiles.forEach(file => {
+                            html += `
+                                <div class="cloud-file-item" data-url="${file.url}" style="padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='white'" onclick="this.classList.toggle('selected'); this.style.background=this.classList.contains('selected')?'#e3f2fd':'white';">
+                                    <i class="fa-solid fa-file-pdf" style="margin-right: 8px; color: #dc3545;"></i>
+                                    <strong>${file.name}</strong>
+                                    <div style="font-size: 0.75rem; color: #666; margin-top: 4px;">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                                </div>`;
+                        });
+                        html += '</div>';
+                        document.getElementById('cloudFilesPdf').innerHTML = html;
+                    } catch (err) {
+                        document.getElementById('cloudFilesPdf').innerHTML = `<p style="color:red;">Hata: ${err.message}</p>`;
+                    }
+                },
+                preConfirm: () => {
+                    const selected = document.querySelector('.cloud-file-item.selected');
+                    if (!selected) {
+                        Swal.showValidationMessage('Lütfen bir PDF dosyası seçin');
+                        return false;
+                    }
+                    return selected.dataset.url;
+                }
+            }).then(result => {
+                if (result.isConfirmed && result.value) {
+                    const inputId = groupLetter ? `pdfLink-${sesId}-${encodedSub}-${groupLetter}` : `pdfLink-${sesId}-${encodedSub}`;
+                    const inputEl = document.getElementById(inputId);
+                    if (inputEl) {
+                        inputEl.value = result.value;
+                        savePdfLink(sesId, encodedSub, groupLetter, result.value);
+                    }
+                    Swal.fire({
+                        toast: true, position: 'top-end', icon: 'success', title: 'PDF seçildi!', showConfirmButton: false, timer: 1500
+                    });
+                }
+            });
+        }
+
+        function browseToInputTeacher(btn, sesId, encodedSub) {
+            // Legacy function - deprecated
+            // Use browseMediaFileTeacher for media files instead
+            console.warn('browseToInputTeacher is deprecated. Use browseMediaFileTeacher instead.');
+            browseMediaFileTeacher(btn, sesId, encodedSub);
         }
 
         function sendLiveMessage(sesId, encodedSub) {
