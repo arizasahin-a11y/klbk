@@ -2486,7 +2486,7 @@
                 cancelButtonText: 'İptal',
                 didOpen: async () => {
                     try {
-                        const files = await DataManager.listSupabaseFiles();
+                        const files = await DataManager.listSupabaseFiles(true); // teacherOnly = true
                         // Filter for media files
                         const mediaFiles = files.filter(f => {
                             const ext = f.name.split('.').pop().toLowerCase();
@@ -2501,11 +2501,13 @@
                         let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
                         mediaFiles.forEach(file => {
                             const icon = file.name.match(/\.(mp3|wav|ogg|m4a|flac)$/i) ? 'fa-file-audio' : 'fa-file-video';
+                            // Remove username prefix for display
+                            const displayName = file.name.replace(/^[^_]+_/, '');
                             html += `
                                 <div class="cloud-file-item" data-url="${file.url}" style="padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='white'" onclick="this.classList.toggle('selected'); this.style.background=this.classList.contains('selected')?'#e3f2fd':'white';">
                                     <i class="fa-solid ${icon}" style="margin-right: 8px;"></i>
-                                    <strong>${file.name}</strong>
-                                    <div style="font-size: 0.75rem; color: #666; margin-top: 4px;">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                                    <strong>${displayName}</strong>
+                                    <div style="font-size: 0.75rem; color: #666; margin-top: 4px;">${file.created_at || 'Tarih yok'}</div>
                                 </div>`;
                         });
                         html += '</div>';
@@ -2543,7 +2545,7 @@
                 cancelButtonText: 'İptal',
                 didOpen: async () => {
                     try {
-                        const files = await DataManager.listSupabaseFiles();
+                        const files = await DataManager.listSupabaseFiles(true); // teacherOnly = true
                         // Filter for PDF files only
                         const pdfFiles = files.filter(f => f.name.toLowerCase().endsWith('.pdf'));
                         
@@ -2554,11 +2556,13 @@
                         
                         let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
                         pdfFiles.forEach(file => {
+                            // Remove username prefix for display
+                            const displayName = file.name.replace(/^[^_]+_/, '');
                             html += `
                                 <div class="cloud-file-item" data-url="${file.url}" style="padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='white'" onclick="this.classList.toggle('selected'); this.style.background=this.classList.contains('selected')?'#e3f2fd':'white';">
                                     <i class="fa-solid fa-file-pdf" style="margin-right: 8px; color: #dc3545;"></i>
-                                    <strong>${file.name}</strong>
-                                    <div style="font-size: 0.75rem; color: #666; margin-top: 4px;">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                                    <strong>${displayName}</strong>
+                                    <div style="font-size: 0.75rem; color: #666; margin-top: 4px;">${file.created_at || 'Tarih yok'}</div>
                                 </div>`;
                         });
                         html += '</div>';
