@@ -195,6 +195,13 @@ const DataManager = {
             // This often fixes 400 Bad Request errors in Firebase
             // Recursive deep sanitize all keys to prevent 400 errors from dots/slashes/etc
             const cleanData = this._deepSanitizeKeys(data);
+            
+            // Add session token for authentication
+            const sessionToken = sessionStorage.getItem('klbk_sessionToken');
+            if (sessionToken) {
+                cleanData._sessionToken = sessionToken;
+            }
+            
             const payload = JSON.stringify(cleanData);
             
             if (!payload || payload === "{}") {

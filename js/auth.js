@@ -29,6 +29,41 @@ document.addEventListener('DOMContentLoaded', () => {
         return password && /^[a-f0-9]{64}$/i.test(password);
     }
 
+    // Generate secure session token
+    async function generateSessionToken(username, storeKey) {
+        const timestamp = Date.now();
+        const randomBytes = crypto.getRandomValues(new Uint8Array(16));
+        const randomHex = Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        const tokenData = `${username}:${storeKey}:${timestamp}:${randomHex}`;
+        const hash = await hashPassword(tokenData);
+        return hash;
+    }
+
+    // Store session token in Firebase for authentication
+    async function storeSessionToken(username, token, storeKey, role) {
+        try {
+            const sessionData = {
+                token: token,
+                username: username,
+                storeKey: storeKey,
+                role: role,
+                timestamp: Date.now(),
+                expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+            };
+            
+            await fetch(`${firebaseDatabaseUrl}/app_store/active_sessions/${token}.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(sessionData)
+            });
+            
+            return true;
+        } catch (e) {
+            console.error('Session token storage failed:', e);
+            return false;
+        }
+    }
+
     // Migrate plaintext password to hash (automatic on first login)
     async function migratePasswordIfNeeded(username, userObj, usersDb) {
         if (!userObj.password || isHashedPassword(userObj.password)) {
@@ -353,6 +388,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         sessionStorage.setItem('klbk_branch', userData.branch);
                     }
                     sessionStorage.setItem('klbk_loginTime', new Date().toISOString());
+
+                    // === SECURITY: Generate and store session token for Firebase write access ===
+                    try {
+                        const storeKey = userData.storeKey || `klbk_data_${username}`;
+                        const sessionToken = await generateSessionToken(username, storeKey);
+                        sessionStorage.setItem('klbk_sessionToken', sessionToken);
+                        
+                        // Store token in Firebase for validation
+                        await storeSessionToken(username, sessionToken, storeKey, userData.role || 'admin');
+                        console.log('✓ Session token generated and stored');
+                    } catch (e) {
+                        console.error('Session token generation failed:', e);
+                    }
 
                     // Redirect logic
                     setTimeout(() => {

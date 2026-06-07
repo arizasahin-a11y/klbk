@@ -1,0 +1,27 @@
+{
+  "rules": {
+    "app_store": {
+      ".read": true,
+      
+      "active_sessions": {
+        ".read": false,
+        "$token": {
+          ".write": true,
+          ".validate": "newData.hasChildren(['token', 'username', 'storeKey', 'timestamp', 'expiresAt'])"
+        }
+      },
+      
+      "klbk_users": {
+        ".write": false
+      },
+      
+      "klbk_activity_log": {
+        ".write": true
+      },
+      
+      "$storeKey": {
+        ".write": "!data.exists() || (newData.child('_sessionToken').exists() && root.child('app_store/active_sessions/' + newData.child('_sessionToken').val()).exists() && root.child('app_store/active_sessions/' + newData.child('_sessionToken').val() + '/storeKey').val() == $storeKey && root.child('app_store/active_sessions/' + newData.child('_sessionToken').val() + '/expiresAt').val() > now)"
+      }
+    }
+  }
+}
