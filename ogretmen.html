@@ -2484,6 +2484,7 @@
                 showCancelButton: true,
                 confirmButtonText: 'Seç',
                 cancelButtonText: 'İptal',
+                width: 700,
                 didOpen: async () => {
                     try {
                         const files = await DataManager.listSupabaseFiles(true); // teacherOnly = true
@@ -2504,10 +2505,15 @@
                             // Remove username prefix for display
                             const displayName = file.name.replace(/^[^_]+_/, '');
                             html += `
-                                <div class="cloud-file-item" data-url="${file.url}" style="padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='white'" onclick="this.classList.toggle('selected'); this.style.background=this.classList.contains('selected')?'#e3f2fd':'white';">
-                                    <i class="fa-solid ${icon}" style="margin-right: 8px;"></i>
-                                    <strong>${displayName}</strong>
-                                    <div style="font-size: 0.75rem; color: #666; margin-top: 4px;">${file.created_at || 'Tarih yok'}</div>
+                                <div class="cloud-file-item-container" style="display: flex; gap: 8px; align-items: center;">
+                                    <div class="cloud-file-item" data-url="${file.url}" data-filename="${file.name}" style="flex: 1; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background=this.classList.contains('selected')?'#e3f2fd':'white'" onclick="document.querySelectorAll('.cloud-file-item').forEach(el => {el.classList.remove('selected'); el.style.background='white';}); this.classList.add('selected'); this.style.background='#e3f2fd';">
+                                        <i class="fa-solid ${icon}" style="margin-right: 8px;"></i>
+                                        <strong>${displayName}</strong>
+                                        <div style="font-size: 0.75rem; color: #666; margin-top: 4px;">${file.created_at || 'Tarih yok'}</div>
+                                    </div>
+                                    <button class="btn btn-danger btn-sm" style="padding: 0.5rem 0.75rem;" onclick="deleteCloudFileMedia('${file.name}', this)" title="Sil">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
                                 </div>`;
                         });
                         html += '</div>';
@@ -2535,6 +2541,36 @@
             });
         }
 
+        // Delete cloud file from media browser
+        async function deleteCloudFileMedia(fileName, btn) {
+            const result = await Swal.fire({
+                title: 'Dosyayı Sil?',
+                text: 'Bu dosya kalıcı olarak silinecek!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#dc3545'
+            });
+            
+            if (result.isConfirmed) {
+                try {
+                    await DataManager.deleteSupabaseFile(fileName);
+                    btn.closest('.cloud-file-item-container').remove();
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Dosya silindi!',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                } catch (err) {
+                    Swal.fire('Hata', 'Dosya silinemedi: ' + err.message, 'error');
+                }
+            }
+        }
+
         // Open cloud browser for PDF files (Soru Kağıdı)
         function openCloudBrowserForPdf(btn, sesId, encodedSub, groupLetter = null) {
             Swal.fire({
@@ -2543,6 +2579,7 @@
                 showCancelButton: true,
                 confirmButtonText: 'Seç',
                 cancelButtonText: 'İptal',
+                width: 700,
                 didOpen: async () => {
                     try {
                         const files = await DataManager.listSupabaseFiles(true); // teacherOnly = true
@@ -2559,10 +2596,15 @@
                             // Remove username prefix for display
                             const displayName = file.name.replace(/^[^_]+_/, '');
                             html += `
-                                <div class="cloud-file-item" data-url="${file.url}" style="padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='white'" onclick="this.classList.toggle('selected'); this.style.background=this.classList.contains('selected')?'#e3f2fd':'white';">
-                                    <i class="fa-solid fa-file-pdf" style="margin-right: 8px; color: #dc3545;"></i>
-                                    <strong>${displayName}</strong>
-                                    <div style="font-size: 0.75rem; color: #666; margin-top: 4px;">${file.created_at || 'Tarih yok'}</div>
+                                <div class="cloud-file-item-container" style="display: flex; gap: 8px; align-items: center;">
+                                    <div class="cloud-file-item" data-url="${file.url}" data-filename="${file.name}" style="flex: 1; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background=this.classList.contains('selected')?'#e3f2fd':'white'" onclick="document.querySelectorAll('.cloud-file-item').forEach(el => {el.classList.remove('selected'); el.style.background='white';}); this.classList.add('selected'); this.style.background='#e3f2fd';">
+                                        <i class="fa-solid fa-file-pdf" style="margin-right: 8px; color: #dc3545;"></i>
+                                        <strong>${displayName}</strong>
+                                        <div style="font-size: 0.75rem; color: #666; margin-top: 4px;">${file.created_at || 'Tarih yok'}</div>
+                                    </div>
+                                    <button class="btn btn-danger btn-sm" style="padding: 0.5rem 0.75rem;" onclick="deleteCloudFilePdf('${file.name}', this)" title="Sil">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
                                 </div>`;
                         });
                         html += '</div>';
@@ -2592,6 +2634,36 @@
                     });
                 }
             });
+        }
+
+        // Delete cloud file from PDF browser
+        async function deleteCloudFilePdf(fileName, btn) {
+            const result = await Swal.fire({
+                title: 'Dosyayı Sil?',
+                text: 'Bu dosya kalıcı olarak silinecek!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#dc3545'
+            });
+            
+            if (result.isConfirmed) {
+                try {
+                    await DataManager.deleteSupabaseFile(fileName);
+                    btn.closest('.cloud-file-item-container').remove();
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Dosya silindi!',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                } catch (err) {
+                    Swal.fire('Hata', 'Dosya silinemedi: ' + err.message, 'error');
+                }
+            }
         }
 
         function browseToInputTeacher(btn, sesId, encodedSub) {
