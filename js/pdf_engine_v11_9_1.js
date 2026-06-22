@@ -1034,7 +1034,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const drawY = height - (3 * cmToPt * sf); 
 
         try {
-            const headerUrl = 'ata_header_v4.png';
+            const headerUrl = 'img/ata_header_v4.png';
             const headerBytes = await window.getFileBytes(headerUrl);
             if (headerBytes) {
                 let headerImg;
