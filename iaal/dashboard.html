@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>SINAV YÖNETİM PANELİ</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="img/amblem.jpg">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- SheetJS for Excel Import -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css?v=11.2">
+
+    <!-- PDF Modification Library -->
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js"></script>
+    <script src="js/pdf_engine_v11_9_1.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+
+<body class="dashboard-body">
+    <!-- App Loader Overlay -->
+    <div id="appLoader" class="loader-wrapper">
+        <div class="loader-content">
+            <div class="loader-spinner"></div>
+            <p>Sistem Hazırlanıyor...</p>
+        </div>
+    </div>
+
+    <!-- Background Elements -->
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+    <div class="bg-shape shape-3 dash-shape-3"></div>
+
+    <div class="app-container">
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar glass-panel">
+            <div class="sidebar-header">
+                <div class="logo-icon small">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <h2>Kelebek</h2>
+                <button class="menu-toggle" id="mobileMenuBtn">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul id="navMenu">
+                    <li class="nav-item" data-target="view-dashboard">
+                        <i class="fa-solid fa-chart-pie"></i>
+                        <span>Genel Bakış</span>
+                    </li>
+                    <li class="nav-item" data-target="view-school">
+                        <i class="fa-solid fa-school"></i>
+                        <span>Okul Ayarları</span>
+                    </li>
+                    <li class="nav-item" data-target="view-students">
+                        <i class="fa-solid fa-users"></i>
+                        <span>Öğrenci & Sınıf</span>
+                    </li>
+                    <li class="nav-item" data-target="view-classrooms">
+                        <i class="fa-solid fa-person-chalkboard"></i>
+                        <span>Derslik Yönetimi</span>
+                    </li>
+                    <li class="nav-item" data-target="view-teachers">
+                        <i class="fa-solid fa-chalkboard-user"></i>
+                        <span>Öğretmenler</span>
+                    </li>
+                    <li class="nav-item active" data-target="view-exam">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>Sınav Dağıtımı</span>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info" id="sidebarUserArea" style="cursor: pointer;" title="Sistem Ayarları">
+                    <div class="avatar"><i id="sidebarAvatarIcon" class="fa-solid fa-user"></i></div>
+                    <div class="details">
+                        <h4 id="displayUsername">Admin</h4>
+                        <p>Yönetici (v5.0)</p>
+                    </div>
+                </div>
+                <button id="logoutBtn" class="logout-btn" title="Çıkış Yap">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+
+            <!-- Top Header -->
+            <header class="top-header glass-panel">
+                <button class="menu-toggle-outside" id="mobileMenuBtnOutside">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="breadcrumb">
+                    <h1 id="pageTitle">Sınav Dağıtımı</h1>
+                    <p id="pageSubtitle">Öğrencileri dersliklere dağıtma algoritması ve sonuçlar.</p>
+                </div>
+                <div class="header-actions">
+                    <button class="icon-btn" id="globalResetRulesBtn" title="Kural Onaylarını Sıfırla"><i
+                            class="fa-regular fa-bell"></i></button>
+                    <button class="icon-btn" id="accountSettingsBtn" title="Sistem Ayarları"><i class="fa-solid fa-gear"></i></button>
+                </div>
+            </header>
+
+
+            <!-- Views Container -->
+            <div class="views-wrapper">
+
+                <!-- VIEW: Dashboard (Genel Bakış) -->
+                <section id="view-dashboard" class="view-section hidden">
+                    <div class="stats-grid">
+                        <div class="stat-card glass-panel">
+                            <div class="stat-icon primary"><i class="fa-solid fa-graduation-cap"></i></div>
+                            <div class="stat-details">
+                                <h3>Toplam Öğrenci</h3>
+                                <h2 id="statTotalStudents">0</h2>
+                            </div>
+                        </div>
+                        <div class="stat-card glass-panel">
+                            <div class="stat-icon secondary"><i class="fa-solid fa-chalkboard"></i></div>
+                            <div class="stat-details">
+                                <h3>Kayıtlı Sınıf</h3>
+                                <h2 id="statTotalClasses">0</h2>
+                            </div>
+                        </div>
+                        <div class="stat-card glass-panel">
+                            <div class="stat-icon warning"><i class="fa-solid fa-building"></i></div>
+                            <div class="stat-details">
+                                <h3>Derslik Sayısı</h3>
+                                <h2 id="statTotalRooms">0</h2>
+                            </div>
+                        </div>
+                        <div class="stat-card glass-panel">
+                            <div class="stat-icon success"><i class="fa-solid fa-chair"></i></div>
+                            <div class="stat-details">
+                                <h3>Toplam Kapasite</h3>
+                                <h2 id="statTotalCapacity">0</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-widgets">
+                        <div class="widget glass-panel list-widget">
+                            <div class="widget-header">
+                                <h3>Son Eklenen Sınıflar</h3>
+                            </div>
+                            <div class="widget-body" id="recentClassesList">
+                                <p class="empty-text">Henüz sınıf eklenmemiş.</p>
+                            </div>
+                        </div>
+                        <div class="widget glass-panel list-widget">
+                            <div class="widget-header">
+                                <h3>Hazır Derslikler</h3>
+                            </div>
+                            <div class="widget-body" id="readyClassroomsList">
+                                <p class="empty-text">Henüz derslik tanımlanmamış.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: School Settings (Okul Ayarları) -->
+                <section id="view-school" class="view-section hidden">
+                    <div class="settings-card glass-panel">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                            <h2 style="margin:0;">Kurum Bilgileri</h2>
+                            <div style="position:relative;">
+                                <button type="button" id="schoolGearBtn" class="btn btn-secondary"
+                                    style="padding:0.5rem 0.75rem;" title="Veri Yönetimi">
+                                    <i class="fa-solid fa-gear"></i>
+                                </button>
+                                <div id="schoolGearMenu" class="hidden"
+                                    style="position:absolute; right:0; top:110%; background:white; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.12); z-index:1000; min-width:200px; overflow:hidden;">
+                                    <div onclick="window.backupAllData()"
+                                        style="padding:12px 18px; cursor:pointer; display:flex; align-items:center; gap:10px; font-size:0.9rem; font-weight:600; color:#1e293b;"
+                                        onmouseenter="this.style.background='#f1f5f9'"
+                                        onmouseleave="this.style.background=''">
+                                        <i class="fa-solid fa-download" style="color:#6366f1;"></i> Verileri Yedekle
+                                    </div>
+                                    <div style="height:1px; background:#e2e8f0; margin:0 10px;"></div>
+                                    <div onclick="window.importBackupData()"
+                                        style="padding:12px 18px; cursor:pointer; display:flex; align-items:center; gap:10px; font-size:0.9rem; font-weight:600; color:#1e293b;"
+                                        onmouseenter="this.style.background='#f1f5f9'"
+                                        onmouseleave="this.style.background=''">
+                                        <i class="fa-solid fa-upload" style="color:#10b981;"></i> Yedeği Geri Yükle
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <form id="schoolForm" class="settings-form">
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label>Okul Adı</label>
+                                    <input type="text" id="schoolName" placeholder="Örn: Atatürk Anadolu Lisesi">
+                                </div>
+                                <div class="form-group half">
+                                    <label>Okul Logosu (Amblem)</label>
+                                    <div style="display:flex; gap:10px; align-items:center;">
+                                        <label for="schoolLogoInput" class="btn btn-secondary"
+                                            style="margin:0; font-size:0.8rem; padding:0.5rem 1rem; cursor:pointer;">
+                                            <i class="fa-solid fa-image"></i> Logo Seç
+                                        </label>
+                                        <input type="file" id="schoolLogoInput" accept="image/*" class="hidden"
+                                            onchange="window.handleLogoUpload(this)">
+                                        <div id="schoolLogoPreview"
+                                            style="width:40px; height:40px; border:1px solid #ddd; border-radius:5px; background:white; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                                            <i class="fa-solid fa-image" style="color:#ccc;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group half">
+                                    <label>Eğitim Öğretim Yılı</label>
+                                    <input type="text" id="academicYear" placeholder="Örn: 2023-2024">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label>Dönem</label>
+                                    <input type="text" id="academicTerm" placeholder="I. Dönem veya II. Dönem" readonly
+                                        style="background:#f8fafc; cursor:default;">
+                                </div>
+                                <div class="form-group half">
+                                    <label>Sınıf Sayısı</label>
+                                    <input type="number" id="classCount" min="1" placeholder="Örn: 24">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label>Derslik Sayısı</label>
+                                    <input type="number" id="roomCount" min="1" placeholder="Örn: 24">
+                                </div>
+                                <div class="form-group half">
+                                    <label>Müdür Adı Soyadı</label>
+                                    <input type="text" id="principalName" placeholder="Müdürün adı">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label>Müdür Yardımcısı Adı Soyadı</label>
+                                    <input type="text" id="vicePrincipalName" placeholder="Müdür yardımcısının adı">
+                                </div>
+                                <div class="form-group half">
+                                    <label>Günlük Ders Saati</label>
+                                    <input type="number" id="dailyLessons" min="1" max="16" placeholder="Örn: 8"
+                                        oninput="window.updateLessonSchedule(this.value)">
+                                </div>
+                            </div>
+
+                            <!-- Lesson Schedule Panel -->
+                            <div id="lessonSchedulePanel" class="hidden"
+                                style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:1rem; margin-bottom:1rem;">
+                                <h3 style="margin:0 0 0.75rem; font-size:1rem; color:#4f46e5;"><i
+                                        class="fa-solid fa-clock"></i> Ders Saatleri</h3>
+                                <div id="lessonTimesGrid"
+                                    style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:0.75rem;">
+                                </div>
+                            </div>
+
+                            <hr class="divider">
+
+                            <h2>Dersler ve Düzeyler</h2>
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label>Okuldaki Sınıf Düzeyleri (Virgülle ayırın)</label>
+                                    <input type="text" id="gradeLevels" placeholder="9, 10, 11, 12">
+                                    <small>Örn: 9, 10, 11, 12</small>
+                                </div>
+                                <div class="form-group half">
+                                    <label>Okuldaki Dersler (Virgülle ayırın)</label>
+                                    <textarea id="schoolSubjects" rows="2"
+                                        placeholder="Matematik, Fizik, Kimya, Biyoloji, Türkçe..."></textarea>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i>
+                                    Değişiklikleri Kaydet</button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- VIEW: Students & Classes (Öğrenci & Sınıf) -->
+                <section id="view-students" class="view-section hidden">
+                    <!-- Tab Menu Inner -->
+                    <div class="inner-tabs">
+                        <button class="inner-tab active" data-tab="classLists">Sınıflar</button>
+                        <button class="inner-tab" data-tab="studentAdd">Öğrenci Ekle/Düzenle</button>
+                        <button class="inner-tab" data-tab="studentBulk">Toplu Yükleme (Excel)</button>
+                    </div>
+
+                    <div id="tab-classLists" class="inner-content active">
+                        <div class="action-bar glass-panel">
+                            <div class="search-box">
+                                <i class="fa-solid fa-search"></i>
+                                <input type="text" placeholder="Sınıf veya öğrenci ara...">
+                            </div>
+                            <button class="btn btn-secondary"
+                                onclick="document.querySelector('[data-tab=studentAdd]').click()"><i
+                                    class="fa-solid fa-plus"></i> Yeni Öğrenci Ekle</button>
+                        </div>
+
+                        <div id="classesGridContainer">
+                            <!-- Classes will be loaded here dynamically -->
+                        </div>
+                    </div>
+
+                    <div id="tab-studentAdd" class="inner-content hidden">
+                        <div class="settings-card glass-panel">
+                            <h2>Tekli Öğrenci Girişi</h2>
+                            <form id="studentForm" class="settings-form">
+                                <div class="form-row">
+                                    <div class="form-group quarter">
+                                        <label>Öğrenci No</label>
+                                        <input type="number" id="stdNo" required>
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Adı Soyadı</label>
+                                        <input type="text" id="stdName" required>
+                                    </div>
+                                    <div class="form-group quarter">
+                                        <label>Sınıfı</label>
+                                        <input type="text" id="stdClass" placeholder="Örn: 10/A" required>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group quarter">
+                                        <label>
+                                            Öğrenci Kodu
+                                            <a href="javascript:void(0)"
+                                                onclick="window.showStudentCodeGuide('stdCode')"
+                                                style="font-size:0.75rem; font-weight:normal; margin-left:5px; color:var(--primary); text-decoration:underline;">
+                                                <i class="fa-solid fa-circle-info"></i> Rehber
+                                            </a>
+                                        </label>
+                                        <input type="text" id="stdCode" placeholder="Örn: C, H">
+                                    </div>
+                                    <div class="form-group quarter">
+                                        <label>Alan/Dal Bilgisi</label>
+                                        <input type="text" id="stdField" placeholder="Örn: Sayısal, Eşit Ağırlık">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Sorumlu Olduğu Dersler (Virgülle ayırın)</label>
+                                        <input type="text" id="stdSubjects" placeholder="Matematik, Fizik">
+                                    </div>
+                                </div>
+                                <div class="form-row" style="margin-top:0.5rem;">
+                                    <details style="width:100%; cursor:pointer;">
+                                        <summary style="color:var(--gray-500); font-size:0.9rem; margin-bottom:1rem;">
+                                            Gelişmiş Ekstra Alanlar (5 Adet)</summary>
+                                        <div class="form-row" style="margin-top:1rem;">
+                                            <div class="form-group half">
+                                                <label>Ekstra Veri 1</label>
+                                                <input type="text" id="stdExtra1" placeholder="...">
+                                            </div>
+                                            <div class="form-group half">
+                                                <label>Ekstra Veri 2</label>
+                                                <input type="text" id="stdExtra2" placeholder="...">
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group third">
+                                                <label>Ekstra Veri 3</label>
+                                                <input type="text" id="stdExtra3" placeholder="...">
+                                            </div>
+                                            <div class="form-group third">
+                                                <label>Ekstra Veri 4</label>
+                                                <input type="text" id="stdExtra4" placeholder="...">
+                                            </div>
+                                            <div class="form-group third">
+                                                <label>Ekstra Veri 5</label>
+                                                <input type="text" id="stdExtra5" placeholder="...">
+                                            </div>
+                                        </div>
+                                    </details>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-user-plus"></i>
+                                        Öğrenciyi Ekle</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div id="tab-studentBulk" class="inner-content hidden">
+                        <div class="settings-card glass-panel">
+                            <h2>Excel'den Toplu Öğrenci Yükleme</h2>
+                            <div class="info-alert"
+                                style="background-color: var(--secondary); color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                                <i class="fa-solid fa-circle-info" style="margin-right: 0.5rem;"></i>
+                                <strong>Akıllı Excel Tanıma Sistemi (E-Okul Uyumlu)</strong><br>
+                                E-Okul'dan aldığınız listeleri doğrudan yükleyebilirsiniz. Sistem "9. Sınıf / A Şubesi"
+                                gibi sınıf başlıklarını otomatik bulur, altındaki listelerden S.No, Öğrenci No, Adı,
+                                Soyadı bilgilerini alarak sınıf listenizi otomatik oluşturur.<br>
+                                <em>Not: Klasik formatta "Sınıf | Okul No | Ad Soyad" içeren bir tablo da
+                                    yüklenebilir.</em>
+                            </div>
+
+                            <div class="upload-area"
+                                style="border: 2px dashed var(--gray-300); padding: 2rem; text-align: center; border-radius: 10px; margin-bottom: 1.5rem;">
+                                <i class="fa-solid fa-cloud-arrow-up"
+                                    style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                                <h3 style="margin-bottom: 0.5rem;">Excel Dosyası Seçin</h3>
+                                <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;">
+                                <label for="excelFileInput" class="btn btn-secondary" style="cursor: pointer;">
+                                    Dosya Seç
+                                </label>
+                                <p id="excelFileName"
+                                    style="margin-top: 1rem; color: var(--gray-600); font-size: 0.9rem;"></p>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" id="btnProcessExcel" class="btn btn-primary" disabled>
+                                    <i class="fa-solid fa-file-import"></i> Verileri İçe Aktar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: Classrooms Layout -->
+                <section id="view-classrooms" class="view-section hidden">
+                    <div class="action-bar glass-panel" style="margin-bottom: 1.5rem;">
+                        <div>
+                            <h2 style="margin: 0; font-size: 1.25rem;">Derslik Yönetimi</h2>
+                            <p style="margin: 0; color: var(--gray-500); font-size: 0.9rem;">Sınav merkezlerinin planını
+                                oluşturun.</p>
+                        </div>
+                        <button id="btnAutoCreateClassrooms" class="btn btn-secondary">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Sınıflarla Aynı Adlı Derslik Oluştur
+                        </button>
+                    </div>
+
+                    <div class="settings-card glass-panel">
+                        <h2>Yeni Derslik Ekle / Düzenle</h2>
+                        <form id="classroomForm" class="settings-form">
+                            <div class="form-row">
+                                <div class="form-group quarter">
+                                    <label>Derslik Adı</label>
+                                    <input type="text" id="className" placeholder="Örn: 9-A, Salon 1" required>
+                                </div>
+                                <div class="form-group quarter">
+                                    <label>Şablondan Seç</label>
+                                    <select id="classTemplateSelect">
+                                        <option value="">-- Şablon Yok --</option>
+                                        <!-- Seçenekler JS ile dolacak -->
+                                    </select>
+                                </div>
+                                <div class="form-group quarter">
+                                    <label>Grup Sayısı</label>
+                                    <input type="number" id="classGroups" min="1" max="10" value="3" required>
+                                    <small>Yan yana kaç sıra grubu var?</small>
+                                </div>
+                                <div class="form-group quarter">
+                                    <label>Öğretmen Masası</label>
+                                    <select id="teacherDeskPos">
+                                        <option value="right">Sağda</option>
+                                        <option value="left">Solda</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Groups Dynamic Configuration Area -->
+                            <div id="dynamicGroupsArea"
+                                style="margin-top: 1rem; border-top: 1px solid var(--gray-200); padding-top: 1rem;">
+                                <!-- JS eklenecek -->
+                            </div>
+
+                            <div class="form-actions" style="margin-top: 1rem;">
+                                <button type="button" id="btnPreviewClassroom" class="btn btn-secondary">
+                                    <i class="fa-solid fa-eye"></i> Oturma Düzenini Çiz
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Classroom Grid Preview -->
+                    <div id="classroomPreviewArea" class="settings-card glass-panel hidden" style="margin-top: 2rem;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <div>
+                                <h2>Oturma Düzeni Önizleme</h2>
+                                <p style="color: var(--gray-500); font-size: 0.9rem;">İptal etmek (kullanım dışı
+                                    bırakmak) istediğiniz sıralara tıklayın. Kırmızı olan sıralara öğrenci
+                                    yerleştirilmez.</p>
+                            </div>
+                            <div class="capacity-badge"
+                                style="background: var(--primary); color: white; padding: 0.5rem 1rem; border-radius: 20px; font-weight: bold;">
+                                Kapasite: <span id="previewCapacity">0</span>
+                            </div>
+                        </div>
+
+                        <div id="classroomGrid" class="classroom-grid"></div>
+
+                        <div class="form-actions" style="margin-top: 2rem;">
+                            <button id="btnSaveClassroom" class="btn btn-primary">
+                                <i class="fa-solid fa-save"></i> Dersliği Kaydet
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Saved Classrooms -->
+                    <div class="settings-card glass-panel" style="margin-top: 2rem;">
+                        <h2>Kayıtlı Derslikler</h2>
+                        <div id="savedClassroomsList" class="classrooms-list"></div>
+                    </div>
+                </section>
+
+                <!-- VIEW: Teachers -->
+                <section id="view-teachers" class="view-section hidden">
+                    <div class="inner-tabs">
+                        <button class="inner-tab active" data-tab="teacherList">Sistemdeki Öğretmenler</button>
+                        <button class="inner-tab" data-tab="teacherAdd">Tekil Öğretmen Ekle</button>
+                        <button class="inner-tab" data-tab="teacherBulk">Excel'den Toplu Yükle</button>
+                        <button class="inner-tab" data-tab="teacherSchedule">Ders Programı Yükle</button>
+                    </div>
+
+                    <div id="tab-teacherList" class="inner-content active">
+                        <div class="settings-card glass-panel">
+                            <h2>Sistemdeki Öğretmenler</h2>
+                            <div class="action-bar glass-panel" style="margin-bottom: 1rem; padding: 0.5rem 1rem; display: flex; gap: 10px; align-items: center;">
+                                <div class="search-box" style="flex: 1;">
+                                    <i class="fa-solid fa-search"></i>
+                                    <input type="text" id="teacherSearch" placeholder="Öğretmen, branş ara...">
+                                </div>
+                                <button id="btnAutoCleanTeachers" class="btn btn-secondary btn-sm" title="Aynı isimli olan hesapların verilerini birleştirerek fazla olanı siler.">
+                                    <i class="fa-solid fa-broom"></i> Auto Temizle
+                                </button>
+                            </div>
+                            <!-- Context Menu -->
+                            <div id="teacherContextMenu" class="glass-panel" style="display: none; position: fixed; z-index: 9999; padding: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); border-radius: 5px; min-width: 180px;">
+                                <button id="btnContextMerge" style="background: transparent; border: none; padding: 8px 12px; cursor: pointer; display: flex; gap: 8px; align-items: center; width: 100%; text-align: left; color: var(--dark); font-size: 0.9rem;">
+                                    <i class="fa-solid fa-code-merge" style="color: var(--primary);"></i> Birleştir (Kopyala)
+                                </button>
+                            </div>
+                            <div id="teachersGridContainer" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                <!-- Grid injected by js -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-teacherAdd" class="inner-content hidden">
+                        <div class="settings-card glass-panel">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <h2>Yeni Öğretmen Ekle</h2>
+                                <button type="button" id="btnRefreshBranches" class="btn btn-secondary btn-sm"><i class="fa-solid fa-rotate-right"></i> Branşları Yenile</button>
+                            </div>
+                            <form id="teacherForm" class="settings-form" style="margin-top: 1rem;">
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Adı Soyadı</label>
+                                        <input type="text" id="teacherName" placeholder="Örn: Ahmet Yılmaz" required>
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Branş (Birden fazla seçilebilir)</label>
+                                        <select id="teacherBranch" multiple style="height: 100px; padding: 5px; border: 1px solid var(--gray-300); border-radius: 4px;" required>
+                                            <!-- Injected by js from DataManager.getSchoolSettings().subjects -->
+                                        </select>
+                                        <small style="margin-top: 5px; display: block; color: var(--gray-500);">CTRL / CMD ile çoklu seçim yapabilirsiniz.</small>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Kullanıcı Adı</label>
+                                        <input type="text" id="teacherUsername" placeholder="Örn: ahmet_hoca" required>
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Şifre</label>
+                                        <input type="text" id="teacherPassword" placeholder="Örn: 123456" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Cinsiyet</label>
+                                    <select id="teacherGender" style="height: 48px; border-radius: 6px; border: 1px solid var(--gray-300);">
+                                        <option value="erkek">Erkek</option>
+                                        <option value="kadin">Kadın</option>
+                                        <option value="diger">Belirtilmemiş</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>E-posta (İsteğe Bağlı)</label>
+                                    <input type="email" id="teacherEmail" placeholder="Örn: ornek@okul.com">
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-user-plus"></i> Öğretmeni Ekle</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div id="tab-teacherBulk" class="inner-content hidden">
+                        <div class="settings-card glass-panel">
+                            <h2>Excel'den Toplu Öğretmen Yükleme</h2>
+                            <div class="info-alert" style="background-color: var(--secondary); color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                                <i class="fa-solid fa-circle-info" style="margin-right: 0.5rem;"></i>
+                                <strong>Excel Sütunları:</strong> <br>1. Ad Soyad (Zorunlu) | 2. Kullanıcı Adı | 3. E-Posta | 4. Şifre | 5. Branşlar (Virgüllü)<br>
+                                <em style="opacity: 0.9;">Not: Kullanıcı adı boş bırakılırsa isminden otomatik oluşturulur. Şifre boşsa 123456 atanır.</em>
+                            </div>
+                            
+                            <div class="upload-area" style="border: 2px dashed var(--gray-300); padding: 2rem; text-align: center; border-radius: 10px; margin-bottom: 1.5rem;">
+                                <i class="fa-solid fa-file-excel" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                                <h3 style="margin-bottom: 0.5rem;">Excel Dosyası Seçin</h3>
+                                <input type="file" id="teacherExcelInput" accept=".xlsx, .xls" style="display: none;">
+                                <label for="teacherExcelInput" class="btn btn-secondary" style="cursor: pointer;">Dosya Seç</label>
+                                <p id="teacherExcelName" style="margin-top: 1rem; color: var(--gray-600); font-size: 0.9rem;"></p>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" id="btnProcessTeacherExcel" class="btn btn-primary" disabled>
+                                    <i class="fa-solid fa-upload"></i> İçeri Aktar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-teacherSchedule" class="inner-content hidden">
+                        <div class="settings-card glass-panel">
+                            <h2>Toplu Haftalık Ders Programı Yükle</h2>
+                            <div class="info-alert" style="background-color: var(--secondary); color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                                <i class="fa-solid fa-circle-info" style="margin-right: 0.5rem;"></i>
+                                <strong>Excel Şablon Formatı:</strong> <br>
+                                - Her sayfa (sekme) bir öğretmeni temsil etmelidir.<br>
+                                - <b>A1</b> hücresinde öğretmenin adı, soyadı yazmalıdır.<br>
+                                - <b>4. Satırdan</b> itibaren A sütununda Günler (Pa, Sa, Ça, Pe, Cu) yer almalıdır.<br>
+                                - <b>B'den I'ya kadar</b> olan sütunlar 1. Ders ile 8. Ders arasını simgeler (11B, 9C vs.).
+                            </div>
+                            
+                            <div class="upload-area" style="border: 2px dashed var(--gray-300); padding: 2rem; text-align: center; border-radius: 10px; margin-bottom: 1.5rem;">
+                                <i class="fa-solid fa-calendar-days" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                                <h3 style="margin-bottom: 0.5rem;">Ders Programı Exceli Seçin</h3>
+                                <input type="file" id="scheduleExcelInput" accept=".xlsx, .xls" style="display: none;">
+                                <label for="scheduleExcelInput" class="btn btn-secondary" style="cursor: pointer;">Dosya Seç</label>
+                                <p id="scheduleExcelName" style="margin-top: 1rem; color: var(--gray-600); font-size: 0.9rem;"></p>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" id="btnProcessScheduleExcel" class="btn btn-primary" disabled>
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> Ders Programlarını İçeri Aktar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: Exam Distribution -->
+                <section id="view-exam" class="view-section active">
+                    <div class="settings-card glass-panel" id="examSetupPanel">
+                        <h2>Sınav Dağıtımı Mimarisi</h2>
+                        <p style="margin-bottom: 1.5rem; color: var(--gray-600);">Öğrencileri ve derslikleri ayrıntılı
+                            oturumlar halinde planlayarak sınava dağıtın.</p>
+
+                        <div class="form-actions"
+                            style="justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                            <h3 style="margin: 0;">Planlanmış Oturumlar</h3>
+                            <button id="btnOpenExamWizard" class="btn btn-primary"
+                                style="font-size: 1rem; padding: 0.8rem 1.5rem;">
+                                <i class="fa-solid fa-plus"></i> Yeni Sınav Oturumu Oluştur
+                            </button>
+                        </div>
+
+                        <!-- Olası Sınav Oturumları Listesi -->
+                        <div id="examSessionsList" style="margin-bottom: 2rem; overflow-x: auto;">
+                            <!-- JS injected sessions table -->
+                        </div>
+
+                        <!-- THE WIZARD MODAL (Hidden by default) -->
+                        <div id="examWizardModal" class="modal-overlay hidden">
+                            <div class="modal-content glass-panel" style="max-width: 550px;">
+
+                                <!-- Wizard Header -->
+                                <div class="modal-header">
+                                    <h2>Yeni Sınav Oturumu Ekle</h2>
+                                    <button id="btnWizardClose" class="modal-close">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Stepper -->
+                                <div class="wizard-stepper">
+                                    <div class="wizard-step active" data-step="1">1. Bilgiler</div>
+                                    <div class="wizard-step" data-step="2">2. Ders & Sınıf</div>
+                                    <div class="wizard-step" data-step="3">3. Derslikler</div>
+                                    <div class="wizard-step" data-step="4">4. Onay</div>
+                                </div>
+
+                                <!-- Wizard Body -->
+                                <div class="modal-body">
+
+                                    <!-- STEP 1: Info -->
+                                    <div id="wizardStep1" class="wizard-pane">
+                                        <div style="text-align: center; margin-bottom: 2rem;">
+                                            <div
+                                                style="width: 60px; height: 60px; background: rgba(79, 70, 229, 0.1); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem;">
+                                                <i class="fa-solid fa-calendar-check"></i>
+                                            </div>
+                                            <h3>Oturum Bilgileri</h3>
+                                            <p style="color: var(--gray-500); font-size: 0.9rem;">Sınav oturumu için temel tanımlamaları yapın.</p>
+                                        </div>
+
+                                        <div class="modal-form-card">
+                                            <div class="modal-row" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                                                <div class="modal-form-group" style="flex: 3; min-width: 200px;">
+                                                    <label>Sınav Adı</label>
+                                                    <input type="text" id="wizSessionName"
+                                                        placeholder="Örn: 1. Dönem 1. Ortak Fizik Sınavı" required style="width: 100%; box-sizing: border-box; height: 48px; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px;">
+                                                </div>
+                                                <div class="modal-form-group" style="flex: 1; min-width: 100px;">
+                                                    <label>Sınav No</label>
+                                                    <input type="number" id="wizSessionExamNo" min="1" max="10" value="1" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; font-family: inherit; box-sizing: border-box; height: 48px;">
+                                                </div>
+                                            </div>
+                                            <div class="modal-form-group">
+                                                <label>Sınav Türü</label>
+                                                <select id="wizSessionType" required>
+                                                    <option value="yazili" selected>Yazılı Sınav</option>
+                                                    <option value="uygulama">Uygulama Sınavı</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="modal-row" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                                                <div class="modal-form-group" style="flex: 1; min-width: 120px;">
+                                                    <label>Tarih</label>
+                                                    <input type="date" id="wizSessionDate" required>
+                                                </div>
+                                                <div class="modal-form-group" style="flex: 1.2; min-width: 150px;">
+                                                    <label>Ders Saati</label>
+                                                    <select id="wizSessionLesson" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; font-family: inherit; box-sizing: border-box; height: 48px;">
+                                                        <option value="">Seçin (Hızlı Seçim)</option>
+                                                    </select>
+                                                </div>
+                                                <div class="modal-form-group" style="flex: 0.8; min-width: 100px;">
+                                                    <label>Saat / Dakika</label>
+                                                    <input type="time" id="wizSessionTime" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; font-family: inherit; box-sizing: border-box; height: 48px;">
+                                                </div>
+                                            </div>
+
+                                            <div class="modal-row" style="align-items: center; margin-top: 0.5rem;">
+                                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                                    <input type="checkbox" id="wizSessionHasGroups"
+                                                        style="width: 20px; height: 20px; cursor: pointer;">
+                                                    <label for="wizSessionHasGroups"
+                                                        style="font-weight: 700; color: var(--gray-700); cursor: pointer; margin-bottom:0;">Bu
+                                                        sınavda grup var</label>
+                                                </div>
+                                                <div id="wizGroupCountContainer" class="hidden"
+                                                    style="display: flex; align-items: center; gap: 0.75rem;">
+                                                    <label
+                                                        style="font-weight: 700; color: var(--gray-700); white-space: nowrap; margin-bottom:0;">Grup:</label>
+                                                    <input type="number" id="wizSessionGroupCount" min="2" max="26"
+                                                        value="2" style="height: 40px; width: 80px;">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- STEP 2: Subject & Classes -->
+                                    <div id="wizardStep2" class="wizard-pane hidden">
+                                        <h3>Ders ve Havuz Seçimi</h3>
+                                        <div class="modal-form-card">
+                                            <div class="modal-form-group">
+                                                <label>Sınav Yapılacak Dersler</label>
+                                                <div style="display: flex; gap: 0.5rem;">
+                                                    <select id="wizSubjectSelect" style="flex: 1; height: 45px;">
+                                                        <option value="">Lütfen Yüklü Öğrencilerden Bir Ders Seçin
+                                                        </option>
+                                                    </select>
+                                                    <button type="button" id="btnAddWizardSubject"
+                                                        class="btn btn-secondary"
+                                                        style="height: 45px; white-space: nowrap;">
+                                                        <i class="fa-solid fa-plus"></i> Ekle
+                                                    </button>
+                                                </div>
+                                                <p id="wizNoStudentsMsg" class="hidden"
+                                                    style="color:var(--danger); font-size:0.8rem; margin-top:0.5rem; font-weight: 500;">
+                                                    <i class="fa-solid fa-circle-exclamation"></i> Seçilecek öğrenci
+                                                    kalmadı
+                                                </p>
+                                                <div id="wizSelectedSubjectsContainer"
+                                                    style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;">
+                                                    <!-- Selected subjects tags -->
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div id="wizClassesContainer"
+                                            style="border: 1px solid var(--gray-200); border-radius: 12px; padding: 1rem; background: var(--gray-50); min-height: 150px; overflow-y: auto; max-height: 300px;">
+                                            <p style="text-align: center; color: var(--gray-500); margin-top: 2rem;">
+                                                Ders seçildiğinde ilgili sınıflar burada listelenir.</p>
+                                        </div>
+                                        <div style="text-align:right; margin-top:0.5rem; font-size:0.85rem; color:var(--gray-500);">
+                                            Seçili öğrenci: <strong id="wizOccupancyCount" style="color:var(--primary);">0</strong>
+                                        </div>
+                                    </div>
+
+                                    <!-- STEP 3: Classrooms -->
+                                    <div id="wizardStep3" class="wizard-pane hidden">
+                                        <h3>Derslik Ataması</h3>
+                                        <p
+                                            style="color: var(--gray-600); font-size: 0.9rem; margin-bottom: 1.5rem; text-align: center;">
+                                            Sınavın yapılacağı derslikleri seçin. Sistem otomatik eşleşenleri
+                                            işaretlemiştir.
+                                        </p>
+
+                                        <div id="wizClassroomsContainer"
+                                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem;">
+                                            <!-- JS Injected checkbox list -->
+                                        </div>
+                                    </div>
+
+                                    <!-- STEP 4: Review -->
+                                    <div id="wizardStep4" class="wizard-pane hidden">
+                                        <h3>Özet ve Onay</h3>
+                                        <div id="wizSummaryBox" class="modal-form-card"
+                                            style="background: var(--gray-50); font-size: 0.95rem;">
+                                            <!-- JS Injected Summary -->
+                                        </div>
+                                        <div class="modal-form-card" style="margin-top: 1rem;">
+                                            <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+                                                <input type="checkbox" id="wizDistributeClasses" style="width: 20px; height: 20px; cursor: pointer;" checked>
+                                                <span style="font-weight: bold; color: var(--gray-700);">Sınıfları Dağıt (Öğrencileri dersliklere yerleştir)</span>
+                                            </label>
+                                            <p style="color: var(--gray-500); font-size: 0.85rem; margin-top: 0.5rem; margin-left: 28px;">
+                                                Eğer bu seçenek kaldırılırsa, her sınıf kendi dersliğinde (örn: 9-A, 9-A salonunda) sınava girecek şekilde ayarlanır.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                <!-- Wizard Footer -->
+                                <div class="modal-footer">
+                                    <button id="btnWizardPrev" class="btn btn-secondary">Geri</button>
+                                    <button id="btnWizardCancel" class="btn btn-danger">İptal</button>
+                                    <button id="btnWizardNext" class="btn btn-primary">İleri</button>
+                                    <button id="btnWizardFinish" class="btn btn-success hidden">Oturumu Oluştur</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="examResultsPanel" class="hidden">
+                        <div class="action-bar glass-panel" style="margin-bottom: 2rem;">
+                            <h3 style="margin: 0;"><i class="fa-solid fa-check-double"
+                                    style="color:var(--secondary);"></i> Dağıtım Sonuçları</h3>
+                            <div>
+                                <button class="btn btn-secondary" onclick="window.print()"><i
+                                        class="fa-solid fa-print"></i> Yazdır</button>
+                                <!-- We just use browser print for simplicity, customized print css covers it -->
+                            </div>
+                        </div>
+
+                        <div id="examClassroomsView" class="print-area" style="width: 100%;">
+                            <!-- Dağıtım Odaları buraya çizilecek -->
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/core_data_v11_9_1.js"></script>
+    <script src="js/algorithm.js?v=11.0"></script>
+    <script src="js/ui.js?v=11.1"></script>
+    <script src="js/teachers.js?v=11.0"></script>
+    <!-- Add sweetalert2 for nice modals (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</body>
+
+</html>

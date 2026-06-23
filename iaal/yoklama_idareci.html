@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>İdareci Yoklama Analiz & e-Okul Paneli</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="img/amblem.jpg">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- Base Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Core DataManager -->
+    <script src="js/core_data_v11_9_1.js"></script>
+
+    <style>
+        :root {
+            --primary: #5b2c91;
+            --primary-hover: #4a2176;
+            --accent: #ff6b6b;
+            --geldi-color: #10b981;
+            --gelmedi-color: #ef4444;
+            --gec-color: #f59e0b;
+            --rahatsiz-color: #3b82f6;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            min-height: 100vh;
+        }
+
+        .admin-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .premium-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            border-left: 5px solid var(--primary);
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card-custom {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: var(--transition);
+        }
+
+        .stat-card-custom:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-icon-custom {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .tab-menu {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: white;
+            border: 1px solid var(--gray-300);
+            color: var(--gray-600);
+            padding: 10px 18px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(91, 44, 145, 0.3);
+        }
+
+        .filter-panel {
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .grid-filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.25rem;
+            align-items: flex-end;
+        }
+
+        .form-select-custom {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-family: var(--font-family);
+            font-size: 0.9rem;
+            font-weight: 600;
+            background: white;
+            color: var(--dark);
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .form-select-custom:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(91, 44, 145, 0.1);
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .report-table th {
+            background: #f8fafc;
+            padding: 12px;
+            text-align: left;
+            font-weight: 800;
+            color: var(--gray-600);
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .report-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--gray-100);
+            vertical-align: middle;
+        }
+
+        .report-table tr:hover {
+            background: #f8fafc;
+        }
+
+        .indicator-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .indicator-dot.geldi { background-color: var(--geldi-color); }
+        .indicator-dot.gelmedi { background-color: var(--gelmedi-color); }
+        .indicator-dot.gec { background-color: var(--gec-color); }
+        .indicator-dot.rahatsiz { background-color: var(--rahatsiz-color); }
+        .indicator-dot.empty { background-color: #cbd5e1; }
+
+        .badge-status {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 800;
+            font-size: 0.75rem;
+            display: inline-block;
+        }
+        .badge-status.gelmedi { background: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2; }
+        .badge-status.gec { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+        .badge-status.rahatsiz { background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; }
+
+        /* e-Okul Helper box */
+        .eokul-assistant {
+            background: #fffbeb;
+            border: 2px dashed #f59e0b;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .numbers-box {
+            background: white;
+            border: 1px solid #fde68a;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-weight: 800;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            word-break: break-all;
+            margin: 10px 0;
+            color: #b45309;
+        }
+
+        /* Hour bar charts styling */
+        .chart-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 12px;
+        }
+
+        .chart-label {
+            width: 80px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .chart-track {
+            flex: 1;
+            background: var(--gray-200);
+            height: 16px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .chart-fill {
+            background: var(--primary);
+            height: 100%;
+            border-radius: 8px;
+            transition: width 1s ease-in-out;
+        }
+
+        .chart-val {
+            width: 40px;
+            font-weight: 800;
+            font-size: 0.85rem;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="admin-container">
+        
+        <!-- Premium Header -->
+        <div class="premium-header glass-panel">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="logo-icon" style="margin: 0; width: 48px; height: 48px; font-size: 1.4rem; background: var(--primary);">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <div>
+                    <h1 style="font-size: 1.35rem; font-weight: 900; color: var(--dark); margin: 0;">Yoklama Analiz & Raporlama</h1>
+                    <p style="font-size: 0.8rem; color: var(--gray-500); margin: 2px 0 0 0;" id="schoolDisplay">Yükleniyor...</p>
+                </div>
+            </div>
+            <div>
+                <button class="btn btn-secondary" onclick="window.close()" style="background: white; border: 1px solid var(--gray-300);">
+                    <i class="fa-solid fa-house"></i> Kapat
+                </button>
+            </div>
+        </div>
+
+        <!-- Dynamic Stats Grid -->
+        <div class="stat-grid">
+            <div class="stat-card-custom glass-panel">
+                <div class="stat-icon-custom" style="background: var(--primary);">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; color: var(--gray-500); font-weight: 700; text-transform: uppercase;">Toplam Yoklama</div>
+                    <div style="font-size: 1.5rem; font-weight: 900;" id="statTotalYoklama">0</div>
+                </div>
+            </div>
+
+            <div class="stat-card-custom glass-panel">
+                <div class="stat-icon-custom" style="background: var(--gelmedi-color);">
+                    <i class="fa-solid fa-user-xmark"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; color: var(--gray-500); font-weight: 700; text-transform: uppercase;">Bugünkü Devamsız</div>
+                    <div style="font-size: 1.5rem; font-weight: 900;" id="statTodayAbsent">0</div>
+                </div>
+            </div>
+
+            <div class="stat-card-custom glass-panel">
+                <div class="stat-icon-custom" style="background: var(--gec-color);">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; color: var(--gray-500); font-weight: 700; text-transform: uppercase;">Bugün Geç Kalan</div>
+                    <div style="font-size: 1.5rem; font-weight: 900;" id="statTodayLate">0</div>
+                </div>
+            </div>
+
+            <div class="stat-card-custom glass-panel">
+                <div class="stat-icon-custom" style="background: #2563eb;">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; color: var(--gray-500); font-weight: 700; text-transform: uppercase;">En Devamsız Sınıf</div>
+                    <div style="font-size: 1.15rem; font-weight: 900; color: #1e3a8a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="statWorstClass">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Selection Menu -->
+        <div class="tab-menu">
+            <button class="tab-btn active" id="btnTabSinif" onclick="switchTab('sinif')">
+                <i class="fa-solid fa-table-cells"></i> Sınıf Bazlı Takip
+            </button>
+            <button class="tab-btn" id="btnTabDers" onclick="switchTab('ders')">
+                <i class="fa-solid fa-book"></i> Ders Analizi
+            </button>
+            <button class="tab-btn" id="btnTabSaat" onclick="switchTab('saat')">
+                <i class="fa-solid fa-clock"></i> Ders Saati Analizi
+            </button>
+            <button class="tab-btn" id="btnTabAralik" onclick="switchTab('aralik')">
+                <i class="fa-solid fa-calendar-days"></i> Tarih Aralığı Süz
+            </button>
+            <button class="tab-btn" id="btnTabGenel" onclick="switchTab('genel')">
+                <i class="fa-solid fa-users"></i> Genel Okul Raporu
+            </button>
+        </div>
+
+        <!-- TAB 1: Sınıf Bazlı Takip -->
+        <div id="tabSinif" class="tab-content">
+            
+            <!-- Filters Card -->
+            <div class="filter-panel glass-panel">
+                <div class="grid-filters">
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-calendar"></i> Tarih Seçin</label>
+                        <input type="date" id="sinifFilterDate" class="form-select-custom" onchange="runSinifReport()">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-graduation-cap"></i> Sınıf Seçin</label>
+                        <select id="sinifFilterClass" class="form-select-custom" onchange="runSinifReport()">
+                            <option value="">-- Sınıf Seçin --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- e-Okul Assistant Box (Hidden by default, shown when class and date are queried) -->
+            <div class="eokul-assistant hidden" id="eokulAssistantBox">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+                    <div>
+                        <h4 style="color: #d97706; font-weight: 800; font-size: 1.05rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-circle-info"></i> e-Okul Hızlı Devamsızlık Giriş Asistanı
+                        </h4>
+                        <p style="font-size: 0.8rem; color: #92400e; margin: 0;">
+                            Aşağıdaki kutuda seçtiğiniz sınıfta bugün <b>GELMEDİ</b> olarak işaretlenen öğrencilerin numaraları yer alır. Bu numaraları e-Okul devamsızlık giriş ekranındaki numaralar bölümüne kopyalayıp yapıştırarak saniyeler içinde devamsızlıkları işleyebilirsiniz.
+                        </p>
+                    </div>
+                    <button class="btn btn-sm" style="background:#f59e0b; color:white; border:none;" onclick="copyAbsentNumbers()">
+                        <i class="fa-solid fa-copy"></i> Numaraları Kopyala
+                    </button>
+                </div>
+                <div class="numbers-box" id="absentNumbersBox">-</div>
+                <div style="display: flex; gap: 15px; font-size: 0.75rem; font-weight: 700; color: #b45309;">
+                    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                        <input type="radio" name="eokulFilter" value="GELMEDİ" checked onchange="updateEokulAssistant()"> Sadece Gelmeyenler (GELMEDİ)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                        <input type="radio" name="eokulFilter" value="GEÇ" onchange="updateEokulAssistant()"> Sadece Geç Kalanlar (GEÇ)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                        <input type="radio" name="eokulFilter" value="TÜMÜ" onchange="updateEokulAssistant()"> Tüm Olumsuzlar (Gelmedi + Geç + Rahatsız)
+                    </label>
+                </div>
+            </div>
+
+            <!-- Report Card -->
+            <div class="glass-panel" style="padding: 2rem; overflow-x: auto;" id="sinifReportContainer">
+                <div style="text-align: center; color: var(--gray-400); padding: 2rem;" id="sinifEmptyState">
+                    <i class="fa-solid fa-table-list" style="font-size: 3rem; opacity: 0.5; margin-bottom: 1rem;"></i><br>
+                    Lütfen sınıf ve tarih seçerek raporu başlatın.
+                </div>
+
+                <div class="hidden" id="sinifTableWrapper">
+                    <table class="report-table">
+                        <thead>
+                            <tr id="sinifTableHead">
+                                <!-- JS ile oluşturulacak -->
+                            </tr>
+                        </thead>
+                        <tbody id="sinifTableBody">
+                            <!-- JS ile doldurulacak -->
+                        </tbody>
+                    </table>
+                    
+                    <div style="margin-top: 1.5rem; display: flex; gap: 20px; font-size: 0.8rem; font-weight: 700; color: var(--gray-500); justify-content: center; background: #f8fafc; padding: 10px; border-radius: 8px;">
+                        <span><span class="indicator-dot geldi" style="vertical-align: middle;"></span> Geldi</span>
+                        <span><span class="indicator-dot gelmedi" style="vertical-align: middle;"></span> Gelmedi</span>
+                        <span><span class="indicator-dot gec" style="vertical-align: middle;"></span> Geç Kaldı</span>
+                        <span><span class="indicator-dot rahatsiz" style="vertical-align: middle;"></span> Rahatsızlandı</span>
+                        <span><span class="indicator-dot empty" style="vertical-align: middle;"></span> Yoklama Alınmadı</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TAB 2: Ders Analizi -->
+        <div id="tabDers" class="tab-content hidden">
+            <div class="glass-panel" style="padding: 2rem;">
+                <h3 style="font-weight: 800; font-size: 1.25rem; margin-bottom: 1.5rem; color: var(--primary);">
+                    <i class="fa-solid fa-book"></i> Derslere Göre Toplam Devamsızlık İstatistikleri
+                </h3>
+
+                <div class="table-responsive">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Ders Adı</th>
+                                <th>Alınan Toplam Yoklama</th>
+                                <th style="color: var(--gelmedi-color);">Gelmedi Sayısı</th>
+                                <th style="color: var(--gec-color);">Geç Kalma Sayısı</th>
+                                <th style="color: var(--rahatsiz-color);">Rahatsızlanma Sayısı</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dersTableBody">
+                            <!-- JS ile doldurulacak -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: Ders Saati Analizi -->
+        <div id="tabSaat" class="tab-content hidden">
+            <div class="glass-panel" style="padding: 2rem;">
+                <h3 style="font-weight: 800; font-size: 1.25rem; margin-bottom: 1.5rem; color: var(--primary);">
+                    <i class="fa-solid fa-clock"></i> Ders Saatlerine Göre Devamsızlık Yoğunluğu
+                </h3>
+                <p style="font-size: 0.85rem; color: var(--gray-500); margin-bottom: 2rem;">
+                    Öğrencilerin en çok hangi ders saatlerinde devamsızlık yaptığını (sınıftan kaçtığını veya geç kaldığını) analiz edin.
+                </p>
+
+                <div id="saatChartsContainer" style="max-width: 700px; margin: 0 auto;">
+                    <!-- JS ile dinamik bar grafikler oluşturulacak -->
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: Tarih Aralığı Süz -->
+        <div id="tabAralik" class="tab-content hidden">
+            <!-- Filter box -->
+            <div class="filter-panel glass-panel">
+                <div class="grid-filters">
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-calendar"></i> Başlangıç Tarihi</label>
+                        <input type="date" id="rangeStartDate" class="form-select-custom" onchange="runRangeReport()">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-calendar"></i> Bitiş Tarihi</label>
+                        <input type="date" id="rangeEndDate" class="form-select-custom" onchange="runRangeReport()">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-graduation-cap"></i> Sınıf (İsteğe Bağlı)</label>
+                        <select id="rangeClass" class="form-select-custom" onchange="runRangeReport()">
+                            <option value="">-- Tüm Sınıflar --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Card -->
+            <div class="glass-panel" style="padding: 2rem;">
+                <h3 style="font-weight: 800; font-size: 1.25rem; margin-bottom: 1.5rem; color: var(--primary);">
+                    <i class="fa-solid fa-clipboard-list"></i> Tarih Aralığı Devamsızlık Raporu
+                </h3>
+
+                <div class="table-responsive">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Ders Saati</th>
+                                <th>Sınıf</th>
+                                <th>Ders</th>
+                                <th>Öğretmen</th>
+                                <th style="color:var(--gelmedi-color);">Gelmedi</th>
+                                <th style="color:var(--gec-color);">Geç</th>
+                                <th style="color:var(--rahatsiz-color);">Rahatsız</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rangeTableBody">
+                            <tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--gray-400);">Lütfen tarih aralığı seçin.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: Genel Okul Raporu -->
+        <div id="tabGenel" class="tab-content hidden">
+            <!-- Filter box -->
+            <div class="filter-panel glass-panel">
+                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px; position: relative;">
+                        <input type="text" id="genelSearch" class="form-select-custom" placeholder="Öğrenci adı, no veya sınıf ile ara..." oninput="runGenelReport()" style="padding-left: 2.5rem;">
+                        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--gray-400);"></i>
+                    </div>
+                    <div style="width: 200px;">
+                        <select id="genelClassFilter" class="form-select-custom" onchange="runGenelReport()">
+                            <option value="">-- Tüm Sınıflar --</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-secondary" onclick="exportGenelReportToExcel()" style="background: #10b981; color: white; border: none;">
+                        <i class="fa-solid fa-file-excel"></i> Excel Olarak İndir
+                    </button>
+                </div>
+            </div>
+
+            <!-- Report Card -->
+            <div class="glass-panel" style="padding: 2rem;">
+                <h3 style="font-weight: 800; font-size: 1.25rem; margin-bottom: 1.5rem; color: var(--primary);">
+                    <i class="fa-solid fa-clipboard-list"></i> Okul Genel Devamsızlık Listesi
+                </h3>
+
+                <div class="table-responsive">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th style="cursor:pointer;" onclick="setGenelSort('no')">No <i class="fa-solid fa-sort"></i></th>
+                                <th style="cursor:pointer;" onclick="setGenelSort('name')">Ad Soyad <i class="fa-solid fa-sort"></i></th>
+                                <th style="cursor:pointer;" onclick="setGenelSort('class')">Sınıf <i class="fa-solid fa-sort"></i></th>
+                                <th style="cursor:pointer; color:var(--gelmedi-color);" onclick="setGenelSort('gelmedi')">Toplam Gelmedi <i class="fa-solid fa-sort"></i></th>
+                                <th style="cursor:pointer; color:var(--gec-color);" onclick="setGenelSort('gec')">Toplam Geç <i class="fa-solid fa-sort"></i></th>
+                                <th style="cursor:pointer; color:var(--rahatsiz-color);" onclick="setGenelSort('rahatsiz')">Toplam Rahatsız <i class="fa-solid fa-sort"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="genelTableBody">
+                            <!-- JS ile doldurulacak -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- XLSX Helper for exporting to Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <script>
+        // Global variables
+        let schoolData = {};
+        let allStudents = [];
+        let teachersDb = {};
+        let attendanceDb = {};
+        let classList = [];
+
+        // Sorting configuration for general tab
+        let genelSortField = 'class';
+        let genelSortAsc = true;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. Auth Validation
+            const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true';
+            const role = sessionStorage.getItem('klbk_role') || '';
+            
+            if (!isLoggedIn || (role !== 'admin' && role !== 'master' && role !== 'idareci')) {
+                window.location.href = '/k9x7v2m4';
+                return;
+            }
+
+            document.getElementById('schoolDisplay').textContent = sessionStorage.getItem('klbk_schoolName') || 'Okul İdare Paneli';
+
+            // Set default dates
+            const today = new Date().toISOString().slice(0, 10);
+            document.getElementById('sinifFilterDate').value = today;
+            document.getElementById('rangeStartDate').value = today;
+            document.getElementById('rangeEndDate').value = today;
+
+            // Load Data
+            Swal.fire({
+                title: 'Raporlama Verileri Yükleniyor',
+                text: 'Lütfen bekleyin...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            try {
+                await DataManager.initCloud();
+                schoolData = DataManager.getSchoolSettings();
+                allStudents = DataManager.getStudents();
+                
+                // Get all unique classes
+                const classes = new Set();
+                allStudents.forEach(s => { if (s.class) classes.add(s.class.trim()); });
+                classList = Array.from(classes).sort((a, b) => a.localeCompare(b, 'tr'));
+
+                // Populate Class Select Dropdowns
+                populateClassSelects();
+
+                // Load attendance databases
+                const dbData = DataManager._getData();
+                attendanceDb = dbData.attendance || {};
+
+                // Compute overall stats
+                computeOverallStats();
+
+                Swal.close();
+            } catch (e) {
+                console.error("Dashboard init error:", e);
+                Swal.fire('Hata', 'Analiz verileri yüklenirken bir sorun yaşandı.', 'error');
+            }
+        });
+
+        function populateClassSelects() {
+            const selects = ['sinifFilterClass', 'rangeClass', 'genelClassFilter'];
+            selects.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                
+                // Clear stubs
+                el.innerHTML = (id === 'sinifFilterClass') ? '<option value="">-- Sınıf Seçin --</option>' : '<option value="">-- Tüm Sınıflar --</option>';
+
+                classList.forEach(cls => {
+                    const opt = document.createElement('option');
+                    opt.value = cls;
+                    opt.textContent = cls;
+                    el.appendChild(opt);
+                });
+            });
+        }
+
+        function computeOverallStats() {
+            let totalRecordsCount = 0;
+            let todayAbsentCount = 0;
+            let todayLateCount = 0;
+
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const classAbsenceCounts = {}; // className -> totalAbsences
+
+            for (const date in attendanceDb) {
+                for (const hour in attendanceDb[date]) {
+                    for (const cls in attendanceDb[date][hour]) {
+                        const record = attendanceDb[date][hour][cls];
+                        totalRecordsCount++;
+
+                        // Aggregate records per class for Worst Class stat
+                        classAbsenceCounts[cls] = classAbsenceCounts[cls] || 0;
+
+                        Object.values(record.records || {}).forEach(status => {
+                            if (status === 'GELMEDİ') {
+                                classAbsenceCounts[cls]++;
+                                if (date === todayStr) todayAbsentCount++;
+                            } else if (status === 'GEÇ') {
+                                if (date === todayStr) todayLateCount++;
+                            } else if (status === 'RAHATSIZLANDI') {
+                                if (date === todayStr) todayAbsentCount++; // counts as absentee for school safety
+                            }
+                        });
+                    }
+                }
+            }
+
+            document.getElementById('statTotalYoklama').textContent = totalRecordsCount;
+            document.getElementById('statTodayAbsent').textContent = todayAbsentCount;
+            document.getElementById('statTodayLate').textContent = todayLateCount;
+
+            // Find class with highest absences
+            let worstClass = '-';
+            let maxAbs = 0;
+            for (const cls in classAbsenceCounts) {
+                if (classAbsenceCounts[cls] > maxAbs) {
+                    maxAbs = classAbsenceCounts[cls];
+                    worstClass = `${cls} (${maxAbs})`;
+                }
+            }
+            document.getElementById('statWorstClass').textContent = worstClass;
+        }
+
+        // --- TAB 1: Sınıf Bazlı Takip ---
+        function runSinifReport() {
+            const dateVal = document.getElementById('sinifFilterDate').value;
+            const classVal = document.getElementById('sinifFilterClass').value;
+            
+            const emptyState = document.getElementById('sinifEmptyState');
+            const wrapper = document.getElementById('sinifTableWrapper');
+            const eokulBox = document.getElementById('eokulAssistantBox');
+
+            if (!dateVal || !classVal) {
+                emptyState.classList.remove('hidden');
+                wrapper.classList.add('hidden');
+                eokulBox.classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            wrapper.classList.remove('hidden');
+            eokulBox.classList.remove('hidden');
+
+            // Find all unique lesson hours taken for this class on this date
+            const dayRecords = attendanceDb[dateVal] || {};
+            
+            // Build table header
+            const thead = document.getElementById('sinifTableHead');
+            thead.innerHTML = `
+                <th style="width:250px;">Öğrenci No & Ad Soyad</th>
+                <th>1. Ders</th>
+                <th>2. Ders</th>
+                <th>3. Ders</th>
+                <th>4. Ders</th>
+                <th>5. Ders</th>
+                <th>6. Ders</th>
+                <th>7. Ders</th>
+                <th>8. Ders</th>
+            `;
+
+            // Filter students in selected class
+            const studentsInClass = allStudents.filter(s => s.class && s.class.trim() === classVal.trim());
+            studentsInClass.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr'));
+
+            const tbody = document.getElementById('sinifTableBody');
+            tbody.innerHTML = '';
+
+            if (studentsInClass.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:2rem; color:var(--gray-400);">Seçilen sınıfta öğrenci kaydı bulunmuyor.</td></tr>`;
+                return;
+            }
+
+            studentsInClass.forEach(s => {
+                const tr = document.createElement('tr');
+                let rowHtml = `
+                    <td style="font-weight:700;">
+                        <span style="color:var(--primary);">${s.no}</span> - ${s.name} ${s.surname || ''}
+                    </td>
+                `;
+
+                // For hours 1 to 8, draw a dot corresponding to their attendance status
+                for (let h = 1; h <= 8; h++) {
+                    const hourRecord = dayRecords[h.toString()]?.[classVal];
+                    const status = hourRecord?.records?.[s.no];
+                    const subject = hourRecord?.subject || '';
+
+                    let dotClass = 'empty';
+                    let tooltip = 'Yoklama alınmadı';
+                    
+                    if (status) {
+                        if (status === 'GELDİ') { dotClass = 'geldi'; tooltip = `${subject} (Geldi)`; }
+                        else if (status === 'GELMEDİ') { dotClass = 'gelmedi'; tooltip = `${subject} (Gelmedi)`; }
+                        else if (status === 'GEÇ') { dotClass = 'gec'; tooltip = `${subject} (Geç Kaldı)`; }
+                        else if (status === 'RAHATSIZLANDI') { dotClass = 'rahatsiz'; tooltip = `${subject} (Rahatsızlandı)`; }
+                    }
+
+                    rowHtml += `
+                        <td>
+                            <span class="indicator-dot ${dotClass}" title="${tooltip}" style="cursor:help; width:16px; height:16px;"></span>
+                        </td>
+                    `;
+                }
+
+                tr.innerHTML = rowHtml;
+                tbody.appendChild(tr);
+            });
+
+            // Update e-Okul assistant box
+            updateEokulAssistant();
+        }
+
+        function updateEokulAssistant() {
+            const dateVal = document.getElementById('sinifFilterDate').value;
+            const classVal = document.getElementById('sinifFilterClass').value;
+            if (!dateVal || !classVal) return;
+
+            const filterType = document.querySelector('input[name="eokulFilter"]:checked').value;
+            const dayRecords = attendanceDb[dateVal] || {};
+
+            // We aggregate all students in the class who had an absence today in *any* lesson hour
+            const studentsInClass = allStudents.filter(s => s.class && s.class.trim() === classVal.trim());
+            const badStudents = new Set(); // store student numbers
+
+            studentsInClass.forEach(s => {
+                for (let h = 1; h <= 8; h++) {
+                    const status = dayRecords[h.toString()]?.[classVal]?.records?.[s.no];
+                    if (status) {
+                        if (filterType === 'GELMEDİ' && status === 'GELMEDİ') {
+                            badStudents.add(s.no);
+                        } else if (filterType === 'GEÇ' && status === 'GEÇ') {
+                            badStudents.add(s.no);
+                        } else if (filterType === 'TÜMÜ' && (status === 'GELMEDİ' || status === 'GEÇ' || status === 'RAHATSIZLANDI')) {
+                            badStudents.add(s.no);
+                        }
+                    }
+                }
+            });
+
+            const numberList = Array.from(badStudents).sort((a,b) => parseInt(a) - parseInt(b));
+            const displayBox = document.getElementById('absentNumbersBox');
+            
+            if (numberList.length > 0) {
+                displayBox.textContent = numberList.join(', ');
+            } else {
+                displayBox.textContent = 'Yoklama verilerine göre bu filtreyle eşleşen öğrenci bulunamadı.';
+            }
+        }
+
+        function copyAbsentNumbers() {
+            const text = document.getElementById('absentNumbersBox').textContent;
+            if (text.includes('bulunamadı') || !text.trim()) {
+                Swal.fire('Bilgi', 'Kopyalanacak öğrenci numarası bulunmuyor.', 'info');
+                return;
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Panoya kopyalandı!'
+                });
+            }).catch(err => {
+                Swal.fire('Hata', 'Kopyalama başarısız oldu.', 'error');
+            });
+        }
+
+        // --- TAB 2: Ders Analizi ---
+        function runDersReport() {
+            const tbody = document.getElementById('dersTableBody');
+            tbody.innerHTML = '';
+
+            const subjectStats = {}; // subject -> { total, gelmedi, gec, rahatsiz }
+
+            for (const date in attendanceDb) {
+                for (const hour in attendanceDb[date]) {
+                    for (const cls in attendanceDb[date][hour]) {
+                        const record = attendanceDb[date][hour][cls];
+                        const sub = record.subject || 'Belirtilmedi';
+
+                        subjectStats[sub] = subjectStats[sub] || { total: 0, gelmedi: 0, gec: 0, rahatsiz: 0 };
+                        
+                        Object.values(record.records || {}).forEach(status => {
+                            subjectStats[sub].total++;
+                            if (status === 'GELMEDİ') subjectStats[sub].gelmedi++;
+                            else if (status === 'GEÇ') subjectStats[sub].gec++;
+                            else if (status === 'RAHATSIZLANDI') subjectStats[sub].rahatsiz++;
+                        });
+                    }
+                }
+            }
+
+            const sortedSubjects = Object.keys(subjectStats).sort((a, b) => b.localeCompare(a, 'tr'));
+            if (sortedSubjects.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:2rem; color:var(--gray-400);">Kayıtlı yoklama verisi bulunmuyor.</td></tr>`;
+                return;
+            }
+
+            sortedSubjects.forEach(sub => {
+                const stat = subjectStats[sub];
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight:700; color:var(--primary);">${sub}</td>
+                    <td style="font-weight:600;">${stat.total} Öğrenci/Ders</td>
+                    <td style="font-weight:800; color:var(--gelmedi-color);">${stat.gelmedi}</td>
+                    <td style="font-weight:800; color:var(--gec-color);">${stat.gec}</td>
+                    <td style="font-weight:800; color:var(--rahatsiz-color);">${stat.rahatsiz}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- TAB 3: Ders Saati Analizi ---
+        function runSaatReport() {
+            const container = document.getElementById('saatChartsContainer');
+            container.innerHTML = '';
+
+            const hourStats = {}; // hour -> totalAbsences (Gelmedi + Geç + Rahatsız)
+            let maxCount = 0;
+
+            // Initialize hour 1 to 8
+            for (let i = 1; i <= 8; i++) hourStats[i.toString()] = 0;
+
+            for (const date in attendanceDb) {
+                for (const hour in attendanceDb[date]) {
+                    for (const cls in attendanceDb[date][hour]) {
+                        const record = attendanceDb[date][hour][cls];
+                        
+                        Object.values(record.records || {}).forEach(status => {
+                            if (status === 'GELMEDİ' || status === 'GEÇ' || status === 'RAHATSIZLANDI') {
+                                hourStats[hour] = (hourStats[hour] || 0) + 1;
+                            }
+                        });
+                    }
+                }
+            }
+
+            // Find max for scaling chart bar width
+            for (const h in hourStats) {
+                if (hourStats[h] > maxCount) maxCount = hourStats[h];
+            }
+
+            for (let i = 1; i <= 8; i++) {
+                const count = hourStats[i.toString()] || 0;
+                const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                
+                const div = document.createElement('div');
+                div.className = 'chart-bar-container';
+                div.innerHTML = `
+                    <div class="chart-label">${i}. Ders Saati</div>
+                    <div class="chart-track">
+                        <div class="chart-fill" style="width: ${percentage}%;"></div>
+                    </div>
+                    <div class="chart-val">${count}</div>
+                `;
+                container.appendChild(div);
+            }
+        }
+
+        // --- TAB 4: Tarih Aralığı Süz ---
+        function runRangeReport() {
+            const startVal = document.getElementById('rangeStartDate').value;
+            const endVal = document.getElementById('rangeEndDate').value;
+            const classFilter = document.getElementById('rangeClass').value;
+
+            const tbody = document.getElementById('rangeTableBody');
+            tbody.innerHTML = '';
+
+            if (!startVal || !endVal) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--gray-400);">Lütfen tarih aralığı girin.</td></tr>`;
+                return;
+            }
+
+            const rangeList = [];
+
+            for (const date in attendanceDb) {
+                // Date format check
+                if (date >= startVal && date <= endVal) {
+                    for (const hour in attendanceDb[date]) {
+                        for (const cls in attendanceDb[date][hour]) {
+                            if (!classFilter || cls === classFilter) {
+                                const record = attendanceDb[date][hour][cls];
+
+                                let gelmedi = 0, gec = 0, rahatsiz = 0;
+                                Object.values(record.records || {}).forEach(status => {
+                                    if (status === 'GELMEDİ') gelmedi++;
+                                    else if (status === 'GEÇ') gec++;
+                                    else if (status === 'RAHATSIZLANDI') rahatsiz++;
+                                });
+
+                                rangeList.push({
+                                    date,
+                                    hour,
+                                    class: cls,
+                                    subject: record.subject,
+                                    teacherName: record.teacherName || record.teacher,
+                                    gelmedi, gec, rahatsiz
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Sort by date descending, hour descending, class ascending
+            rangeList.sort((a, b) => {
+                const dc = b.date.localeCompare(a.date);
+                if (dc !== 0) return dc;
+                const hc = parseInt(b.hour) - parseInt(a.hour);
+                if (hc !== 0) return hc;
+                return a.class.localeCompare(b.class);
+            });
+
+            if (rangeList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--gray-400);">Bu aralıkta yoklama verisi bulunamadı.</td></tr>`;
+                return;
+            }
+
+            rangeList.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b>${item.date}</b></td>
+                    <td>${item.hour}. Ders</td>
+                    <td style="font-weight:700; color:var(--primary);">${item.class}</td>
+                    <td>${item.subject}</td>
+                    <td style="color:var(--gray-500); font-size:0.8rem;">${item.teacherName}</td>
+                    <td style="font-weight:800; color:var(--gelmedi-color);">${item.gelmedi}</td>
+                    <td style="font-weight:800; color:var(--gec-color);">${item.gec}</td>
+                    <td style="font-weight:800; color:var(--rahatsiz-color);">${item.rahatsiz}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- TAB 5: Genel Okul Raporu ---
+        function runGenelReport() {
+            const query = document.getElementById('genelSearch').value.toLowerCase().trim();
+            const classFilter = document.getElementById('genelClassFilter').value;
+
+            // Aggregated student stats
+            // studentNo -> { sObj, gelmedi, gec, rahatsiz }
+            const studentStats = {};
+
+            // Initialize all active students
+            allStudents.forEach(s => {
+                studentStats[s.no] = {
+                    sObj: s,
+                    gelmedi: 0,
+                    gec: 0,
+                    rahatsiz: 0
+                };
+            });
+
+            // Aggregate from database
+            for (const date in attendanceDb) {
+                for (const hour in attendanceDb[date]) {
+                    for (const cls in attendanceDb[date][hour]) {
+                        const record = attendanceDb[date][hour][cls];
+                        
+                        Object.entries(record.records || {}).forEach(([no, status]) => {
+                            if (studentStats[no]) {
+                                if (status === 'GELMEDİ') studentStats[no].gelmedi++;
+                                else if (status === 'GEÇ') studentStats[no].gec++;
+                                else if (status === 'RAHATSIZLANDI') studentStats[no].rahatsiz++;
+                            }
+                        });
+                    }
+                }
+            }
+
+            // Convert to array and filter
+            let list = Object.values(studentStats);
+
+            if (classFilter) {
+                list = list.filter(item => item.sObj.class && item.sObj.class.trim() === classFilter.trim());
+            }
+
+            if (query) {
+                list = list.filter(item => {
+                    const searchStr = `${item.sObj.no} ${item.sObj.name} ${item.sObj.surname || ''} ${item.sObj.class || ''}`.toLowerCase();
+                    return searchStr.includes(query);
+                });
+            }
+
+            // Apply sorting
+            list.sort((a, b) => {
+                let valA, valB;
+                
+                if (genelSortField === 'no') {
+                    valA = parseInt(a.sObj.no) || 0;
+                    valB = parseInt(b.sObj.no) || 0;
+                } else if (genelSortField === 'name') {
+                    valA = (a.sObj.name || '').toLowerCase();
+                    valB = (b.sObj.name || '').toLowerCase();
+                } else if (genelSortField === 'class') {
+                    valA = (a.sObj.class || '').toLowerCase();
+                    valB = (b.sObj.class || '').toLowerCase();
+                } else if (genelSortField === 'gelmedi') {
+                    valA = a.gelmedi;
+                    valB = b.gelmedi;
+                } else if (genelSortField === 'gec') {
+                    valA = a.gec;
+                    valB = b.gec;
+                } else if (genelSortField === 'rahatsiz') {
+                    valA = a.rahatsiz;
+                    valB = b.rahatsiz;
+                }
+
+                if (typeof valA === 'string') {
+                    return genelSortAsc ? valA.localeCompare(valB, 'tr') : valB.localeCompare(valA, 'tr');
+                } else {
+                    return genelSortAsc ? valA - valB : valB - valA;
+                }
+            });
+
+            const tbody = document.getElementById('genelTableBody');
+            tbody.innerHTML = '';
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--gray-400);">Raporlama kriterlerine uygun öğrenci bulunamadı.</td></tr>`;
+                return;
+            }
+
+            list.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span style="font-weight:700; color:var(--gray-500);">${item.sObj.no}</span></td>
+                    <td><b>${item.sObj.name} ${item.sObj.surname || ''}</b></td>
+                    <td style="font-weight:700; color:var(--primary);">${item.sObj.class || '-'}</td>
+                    <td style="font-weight:800; color:var(--gelmedi-color);">${item.gelmedi} Ders</td>
+                    <td style="font-weight:800; color:var(--gec-color);">${item.gec} Ders</td>
+                    <td style="font-weight:800; color:var(--rahatsiz-color);">${item.rahatsiz} Ders</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function setGenelSort(field) {
+            if (genelSortField === field) {
+                genelSortAsc = !genelSortAsc;
+            } else {
+                genelSortField = field;
+                genelSortAsc = true;
+            }
+            runGenelReport();
+        }
+
+        function exportGenelReportToExcel() {
+            // Get data compiled for current list
+            const query = document.getElementById('genelSearch').value.toLowerCase().trim();
+            const classFilter = document.getElementById('genelClassFilter').value;
+
+            const studentStats = {};
+            allStudents.forEach(s => {
+                studentStats[s.no] = { no: s.no, name: `${s.name} ${s.surname || ''}`, class: s.class, gelmedi: 0, gec: 0, rahatsiz: 0 };
+            });
+
+            for (const date in attendanceDb) {
+                for (const hour in attendanceDb[date]) {
+                    for (const cls in attendanceDb[date][hour]) {
+                        const record = attendanceDb[date][hour][cls];
+                        Object.entries(record.records || {}).forEach(([no, status]) => {
+                            if (studentStats[no]) {
+                                if (status === 'GELMEDİ') studentStats[no].gelmedi++;
+                                else if (status === 'GEÇ') studentStats[no].gec++;
+                                else if (status === 'RAHATSIZLANDI') studentStats[no].rahatsiz++;
+                            }
+                        });
+                    }
+                }
+            }
+
+            let list = Object.values(studentStats);
+            if (classFilter) list = list.filter(item => item.class && item.class.trim() === classFilter.trim());
+            if (query) {
+                list = list.filter(item => {
+                    const searchStr = `${item.no} ${item.name} ${item.class || ''}`.toLowerCase();
+                    return searchStr.includes(query);
+                });
+            }
+
+            // Format sheet data
+            const excelData = list.map(item => {
+                return {
+                    "Öğrenci No": item.no,
+                    "Ad Soyad": item.name,
+                    "Sınıf": item.class || '-',
+                    "Toplam Devamsızlık (Ders)": item.gelmedi,
+                    "Toplam Geç Kalma (Ders)": item.gec,
+                    "Toplam Rahatsızlanma (Ders)": item.rahatsiz
+                };
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Genel Devamsızlık Raporu");
+            
+            // Download file
+            const fileName = `Okul_Genel_Devamsizlik_Raporu_${new Date().toLocaleDateString('tr-TR')}.xlsx`;
+            XLSX.writeFile(workbook, fileName);
+        }
+
+        // --- Tab Switching Logic ---
+        function switchTab(tabName) {
+            const tabs = ['sinif', 'ders', 'saat', 'aralik', 'genel'];
+            
+            tabs.forEach(t => {
+                const content = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+                const btn = document.getElementById('btnTab' + t.charAt(0).toUpperCase() + t.slice(1));
+                
+                if (t === tabName) {
+                    content.classList.remove('hidden');
+                    btn.className = 'tab-btn active';
+                } else {
+                    content.classList.add('hidden');
+                    btn.className = 'tab-btn';
+                }
+            });
+
+            // Trigger specific tab report generation
+            if (tabName === 'sinif') runSinifReport();
+            else if (tabName === 'ders') runDersReport();
+            else if (tabName === 'saat') runSaatReport();
+            else if (tabName === 'aralik') runRangeReport();
+            else if (tabName === 'genel') runGenelReport();
+        }
+    </script>
+</body>
+</html>
