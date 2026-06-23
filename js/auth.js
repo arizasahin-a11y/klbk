@@ -406,14 +406,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     setTimeout(() => {
                         const rawRole = userData.role || 'admin';
                         const role = rawRole.toLowerCase().trim();
+                        let targetUrl = '';
+
+                        // Eğer fiziksel bir klasördeysek (URL'de birden fazla slash varsa)
+                        const isSubFolder = window.location.pathname.split('/').filter(p => p).length > 0 && !window.location.pathname.startsWith('/k9x') && !window.location.pathname.startsWith('/j2k') && !window.location.pathname.startsWith('/h6t');
                         
-                        if (role === 'ogretmen' || role === 'idareci') {
-                            window.location.href = '/h6t3y9w1';
-                        } else if (role === 'master' || role === 'admin' || role === 'dashboard') {
-                            window.location.href = '/r1p5s8q3';
+                        if (isSubFolder && !window.location.pathname.endsWith('.html') && window.location.pathname.split('/').length <= 2 && window.location.pathname !== '/') {
+                            // URL like /iaal/ (ends with slash or just folder)
+                            if (role === 'ogretmen' || role === 'idareci') targetUrl = 'ogretmen.html';
+                            else if (role === 'master' || role === 'admin' || role === 'dashboard') targetUrl = 'dashboard.html';
+                            else targetUrl = 'ogrenci.html';
+                        } else if (isSubFolder && window.location.pathname.includes('/')) {
+                            // Subfolder with file like /iaal/index.html
+                            if (role === 'ogretmen' || role === 'idareci') targetUrl = 'ogretmen.html';
+                            else if (role === 'master' || role === 'admin' || role === 'dashboard') targetUrl = 'dashboard.html';
+                            else targetUrl = 'ogrenci.html';
                         } else {
-                            window.location.href = '/j2k5l0p8';
+                            // Root directory (Vercel rewrites)
+                            if (role === 'ogretmen' || role === 'idareci') targetUrl = '/h6t3y9w1';
+                            else if (role === 'master' || role === 'admin' || role === 'dashboard') targetUrl = '/r1p5s8q3';
+                            else targetUrl = '/j2k5l0p8';
                         }
+                        
+                        window.location.href = targetUrl;
                     }, 1000);
                 } else {
                     showMessage(loginMessageBox, 'Hatalı kullanıcı adı veya şifre.', 'error');
