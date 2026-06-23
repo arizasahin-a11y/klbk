@@ -51,10 +51,14 @@ const ExamAlgorithm = {
             const cleanKodu = cleanString(s.ogrenciKodu);
             if (!cleanKodu) return null;
             
+            if (cleanKodu === 'C') return null; // "C" kodu zorunlu salon anlamına gelmez, dağıtılacak özel öğrencileri temsil eder.
+            
             // Find matching classroom name in classrooms list (e.g. code "10C" matches classroom "10-C", "10C" or "10/C")
             const match = classrooms.find(room => {
                 const cleanRoomName = cleanString(room.name);
-                return cleanRoomName === cleanKodu || cleanRoomName.includes(cleanKodu) || cleanKodu.includes(cleanRoomName);
+                if (cleanRoomName === cleanKodu) return true;
+                if (cleanKodu.length <= 1) return false; // Tek harfli kodların yanlış salonla eşleşmesini engelle (örn: H kodu 9-H ile eşleşmesin)
+                return cleanRoomName.includes(cleanKodu) || cleanKodu.includes(cleanRoomName);
             });
             return match ? match.name : null;
         };
@@ -180,7 +184,13 @@ const ExamAlgorithm = {
             return s;
         };
 
-        const pStudents = this._shuffle(students.filter(isPrio)).map(preProcess);
+        const pStudents = this._shuffle(students.filter(isPrio)).map(preProcess).sort((a, b) => {
+            const codeA = cleanString(a.ogrenciKodu);
+            const codeB = cleanString(b.ogrenciKodu);
+            if (codeA === 'C' && codeB !== 'C') return -1;
+            if (codeB === 'C' && codeA !== 'C') return 1;
+            return codeA.localeCompare(codeB);
+        });
         const nStudents = this._shuffle(students.filter(s => !isPrio(s))).map(preProcess);
 
         // ── 4. Yardımcılar ───────────────────────────────────────────────
