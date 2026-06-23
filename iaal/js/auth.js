@@ -170,13 +170,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isSubFolder = window.location.pathname.split('/').filter(p => p).length > 0 && !window.location.pathname.startsWith('/k9x') && !window.location.pathname.startsWith('/j2k') && !window.location.pathname.startsWith('/h6t');
                 
                 if (isSubFolder && !window.location.pathname.endsWith('.html') && window.location.pathname.split('/').length <= 2 && window.location.pathname !== '/') {
-                    if (role === 'ogretmen' || role === 'idareci') targetUrl = 'ogretmen.html';
-                    else if (role === 'master' || role === 'admin' || role === 'dashboard') targetUrl = 'dashboard.html';
-                    else targetUrl = 'ogrenci.html';
+                    if (role === 'ogretmen' || role === 'idareci') targetUrl = 'h6t3y9w1';
+                    else if (role === 'master' || role === 'admin' || role === 'dashboard') targetUrl = 'r1p5s8q3';
+                    else targetUrl = 'j2k5l0p8';
                 } else if (isSubFolder && window.location.pathname.includes('/')) {
-                    if (role === 'ogretmen' || role === 'idareci') targetUrl = 'ogretmen.html';
-                    else if (role === 'master' || role === 'admin' || role === 'dashboard') targetUrl = 'dashboard.html';
-                    else targetUrl = 'ogrenci.html';
+                    if (role === 'ogretmen' || role === 'idareci') targetUrl = 'h6t3y9w1';
+                    else if (role === 'master' || role === 'admin' || role === 'dashboard') targetUrl = 'r1p5s8q3';
+                    else targetUrl = 'j2k5l0p8';
                 } else {
                     targetUrl = (role === 'ogretmen' || role === 'idareci') ? '/h6t3y9w1' : 
                                      (role === 'master' || role === 'admin' || role === 'dashboard') ? '/r1p5s8q3' : '/j2k5l0p8';
@@ -426,14 +426,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         if (isSubFolder && !window.location.pathname.endsWith('.html') && window.location.pathname.split('/').length <= 2 && window.location.pathname !== '/') {
                             // URL like /iaal/ (ends with slash or just folder)
-                            if (role === 'ogretmen' || role === 'idareci') targetUrl = 'ogretmen.html';
-                            else if (role === 'master' || role === 'admin' || role === 'dashboard') targetUrl = 'dashboard.html';
-                            else targetUrl = 'ogrenci.html';
+                            if (role === 'ogretmen' || role === 'idareci') targetUrl = 'h6t3y9w1';
+                            else if (role === 'master' || role === 'admin' || role === 'dashboard') targetUrl = 'r1p5s8q3';
+                            else targetUrl = 'j2k5l0p8';
                         } else if (isSubFolder && window.location.pathname.includes('/')) {
                             // Subfolder with file like /iaal/index.html
-                            if (role === 'ogretmen' || role === 'idareci') targetUrl = 'ogretmen.html';
-                            else if (role === 'master' || role === 'admin' || role === 'dashboard') targetUrl = 'dashboard.html';
-                            else targetUrl = 'ogrenci.html';
+                            if (role === 'ogretmen' || role === 'idareci') targetUrl = 'h6t3y9w1';
+                            else if (role === 'master' || role === 'admin' || role === 'dashboard') targetUrl = 'r1p5s8q3';
+                            else targetUrl = 'j2k5l0p8';
                         } else {
                             // Root directory (Vercel rewrites)
                             if (role === 'ogretmen' || role === 'idareci') targetUrl = '/h6t3y9w1';
