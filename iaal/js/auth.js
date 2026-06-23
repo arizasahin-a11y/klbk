@@ -165,9 +165,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Auto-redirect if not coming from a "Back" action
                 // We check if we are on the login page and NOT explicitly logging out
                 const role = (data.klbk_role || '').toLowerCase().trim();
-                const targetUrl = (role === 'ogretmen' || role === 'idareci') ? '/h6t3y9w1' : 
-                                 (role === 'master' || role === 'admin' || role === 'dashboard') ? '/r1p5s8q3' : '/j2k5l0p8';
+                let targetUrl = '';
                 
+                const isSubFolder = window.location.pathname.split('/').filter(p => p).length > 0 && !window.location.pathname.startsWith('/k9x') && !window.location.pathname.startsWith('/j2k') && !window.location.pathname.startsWith('/h6t');
+                
+                if (isSubFolder && !window.location.pathname.endsWith('.html') && window.location.pathname.split('/').length <= 2 && window.location.pathname !== '/') {
+                    if (role === 'ogretmen' || role === 'idareci') targetUrl = 'ogretmen.html';
+                    else if (role === 'master' || role === 'admin' || role === 'dashboard') targetUrl = 'dashboard.html';
+                    else targetUrl = 'ogrenci.html';
+                } else if (isSubFolder && window.location.pathname.includes('/')) {
+                    if (role === 'ogretmen' || role === 'idareci') targetUrl = 'ogretmen.html';
+                    else if (role === 'master' || role === 'admin' || role === 'dashboard') targetUrl = 'dashboard.html';
+                    else targetUrl = 'ogrenci.html';
+                } else {
+                    targetUrl = (role === 'ogretmen' || role === 'idareci') ? '/h6t3y9w1' : 
+                                     (role === 'master' || role === 'admin' || role === 'dashboard') ? '/r1p5s8q3' : '/j2k5l0p8';
+                }
                 // If we are already on the login page and have a session, 
                 // we only redirect if we didn't just come from that page (to allow 'Back' button)
                 const lastRedirect = sessionStorage.getItem('klbk_last_redirect');
