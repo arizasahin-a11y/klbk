@@ -230,6 +230,16 @@ document.addEventListener('DOMContentLoaded', () => {
             let username = usernameInput.value.trim();
             const password = passwordInput.value;
 
+            // SADECE BU KLASÖRE ÖZEL: Kullanıcı adını otomatik namespace içine al
+            // Vercel üzerinde fiziksel klasör olmadan çalıştığı için URL'den klasör adını alıyoruz
+            let folderName = window.location.pathname.split('/')[1];
+            if (folderName && !folderName.endsWith('.html') && folderName !== 'master' && username !== 'admin') {
+                const prefix = folderName + '_';
+                if (!username.startsWith(prefix)) {
+                    username = prefix + username;
+                }
+            }
+
             // Loading state
             const btn = loginForm.querySelector('button[type="submit"]');
             const originalHtml = btn.innerHTML;

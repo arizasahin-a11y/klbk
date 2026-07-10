@@ -191,10 +191,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         confirmButtonText: 'Tamam'
                     });
                 } else {
+                    // Vercel üzerindeyiz, fiziksel klasöre gerek yok!
+                    folderUrl = window.location.origin + '/' + folderName + '/';
                     Swal.fire({
-                        icon: 'error',
-                        title: 'Hata',
-                        text: 'Veritabanı kaydı oluşturuldu ancak fiziksel klasör kopyalanamadı. Lütfen sunucunun (PHP) çalıştığından emin olun.'
+                        icon: 'success',
+                        title: 'Okul Başarıyla Oluşturuldu! 🚀',
+                        html: `<b>${schoolNameToUse}</b> için veritabanı kuruldu.<br><br>` + 
+                              `<span style="font-size:0.9em; color:#666;">Not: Sistem bulut sunucuda (Vercel) çalıştığı için dinamik yönlendirme aktiftir.</span><br><br>` +
+                              `<div style="text-align: left; background: #f8fafc; padding: 15px; border-radius: 10px; margin-top: 15px;">` +
+                              `<strong>Admin Kullanıcı Adı:</strong> <span style="color:#e91e63">${finalUsername}</span><br><br>` +
+                              `<strong style="color:var(--primary);">👨‍🏫 Öğretmen ve İdareci Girişi:</strong><br>` +
+                              `<a href="${folderUrl}index.html" target="_blank" style="color: #4f46e5; text-decoration: underline; word-break: break-all;">${folderUrl}index.html</a><br><br>` +
+                              `<strong style="color:var(--secondary);">🎓 Öğrenci Girişi:</strong><br>` +
+                              `<a href="${folderUrl}ogrenci.html" target="_blank" style="color: #10b981; text-decoration: underline; word-break: break-all;">${folderUrl}ogrenci.html</a><br><br>` +
+                              `<strong style="color:#f59e0b;">📊 Yönetici Paneli:</strong><br>` +
+                              `<a href="${folderUrl}dashboard.html" target="_blank" style="color: #d97706; text-decoration: underline; word-break: break-all;">${folderUrl}dashboard.html</a>` +
+                              `</div>`,
+                        confirmButtonText: 'Harika!'
                     });
                 }
 
