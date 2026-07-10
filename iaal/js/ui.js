@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!isLoginPage) {
         const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn');
         if (!isLoggedIn) {
-            window.location.href = '/k9x7v2m4';
+            window.location.href = 'k9x7v2m4';
             return;
         }
     }
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('logoutBtn').addEventListener('click', () => {
         sessionStorage.clear();
         localStorage.removeItem('klbk_persistent_session');
-        window.location.href = '/k9x7v2m4?logout=true';
+        window.location.href = 'k9x7v2m4?logout=true';
     });
 
     // --- Global Reset Rules Action ---
