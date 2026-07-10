@@ -23,10 +23,10 @@
     { "source": "/:school/ogrenci(|.html)", "destination": "/iaal/ogrenci.html" },
     { "source": "/:school/ogretmen(|.html)", "destination": "/iaal/ogretmen.html" },
     { "source": "/:school/dashboard(|.html)", "destination": "/iaal/dashboard.html" },
-    { "source": "/:school/css/(.*)", "destination": "/iaal/css/$1" },
-    { "source": "/:school/js/(.*)", "destination": "/iaal/js/$1" },
-    { "source": "/:school/img/(.*)", "destination": "/iaal/img/$1" },
-    { "source": "/:school/fonts/(.*)", "destination": "/iaal/fonts/$1" },
+    { "source": "/:school/css/:path*", "destination": "/iaal/css/:path*" },
+    { "source": "/:school/js/:path*", "destination": "/iaal/js/:path*" },
+    { "source": "/:school/img/:path*", "destination": "/iaal/img/:path*" },
+    { "source": "/:school/fonts/:path*", "destination": "/iaal/fonts/:path*" },
     { "source": "/security_error", "destination": "/404.html" }
   ]
 }
