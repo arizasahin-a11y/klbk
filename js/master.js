@@ -173,10 +173,12 @@ document.addEventListener('DOMContentLoaded', () => {
                               `<div style="text-align: left; background: #f8fafc; padding: 15px; border-radius: 10px; margin-top: 15px;">` +
                               `<strong>Klasör (Kısa Kod):</strong> <span style="color:#e91e63">${folderName}</span><br>` +
                               `<strong>Admin Kullanıcı Adı:</strong> <span style="color:#e91e63">${finalUsername}</span><br><br>` +
-                              `<strong style="color:var(--primary);">👨‍🏫 Yönetim / Giriş Linki:</strong><br>` +
-                              `<a href="${folderUrl}" target="_blank" style="color: #4f46e5; text-decoration: underline; word-break: break-all;">${folderUrl}</a><br><br>` +
+                              `<strong style="color:var(--primary);">👨‍🏫 Öğretmen ve İdareci Girişi:</strong><br>` +
+                              `<a href="${folderUrl}index.html" target="_blank" style="color: #4f46e5; text-decoration: underline; word-break: break-all;">${folderUrl}index.html</a><br><br>` +
                               `<strong style="color:var(--secondary);">🎓 Öğrenci Girişi:</strong><br>` +
-                              `<a href="${folderUrl}ogrenci.html" target="_blank" style="color: #10b981; text-decoration: underline; word-break: break-all;">${folderUrl}ogrenci.html</a>` +
+                              `<a href="${folderUrl}ogrenci.html" target="_blank" style="color: #10b981; text-decoration: underline; word-break: break-all;">${folderUrl}ogrenci.html</a><br><br>` +
+                              `<strong style="color:#f59e0b;">📊 Yönetici Paneli (Dashboard):</strong><br>` +
+                              `<a href="${folderUrl}dashboard.html" target="_blank" style="color: #d97706; text-decoration: underline; word-break: break-all;">${folderUrl}dashboard.html</a>` +
                               `</div>`,
                         confirmButtonText: 'Tamam'
                     });
