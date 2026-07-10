@@ -95,10 +95,32 @@ const DataManager = {
         return `${firstNames} ${surname}`;
     },
 
-    // Get Key
     _getStorageKey: function () {
         const storeKey = sessionStorage.getItem('klbk_storeKey');
         if (storeKey) return storeKey;
+        
+        // Vercel dinamik klasör yapısında (veya normal alt klasörde) URL'den klasör adını çıkar
+        let path = window.location.pathname;
+        // Dosya rotasındaysa klasörü al
+        let segments = path.split('/').filter(s => s.length > 0);
+        let folderName = segments[0] || '';
+        
+        if (window.location.protocol === 'file:') {
+            // Lokal dosya sistemi için özel kontrol
+            let last = segments[segments.length - 1];
+            if (last && last.endsWith('.html')) {
+                folderName = segments[segments.length - 2] || '';
+            } else {
+                folderName = last || '';
+            }
+        }
+        
+        if (folderName && !folderName.endsWith('.html') && folderName !== 'master') {
+            // Eğer varsayılan 'iaal' ise, klbk_data_admin dönebiliriz (geriye dönük uyumluluk) veya klbk_data_iaal
+            if (folderName === 'iaal') return 'klbk_data_admin';
+            return `klbk_data_${folderName}`;
+        }
+
         const user = sessionStorage.getItem('klbk_currentUser') || 'admin';
         return `klbk_data_${user}`;
     },
