@@ -31,19 +31,19 @@ echo %folderName% klasoru olusturuluyor...
 mkdir "%folderName%"
 
 echo Dosyalar kopyalaniyor...
-copy index.html "%folderName%\" >nul
-copy ogrenci.html "%folderName%\" >nul
-copy ogretmen.html "%folderName%\" >nul
-copy dashboard.html "%folderName%\" >nul
-copy yoklama_idareci.html "%folderName%\" >nul
-copy yoklama_ogretmen.html "%folderName%\" >nul
-copy 404.html "%folderName%\" >nul
-copy security_error.html "%folderName%\" >nul
+copy iaal\index.html "%folderName%\" >nul
+copy iaal\ogrenci.html "%folderName%\" >nul
+copy iaal\ogretmen.html "%folderName%\" >nul
+copy iaal\dashboard.html "%folderName%\" >nul
+copy iaal\yoklama_idareci.html "%folderName%\" >nul
+copy iaal\yoklama_ogretmen.html "%folderName%\" >nul
+copy iaal\404.html "%folderName%\" >nul
+copy iaal\security_error.html "%folderName%\" >nul
 
-xcopy css "%folderName%\css\" /E /I /Q /Y >nul
-xcopy js "%folderName%\js\" /E /I /Q /Y >nul
-xcopy fonts "%folderName%\fonts\" /E /I /Q /Y >nul
-xcopy img "%folderName%\img\" /E /I /Q /Y >nul
+xcopy iaal\css "%folderName%\css\" /E /I /Q /Y >nul
+xcopy iaal\js "%folderName%\js\" /E /I /Q /Y >nul
+xcopy iaal\fonts "%folderName%\fonts\" /E /I /Q /Y >nul
+xcopy iaal\img "%folderName%\img\" /E /I /Q /Y >nul
 
 echo.
 echo Islem basariyla tamamlandi.

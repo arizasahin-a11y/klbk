@@ -61,25 +61,14 @@ function xcopy($src, $dest) {
 }
 
 foreach ($itemsToCopy as $item) {
-    $srcPath = __DIR__ . DIRECTORY_SEPARATOR . $item;
+    $srcPath = __DIR__ . DIRECTORY_SEPARATOR . 'iaal' . DIRECTORY_SEPARATOR . $item;
     $destPath = $targetDir . DIRECTORY_SEPARATOR . $item;
     if (file_exists($srcPath)) {
         xcopy($srcPath, $destPath);
     }
 }
 
-// core_data.js içindeki _getStorageKey fonksiyonunu bu klasör için sabitle
-$coreDataPath = $targetDir . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'core_data_v11_9_1.js';
-if (file_exists($coreDataPath)) {
-    $content = file_get_contents($coreDataPath);
-    
-    // Eski dinamik fonksiyonu bul ve değiştir
-    $pattern = '/_getStorageKey:\s*function\s*\(\)\s*\{.*?\}/s';
-    $replacement = "_getStorageKey: function () { return '$storeKey'; }";
-    
-    $content = preg_replace($pattern, $replacement, $content, 1);
-    file_put_contents($coreDataPath, $content);
-}
+
 
 // auth.js içindeki kullanıcı adlarına okul önkini (prefix) ekle ki benzersizlik sorunu ortadan kalksın
 // (A okulundaki ahmet ile B okulundaki ahmet'i ayırmak için)

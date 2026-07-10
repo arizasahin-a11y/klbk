@@ -76,63 +76,17 @@
             </div>
 
             <form id="masterForm" class="login-form">
-                <div class="form-group">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">
-                        <label for="regSchoolSelect" style="margin-bottom: 0;">Kurum Adı</label>
-                        <a href="#" id="editSchoolNameBtn" class="hidden"
-                            style="color: var(--primary); font-size: 0.85rem; text-decoration: none;"><i
-                                class="fa-solid fa-pen"></i> İsmi Düzenle</a>
-                        <a href="#" id="deleteSchoolBtn" class="hidden"
-                            style="color: var(--danger); font-size: 0.85rem; text-decoration: none; margin-left:10px;"><i
-                                class="fa-solid fa-trash-can"></i> Kurumu Sil</a>
-                    </div>
-                    <div class="input-wrapper">
-                        <i class="fa-solid fa-school"></i>
-                        <select id="regSchoolSelect" name="regSchoolSelect" required
-                            style="width: 100%; height: 100%; border: none; background: transparent; padding: 0 10px 0 45px; font-family: inherit; font-size: 1rem; color: var(--dark); cursor: pointer; outline: none;">
-                            <option value="">Yükleniyor...</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group hidden" id="newSchoolGroup">
+                <div class="form-group" id="newSchoolGroup">
                     <label for="regSchoolNew">Yeni Kurum Adı</label>
                     <div class="input-wrapper">
                         <i class="fa-solid fa-building"></i>
                         <input type="text" id="regSchoolNew" name="regSchoolNew"
-                            placeholder="Örn: Atatürk Anadolu Lisesi" autocomplete="off">
+                            placeholder="Örn: Atatürk Anadolu Lisesi" autocomplete="off" required>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">
-                        <label for="regUsernameSelect" style="margin-bottom: 0;">Hesap Kullanıcı Adı</label>
-                        <button type="button" id="btnDeleteUser" class="hidden"
-                            style="background:none; border:none; color:var(--danger); font-size:0.85rem; cursor:pointer; padding: 0;"><i
-                                class="fa-solid fa-trash"></i> Kullanıcıyı Sil</button>
-                    </div>
-                    <div class="input-wrapper">
-                        <i class="fa-regular fa-user"></i>
-                        <select id="regUsernameSelect"
-                            style="width: 100%; height: 100%; border: none; background: transparent; padding: 0 10px 0 45px; font-family: inherit; font-size: 1rem; color: var(--dark); cursor: pointer; outline: none;">
-                            <option value="">Lütfen Önce Okul Seçin</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group hidden" id="usernameNewGroup">
-                    <label for="regUsername">Yeni Kullanıcı Adı</label>
-                    <div class="input-wrapper">
-                        <i class="fa-solid fa-user-plus"></i>
-                        <input type="text" id="regUsername" name="regUsername" placeholder="Örn: ahmet_hoca"
-                            autocomplete="off">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="regPassword">Hesap Şifresi</label>
+                    <label for="regPassword">Admin Şifresi</label>
                     <div class="input-wrapper">
                         <i class="fa-solid fa-lock"></i>
                         <input type="password" id="regPassword" name="regPassword" placeholder="Şifre belirleyin"
@@ -140,67 +94,11 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="regEmail">E-Posta Adresi</label>
-                    <div class="input-wrapper">
-                        <i class="fa-solid fa-envelope"></i>
-                        <input type="email" id="regEmail" name="regEmail" placeholder="Örn: ornek@okul.com"
-                            autocomplete="email">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="regRole">Yetkisi</label>
-                    <div class="input-wrapper">
-                        <i class="fa-solid fa-id-badge"></i>
-                        <select id="regRole" name="regRole" required
-                            style="width: 100%; height: 100%; border: none; background: transparent; padding: 0 10px 0 45px; font-family: inherit; font-size: 1rem; color: var(--dark); cursor: pointer; outline: none;">
-                            <option value="admin">Admin</option>
-                            <option value="idareci">İdareci</option>
-                            <option value="ogretmen" selected>Öğretmen</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group" id="branchGroup">
-                    <label for="regBranch">Branş (Birden fazla seçilebilir)</label>
-                    <div class="input-wrapper"
-                        style="height: auto; align-items: flex-start; padding-top: 5px; padding-bottom: 5px;">
-                        <i class="fa-solid fa-book" style="margin-top: 8px;"></i>
-                        <select id="regBranch" name="regBranch" multiple
-                            style="width: 100%; height: 100px; border: none; background: transparent; padding: 0 10px 0 45px; font-family: inherit; font-size: 1rem; color: var(--dark); cursor: pointer; outline: none; overflow-y: auto;">
-                            <option value="">Lütfen Önce Okul Seçin</option>
-                        </select>
-                    </div>
-                    <small style="color: var(--gray-500); display: block; margin-top: 4px; padding-left: 10px;">
-                        <em>* CTRL (Windows) veya CMD (Mac) tuşuna basılı tutarak çoklu seçim yapabilirsiniz.</em>
-                    </small>
-                    <div id="quickBranchDiv" class="hidden" style="margin-top: 10px; padding: 10px; background: rgba(99, 102, 241, 0.05); border-radius: 8px; border: 1px dashed var(--primary);">
-                        <p style="font-size: 0.75rem; color: var(--primary); margin-bottom: 5px; font-weight: 600;">Ders Listesi Bulunamadı!</p>
-                        <p style="font-size: 0.7rem; color: var(--gray-500); margin-bottom: 8px;">Okulun ders listesini virgülle ayırarak aşağıya yazın veya hazır listeyi yükleyin:</p>
-                        <textarea id="quickBranchInput" placeholder="Matematik, Türk Dili ve Edebiyatı, Fizik..." style="width: 100%; height: 60px; font-size: 0.8rem; padding: 5px; border: 1px solid var(--gray-300); border-radius: 4px;"></textarea>
-                        <div style="display: flex; gap: 5px; margin-top: 5px;">
-                            <button type="button" id="btnSaveQuickBranches" class="btn btn-primary btn-sm" style="flex: 1; font-size: 0.75rem;">Kaydet</button>
-                            <button type="button" id="btnSeedBranches" class="btn btn-secondary btn-sm" style="flex: 1; font-size: 0.75rem;">Hazır Listeyi Yükle</button>
-                        </div>
-                    </div>
-                </div>
-
                 <div id="masterMessage" class="message-box hidden"></div>
-                
-                <div class="form-group hidden" id="excelUploadGroup" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--gray-300);">
-                    <label for="regExcelUpload" style="color: var(--primary);"><i class="fa-solid fa-file-excel"></i> Excel'den Toplu Hesap Oluştur</label>
-                    <p style="font-size: 0.8rem; color: var(--gray-500); margin-bottom: 8px;">
-                        Excel Sütunları: <br>1. Ad Soyad (Zorunlu) | 2. Kullanıcı Adı | 3. E-Posta | 4. Şifre | 5. Branşlar (Virgüllü) | 6. Yetki (Boşsa öğretmen)
-                    </p>
-                    <input type="file" id="regExcelUpload" accept=".xlsx, .xls" style="font-size: 0.85rem; width: 100%;">
-                    <button type="button" id="btnUploadExcel" class="btn btn-secondary btn-sm hidden" style="margin-top: 10px; width: 100%;"><i class="fa-solid fa-upload"></i> Excel'i İçeri Aktar</button>
-                    <div id="excelMessage" style="font-size: 0.85rem; margin-top: 5px; font-weight: bold;"></div>
-                </div>
 
                 <button type="submit" id="btnSubmitMaster" class="btn btn-primary btn-block btn-lg">
                     <i class="fa-solid fa-plus-circle"></i>
-                    <span>Okul Ekle ve Kullanıcı Oluştur</span>
+                    <span>Okul Oluştur</span>
                 </button>
 
                 <button type="button" id="btnShowActivity" class="btn btn-block btn-lg" style="margin-top: 15px; background: #6366f1; color: white;">
