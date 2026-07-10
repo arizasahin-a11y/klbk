@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function saveToCloud(id, dataObj) {
         try {
             const res = await fetch(`${firebaseDatabaseUrl}/app_store/${id}.json`, {
-                method: 'PUT',
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dataObj)
             });
@@ -115,8 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Hash password
                 const finalPassword = await hashPassword(password);
 
-                // Save user
-                usersDb[finalUsername] = {
+                const newUserObj = {
                     password: finalPassword,
                     schoolName: schoolNameToUse,
                     storeKey: storeKeyToUse,
@@ -125,7 +124,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     branch: []
                 };
 
-                await saveToCloud('klbk_users', usersDb);
+                // Atomik olarak sadece yeni kullanıcıyı ekle (Permission Denied hatalarını ve veri kaybını önler)
+                const userPatchRes = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [finalUsername]: newUserObj })
+                });
+
+                if (!userPatchRes.ok) {
+                    throw new Error(`Kullanıcı kaydedilemedi. Firebase 401 Yetki Hatası olabilir.`);
+                }
 
                 // Pre-seed default settings
                 const initialData = {
