@@ -329,6 +329,78 @@
             background: #fca5a5;
             color: #991b1b;
         }
+
+        /* Mobile Responsive Adjustments */
+        @media (max-width: 768px) {
+            .yoklama-container {
+                padding: 0 0.5rem;
+                margin-top: 1rem;
+            }
+            .premium-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+                padding: 1rem;
+                border-radius: var(--radius-md);
+            }
+            .grid-controls {
+                grid-template-columns: 1fr;
+            }
+            .nav-buttons {
+                flex-direction: column;
+            }
+            .nav-buttons .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .control-panel, .student-list-panel, #emptyState, #tabGecmis > .glass-panel {
+                padding: 1rem;
+            }
+            .student-table th {
+                display: none; /* Hide headers on mobile */
+            }
+            .student-row td {
+                display: block;
+                width: 100%;
+                text-align: center;
+            }
+            .student-info {
+                justify-content: center;
+                flex-direction: column;
+                padding: 0.5rem;
+            }
+            .status-button-group {
+                justify-content: center;
+                flex-wrap: wrap;
+                padding: 1rem 0;
+            }
+            .status-btn {
+                flex: 1 1 45%;
+                justify-content: center;
+                padding: 10px;
+            }
+            .stat-counter-bar {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+            .stat-counter-item {
+                flex: 1 1 40%;
+            }
+            .history-card {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+                padding: 1rem;
+            }
+            .history-card > div:last-child {
+                flex-direction: column;
+                width: 100%;
+            }
+            #loginPanel .glass-panel {
+                padding: 1.5rem;
+                margin: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
