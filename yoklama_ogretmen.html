@@ -592,7 +592,7 @@
         <div id="tabGecmis" class="tab-content hidden">
             <div class="glass-panel" style="padding: 2rem;">
                 <h3 style="font-weight: 800; font-size: 1.25rem; margin-bottom: 1.5rem; color: var(--dark); display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-clock-rotate-left"></i> Aldığınız Yoklamalar (Son 30 Gün)
+                    <i class="fa-solid fa-clock-rotate-left"></i> Aldığınız Yoklamalar (Son 14 Gün)
                 </h3>
                 
                 <div id="historyListContainer">
@@ -714,9 +714,25 @@
             document.getElementById('teacherWelcome').textContent = `Merhaba, ${properName}`;
             document.getElementById('schoolDisplay').textContent = sessionStorage.getItem('klbk_schoolName') || 'Okul Paneli';
 
-            // Set default date to today
-            const today = new Date().toISOString().slice(0, 10);
-            document.getElementById('yoklamaDate').value = today;
+            // Set default date to today and restrict min date to 14 days ago
+            const todayObj = new Date();
+            const minDateObj = new Date();
+            minDateObj.setDate(todayObj.getDate() - 14);
+            
+            // Format dates accounting for local timezone issues
+            const yyyy = todayObj.getFullYear();
+            const mm = String(todayObj.getMonth() + 1).padStart(2, '0');
+            const dd = String(todayObj.getDate()).padStart(2, '0');
+            const todayStr = `${yyyy}-${mm}-${dd}`;
+            
+            const min_yyyy = minDateObj.getFullYear();
+            const min_mm = String(minDateObj.getMonth() + 1).padStart(2, '0');
+            const min_dd = String(minDateObj.getDate()).padStart(2, '0');
+            const minDateStr = `${min_yyyy}-${min_mm}-${min_dd}`;
+            
+            const dateInput = document.getElementById('yoklamaDate');
+            dateInput.value = todayStr;
+            dateInput.setAttribute('min', minDateStr);
 
             // 2. Fetch Data
             Swal.fire({
@@ -1232,9 +1248,17 @@
             const attendance = dbData.attendance || {};
 
             const historyList = [];
+            
+            const minDateObj = new Date();
+            minDateObj.setDate(new Date().getDate() - 14);
+            const min_yyyy = minDateObj.getFullYear();
+            const min_mm = String(minDateObj.getMonth() + 1).padStart(2, '0');
+            const min_dd = String(minDateObj.getDate()).padStart(2, '0');
+            const minDateStr = `${min_yyyy}-${min_mm}-${min_dd}`;
 
-            // Filter records taken by this teacher
+            // Filter records taken by this teacher within the last 14 days
             for (const date in attendance) {
+                if (date < minDateStr) continue;
                 for (const hour in attendance[date]) {
                     for (const cls in attendance[date][hour]) {
                         const record = attendance[date][hour][cls];
@@ -1270,7 +1294,7 @@
             if (historyList.length === 0) {
                 container.innerHTML = `<div style="text-align: center; padding: 3rem; color: var(--gray-500);">
                     <i class="fa-solid fa-clock-rotate-left" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i><br>
-                    Son 30 güne ait alınmış bir yoklama kaydınız bulunmuyor.
+                    Son 14 güne ait alınmış bir yoklama kaydınız bulunmuyor.
                 </div>`;
                 return;
             }
