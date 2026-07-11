@@ -1311,20 +1311,65 @@
                                 <i class="fa-solid fa-calendar"></i> ${item.date} | <i class="fa-solid fa-clock"></i> ${item.hour}. Ders | Güncelleme: ${item.lastUpdated}
                             </div>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-top: 10px;">
                             <div style="display: flex; gap: 6px;">
                                 <span class="stat-badge gelmedi">Gelmedi: ${item.stats.gelmedi}</span>
                                 <span class="stat-badge gec">Geç: ${item.stats.gec}</span>
                                 <span class="stat-badge rahatsiz">Rahatsız: ${item.stats.rahatsiz}</span>
                             </div>
-                            <button class="btn btn-secondary btn-sm" onclick="editPastAttendance('${item.date}', '${item.hour}', '${item.class}')">
-                                <i class="fa-solid fa-pen-to-square"></i> Düzenle
-                            </button>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-secondary btn-sm" onclick="editPastAttendance('${item.date}', '${item.hour}', '${item.class}')">
+                                    <i class="fa-solid fa-pen-to-square"></i> Düzenle
+                                </button>
+                                <button class="btn btn-sm" style="background:#fef2f2; color:#ef4444; border:1px solid #fecaca; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 5px; transition: all 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'" onclick="deletePastAttendance('${item.date}', '${item.hour}', '${item.class}')">
+                                    <i class="fa-solid fa-trash"></i> Sil
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
             });
             container.innerHTML = html;
+        }
+
+        function deletePastAttendance(date, hour, className) {
+            Swal.fire({
+                title: 'Emin misiniz?',
+                text: `${date} tarihli ${hour}. ders ${className} sınıfı yoklaması kalıcı olarak silinecek!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const dbData = DataManager._getData();
+                        if (dbData.attendance && dbData.attendance[date] && dbData.attendance[date][hour]) {
+                            delete dbData.attendance[date][hour][className];
+                            
+                            // Cleanup empty objects
+                            if (Object.keys(dbData.attendance[date][hour]).length === 0) delete dbData.attendance[date][hour];
+                            if (Object.keys(dbData.attendance[date]).length === 0) delete dbData.attendance[date];
+
+                            await DataManager._saveData(dbData);
+                            
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Silindi!',
+                                text: 'Yoklama kaydı başarıyla silindi.',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                            loadHistory();
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        Swal.fire('Hata', 'Yoklama silinemedi.', 'error');
+                    }
+                }
+            });
         }
 
         function editPastAttendance(date, hour, className) {
