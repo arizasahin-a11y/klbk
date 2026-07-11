@@ -453,6 +453,9 @@
             <button class="btn btn-secondary" style="background: white; color: var(--gray-600); border: 1px solid var(--gray-300);" id="btnTabGecmis" onclick="switchTab('gecmis')">
                 <i class="fa-solid fa-clock-rotate-left"></i> Geçmiş Yoklamalarım
             </button>
+            <button class="btn btn-secondary" style="background: white; color: var(--gray-600); border: 1px solid var(--gray-300);" id="btnTabIstatistik" onclick="switchTab('istatistik')">
+                <i class="fa-solid fa-chart-pie"></i> İstatistikler
+            </button>
         </div>
 
         <!-- TAB 1: Yoklama Giriş Aracı -->
@@ -598,6 +601,36 @@
             </div>
         </div>
 
+        <!-- TAB 3: İstatistikler -->
+        <div id="tabIstatistik" class="tab-content hidden">
+            <div class="glass-panel" style="padding: 2rem;">
+                <h3 style="font-weight: 800; font-size: 1.25rem; margin-bottom: 1.5rem; color: var(--dark); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-chart-pie"></i> Öğrenci İstatistikleri
+                </h3>
+                
+                <div class="grid-controls" style="margin-bottom: 1.5rem;">
+                    <div class="form-group">
+                        <label>Sınıf Seçin</label>
+                        <select id="statClassSelect" class="form-select-custom" onchange="loadStatistics()">
+                            <option value="">Tüm Sınıflar</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Zaman Aralığı</label>
+                        <select id="statTimeRange" class="form-select-custom" onchange="loadStatistics()">
+                            <option value="today">Bugün</option>
+                            <option value="month">Bu Ay</option>
+                            <option value="all" selected>Tüm Zamanlar</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="statisticsContainer">
+                    <div style="text-align:center; padding:2rem; color:var(--gray-500);">İstatistikler hesaplanıyor...</div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -727,6 +760,8 @@
 
         function populateClasses() {
             const classSelect = document.getElementById('classSelect');
+            const statClassSelect = document.getElementById('statClassSelect');
+            
             // Extract unique class names
             const classes = new Set();
             allStudents.forEach(s => {
@@ -740,6 +775,13 @@
                 opt.value = cls;
                 opt.textContent = cls;
                 classSelect.appendChild(opt);
+                
+                if (statClassSelect) {
+                    const opt2 = document.createElement('option');
+                    opt2.value = cls;
+                    opt2.textContent = cls;
+                    statClassSelect.appendChild(opt2);
+                }
             });
         }
 
@@ -1140,27 +1182,45 @@
         function switchTab(tabName) {
             const tabYoklama = document.getElementById('tabYoklama');
             const tabGecmis = document.getElementById('tabGecmis');
+            const tabIstatistik = document.getElementById('tabIstatistik');
+            
             const btnYoklama = document.getElementById('btnTabYoklama');
             const btnGecmis = document.getElementById('btnTabGecmis');
+            const btnIstatistik = document.getElementById('btnTabIstatistik');
+
+            // Reset all
+            [tabYoklama, tabGecmis, tabIstatistik].forEach(t => t?.classList.add('hidden'));
+            [btnYoklama, btnGecmis, btnIstatistik].forEach(b => {
+                if(b) {
+                    b.className = 'btn btn-secondary';
+                    b.style.background = 'white';
+                    b.style.color = 'var(--gray-600)';
+                }
+            });
 
             if (tabName === 'yoklama') {
                 tabYoklama.classList.remove('hidden');
-                tabGecmis.classList.add('hidden');
-                
-                btnYoklama.className = 'btn btn-primary';
-                btnGecmis.className = 'btn btn-secondary';
-                btnGecmis.style.background = 'white';
-                btnGecmis.style.color = 'var(--gray-600)';
-            } else {
-                tabYoklama.classList.add('hidden');
+                if(btnYoklama) {
+                    btnYoklama.className = 'btn btn-primary';
+                    btnYoklama.style.background = '';
+                    btnYoklama.style.color = '';
+                }
+            } else if (tabName === 'gecmis') {
                 tabGecmis.classList.remove('hidden');
-                
-                btnGecmis.className = 'btn btn-primary';
-                btnYoklama.className = 'btn btn-secondary';
-                btnYoklama.style.background = 'white';
-                btnYoklama.style.color = 'var(--gray-600)';
-
+                if(btnGecmis) {
+                    btnGecmis.className = 'btn btn-primary';
+                    btnGecmis.style.background = '';
+                    btnGecmis.style.color = '';
+                }
                 loadHistory();
+            } else if (tabName === 'istatistik') {
+                tabIstatistik.classList.remove('hidden');
+                if(btnIstatistik) {
+                    btnIstatistik.className = 'btn btn-primary';
+                    btnIstatistik.style.background = '';
+                    btnIstatistik.style.color = '';
+                }
+                loadStatistics();
             }
         }
 
@@ -1262,6 +1322,127 @@
             sessionStorage.clear();
             localStorage.removeItem('klbk_persistent_session');
             window.location.href = '/k9x7v2m4';
+        }
+        // Global utility to pad zero
+        function padZero(num) {
+            return num < 10 ? '0' + num : num;
+        }
+
+        function loadStatistics() {
+            const container = document.getElementById('statisticsContainer');
+            container.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--gray-500);"><i class="fa-solid fa-spinner fa-spin"></i> Hesaplanıyor...</div>';
+
+            const timeRange = document.getElementById('statTimeRange').value;
+            const selectedClass = document.getElementById('statClassSelect').value;
+            
+            const dbData = DataManager._getData();
+            const attendance = dbData.attendance || {};
+            
+            const statsMap = {}; // studentNo -> data
+            
+            const today = new Date();
+            // Important: Handle timezone differences nicely by getting local date string
+            const yyyy = today.getFullYear();
+            const mm = padZero(today.getMonth() + 1);
+            const dd = padZero(today.getDate());
+            
+            const todayStr = `${yyyy}-${mm}-${dd}`;
+            const thisMonthStr = `${yyyy}-${mm}`;
+            
+            for (const date in attendance) {
+                if (timeRange === 'today' && date !== todayStr) continue;
+                if (timeRange === 'month' && !date.startsWith(thisMonthStr)) continue;
+                
+                for (const hour in attendance[date]) {
+                    for (const cls in attendance[date][hour]) {
+                        if (selectedClass && cls !== selectedClass) continue;
+                        
+                        const record = attendance[date][hour][cls];
+                        if (record.teacher === activeTeacherUsername) {
+                            const recs = record.records || {};
+                            const gecT = record.gecTimes || {};
+                            
+                            for (const stuNo in recs) {
+                                const status = recs[stuNo];
+                                if (status === 'GELDİ') continue;
+                                
+                                if (!statsMap[stuNo]) {
+                                    const stuObj = allStudents.find(s => s.no === stuNo) || {};
+                                    statsMap[stuNo] = {
+                                        no: stuNo,
+                                        name: `${stuObj.name || ''} ${stuObj.surname || ''}`.trim() || 'Bilinmiyor',
+                                        class: cls,
+                                        gelmedi: 0,
+                                        gec: 0,
+                                        gecMins: 0,
+                                        rahatsiz: 0
+                                    };
+                                }
+                                
+                                if (status === 'GELMEDİ') statsMap[stuNo].gelmedi++;
+                                if (status === 'GEÇ') {
+                                    statsMap[stuNo].gec++;
+                                    statsMap[stuNo].gecMins += parseInt(gecT[stuNo] || 0);
+                                }
+                                if (status === 'RAHATSIZLANDI') statsMap[stuNo].rahatsiz++;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            const statsArr = Object.values(statsMap);
+            
+            // Sort primarily by gelmedi, then gec
+            statsArr.sort((a, b) => {
+                if (b.gelmedi !== a.gelmedi) return b.gelmedi - a.gelmedi;
+                return b.gec - a.gec;
+            });
+            
+            if (statsArr.length === 0) {
+                container.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--gray-500);">
+                    <i class="fa-solid fa-check-circle" style="font-size:3rem; color:#10b981; margin-bottom:1rem; display:block;"></i>
+                    Seçili aralıkta derse devamsızlık yapan veya geç kalan öğrenci bulunmuyor.
+                </div>`;
+                return;
+            }
+            
+            let html = `
+            <div class="table-responsive">
+                <table class="student-table" style="width:100%; border-collapse:collapse;">
+                    <thead>
+                        <tr>
+                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:left; color:var(--gray-500);">Öğrenci</th>
+                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500);">Gelmedi</th>
+                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500);">Geç Kalma</th>
+                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500);">Rahatsız</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            statsArr.forEach(s => {
+                html += `
+                    <tr style="border-bottom:1px solid var(--gray-100); transition:background 0.2s;" onmouseover="this.style.background='#fafbfc'" onmouseout="this.style.background='white'">
+                        <td style="padding:1rem;">
+                            <div style="font-weight:700; color:var(--dark);">${s.name}</div>
+                            <div style="font-size:0.8rem; color:var(--gray-500);">No: ${s.no} | Sınıf: ${s.class}</div>
+                        </td>
+                        <td style="padding:1rem; text-align:center;">
+                            <span class="stat-badge ${s.gelmedi > 0 ? 'gelmedi' : ''}" style="${s.gelmedi === 0 ? 'background:#f1f5f9;color:#94a3b8;' : ''}">${s.gelmedi} Kez</span>
+                        </td>
+                        <td style="padding:1rem; text-align:center;">
+                            <span class="stat-badge ${s.gec > 0 ? 'gec' : ''}" style="${s.gec === 0 ? 'background:#f1f5f9;color:#94a3b8;' : ''}">
+                                ${s.gec} Kez ${s.gec > 0 ? `(${s.gecMins}dk)` : ''}
+                            </span>
+                        </td>
+                        <td style="padding:1rem; text-align:center;">
+                            <span class="stat-badge ${s.rahatsiz > 0 ? 'rahatsiz' : ''}" style="${s.rahatsiz === 0 ? 'background:#f1f5f9;color:#94a3b8;' : ''}">${s.rahatsiz} Kez</span>
+                        </td>
+                    </tr>`;
+            });
+            
+            html += `</tbody></table></div>`;
+            container.innerHTML = html;
         }
     </script>
 </body>
