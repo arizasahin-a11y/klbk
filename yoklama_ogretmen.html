@@ -497,8 +497,8 @@
                     <div style="font-size: 0.85rem; color: var(--gray-500); font-weight: 600;">
                         <i class="fa-solid fa-cloud-arrow-up"></i> Son kayıt: <span id="lastSaveDisplay">Henüz kaydedilmedi</span>
                     </div>
-                    <button class="btn btn-primary" onclick="saveAttendance()" style="padding: 0.85rem 2rem;">
-                        <i class="fa-solid fa-floppy-disk"></i> Yoklamayı Kaydet
+                    <button class="btn btn-primary" onclick="saveAttendance()" style="padding: 0.85rem 2rem; display: none;">
+                        <i class="fa-solid fa-check"></i> Yoklamayı Kaydet
                     </button>
                 </div>
 
@@ -895,7 +895,7 @@
                                 <i class="fa-solid fa-circle-xmark"></i> Gelmedi
                             </button>
                             <button type="button" class="status-btn ${currentStatus === 'GEÇ' ? 'active' : ''}" data-status="GEÇ" onclick="setStudentStatus('${s.no}', 'GEÇ')">
-                                <i class="fa-solid fa-clock"></i> Geç
+                                <i class="fa-solid fa-clock"></i> Geç ${currentStatus === 'GEÇ' && gecTimeMap[s.no] !== undefined ? `(${gecTimeMap[s.no]}dk)` : ''}
                             </button>
                             <button type="button" class="status-btn ${currentStatus === 'RAHATSIZLANDI' ? 'active' : ''}" data-status="RAHATSIZLANDI" onclick="setStudentStatus('${s.no}', 'RAHATSIZLANDI')">
                                 <i class="fa-solid fa-house-medical"></i> Rahatsız
@@ -939,15 +939,23 @@
             if (row) {
                 const buttons = row.querySelectorAll('.status-btn');
                 buttons.forEach(btn => {
-                    if (btn.getAttribute('data-status') === status) {
+                    const btnStatus = btn.getAttribute('data-status');
+                    if (btnStatus === status) {
                         btn.classList.add('active');
+                        if (status === 'GEÇ' && gecTimeMap[studentNo] !== undefined) {
+                            btn.innerHTML = `<i class="fa-solid fa-clock"></i> Geç (${gecTimeMap[studentNo]}dk)`;
+                        }
                     } else {
                         btn.classList.remove('active');
+                        if (btnStatus === 'GEÇ') {
+                            btn.innerHTML = `<i class="fa-solid fa-clock"></i> Geç`;
+                        }
                     }
                 });
             }
 
             updateLiveCounters();
+            saveAttendance(true);
         }
 
         function setAllAttendance(status) {
@@ -957,6 +965,7 @@
             });
             renderStudentsTable();
             updateLiveCounters();
+            saveAttendance(true);
         }
 
         function updateLiveCounters() {
@@ -989,28 +998,30 @@
             });
         }
 
-        async function saveAttendance() {
+        async function saveAttendance(silent = false) {
             const dateVal = document.getElementById('yoklamaDate').value;
             const hourVal = document.getElementById('lessonHour').value;
             const classVal = document.getElementById('classSelect').value;
             const subjectVal = document.getElementById('subjectSelect').value;
 
             if (!classVal) {
-                Swal.fire('Hata', 'Lütfen sınıf seçin!', 'error');
+                if (!silent) Swal.fire('Hata', 'Lütfen sınıf seçin!', 'error');
                 return;
             }
 
             if (!subjectVal) {
-                Swal.fire('Hata', 'Lütfen ders seçin!', 'error');
+                if (!silent) Swal.fire('Hata', 'Lütfen ders seçin!', 'error');
                 return;
             }
 
-            Swal.fire({
-                title: 'Kaydediliyor',
-                text: 'Yoklama buluta yükleniyor...',
-                allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading(); }
-            });
+            if (!silent) {
+                Swal.fire({
+                    title: 'Kaydediliyor',
+                    text: 'Yoklama buluta yükleniyor...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+            }
 
             try {
                 // Fetch full data
@@ -1034,20 +1045,22 @@
 
                 document.getElementById('lastSaveDisplay').textContent = dbData.attendance[dateVal][hourVal][classVal].lastUpdated;
 
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Başarıyla Kaydedildi',
-                    text: 'Yoklama verisi sisteme işlendi ve buluta aktarıldı.',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
+                if (!silent) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Başarıyla Kaydedildi',
+                        text: 'Yoklama verisi sisteme işlendi ve buluta aktarıldı.',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
 
-                // If history is loaded, refresh it
-                loadHistory();
+                // If history is loaded, refresh it (only if not silent to avoid UI flicker)
+                if (!silent) loadHistory();
 
             } catch (e) {
                 console.error("Save attendance error:", e);
-                Swal.fire('Hata', 'Yoklama kaydedilemedi. Lütfen bağlantınızı kontrol edin.', 'error');
+                if (!silent) Swal.fire('Hata', 'Yoklama kaydedilemedi. Lütfen bağlantınızı kontrol edin.', 'error');
             }
         }
 
