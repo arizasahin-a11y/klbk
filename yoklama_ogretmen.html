@@ -1409,14 +1409,27 @@
                                         gelmedi: 0,
                                         gec: 0,
                                         gecMins: 0,
+                                        gecFirst: 0,
+                                        gecFirstMins: 0,
+                                        gecMid: 0,
+                                        gecMidMins: 0,
                                         rahatsiz: 0
                                     };
                                 }
                                 
                                 if (status === 'GELMEDİ') statsMap[stuNo].gelmedi++;
                                 if (status === 'GEÇ') {
+                                    const lateMins = parseInt(gecT[stuNo] || 0);
                                     statsMap[stuNo].gec++;
-                                    statsMap[stuNo].gecMins += parseInt(gecT[stuNo] || 0);
+                                    statsMap[stuNo].gecMins += lateMins;
+                                    
+                                    if (hour === "1" || hour === 1) {
+                                        statsMap[stuNo].gecFirst++;
+                                        statsMap[stuNo].gecFirstMins += lateMins;
+                                    } else {
+                                        statsMap[stuNo].gecMid++;
+                                        statsMap[stuNo].gecMidMins += lateMins;
+                                    }
                                 }
                                 if (status === 'RAHATSIZLANDI') statsMap[stuNo].rahatsiz++;
                             }
@@ -1465,7 +1478,11 @@
                             <span class="stat-badge ${s.gelmedi > 0 ? 'gelmedi' : ''}" style="${s.gelmedi === 0 ? 'background:#f1f5f9;color:#94a3b8;' : ''}">${s.gelmedi} Kez</span>
                         </td>
                         <td style="padding:1rem; text-align:center;">
-                            <span class="stat-badge ${s.gec > 0 ? 'gec' : ''}" style="${s.gec === 0 ? 'background:#f1f5f9;color:#94a3b8;' : ''}">
+                            <span class="stat-badge ${s.gec > 0 ? 'gec' : ''}" 
+                                  style="${s.gec === 0 ? 'background:#f1f5f9;color:#94a3b8;' : 'cursor:pointer; text-decoration:underline;'}"
+                                  data-name="${s.name}"
+                                  ${s.gec > 0 ? `onclick="showLateDetails(this.getAttribute('data-name'), ${s.gecFirst}, ${s.gecFirstMins}, ${s.gecMid}, ${s.gecMidMins})"` : ''}
+                                  title="${s.gec > 0 ? 'Detayları görmek için tıklayın' : ''}">
                                 ${s.gec} Kez ${s.gec > 0 ? `(${s.gecMins}dk)` : ''}
                             </span>
                         </td>
@@ -1477,6 +1494,29 @@
             
             html += `</tbody></table></div>`;
             container.innerHTML = html;
+        }
+
+        function showLateDetails(studentName, firstCount, firstMins, midCount, midMins) {
+            Swal.fire({
+                title: 'Geç Kalma Detayı',
+                html: `
+                    <div style="text-align: left; padding: 1rem; font-size: 1.05rem;">
+                        <h4 style="margin-bottom: 1rem; color: var(--primary); font-weight: 800; border-bottom: 2px solid var(--gray-200); padding-bottom: 0.5rem;">${studentName}</h4>
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 1rem; border-radius: 8px;">
+                                <div style="color: #92400e; font-weight: 800; margin-bottom: 4px;"><i class="fa-solid fa-sun"></i> 1. Derslere Geç Kalma</div>
+                                <div style="color: #b45309;">${firstCount} Kez (Toplam ${firstMins} dk)</div>
+                            </div>
+                            <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 1rem; border-radius: 8px;">
+                                <div style="color: #1e40af; font-weight: 800; margin-bottom: 4px;"><i class="fa-solid fa-clock-rotate-left"></i> Ara Derslere Geç Kalma</div>
+                                <div style="color: #1d4ed8;">${midCount} Kez (Toplam ${midMins} dk)</div>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                confirmButtonText: 'Tamam',
+                confirmButtonColor: '#4f46e5'
+            });
         }
     </script>
 </body>
