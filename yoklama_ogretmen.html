@@ -332,8 +332,28 @@
     </style>
 </head>
 <body>
+    <div id="loginPanel" style="display: none; justify-content: center; align-items: center; min-height: 100vh;">
+        <div class="glass-panel" style="padding: 3rem; width: 100%; max-width: 400px; text-align: center;">
+            <i class="fa-solid fa-user-lock" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+            <h2 style="font-weight: 800; color: var(--dark); margin-bottom: 0.5rem;">Öğretmen Girişi</h2>
+            <p style="color: var(--gray-500); margin-bottom: 2rem; font-size: 0.9rem;">Yoklama paneline erişmek için giriş yapın.</p>
+            
+            <div class="form-group" style="text-align: left; margin-bottom: 1rem;">
+                <label>Kullanıcı Adı</label>
+                <input type="text" id="loginUsername" class="form-select-custom" placeholder="Kullanıcı adınızı girin">
+            </div>
+            <div class="form-group" style="text-align: left; margin-bottom: 1.5rem;">
+                <label>Şifre</label>
+                <input type="password" id="loginPassword" class="form-select-custom" placeholder="Şifrenizi girin" onkeypress="if(event.key === 'Enter') handleYoklamaLogin()">
+            </div>
+            
+            <button class="btn btn-primary" style="width: 100%; padding: 0.85rem;" onclick="handleYoklamaLogin()">
+                <i class="fa-solid fa-right-to-bracket"></i> Giriş Yap
+            </button>
+        </div>
+    </div>
 
-    <div class="yoklama-container">
+    <div class="yoklama-container" id="appContainer" style="display: none;">
         
         <!-- Premium Header -->
         <div class="premium-header glass-panel">
@@ -381,6 +401,7 @@
                     <div class="form-group">
                         <label><i class="fa-solid fa-clock"></i> Ders Saati</label>
                         <select id="lessonHour" class="form-select-custom" onchange="checkAndAutoDetectClass()">
+                            <option value="">-- Ders Saati Seçin --</option>
                             <option value="1">1. Ders</option>
                             <option value="2">2. Ders</option>
                             <option value="3">3. Ders</option>
@@ -524,6 +545,52 @@
         // Firebase URL
         const firebaseDatabaseUrl = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
 
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function handleYoklamaLogin() {
+            const user = document.getElementById('loginUsername').value.trim();
+            const pass = document.getElementById('loginPassword').value;
+            
+            if (!user || !pass) {
+                Swal.fire('Hata', 'Lütfen kullanıcı adı ve şifrenizi girin.', 'warning');
+                return;
+            }
+
+            Swal.fire({ title: 'Giriş Yapılıyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
+                const users = await res.json();
+
+                if (users && users[user]) {
+                    const userObj = users[user];
+                    const passHash = await hashPassword(pass);
+                    
+                    if (userObj.password === pass || userObj.password === passHash) {
+                        sessionStorage.setItem('klbk_isLoggedIn', 'true');
+                        sessionStorage.setItem('klbk_currentUser', user);
+                        sessionStorage.setItem('klbk_role', userObj.role || 'ogretmen');
+                        sessionStorage.setItem('klbk_name', userObj.name || user);
+                        
+                        window.location.reload();
+                    } else {
+                        Swal.fire('Hata', 'Şifre hatalı!', 'error');
+                    }
+                } else {
+                    Swal.fire('Hata', 'Kullanıcı bulunamadı!', 'error');
+                }
+            } catch (e) {
+                console.error("Giriş hatası:", e);
+                Swal.fire('Hata', 'Bağlantı hatası oluştu.', 'error');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             // 1. Auth Validation
             const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true';
@@ -531,9 +598,11 @@
             activeTeacherUsername = sessionStorage.getItem('klbk_currentUser') || '';
 
             if (!isLoggedIn || !activeTeacherUsername) {
-                window.location.href = '/k9x7v2m4';
+                document.getElementById('loginPanel').style.display = 'flex';
                 return;
             }
+            
+            document.getElementById('appContainer').style.display = 'block';
 
             // Set welcome message
             const properName = sessionStorage.getItem('klbk_name') || activeTeacherUsername;
@@ -645,7 +714,7 @@
             const nowStr = now.toTimeString().slice(0, 5); // "HH:MM"
             const lessonTimes = schoolData.lessonTimes || {};
             
-            let bestHour = "1";
+            let bestHour = ""; // Varsayılan boş
             for (let i = 1; i <= 20; i++) {
                 const start = lessonTimes[`${i}_start`];
                 const end = lessonTimes[`${i}_end`];
@@ -653,9 +722,6 @@
                     if (nowStr >= start && nowStr <= end) {
                         bestHour = i.toString();
                         break; // Tam dersteyiz
-                    } else if (nowStr < start) {
-                        bestHour = i.toString(); // Tenefüs veya okul başlamamış, sıradaki ders
-                        break;
                     }
                 }
             }
