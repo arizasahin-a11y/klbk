@@ -638,15 +638,24 @@
             const nowStr = now.toTimeString().slice(0, 5); // "HH:MM"
             const lessonTimes = schoolData.lessonTimes || {};
             
+            let bestHour = "1";
             for (let i = 1; i <= 20; i++) {
                 const start = lessonTimes[`${i}_start`];
                 const end = lessonTimes[`${i}_end`];
                 if (start && end) {
                     if (nowStr >= start && nowStr <= end) {
-                        document.getElementById('lessonHour').value = i.toString();
+                        bestHour = i.toString();
+                        break; // Tam dersteyiz
+                    } else if (nowStr < start) {
+                        bestHour = i.toString(); // Tenefüs veya okul başlamamış, sıradaki ders
                         break;
                     }
                 }
+            }
+            
+            const hourSelect = document.getElementById('lessonHour');
+            if (hourSelect) {
+                hourSelect.value = bestHour;
             }
         }
 
@@ -658,7 +667,7 @@
 
             // Map Date object's day index to schedule day key
             const d = new Date(selectedDateVal);
-            const dayMap = { 1: 'Pa', 2: 'Sa', 3: 'Ça', 4: 'Pe', 5: 'Cu' };
+            const dayMap = { 1: 'Pa', 2: 'Sa', 3: 'Ça', 4: 'Pe', 5: 'Cu', 6: 'Ct', 0: 'Pz' };
             const dayKey = dayMap[d.getDay()];
 
             const hourVal = document.getElementById('lessonHour').value;
@@ -669,10 +678,15 @@
                     // Match found! Auto-select it
                     const classSelect = document.getElementById('classSelect');
                     
-                    // Check if class exists in dropdown options
-                    const options = Array.from(classSelect.options).map(o => o.value);
-                    if (options.includes(schedClass)) {
-                        classSelect.value = schedClass;
+                    const cleanString = str => (str || '').toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9]/g, '');
+                    const cleanSchedClass = cleanString(schedClass);
+                    
+                    // Check if class exists in dropdown options (fuzzy match)
+                    const options = Array.from(classSelect.options);
+                    const matchedOption = options.find(o => cleanString(o.value) === cleanSchedClass);
+
+                    if (matchedOption) {
+                        classSelect.value = matchedOption.value;
                         document.getElementById('autoDetectAlert').classList.remove('hidden');
                         loadStudentList();
                         return;
