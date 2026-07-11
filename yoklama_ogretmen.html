@@ -687,6 +687,27 @@
 
                     if (matchedOption) {
                         classSelect.value = matchedOption.value;
+                        
+                        // Ders (Subject) seçimini de otomatik yap
+                        const subjectSelect = document.getElementById('subjectSelect');
+                        let foundSubject = false;
+                        
+                        // 1. Eğer program hücresinde ders adı geçiyorsa (Örn: "10A - Seçmeli Fizik")
+                        if (activeTeacherObject.branch) {
+                            for (let br of activeTeacherObject.branch) {
+                                if (schedClass.toLocaleUpperCase('tr-TR').includes(br.toLocaleUpperCase('tr-TR'))) {
+                                    subjectSelect.value = br;
+                                    foundSubject = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // 2. Eğer geçmiyorsa (sadece "10A" ise) öğretmenin ana (ilk) branşını seç
+                        if (!foundSubject && activeTeacherObject.branch && activeTeacherObject.branch.length > 0) {
+                            subjectSelect.value = activeTeacherObject.branch[0];
+                        }
+
                         document.getElementById('autoDetectAlert').classList.remove('hidden');
                         loadStudentList();
                         return;
