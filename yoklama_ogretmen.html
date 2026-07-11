@@ -444,10 +444,16 @@
                     </div>
                 </div>
 
-                <!-- Search Input -->
-                <div class="search-bar-wrapper">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="studentSearch" class="search-input" placeholder="Öğrenci adı veya numarası ile ara..." oninput="filterStudents()">
+                <!-- Search Input and Sort -->
+                <div style="display: flex; gap: 10px; margin-bottom: 1.5rem;">
+                    <div class="search-bar-wrapper" style="flex: 1; margin-bottom: 0;">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="studentSearch" class="search-input" placeholder="Öğrenci adı veya numarası ile ara..." oninput="filterStudents()">
+                    </div>
+                    <select id="sortSelect" class="form-select-custom" style="width: 200px;" onchange="loadStudentList()">
+                        <option value="no">Numaraya Göre</option>
+                        <option value="name">İsme Göre</option>
+                    </select>
                 </div>
 
                 <!-- Student Table -->
@@ -513,6 +519,7 @@
         // Attendance records in memory for current selection
         // studentNo -> status ('GELDİ', 'GELMEDİ', 'GEÇ', 'RAHATSIZLANDI')
         let attendanceMap = {}; 
+        let gecTimeMap = {};
 
         // Firebase URL
         const firebaseDatabaseUrl = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
@@ -734,8 +741,13 @@
 
             // Filter students
             activeClassStudents = allStudents.filter(s => s.class && s.class.trim() === classVal.trim());
-            // Sort by name
-            activeClassStudents.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr'));
+            
+            const sortVal = document.getElementById('sortSelect') ? document.getElementById('sortSelect').value : 'no';
+            if (sortVal === 'name') {
+                activeClassStudents.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr'));
+            } else {
+                activeClassStudents.sort((a, b) => (parseInt(a.no) || 0) - (parseInt(b.no) || 0));
+            }
 
             document.getElementById('totalStudentsDisplay').textContent = activeClassStudents.length;
 
@@ -753,10 +765,12 @@
             dbData.attendance = dbData.attendance || {};
 
             attendanceMap = {};
+            gecTimeMap = {};
 
             const lessonRecord = dbData.attendance[dateVal]?.[hourVal]?.[classVal];
             if (lessonRecord) {
                 attendanceMap = lessonRecord.records || {};
+                gecTimeMap = lessonRecord.gecTimes || {};
                 
                 // Pre-fill lesson subject if saved
                 if (lessonRecord.subject) {
@@ -820,6 +834,9 @@
                             <button type="button" class="status-btn ${currentStatus === 'RAHATSIZLANDI' ? 'active' : ''}" data-status="RAHATSIZLANDI" onclick="setStudentStatus('${s.no}', 'RAHATSIZLANDI')">
                                 <i class="fa-solid fa-house-medical"></i> Rahatsız
                             </button>
+                            <button type="button" class="status-btn" data-status="SİL" onclick="setStudentStatus('${s.no}', 'SİL')" style="color:#ef4444; border-color:#fee2e2; background:#fef2f2;">
+                                <i class="fa-solid fa-eraser"></i> Sil
+                            </button>
                         </div>
                     </td>
                 `;
@@ -828,7 +845,28 @@
         }
 
         function setStudentStatus(studentNo, status) {
-            attendanceMap[studentNo] = status;
+            if (status === 'SİL') {
+                attendanceMap[studentNo] = 'GELDİ';
+                delete gecTimeMap[studentNo];
+                status = 'GELDİ';
+            } else if (status === 'GEÇ') {
+                attendanceMap[studentNo] = status;
+                const hourVal = document.getElementById('lessonHour').value;
+                const lessonTimes = schoolData.lessonTimes || {};
+                const start = lessonTimes[`${hourVal}_start`];
+                if (start) {
+                    const now = new Date();
+                    const [startH, startM] = start.split(':').map(Number);
+                    const startTotalM = startH * 60 + startM;
+                    const nowTotalM = now.getHours() * 60 + now.getMinutes();
+                    let diff = nowTotalM - startTotalM;
+                    if (diff < 0) diff = 0;
+                    gecTimeMap[studentNo] = diff;
+                }
+            } else {
+                attendanceMap[studentNo] = status;
+                delete gecTimeMap[studentNo];
+            }
             
             // Update button states in DOM directly for speed
             const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
@@ -849,6 +887,7 @@
         function setAllAttendance(status) {
             activeClassStudents.forEach(s => {
                 attendanceMap[s.no] = status;
+                delete gecTimeMap[s.no];
             });
             renderStudentsTable();
             updateLiveCounters();
@@ -920,6 +959,7 @@
                     teacherName: sessionStorage.getItem('klbk_name') || activeTeacherUsername,
                     subject: subjectVal,
                     records: attendanceMap,
+                    gecTimes: gecTimeMap,
                     lastUpdated: new Date().toLocaleTimeString('tr-TR') + ' ' + new Date().toLocaleDateString('tr-TR')
                 };
 
