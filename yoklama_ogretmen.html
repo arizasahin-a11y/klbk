@@ -618,7 +618,7 @@
                     <div class="form-group">
                         <label>Zaman Aralığı</label>
                         <select id="statTimeRange" class="form-select-custom" onchange="loadStatistics()">
-                            <option value="today">Bugün</option>
+                            <option value="week">Bu Hafta</option>
                             <option value="month">Bu Ay</option>
                             <option value="all" selected>Tüm Zamanlar</option>
                         </select>
@@ -1349,8 +1349,18 @@
             const todayStr = `${yyyy}-${mm}-${dd}`;
             const thisMonthStr = `${yyyy}-${mm}`;
             
+            // Calculate start and end of this week (Monday to Sunday)
+            const dayOfWeek = today.getDay() || 7;
+            const startOfWeekDate = new Date(today);
+            startOfWeekDate.setDate(today.getDate() - dayOfWeek + 1);
+            const endOfWeekDate = new Date(startOfWeekDate);
+            endOfWeekDate.setDate(startOfWeekDate.getDate() + 6);
+            
+            const startOfWeekStr = `${startOfWeekDate.getFullYear()}-${padZero(startOfWeekDate.getMonth() + 1)}-${padZero(startOfWeekDate.getDate())}`;
+            const endOfWeekStr = `${endOfWeekDate.getFullYear()}-${padZero(endOfWeekDate.getMonth() + 1)}-${padZero(endOfWeekDate.getDate())}`;
+            
             for (const date in attendance) {
-                if (timeRange === 'today' && date !== todayStr) continue;
+                if (timeRange === 'week' && (date < startOfWeekStr || date > endOfWeekStr)) continue;
                 if (timeRange === 'month' && !date.startsWith(thisMonthStr)) continue;
                 
                 for (const hour in attendance[date]) {
