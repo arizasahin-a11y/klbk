@@ -489,10 +489,10 @@
     <div class="yoklama-container" id="appContainer" style="display: none;">
         
         <!-- Premium Header -->
-        <div class="premium-header glass-panel" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; margin-bottom: 1.5rem;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <!-- Hamburger Menu Container (Moved to Top-Left) -->
-                <div class="mobile-hamburger-menu" style="z-index: 9999;">
+        <div class="premium-header glass-panel" style="display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; margin-bottom: 1.5rem; position: relative; overflow: visible !important; z-index: 9999; flex-wrap: nowrap;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 1; min-width: 0;">
+                <!-- Hamburger Menu Container -->
+                <div class="mobile-hamburger-menu" style="z-index: 9999; flex-shrink: 0;">
                     <button class="btn" style="background: transparent; color: var(--dark); border: none; padding: 0.5rem; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center;" onclick="document.getElementById('mobileDropdown').classList.toggle('show')">
                         <i class="fa-solid fa-bars"></i>
                     </button>
@@ -503,17 +503,17 @@
                     </div>
                 </div>
 
-                <div>
-                    <h1 style="font-size: 1.35rem; font-weight: 800; color: var(--dark); margin: 0;" id="teacherWelcome">Yükleniyor...</h1>
-                    <p style="font-size: 0.8rem; color: var(--gray-500); margin: 2px 0 0 0;" id="schoolDisplay">...</p>
+                <div style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
+                    <h1 style="font-size: 1.1rem; font-weight: 800; color: var(--dark); margin: 0; overflow: hidden; text-overflow: ellipsis;" id="teacherWelcome">Yükleniyor...</h1>
+                    <p style="font-size: 0.75rem; color: var(--gray-500); margin: 2px 0 0 0; overflow: hidden; text-overflow: ellipsis;" id="schoolDisplay">...</p>
                 </div>
             </div>
             
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <button class="btn" style="background: transparent; color: var(--gray-600); border: none; padding: 0.5rem; border-radius: var(--radius-md); font-size: 1.2rem; cursor: pointer; transition: var(--transition);" onclick="openTeacherSettings()" title="Hesap Ayarları">
+            <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                <button class="btn" style="background: transparent; color: var(--gray-600); border: none; padding: 0.4rem; border-radius: var(--radius-md); font-size: 1.2rem; cursor: pointer; transition: var(--transition);" onclick="openTeacherSettings()" title="Hesap Ayarları">
                     <i class="fa-solid fa-gear"></i>
                 </button>
-                <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: var(--transition);" onclick="logoutTeacher()">
+                <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.4rem 0.6rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: var(--transition);" onclick="logoutTeacher()">
                     <i class="fa-solid fa-right-from-bracket"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Çıkış</span>
                 </button>
             </div>
@@ -956,8 +956,11 @@
             document.getElementById('appContainer').style.display = 'block';
 
             // Set welcome message
+            const userRole = sessionStorage.getItem('klbk_role') || 'ogretmen';
+            const roleDisplay = userRole === 'admin' ? 'Yönetici' : 'Öğretmen';
+            
             document.getElementById('teacherWelcome').innerHTML = sessionStorage.getItem('klbk_name');
-            document.getElementById('schoolDisplay').innerHTML = `<i class="fa-solid fa-school"></i> ${sessionStorage.getItem('klbk_schoolName')}`;
+            document.getElementById('schoolDisplay').innerHTML = `<i class="fa-solid fa-user-tie"></i> ${roleDisplay}`;
 
             // Set default date to today and restrict min date to 14 days ago
             const todayObj = new Date();
@@ -1405,12 +1408,10 @@
 
                 tr.innerHTML = `
                     <td>
-                        <div class="student-info" style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
-                            <div class="student-avatar" style="flex-shrink:0;">${s.name ? s.name.charAt(0) : '?'}</div>
-                            <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis;">
-                                <span class="student-no">${s.no}</span>
-                                <span class="student-name">${s.name} ${s.surname || ''}</span>
-                            </div>
+                        <div class="student-info" style="display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                            <div class="student-avatar" style="flex-shrink:0; width: 32px; height: 32px; font-size: 0.8rem;">${s.name ? s.name.charAt(0) : '?'}</div>
+                            <span class="student-no" style="font-size: 0.9rem;">${s.no}</span>
+                            <span class="student-name" style="font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; max-width: 100px;">${s.name} ${s.surname || ''}</span>
                         </div>
                     </td>
                     <td style="white-space: nowrap;">
