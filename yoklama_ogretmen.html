@@ -44,9 +44,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1.5rem 2rem;
-            margin-bottom: 2rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
             position: relative;
+            overflow: visible !important;
+            z-index: 9999;
         }
 
         .premium-header::after {
@@ -507,9 +509,14 @@
                 </div>
             </div>
             
-            <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: var(--transition);" onclick="logoutTeacher()">
-                <i class="fa-solid fa-right-from-bracket"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Çıkış</span>
-            </button>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button class="btn" style="background: transparent; color: var(--gray-600); border: none; padding: 0.5rem; border-radius: var(--radius-md); font-size: 1.2rem; cursor: pointer; transition: var(--transition);" onclick="openTeacherSettings()" title="Hesap Ayarları">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+                <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: var(--transition);" onclick="logoutTeacher()">
+                    <i class="fa-solid fa-right-from-bracket"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Çıkış</span>
+                </button>
+            </div>
         </div>
 
 
@@ -749,6 +756,140 @@
             sessionStorage.clear();
             localStorage.removeItem('klbk_storeKey');
             window.location.reload();
+        }
+
+        async function openTeacherSettings() {
+            const currentUser = sessionStorage.getItem('klbk_currentUser');
+            if(!currentUser) {
+                Swal.fire('Hata', 'Oturum bilgisi bulunamadı', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Hesap Ayarları',
+                html: `
+                    <div style="text-align: left; margin-top: 10px;">
+                        <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Kullanıcı Adı</label>
+                        <input type="text" id="profUser" class="form-control" value="${currentUser}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+
+                        <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">E-Posta Adresi</label>
+                        <input type="email" id="profEmail" class="form-control" placeholder="E-Posta" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+
+                        <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Cinsiyet</label>
+                        <select id="profGender" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                            <option value="erkek">Erkek</option>
+                            <option value="kadin">Kadın</option>
+                            <option value="diger">Belirtilmemiş</option>
+                        </select>
+
+                        <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Yeni Şifre</label>
+                        <input type="password" id="profPass" class="form-control" placeholder="Değiştirmek istemiyorsanız boş bırakın" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                        
+                        <hr style="margin: 15px 0; border: 0; border-top: 1px solid var(--gray-200);">
+                        <label style="display:block; font-size: 0.85rem; font-weight: 700; color: var(--danger); margin-bottom: 4px;">Değişiklikleri Onaylamak İçin Güncel Şifreniz</label>
+                        <input type="password" id="currentPassVerify" class="form-control" placeholder="Mevcut şifrenizi girin" style="width: 100%; padding: 0.75rem; border: 2px solid var(--danger); border-radius: 6px; font-family: inherit;">
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Kaydet',
+                cancelButtonText: 'İptal',
+                didOpen: async () => {
+                    Swal.showLoading();
+                    try {
+                        const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
+                        if (res.ok) {
+                            const db = await res.json();
+                            if (db && db[currentUser]) {
+                                const emailEl = document.getElementById('profEmail');
+                                if (emailEl) emailEl.value = db[currentUser].email || '';
+                                const genderEl = document.getElementById('profGender');
+                                if (genderEl) genderEl.value = db[currentUser].gender || 'erkek';
+                            }
+                        }
+                    } catch (e) { }
+                    Swal.hideLoading();
+                },
+                preConfirm: async () => {
+                    const newUsername = document.getElementById('profUser').value.trim();
+                    const email = document.getElementById('profEmail').value.trim();
+                    const gender = document.getElementById('profGender').value;
+                    const pass = document.getElementById('profPass').value;
+                    const currentPassVerify = document.getElementById('currentPassVerify').value;
+
+                    if (!newUsername) {
+                        Swal.showValidationMessage('Kullanıcı adı boş olamaz');
+                        return false;
+                    }
+                    if (!currentPassVerify) {
+                        Swal.showValidationMessage('İşlemi onaylamak için güncel şifrenizi girmelisiniz');
+                        return false;
+                    }
+
+                    Swal.showLoading();
+                    try {
+                        const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
+                        if (res.ok) {
+                            const db = await res.json();
+                            if (db) {
+                                if (!db[currentUser]) {
+                                    throw new Error("Kullanıcı bulunamadı!");
+                                }
+
+                                const passHash = await hashPassword(currentPassVerify);
+                                if (db[currentUser].password !== currentPassVerify && db[currentUser].password !== passHash) {
+                                    throw new Error("Güncel şifre yanlış!");
+                                }
+
+                                if (newUsername !== currentUser && db[newUsername]) {
+                                    throw new Error("Bu kullanıcı adı zaten alınmış!");
+                                }
+
+                                const updatedUser = { ...db[currentUser] };
+                                updatedUser.email = email;
+                                updatedUser.gender = gender;
+
+                                if (pass) {
+                                    updatedUser.password = await hashPassword(pass);
+                                }
+
+                                if (newUsername !== currentUser) {
+                                    db[newUsername] = updatedUser;
+                                    delete db[currentUser];
+                                } else {
+                                    db[currentUser] = updatedUser;
+                                }
+
+                                const updateRes = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(db)
+                                });
+
+                                if (!updateRes.ok) throw new Error("Veritabanı güncellenemedi");
+
+                                if (newUsername !== currentUser) {
+                                    sessionStorage.setItem('klbk_currentUser', newUsername);
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        Swal.showValidationMessage(`Hata: ${error.message}`);
+                        return false;
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Başarılı',
+                        text: 'Profil ayarlarınız güncellendi. Sistem tutarlılığı için sayfa yenilenecektir.',
+                        timer: 2500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                }
+            });
         }
 
         async function handleYoklamaLogin() {
