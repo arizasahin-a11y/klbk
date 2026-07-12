@@ -880,14 +880,15 @@
             }
 
             // Map Date object's day index to schedule day key
-            const d = new Date(selectedDateVal);
+            const [y, m, dNum] = selectedDateVal.split('-');
+            const d = new Date(y, parseInt(m) - 1, dNum);
             const dayMap = { 1: 'Pa', 2: 'Sa', 3: 'Ça', 4: 'Pe', 5: 'Cu', 6: 'Ct', 0: 'Pz' };
             const dayKey = dayMap[d.getDay()];
 
             const hourVal = document.getElementById('lessonHour').value;
 
             if (dayKey && hourVal) {
-                const schedClass = activeTeacherObject.schedule[dayKey]?.[hourVal];
+                const schedClass = activeTeacherObject.schedule[dayKey] ? activeTeacherObject.schedule[dayKey][hourVal] : undefined;
                 if (schedClass && schedClass !== '-') {
                     // Match found! Auto-select it
                     const classSelect = document.getElementById('classSelect');
@@ -956,7 +957,8 @@
                 return;
             }
 
-            const d = new Date(dateVal);
+            const [y, m, dNum] = dateVal.split('-');
+            const d = new Date(y, parseInt(m) - 1, dNum);
             const dayMap = { 1: 'Pa', 2: 'Sa', 3: 'Ça', 4: 'Pe', 5: 'Cu', 6: 'Ct', 0: 'Pz' };
             const dayKey = dayMap[d.getDay()];
 
