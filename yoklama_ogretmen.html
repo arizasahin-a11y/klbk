@@ -1070,7 +1070,7 @@
 
             const sortedClasses = classesArray.sort((a, b) => {
                 try {
-                    return a.localeCompare(b, 'tr');
+                    return a.localeCompare(b, 'tr', { numeric: true, sensitivity: 'base' });
                 } catch (e) {
                     return a > b ? 1 : (a < b ? -1 : 0);
                 }

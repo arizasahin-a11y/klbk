@@ -250,6 +250,48 @@
             font-size: 0.85rem;
             text-align: right;
         }
+
+        /* Mobil & Tablet Uyumluluğu */
+        @media (max-width: 768px) {
+            .admin-container {
+                margin: 1rem auto;
+                padding: 0 0.5rem;
+            }
+            .premium-header {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 1rem;
+                gap: 10px;
+            }
+            .stat-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            .grid-filters {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            .filter-panel {
+                padding: 1rem;
+            }
+            .tab-btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .report-table th, .report-table td {
+                padding: 8px 6px;
+                font-size: 0.8rem;
+            }
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                width: 100%;
+                display: block;
+            }
+            #loginPanel .glass-panel {
+                padding: 2rem 1.5rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -410,7 +452,7 @@
                     Lütfen sınıf ve tarih seçerek raporu başlatın.
                 </div>
 
-                <div class="hidden" id="sinifTableWrapper">
+                <div class="hidden table-responsive" id="sinifTableWrapper">
                     <table class="report-table">
                         <thead>
                             <tr id="sinifTableHead">
@@ -422,7 +464,7 @@
                         </tbody>
                     </table>
                     
-                    <div style="margin-top: 1.5rem; display: flex; gap: 20px; font-size: 0.8rem; font-weight: 700; color: var(--gray-500); justify-content: center; background: #f8fafc; padding: 10px; border-radius: 8px;">
+                    <div style="margin-top: 1.5rem; display: flex; gap: 20px; font-size: 0.8rem; font-weight: 700; color: var(--gray-500); justify-content: center; background: #f8fafc; padding: 10px; border-radius: 8px; flex-wrap: wrap;">
                         <span><span class="indicator-dot geldi" style="vertical-align: middle;"></span> Geldi</span>
                         <span><span class="indicator-dot gelmedi" style="vertical-align: middle;"></span> Gelmedi</span>
                         <span><span class="indicator-dot gec" style="vertical-align: middle;"></span> Geç Kaldı</span>
@@ -690,7 +732,7 @@
                 // Get all unique classes
                 const classes = new Set();
                 allStudents.forEach(s => { if (s.class) classes.add(s.class.trim()); });
-                classList = Array.from(classes).sort((a, b) => a.localeCompare(b, 'tr'));
+                classList = Array.from(classes).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true, sensitivity: 'base' }));
 
                 // Populate Class Select Dropdowns
                 populateClassSelects();
@@ -1065,7 +1107,7 @@
                 if (dc !== 0) return dc;
                 const hc = parseInt(b.hour) - parseInt(a.hour);
                 if (hc !== 0) return hc;
-                return a.class.localeCompare(b.class);
+                return a.class.localeCompare(b.class, 'tr', { numeric: true, sensitivity: 'base' });
             });
 
             if (rangeList.length === 0) {
@@ -1164,7 +1206,7 @@
                 }
 
                 if (typeof valA === 'string') {
-                    return genelSortAsc ? valA.localeCompare(valB, 'tr') : valB.localeCompare(valA, 'tr');
+                    return genelSortAsc ? valA.localeCompare(valB, 'tr', { numeric: true, sensitivity: 'base' }) : valB.localeCompare(valA, 'tr', { numeric: true, sensitivity: 'base' });
                 } else {
                     return genelSortAsc ? valA - valB : valB - valA;
                 }
