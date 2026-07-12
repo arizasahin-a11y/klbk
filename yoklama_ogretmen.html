@@ -47,7 +47,6 @@
             padding: 1.5rem 2rem;
             margin-bottom: 2rem;
             position: relative;
-            overflow: hidden;
         }
 
         .premium-header::after {
@@ -488,11 +487,11 @@
     <div class="yoklama-container" id="appContainer" style="display: none;">
         
         <!-- Premium Header -->
-        <div class="premium-header glass-panel" style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; margin-bottom: 2rem;">
-            <div style="display: flex; align-items: center; gap: 15px;">
+        <div class="premium-header glass-panel" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 10px;">
                 <!-- Hamburger Menu Container (Moved to Top-Left) -->
                 <div class="mobile-hamburger-menu" style="z-index: 9999;">
-                    <button class="btn" style="background: var(--gray-100); color: var(--dark); border: none; padding: 0.5rem 0.8rem; border-radius: var(--radius-md); font-size: 1.2rem; cursor: pointer;" onclick="document.getElementById('mobileDropdown').classList.toggle('show')">
+                    <button class="btn" style="background: transparent; color: var(--dark); border: none; padding: 0.5rem; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center;" onclick="document.getElementById('mobileDropdown').classList.toggle('show')">
                         <i class="fa-solid fa-bars"></i>
                     </button>
                     <div id="mobileDropdown" class="dropdown-content">
