@@ -216,25 +216,29 @@
         .student-table {
             width: 100%;
             border-collapse: collapse;
+            border: 1px solid var(--gray-200);
+        }
+
+        .student-table th, .student-table td {
+            border: 1px solid var(--gray-200);
         }
 
         .student-table th {
             text-align: left;
             padding: 1rem;
-            border-bottom: 2px solid var(--gray-200);
-            color: var(--gray-500);
+            background-color: #f8fafc;
+            color: var(--gray-600);
             font-weight: 700;
             font-size: 0.85rem;
             text-transform: uppercase;
         }
 
         .student-row {
-            border-bottom: 1px solid var(--gray-100);
             transition: var(--transition);
         }
 
         .student-row:hover {
-            background-color: #fafbfc;
+            background-color: #f1f5f9;
         }
 
         .student-info {
@@ -397,13 +401,6 @@
                 padding: 0 0.5rem;
                 margin-top: 1rem;
             }
-            .premium-header {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
-                padding: 1rem;
-                border-radius: var(--radius-md);
-            }
             .grid-controls {
                 grid-template-columns: 1fr;
             }
@@ -414,21 +411,8 @@
                 width: 100%;
                 justify-content: center;
             }
-            .control-panel, .student-list-panel, #emptyState, #tabGecmis > .glass-panel {
-                padding: 1rem;
-            }
-            .student-table th {
-                display: none; /* Hide headers on mobile */
-            }
-            .student-row td {
-                display: block;
-                width: 100%;
-                text-align: center;
-            }
             .student-info {
-                justify-content: center;
-                flex-direction: column;
-                padding: 0.5rem;
+                padding: 0.2rem;
             }
             .status-button-group {
                 justify-content: center;
