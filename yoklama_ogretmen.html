@@ -458,12 +458,9 @@
                     <p style="font-size: 0.8rem; color: var(--gray-500); margin: 2px 0 0 0;" id="schoolDisplay">...</p>
                 </div>
             </div>
-        </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn btn-logout" onclick="logout()" title="Çıkış Yap">
-                    <i class="fa-solid fa-right-from-bracket"></i> Çıkış
-                </button>
-            </div>
+            <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: var(--transition);" onclick="logoutTeacher()">
+                <i class="fa-solid fa-right-from-bracket"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Çıkış Yap</span>
+            </button>
         </div>
 
         <!-- Mobile Tab Navigation -->
@@ -1225,20 +1222,20 @@
                     </td>
                     <td>
                         <div class="status-button-group">
-                            <button type="button" class="status-btn ${currentStatus === 'GELDİ' ? 'active' : ''}" data-status="GELDİ" onclick="setStudentStatus('${s.no}', 'GELDİ')">
-                                <i class="fa-solid fa-plus"></i> Geldi
+                            <button type="button" class="status-btn ${currentStatus === 'GELDİ' ? 'active' : ''}" data-status="GELDİ" onclick="setStudentStatus('${s.no}', 'GELDİ')" title="Geldi">
+                                <i class="fa-solid fa-plus"></i>
                             </button>
-                            <button type="button" class="status-btn ${currentStatus === 'GELMEDİ' ? 'active' : ''}" data-status="GELMEDİ" onclick="setStudentStatus('${s.no}', 'GELMEDİ')">
-                                <i class="fa-solid fa-minus"></i> Gelmedi
+                            <button type="button" class="status-btn ${currentStatus === 'GELMEDİ' ? 'active' : ''}" data-status="GELMEDİ" onclick="setStudentStatus('${s.no}', 'GELMEDİ')" title="Gelmedi">
+                                <i class="fa-solid fa-minus"></i>
                             </button>
-                            <button type="button" class="status-btn ${currentStatus === 'GEÇ' ? 'active' : ''}" data-status="GEÇ" onclick="setStudentStatus('${s.no}', 'GEÇ')">
-                                <i class="fa-solid fa-clock"></i> Geç ${currentStatus === 'GEÇ' && gecTimeMap[s.no] !== undefined ? `(${gecTimeMap[s.no]}dk)` : ''}
+                            <button type="button" class="status-btn ${currentStatus === 'GEÇ' ? 'active' : ''}" data-status="GEÇ" onclick="setStudentStatus('${s.no}', 'GEÇ')" title="Geç">
+                                <i class="fa-solid fa-clock"></i>${currentStatus === 'GEÇ' && gecTimeMap[s.no] !== undefined ? `<span style="font-size:0.65rem; margin-left:4px; font-weight:800;">${gecTimeMap[s.no]}m</span>` : ''}
                             </button>
-                            <button type="button" class="status-btn ${currentStatus === 'RAHATSIZLANDI' ? 'active' : ''}" data-status="RAHATSIZLANDI" onclick="setStudentStatus('${s.no}', 'RAHATSIZLANDI')">
-                                <i class="fa-solid fa-house-medical"></i> Rahatsız
+                            <button type="button" class="status-btn ${currentStatus === 'RAHATSIZLANDI' ? 'active' : ''}" data-status="RAHATSIZLANDI" onclick="setStudentStatus('${s.no}', 'RAHATSIZLANDI')" title="Rahatsız">
+                                <i class="fa-solid fa-moon" style="color: #ef4444;"></i>
                             </button>
-                            <button type="button" class="status-btn ${currentStatus === 'SİL' ? 'active' : ''}" data-status="SİL" onclick="setStudentStatus('${s.no}', 'SİL')" style="color:#ef4444; border-color:#fee2e2; background:#fef2f2;">
-                                <i class="fa-solid fa-trash"></i> Sil
+                            <button type="button" class="status-btn ${currentStatus === 'SİL' ? 'active' : ''}" data-status="SİL" onclick="setStudentStatus('${s.no}', 'SİL')" style="color:#ef4444; border-color:#fee2e2; background:#fef2f2;" title="Sil">
+                                <i class="fa-solid fa-trash"></i>
                             </button>
                         </div>
                     </td>
@@ -1310,12 +1307,12 @@
                     if (btnStatus === status) {
                         btn.classList.add('active');
                         if (status === 'GEÇ' && gecTimeMap[studentNo] !== undefined) {
-                            btn.innerHTML = `<i class="fa-solid fa-clock"></i> Geç (${gecTimeMap[studentNo]}dk)`;
+                            btn.innerHTML = `<i class="fa-solid fa-clock"></i><span style="font-size:0.65rem; margin-left:4px; font-weight:800;">${gecTimeMap[studentNo]}m</span>`;
                         }
                     } else {
                         btn.classList.remove('active');
                         if (btnStatus === 'GEÇ') {
-                            btn.innerHTML = `<i class="fa-solid fa-clock"></i> Geç`;
+                            btn.innerHTML = `<i class="fa-solid fa-clock"></i>`;
                         }
                     }
                 });
