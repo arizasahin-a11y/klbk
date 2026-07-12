@@ -86,14 +86,14 @@
         .dropdown-content {
             display: none;
             position: absolute;
-            right: 0;
+            left: 0;
             top: 100%;
             margin-top: 0.5rem;
             background-color: #fff;
             min-width: 200px;
             box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.1);
             border-radius: var(--radius-md);
-            z-index: 100;
+            z-index: 9999;
             overflow: hidden;
             border: 1px solid var(--gray-200);
         }
@@ -491,31 +491,26 @@
         <div class="premium-header glass-panel" style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; margin-bottom: 2rem;">
             <div style="display: flex; align-items: center; gap: 15px;">
                 <!-- Hamburger Menu Container (Moved to Top-Left) -->
-                <div class="mobile-hamburger-menu">
+                <div class="mobile-hamburger-menu" style="z-index: 9999;">
                     <button class="btn" style="background: var(--gray-100); color: var(--dark); border: none; padding: 0.5rem 0.8rem; border-radius: var(--radius-md); font-size: 1.2rem; cursor: pointer;" onclick="document.getElementById('mobileDropdown').classList.toggle('show')">
                         <i class="fa-solid fa-bars"></i>
                     </button>
-                    <div id="mobileDropdown" class="dropdown-content" style="left: 0; right: auto;">
+                    <div id="mobileDropdown" class="dropdown-content">
                         <a href="#" onclick="switchTab('yoklama'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-clipboard-list"></i> Yoklama Al</a>
                         <a href="#" onclick="switchTab('gecmis'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-clock-rotate-left"></i> Geçmiş</a>
                         <a href="#" onclick="switchTab('istatistik'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-chart-pie"></i> İstatistik</a>
                     </div>
                 </div>
 
-                <div class="logo-icon" style="margin: 0; width: 48px; height: 48px; font-size: 1.4rem;">
-                    <i class="fa-solid fa-clipboard-user"></i>
-                </div>
                 <div>
                     <h1 style="font-size: 1.35rem; font-weight: 800; color: var(--dark); margin: 0;" id="teacherWelcome">Yükleniyor...</h1>
                     <p style="font-size: 0.8rem; color: var(--gray-500); margin: 2px 0 0 0;" id="schoolDisplay">...</p>
                 </div>
             </div>
             
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: var(--transition);" onclick="logoutTeacher()">
-                    <i class="fa-solid fa-right-from-bracket"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Çıkış Yap</span>
-                </button>
-            </div>
+            <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: var(--transition);" onclick="logoutTeacher()">
+                <i class="fa-solid fa-right-from-bracket"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Çıkış</span>
+            </button>
         </div>
 
 
@@ -813,6 +808,7 @@
                     const dropdowns = document.getElementsByClassName("dropdown-content");
                     for (let i = 0; i < dropdowns.length; i++) {
                         dropdowns[i].classList.remove('show');
+                        dropdowns[i].style.zIndex = '1000';
                     }
                 }
             });
@@ -820,9 +816,8 @@
             document.getElementById('appContainer').style.display = 'block';
 
             // Set welcome message
-            const properName = sessionStorage.getItem('klbk_name') || activeTeacherUsername;
-            document.getElementById('teacherWelcome').textContent = `Merhaba, ${properName}`;
-            document.getElementById('schoolDisplay').textContent = sessionStorage.getItem('klbk_schoolName') || 'Okul Paneli';
+            document.getElementById('teacherWelcome').innerHTML = sessionStorage.getItem('klbk_name');
+            document.getElementById('schoolDisplay').innerHTML = `<i class="fa-solid fa-school"></i> ${sessionStorage.getItem('klbk_schoolName')}`;
 
             // Set default date to today and restrict min date to 14 days ago
             const todayObj = new Date();
