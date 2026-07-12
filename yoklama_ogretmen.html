@@ -942,7 +942,15 @@
                 
                 // If student has a defined lessons array, they must be taking the selected subject
                 if (subjectVal && s.dersler && Array.isArray(s.dersler) && s.dersler.length > 0) {
-                    if (!s.dersler.includes(subjectVal)) return false;
+                    const cleanStr = str => (str || '').toString().toLocaleUpperCase('tr-TR').replace(/[^A-ZÇĞIİÖŞÜ0-9]/g, '');
+                    const cleanSubject = cleanStr(subjectVal);
+                    
+                    const takesLesson = s.dersler.some(lessonName => {
+                        const cleanLesson = cleanStr(lessonName);
+                        return cleanLesson.includes(cleanSubject) || cleanSubject.includes(cleanLesson);
+                    });
+                    
+                    if (!takesLesson) return false;
                 }
                 
                 return true;
