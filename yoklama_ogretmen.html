@@ -287,10 +287,14 @@
             font-weight: 700;
             border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
+            transition: var(--transition);
+            display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+        }
+
+        .status-btn i {
+            font-size: 1.4rem;
         }
 
         /* Status Colors */
@@ -411,17 +415,26 @@
                 width: 100%;
                 justify-content: center;
             }
+            .control-panel, .student-list-panel, #emptyState, #tabGecmis > .glass-panel {
+                padding: 0.75rem;
+            }
             .student-info {
                 padding: 0.2rem;
             }
             .status-button-group {
                 justify-content: center;
                 flex-wrap: nowrap;
-                padding: 1rem 0;
+                padding: 0.5rem 0;
+                gap: 6px;
             }
             .status-btn {
+                flex: 1 1 0;
+                min-width: 0;
                 justify-content: center;
-                padding: 10px;
+                padding: 12px 4px;
+            }
+            .status-btn i {
+                font-size: 1.6rem;
             }
             .stat-counter-bar {
                 flex-wrap: wrap;
