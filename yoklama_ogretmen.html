@@ -868,10 +868,16 @@
         }
 
         function checkAndAutoDetectClass() {
-            if (!activeTeacherObject || !activeTeacherObject.schedule) return;
+            if (!activeTeacherObject || !activeTeacherObject.schedule) {
+                loadStudentList();
+                return;
+            }
 
             const selectedDateVal = document.getElementById('yoklamaDate').value;
-            if (!selectedDateVal) return;
+            if (!selectedDateVal) {
+                loadStudentList();
+                return;
+            }
 
             // Map Date object's day index to schedule day key
             const d = new Date(selectedDateVal);
@@ -936,6 +942,7 @@
             }
 
             document.getElementById('autoDetectAlert').classList.add('hidden');
+            loadStudentList();
         }
 
         async function saveSubjectOverride() {
