@@ -428,7 +428,7 @@
     <div class="yoklama-container" id="appContainer" style="display: none;">
         
         <!-- Premium Header -->
-        <div class="premium-header glass-panel">
+        <div class="premium-header glass-panel" style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; margin-bottom: 2rem;">
             <div style="display: flex; align-items: center; gap: 15px;">
                 <div class="logo-icon" style="margin: 0; width: 48px; height: 48px; font-size: 1.4rem;">
                     <i class="fa-solid fa-clipboard-user"></i>
@@ -438,6 +438,11 @@
                     <p style="font-size: 0.8rem; color: var(--gray-500); margin: 2px 0 0 0;" id="schoolDisplay">...</p>
                 </div>
             </div>
+            
+            <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: var(--transition);" onclick="logoutTeacher()">
+                <i class="fa-solid fa-right-from-bracket"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Çıkış Yap</span>
+            </button>
+        </div>
             <div style="display: flex; gap: 10px;">
                 <button class="btn btn-logout" onclick="logout()" title="Çıkış Yap">
                     <i class="fa-solid fa-right-from-bracket"></i> Çıkış
@@ -674,6 +679,12 @@
             const hashBuffer = await crypto.subtle.digest('SHA-256', data);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
             return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function logoutTeacher() {
+            sessionStorage.clear();
+            localStorage.removeItem('klbk_storeKey');
+            window.location.reload();
         }
 
         async function handleYoklamaLogin() {
