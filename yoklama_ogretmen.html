@@ -490,6 +490,18 @@
         <!-- Premium Header -->
         <div class="premium-header glass-panel" style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; margin-bottom: 2rem;">
             <div style="display: flex; align-items: center; gap: 15px;">
+                <!-- Hamburger Menu Container (Moved to Top-Left) -->
+                <div class="mobile-hamburger-menu">
+                    <button class="btn" style="background: var(--gray-100); color: var(--dark); border: none; padding: 0.5rem 0.8rem; border-radius: var(--radius-md); font-size: 1.2rem; cursor: pointer;" onclick="document.getElementById('mobileDropdown').classList.toggle('show')">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div id="mobileDropdown" class="dropdown-content" style="left: 0; right: auto;">
+                        <a href="#" onclick="switchTab('yoklama'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-clipboard-list"></i> Yoklama Al</a>
+                        <a href="#" onclick="switchTab('gecmis'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-clock-rotate-left"></i> Geçmiş</a>
+                        <a href="#" onclick="switchTab('istatistik'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-chart-pie"></i> İstatistik</a>
+                    </div>
+                </div>
+
                 <div class="logo-icon" style="margin: 0; width: 48px; height: 48px; font-size: 1.4rem;">
                     <i class="fa-solid fa-clipboard-user"></i>
                 </div>
@@ -500,18 +512,6 @@
             </div>
             
             <div style="display: flex; align-items: center; gap: 10px;">
-                <!-- Hamburger Menu Container -->
-                <div class="mobile-hamburger-menu">
-                    <button class="btn" style="background: var(--gray-100); color: var(--dark); border: none; padding: 0.5rem 0.8rem; border-radius: var(--radius-md); font-size: 1.2rem; cursor: pointer;" onclick="document.getElementById('mobileDropdown').classList.toggle('show')">
-                        <i class="fa-solid fa-bars"></i>
-                    </button>
-                    <div id="mobileDropdown" class="dropdown-content">
-                        <a href="#" onclick="switchTab('yoklama'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-clipboard-list"></i> Yoklama Al</a>
-                        <a href="#" onclick="switchTab('gecmis'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-clock-rotate-left"></i> Geçmiş</a>
-                        <a href="#" onclick="switchTab('istatistik'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-chart-pie"></i> İstatistik</a>
-                    </div>
-                </div>
-
                 <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: var(--transition);" onclick="logoutTeacher()">
                     <i class="fa-solid fa-right-from-bracket"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Çıkış Yap</span>
                 </button>
@@ -808,17 +808,14 @@
             }
             
             // Close dropdown if clicked outside
-            window.onclick = function(event) {
-                if (!event.target.matches('.fa-bars') && !event.target.matches('.mobile-hamburger-menu .btn')) {
+            window.addEventListener('click', function(e) {
+                if (!e.target.closest('.mobile-hamburger-menu')) {
                     const dropdowns = document.getElementsByClassName("dropdown-content");
                     for (let i = 0; i < dropdowns.length; i++) {
-                        const openDropdown = dropdowns[i];
-                        if (openDropdown.classList.contains('show')) {
-                            openDropdown.classList.remove('show');
-                        }
+                        dropdowns[i].classList.remove('show');
                     }
                 }
-            };
+            });
             
             document.getElementById('appContainer').style.display = 'block';
 
@@ -1273,16 +1270,16 @@
 
                 tr.innerHTML = `
                     <td>
-                        <div class="student-info">
-                            <div class="student-avatar">${s.name ? s.name.charAt(0) : '?'}</div>
-                            <div>
+                        <div class="student-info" style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+                            <div class="student-avatar" style="flex-shrink:0;">${s.name ? s.name.charAt(0) : '?'}</div>
+                            <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis;">
                                 <span class="student-no">${s.no}</span>
-                                <div class="student-name">${s.name} ${s.surname || ''}</div>
+                                <span class="student-name">${s.name} ${s.surname || ''}</span>
                             </div>
                         </div>
                     </td>
-                    <td>
-                        <div class="status-button-group">
+                    <td style="white-space: nowrap;">
+                        <div class="status-button-group" style="flex-wrap: nowrap; padding: 0.5rem;">
                             <button type="button" class="status-btn ${currentStatus === 'GELDİ' ? 'active' : ''}" data-status="GELDİ" onclick="setStudentStatus('${s.no}', 'GELDİ')" title="Geldi">
                                 <i class="fa-solid fa-plus"></i>
                             </button>
@@ -1339,7 +1336,7 @@
             }
 
             if (attendanceMap[studentNo] === status) {
-                status = 'GELDİ';
+                return; // Double click on same status does nothing
             } else if (status === 'GEÇ') {
                 attendanceMap[studentNo] = status;
                 const hourVal = document.getElementById('lessonHour').value;
