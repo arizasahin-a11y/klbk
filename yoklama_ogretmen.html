@@ -497,9 +497,14 @@
 
                     <div class="form-group">
                         <label><i class="fa-solid fa-book-open"></i> Ders</label>
-                        <select id="subjectSelect" class="form-select-custom" onchange="loadStudentList()">
-                            <option value="">-- Ders Seçin --</option>
-                        </select>
+                        <div style="display: flex; gap: 8px;">
+                            <select id="subjectSelect" class="form-select-custom" onchange="loadStudentList()" style="flex: 1;">
+                                <option value="">-- Ders Seçin --</option>
+                            </select>
+                            <button id="btnPinSubject" class="btn btn-secondary" style="padding: 0 15px; border: 1px solid var(--gray-300); background: white; color: var(--gray-600);" onclick="saveSubjectOverride()" title="Bu gün ve saat için bu dersi sabitle">
+                                <i class="fa-solid fa-paperclip"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -895,8 +900,20 @@
                         const subjectSelect = document.getElementById('subjectSelect');
                         let foundSubject = false;
                         
-                        // 1. Eğer program hücresinde ders adı geçiyorsa (Örn: "10A - Seçmeli Fizik")
-                        if (activeTeacherObject.branch) {
+                        // --- 1. Kullanıcının ataç ile sabitlediği bir tercih var mı? ---
+                        const dbData = DataManager._getData();
+                        const overrideKey = `${dayKey}_${hourVal}_${matchedOption.value}`;
+                        if (dbData.subjectOverrides && dbData.subjectOverrides[activeTeacherUsername] && dbData.subjectOverrides[activeTeacherUsername][overrideKey]) {
+                            const pinnedSubject = dbData.subjectOverrides[activeTeacherUsername][overrideKey];
+                            const hasOption = Array.from(subjectSelect.options).some(o => o.value === pinnedSubject);
+                            if (hasOption) {
+                                subjectSelect.value = pinnedSubject;
+                                foundSubject = true;
+                            }
+                        }
+                        
+                        // 2. Eğer program hücresinde ders adı geçiyorsa (Örn: "10A - Seçmeli Fizik")
+                        if (!foundSubject && activeTeacherObject.branch) {
                             for (let br of activeTeacherObject.branch) {
                                 if (schedClass.toLocaleUpperCase('tr-TR').includes(br.toLocaleUpperCase('tr-TR'))) {
                                     subjectSelect.value = br;
@@ -919,6 +936,47 @@
             }
 
             document.getElementById('autoDetectAlert').classList.add('hidden');
+        }
+
+        async function saveSubjectOverride() {
+            const dateVal = document.getElementById('yoklamaDate').value;
+            const hourVal = document.getElementById('lessonHour').value;
+            const classVal = document.getElementById('classSelect').value;
+            const subjectVal = document.getElementById('subjectSelect').value;
+
+            if (!dateVal || !hourVal || !classVal || !subjectVal) {
+                Swal.fire('Eksik Bilgi', 'Sabitleme yapmak için tarih, saat, sınıf ve ders seçilmiş olmalıdır.', 'warning');
+                return;
+            }
+
+            const d = new Date(dateVal);
+            const dayMap = { 1: 'Pa', 2: 'Sa', 3: 'Ça', 4: 'Pe', 5: 'Cu', 6: 'Ct', 0: 'Pz' };
+            const dayKey = dayMap[d.getDay()];
+
+            if (!dayKey) return;
+
+            try {
+                const dbData = DataManager._getData();
+                dbData.subjectOverrides = dbData.subjectOverrides || {};
+                dbData.subjectOverrides[activeTeacherUsername] = dbData.subjectOverrides[activeTeacherUsername] || {};
+                
+                const overrideKey = `${dayKey}_${hourVal}_${classVal}`;
+                dbData.subjectOverrides[activeTeacherUsername][overrideKey] = subjectVal;
+
+                await DataManager._saveData(dbData);
+                
+                let dayName = d.toLocaleDateString('tr-TR', { weekday: 'long' });
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Ders Sabitlendi',
+                    text: `${dayName} ${hourVal}. ders ${classVal} sınıfı için "${subjectVal}" dersi varsayılan olarak kaydedildi. Artık bu gün ve saatte hep bu ders seçili gelecek.`,
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            } catch (e) {
+                console.error("Override save error:", e);
+                Swal.fire('Hata', 'Sabitleme kaydedilemedi.', 'error');
+            }
         }
 
         function loadStudentList() {
