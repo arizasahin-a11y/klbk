@@ -498,10 +498,10 @@
                     <div class="form-group">
                         <label><i class="fa-solid fa-book-open"></i> Ders</label>
                         <div style="display: flex; gap: 8px;">
-                            <select id="subjectSelect" class="form-select-custom" onchange="loadStudentList()" style="flex: 1;">
+                            <select id="subjectSelect" class="form-select-custom" onchange="loadStudentList(); document.getElementById('btnPinSubject').style.display = 'block';" onclick="document.getElementById('btnPinSubject').style.display = 'block';" style="flex: 1;">
                                 <option value="">-- Ders Seçin --</option>
                             </select>
-                            <button id="btnPinSubject" class="btn btn-secondary" style="padding: 0 15px; border: 1px solid var(--gray-300); background: white; color: var(--gray-600);" onclick="saveSubjectOverride()" title="Bu gün ve saat için bu dersi sabitle">
+                            <button id="btnPinSubject" class="btn btn-secondary" style="padding: 0 15px; border: 1px solid #f87171; background: #fef2f2; color: #dc2626; display: none;" onclick="saveSubjectOverride()" title="Bu gün ve saat için bu dersi sabitle">
                                 <i class="fa-solid fa-thumbtack"></i>
                             </button>
                         </div>
