@@ -756,17 +756,25 @@
             });
 
             try {
-                // Initialize DataManager
-                await DataManager.initCloud();
-                schoolData = DataManager.getSchoolSettings();
-                allStudents = DataManager.getStudents();
-                
                 // Fetch all users to get active teacher's schedule
                 const usersRes = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
                 if (usersRes.ok) {
                     teachersDb = await usersRes.json();
                     activeTeacherObject = teachersDb[activeTeacherUsername];
                 }
+
+                // Initialize DataManager
+                await DataManager.initCloud();
+                schoolData = DataManager.getSchoolSettings();
+                allStudents = DataManager.getStudents();
+
+                // DİAGNOSTİK BİLGİ PENCERESİ (Sorunu tespit edene kadar kalacak)
+                Swal.fire({
+                    title: 'Bağlantı Testi',
+                    html: `<b>Kullanıcı:</b> ${activeTeacherUsername}<br><b>Yüklenen Öğrenci Sayısı:</b> ${allStudents ? allStudents.length : 'Yok'}<br><b>Sürüm:</b> v6 (Hata Düzeltme)`,
+                    icon: 'info',
+                    confirmButtonText: 'Tamam'
+                });
 
                 // Populate Class Dropdown
                 populateClasses();
