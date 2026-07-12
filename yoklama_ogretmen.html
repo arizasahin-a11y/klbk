@@ -768,14 +768,6 @@
                 schoolData = DataManager.getSchoolSettings();
                 allStudents = DataManager.getStudents();
 
-                // DİAGNOSTİK BİLGİ PENCERESİ (Sorunu tespit edene kadar kalacak)
-                Swal.fire({
-                    title: 'Bağlantı Testi',
-                    html: `<b>Kullanıcı:</b> ${activeTeacherUsername}<br><b>Yüklenen Öğrenci Sayısı:</b> ${allStudents ? allStudents.length : 'Yok'}<br><b>Sürüm:</b> v6 (Hata Düzeltme)`,
-                    icon: 'info',
-                    confirmButtonText: 'Tamam'
-                });
-
                 // Populate Class Dropdown
                 populateClasses();
 
