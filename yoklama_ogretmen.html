@@ -639,6 +639,14 @@
     </div>
 
     <script>
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            Swal.fire('Teknik Hata Oluştu', `${msg}\nSatır: ${lineNo}\nLütfen bu hatayı geliştiriciye bildirin.`, 'error');
+            return false;
+        };
+        window.addEventListener("unhandledrejection", function(e) {
+            Swal.fire('Teknik Hata (Promise)', `${e.reason}\nLütfen bu hatayı geliştiriciye bildirin.`, 'error');
+        });
+
         // Global variables
         let schoolData = {};
         let allStudents = [];
