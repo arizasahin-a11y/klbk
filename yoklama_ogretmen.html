@@ -985,7 +985,45 @@
             const emptyState = document.getElementById('emptyState');
             const studentListContainer = document.getElementById('studentListContainer');
 
+            // --- 1. Henüz gelmemiş gün/saat kontrolü ---
+            const selectedDateVal = document.getElementById('yoklamaDate').value;
+            const hourVal = document.getElementById('lessonHour').value;
+            
+            if (selectedDateVal) {
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const dd = String(now.getDate()).padStart(2, '0');
+                const todayStr = `${yyyy}-${mm}-${dd}`;
+                
+                if (selectedDateVal > todayStr) {
+                    emptyState.innerHTML = `<i class="fa-solid fa-calendar-xmark" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i><br>
+                    Gelecek bir tarihin yoklamasını alamazsınız.`;
+                    emptyState.classList.remove('hidden');
+                    studentListContainer.classList.add('hidden');
+                    return;
+                }
+                
+                if (selectedDateVal === todayStr && hourVal) {
+                    const lessonTimes = schoolData.lessonTimes || {};
+                    const startStr = lessonTimes[`${hourVal}_start`];
+                    if (startStr) {
+                        const nowStr = now.toTimeString().slice(0, 5); // "HH:MM"
+                        if (nowStr < startStr) {
+                            emptyState.innerHTML = `<i class="fa-solid fa-clock" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i><br>
+                            <span style="color:#ef4444; font-weight:bold;">${hourVal}. ders henüz başlamadı!</span><br>
+                            <small>(Ders Başlangıcı: ${startStr} | Şu Anki Saat: ${nowStr})</small>`;
+                            emptyState.classList.remove('hidden');
+                            studentListContainer.classList.add('hidden');
+                            return;
+                        }
+                    }
+                }
+            }
+
             if (!classVal) {
+                emptyState.innerHTML = `<i class="fa-solid fa-users-rectangle" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i><br>
+                Lütfen sınıf ve ders saati seçin...`;
                 emptyState.classList.remove('hidden');
                 studentListContainer.classList.add('hidden');
                 return;
