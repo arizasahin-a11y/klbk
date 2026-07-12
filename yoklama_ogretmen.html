@@ -78,13 +78,53 @@
             gap: 1.5rem;
         }
 
-        .mobile-nav-select {
+        .mobile-hamburger-menu {
             display: none;
-            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 0.5rem;
+            background-color: #fff;
+            min-width: 200px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.1);
+            border-radius: var(--radius-md);
+            z-index: 100;
+            overflow: hidden;
+            border: 1px solid var(--gray-200);
+        }
+
+        .dropdown-content a {
+            color: var(--gray-600);
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
+
+        .dropdown-content a i {
+            margin-right: 8px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .dropdown-content a:hover {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .dropdown-content.show {
+            display: block;
         }
 
         @media (max-width: 768px) {
-            .mobile-nav-select {
+            .mobile-hamburger-menu {
                 display: block;
             }
             .desktop-nav-buttons {
@@ -458,19 +498,27 @@
                     <p style="font-size: 0.8rem; color: var(--gray-500); margin: 2px 0 0 0;" id="schoolDisplay">...</p>
                 </div>
             </div>
-            <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: var(--transition);" onclick="logoutTeacher()">
-                <i class="fa-solid fa-right-from-bracket"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Çıkış Yap</span>
-            </button>
+            
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <!-- Hamburger Menu Container -->
+                <div class="mobile-hamburger-menu">
+                    <button class="btn" style="background: var(--gray-100); color: var(--dark); border: none; padding: 0.5rem 0.8rem; border-radius: var(--radius-md); font-size: 1.2rem; cursor: pointer;" onclick="document.getElementById('mobileDropdown').classList.toggle('show')">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div id="mobileDropdown" class="dropdown-content">
+                        <a href="#" onclick="switchTab('yoklama'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-clipboard-list"></i> Yoklama Al</a>
+                        <a href="#" onclick="switchTab('gecmis'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-clock-rotate-left"></i> Geçmiş</a>
+                        <a href="#" onclick="switchTab('istatistik'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-chart-pie"></i> İstatistik</a>
+                    </div>
+                </div>
+
+                <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: var(--transition);" onclick="logoutTeacher()">
+                    <i class="fa-solid fa-right-from-bracket"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Çıkış Yap</span>
+                </button>
+            </div>
         </div>
 
-        <!-- Mobile Tab Navigation -->
-        <div class="mobile-nav-select">
-            <select class="form-select-custom" id="mobileTabSelect" onchange="switchTab(this.value)">
-                <option value="yoklama">Yoklama Al</option>
-                <option value="gecmis">Geçmiş Yoklamalarım</option>
-                <option value="istatistik">İstatistik</option>
-            </select>
-        </div>
+
 
         <!-- Navigation Tabs -->
         <div class="nav-buttons desktop-nav-buttons">
@@ -758,6 +806,19 @@
                 document.getElementById('loginPanel').style.display = 'flex';
                 return;
             }
+            
+            // Close dropdown if clicked outside
+            window.onclick = function(event) {
+                if (!event.target.matches('.fa-bars') && !event.target.matches('.mobile-hamburger-menu .btn')) {
+                    const dropdowns = document.getElementsByClassName("dropdown-content");
+                    for (let i = 0; i < dropdowns.length; i++) {
+                        const openDropdown = dropdowns[i];
+                        if (openDropdown.classList.contains('show')) {
+                            openDropdown.classList.remove('show');
+                        }
+                    }
+                }
+            };
             
             document.getElementById('appContainer').style.display = 'block';
 
@@ -1437,9 +1498,6 @@
             const btnYoklama = document.getElementById('btnTabYoklama');
             const btnGecmis = document.getElementById('btnTabGecmis');
             const btnIstatistik = document.getElementById('btnTabIstatistik');
-            const mobileTabSelect = document.getElementById('mobileTabSelect');
-
-            if (mobileTabSelect) mobileTabSelect.value = tabName;
 
             [tabYoklama, tabGecmis, tabIstatistik].forEach(t => { if(t) t.classList.add('hidden'); });
             [btnYoklama, btnGecmis, btnIstatistik].forEach(b => {
