@@ -497,7 +497,7 @@
 
                     <div class="form-group">
                         <label><i class="fa-solid fa-book-open"></i> Ders</label>
-                        <select id="subjectSelect" class="form-select-custom">
+                        <select id="subjectSelect" class="form-select-custom" onchange="loadStudentList()">
                             <option value="">-- Ders Seçin --</option>
                         </select>
                     </div>
@@ -923,6 +923,7 @@
 
         function loadStudentList() {
             const classVal = document.getElementById('classSelect').value;
+            const subjectVal = document.getElementById('subjectSelect').value;
             const emptyState = document.getElementById('emptyState');
             const studentListContainer = document.getElementById('studentListContainer');
 
@@ -935,8 +936,17 @@
             emptyState.classList.add('hidden');
             studentListContainer.classList.remove('hidden');
 
-            // Filter students
-            activeClassStudents = allStudents.filter(s => s.class && s.class.trim() === classVal.trim());
+            // Filter students by class and subject
+            activeClassStudents = allStudents.filter(s => {
+                if (!s.class || s.class.trim() !== classVal.trim()) return false;
+                
+                // If student has a defined lessons array, they must be taking the selected subject
+                if (subjectVal && s.dersler && Array.isArray(s.dersler) && s.dersler.length > 0) {
+                    if (!s.dersler.includes(subjectVal)) return false;
+                }
+                
+                return true;
+            });
             
             const sortVal = document.getElementById('sortSelect') ? document.getElementById('sortSelect').value : 'no';
             if (sortVal === 'name') {
