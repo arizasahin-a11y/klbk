@@ -624,11 +624,10 @@
 
                 <!-- Student Table -->
                 <div class="table-responsive">
-                    <table class="student-table">
-                        <thead>
+                    <table class="student-table" style="border: none;">
+                        <thead style="display: none;">
                             <tr>
-                                <th>Öğrenci Bilgisi</th>
-                                <th style="text-align: right; padding-right: 1.5rem;">Yoklama Durumu</th>
+                                <th>Öğrenci Listesi</th>
                             </tr>
                         </thead>
                         <tbody id="studentTableBody">
@@ -1382,7 +1381,7 @@
                 const currentStatus = attendanceMap[s.no] || 'GELDİ';
                 
                 const tr = document.createElement('tr');
-                tr.className = 'student-row';
+                tr.className = "student-row";
                 tr.setAttribute('data-no', s.no);
                 tr.setAttribute('data-search', `${s.no} ${s.name} ${s.surname || ''}`.toLowerCase());
                 
@@ -1390,31 +1389,35 @@
                     tr.style.opacity = '0.3';
                 }
 
+                const buttons = `
+                    <button type="button" class="status-btn ${currentStatus === 'GELDİ' ? 'active' : ''}" data-status="GELDİ" onclick="setStudentStatus('${s.no}', 'GELDİ')" title="Geldi">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                    <button type="button" class="status-btn ${currentStatus === 'GELMEDİ' ? 'active' : ''}" data-status="GELMEDİ" onclick="setStudentStatus('${s.no}', 'GELMEDİ')" title="Gelmedi">
+                        <i class="fa-solid fa-minus"></i>
+                    </button>
+                    <button type="button" class="status-btn ${currentStatus === 'GEÇ' ? 'active' : ''}" data-status="GEÇ" onclick="setStudentStatus('${s.no}', 'GEÇ')" title="Geç">
+                        <i class="fa-solid fa-clock"></i>${currentStatus === 'GEÇ' && gecTimeMap[s.no] !== undefined ? `<span style="font-size:0.65rem; margin-left:4px; font-weight:800;">${gecTimeMap[s.no]}m</span>` : ''}
+                    </button>
+                    <button type="button" class="status-btn ${currentStatus === 'RAHATSIZLANDI' ? 'active' : ''}" data-status="RAHATSIZLANDI" onclick="setStudentStatus('${s.no}', 'RAHATSIZLANDI')" title="Rahatsız">
+                        <i class="fa-solid fa-moon" style="color: #ef4444;"></i>
+                    </button>
+                    <button type="button" class="status-btn ${currentStatus === 'SİL' ? 'active' : ''}" data-status="SİL" onclick="setStudentStatus('${s.no}', 'SİL')" style="color:#ef4444; border-color:#fee2e2; background:#fef2f2;" title="Sil">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                `;
+
                 tr.innerHTML = `
-                    <td>
-                        <div class="student-info" style="display: flex; align-items: center; gap: 6px; white-space: nowrap;">
-                            <div class="student-avatar" style="flex-shrink:0; width: 32px; height: 32px; font-size: 0.8rem;">${s.name ? s.name.charAt(0) : '?'}</div>
-                            <span class="student-no" style="font-size: 0.9rem;">${s.no}</span>
-                            <span class="student-name" style="font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; max-width: 100px;">${s.name} ${s.surname || ''}</span>
+                    <td style="padding: 0; border: 2px solid var(--primary); border-radius: 8px; overflow: hidden; display: block; margin-bottom: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 10px; padding: 12px 15px; background: #f8fafc; border-bottom: 1px solid var(--primary-light);">
+                            <div class="student-avatar" style="flex-shrink:0; width: 36px; height: 36px; font-size: 0.9rem;">${s.name ? s.name.charAt(0) : '?'}</div>
+                            <span class="student-no" style="font-size: 1rem; font-weight: 700; color: var(--primary);">${s.no}</span>
+                            <span class="student-name" style="font-size: 0.95rem; font-weight: 600; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${s.name} ${s.surname || ''}</span>
                         </div>
-                    </td>
-                    <td style="white-space: nowrap;">
-                        <div class="status-button-group" style="flex-wrap: nowrap; padding: 0.5rem;">
-                            <button type="button" class="status-btn ${currentStatus === 'GELDİ' ? 'active' : ''}" data-status="GELDİ" onclick="setStudentStatus('${s.no}', 'GELDİ')" title="Geldi">
-                                <i class="fa-solid fa-plus"></i>
-                            </button>
-                            <button type="button" class="status-btn ${currentStatus === 'GELMEDİ' ? 'active' : ''}" data-status="GELMEDİ" onclick="setStudentStatus('${s.no}', 'GELMEDİ')" title="Gelmedi">
-                                <i class="fa-solid fa-minus"></i>
-                            </button>
-                            <button type="button" class="status-btn ${currentStatus === 'GEÇ' ? 'active' : ''}" data-status="GEÇ" onclick="setStudentStatus('${s.no}', 'GEÇ')" title="Geç">
-                                <i class="fa-solid fa-clock"></i>${currentStatus === 'GEÇ' && gecTimeMap[s.no] !== undefined ? `<span style="font-size:0.65rem; margin-left:4px; font-weight:800;">${gecTimeMap[s.no]}m</span>` : ''}
-                            </button>
-                            <button type="button" class="status-btn ${currentStatus === 'RAHATSIZLANDI' ? 'active' : ''}" data-status="RAHATSIZLANDI" onclick="setStudentStatus('${s.no}', 'RAHATSIZLANDI')" title="Rahatsız">
-                                <i class="fa-solid fa-moon" style="color: #ef4444;"></i>
-                            </button>
-                            <button type="button" class="status-btn ${currentStatus === 'SİL' ? 'active' : ''}" data-status="SİL" onclick="setStudentStatus('${s.no}', 'SİL')" style="color:#ef4444; border-color:#fee2e2; background:#fef2f2;" title="Sil">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
+                        <div style="padding: 12px 10px; background: white;">
+                            <div class="status-button-group" style="display: flex; gap: 8px; justify-content: center; width: 100%;">
+                                ${buttons}
+                            </div>
                         </div>
                     </td>
                 `;
