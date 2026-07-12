@@ -78,6 +78,26 @@
             gap: 1.5rem;
         }
 
+        .mobile-nav-select {
+            display: none;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-nav-select {
+                display: block;
+            }
+            .desktop-nav-buttons {
+                display: none !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .grid-controls {
+                grid-template-columns: 1fr 1fr !important;
+            }
+        }
+
         .form-select-custom {
             width: 100%;
             padding: 0.85rem 1rem;
@@ -438,10 +458,6 @@
                     <p style="font-size: 0.8rem; color: var(--gray-500); margin: 2px 0 0 0;" id="schoolDisplay">...</p>
                 </div>
             </div>
-            
-            <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: var(--transition);" onclick="logoutTeacher()">
-                <i class="fa-solid fa-right-from-bracket"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Çıkış Yap</span>
-            </button>
         </div>
             <div style="display: flex; gap: 10px;">
                 <button class="btn btn-logout" onclick="logout()" title="Çıkış Yap">
@@ -450,8 +466,17 @@
             </div>
         </div>
 
+        <!-- Mobile Tab Navigation -->
+        <div class="mobile-nav-select">
+            <select class="form-select-custom" id="mobileTabSelect" onchange="switchTab(this.value)">
+                <option value="yoklama">Yoklama Al</option>
+                <option value="gecmis">Geçmiş Yoklamalarım</option>
+                <option value="istatistik">İstatistik</option>
+            </select>
+        </div>
+
         <!-- Navigation Tabs -->
-        <div class="nav-buttons">
+        <div class="nav-buttons desktop-nav-buttons">
             <button class="btn btn-primary" id="btnTabYoklama" onclick="switchTab('yoklama')">
                 <i class="fa-solid fa-clipboard-list"></i> Yoklama Al
             </button>
@@ -1183,6 +1208,10 @@
                 tr.className = 'student-row';
                 tr.setAttribute('data-no', s.no);
                 tr.setAttribute('data-search', `${s.no} ${s.name} ${s.surname || ''}`.toLowerCase());
+                
+                if (currentStatus === 'SİL') {
+                    tr.style.opacity = '0.3';
+                }
 
                 tr.innerHTML = `
                     <td>
@@ -1197,10 +1226,10 @@
                     <td>
                         <div class="status-button-group">
                             <button type="button" class="status-btn ${currentStatus === 'GELDİ' ? 'active' : ''}" data-status="GELDİ" onclick="setStudentStatus('${s.no}', 'GELDİ')">
-                                <i class="fa-solid fa-circle-check"></i> Geldi
+                                <i class="fa-solid fa-plus"></i> Geldi
                             </button>
                             <button type="button" class="status-btn ${currentStatus === 'GELMEDİ' ? 'active' : ''}" data-status="GELMEDİ" onclick="setStudentStatus('${s.no}', 'GELMEDİ')">
-                                <i class="fa-solid fa-circle-xmark"></i> Gelmedi
+                                <i class="fa-solid fa-minus"></i> Gelmedi
                             </button>
                             <button type="button" class="status-btn ${currentStatus === 'GEÇ' ? 'active' : ''}" data-status="GEÇ" onclick="setStudentStatus('${s.no}', 'GEÇ')">
                                 <i class="fa-solid fa-clock"></i> Geç ${currentStatus === 'GEÇ' && gecTimeMap[s.no] !== undefined ? `(${gecTimeMap[s.no]}dk)` : ''}
@@ -1208,8 +1237,8 @@
                             <button type="button" class="status-btn ${currentStatus === 'RAHATSIZLANDI' ? 'active' : ''}" data-status="RAHATSIZLANDI" onclick="setStudentStatus('${s.no}', 'RAHATSIZLANDI')">
                                 <i class="fa-solid fa-house-medical"></i> Rahatsız
                             </button>
-                            <button type="button" class="status-btn" data-status="SİL" onclick="setStudentStatus('${s.no}', 'SİL')" style="color:#ef4444; border-color:#fee2e2; background:#fef2f2;">
-                                <i class="fa-solid fa-eraser"></i> Sil
+                            <button type="button" class="status-btn ${currentStatus === 'SİL' ? 'active' : ''}" data-status="SİL" onclick="setStudentStatus('${s.no}', 'SİL')" style="color:#ef4444; border-color:#fee2e2; background:#fef2f2;">
+                                <i class="fa-solid fa-trash"></i> Sil
                             </button>
                         </div>
                     </td>
@@ -1220,8 +1249,38 @@
 
         function setStudentStatus(studentNo, status) {
             if (status === 'SİL') {
-                attendanceMap[studentNo] = 'GELDİ';
-                delete gecTimeMap[studentNo];
+                Swal.fire({
+                    title: 'Öğrenciyi Listeden Çıkar',
+                    text: 'Bu öğrenci bu derse girmiyorsa (başka gruptaysa vs.) listeden gizleyebilirsiniz. Emin misiniz?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, Gizle',
+                    cancelButtonText: 'İptal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        attendanceMap[studentNo] = 'SİL';
+                        delete gecTimeMap[studentNo];
+                        
+                        const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
+                        if (row) {
+                            row.style.opacity = '0.3';
+                            const buttons = row.querySelectorAll('.status-btn');
+                            buttons.forEach(btn => {
+                                if (btn.getAttribute('data-status') === 'SİL') {
+                                    btn.classList.add('active');
+                                } else {
+                                    btn.classList.remove('active');
+                                }
+                            });
+                        }
+                        updateLiveCounters();
+                        saveAttendance(true);
+                    }
+                });
+                return;
+            }
+
+            if (attendanceMap[studentNo] === status) {
                 status = 'GELDİ';
             } else if (status === 'GEÇ') {
                 attendanceMap[studentNo] = status;
@@ -1242,9 +1301,9 @@
                 delete gecTimeMap[studentNo];
             }
             
-            // Update button states in DOM directly for speed
             const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
             if (row) {
+                row.style.opacity = '1';
                 const buttons = row.querySelectorAll('.status-btn');
                 buttons.forEach(btn => {
                     const btnStatus = btn.getAttribute('data-status');
@@ -1381,8 +1440,10 @@
             const btnYoklama = document.getElementById('btnTabYoklama');
             const btnGecmis = document.getElementById('btnTabGecmis');
             const btnIstatistik = document.getElementById('btnTabIstatistik');
+            const mobileTabSelect = document.getElementById('mobileTabSelect');
 
-            // Reset all
+            if (mobileTabSelect) mobileTabSelect.value = tabName;
+
             [tabYoklama, tabGecmis, tabIstatistik].forEach(t => { if(t) t.classList.add('hidden'); });
             [btnYoklama, btnGecmis, btnIstatistik].forEach(b => {
                 if(b) {
