@@ -670,6 +670,21 @@
                         </div>
                     </div>
 
+                    <!-- En Çok Rahatsızlananlar -->
+                    <div style="background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; overflow: hidden;">
+                        <div style="background: #fdf2f8; border-bottom: 1px solid #fbcfe8; padding: 12px 15px; font-weight: 800; color: #be185d; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-head-side-cough"></i> En Çok Rahatsızlananlar
+                        </div>
+                        <div class="table-responsive" style="padding: 0;">
+                            <table class="report-table" style="font-size: 0.85rem;">
+                                <thead>
+                                    <tr><th style="padding: 8px 12px;">Öğrenci</th><th style="padding: 8px 12px;">Sınıf</th><th style="padding: 8px 12px; text-align:center;">Adet</th></tr>
+                                </thead>
+                                <tbody id="topRahatsizBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -1205,6 +1220,7 @@
                     sObj: s,
                     gelmedi: 0,
                     gec: 0,
+                    gecSure: 0,
                     rahatsiz: 0
                 };
             });
@@ -1382,6 +1398,69 @@
             else if (tabName === 'saat') runSaatReport();
             else if (tabName === 'aralik') runRangeReport();
             else if (tabName === 'genel') runGenelReport();
+        }
+
+        // --- TAB 6: Sıralamalar ---
+        function runSiralamaReport() {
+            const studentStats = {}; 
+            
+            allStudents.forEach(s => {
+                studentStats[s.no] = {
+                    name: s.name,
+                    class: s.class,
+                    no: s.no,
+                    gelmedi: 0,
+                    gec: 0,
+                    gecSure: 0,
+                    rahatsiz: 0
+                };
+            });
+
+            Object.keys(attendanceDb).forEach(date => {
+                const hoursMap = attendanceDb[date];
+                Object.keys(hoursMap).forEach(hour => {
+                    const classesMap = hoursMap[hour];
+                    Object.keys(classesMap).forEach(cls => {
+                        const lessonData = classesMap[cls];
+                        const records = lessonData.records || {};
+                        const gecTimes = lessonData.gecTimes || {};
+                        
+                        Object.keys(records).forEach(stdNo => {
+                            if (!studentStats[stdNo]) {
+                                studentStats[stdNo] = { name: "Bilinmeyen", class: cls, no: stdNo, gelmedi: 0, gec: 0, gecSure: 0, rahatsiz: 0 };
+                            }
+                            
+                            const st = records[stdNo];
+                            if (st === 'GELMEDİ') studentStats[stdNo].gelmedi++;
+                            if (st === 'RAHATSIZLANDI') studentStats[stdNo].rahatsiz++;
+                            if (st === 'GEÇ') {
+                                studentStats[stdNo].gec++;
+                                if (gecTimes[stdNo]) {
+                                    studentStats[stdNo].gecSure += parseInt(gecTimes[stdNo]);
+                                }
+                            }
+                        });
+                    });
+                });
+            });
+
+            const statArr = Object.values(studentStats);
+
+            const topGelmedi = [...statArr].sort((a,b) => b.gelmedi - a.gelmedi).slice(0, 10);
+            const tgBody = document.getElementById('topGelmediBody');
+            tgBody.innerHTML = topGelmedi.filter(s => s.gelmedi > 0).map(s => `<tr><td style="padding: 8px 12px;">${s.name}<br><small style="color:var(--gray-400)">${s.no || ''}</small></td><td style="padding: 8px 12px;">${s.class || ''}</td><td style="padding: 8px 12px; text-align:center; font-weight:800; color:#b91c1c;">${s.gelmedi}</td></tr>`).join('') || `<tr><td colspan="3" style="text-align:center; padding: 1rem;">Kayıt yok.</td></tr>`;
+
+            const topGec = [...statArr].sort((a,b) => b.gec - a.gec).slice(0, 10);
+            const tcBody = document.getElementById('topGecAdetBody');
+            tcBody.innerHTML = topGec.filter(s => s.gec > 0).map(s => `<tr><td style="padding: 8px 12px;">${s.name}<br><small style="color:var(--gray-400)">${s.no || ''}</small></td><td style="padding: 8px 12px;">${s.class || ''}</td><td style="padding: 8px 12px; text-align:center; font-weight:800; color:#b45309;">${s.gec}</td></tr>`).join('') || `<tr><td colspan="3" style="text-align:center; padding: 1rem;">Kayıt yok.</td></tr>`;
+
+            const topSure = [...statArr].sort((a,b) => b.gecSure - a.gecSure).slice(0, 10);
+            const tsBody = document.getElementById('topGecSureBody');
+            tsBody.innerHTML = topSure.filter(s => s.gecSure > 0).map(s => `<tr><td style="padding: 8px 12px;">${s.name}<br><small style="color:var(--gray-400)">${s.no || ''}</small></td><td style="padding: 8px 12px;">${s.class || ''}</td><td style="padding: 8px 12px; text-align:center; font-weight:800; color:#1d4ed8;">${s.gecSure} dk</td></tr>`).join('') || `<tr><td colspan="3" style="text-align:center; padding: 1rem;">Kayıt yok.</td></tr>`;
+
+            const topRahatsiz = [...statArr].sort((a,b) => b.rahatsiz - a.rahatsiz).slice(0, 10);
+            const trBody = document.getElementById('topRahatsizBody');
+            trBody.innerHTML = topRahatsiz.filter(s => s.rahatsiz > 0).map(s => `<tr><td style="padding: 8px 12px;">${s.name}<br><small style="color:var(--gray-400)">${s.no || ''}</small></td><td style="padding: 8px 12px;">${s.class || ''}</td><td style="padding: 8px 12px; text-align:center; font-weight:800; color:#be185d;">${s.rahatsiz}</td></tr>`).join('') || `<tr><td colspan="3" style="text-align:center; padding: 1rem;">Kayıt yok.</td></tr>`;
         }
     </script>
 </body>
