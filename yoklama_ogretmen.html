@@ -473,6 +473,11 @@
                         <input type="date" id="yoklamaDate" class="form-select-custom" onchange="checkAndAutoDetectClass()">
                     </div>
                     
+                    <!-- DİAGNOSTİK ALAN -->
+                    <div id="debugInfoArea" style="margin: 10px 0; padding: 10px; background: #fee2e2; color: #991b1b; border-radius: 5px; font-weight: bold; font-size: 0.9rem;">
+                        Sistem yükleniyor...
+                    </div>
+
                     <div class="form-group">
                         <label><i class="fa-solid fa-clock"></i> Ders Saati</label>
                         <select id="lessonHour" class="form-select-custom" onchange="checkAndAutoDetectClass()">
@@ -768,6 +773,14 @@
                 schoolData = DataManager.getSchoolSettings();
                 allStudents = DataManager.getStudents();
 
+                const debugInfoArea = document.getElementById('debugInfoArea');
+                if (debugInfoArea) {
+                    debugInfoArea.innerHTML = `Durum: Başarılı<br>Öğrenci: ${allStudents ? allStudents.length : 0}<br>Tarih: ${new Date().toLocaleTimeString()}`;
+                    if (allStudents && allStudents.length > 0) {
+                        debugInfoArea.style.display = 'none'; // Hide if successful
+                    }
+                }
+
                 // Populate Class Dropdown
                 populateClasses();
 
@@ -783,6 +796,10 @@
                 Swal.close();
             } catch (e) {
                 console.error("Initialization error:", e);
+                const debugInfoArea = document.getElementById('debugInfoArea');
+                if (debugInfoArea) {
+                    debugInfoArea.innerHTML = `HATA: ${e.message}<br>Lütfen sayfayı yenileyin.`;
+                }
                 Swal.fire('Hata', 'Veritabanına bağlanırken bir hata oluştu.', 'error');
             }
         });
