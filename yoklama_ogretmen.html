@@ -792,12 +792,23 @@
             const statClassSelect = document.getElementById('statClassSelect');
             
             // Extract unique class names
-            const classes = new Set();
+            const classesArray = [];
             allStudents.forEach(s => {
-                if (s.class) classes.add(s.class.trim());
+                if (s.class) {
+                    const c = s.class.trim();
+                    if (c && classesArray.indexOf(c) === -1) {
+                        classesArray.push(c);
+                    }
+                }
             });
 
-            const sortedClasses = Array.from(classes).sort((a, b) => a.localeCompare(b, 'tr'));
+            const sortedClasses = classesArray.sort((a, b) => {
+                try {
+                    return a.localeCompare(b, 'tr');
+                } catch (e) {
+                    return a > b ? 1 : (a < b ? -1 : 0);
+                }
+            });
             
             sortedClasses.forEach(cls => {
                 const opt = document.createElement('option');
