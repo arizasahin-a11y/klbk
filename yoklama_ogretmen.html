@@ -1093,7 +1093,7 @@
             attendanceMap = {};
             gecTimeMap = {};
 
-            const lessonRecord = dbData.attendance[dateVal]?.[hourVal]?.[classVal];
+            const lessonRecord = (dbData.attendance[dateVal] && dbData.attendance[dateVal][hourVal]) ? dbData.attendance[dateVal][hourVal][classVal] : undefined;
             if (lessonRecord) {
                 attendanceMap = lessonRecord.records || {};
                 gecTimeMap = lessonRecord.gecTimes || {};
@@ -1335,7 +1335,7 @@
             const btnIstatistik = document.getElementById('btnTabIstatistik');
 
             // Reset all
-            [tabYoklama, tabGecmis, tabIstatistik].forEach(t => t?.classList.add('hidden'));
+            [tabYoklama, tabGecmis, tabIstatistik].forEach(t => { if(t) t.classList.add('hidden'); });
             [btnYoklama, btnGecmis, btnIstatistik].forEach(b => {
                 if(b) {
                     b.className = 'btn btn-secondary';
