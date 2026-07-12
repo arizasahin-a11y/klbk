@@ -725,6 +725,30 @@
 
         // Global variables
         let schoolData = {};
+        
+        // --- INTERNET TIME SYNCHRONIZATION ---
+        let internetTimeOffset = 0;
+        async function syncInternetTime() {
+            try {
+                const res = await fetch('https://worldtimeapi.org/api/timezone/Europe/Istanbul', { cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    const serverMs = new Date(data.utc_datetime).getTime();
+                    internetTimeOffset = serverMs - Date.now();
+                    console.log("Internet time synced. Offset:", internetTimeOffset, "ms");
+                }
+            } catch (e) {
+                console.log("Time sync failed, using device time.", e);
+            }
+        }
+        syncInternetTime();
+
+        function getTRTime() {
+            const realUtcMs = Date.now() + internetTimeOffset;
+            const trStr = new Date(realUtcMs).toLocaleString('en-US', { timeZone: 'Europe/Istanbul' });
+            return new Date(trStr);
+        }
+        // ------------------------------------
         let allStudents = [];
         let teachersDb = {};
         let activeTeacherUsername = "";
@@ -958,8 +982,8 @@
             document.getElementById('schoolDisplay').innerHTML = `<i class="fa-solid fa-user-tie"></i> ${roleDisplay}`;
 
             // Set default date to today and restrict min date to 14 days ago
-            const todayObj = new Date();
-            const minDateObj = new Date();
+            const todayObj = getTRTime();
+            const minDateObj = getTRTime();
             minDateObj.setDate(todayObj.getDate() - 14);
             
             // Format dates accounting for local timezone issues
@@ -1000,7 +1024,7 @@
 
                 const debugInfoArea = document.getElementById('debugInfoArea');
                 if (debugInfoArea) {
-                    debugInfoArea.innerHTML = `Durum: Başarılı<br>Öğrenci: ${allStudents ? allStudents.length : 0}<br>Tarih: ${new Date().toLocaleTimeString()}`;
+                    debugInfoArea.innerHTML = `Durum: Başarılı<br>Öğrenci: ${allStudents ? allStudents.length : 0}<br>Tarih: ${getTRTime().toLocaleTimeString()}`;
                     if (allStudents && allStudents.length > 0) {
                         debugInfoArea.style.display = 'none'; // Hide if successful
                     }
@@ -1106,7 +1130,7 @@
         }
 
         function setDefaultLessonHour() {
-            const now = new Date();
+            const now = getTRTime();
             const nowStr = now.toTimeString().slice(0, 5); // "HH:MM"
             const lessonTimes = schoolData.lessonTimes || {};
             
@@ -1260,7 +1284,7 @@
             const hourVal = document.getElementById('lessonHour').value;
             
             if (selectedDateVal) {
-                const now = new Date();
+                const now = getTRTime();
                 const yyyy = now.getFullYear();
                 const mm = String(now.getMonth() + 1).padStart(2, '0');
                 const dd = String(now.getDate()).padStart(2, '0');
@@ -1474,7 +1498,7 @@
                 const lessonTimes = schoolData.lessonTimes || {};
                 const start = lessonTimes[`${hourVal}_start`];
                 if (start) {
-                    const now = new Date();
+                    const now = getTRTime();
                     const [startH, startM] = start.split(':').map(Number);
                     const startTotalM = startH * 60 + startM;
                     const nowTotalM = now.getHours() * 60 + now.getMinutes();
@@ -1590,7 +1614,7 @@
                     subject: subjectVal,
                     records: attendanceMap,
                     gecTimes: gecTimeMap,
-                    lastUpdated: new Date().toLocaleTimeString('tr-TR') + ' ' + new Date().toLocaleDateString('tr-TR')
+                    lastUpdated: getTRTime().toLocaleTimeString('tr-TR') + ' ' + getTRTime().toLocaleDateString('tr-TR')
                 };
 
                 // Sync via DataManager
@@ -1671,8 +1695,8 @@
 
             const historyList = [];
             
-            const minDateObj = new Date();
-            minDateObj.setDate(new Date().getDate() - 14);
+            const minDateObj = getTRTime();
+            minDateObj.setDate(getTRTime().getDate() - 14);
             const min_yyyy = minDateObj.getFullYear();
             const min_mm = String(minDateObj.getMonth() + 1).padStart(2, '0');
             const min_dd = String(minDateObj.getDate()).padStart(2, '0');
@@ -1831,7 +1855,7 @@
             
             const statsMap = {}; // studentNo -> data
             
-            const today = new Date();
+            const today = getTRTime();
             // Important: Handle timezone differences nicely by getting local date string
             const yyyy = today.getFullYear();
             const mm = padZero(today.getMonth() + 1);
