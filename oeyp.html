@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Okul Etkinlik Yönetim Paneli (OEYP)</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="img/amblem.jpg">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- Base Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/core_data_v11_9_1.js"></script>
+
+    <style>
+        :root {
+            --geldi-color: #10b981;
+            --gelmedi-color: #ef4444;
+            --gec-color: #f59e0b;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .oeyp-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .premium-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: visible !important;
+            z-index: 9999;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: var(--radius-lg, 12px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .form-select-custom {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border: 2px solid var(--gray-200, #e5e7eb);
+            border-radius: var(--radius-md, 8px);
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md, 8px);
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary, #4f46e5);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark, #4338ca);
+        }
+
+        /* Accordion Styles */
+        .accordion-item {
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .accordion-header {
+            background: white;
+            padding: 1.25rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+            color: #1e293b;
+            transition: background 0.3s;
+        }
+
+        .accordion-header:hover {
+            background: #f8fafc;
+        }
+
+        .accordion-body {
+            background: #f8fafc;
+            padding: 1.5rem;
+            display: none;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .accordion-item.active .accordion-body {
+            display: block;
+        }
+
+        .accordion-item.active .accordion-header i.fa-chevron-down {
+            transform: rotate(180deg);
+        }
+
+        .activity-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .activity-meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Student List Table */
+        .student-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .student-table th, .student-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .student-table th {
+            background: #4f46e5;
+            color: white;
+            font-weight: 600;
+        }
+
+        .student-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .student-table tbody tr:hover {
+            background: #f1f5f9;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Login Panel -->
+    <div id="loginPanel" style="display: flex; justify-content: center; align-items: center; min-height: 100vh;">
+        <div class="glass-panel" style="padding: 3rem; width: 100%; max-width: 400px; text-align: center;">
+            <i class="fa-solid fa-chalkboard-user" style="font-size: 3rem; color: #4f46e5; margin-bottom: 1rem;"></i>
+            <h2 style="font-weight: 800; color: #1e293b; margin-bottom: 0.5rem;">OEYP Girişi</h2>
+            <p style="color: #64748b; margin-bottom: 2rem; font-size: 0.9rem;">Okul Etkinlik Yönetim Paneline erişmek için giriş yapın.</p>
+            
+            <div class="form-group" style="text-align: left; margin-bottom: 1rem;">
+                <label style="font-weight: 600; color:#475569;">Kullanıcı Adı</label>
+                <input type="text" id="loginUsername" class="form-select-custom" placeholder="Kullanıcı adınızı girin">
+            </div>
+            <div class="form-group" style="text-align: left; margin-bottom: 1.5rem;">
+                <label style="font-weight: 600; color:#475569;">Şifre</label>
+                <input type="password" id="loginPassword" class="form-select-custom" placeholder="Şifrenizi girin" onkeypress="if(event.key === 'Enter') handleOEYPLogin()">
+                <div style="text-align: right; margin-top: 5px;">
+                    <a href="#" class="forgot-link" style="color: #4f46e5; font-size: 0.85rem; text-decoration: none; font-weight: 600;">Şifremi Unuttum</a>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" style="width: 100%; padding: 0.85rem;" onclick="handleOEYPLogin()">
+                <i class="fa-solid fa-right-to-bracket"></i> Giriş Yap
+            </button>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div class="oeyp-container" id="appContainer" style="display: none;">
+        
+        <!-- Header -->
+        <div class="premium-header glass-panel">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="background: rgba(79, 70, 229, 0.1); padding: 10px; border-radius: 10px; color: #4f46e5;">
+                    <i class="fa-solid fa-clipboard-user fa-2x"></i>
+                </div>
+                <div>
+                    <h1 style="font-size: 1.25rem; font-weight: 800; color: #1e293b; margin: 0;">Okul Etkinlik Yönetim Paneli</h1>
+                    <p style="font-size: 0.85rem; color: #64748b; margin: 2px 0 0 0;" id="teacherWelcome">Yükleniyor...</p>
+                </div>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer;" onclick="logoutOEYP()">
+                    <i class="fa-solid fa-right-from-bracket"></i> Çıkış
+                </button>
+            </div>
+        </div>
+
+        <!-- Activities Section -->
+        <div class="glass-panel" style="padding: 2rem;">
+            <h3 style="font-weight: 800; font-size: 1.25rem; margin-bottom: 1.5rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-calendar-check" style="color:#4f46e5;"></i> Planlanmış Çalışmalarım
+            </h3>
+
+            <div id="activitiesList">
+                <!-- Accordion items will be rendered here -->
+            </div>
+            
+            <div id="emptyState" style="display: none; text-align: center; padding: 3rem 1rem;">
+                <i class="fa-solid fa-folder-open" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
+                <h4 style="color: #64748b; font-weight: 600;">Kayıtlı bir etkinlik veya çalışmanız bulunmuyor.</h4>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script>
+        const firebaseDatabaseUrl = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
+        let currentUser = null;
+        let schoolData = null;
+
+        // Auto-login check
+        window.onload = async () => {
+            const token = sessionStorage.getItem('klbk_teacher_token');
+            const storedUser = sessionStorage.getItem('klbk_teacher_user');
+            
+            if (token && storedUser) {
+                try {
+                    currentUser = JSON.parse(storedUser);
+                    await initializeApp();
+                } catch(e) {
+                    sessionStorage.removeItem('klbk_teacher_token');
+                }
+            }
+        };
+
+        async function handleOEYPLogin() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!username || !password) {
+                Swal.fire('Hata', 'Kullanıcı adı ve şifre boş olamaz.', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Giriş Yapılıyor',
+                text: 'Lütfen bekleyin...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            try {
+                const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
+                const users = await res.json();
+                
+                let validUser = null;
+                
+                if (users) {
+                    for (const [key, data] of Object.entries(users)) {
+                        if (key === username && data.password === password) {
+                            validUser = { username: key, ...data };
+                            break;
+                        }
+                    }
+                }
+
+                if (validUser) {
+                    if (validUser.role !== 'ogretmen' && validUser.role !== 'idareci') {
+                         Swal.fire('Yetkisiz', 'Sadece yetkili öğretmenler giriş yapabilir.', 'error');
+                         return;
+                    }
+                    
+                    sessionStorage.setItem('klbk_teacher_token', 'true');
+                    sessionStorage.setItem('klbk_teacher_user', JSON.stringify(validUser));
+                    sessionStorage.setItem('klbk_storeKey', validUser.schoolName);
+                    
+                    currentUser = validUser;
+                    Swal.close();
+                    await initializeApp();
+                } else {
+                    Swal.fire('Hata', 'Kullanıcı adı veya şifre hatalı.', 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                Swal.fire('Hata', 'Bağlantı hatası oluştu. İnternetinizi kontrol edin.', 'error');
+            }
+        }
+
+        async function initializeApp() {
+            document.getElementById('loginPanel').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            document.getElementById('teacherWelcome').innerHTML = `Hoş geldiniz, <b>${currentUser.name || currentUser.username}</b>`;
+
+            Swal.fire({
+                title: 'Veriler Yükleniyor...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            try {
+                await DataManager.initCloud();
+                schoolData = DataManager.getSchoolSettings();
+                
+                renderActivities();
+                Swal.close();
+            } catch (err) {
+                console.error(err);
+                Swal.fire('Hata', 'Okul verileri yüklenemedi.', 'error');
+            }
+        }
+
+        function logoutOEYP() {
+            sessionStorage.removeItem('klbk_teacher_token');
+            sessionStorage.removeItem('klbk_teacher_user');
+            window.location.reload();
+        }
+
+        function toggleAccordion(element) {
+            const item = element.closest('.accordion-item');
+            item.classList.toggle('active');
+        }
+
+        function renderActivities() {
+            const listContainer = document.getElementById('activitiesList');
+            const emptyState = document.getElementById('emptyState');
+            
+            // Mock data representing approved activities for this teacher
+            // In a real scenario, this would be fetched from schoolData.activities
+            let activities = [
+                {
+                    id: "act_001",
+                    name: "Satranç Kulübü",
+                    days: "Pazartesi, Çarşamba",
+                    time: "15:00 - 16:30",
+                    students: [
+                        { no: "102", name: "Ahmet Yılmaz", class: "9-A" },
+                        { no: "155", name: "Ayşe Kaya", class: "9-B" },
+                        { no: "230", name: "Mehmet Demir", class: "10-C" }
+                    ]
+                },
+                {
+                    id: "act_002",
+                    name: "TÜBİTAK Proje Çalışması",
+                    days: "Cuma",
+                    time: "15:30 - 17:00",
+                    students: [
+                        { no: "340", name: "Zeynep Çelik", class: "11-A" },
+                        { no: "412", name: "Ali Can", class: "11-A" }
+                    ]
+                }
+            ];
+
+            // Filter for current teacher (mocking that logic for now, showing all mock data)
+            
+            if (!activities || activities.length === 0) {
+                listContainer.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            listContainer.style.display = 'block';
+            emptyState.style.display = 'none';
+            listContainer.innerHTML = '';
+
+            activities.forEach((act, index) => {
+                let studentsHtml = '';
+                if (act.students && act.students.length > 0) {
+                    act.students.forEach(s => {
+                        studentsHtml += `
+                            <tr>
+                                <td><b>${s.no}</b></td>
+                                <td>${s.name}</td>
+                                <td>${s.class}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    studentsHtml = `<tr><td colspan="3" style="text-align:center; color:#64748b;">Bu çalışmaya kayıtlı öğrenci bulunmuyor.</td></tr>`;
+                }
+
+                const itemHtml = `
+                    <div class="accordion-item ${index === 0 ? 'active' : ''}">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <div>
+                                <i class="fa-solid fa-puzzle-piece" style="color:#4f46e5; margin-right:8px;"></i>
+                                ${act.name}
+                            </div>
+                            <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
+                        </div>
+                        <div class="accordion-body">
+                            <div class="activity-meta">
+                                <span><i class="fa-regular fa-calendar"></i> ${act.days}</span>
+                                <span><i class="fa-regular fa-clock"></i> ${act.time}</span>
+                                <span><i class="fa-solid fa-users"></i> ${act.students ? act.students.length : 0} Öğrenci</span>
+                            </div>
+                            
+                            <h4 style="margin-bottom: 10px; color:#1e293b; font-size:1rem;">Görevli Öğrenciler</h4>
+                            <table class="student-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:100px;">Okul No</th>
+                                        <th>Ad Soyad</th>
+                                        <th style="width:100px;">Sınıf</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${studentsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                listContainer.innerHTML += itemHtml;
+            });
+        }
+
+        // --- Forgot Password Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const forgotLink = document.querySelector('.forgot-link');
+            if (forgotLink) {
+                if (window.emailjs) emailjs.init("0gioGMhJGYrohmvyz");
+
+                forgotLink.addEventListener('click', async (e) => {
+                    e.preventDefault();
+
+                    const { value: emailAddress } = await Swal.fire({
+                        title: 'Şifremi Unuttum',
+                        text: 'Sisteme kayıtlı e-posta adresinizi giriniz:',
+                        input: 'email',
+                        inputPlaceholder: 'E-posta adresiniz',
+                        showCancelButton: true,
+                        confirmButtonText: 'Gönder',
+                        cancelButtonText: 'İptal',
+                        confirmButtonColor: '#4f46e5',
+                        inputValidator: (value) => {
+                            if (!value) return 'Lütfen bir e-posta adresi girin!';
+                        }
+                    });
+
+                    if (emailAddress) {
+                        Swal.fire({
+                            title: 'Lütfen Bekleyin',
+                            text: 'Bilgileriniz kontrol ediliyor...',
+                            allowOutsideClick: false,
+                            didOpen: () => { Swal.showLoading(); }
+                        });
+
+                        try {
+                            const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
+                            const usersDb = await res.json();
+                            let foundUser = null;
+
+                            if (usersDb) {
+                                for (const [uname, data] of Object.entries(usersDb)) {
+                                    if (data.email && data.email.toLowerCase() === emailAddress.toLowerCase()) {
+                                        foundUser = { username: uname, ...data };
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (foundUser) {
+                                const templateParams = {
+                                    to_email: emailAddress,
+                                    email: emailAddress,
+                                    user_email: emailAddress,
+                                    username: foundUser.username,
+                                    password: foundUser.password,
+                                    school_name: foundUser.schoolName || 'Kelebek Sistemi'
+                                };
+
+                                await emailjs.send("service_205ar93", "template_i0eo9o5", templateParams);
+
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Bilgiler Gönderildi',
+                                    html: `Kullanıcı bilgileriniz <b>${emailAddress}</b> adresine e-posta olarak gönderilmiştir.`,
+                                    confirmButtonColor: '#10b981'
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Hata',
+                                    text: 'E-posta adresiniz sisteme kayıtlı değil. Sistem yöneticinizle görüşün.',
+                                    confirmButtonColor: '#ef4444'
+                                });
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            Swal.fire('Hata', 'Gönderim sırasında hata oluştu.', 'error');
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
