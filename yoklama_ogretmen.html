@@ -1499,6 +1499,13 @@
                                     btn.classList.remove('active');
                                 }
                             });
+
+                            // Remove late time UI if exists
+                            const topBar = row.querySelector('div[style*="background: #f8fafc"]');
+                            if (topBar) {
+                                let existingLateUi = topBar.querySelector('.late-time-ui');
+                                if (existingLateUi) existingLateUi.remove();
+                            }
                         }
                         updateLiveCounters();
                         saveAttendance(true);
