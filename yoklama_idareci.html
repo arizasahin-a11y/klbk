@@ -1719,12 +1719,12 @@
                 };
             });
 
-            Object.keys(attendanceDb).forEach(date => {
-                const hoursMap = attendanceDb[date];
+            Object.keys(attendanceDb || {}).forEach(date => {
+                const hoursMap = attendanceDb[date] || {};
                 Object.keys(hoursMap).forEach(hour => {
-                    const classesMap = hoursMap[hour];
+                    const classesMap = hoursMap[hour] || {};
                     Object.keys(classesMap).forEach(cls => {
-                        const lessonData = classesMap[cls];
+                        const lessonData = classesMap[cls] || {};
                         const records = lessonData.records || {};
                         const gecTimes = lessonData.gecTimes || {};
                         
@@ -1740,7 +1740,7 @@
                             if (st === 'GEÇ') {
                                 studentStats[stdNo].gec++;
                                 if (gecTimes[stdNo]) {
-                                    studentStats[stdNo].gecSure += parseInt(gecTimes[stdNo]);
+                                    studentStats[stdNo].gecSure += (parseInt(gecTimes[stdNo]) || 0);
                                 }
                             }
                         });
