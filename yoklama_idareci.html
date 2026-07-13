@@ -1845,7 +1845,22 @@
                 }
 
                 for (let i = 0; i < allHtmlChunks.length; i += perPage) {
-                    let chunk = allHtmlChunks.slice(i, i + perPage).join('');
+                    let pageChunks = allHtmlChunks.slice(i, i + perPage);
+                    if (format === '5li') {
+                        while (pageChunks.length < 5) {
+                            pageChunks.push(`<div class="fis-wrapper-multi wrapper-5li" style="visibility: hidden;"></div>`);
+                        }
+                        const formatDateText = (d) => d.split('-').reverse().join('.');
+                        let classText = selectedClasses.length === 1 ? `${selectedClasses[0]} SINIFININ` : `SEÇİLEN SINIFLARIN`;
+                        let dateText = datesToPrint.length > 1 ? `${formatDateText(datesToPrint[0])} - ${formatDateText(datesToPrint[datesToPrint.length - 1])}` : `${formatDateText(datesToPrint[0])}`;
+                        
+                        pageChunks.push(`<div class="fis-wrapper-multi wrapper-5li" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 14pt; font-weight: bold; padding: 20px; border: 2px dashed #9ca3af; border-radius: 10px; background: #f9fafb; color: #374151; box-sizing: border-box;">
+                            <div style="font-size: 18pt; margin-bottom: 10px; color: #111827;">${classText}</div>
+                            <div style="margin-bottom: 10px;">${dateText} tarihleri arasındaki</div>
+                            <div style="font-size: 16pt; color: #111827;">YOKLAMA FİŞLERİ</div>
+                        </div>`);
+                    }
+                    let chunk = pageChunks.join('');
                     finalPrintContent += `<div class="print-page">${chunk}</div>`;
                 }
             } else {
@@ -1977,7 +1992,8 @@
                     <div>
                     </div>
                     <div style="text-align: right; margin-right: 30px;">
-                        İncelendi
+                        İncelendi<br><br><br>
+                        <span style="font-size: 10pt; color: #111827;">${sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || ''}</span>
                     </div>
                 </div>
             </div>`;
