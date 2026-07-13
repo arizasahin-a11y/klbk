@@ -1607,10 +1607,18 @@
                 dbData.attendance[dateVal] = dbData.attendance[dateVal] || {};
                 dbData.attendance[dateVal][hourVal] = dbData.attendance[dateVal][hourVal] || {};
                 
+                let currentTeacher = sessionStorage.getItem('klbk_name') || activeTeacherUsername;
+                let existingRecord = dbData.attendance[dateVal][hourVal][classVal];
+                let finalTeacherName = currentTeacher;
+                
+                if (existingRecord && existingRecord.teacherName && !existingRecord.teacherName.includes(currentTeacher)) {
+                    finalTeacherName = existingRecord.teacherName + ' / ' + currentTeacher;
+                }
+                
                 // Save record
                 dbData.attendance[dateVal][hourVal][classVal] = {
                     teacher: activeTeacherUsername,
-                    teacherName: sessionStorage.getItem('klbk_name') || activeTeacherUsername,
+                    teacherName: finalTeacherName,
                     subject: subjectVal,
                     records: attendanceMap,
                     gecTimes: gecTimeMap,
