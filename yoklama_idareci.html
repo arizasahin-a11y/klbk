@@ -826,9 +826,15 @@
             document.getElementById('schoolDisplay').innerHTML = `<i class="fa-solid fa-user-tie"></i> ${roleDisplay} - ${sessionStorage.getItem('klbk_schoolName') || 'Okul İdare Paneli'}`;
 
             // Set default dates
-            const today = new Date().toISOString().slice(0, 10);
+            const todayDate = new Date();
+            const today = todayDate.toISOString().slice(0, 10);
+            
+            const lastWeekDate = new Date(todayDate);
+            lastWeekDate.setDate(todayDate.getDate() - 7);
+            const lastWeek = lastWeekDate.toISOString().slice(0, 10);
+
             document.getElementById('sinifFilterDate').value = today;
-            document.getElementById('rangeStartDate').value = today;
+            document.getElementById('rangeStartDate').value = lastWeek;
             document.getElementById('rangeEndDate').value = today;
 
             // Load Data
