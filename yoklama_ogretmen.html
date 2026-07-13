@@ -486,6 +486,9 @@
             <div class="form-group" style="text-align: left; margin-bottom: 1.5rem;">
                 <label>Şifre</label>
                 <input type="password" id="loginPassword" class="form-select-custom" placeholder="Şifrenizi girin" onkeypress="if(event.key === 'Enter') handleYoklamaLogin()">
+                <div style="text-align: right; margin-top: 5px;">
+                    <a href="#" class="forgot-link" style="color: var(--primary); font-size: 0.85rem; text-decoration: none; font-weight: 600;">Şifremi Unuttum</a>
+                </div>
             </div>
             
             <button class="btn btn-primary" style="width: 100%; padding: 0.85rem;" onclick="handleYoklamaLogin()">
@@ -739,6 +742,7 @@
 
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script>
         window.onerror = function(msg, url, lineNo, columnNo, error) {
             Swal.fire('Teknik Hata Oluştu', `${msg}\nSatır: ${lineNo}\nLütfen bu hatayı geliştiriciye bildirin.`, 'error');
