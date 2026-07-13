@@ -1998,7 +1998,7 @@
                         clear: both;
                         width: 210mm;
                         height: 297mm;
-                        padding: 10mm;
+                        padding: 2mm;
                         box-sizing: border-box;
                         background: white;
                         box-shadow: 0 0 10px rgba(0,0,0,0.2);
@@ -2026,10 +2026,10 @@
                         clear: right;
                     }
                     .wrapper-2li, .wrapper-3lu, .wrapper-4lu {
-                        height: 13.5cm;
+                        height: 14.5cm;
                     }
                     .wrapper-5li {
-                        height: 8.8cm;
+                        height: 9.6cm;
                     }
 
                     /* Scale fonts for 2li, 3lu, 4lu */
@@ -2069,7 +2069,7 @@
                     .fis-wrapper {
                         width: 210mm;
                         height: 297mm;
-                        padding: 10mm;
+                        padding: 2mm;
                         background: white;
                         box-shadow: 0 0 10px rgba(0,0,0,0.2);
                         margin-bottom: 20px;
@@ -2126,23 +2126,41 @@
                         ${extraCSS}
                         @media print {
                             body { background: white; padding: 0; display: block; margin: 0; }
-                            @page { margin: 10mm; }
+                            @page { margin: 0; }
                             #print-action { display: none !important; }
                             .print-page, .fis-wrapper {
                                 width: 100%;
-                                height: 277mm; /* Total A4 minus margins */
+                                height: 297mm;
                                 box-shadow: none;
                                 margin: 0;
-                                padding: 0;
+                                padding: 2mm;
                             }
                         }
                     </style>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+                    <script>
+                        function downloadPDF() {
+                            var element = document.getElementById('print-content-wrapper');
+                            var opt = {
+                                margin:       0,
+                                filename:     'yoklama_fisleri.pdf',
+                                image:        { type: 'jpeg', quality: 0.98 },
+                                html2canvas:  { scale: 2, useCORS: true },
+                                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                                pagebreak:    { mode: 'css' }
+                            };
+                            html2pdf().set(opt).from(element).save();
+                        }
+                    </script>
                 </head>
                 <body>
                     <div id="print-action">
-                        <button onclick="window.print()" style="padding: 10px 20px; background: #10b981; color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; font-size: 14px;">🖨️ YAZDIR</button>
+                        <button onclick="window.print()" style="padding: 10px 20px; background: #10b981; color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; font-size: 14px; margin-right: 10px;">🖨️ YAZDIR</button>
+                        <button onclick="downloadPDF()" style="padding: 10px 20px; background: #ef4444; color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; font-size: 14px;">📄 PDF İNDİR</button>
                     </div>
-                    ${htmlContent}
+                    <div id="print-content-wrapper">
+                        ${htmlContent}
+                    </div>
                 </body>
                 </html>
             `;
