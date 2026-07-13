@@ -709,6 +709,7 @@
                                 <th style="cursor:pointer; color:var(--gelmedi-color);" onclick="setGenelSort('gelmedi')">Toplam Gelmedi <i class="fa-solid fa-sort"></i></th>
                                 <th style="cursor:pointer; color:var(--gec-color);" onclick="setGenelSort('gec')">Toplam Geç <i class="fa-solid fa-sort"></i></th>
                                 <th style="cursor:pointer; color:var(--rahatsiz-color);" onclick="setGenelSort('rahatsiz')">Toplam Rahatsız <i class="fa-solid fa-sort"></i></th>
+                                <th style="cursor:pointer; color:#6b7280;" onclick="setGenelSort('nobetci')">Toplam Nöbetçi <i class="fa-solid fa-sort"></i></th>
                             </tr>
                         </thead>
                         <tbody id="genelTableBody">
@@ -1524,7 +1525,8 @@
                     gelmedi: 0,
                     gec: 0,
                     gecSure: 0,
-                    rahatsiz: 0
+                    rahatsiz: 0,
+                    nobetci: 0
                 };
             });
 
@@ -1539,6 +1541,7 @@
                                 if (status === 'GELMEDİ') studentStats[no].gelmedi++;
                                 else if (status === 'GEÇ') studentStats[no].gec++;
                                 else if (status === 'RAHATSIZLANDI') studentStats[no].rahatsiz++;
+                                else if (status === 'NÖBETÇİ') studentStats[no].nobetci++;
                             }
                         });
                     }
@@ -1581,6 +1584,9 @@
                 } else if (genelSortField === 'rahatsiz') {
                     valA = a.rahatsiz;
                     valB = b.rahatsiz;
+                } else if (genelSortField === 'nobetci') {
+                    valA = a.nobetci;
+                    valB = b.nobetci;
                 }
 
                 if (typeof valA === 'string') {
@@ -1607,6 +1613,7 @@
                     <td style="font-weight:800; color:var(--gelmedi-color);">${item.gelmedi} Ders</td>
                     <td style="font-weight:800; color:var(--gec-color);">${item.gec} Ders</td>
                     <td style="font-weight:800; color:var(--rahatsiz-color);">${item.rahatsiz} Ders</td>
+                    <td style="font-weight:800; color:#6b7280;">${item.nobetci} Ders</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -1629,7 +1636,7 @@
 
             const studentStats = {};
             allStudents.forEach(s => {
-                studentStats[s.no] = { no: s.no, name: `${s.name} ${s.surname || ''}`, class: s.class, gelmedi: 0, gec: 0, rahatsiz: 0 };
+                studentStats[s.no] = { no: s.no, name: `${s.name} ${s.surname || ''}`, class: s.class, gelmedi: 0, gec: 0, rahatsiz: 0, nobetci: 0 };
             });
 
             for (const date in attendanceDb) {
@@ -1641,6 +1648,7 @@
                                 if (status === 'GELMEDİ') studentStats[no].gelmedi++;
                                 else if (status === 'GEÇ') studentStats[no].gec++;
                                 else if (status === 'RAHATSIZLANDI') studentStats[no].rahatsiz++;
+                                else if (status === 'NÖBETÇİ') studentStats[no].nobetci++;
                             }
                         });
                     }
@@ -1971,10 +1979,27 @@
                     if (missing.length === 0) {
                         absentText = '<strong style="color: black;">TAM</strong>';
                     } else {
-                        absentText = missing.join('<br>');
+                        let pairs = [];
+                        for(let k=0; k<missing.length; k+=2) {
+                            if (missing[k+1]) {
+                                pairs.push(missing[k] + ', ' + missing[k+1]);
+                            } else {
+                                pairs.push(missing[k]);
+                            }
+                        }
+                        absentText = pairs.join('<br>');
                     }
                 }
-                html += `<td style="border: 1px solid black; border-bottom: 2px solid black; font-size: 12px; line-height: 1.6; padding-top: 10px; text-align: center; vertical-align: top;">${absentText}</td>`;
+                
+                let fontSize = 12;
+                if (hourObj && hourObj.records) {
+                    let missingCount = Object.values(hourObj.records).filter(st => st==='GELMEDİ'||st==='GEÇ').length;
+                    if (missingCount > 10) fontSize = 8;
+                    else if (missingCount > 6) fontSize = 10;
+                    else if (missingCount > 4) fontSize = 11;
+                }
+                
+                html += `<td style="border: 1px solid black; border-bottom: 2px solid black; font-size: ${fontSize}px; line-height: 1.2; padding-top: 10px; text-align: center; vertical-align: top;">${absentText}</td>`;
             }
 
             html += `</tr>
