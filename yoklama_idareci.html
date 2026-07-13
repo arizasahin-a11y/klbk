@@ -2171,11 +2171,19 @@
                                 padding: 2mm;
                             }
                         }
+                        .print-page:last-child, .fis-wrapper:last-child {
+                            page-break-after: auto !important;
+                        }
+                        .pdf-mode .print-page, .pdf-mode .fis-wrapper {
+                            margin-bottom: 0 !important;
+                            box-shadow: none !important;
+                        }
                     </style>
                     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><\/script>
                     <script>
                         function downloadPDF() {
                             var element = document.getElementById('print-content-wrapper');
+                            element.classList.add('pdf-mode');
                             var opt = {
                                 margin:       0,
                                 filename:     'yoklama_fisleri.pdf',
@@ -2184,7 +2192,9 @@
                                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
                                 pagebreak:    { mode: 'css' }
                             };
-                            html2pdf().set(opt).from(element).save();
+                            html2pdf().set(opt).from(element).save().then(() => {
+                                element.classList.remove('pdf-mode');
+                            });
                         }
                     <\/script>
                 </head>
