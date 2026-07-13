@@ -1443,6 +1443,13 @@
                 tr.setAttribute('data-no', s.no);
                 tr.setAttribute('data-search', `${s.no} ${s.name} ${s.surname || ''}`.toLowerCase());
 
+                const isNobetci = currentStatus === 'NÖBETÇİ';
+                const mainBorder = isNobetci ? 'red' : 'var(--primary)';
+                const headerBg = isNobetci ? '#e5e7eb' : '#f8fafc';
+                const headerBorder = isNobetci ? 'red' : 'var(--primary-light)';
+                const textColor = isNobetci ? 'red' : 'var(--dark)';
+                const noColor = isNobetci ? 'red' : 'var(--primary)';
+
                 const buttons = `
                     <button type="button" class="status-btn ${currentStatus === 'GELDİ' ? 'active' : ''}" data-status="GELDİ" onclick="setStudentStatus('${s.no}', 'GELDİ')" title="Geldi">
                         <i class="fa-solid fa-plus"></i>
@@ -1453,8 +1460,8 @@
                     <button type="button" class="status-btn ${currentStatus === 'GEÇ' ? 'active' : ''}" data-status="GEÇ" onclick="setStudentStatus('${s.no}', 'GEÇ')" title="Geç">
                         <i class="fa-solid fa-clock"></i>
                     </button>
-                    <button type="button" class="status-btn ${currentStatus === 'RAHATSIZLANDI' ? 'active' : ''}" data-status="RAHATSIZLANDI" onclick="setStudentStatus('${s.no}', 'RAHATSIZLANDI')" title="Rahatsız">
-                        <i class="fa-solid fa-moon" style="color: #ef4444;"></i>
+                    <button type="button" class="status-btn ${(currentStatus === 'RAHATSIZLANDI' || isNobetci) ? 'active' : ''}" data-status="RAHATSIZLANDI" onclick="setStudentStatus('${s.no}', 'RAHATSIZLANDI')" ondblclick="setStudentStatus('${s.no}', 'NÖBETÇİ')" oncontextmenu="event.preventDefault(); setStudentStatus('${s.no}', 'NÖBETÇİ');" title="Rahatsız (Çift Tıkla/Basılı Tut: Nöbetçi)">
+                        <i class="fa-solid fa-moon" style="color: ${isNobetci ? 'var(--dark)' : '#ef4444'};"></i>
                     </button>
                     <button type="button" class="status-btn ${currentStatus === 'BOŞ' ? 'active' : ''}" data-status="BOŞ" onclick="setStudentStatus('${s.no}', 'BOŞ')" style="color:var(--dark); border-color:#e2e8f0; background:#f1f5f9;" title="Sıfırla">
                         <i class="fa-solid fa-trash"></i>
@@ -1462,11 +1469,11 @@
                 `;
 
                 tr.innerHTML = `
-                    <td style="padding: 0; border: 2px solid var(--primary); border-radius: 8px; overflow: hidden; display: block; margin-bottom: 1rem; width: 100%;">
-                        <div style="display: flex; align-items: center; gap: 10px; padding: 12px 15px; background: #f8fafc; border-bottom: 1px solid var(--primary-light);">
-                            <div class="student-avatar" style="flex-shrink:0; width: 36px; height: 36px; font-size: 0.9rem;">${s.name ? s.name.charAt(0) : '?'}</div>
-                            <span class="student-no" style="font-size: 1rem; font-weight: 700; color: var(--primary);">${s.no}</span>
-                            <span class="student-name" style="font-size: 0.95rem; font-weight: 600; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">${s.name} ${s.surname || ''}</span>
+                    <td style="padding: 0; border: 2px solid ${mainBorder}; border-radius: 8px; overflow: hidden; display: block; margin-bottom: 1rem; width: 100%;">
+                        <div style="display: flex; align-items: center; gap: 10px; padding: 12px 15px; background: ${headerBg}; border-bottom: 1px solid ${headerBorder};">
+                            <div class="student-avatar" style="flex-shrink:0; width: 36px; height: 36px; font-size: 0.9rem; color: ${textColor}; border-color: ${textColor};">${s.name ? s.name.charAt(0) : '?'}</div>
+                            <span class="student-no" style="font-size: 1rem; font-weight: 700; color: ${noColor};">${s.no}</span>
+                            <span class="student-name" style="font-size: 0.95rem; font-weight: 600; color: ${textColor}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">${s.name} ${s.surname || ''} ${isNobetci ? '(NÖBETÇİ)' : ''}</span>
                             ${currentStatus === 'GEÇ' && gecTimeMap[s.no] !== undefined ? `
                                 <div class="late-time-ui" style="display:flex; align-items:center; justify-content:center; gap:6px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); border-radius:16px; padding:2px 6px; color:var(--gec-color); flex-shrink:0;">
                                     <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${s.no}', -1)" style="width:22px; height:22px; background:var(--gec-color); color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(245,158,11,0.3);">-</span>
@@ -1486,7 +1493,68 @@
             });
         }
 
+        function setNobetciForAllHours(studentNo, isNobetci) {
+            const dateVal = document.getElementById('yoklamaDate').value;
+            const classVal = document.getElementById('classSelect').value;
+            const dbData = DataManager._getData();
+            dbData.attendance = dbData.attendance || {};
+            if (!dbData.attendance[dateVal]) dbData.attendance[dateVal] = {};
+
+            for (let i = 1; i <= 8; i++) {
+                let hourStr = i.toString();
+                if (!dbData.attendance[dateVal][hourStr]) dbData.attendance[dateVal][hourStr] = {};
+                if (!dbData.attendance[dateVal][hourStr][classVal]) {
+                    dbData.attendance[dateVal][hourStr][classVal] = { records: {} };
+                }
+                if (!dbData.attendance[dateVal][hourStr][classVal].records) {
+                    dbData.attendance[dateVal][hourStr][classVal].records = {};
+                }
+                
+                if (isNobetci) {
+                    dbData.attendance[dateVal][hourStr][classVal].records[studentNo] = 'NÖBETÇİ';
+                } else {
+                    if (dbData.attendance[dateVal][hourStr][classVal].records[studentNo] === 'NÖBETÇİ') {
+                        delete dbData.attendance[dateVal][hourStr][classVal].records[studentNo];
+                    }
+                }
+            }
+            
+            DataManager._saveData(dbData);
+            
+            if (isNobetci) {
+                attendanceMap[studentNo] = 'NÖBETÇİ';
+            } else {
+                attendanceMap[studentNo] = 'BOŞ';
+            }
+            delete gecTimeMap[studentNo];
+            
+            loadExistingAttendanceRecord();
+            Swal.fire({
+                icon: 'success',
+                title: 'Başarılı',
+                text: isNobetci ? 'Öğrenci tüm gün için nöbetçi olarak işaretlendi.' : 'Durum sıfırlandı.',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+
         function setStudentStatus(studentNo, status) {
+            if (status === 'NÖBETÇİ') {
+                Swal.fire({
+                    title: 'Nöbetçi Olarak İşaretle',
+                    text: 'Öğrenci bu günün tüm dersleri için "Nöbetçi" olarak işaretlenecek. Onaylıyor musunuz?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, İşaretle',
+                    cancelButtonText: 'İptal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        setNobetciForAllHours(studentNo, true);
+                    }
+                });
+                return;
+            }
+
             if (status === 'BOŞ') {
                 Swal.fire({
                     title: 'Yoklamayı Sıfırla',
@@ -1497,30 +1565,32 @@
                     cancelButtonText: 'İptal'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        attendanceMap[studentNo] = 'BOŞ';
-                        delete gecTimeMap[studentNo];
-                        
-                        const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
-                        if (row) {
-                            row.style.opacity = '1';
-                            const buttons = row.querySelectorAll('.status-btn');
-                            buttons.forEach(btn => {
-                                if (btn.getAttribute('data-status') === 'BOŞ') {
-                                    btn.classList.add('active');
-                                } else {
-                                    btn.classList.remove('active');
+                        if (attendanceMap[studentNo] === 'NÖBETÇİ') {
+                            setNobetciForAllHours(studentNo, false);
+                        } else {
+                            attendanceMap[studentNo] = 'BOŞ';
+                            delete gecTimeMap[studentNo];
+                            
+                            const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
+                            if (row) {
+                                row.style.opacity = '1';
+                                const buttons = row.querySelectorAll('.status-btn');
+                                buttons.forEach(btn => {
+                                    if (btn.getAttribute('data-status') === 'BOŞ') {
+                                        btn.classList.add('active');
+                                    } else {
+                                        btn.classList.remove('active');
+                                    }
+                                });
+                                const topBar = row.querySelector('div[style*="background:"]');
+                                if (topBar) {
+                                    let existingLateUi = topBar.querySelector('.late-time-ui');
+                                    if (existingLateUi) existingLateUi.remove();
                                 }
-                            });
-
-                            // Remove late time UI if exists
-                            const topBar = row.querySelector('div[style*="background: #f8fafc"]');
-                            if (topBar) {
-                                let existingLateUi = topBar.querySelector('.late-time-ui');
-                                if (existingLateUi) existingLateUi.remove();
                             }
+                            updateLiveCounters();
+                            saveAttendance(true);
                         }
-                        updateLiveCounters();
-                        saveAttendance(true);
                     }
                 });
                 return;
