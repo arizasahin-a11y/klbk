@@ -889,6 +889,13 @@
     <script src="js/teachers.js?v=11.0"></script>
     <!-- Add sweetalert2 for nice modals (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const wizDate = document.getElementById('wizSessionDate');
+            if (wizDate) {
+                wizDate.value = new Date().toISOString().slice(0, 10);
+            }
+        });
+    </script>
 </body>
-
 </html>

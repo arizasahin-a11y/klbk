@@ -988,8 +988,17 @@
             const lastWeek = lastWeekDate.toISOString().slice(0, 10);
 
             document.getElementById('sinifFilterDate').value = today;
-            document.getElementById('rangeStartDate').value = lastWeek;
+            document.getElementById('rangeStartDate').value = today;
             document.getElementById('rangeEndDate').value = today;
+
+            const printSingle = document.getElementById('printSingleDate');
+            if (printSingle) printSingle.value = today;
+
+            const printRangeS = document.getElementById('printRangeStart');
+            if (printRangeS) printRangeS.value = today;
+
+            const printRangeE = document.getElementById('printRangeEnd');
+            if (printRangeE) printRangeE.value = today;
 
             // Load Data
             Swal.fire({
