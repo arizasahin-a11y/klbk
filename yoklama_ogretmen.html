@@ -607,7 +607,7 @@
                     <h3 style="font-weight: 800; font-size: 1.15rem; color: var(--dark); margin: 0; display: flex; align-items: center; gap: 8px;">
                         <i class="fa-solid fa-users"></i> Sınıf Listesi (<span id="totalStudentsDisplay">0</span> Öğrenci)
                     </h3>
-                    <div style="display: flex; gap: 6px;">
+                    <div style="display: flex; gap: 6px; flex: 1; justify-content: flex-end;">
                         <button class="btn btn-sm" style="background:#e0f2fe; color:#0369a1; padding: 4px 10px; font-size:0.75rem;" onclick="setAllAttendance('GELDİ')">Tümünü Geldi Yap</button>
                         <button class="btn btn-sm" style="background:#dcfce7; color:#15803d; padding: 4px 10px; font-size:0.75rem; font-weight:bold; border: 1px solid #bbf7d0;" onclick="saveAttendance(false)">
                             <i class="fa-solid fa-check-circle" style="margin-right: 4px;"></i> Yoklamayı Onayla
@@ -1663,6 +1663,23 @@
             }
 
             if (!silent) {
+                // Check if any student is left empty (or 'BOŞ')
+                const unsetCount = activeClassStudents.filter(s => {
+                    const status = attendanceMap[s.no];
+                    return !status || status === 'BOŞ';
+                }).length;
+
+                if (unsetCount > 0) {
+                    Swal.fire({
+                        title: 'Eksik Yoklama!',
+                        html: `Sınıfta durumu seçilmemiş <b>${unsetCount}</b> öğrenci var.<br>Lütfen tüm öğrencilerin yoklamasını tamamlayın.`,
+                        icon: 'warning',
+                        confirmButtonText: 'Tamam',
+                        confirmButtonColor: '#f59e0b'
+                    });
+                    return;
+                }
+
                 Swal.fire({
                     title: 'Kaydediliyor',
                     text: 'Yoklama buluta yükleniyor...',
