@@ -1583,15 +1583,10 @@
             }
 
             const dayRecords = attendanceDb[dateVal] || {};
-            
-            // Fişte 8 saate kadar gösteriyoruz genelde, ama veriye göre 8 kolon sabit yapalım (Milli Eğitim standart fişi gibi)
             const MAX_HOURS = 8;
-            
-            // Başlık
             const printDate = dateVal.split('-').reverse().join('.');
             const title = `${classVal} SINIFI GÜNLÜK YOKLAMA FİŞİ`;
             
-            // Sınıf mevcudunu bulalım
             const sList = allStudents.filter(s => s.class === classVal && s.status !== 'Pasif');
             const mevcut = sList.length;
 
@@ -1608,7 +1603,6 @@
                     <tr>
                         <td style="border: 1px solid black; padding: 10px; text-align: center; vertical-align: middle;">Derslerin<br>Adı</td>`;
             
-            // Öğretmen satırı (Alta indi)
             for (let i = 1; i <= MAX_HOURS; i++) {
                 let hourObj = dayRecords[i] ? dayRecords[i][classVal] : null;
                 let teacherStr = hourObj && hourObj.teacherName ? hourObj.teacherName : '';
@@ -1621,7 +1615,6 @@
                     <tr style="height: 500px;">
                         <td style="border: 1px solid black; border-bottom: 2px solid black;"></td>`;
             
-            // Yoklama Listesi
             for (let i = 1; i <= MAX_HOURS; i++) {
                 let hourObj = dayRecords[i] ? dayRecords[i][classVal] : null;
                 let absentText = '';
@@ -1631,7 +1624,12 @@
                         if (status === 'GELMEDİ') missing.push(no);
                         else if (status === 'GEÇ') missing.push(`${no}(Geç)`);
                     });
-                    absentText = missing.join('<br>');
+                    
+                    if (missing.length === 0) {
+                        absentText = '<strong style="color: black;">TAM</strong>';
+                    } else {
+                        absentText = missing.join('<br>');
+                    }
                 }
                 tableHTML += `<td style="border: 1px solid black; border-bottom: 2px solid black; font-size: 13pt; line-height: 1.6; padding-top: 15px; text-align: center; vertical-align: top;">${absentText}</td>`;
             }
@@ -1640,7 +1638,6 @@
                     <tr>
                         <td style="border: 1px solid black; padding: 10px; text-align: center; font-weight: normal;">Toplam</td>`;
             
-            // Toplam sayısı
             for (let i = 1; i <= MAX_HOURS; i++) {
                 let hourObj = dayRecords[i] ? dayRecords[i][classVal] : null;
                 let count = 0;
@@ -1656,7 +1653,6 @@
                     <tr>
                         <td style="border: 1px solid black; padding: 10px; text-align: center; height: 50px; font-size: 10pt;">Öğretmenin<br>Adı Soyadı<br>İmzası</td>`;
             
-            // Boş imza alanları
             for (let i = 1; i <= MAX_HOURS; i++) {
                 tableHTML += `<td style="border: 1px solid black; padding: 10px;"></td>`;
             }
@@ -1666,32 +1662,70 @@
             </table>`;
 
             const printHTML = `
-                <div class="print-title">${title}</div>
-                <div class="print-header-info">
-                    <div style="flex: 1; text-align: left;">Sınıf Mevcudu : <b>${mevcut}</b></div>
-                    <div style="flex: 1; text-align: right;">Tarih : <b>${printDate}</b></div>
-                </div>
-                ${tableHTML}
-                <div class="print-footer" style="display: flex; justify-content: space-between; margin-top: 15px; font-size: 10pt;">
-                    <div>
-                        1- Derste bulunmayan öğrencinin numarası ile ilgili ders sütununa ayrı ayrı yazılır.<br>
-                        2- Yoklama fişi ve ders defteri son dersin öğretmeni tarafından yönetime teslim edilir.
+                <!DOCTYPE html>
+                <html lang="tr">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>${title}</title>
+                    <style>
+                        body {
+                            background: white;
+                            color: black;
+                            padding: 10mm;
+                            font-family: Arial, sans-serif;
+                        }
+                        .print-title {
+                            text-align: center;
+                            font-size: 16pt;
+                            font-weight: bold;
+                            margin-bottom: 20px;
+                            text-transform: uppercase;
+                        }
+                        .print-header-info {
+                            display: flex;
+                            justify-content: space-between;
+                            margin-bottom: 5px;
+                            font-size: 11pt;
+                        }
+                        .print-footer {
+                            display: flex;
+                            justify-content: space-between;
+                            margin-top: 15px;
+                            font-size: 10pt;
+                        }
+                        @media print {
+                            body { margin: 0; padding: 0; }
+                            @page { margin: 10mm; }
+                            button { display: none !important; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div style="text-align: right; margin-bottom: 20px;">
+                        <button onclick="window.print()" style="padding: 10px 20px; background: #10b981; color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; font-size: 14px;">🖨️ YAZDIR</button>
                     </div>
-                    <div style="text-align: center; margin-right: 30px;">
-                        İncelendi<br>Müdür Yardımcısı<br>İmza
+                    <div class="print-title">${title}</div>
+                    <div class="print-header-info">
+                        <div style="flex: 1; text-align: left;">Sınıf Mevcudu : <b>${mevcut}</b></div>
+                        <div style="flex: 1; text-align: right;">Tarih : <b>${printDate}</b></div>
                     </div>
-                </div>
+                    ${tableHTML}
+                    <div class="print-footer">
+                        <div>
+                            1- Derste bulunmayan öğrencinin numarası ile ilgili ders sütununa ayrı ayrı yazılır.<br>
+                            2- Yoklama fişi ve ders defteri son dersin öğretmeni tarafından yönetime teslim edilir.
+                        </div>
+                        <div style="text-align: center; margin-right: 30px;">
+                            İncelendi<br>Müdür Yardımcısı<br>İmza
+                        </div>
+                    </div>
+                </body>
+                </html>
             `;
 
-            let printArea = document.getElementById('printArea');
-            if (!printArea) {
-                printArea = document.createElement('div');
-                printArea.id = 'printArea';
-                document.body.appendChild(printArea);
-            }
-            printArea.innerHTML = printHTML;
-
-            window.print();
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printHTML);
+            printWindow.document.close();
         }
     </script>
     <div id="printArea" style="display: none;"></div>
