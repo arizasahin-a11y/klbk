@@ -517,20 +517,16 @@
             </div>
         </div>
 
-        <!-- Neon Clocks Container -->
-        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.8rem; position: sticky; top: 10px; z-index: 9998;">
-            <!-- Current Time Panel -->
-            <div class="glass-panel" style="padding: 0.5rem; text-align: center; background: #111827; border: 2px solid #374151; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
-                <div id="neonCurrentTime" style="font-family: 'Courier New', Courier, monospace; font-size: 1.5rem; font-weight: 900; color: #39ff14; text-shadow: 0 0 8px #39ff14, 0 0 12px #39ff14; letter-spacing: 2px;">
-                    --:--:--
-                </div>
+        <!-- Neon Clock Container -->
+        <div class="glass-panel" style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; padding: 0.5rem; margin-bottom: 0.8rem; background: #111827; border: 2px solid #374151; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); position: sticky; top: 10px; z-index: 9998;">
+            <div id="neonCurrentTime" style="font-family: 'Courier New', Courier, monospace; font-size: 1.5rem; font-weight: 900; color: #39ff14; text-shadow: 0 0 8px #39ff14, 0 0 12px #39ff14; letter-spacing: 2px;">
+                --:--:--
             </div>
-
-            <!-- Lesson Status Panel -->
-            <div id="neonLessonStatusPanel" class="glass-panel" style="padding: 0.5rem; text-align: center; background: #111827; border: 2px solid #374151; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); display: none;">
-                <div id="neonLessonStatus" style="font-family: 'Courier New', Courier, monospace; font-size: 0.95rem; font-weight: 800;">
-                    <!-- Dinamik Kalan Süre -->
-                </div>
+            <div id="neonSeparator" style="font-family: 'Courier New', Courier, monospace; font-size: 1.5rem; font-weight: 900; color: #ffffff; display: none;">
+                /
+            </div>
+            <div id="neonLessonStatus" style="font-family: 'Courier New', Courier, monospace; font-size: 1.5rem; font-weight: 900; letter-spacing: 2px; display: none;">
+                <!-- Dinamik Kalan Süre -->
             </div>
         </div>
 
@@ -2125,10 +2121,10 @@
             if(neonCurrentTime) neonCurrentTime.textContent = `${h}:${m}:${s}`;
             
             const hourVal = document.getElementById('lessonHour')?.value;
-            const neonLessonStatusPanel = document.getElementById('neonLessonStatusPanel');
+            const neonSeparator = document.getElementById('neonSeparator');
             const neonLessonStatus = document.getElementById('neonLessonStatus');
             
-            if (neonLessonStatus && neonLessonStatusPanel) {
+            if (neonLessonStatus) {
                 if (hourVal && schoolData && schoolData.lessonTimes) {
                     const startStr = schoolData.lessonTimes[`${hourVal}_start`];
                     const endStr = schoolData.lessonTimes[`${hourVal}_end`];
@@ -2142,28 +2138,35 @@
                         
                         if (totalSeconds < startTotalSeconds) {
                             let diffSeconds = startTotalSeconds - totalSeconds;
-                            let diffM = String(Math.floor(diffSeconds / 60)).padStart(2, '0');
+                            let diffH = String(Math.floor(diffSeconds / 3600)).padStart(2, '0');
+                            let diffM = String(Math.floor((diffSeconds % 3600) / 60)).padStart(2, '0');
                             let diffS = String(diffSeconds % 60).padStart(2, '0');
                             neonLessonStatus.style.color = '#ffeb3b';
                             neonLessonStatus.style.textShadow = '0 0 8px #ffeb3b';
-                            neonLessonStatus.textContent = `${hourVal}. Ders Başlıyor: ${diffM}:${diffS}`;
-                            neonLessonStatusPanel.style.display = 'block';
+                            neonLessonStatus.textContent = `${diffH}:${diffM}:${diffS}`;
+                            neonLessonStatus.style.display = 'block';
+                            if(neonSeparator) neonSeparator.style.display = 'block';
                         } else if (totalSeconds <= endTotalSeconds) {
                             let diffSeconds = endTotalSeconds - totalSeconds;
-                            let diffM = String(Math.floor(diffSeconds / 60)).padStart(2, '0');
+                            let diffH = String(Math.floor(diffSeconds / 3600)).padStart(2, '0');
+                            let diffM = String(Math.floor((diffSeconds % 3600) / 60)).padStart(2, '0');
                             let diffS = String(diffSeconds % 60).padStart(2, '0');
                             neonLessonStatus.style.color = '#ff073a';
                             neonLessonStatus.style.textShadow = '0 0 8px #ff073a';
-                            neonLessonStatus.textContent = `${hourVal}. Ders Bitiyor: ${diffM}:${diffS}`;
-                            neonLessonStatusPanel.style.display = 'block';
+                            neonLessonStatus.textContent = `${diffH}:${diffM}:${diffS}`;
+                            neonLessonStatus.style.display = 'block';
+                            if(neonSeparator) neonSeparator.style.display = 'block';
                         } else {
-                            neonLessonStatusPanel.style.display = 'none';
+                            neonLessonStatus.style.display = 'none';
+                            if(neonSeparator) neonSeparator.style.display = 'none';
                         }
                     } else {
-                        neonLessonStatusPanel.style.display = 'none';
+                        neonLessonStatus.style.display = 'none';
+                        if(neonSeparator) neonSeparator.style.display = 'none';
                     }
                 } else {
-                    neonLessonStatusPanel.style.display = 'none';
+                    neonLessonStatus.style.display = 'none';
+                    if(neonSeparator) neonSeparator.style.display = 'none';
                 }
             }
         }, 1000);
