@@ -1584,6 +1584,36 @@
 
             const dayRecords = attendanceDb[dateVal] || {};
             const MAX_HOURS = 8;
+            
+            // Hangi saatlerin yoklaması alınmamış kontrol edelim
+            let missingHours = [];
+            for (let i = 1; i <= MAX_HOURS; i++) {
+                if (!dayRecords[i.toString()] || !dayRecords[i.toString()][classVal]) {
+                    missingHours.push(`${i}.`);
+                }
+            }
+
+            if (missingHours.length > 0) {
+                Swal.fire({
+                    title: 'Eksik Yoklama Uyarısı',
+                    text: `${classVal} sınıfının ${missingHours.join(', ')} ders yoklamaları henüz alınmamış/sisteme işlenmemiş. Yine de boş haliyle fişi yazdırmak istiyor musunuz?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#10b981',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Evet, Yazdır',
+                    cancelButtonText: 'İptal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        generateAndOpenPrintTab(classVal, dateVal, dayRecords, MAX_HOURS);
+                    }
+                });
+            } else {
+                generateAndOpenPrintTab(classVal, dateVal, dayRecords, MAX_HOURS);
+            }
+        }
+
+        function generateAndOpenPrintTab(classVal, dateVal, dayRecords, MAX_HOURS) {
             const printDate = dateVal.split('-').reverse().join('.');
             const title = `${classVal} SINIFI GÜNLÜK YOKLAMA FİŞİ`;
             
