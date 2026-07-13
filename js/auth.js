@@ -165,8 +165,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Auto-redirect if not coming from a "Back" action
                 // We check if we are on the login page and NOT explicitly logging out
                 const role = (data.klbk_role || '').toLowerCase().trim();
-                const targetUrl = (role === 'ogretmen' || role === 'idareci') ? '/h6t3y9w1' : 
-                                 (role === 'master' || role === 'admin' || role === 'dashboard') ? '/r1p5s8q3' : '/j2k5l0p8';
+                let targetUrl = '/j2k5l0p8'; // Default (ogrenci)
+                if (role === 'ogretmen') {
+                    targetUrl = '/h6t3y9w1';
+                } else if (role === 'idareci') {
+                    targetUrl = '/yoklama_idareci';
+                } else if (role === 'master' || role === 'admin' || role === 'dashboard') {
+                    targetUrl = '/r1p5s8q3';
+                }
                 
                 // If we are already on the login page and have a session, 
                 // we only redirect if we didn't just come from that page (to allow 'Back' button)
@@ -407,8 +413,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         const rawRole = userData.role || 'admin';
                         const role = rawRole.toLowerCase().trim();
                         
-                        if (role === 'ogretmen' || role === 'idareci') {
+                        if (role === 'ogretmen') {
                             window.location.href = '/h6t3y9w1';
+                        } else if (role === 'idareci') {
+                            window.location.href = '/yoklama_idareci.html';
                         } else if (role === 'master' || role === 'admin' || role === 'dashboard') {
                             window.location.href = '/r1p5s8q3';
                         } else {
