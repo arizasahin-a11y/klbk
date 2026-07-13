@@ -1965,7 +1965,7 @@
                     let missing = [];
                     Object.entries(hourObj.records).forEach(([no, status]) => {
                         if (status === 'GELMEDİ') missing.push(no);
-                        else if (status === 'GEÇ') missing.push(`${no}(Geç)`);
+                        else if (status === 'GEÇ') missing.push(`${no}(<strong>G</strong>)`);
                     });
                     
                     if (missing.length === 0) {
