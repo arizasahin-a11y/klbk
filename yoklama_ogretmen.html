@@ -485,7 +485,7 @@
     <div class="yoklama-container" id="appContainer" style="display: none;">
         
         <!-- Premium Header -->
-        <div class="premium-header glass-panel" style="padding: 0.8rem; margin-bottom: 1.5rem; position: relative; overflow: visible !important; z-index: 9999;">
+        <div class="premium-header glass-panel" style="padding: 0.8rem; margin-bottom: 1rem; position: relative; overflow: visible !important; z-index: 9999;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; width: 100%;">
                 <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 1; min-width: 0;">
                     <!-- Hamburger Menu Container -->
@@ -515,14 +515,17 @@
                     </button>
                 </div>
             </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.05); font-size: 0.85rem; font-weight: 700; color: var(--gray-600); width: 100%;">
-                <div><i class="fa-solid fa-clock" style="color: var(--primary);"></i> Saat: <span id="currentTimeDisplay" style="font-variant-numeric: tabular-nums;">--:--:--</span></div>
-                <div id="lessonRemainingContainer" style="display: none; color: var(--primary);"><i class="fa-solid fa-hourglass-half"></i> Ders Bitimi: <span id="lessonRemainingDisplay" style="font-variant-numeric: tabular-nums;">--:--</span></div>
-            </div>
         </div>
 
-
+        <!-- Neon Timer Panel -->
+        <div class="glass-panel" style="padding: 1rem; margin-bottom: 1.5rem; text-align: center; background: #111827; border: 2px solid #374151; border-radius: 12px; box-shadow: inset 0 0 15px rgba(0,0,0,0.5);">
+            <div id="neonCurrentTime" style="font-family: 'Courier New', Courier, monospace; font-size: 2.2rem; font-weight: 900; color: #39ff14; text-shadow: 0 0 8px #39ff14, 0 0 15px #39ff14; letter-spacing: 2px; margin-bottom: 0.5rem;">
+                --:--:--
+            </div>
+            <div id="neonLessonStatus" style="font-family: 'Courier New', Courier, monospace; font-size: 1.1rem; font-weight: 800; display: none;">
+                <!-- Dinamik Kalan Süre -->
+            </div>
+        </div>
 
         <!-- Navigation Tabs -->
         <div class="nav-buttons desktop-nav-buttons">
@@ -1533,6 +1536,16 @@
             } else {
                 attendanceMap[studentNo] = status;
                 delete gecTimeMap[studentNo];
+                
+                // Remove late time UI if exists
+                const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
+                if (row) {
+                    const topBar = row.querySelector('div[style*="background: #f8fafc"]');
+                    if (topBar) {
+                        let existingLateUi = topBar.querySelector('.late-time-ui');
+                        if (existingLateUi) existingLateUi.remove();
+                    }
+                }
             }
             
             const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
@@ -2084,38 +2097,52 @@
             const m = String(now.getMinutes()).padStart(2, '0');
             const s = String(now.getSeconds()).padStart(2, '0');
             
-            const currentTimeDisplay = document.getElementById('currentTimeDisplay');
-            if(currentTimeDisplay) currentTimeDisplay.textContent = `${h}:${m}:${s}`;
+            const neonCurrentTime = document.getElementById('neonCurrentTime');
+            if(neonCurrentTime) neonCurrentTime.textContent = `${h}:${m}:${s}`;
             
             const hourVal = document.getElementById('lessonHour')?.value;
             const classVal = document.getElementById('classSelect')?.value;
             const subjectVal = document.getElementById('subjectSelect')?.value;
-            const lessonRemainingContainer = document.getElementById('lessonRemainingContainer');
-            const lessonRemainingDisplay = document.getElementById('lessonRemainingDisplay');
+            const neonLessonStatus = document.getElementById('neonLessonStatus');
             
-            if (lessonRemainingContainer && lessonRemainingDisplay) {
+            if (neonLessonStatus) {
                 if (hourVal && classVal && subjectVal && window.schoolData && window.schoolData.lessonTimes) {
-                    const endTimeStr = window.schoolData.lessonTimes[`${hourVal}_end`];
-                    if (endTimeStr) {
-                        const [endH, endM] = endTimeStr.split(':').map(Number);
+                    const startStr = window.schoolData.lessonTimes[`${hourVal}_start`];
+                    const endStr = window.schoolData.lessonTimes[`${hourVal}_end`];
+                    
+                    if (startStr && endStr) {
+                        const [startH, startM] = startStr.split(':').map(Number);
+                        const [endH, endM] = endStr.split(':').map(Number);
+                        const startTotalSeconds = startH * 3600 + startM * 60;
                         const endTotalSeconds = endH * 3600 + endM * 60;
                         const nowTotalSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-                        const diffSeconds = endTotalSeconds - nowTotalSeconds;
                         
-                        if (diffSeconds > 0) {
-                            const diffM = Math.floor(diffSeconds / 60);
-                            const diffS = diffSeconds % 60;
-                            lessonRemainingDisplay.textContent = `${String(diffM).padStart(2, '0')}:${String(diffS).padStart(2, '0')}`;
-                            lessonRemainingContainer.style.display = 'block';
+                        if (nowTotalSeconds < startTotalSeconds) {
+                            // Henüz başlamadı - Sarı fosforlu
+                            const diff = startTotalSeconds - nowTotalSeconds;
+                            const diffM = Math.floor(diff / 60);
+                            const diffS = diff % 60;
+                            neonLessonStatus.style.display = 'block';
+                            neonLessonStatus.style.color = '#ffff00';
+                            neonLessonStatus.style.textShadow = '0 0 8px #ffff00, 0 0 15px #ffff00';
+                            neonLessonStatus.innerHTML = `<span style="font-size:0.9rem; color:var(--gray-300); text-shadow:none; font-family:sans-serif;">${hourVal}. Ders Başlıyor:</span> ${String(diffM).padStart(2, '0')}:${String(diffS).padStart(2, '0')}`;
+                        } else if (nowTotalSeconds <= endTotalSeconds) {
+                            // Başladı - Kırmızı fosforlu
+                            const diff = endTotalSeconds - nowTotalSeconds;
+                            const diffM = Math.floor(diff / 60);
+                            const diffS = diff % 60;
+                            neonLessonStatus.style.display = 'block';
+                            neonLessonStatus.style.color = '#ff073a';
+                            neonLessonStatus.style.textShadow = '0 0 8px #ff073a, 0 0 15px #ff073a';
+                            neonLessonStatus.innerHTML = `<span style="font-size:0.9rem; color:var(--gray-300); text-shadow:none; font-family:sans-serif;">${hourVal}. Ders Bitiyor:</span> ${String(diffM).padStart(2, '0')}:${String(diffS).padStart(2, '0')}`;
                         } else {
-                            lessonRemainingDisplay.textContent = "00:00";
-                            lessonRemainingContainer.style.display = 'block';
+                            neonLessonStatus.style.display = 'none';
                         }
                     } else {
-                        lessonRemainingContainer.style.display = 'none';
+                        neonLessonStatus.style.display = 'none';
                     }
                 } else {
-                    lessonRemainingContainer.style.display = 'none';
+                    neonLessonStatus.style.display = 'none';
                 }
             }
         }, 1000);
