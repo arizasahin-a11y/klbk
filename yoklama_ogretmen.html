@@ -527,7 +527,7 @@
         </div>
 
         <!-- Neon Clock Container -->
-        <div id="neonClockContainer" class="glass-panel" style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; padding: 0.8rem; margin-bottom: 0.8rem; background: #111827; border: 2px solid #374151; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); position: sticky; top: 10px; z-index: 9998; flex-wrap: wrap; text-align: center;">
+        <div id="neonClockContainer" class="glass-panel" style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; padding: 0.8rem; margin-bottom: 0.8rem; background: #4b5563; border: 2px solid #374151; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); position: sticky; top: 10px; z-index: 9998; flex-wrap: wrap; text-align: center;">
             <div style="font-family: 'Courier New', Courier, monospace; font-size: 1.8rem; font-weight: 900; color: #39ff14; text-shadow: 0 0 5px #39ff14, 0 0 10px #39ff14, 0 0 20px #39ff14;">
                 <i class="fa-regular fa-clock"></i> <span id="neonCurrentTime" style="letter-spacing: 2px;">--:--:--</span>
             </div>
@@ -2126,46 +2126,75 @@
             const neonCurrentTime = document.getElementById('neonCurrentTime');
             if(neonCurrentTime) neonCurrentTime.textContent = `${h}:${m}:${s}`;
             
-            const hourVal = document.getElementById('lessonHour')?.value;
             const neonLessonStatusContainer = document.getElementById('neonLessonStatusContainer');
             const neonLessonStatus = document.getElementById('neonLessonStatus');
             
             if (neonLessonStatus && neonLessonStatusContainer) {
-                if (hourVal && schoolData && schoolData.lessonTimes) {
-                    const startStr = schoolData.lessonTimes[`${hourVal}_start`];
-                    const endStr = schoolData.lessonTimes[`${hourVal}_end`];
+                let statusInfo = null;
+                if (window.activeTeacherObject && window.activeTeacherObject.schedule && schoolData && schoolData.lessonTimes) {
+                    const nowObj = getTRTime();
+                    const dayMap = { 1: 'Pa', 2: 'Sa', 3: 'Ça', 4: 'Pe', 5: 'Cu', 6: 'Ct', 0: 'Pz' };
+                    const dayKey = dayMap[nowObj.getDay()];
+                    const todaySchedule = window.activeTeacherObject.schedule[dayKey];
                     
-                    if (startStr && endStr) {
-                        const [startH, startM] = startStr.split(':').map(Number);
-                        const [endH, endM] = endStr.split(':').map(Number);
-                        const startTotalSeconds = startH * 3600 + startM * 60;
-                        const endTotalSeconds = endH * 3600 + endM * 60;
-                        const totalSeconds = parseInt(h) * 3600 + parseInt(m) * 60 + parseInt(s);
+                    if (todaySchedule) {
+                        const currentTotalSeconds = parseInt(h) * 3600 + parseInt(m) * 60 + parseInt(s);
+                        let nextOrCurrentHour = null;
+                        let isCurrent = false;
                         
-                        if (totalSeconds < startTotalSeconds) {
-                            let diffSeconds = startTotalSeconds - totalSeconds;
-                            let diffH = String(Math.floor(diffSeconds / 3600)).padStart(2, '0');
-                            let diffM = String(Math.floor((diffSeconds % 3600) / 60)).padStart(2, '0');
-                            let diffS = String(diffSeconds % 60).padStart(2, '0');
-                            neonLessonStatusContainer.style.color = '#ffeb3b';
-                            neonLessonStatusContainer.style.textShadow = '0 0 5px #ffeb3b, 0 0 10px #ffeb3b, 0 0 20px #ffeb3b';
-                            neonLessonStatus.textContent = `${diffH}:${diffM}:${diffS}`;
-                            neonLessonStatusContainer.style.display = 'block';
-                        } else if (totalSeconds <= endTotalSeconds) {
-                            let diffSeconds = endTotalSeconds - totalSeconds;
-                            let diffH = String(Math.floor(diffSeconds / 3600)).padStart(2, '0');
-                            let diffM = String(Math.floor((diffSeconds % 3600) / 60)).padStart(2, '0');
-                            let diffS = String(diffSeconds % 60).padStart(2, '0');
-                            neonLessonStatusContainer.style.color = '#ff073a';
-                            neonLessonStatusContainer.style.textShadow = '0 0 5px #ff073a, 0 0 10px #ff073a, 0 0 20px #ff073a';
-                            neonLessonStatus.textContent = `${diffH}:${diffM}:${diffS}`;
-                            neonLessonStatusContainer.style.display = 'block';
-                        } else {
-                            neonLessonStatusContainer.style.display = 'none';
+                        for (let hr = 1; hr <= 20; hr++) {
+                            const sc = todaySchedule[String(hr)];
+                            if (sc && sc !== '-') {
+                                const startStr = schoolData.lessonTimes[`${hr}_start`];
+                                const endStr = schoolData.lessonTimes[`${hr}_end`];
+                                if (startStr && endStr) {
+                                    const [startH, startM] = startStr.split(':').map(Number);
+                                    const [endH, endM] = endStr.split(':').map(Number);
+                                    const startSecs = startH * 3600 + startM * 60;
+                                    const endSecs = endH * 3600 + endM * 60;
+                                    
+                                    if (currentTotalSeconds <= endSecs) {
+                                        nextOrCurrentHour = hr;
+                                        isCurrent = (currentTotalSeconds >= startSecs);
+                                        break;
+                                    }
+                                }
+                            }
                         }
-                    } else {
-                        neonLessonStatusContainer.style.display = 'none';
+                        
+                        if (nextOrCurrentHour !== null) {
+                            const startStr = schoolData.lessonTimes[`${nextOrCurrentHour}_start`];
+                            const endStr = schoolData.lessonTimes[`${nextOrCurrentHour}_end`];
+                            const [startH, startM] = startStr.split(':').map(Number);
+                            const [endH, endM] = endStr.split(':').map(Number);
+                            const startSecs = startH * 3600 + startM * 60;
+                            const endSecs = endH * 3600 + endM * 60;
+                            
+                            let targetSecs = isCurrent ? endSecs : startSecs;
+                            let diffSeconds = targetSecs - currentTotalSeconds;
+                            
+                            let diffH = String(Math.floor(diffSeconds / 3600)).padStart(2, '0');
+                            let diffM = String(Math.floor((diffSeconds % 3600) / 60)).padStart(2, '0');
+                            let diffS = String(diffSeconds % 60).padStart(2, '0');
+                            
+                            statusInfo = {
+                                text: `${diffH}:${diffM}:${diffS}`,
+                                isCurrent: isCurrent
+                            };
+                        }
                     }
+                }
+                
+                if (statusInfo) {
+                    if (statusInfo.isCurrent) {
+                        neonLessonStatusContainer.style.color = '#ff073a';
+                        neonLessonStatusContainer.style.textShadow = '0 0 5px #ff073a, 0 0 10px #ff073a, 0 0 20px #ff073a';
+                    } else {
+                        neonLessonStatusContainer.style.color = '#ffeb3b';
+                        neonLessonStatusContainer.style.textShadow = '0 0 5px #ffeb3b, 0 0 10px #ffeb3b, 0 0 20px #ffeb3b';
+                    }
+                    neonLessonStatus.textContent = statusInfo.text;
+                    neonLessonStatusContainer.style.display = 'block';
                 } else {
                     neonLessonStatusContainer.style.display = 'none';
                 }
