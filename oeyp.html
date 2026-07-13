@@ -252,6 +252,14 @@
         let currentUser = null;
         let schoolData = null;
 
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
         // Auto-login check
         window.onload = async () => {
             const token = sessionStorage.getItem('klbk_teacher_token');
@@ -287,35 +295,32 @@
                 const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
                 const users = await res.json();
                 
-                let validUser = null;
-                
-                if (users) {
-                    for (const [key, data] of Object.entries(users)) {
-                        if (key === username && data.password === password) {
-                            validUser = { username: key, ...data };
-                            break;
+                if (users && users[username]) {
+                    const userObj = users[username];
+                    const passHash = await hashPassword(password);
+                    
+                    if (userObj.password === password || userObj.password === passHash) {
+                        if (userObj.role !== 'ogretmen' && userObj.role !== 'idareci') {
+                             Swal.fire('Yetkisiz', 'Sadece yetkili öğretmenler giriş yapabilir.', 'error');
+                             return;
                         }
+                        
+                        validUser = { username: username, ...userObj };
+                        sessionStorage.setItem('klbk_teacher_token', 'true');
+                        sessionStorage.setItem('klbk_teacher_user', JSON.stringify(validUser));
+                        sessionStorage.setItem('klbk_storeKey', validUser.storeKey || ('klbk_data_' + username));
+                        
+                        currentUser = validUser;
+                        Swal.close();
+                        await initializeApp();
+                    } else {
+                        Swal.fire('Hata', 'Şifre hatalı!', 'error');
                     }
-                }
-
-                if (validUser) {
-                    if (validUser.role !== 'ogretmen' && validUser.role !== 'idareci') {
-                         Swal.fire('Yetkisiz', 'Sadece yetkili öğretmenler giriş yapabilir.', 'error');
-                         return;
-                    }
-                    
-                    sessionStorage.setItem('klbk_teacher_token', 'true');
-                    sessionStorage.setItem('klbk_teacher_user', JSON.stringify(validUser));
-                    sessionStorage.setItem('klbk_storeKey', validUser.schoolName);
-                    
-                    currentUser = validUser;
-                    Swal.close();
-                    await initializeApp();
                 } else {
-                    Swal.fire('Hata', 'Kullanıcı adı veya şifre hatalı.', 'error');
+                    Swal.fire('Hata', 'Kullanıcı bulunamadı!', 'error');
                 }
             } catch (error) {
-                console.error(error);
+                console.error("Giriş hatası:", error);
                 Swal.fire('Hata', 'Bağlantı hatası oluştu. İnternetinizi kontrol edin.', 'error');
             }
         }
