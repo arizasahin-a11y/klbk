@@ -1054,48 +1054,7 @@
             checkboxes.forEach(c => c.checked = !allChecked);
         }
 
-        function executePrint() {
-            const selectedClasses = Array.from(document.querySelectorAll('.print-class-checkbox:checked')).map(c => c.value);
-            const dateType = document.getElementById('printDateType').value;
-            const format = document.getElementById('printFormatType').value;
-
-            if (selectedClasses.length === 0) {
-                Swal.fire('Hata', 'Lütfen en az bir sınıf seçin.', 'error');
-                return;
-            }
-
-            let dates = [];
-            if (dateType === 'single') {
-                dates.push(document.getElementById('printSingleDate').value);
-            } else {
-                const start = new Date(document.getElementById('printRangeStart').value);
-                const end = new Date(document.getElementById('printRangeEnd').value);
-                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                    // Sadece hafta içini al (Pazartesi=1 ... Cuma=5)
-                    if (format === 'haftalik_a4' && (d.getDay() === 0 || d.getDay() === 6)) {
-                        continue;
-                    }
-                    dates.push(d.toISOString().slice(0, 10));
-                }
-            }
-
-            let printWindowContent = `<html><head><title>Yoklama Fişleri</title><style>body{font-family:sans-serif; margin:0; padding:20px;} .page{page-break-after:always;} .fis{border:1px solid #000; padding:15px; margin-bottom:10px; width:100%;} table{width:100%; border-collapse:collapse;} th,td{border:1px solid #ccc; padding:5px; text-align:center;} h2{text-align:center; margin:5px 0;}</style></head><body>`;
-            
-            if (format === 'haftalik_a4') {
-                selectedClasses.forEach(cls => {
-                    printWindowContent += generateWeeklyPrintFis(cls, dates);
-                });
-            } else {
-                selectedClasses.forEach(cls => {
-                    dates.forEach(date => {
-                        printWindowContent += generateSinglePrintFis(cls, date, format);
-                    });
-                });
-            }
-
-            printWindowContent += '</body></html>';
-            openPrintWindow(printWindowContent, format);
-        }
+        // Old executePrint logic removed in favor of finalizePrint below.
 
         function generateWeeklyPrintFis(cls, dates) {
             const students = allStudents.filter(s => s.class === cls).sort((a,b) => (a.name || '').localeCompare(b.name || '', 'tr'));
@@ -1756,7 +1715,7 @@
                         
                         Object.keys(records).forEach(stdNo => {
                             if (!studentStats[stdNo]) {
-                                studentStats[stdNo] = { name: "Bilinmeyen", class: cls, no: stdNo, gelmedi: 0, gec: 0, gecSure: 0, rahatsiz: 0 };
+                                studentStats[stdNo] = { name: "Bilinmeyen", class: cls, no: stdNo, gelmedi: 0, gec: 0, gecSure: 0, rahatsiz: 0, nobetci: 0 };
                             }
                             
                             const st = records[stdNo];
@@ -1850,6 +1809,45 @@
 
             const format = document.getElementById('printFormatType').value;
 
+            // Yoklaması alınmamış dersleri kontrol et
+            let missingLogs = [];
+            selectedClasses.forEach(cls => {
+                datesToPrint.forEach(date => {
+                    const dObj = new Date(date);
+                    if (dObj.getDay() === 0 || dObj.getDay() === 6) return; // Hafta sonu atla
+                    for (let h = 1; h <= 8; h++) {
+                        const hStr = h.toString();
+                        if (!attendanceDb[date] || !attendanceDb[date][hStr] || !attendanceDb[date][hStr][cls]) {
+                            missingLogs.push(`<b>${date.split('-').reverse().join('.')}</b> - ${cls} Sınıfı - ${h}. Ders`);
+                        }
+                    }
+                });
+            });
+
+            if (missingLogs.length > 0) {
+                let displayLogs = missingLogs.slice(0, 10).map(l => `<li>${l}</li>`).join('');
+                if (missingLogs.length > 10) displayLogs += `<li>... ve ${missingLogs.length - 10} ders daha</li>`;
+                
+                Swal.fire({
+                    title: 'Eksik Yoklamalar Var!',
+                    html: `<div style="text-align:left; font-size:0.9rem;">Seçili aralıkta aşağıdaki derslerin yoklaması henüz alınmamış veya boş:<br><ul style="padding-left:20px; color:#b91c1c; margin-top:10px; max-height:200px; overflow-y:auto;">${displayLogs}</ul>Devam edip yazdırmak istiyor musunuz? (Eksik dersler "TAM" veya boş görünecektir.)</div>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fa-solid fa-print"></i> Yine de Yazdır',
+                    cancelButtonText: 'İptal',
+                    confirmButtonColor: '#10b981',
+                    cancelButtonColor: '#6b7280'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        finalizePrint(datesToPrint, selectedClasses, format);
+                    }
+                });
+            } else {
+                finalizePrint(datesToPrint, selectedClasses, format);
+            }
+        }
+
+        function finalizePrint(datesToPrint, selectedClasses, format) {
             // If format is N-li, group them by pages
             let perPage = 1;
             if (format === '2li') perPage = 2;
@@ -1858,7 +1856,17 @@
             if (format === '5li') perPage = 5;
 
             let finalPrintContent = '';
-            
+
+            if (format === 'haftalik_a4') {
+                let htmlStr = `<html><head><title>Haftalık Yoklama Çizelgesi</title><style>body{font-family:sans-serif; margin:0; padding:20px;} .page-break-after{page-break-after:always;} .print-title{text-align:center; font-size:16pt; font-weight:bold; margin-bottom:15px;} table{width:100%; border-collapse:collapse;} th,td{border:1px solid #ccc; padding:5px; text-align:center;} .print-footer{margin-top:15px; text-align:center; font-size:10pt;}</style></head><body>`;
+                selectedClasses.forEach(cls => {
+                    htmlStr += generateWeeklyPrintFis(cls, datesToPrint);
+                });
+                htmlStr += '</body></html>';
+                openPrintWindow(htmlStr, format);
+                return;
+            }
+
             if (perPage > 1) {
                 let allHtmlChunks = [];
                 datesToPrint.forEach(date => {
