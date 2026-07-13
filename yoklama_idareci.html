@@ -1590,6 +1590,13 @@
             const sList = allStudents.filter(s => s.class === classVal && s.status !== 'Pasif');
             const mevcut = sList.length;
 
+            // Kısaltma fonksiyonu
+            function shorten(text, max = 12) {
+                if (!text) return '';
+                if (text.length > max) return text.substring(0, max) + '.';
+                return text;
+            }
+
             let tableHTML = `<table class="print-table" style="width: 100%; border: 2px solid black; border-collapse: collapse;">
                 <thead>
                     <tr>
@@ -1605,11 +1612,12 @@
             
             // Ders satırı (Sadece Ders Adı)
             for (let i = 1; i <= MAX_HOURS; i++) {
-                let hourObj = dayRecords[i] ? dayRecords[i][classVal] : null;
+                let hourStr = i.toString();
+                let hourObj = dayRecords[hourStr] ? dayRecords[hourStr][classVal] : null;
                 let textStr = '';
                 if (hourObj) {
                     let subj = hourObj.subject || '';
-                    textStr = `<strong>${subj}</strong>`;
+                    textStr = `<strong>${shorten(subj, 12)}</strong>`;
                 }
                 tableHTML += `<td style="border: 1px solid black; padding: 5px; text-align: center; vertical-align: middle; font-size: 10pt;">${textStr}</td>`;
             }
@@ -1621,7 +1629,8 @@
                         <td style="border: 1px solid black; border-bottom: 2px solid black;"></td>`;
             
             for (let i = 1; i <= MAX_HOURS; i++) {
-                let hourObj = dayRecords[i] ? dayRecords[i][classVal] : null;
+                let hourStr = i.toString();
+                let hourObj = dayRecords[hourStr] ? dayRecords[hourStr][classVal] : null;
                 let absentText = '';
                 if (hourObj && hourObj.records) {
                     let missing = [];
@@ -1644,7 +1653,8 @@
                         <td style="border: 1px solid black; padding: 10px; text-align: center; font-weight: normal;">Toplam</td>`;
             
             for (let i = 1; i <= MAX_HOURS; i++) {
-                let hourObj = dayRecords[i] ? dayRecords[i][classVal] : null;
+                let hourStr = i.toString();
+                let hourObj = dayRecords[hourStr] ? dayRecords[hourStr][classVal] : null;
                 let count = 0;
                 if (hourObj && hourObj.records) {
                     Object.values(hourObj.records).forEach(st => {
@@ -1660,10 +1670,12 @@
             
             // Boş imza alanları ve gri öğretmen adı
             for (let i = 1; i <= MAX_HOURS; i++) {
-                let hourObj = dayRecords[i] ? dayRecords[i][classVal] : null;
+                let hourStr = i.toString();
+                let hourObj = dayRecords[hourStr] ? dayRecords[hourStr][classVal] : null;
                 let tName = '';
                 if (hourObj) {
-                    tName = hourObj.teacherName || hourObj.teacher || '';
+                    let rawName = hourObj.teacherName || hourObj.teacher || '';
+                    tName = shorten(rawName, 12);
                 }
                 tableHTML += `<td style="border: 1px solid black; padding: 5px; text-align: center; vertical-align: bottom;"><span style="font-size: 8pt; color: gray;">${tName}</span></td>`;
             }
