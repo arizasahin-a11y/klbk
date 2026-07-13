@@ -803,6 +803,21 @@
                         </div>
                     </details>
 
+                    <!-- Örnek Öğrenciler -->
+                    <details class="custom-accordion">
+                        <summary style="background: #ecfdf5; border-bottom: 1px solid #d1fae5; color: #065f46;">
+                            <i class="fa-solid fa-star"></i> Örnek Öğrenciler (Kusursuz Devam)
+                        </summary>
+                        <div class="table-responsive" style="padding: 0;">
+                            <table class="report-table" style="font-size: 0.85rem; border-top: none;">
+                                <thead>
+                                    <tr><th style="padding: 8px 12px;">Öğrenci</th><th style="padding: 8px 12px;">Sınıf</th><th style="padding: 8px 12px; text-align:center;">Durum</th></tr>
+                                </thead>
+                                <tbody id="topOrnekBody"></tbody>
+                            </table>
+                        </div>
+                    </details>
+
                 </div>
             </div>
         </div>
@@ -1754,6 +1769,10 @@
             const topNobetci = [...statArr].sort((a,b) => b.nobetci - a.nobetci).slice(0, 10);
             const tnBody = document.getElementById('topNobetciBody');
             tnBody.innerHTML = topNobetci.filter(s => s.nobetci > 0).map(s => `<tr><td style="padding: 8px 12px;">${s.name}<br><small style="color:var(--gray-400)">${s.no || ''}</small></td><td style="padding: 8px 12px;">${s.class || ''}</td><td style="padding: 8px 12px; text-align:center; font-weight:800; color:#4b5563;">${s.nobetci}</td></tr>`).join('') || `<tr><td colspan="3" style="text-align:center; padding: 1rem;">Kayıt yok.</td></tr>`;
+
+            const ornekOgrenciler = statArr.filter(s => s.gelmedi === 0 && s.gec === 0 && s.rahatsiz === 0);
+            const toBody = document.getElementById('topOrnekBody');
+            toBody.innerHTML = ornekOgrenciler.map(s => `<tr><td style="padding: 8px 12px;">${s.name}<br><small style="color:var(--gray-400)">${s.no || ''}</small></td><td style="padding: 8px 12px;">${s.class || ''}</td><td style="padding: 8px 12px; text-align:center; font-weight:800; color:#065f46;">Kusursuz</td></tr>`).join('') || `<tr><td colspan="3" style="text-align:center; padding: 1rem;">Kayıt yok.</td></tr>`;
         }
 
         function togglePrintDateInputs() {
