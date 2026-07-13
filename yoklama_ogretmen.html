@@ -1429,7 +1429,13 @@
                         <i class="fa-solid fa-minus"></i>
                     </button>
                     <button type="button" class="status-btn ${currentStatus === 'GEÇ' ? 'active' : ''}" data-status="GEÇ" onclick="setStudentStatus('${s.no}', 'GEÇ')" title="Geç">
-                        <i class="fa-solid fa-clock"></i>${currentStatus === 'GEÇ' && gecTimeMap[s.no] !== undefined ? `<span style="font-size:0.65rem; margin-left:4px; font-weight:800;">${gecTimeMap[s.no]}m</span>` : ''}
+                        ${currentStatus === 'GEÇ' && gecTimeMap[s.no] !== undefined ? `
+                            <div style="display:flex; align-items:center; justify-content:center; gap: 4px;">
+                                <span onclick="event.stopPropagation(); window.adjustGecTime('${s.no}', -1)" style="background:rgba(0,0,0,0.1); border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">-</span>
+                                <span style="font-size:0.75rem; font-weight:800;">${gecTimeMap[s.no]}m</span>
+                                <span onclick="event.stopPropagation(); window.adjustGecTime('${s.no}', 1)" style="background:rgba(0,0,0,0.1); border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">+</span>
+                            </div>
+                        ` : '<i class="fa-solid fa-clock"></i>'}
                     </button>
                     <button type="button" class="status-btn ${currentStatus === 'RAHATSIZLANDI' ? 'active' : ''}" data-status="RAHATSIZLANDI" onclick="setStudentStatus('${s.no}', 'RAHATSIZLANDI')" title="Rahatsız">
                         <i class="fa-solid fa-moon" style="color: #ef4444;"></i>
@@ -1520,7 +1526,13 @@
                     if (btnStatus === status) {
                         btn.classList.add('active');
                         if (status === 'GEÇ' && gecTimeMap[studentNo] !== undefined) {
-                            btn.innerHTML = `<i class="fa-solid fa-clock"></i><span style="font-size:0.65rem; margin-left:4px; font-weight:800;">${gecTimeMap[studentNo]}m</span>`;
+                            btn.innerHTML = `
+                                <div style="display:flex; align-items:center; justify-content:center; gap: 4px;">
+                                    <span onclick="event.stopPropagation(); window.adjustGecTime('${studentNo}', -1)" style="background:rgba(0,0,0,0.1); border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">-</span>
+                                    <span style="font-size:0.75rem; font-weight:800;">${gecTimeMap[studentNo]}m</span>
+                                    <span onclick="event.stopPropagation(); window.adjustGecTime('${studentNo}', 1)" style="background:rgba(0,0,0,0.1); border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">+</span>
+                                </div>
+                            `;
                         }
                     } else {
                         btn.classList.remove('active');
@@ -1534,6 +1546,28 @@
             updateLiveCounters();
             saveAttendance(true);
         }
+
+        window.adjustGecTime = function(studentNo, change) {
+            let current = gecTimeMap[studentNo] || 0;
+            current += change;
+            if (current < 0) current = 0;
+            gecTimeMap[studentNo] = current;
+            
+            const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
+            if (row) {
+                const btn = row.querySelector('.status-btn[data-status="GEÇ"]');
+                if (btn) {
+                    btn.innerHTML = `
+                        <div style="display:flex; align-items:center; justify-content:center; gap: 4px;">
+                            <span onclick="event.stopPropagation(); window.adjustGecTime('${studentNo}', -1)" style="background:rgba(0,0,0,0.1); border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">-</span>
+                            <span style="font-size:0.75rem; font-weight:800;">${current}m</span>
+                            <span onclick="event.stopPropagation(); window.adjustGecTime('${studentNo}', 1)" style="background:rgba(0,0,0,0.1); border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">+</span>
+                        </div>
+                    `;
+                }
+            }
+            saveAttendance(true);
+        };
 
         function setAllAttendance(status) {
             activeClassStudents.forEach(s => {
