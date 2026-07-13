@@ -485,33 +485,40 @@
     <div class="yoklama-container" id="appContainer" style="display: none;">
         
         <!-- Premium Header -->
-        <div class="premium-header glass-panel" style="display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; margin-bottom: 1.5rem; position: relative; overflow: visible !important; z-index: 9999; flex-wrap: nowrap;">
-            <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 1; min-width: 0;">
-                <!-- Hamburger Menu Container -->
-                <div class="mobile-hamburger-menu" style="z-index: 9999; flex-shrink: 0;">
-                    <button class="btn" style="background: transparent; color: var(--dark); border: none; padding: 0.5rem; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center;" onclick="document.getElementById('mobileDropdown').classList.toggle('show')">
-                        <i class="fa-solid fa-bars"></i>
-                    </button>
-                    <div id="mobileDropdown" class="dropdown-content">
-                        <a href="#" onclick="switchTab('yoklama'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-clipboard-list"></i> Yoklama Al</a>
-                        <a href="#" onclick="switchTab('gecmis'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-clock-rotate-left"></i> Geçmiş</a>
-                        <a href="#" onclick="switchTab('istatistik'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-chart-pie"></i> İstatistik</a>
+        <div class="premium-header glass-panel" style="padding: 0.8rem; margin-bottom: 1.5rem; position: relative; overflow: visible !important; z-index: 9999;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; width: 100%;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 1; min-width: 0;">
+                    <!-- Hamburger Menu Container -->
+                    <div class="mobile-hamburger-menu" style="z-index: 9999; flex-shrink: 0;">
+                        <button class="btn" style="background: transparent; color: var(--dark); border: none; padding: 0.5rem; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center;" onclick="document.getElementById('mobileDropdown').classList.toggle('show')">
+                            <i class="fa-solid fa-bars"></i>
+                        </button>
+                        <div id="mobileDropdown" class="dropdown-content">
+                            <a href="#" onclick="switchTab('yoklama'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-clipboard-list"></i> Yoklama Al</a>
+                            <a href="#" onclick="switchTab('gecmis'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-clock-rotate-left"></i> Geçmiş</a>
+                            <a href="#" onclick="switchTab('istatistik'); document.getElementById('mobileDropdown').classList.remove('show'); return false;"><i class="fa-solid fa-chart-pie"></i> İstatistik</a>
+                        </div>
+                    </div>
+
+                    <div style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
+                        <h1 style="font-size: 1.1rem; font-weight: 800; color: var(--dark); margin: 0; overflow: hidden; text-overflow: ellipsis;" id="teacherWelcome">Yükleniyor...</h1>
+                        <p style="font-size: 0.75rem; color: var(--gray-500); margin: 2px 0 0 0; overflow: hidden; text-overflow: ellipsis;" id="schoolDisplay">...</p>
                     </div>
                 </div>
-
-                <div style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
-                    <h1 style="font-size: 1.1rem; font-weight: 800; color: var(--dark); margin: 0; overflow: hidden; text-overflow: ellipsis;" id="teacherWelcome">Yükleniyor...</h1>
-                    <p style="font-size: 0.75rem; color: var(--gray-500); margin: 2px 0 0 0; overflow: hidden; text-overflow: ellipsis;" id="schoolDisplay">...</p>
+                
+                <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                    <button class="btn" style="background: transparent; color: var(--gray-600); border: none; padding: 0.4rem; border-radius: var(--radius-md); font-size: 1.2rem; cursor: pointer; transition: var(--transition);" onclick="openTeacherSettings()" title="Hesap Ayarları">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                    <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.4rem 0.6rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: var(--transition);" onclick="logoutTeacher()">
+                        <i class="fa-solid fa-right-from-bracket"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Çıkış</span>
+                    </button>
                 </div>
             </div>
             
-            <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
-                <button class="btn" style="background: transparent; color: var(--gray-600); border: none; padding: 0.4rem; border-radius: var(--radius-md); font-size: 1.2rem; cursor: pointer; transition: var(--transition);" onclick="openTeacherSettings()" title="Hesap Ayarları">
-                    <i class="fa-solid fa-gear"></i>
-                </button>
-                <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.4rem 0.6rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: var(--transition);" onclick="logoutTeacher()">
-                    <i class="fa-solid fa-right-from-bracket"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Çıkış</span>
-                </button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.05); font-size: 0.85rem; font-weight: 700; color: var(--gray-600); width: 100%;">
+                <div><i class="fa-solid fa-clock" style="color: var(--primary);"></i> Saat: <span id="currentTimeDisplay" style="font-variant-numeric: tabular-nums;">--:--:--</span></div>
+                <div id="lessonRemainingContainer" style="display: none; color: var(--primary);"><i class="fa-solid fa-hourglass-half"></i> Ders Bitimi: <span id="lessonRemainingDisplay" style="font-variant-numeric: tabular-nums;">--:--</span></div>
             </div>
         </div>
 
@@ -1449,9 +1456,9 @@
                             <span class="student-no" style="font-size: 1rem; font-weight: 700; color: var(--primary);">${s.no}</span>
                             <span class="student-name" style="font-size: 0.95rem; font-weight: 600; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">${s.name} ${s.surname || ''}</span>
                             ${currentStatus === 'GEÇ' && gecTimeMap[s.no] !== undefined ? `
-                                <div style="display:flex; align-items:center; justify-content:center; gap:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:20px; padding:4px 8px; color:#ef4444; flex-shrink:0;">
+                                <div class="late-time-ui" style="display:flex; align-items:center; justify-content:center; gap:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:20px; padding:4px 8px; color:#ef4444; flex-shrink:0;">
                                     <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${s.no}', -1)" style="width:28px; height:28px; background:#ef4444; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(239,68,68,0.3);">-</span>
-                                    <span style="font-size:0.95rem; font-weight:800; min-width:24px; text-align:center;">${gecTimeMap[s.no]}m</span>
+                                    <span class="late-time-text" style="font-size:0.95rem; font-weight:800; min-width:24px; text-align:center;">${gecTimeMap[s.no]}m</span>
                                     <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${s.no}', 1)" style="width:28px; height:28px; background:#ef4444; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(239,68,68,0.3);">+</span>
                                 </div>
                             ` : ''}
@@ -2061,6 +2068,50 @@
                 confirmButtonColor: '#4f46e5'
             });
         }
+
+        // Start Timers
+        setInterval(() => {
+            if (typeof getTRTime !== 'function') return;
+            const now = getTRTime();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            
+            const currentTimeDisplay = document.getElementById('currentTimeDisplay');
+            if(currentTimeDisplay) currentTimeDisplay.textContent = `${h}:${m}:${s}`;
+            
+            const hourVal = document.getElementById('lessonHour')?.value;
+            const classVal = document.getElementById('classSelect')?.value;
+            const subjectVal = document.getElementById('subjectSelect')?.value;
+            const lessonRemainingContainer = document.getElementById('lessonRemainingContainer');
+            const lessonRemainingDisplay = document.getElementById('lessonRemainingDisplay');
+            
+            if (lessonRemainingContainer && lessonRemainingDisplay) {
+                if (hourVal && classVal && subjectVal && window.schoolData && window.schoolData.lessonTimes) {
+                    const endTimeStr = window.schoolData.lessonTimes[`${hourVal}_end`];
+                    if (endTimeStr) {
+                        const [endH, endM] = endTimeStr.split(':').map(Number);
+                        const endTotalSeconds = endH * 3600 + endM * 60;
+                        const nowTotalSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+                        const diffSeconds = endTotalSeconds - nowTotalSeconds;
+                        
+                        if (diffSeconds > 0) {
+                            const diffM = Math.floor(diffSeconds / 60);
+                            const diffS = diffSeconds % 60;
+                            lessonRemainingDisplay.textContent = `${String(diffM).padStart(2, '0')}:${String(diffS).padStart(2, '0')}`;
+                            lessonRemainingContainer.style.display = 'block';
+                        } else {
+                            lessonRemainingDisplay.textContent = "00:00";
+                            lessonRemainingContainer.style.display = 'block';
+                        }
+                    } else {
+                        lessonRemainingContainer.style.display = 'none';
+                    }
+                } else {
+                    lessonRemainingContainer.style.display = 'none';
+                }
+            }
+        }, 1000);
     </script>
 </body>
 </html>
