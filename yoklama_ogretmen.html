@@ -1527,7 +1527,24 @@
             }
 
             if (attendanceMap[studentNo] === status) {
-                return; // Double click on same status does nothing
+                // If they click the same status, toggle it OFF (delete it)
+                delete attendanceMap[studentNo];
+                delete gecTimeMap[studentNo];
+                
+                const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
+                if (row) {
+                    row.style.opacity = '1';
+                    const buttons = row.querySelectorAll('.status-btn');
+                    buttons.forEach(btn => btn.classList.remove('active'));
+                    
+                    const topBar = row.querySelector('div[style*="background: #f8fafc"]');
+                    if (topBar) {
+                        let existingLateUi = topBar.querySelector('.late-time-ui');
+                        if (existingLateUi) existingLateUi.remove();
+                    }
+                }
+                saveAttendance(true);
+                return;
             } else if (status === 'GEÇ') {
                 attendanceMap[studentNo] = status;
                 const hourVal = document.getElementById('lessonHour').value;
