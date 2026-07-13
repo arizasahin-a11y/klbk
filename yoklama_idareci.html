@@ -835,7 +835,7 @@
                     const passHash = await hashPassword(pass);
                     
                     if (userObj.password === pass || userObj.password === passHash) {
-                        if (userObj.role !== 'admin' && userObj.role !== 'master' && userObj.role !== 'idareci') {
+                        if (userObj.role !== 'admin' && userObj.role !== 'master' && userObj.role !== 'idareci' && userObj.role !== 'dashboard') {
                             Swal.fire('Erişim Reddedildi', 'Bu panele sadece idareciler ve yöneticiler girebilir.', 'error');
                             return;
                         }
@@ -873,11 +873,15 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             // 1. Auth Validation
+            checkAuth();
+        });
+
+        function checkAuth() {
             const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true';
             const role = sessionStorage.getItem('klbk_role') || '';
             const activeAdminUsername = sessionStorage.getItem('klbk_currentUser') || '';
             
-            if (!isLoggedIn || !activeAdminUsername || (role !== 'admin' && role !== 'master' && role !== 'idareci')) {
+            if (!isLoggedIn || !activeAdminUsername || (role !== 'admin' && role !== 'master' && role !== 'idareci' && role !== 'dashboard')) {
                 document.getElementById('loginPanel').style.display = 'flex';
                 return;
             }

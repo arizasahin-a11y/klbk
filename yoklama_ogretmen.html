@@ -1430,10 +1430,13 @@
                     </button>
                     <button type="button" class="status-btn ${currentStatus === 'GEÇ' ? 'active' : ''}" data-status="GEÇ" onclick="setStudentStatus('${s.no}', 'GEÇ')" title="Geç">
                         ${currentStatus === 'GEÇ' && gecTimeMap[s.no] !== undefined ? `
-                            <div style="display:flex; align-items:center; justify-content:center; gap: 4px;">
-                                <span onclick="event.stopPropagation(); window.adjustGecTime('${s.no}', -1)" style="background:rgba(0,0,0,0.1); border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">-</span>
-                                <span style="font-size:0.75rem; font-weight:800;">${gecTimeMap[s.no]}m</span>
-                                <span onclick="event.stopPropagation(); window.adjustGecTime('${s.no}', 1)" style="background:rgba(0,0,0,0.1); border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">+</span>
+                            <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
+                                <i class="fa-solid fa-clock"></i>
+                                <div style="display:flex; align-items:center; justify-content:center; gap:4px; margin-top:3px; background:rgba(255,255,255,0.15); border-radius:12px; padding:2px 4px;">
+                                    <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${s.no}', -1)" style="width:18px; height:18px; background:rgba(0,0,0,0.2); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; cursor:pointer;">-</span>
+                                    <span style="font-size:0.65rem; font-weight:800; min-width:16px; text-align:center;">${gecTimeMap[s.no]}m</span>
+                                    <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${s.no}', 1)" style="width:18px; height:18px; background:rgba(0,0,0,0.2); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; cursor:pointer;">+</span>
+                                </div>
                             </div>
                         ` : '<i class="fa-solid fa-clock"></i>'}
                     </button>
@@ -1527,10 +1530,13 @@
                         btn.classList.add('active');
                         if (status === 'GEÇ' && gecTimeMap[studentNo] !== undefined) {
                             btn.innerHTML = `
-                                <div style="display:flex; align-items:center; justify-content:center; gap: 4px;">
-                                    <span onclick="event.stopPropagation(); window.adjustGecTime('${studentNo}', -1)" style="background:rgba(0,0,0,0.1); border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">-</span>
-                                    <span style="font-size:0.75rem; font-weight:800;">${gecTimeMap[studentNo]}m</span>
-                                    <span onclick="event.stopPropagation(); window.adjustGecTime('${studentNo}', 1)" style="background:rgba(0,0,0,0.1); border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">+</span>
+                                <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
+                                    <i class="fa-solid fa-clock"></i>
+                                    <div style="display:flex; align-items:center; justify-content:center; gap:4px; margin-top:3px; background:rgba(255,255,255,0.15); border-radius:12px; padding:2px 4px;">
+                                        <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${studentNo}', -1)" style="width:18px; height:18px; background:rgba(0,0,0,0.2); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; cursor:pointer;">-</span>
+                                        <span style="font-size:0.65rem; font-weight:800; min-width:16px; text-align:center;">${gecTimeMap[studentNo]}m</span>
+                                        <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${studentNo}', 1)" style="width:18px; height:18px; background:rgba(0,0,0,0.2); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; cursor:pointer;">+</span>
+                                    </div>
                                 </div>
                             `;
                         }
@@ -1558,10 +1564,13 @@
                 const btn = row.querySelector('.status-btn[data-status="GEÇ"]');
                 if (btn) {
                     btn.innerHTML = `
-                        <div style="display:flex; align-items:center; justify-content:center; gap: 4px;">
-                            <span onclick="event.stopPropagation(); window.adjustGecTime('${studentNo}', -1)" style="background:rgba(0,0,0,0.1); border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">-</span>
-                            <span style="font-size:0.75rem; font-weight:800;">${current}m</span>
-                            <span onclick="event.stopPropagation(); window.adjustGecTime('${studentNo}', 1)" style="background:rgba(0,0,0,0.1); border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">+</span>
+                        <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
+                            <i class="fa-solid fa-clock"></i>
+                            <div style="display:flex; align-items:center; justify-content:center; gap:4px; margin-top:3px; background:rgba(255,255,255,0.15); border-radius:12px; padding:2px 4px;">
+                                <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${studentNo}', -1)" style="width:18px; height:18px; background:rgba(0,0,0,0.2); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; cursor:pointer;">-</span>
+                                <span style="font-size:0.65rem; font-weight:800; min-width:16px; text-align:center;">${current}m</span>
+                                <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${studentNo}', 1)" style="width:18px; height:18px; background:rgba(0,0,0,0.2); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; cursor:pointer;">+</span>
+                            </div>
                         </div>
                     `;
                 }
