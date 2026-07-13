@@ -1595,28 +1595,31 @@
             const sList = allStudents.filter(s => s.class === classVal && s.status !== 'Pasif');
             const mevcut = sList.length;
 
-            let tableHTML = `<table class="print-table">
+            let tableHTML = `<table class="print-table" style="width: 100%; border: 2px solid black; border-collapse: collapse;">
                 <thead>
                     <tr>
-                        <th style="width: 15%; text-align: left; vertical-align: bottom;">Ders Saati</th>`;
+                        <th style="width: 12%; border: 1px solid black; padding: 10px; text-align: left; font-weight: normal;">Ders Saati</th>`;
             
             for (let i = 1; i <= MAX_HOURS; i++) {
-                tableHTML += `<th>${i}. DERS</th>`;
+                tableHTML += `<th style="border: 1px solid black; padding: 10px; text-align: center; font-weight: bold;">${i}. DERS</th>`;
+            }
+            
+            tableHTML += `</tr>
+                    <tr>
+                        <td style="border: 1px solid black; padding: 10px; text-align: center; vertical-align: middle;">Derslerin<br>Adı</td>`;
+            
+            // Öğretmen satırı (Alta indi)
+            for (let i = 1; i <= MAX_HOURS; i++) {
+                let hourObj = dayRecords[i] ? dayRecords[i][classVal] : null;
+                let teacherStr = hourObj && hourObj.teacherName ? hourObj.teacherName : '';
+                tableHTML += `<td style="border: 1px solid black; padding: 5px; text-align: center; vertical-align: middle; font-size: 10pt;">${teacherStr}</td>`;
             }
             
             tableHTML += `</tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td style="text-align: left; font-weight: bold; height: 60px; vertical-align: middle;">Öğretmenin<br>Adı Soyadı<br>İmzası</td>`;
-            
-            // Öğretmen satırı
-            for (let i = 1; i <= MAX_HOURS; i++) {
-                let hourObj = dayRecords[i] ? dayRecords[i][classVal] : null;
-                let teacherStr = hourObj && hourObj.teacherName ? hourObj.teacherName : '';
-                tableHTML += `<td style="vertical-align: middle;">${teacherStr}</td>`;
-            }
-            tableHTML += `</tr><tr><td style="text-align: left; font-weight: bold; height: 250px; vertical-align: middle;">Yoklama<br>(Numaralar)</td>`;
+                    <tr style="height: 500px;">
+                        <td style="border: 1px solid black; border-bottom: 2px solid black;"></td>`;
             
             // Yoklama Listesi
             for (let i = 1; i <= MAX_HOURS; i++) {
@@ -1630,7 +1633,32 @@
                     });
                     absentText = missing.join('<br>');
                 }
-                tableHTML += `<td style="font-size: 12pt; line-height: 1.5; padding-top: 15px;">${absentText}</td>`;
+                tableHTML += `<td style="border: 1px solid black; border-bottom: 2px solid black; font-size: 13pt; line-height: 1.6; padding-top: 15px; text-align: center; vertical-align: top;">${absentText}</td>`;
+            }
+
+            tableHTML += `</tr>
+                    <tr>
+                        <td style="border: 1px solid black; padding: 10px; text-align: center; font-weight: normal;">Toplam</td>`;
+            
+            // Toplam sayısı
+            for (let i = 1; i <= MAX_HOURS; i++) {
+                let hourObj = dayRecords[i] ? dayRecords[i][classVal] : null;
+                let count = 0;
+                if (hourObj && hourObj.records) {
+                    Object.values(hourObj.records).forEach(st => {
+                        if (st === 'GELMEDİ' || st === 'GEÇ') count++;
+                    });
+                }
+                tableHTML += `<td style="border: 1px solid black; padding: 10px; text-align: center;">${count > 0 ? count : ''}</td>`;
+            }
+
+            tableHTML += `</tr>
+                    <tr>
+                        <td style="border: 1px solid black; padding: 10px; text-align: center; height: 50px; font-size: 10pt;">Öğretmenin<br>Adı Soyadı<br>İmzası</td>`;
+            
+            // Boş imza alanları
+            for (let i = 1; i <= MAX_HOURS; i++) {
+                tableHTML += `<td style="border: 1px solid black; padding: 10px;"></td>`;
             }
 
             tableHTML += `</tr>
@@ -1640,13 +1668,18 @@
             const printHTML = `
                 <div class="print-title">${title}</div>
                 <div class="print-header-info">
-                    <div>Sınıf Mevcudu : <b>${mevcut}</b></div>
-                    <div>Tarih : <b>${printDate}</b></div>
+                    <div style="flex: 1; text-align: left;">Sınıf Mevcudu : <b>${mevcut}</b></div>
+                    <div style="flex: 1; text-align: right;">Tarih : <b>${printDate}</b></div>
                 </div>
                 ${tableHTML}
-                <div class="print-footer">
-                    <div>1- Derste bulunmayan öğrencinin numarası ile ilgili ders sütununa ayrı ayrı yazılır.<br>2- Yoklama fişi ve ders defteri son dersin öğretmeni tarafından yönetime teslim edilir.</div>
-                    <div style="text-align: center;">İncelendi<br>Müdür Yardımcısı<br>İmza</div>
+                <div class="print-footer" style="display: flex; justify-content: space-between; margin-top: 15px; font-size: 10pt;">
+                    <div>
+                        1- Derste bulunmayan öğrencinin numarası ile ilgili ders sütununa ayrı ayrı yazılır.<br>
+                        2- Yoklama fişi ve ders defteri son dersin öğretmeni tarafından yönetime teslim edilir.
+                    </div>
+                    <div style="text-align: center; margin-right: 30px;">
+                        İncelendi<br>Müdür Yardımcısı<br>İmza
+                    </div>
                 </div>
             `;
 
