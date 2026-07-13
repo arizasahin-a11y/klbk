@@ -1529,25 +1529,35 @@
                     const btnStatus = btn.getAttribute('data-status');
                     if (btnStatus === status) {
                         btn.classList.add('active');
-                        if (status === 'GEÇ' && gecTimeMap[studentNo] !== undefined) {
-                            btn.innerHTML = `
-                                <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
-                                    <i class="fa-solid fa-clock"></i>
-                                    <div style="display:flex; align-items:center; justify-content:center; gap:4px; margin-top:3px; background:rgba(255,255,255,0.15); border-radius:12px; padding:2px 4px;">
-                                        <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${studentNo}', -1)" style="width:18px; height:18px; background:rgba(0,0,0,0.2); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; cursor:pointer;">-</span>
-                                        <span style="font-size:0.65rem; font-weight:800; min-width:16px; text-align:center;">${gecTimeMap[studentNo]}m</span>
-                                        <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${studentNo}', 1)" style="width:18px; height:18px; background:rgba(0,0,0,0.2); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; cursor:pointer;">+</span>
-                                    </div>
-                                </div>
-                            `;
-                        }
                     } else {
                         btn.classList.remove('active');
-                        if (btnStatus === 'GEÇ') {
-                            btn.innerHTML = `<i class="fa-solid fa-clock"></i>`;
-                        }
                     }
                 });
+
+                // Dynamically update the Late Time UI next to the student name
+                const topBar = row.querySelector('div[style*="background: #f8fafc"]');
+                if (topBar) {
+                    let existingLateUi = topBar.querySelector('.late-time-ui');
+                    if (status === 'GEÇ' && gecTimeMap[studentNo] !== undefined) {
+                        if (!existingLateUi) {
+                            let lateDiv = document.createElement('div');
+                            lateDiv.className = 'late-time-ui';
+                            lateDiv.style.cssText = 'display:flex; align-items:center; justify-content:center; gap:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:20px; padding:4px 8px; color:#ef4444; flex-shrink:0;';
+                            lateDiv.innerHTML = `
+                                <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${studentNo}', -1)" style="width:28px; height:28px; background:#ef4444; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(239,68,68,0.3);">-</span>
+                                <span class="late-time-text" style="font-size:0.95rem; font-weight:800; min-width:24px; text-align:center;">${gecTimeMap[studentNo]}m</span>
+                                <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${studentNo}', 1)" style="width:28px; height:28px; background:#ef4444; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(239,68,68,0.3);">+</span>
+                            `;
+                            topBar.appendChild(lateDiv);
+                        } else {
+                            existingLateUi.querySelector('.late-time-text').textContent = `${gecTimeMap[studentNo]}m`;
+                        }
+                    } else {
+                        if (existingLateUi) {
+                            existingLateUi.remove();
+                        }
+                    }
+                }
             }
 
             updateLiveCounters();
@@ -1559,21 +1569,11 @@
             current += change;
             if (current < 0) current = 0;
             gecTimeMap[studentNo] = current;
-            
             const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
             if (row) {
-                const btn = row.querySelector('.status-btn[data-status="GEÇ"]');
-                if (btn) {
-                    btn.innerHTML = `
-                        <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
-                            <i class="fa-solid fa-clock"></i>
-                            <div style="display:flex; align-items:center; justify-content:center; gap:4px; margin-top:3px; background:rgba(255,255,255,0.15); border-radius:12px; padding:2px 4px;">
-                                <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${studentNo}', -1)" style="width:18px; height:18px; background:rgba(0,0,0,0.2); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; cursor:pointer;">-</span>
-                                <span style="font-size:0.65rem; font-weight:800; min-width:16px; text-align:center;">${current}m</span>
-                                <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${studentNo}', 1)" style="width:18px; height:18px; background:rgba(0,0,0,0.2); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; cursor:pointer;">+</span>
-                            </div>
-                        </div>
-                    `;
+                const lateText = row.querySelector('.late-time-text');
+                if (lateText) {
+                    lateText.textContent = `${current}m`;
                 }
             }
             saveAttendance(true);
