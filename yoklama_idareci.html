@@ -1603,15 +1603,13 @@
                     <tr>
                         <td style="border: 1px solid black; padding: 10px; text-align: center; vertical-align: middle;">Derslerin<br>Adı</td>`;
             
-            // Ders ve Öğretmen satırı (Alta indi)
+            // Ders satırı (Sadece Ders Adı)
             for (let i = 1; i <= MAX_HOURS; i++) {
                 let hourObj = dayRecords[i] ? dayRecords[i][classVal] : null;
                 let textStr = '';
                 if (hourObj) {
-                    let tName = hourObj.teacherName || hourObj.teacher || '';
                     let subj = hourObj.subject || '';
-                    if (subj && tName) textStr = `<strong>${subj}</strong><br><span style="font-size:9pt; color:#333;">${tName}</span>`;
-                    else textStr = `<strong>${subj || tName}</strong>`;
+                    textStr = `<strong>${subj}</strong>`;
                 }
                 tableHTML += `<td style="border: 1px solid black; padding: 5px; text-align: center; vertical-align: middle; font-size: 10pt;">${textStr}</td>`;
             }
@@ -1660,8 +1658,14 @@
                     <tr>
                         <td style="border: 1px solid black; padding: 10px; text-align: center; height: 50px; font-size: 10pt;">Öğretmenin<br>Adı Soyadı<br>İmzası</td>`;
             
+            // Boş imza alanları ve gri öğretmen adı
             for (let i = 1; i <= MAX_HOURS; i++) {
-                tableHTML += `<td style="border: 1px solid black; padding: 10px;"></td>`;
+                let hourObj = dayRecords[i] ? dayRecords[i][classVal] : null;
+                let tName = '';
+                if (hourObj) {
+                    tName = hourObj.teacherName || hourObj.teacher || '';
+                }
+                tableHTML += `<td style="border: 1px solid black; padding: 5px; text-align: center; vertical-align: bottom;"><span style="font-size: 8pt; color: gray;">${tName}</span></td>`;
             }
 
             tableHTML += `</tr>
