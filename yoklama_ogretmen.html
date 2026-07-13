@@ -518,7 +518,7 @@
         </div>
 
         <!-- Neon Timer Panel -->
-        <div class="glass-panel" style="padding: 0.5rem; margin-bottom: 0.8rem; text-align: center; background: #111827; border: 2px solid #374151; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
+        <div class="glass-panel" style="padding: 0.5rem; margin-bottom: 0.8rem; text-align: center; background: #111827; border: 2px solid #374151; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); position: sticky; top: 10px; z-index: 9998;">
             <div id="neonCurrentTime" style="font-family: 'Courier New', Courier, monospace; font-size: 1.5rem; font-weight: 900; color: #39ff14; text-shadow: 0 0 8px #39ff14, 0 0 12px #39ff14; letter-spacing: 2px; margin-bottom: 0.2rem;">
                 --:--:--
             </div>
@@ -2123,7 +2123,7 @@
             const neonLessonStatus = document.getElementById('neonLessonStatus');
             
             if (neonLessonStatus) {
-                if (hourVal && classVal && subjectVal && window.schoolData && window.schoolData.lessonTimes) {
+                if (hourVal && window.schoolData && window.schoolData.lessonTimes) {
                     const startStr = window.schoolData.lessonTimes[`${hourVal}_start`];
                     const endStr = window.schoolData.lessonTimes[`${hourVal}_end`];
                     
