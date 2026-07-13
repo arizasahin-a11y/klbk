@@ -1964,8 +1964,11 @@
                 if (hourObj && hourObj.records) {
                     let missing = [];
                     Object.entries(hourObj.records).forEach(([no, status]) => {
-                        if (status === 'GELMEDİ') missing.push(no);
-                        else if (status === 'GEÇ') missing.push(`${no}(Geç)`);
+                        const stu = sList.find(s => s.no == no);
+                        let fullName = stu ? shorten(`${stu.name} ${stu.surname || ''}`.trim(), 14) : '';
+                        
+                        if (status === 'GELMEDİ') missing.push(`${no} ${fullName}`);
+                        else if (status === 'GEÇ') missing.push(`${no} ${fullName}(Geç)`);
                     });
                     
                     if (missing.length === 0) {
@@ -1974,7 +1977,7 @@
                         absentText = missing.join('<br>');
                     }
                 }
-                html += `<td style="border: 1px solid black; border-bottom: 2px solid black; font-size: 12pt; line-height: 1.6; padding-top: 10px; text-align: center; vertical-align: top;">${absentText}</td>`;
+                html += `<td style="border: 1px solid black; border-bottom: 2px solid black; font-size: 12px; line-height: 1.2; padding-top: 10px; text-align: center; vertical-align: top;">${absentText}</td>`;
             }
 
             html += `</tr>
