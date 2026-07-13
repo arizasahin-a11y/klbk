@@ -1716,7 +1716,7 @@
             let geldi = 0, gelmedi = 0, gec = 0, rahatsiz = 0;
             
             Object.values(attendanceMap).forEach(v => {
-                if (v === 'GELDİ') geldi++;
+                if (v === 'GELDİ' || v === 'NÖBETÇİ') geldi++;
                 else if (v === 'GELMEDİ') gelmedi++;
                 else if (v === 'GEÇ') gec++;
                 else if (v === 'RAHATSIZLANDI') rahatsiz++;
