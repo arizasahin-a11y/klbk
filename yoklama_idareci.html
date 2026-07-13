@@ -788,6 +788,21 @@
                         </div>
                     </details>
 
+                    <!-- En Çok Nöbetçi Olanlar -->
+                    <details class="custom-accordion">
+                        <summary style="background: #f3f4f6; border-bottom: 1px solid #e5e7eb; color: #4b5563;">
+                            <i class="fa-solid fa-user-shield"></i> En Çok Nöbetçi Olanlar
+                        </summary>
+                        <div class="table-responsive" style="padding: 0;">
+                            <table class="report-table" style="font-size: 0.85rem; border-top: none;">
+                                <thead>
+                                    <tr><th style="padding: 8px 12px;">Öğrenci</th><th style="padding: 8px 12px;">Sınıf</th><th style="padding: 8px 12px; text-align:center;">Adet</th></tr>
+                                </thead>
+                                <tbody id="topNobetciBody"></tbody>
+                            </table>
+                        </div>
+                    </details>
+
                 </div>
             </div>
         </div>
@@ -1725,7 +1740,8 @@
                     gelmedi: 0,
                     gec: 0,
                     gecSure: 0,
-                    rahatsiz: 0
+                    rahatsiz: 0,
+                    nobetci: 0
                 };
             });
 
@@ -1746,6 +1762,7 @@
                             const st = records[stdNo];
                             if (st === 'GELMEDİ') studentStats[stdNo].gelmedi++;
                             if (st === 'RAHATSIZLANDI') studentStats[stdNo].rahatsiz++;
+                            if (st === 'NÖBETÇİ') studentStats[stdNo].nobetci++;
                             if (st === 'GEÇ') {
                                 studentStats[stdNo].gec++;
                                 if (gecTimes[stdNo]) {
@@ -1774,6 +1791,10 @@
             const topRahatsiz = [...statArr].sort((a,b) => b.rahatsiz - a.rahatsiz).slice(0, 10);
             const trBody = document.getElementById('topRahatsizBody');
             trBody.innerHTML = topRahatsiz.filter(s => s.rahatsiz > 0).map(s => `<tr><td style="padding: 8px 12px;">${s.name}<br><small style="color:var(--gray-400)">${s.no || ''}</small></td><td style="padding: 8px 12px;">${s.class || ''}</td><td style="padding: 8px 12px; text-align:center; font-weight:800; color:#1d4ed8;">${s.rahatsiz}</td></tr>`).join('') || `<tr><td colspan="3" style="text-align:center; padding: 1rem;">Kayıt yok.</td></tr>`;
+
+            const topNobetci = [...statArr].sort((a,b) => b.nobetci - a.nobetci).slice(0, 10);
+            const tnBody = document.getElementById('topNobetciBody');
+            tnBody.innerHTML = topNobetci.filter(s => s.nobetci > 0).map(s => `<tr><td style="padding: 8px 12px;">${s.name}<br><small style="color:var(--gray-400)">${s.no || ''}</small></td><td style="padding: 8px 12px;">${s.class || ''}</td><td style="padding: 8px 12px; text-align:center; font-weight:800; color:#4b5563;">${s.nobetci}</td></tr>`).join('') || `<tr><td colspan="3" style="text-align:center; padding: 1rem;">Kayıt yok.</td></tr>`;
         }
 
         function togglePrintDateInputs() {
