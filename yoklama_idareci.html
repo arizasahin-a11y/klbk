@@ -835,9 +835,10 @@
                         <label><i class="fa-solid fa-file-invoice"></i> Kağıt Boyutu / Format</label>
                         <select id="printFormatType" class="form-select-custom">
                             <option value="a4">A4 (Sayfa başına 1 fiş)</option>
-                            <option value="a5">A5 (Sayfa başına 2 fiş)</option>
-                            <option value="a6">A6 (Sayfa başına 4 fiş)</option>
-                            <option value="5li">A4 (Sayfa başına 5 fiş)</option>
+                            <option value="2li">A4 (Sayfa başına 2 fiş - Sağlı Sollu)</option>
+                            <option value="3lu">A4 (Sayfa başına 3 fiş - Sağlı Sollu)</option>
+                            <option value="4lu">A4 (Sayfa başına 4 fiş - Sağlı Sollu)</option>
+                            <option value="5li">A4 (Sayfa başına 5 fiş - Sağlı Sollu)</option>
                             <option value="haftalik_a4">1 Haftalık (5 Gün) A4 Tablo</option>
                         </select>
                     </div>
@@ -1820,24 +1821,47 @@
 
             const format = document.getElementById('printFormatType').value;
 
-            // Generate HTML for print
-            let printContent = '';
+            // If format is N-li, group them by pages
+            let perPage = 1;
+            if (format === '2li') perPage = 2;
+            if (format === '3lu') perPage = 3;
+            if (format === '4lu') perPage = 4;
+            if (format === '5li') perPage = 5;
 
-            datesToPrint.forEach(date => {
-                selectedClasses.forEach(cls => {
-                    const html = generateSinglePrintFis(cls, date, format);
-                    if (html) {
-                        printContent += html;
-                    }
+            let finalPrintContent = '';
+            
+            if (perPage > 1) {
+                let allHtmlChunks = [];
+                datesToPrint.forEach(date => {
+                    selectedClasses.forEach(cls => {
+                        const html = generateSinglePrintFis(cls, date, format);
+                        if (html) allHtmlChunks.push(html);
+                    });
                 });
-            });
+                
+                if (allHtmlChunks.length === 0) {
+                    Swal.fire('Bilgi', 'Seçilen kriterlere uygun veri bulunamadı.', 'info');
+                    return;
+                }
 
-            if (!printContent) {
-                Swal.fire('Bilgi', 'Seçilen kriterlere uygun veri bulunamadı.', 'info');
-                return;
+                for (let i = 0; i < allHtmlChunks.length; i += perPage) {
+                    let chunk = allHtmlChunks.slice(i, i + perPage).join('');
+                    finalPrintContent += `<div class="print-page">${chunk}</div>`;
+                }
+            } else {
+                datesToPrint.forEach(date => {
+                    selectedClasses.forEach(cls => {
+                        const html = generateSinglePrintFis(cls, date, format);
+                        if (html) finalPrintContent += html;
+                    });
+                });
+                if (!finalPrintContent) {
+                    Swal.fire('Bilgi', 'Seçilen kriterlere uygun veri bulunamadı.', 'info');
+                    return;
+                }
             }
 
-            openPrintWindow(printContent, format);
+            openPrintWindow(finalPrintContent, format);
         }
 
         function generateSinglePrintFis(classVal, dateVal, format) {
@@ -1857,11 +1881,12 @@
             }
 
             let wrapperClass = "fis-wrapper";
-            if (format === 'a5') wrapperClass = "fis-wrapper-a5";
-            if (format === 'a6') wrapperClass = "fis-wrapper-a6";
-            if (format === '5li') wrapperClass = "fis-wrapper-5li";
+            if (format === '2li') wrapperClass = "fis-wrapper-multi wrapper-2li";
+            if (format === '3lu') wrapperClass = "fis-wrapper-multi wrapper-3lu";
+            if (format === '4lu') wrapperClass = "fis-wrapper-multi wrapper-4lu";
+            if (format === '5li') wrapperClass = "fis-wrapper-multi wrapper-5li";
             
-            let html = `<div class="${wrapperClass} page-break-after">`;
+            let html = `<div class="${wrapperClass}">`;
             
             html += `
                 <div class="print-title">${title}</div>
@@ -1871,16 +1896,14 @@
                 </div>
                 <table class="print-table" style="width: 100%; border: 2px solid black; border-collapse: collapse;">
                     <thead>
-                        <tr>
-                            <th style="width: 12%; border: 1px solid black; padding: 10px; text-align: left; font-weight: normal;">Ders Saati</th>`;
+                        <tr>`;
             
             for (let i = 1; i <= MAX_HOURS; i++) {
-                html += `<th style="border: 1px solid black; padding: 10px; text-align: center; font-weight: bold;">${i}. DERS</th>`;
+                html += `<th style="border: 1px solid black; padding: 8px; text-align: center; font-weight: bold;">${i}. DERS</th>`;
             }
             
             html += `</tr>
-                        <tr>
-                            <td style="border: 1px solid black; padding: 10px; text-align: center; vertical-align: middle;">Derslerin<br>Adı</td>`;
+                        <tr>`;
             
             for (let i = 1; i <= MAX_HOURS; i++) {
                 let hourStr = i.toString();
@@ -1890,14 +1913,13 @@
                     let subj = hourObj.subject || '';
                     textStr = `<strong>${shorten(subj, 12)}</strong>`;
                 }
-                html += `<td style="border: 1px solid black; padding: 5px; text-align: center; vertical-align: middle; font-size: 10pt;">${textStr}</td>`;
+                html += `<td style="border: 1px solid black; padding: 4px; text-align: center; vertical-align: middle; font-size: 9pt;">${textStr}</td>`;
             }
             
             html += `</tr>
                     </thead>
                     <tbody>
-                        <tr style="height: 250px;">
-                            <td style="border: 1px solid black; border-bottom: 2px solid black;"></td>`;
+                        <tr class="students-row">`;
             
             for (let i = 1; i <= MAX_HOURS; i++) {
                 let hourStr = i.toString();
@@ -1920,8 +1942,7 @@
             }
 
             html += `</tr>
-                        <tr>
-                            <td style="border: 1px solid black; padding: 10px; text-align: center; font-weight: normal;">Toplam</td>`;
+                        <tr>`;
             
             for (let i = 1; i <= MAX_HOURS; i++) {
                 let hourStr = i.toString();
@@ -1932,12 +1953,11 @@
                         if (st === 'GELMEDİ' || st === 'GEÇ') count++;
                     });
                 }
-                html += `<td style="border: 1px solid black; padding: 10px; text-align: center;">${count > 0 ? count : ''}</td>`;
+                html += `<td style="border: 1px solid black; padding: 8px; text-align: center;">${count > 0 ? count : ''}</td>`;
             }
 
             html += `</tr>
-                        <tr>
-                            <td style="border: 1px solid black; padding: 10px; text-align: center; height: 40px; font-size: 10pt;">Öğretmenin<br>Adı Soyadı<br>İmzası</td>`;
+                        <tr>`;
             
             for (let i = 1; i <= MAX_HOURS; i++) {
                 let hourStr = i.toString();
@@ -1971,78 +1991,59 @@
             let columnStyle = '';
             let extraCSS = '';
 
-            if (format === 'a5') {
+            if (format !== 'a4' && format !== 'haftalik_a4') {
                 extraCSS = `
-                    .fis-wrapper-a5 {
-                        width: 100%;
-                        height: 13.5cm;
-                        margin-bottom: 0.5cm;
-                        box-sizing: border-box;
-                        page-break-inside: avoid;
-                        overflow: hidden;
-                    }
-                    .fis-wrapper-a5:nth-child(even) {
+                    .print-page {
                         page-break-after: always;
+                        clear: both;
+                        width: 100%;
+                        height: 27cm;
+                        box-sizing: border-box;
                     }
-                    .fis-wrapper-a5 table th, .fis-wrapper-a5 table td {
-                        padding: 5px !important;
-                        font-size: 10pt !important;
-                    }
-                    .fis-wrapper-a5 .print-title { font-size: 14pt !important; margin-bottom: 10px !important; }
-                `;
-            } else if (format === 'a6') {
-                extraCSS = `
-                    .fis-wrapper-a6 {
+                    .fis-wrapper-multi {
                         width: 48%;
-                        height: 13.5cm;
                         float: left;
                         margin: 1%;
                         box-sizing: border-box;
                         page-break-inside: avoid;
                         overflow: hidden;
                     }
-                    .fis-wrapper-a6:nth-child(2n) {
-                        clear: right;
-                    }
-                    .fis-wrapper-a6:nth-child(2n+1) {
+                    .fis-wrapper-multi:nth-child(2n+1) {
                         clear: left;
                     }
-                    .fis-wrapper-a6:nth-child(4n) {
-                        page-break-after: always;
-                        clear: both;
+                    .fis-wrapper-multi:nth-child(2n) {
+                        clear: right;
                     }
-                    .fis-wrapper-a6 table th, .fis-wrapper-a6 table td {
+                    .wrapper-2li, .wrapper-3lu, .wrapper-4lu {
+                        height: 13cm;
+                    }
+                    .wrapper-5li {
+                        height: 8.5cm;
+                    }
+
+                    /* Scale fonts for 2li, 3lu, 4lu */
+                    .wrapper-2li table th, .wrapper-2li table td,
+                    .wrapper-3lu table th, .wrapper-3lu table td,
+                    .wrapper-4lu table th, .wrapper-4lu table td {
                         padding: 3px !important;
                         font-size: 8pt !important;
                     }
-                    .fis-wrapper-a6 .print-title { font-size: 12pt !important; margin-bottom: 5px !important; }
-                    .fis-wrapper-a6 .print-header-info { font-size: 9pt !important; margin-bottom: 5px !important; }
-                    .fis-wrapper-a6 .print-footer { font-size: 7pt !important; margin-top: 5px !important; }
-                    .fis-wrapper-a6 td[style*="font-size: 12pt"] { font-size: 9pt !important; line-height: 1.2 !important; padding-top: 5px !important; }
-                    .fis-wrapper-a6 tr[style*="height: 250px"] { height: 120px !important; }
-                `;
-            } else if (format === '5li') {
-                extraCSS = `
-                    .fis-wrapper-5li {
-                        width: 100%;
-                        height: 5.4cm;
-                        margin-bottom: 0.2cm;
-                        box-sizing: border-box;
-                        page-break-inside: avoid;
-                        overflow: hidden;
-                    }
-                    .fis-wrapper-5li:nth-child(5n) {
-                        page-break-after: always;
-                    }
-                    .fis-wrapper-5li table th, .fis-wrapper-5li table td {
+                    .wrapper-2li .print-title, .wrapper-3lu .print-title, .wrapper-4lu .print-title { font-size: 11pt !important; margin-bottom: 5px !important; }
+                    .wrapper-2li .print-header-info, .wrapper-3lu .print-header-info, .wrapper-4lu .print-header-info { font-size: 9pt !important; margin-bottom: 5px !important; }
+                    .wrapper-2li .print-footer, .wrapper-3lu .print-footer, .wrapper-4lu .print-footer { font-size: 8pt !important; margin-top: 5px !important; }
+                    .wrapper-2li td[style*="font-size: 12pt"], .wrapper-3lu td[style*="font-size: 12pt"], .wrapper-4lu td[style*="font-size: 12pt"] { font-size: 9pt !important; line-height: 1.2 !important; padding-top: 5px !important; }
+                    .wrapper-2li .students-row, .wrapper-3lu .students-row, .wrapper-4lu .students-row { height: 130px !important; }
+
+                    /* Scale fonts for 5li heavily */
+                    .wrapper-5li table th, .wrapper-5li table td {
                         padding: 2px !important;
                         font-size: 7pt !important;
                     }
-                    .fis-wrapper-5li .print-title { font-size: 10pt !important; margin-bottom: 2px !important; }
-                    .fis-wrapper-5li .print-header-info { font-size: 8pt !important; margin-bottom: 2px !important;}
-                    .fis-wrapper-5li .print-footer { font-size: 6pt !important; margin-top: 2px !important; }
-                    .fis-wrapper-5li tr[style*="height: 250px"] { height: 40px !important; }
-                    .fis-wrapper-5li td[style*="font-size: 12pt"] { font-size: 7pt !important; line-height: 1 !important; padding-top: 2px !important; }
+                    .wrapper-5li .print-title { font-size: 9pt !important; margin-bottom: 2px !important; }
+                    .wrapper-5li .print-header-info { font-size: 7pt !important; margin-bottom: 2px !important;}
+                    .wrapper-5li .print-footer { font-size: 6pt !important; margin-top: 2px !important; }
+                    .wrapper-5li .students-row { height: 60px !important; }
+                    .wrapper-5li td[style*="font-size: 12pt"] { font-size: 7pt !important; line-height: 1 !important; padding-top: 2px !important; }
                 `;
             } else {
                 extraCSS = `
@@ -2052,6 +2053,7 @@
                         page-break-after: always;
                         box-sizing: border-box;
                     }
+                    .students-row { height: 250px; }
                 `;
             }
 
