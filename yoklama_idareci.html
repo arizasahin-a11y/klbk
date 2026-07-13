@@ -1964,11 +1964,8 @@
                 if (hourObj && hourObj.records) {
                     let missing = [];
                     Object.entries(hourObj.records).forEach(([no, status]) => {
-                        const stu = sList.find(s => s.no == no);
-                        let fullName = stu ? shorten(`${stu.name} ${stu.surname || ''}`.trim(), 14) : '';
-                        
-                        if (status === 'GELMEDİ') missing.push(`${no} ${fullName}`);
-                        else if (status === 'GEÇ') missing.push(`${no} ${fullName}(Geç)`);
+                        if (status === 'GELMEDİ') missing.push(no);
+                        else if (status === 'GEÇ') missing.push(`${no}(Geç)`);
                     });
                     
                     if (missing.length === 0) {
@@ -1977,7 +1974,7 @@
                         absentText = missing.join('<br>');
                     }
                 }
-                html += `<td style="border: 1px solid black; border-bottom: 2px solid black; font-size: 12px; line-height: 1.2; padding-top: 10px; text-align: center; vertical-align: top;">${absentText}</td>`;
+                html += `<td style="border: 1px solid black; border-bottom: 2px solid black; font-size: 12px; line-height: 1.6; padding-top: 10px; text-align: center; vertical-align: top;">${absentText}</td>`;
             }
 
             html += `</tr>
@@ -2006,7 +2003,7 @@
                     let rawName = hourObj.teacherName || hourObj.teacher || '';
                     tName = formatTeacherInitials(rawName);
                 }
-                html += `<td style="border: 1px solid black; padding: 5px; text-align: center; vertical-align: bottom;"><span style="font-size: 8pt; color: gray;">${tName}</span></td>`;
+                html += `<td style="border: 1px solid black; padding: 5px; text-align: center; vertical-align: bottom;"><span style="font-size: 12px; color: gray;">${tName}</span></td>`;
             }
 
             let nobetciSet = new Set();
@@ -2024,7 +2021,7 @@
             let nobetciArray = Array.from(nobetciSet).sort((a,b) => parseInt(a) - parseInt(b));
             let nobetciHtml = '';
             if (nobetciArray.length > 0) {
-                nobetciHtml = `<div style="font-size: 9pt; color: #4b5563; max-width: 200px; text-align: left; padding-top: 10px;"><strong style="color: #111827;">Nöbetçi:</strong> ${nobetciArray.join(', ')}</div>`;
+                nobetciHtml = `<div style="font-size: 12px; color: #4b5563; max-width: 200px; text-align: left; padding-top: 10px;"><strong style="color: #111827;">Nöbetçi:</strong> ${nobetciArray.join(', ')}</div>`;
             }
 
             html += `</tr>
@@ -2036,7 +2033,7 @@
                     </div>
                     <div style="text-align: right; margin-right: 30px;">
                         İncelendi<br><br><br>
-                        <span style="font-size: 10pt; color: #111827;">${sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || ''}</span>
+                        <span style="font-size: 12px; color: #111827;">${sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || ''}</span>
                     </div>
                 </div>
             </div>`;
