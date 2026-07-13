@@ -1521,6 +1521,7 @@
 
             // Aggregate from database
             for (const date in attendanceDb) {
+                const nobetciToday = new Set();
                 for (const hour in attendanceDb[date]) {
                     for (const cls in attendanceDb[date][hour]) {
                         const record = attendanceDb[date][hour][cls];
@@ -1530,7 +1531,12 @@
                                 if (status === 'GELMEDİ') studentStats[no].gelmedi++;
                                 else if (status === 'GEÇ') studentStats[no].gec++;
                                 else if (status === 'RAHATSIZLANDI') studentStats[no].rahatsiz++;
-                                else if (status === 'NÖBETÇİ') studentStats[no].nobetci++;
+                                else if (status === 'NÖBETÇİ') {
+                                    if (!nobetciToday.has(no)) {
+                                        studentStats[no].nobetci++;
+                                        nobetciToday.add(no);
+                                    }
+                                }
                             }
                         });
                     }
@@ -1629,6 +1635,7 @@
             });
 
             for (const date in attendanceDb) {
+                const nobetciToday = new Set();
                 for (const hour in attendanceDb[date]) {
                     for (const cls in attendanceDb[date][hour]) {
                         const record = attendanceDb[date][hour][cls];
@@ -1637,7 +1644,12 @@
                                 if (status === 'GELMEDİ') studentStats[no].gelmedi++;
                                 else if (status === 'GEÇ') studentStats[no].gec++;
                                 else if (status === 'RAHATSIZLANDI') studentStats[no].rahatsiz++;
-                                else if (status === 'NÖBETÇİ') studentStats[no].nobetci++;
+                                else if (status === 'NÖBETÇİ') {
+                                    if (!nobetciToday.has(no)) {
+                                        studentStats[no].nobetci++;
+                                        nobetciToday.add(no);
+                                    }
+                                }
                             }
                         });
                     }
@@ -1721,6 +1733,7 @@
 
             Object.keys(attendanceDb || {}).forEach(date => {
                 const hoursMap = attendanceDb[date] || {};
+                const nobetciToday = new Set();
                 Object.keys(hoursMap).forEach(hour => {
                     const classesMap = hoursMap[hour] || {};
                     Object.keys(classesMap).forEach(cls => {
@@ -1736,7 +1749,12 @@
                             const st = records[stdNo];
                             if (st === 'GELMEDİ') studentStats[stdNo].gelmedi++;
                             if (st === 'RAHATSIZLANDI') studentStats[stdNo].rahatsiz++;
-                            if (st === 'NÖBETÇİ') studentStats[stdNo].nobetci++;
+                            if (st === 'NÖBETÇİ') {
+                                if (!nobetciToday.has(stdNo)) {
+                                    studentStats[stdNo].nobetci++;
+                                    nobetciToday.add(stdNo);
+                                }
+                            }
                             if (st === 'GEÇ') {
                                 studentStats[stdNo].gec++;
                                 if (gecTimes[stdNo]) {
