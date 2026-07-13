@@ -837,6 +837,7 @@
                             <option value="a4">A4 (Sayfa başına 1 fiş)</option>
                             <option value="a5">A5 (Sayfa başına 2 fiş)</option>
                             <option value="a6">A6 (Sayfa başına 4 fiş)</option>
+                            <option value="5li">A4 (Sayfa başına 5 fiş)</option>
                             <option value="haftalik_a4">1 Haftalık (5 Gün) A4 Tablo</option>
                         </select>
                     </div>
@@ -1858,6 +1859,7 @@
             let wrapperClass = "fis-wrapper";
             if (format === 'a5') wrapperClass = "fis-wrapper-a5";
             if (format === 'a6') wrapperClass = "fis-wrapper-a6";
+            if (format === '5li') wrapperClass = "fis-wrapper-5li";
             
             let html = `<div class="${wrapperClass} page-break-after">`;
             
@@ -1973,38 +1975,82 @@
                 extraCSS = `
                     .fis-wrapper-a5 {
                         width: 100%;
-                        height: 48%; /* A4'ün yarısı yaklaşık olarak */
-                        margin-bottom: 2%;
+                        height: 13.5cm;
+                        margin-bottom: 0.5cm;
                         box-sizing: border-box;
+                        page-break-inside: avoid;
+                        overflow: hidden;
                     }
-                    /* İki fişte bir sayfa sonu */
                     .fis-wrapper-a5:nth-child(even) {
                         page-break-after: always;
                     }
+                    .fis-wrapper-a5 table th, .fis-wrapper-a5 table td {
+                        padding: 5px !important;
+                        font-size: 10pt !important;
+                    }
+                    .fis-wrapper-a5 .print-title { font-size: 14pt !important; margin-bottom: 10px !important; }
                 `;
             } else if (format === 'a6') {
                 extraCSS = `
                     .fis-wrapper-a6 {
                         width: 48%;
-                        height: 48%;
+                        height: 13.5cm;
                         float: left;
                         margin: 1%;
                         box-sizing: border-box;
-                        font-size: 0.8em;
+                        page-break-inside: avoid;
+                        overflow: hidden;
                     }
-                    /* Dört fişte bir sayfa sonu */
+                    .fis-wrapper-a6:nth-child(2n) {
+                        clear: right;
+                    }
+                    .fis-wrapper-a6:nth-child(2n+1) {
+                        clear: left;
+                    }
                     .fis-wrapper-a6:nth-child(4n) {
                         page-break-after: always;
-                        float: none;
                         clear: both;
                     }
+                    .fis-wrapper-a6 table th, .fis-wrapper-a6 table td {
+                        padding: 3px !important;
+                        font-size: 8pt !important;
+                    }
+                    .fis-wrapper-a6 .print-title { font-size: 12pt !important; margin-bottom: 5px !important; }
+                    .fis-wrapper-a6 .print-header-info { font-size: 9pt !important; margin-bottom: 5px !important; }
+                    .fis-wrapper-a6 .print-footer { font-size: 7pt !important; margin-top: 5px !important; }
+                    .fis-wrapper-a6 td[style*="font-size: 12pt"] { font-size: 9pt !important; line-height: 1.2 !important; padding-top: 5px !important; }
+                    .fis-wrapper-a6 tr[style*="height: 250px"] { height: 120px !important; }
+                `;
+            } else if (format === '5li') {
+                extraCSS = `
+                    .fis-wrapper-5li {
+                        width: 100%;
+                        height: 5.4cm;
+                        margin-bottom: 0.2cm;
+                        box-sizing: border-box;
+                        page-break-inside: avoid;
+                        overflow: hidden;
+                    }
+                    .fis-wrapper-5li:nth-child(5n) {
+                        page-break-after: always;
+                    }
+                    .fis-wrapper-5li table th, .fis-wrapper-5li table td {
+                        padding: 2px !important;
+                        font-size: 7pt !important;
+                    }
+                    .fis-wrapper-5li .print-title { font-size: 10pt !important; margin-bottom: 2px !important; }
+                    .fis-wrapper-5li .print-header-info { font-size: 8pt !important; margin-bottom: 2px !important;}
+                    .fis-wrapper-5li .print-footer { font-size: 6pt !important; margin-top: 2px !important; }
+                    .fis-wrapper-5li tr[style*="height: 250px"] { height: 40px !important; }
+                    .fis-wrapper-5li td[style*="font-size: 12pt"] { font-size: 7pt !important; line-height: 1 !important; padding-top: 2px !important; }
                 `;
             } else {
                 extraCSS = `
                     .fis-wrapper {
                         width: 100%;
-                        height: 100%;
+                        height: 27cm;
                         page-break-after: always;
+                        box-sizing: border-box;
                     }
                 `;
             }
