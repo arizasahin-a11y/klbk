@@ -873,12 +873,9 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             // 1. Auth Validation
-            checkAuth();
-        });
-
-        function checkAuth() {
             const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true';
-            const role = sessionStorage.getItem('klbk_role') || '';
+            const rawRole = sessionStorage.getItem('klbk_role') || '';
+            const role = rawRole.toLowerCase().trim();
             const activeAdminUsername = sessionStorage.getItem('klbk_currentUser') || '';
             
             if (!isLoggedIn || !activeAdminUsername || (role !== 'admin' && role !== 'master' && role !== 'idareci' && role !== 'dashboard')) {
