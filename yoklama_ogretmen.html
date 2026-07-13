@@ -1444,7 +1444,7 @@
                     <button type="button" class="status-btn ${currentStatus === 'RAHATSIZLANDI' ? 'active' : ''}" data-status="RAHATSIZLANDI" onclick="setStudentStatus('${s.no}', 'RAHATSIZLANDI')" title="Rahatsız">
                         <i class="fa-solid fa-moon" style="color: #ef4444;"></i>
                     </button>
-                    <button type="button" class="status-btn ${currentStatus === 'BOŞ' ? 'active' : ''}" data-status="BOŞ" onclick="setStudentStatus('${s.no}', 'BOŞ')" style="color:#ef4444; border-color:#fee2e2; background:#fef2f2;" title="Sıfırla">
+                    <button type="button" class="status-btn ${currentStatus === 'BOŞ' ? 'active' : ''}" data-status="BOŞ" onclick="setStudentStatus('${s.no}', 'BOŞ')" style="color:var(--dark); border-color:#e2e8f0; background:#f1f5f9;" title="Sıfırla">
                         <i class="fa-solid fa-trash"></i>
                     </button>
                 `;
@@ -1456,10 +1456,10 @@
                             <span class="student-no" style="font-size: 1rem; font-weight: 700; color: var(--primary);">${s.no}</span>
                             <span class="student-name" style="font-size: 0.95rem; font-weight: 600; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">${s.name} ${s.surname || ''}</span>
                             ${currentStatus === 'GEÇ' && gecTimeMap[s.no] !== undefined ? `
-                                <div class="late-time-ui" style="display:flex; align-items:center; justify-content:center; gap:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:20px; padding:4px 8px; color:#ef4444; flex-shrink:0;">
-                                    <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${s.no}', -1)" style="width:28px; height:28px; background:#ef4444; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(239,68,68,0.3);">-</span>
-                                    <span class="late-time-text" style="font-size:0.95rem; font-weight:800; min-width:24px; text-align:center;">${gecTimeMap[s.no]}m</span>
-                                    <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${s.no}', 1)" style="width:28px; height:28px; background:#ef4444; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(239,68,68,0.3);">+</span>
+                                <div class="late-time-ui" style="display:flex; align-items:center; justify-content:center; gap:6px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); border-radius:16px; padding:2px 6px; color:var(--gec-color); flex-shrink:0;">
+                                    <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${s.no}', -1)" style="width:22px; height:22px; background:var(--gec-color); color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(245,158,11,0.3);">-</span>
+                                    <span class="late-time-text" style="font-size:0.85rem; font-weight:800; min-width:20px; text-align:center;">${gecTimeMap[s.no]}m</span>
+                                    <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${s.no}', 1)" style="width:22px; height:22px; background:var(--gec-color); color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(245,158,11,0.3);">+</span>
                                 </div>
                             ` : ''}
                         </div>
@@ -1549,11 +1549,11 @@
                         if (!existingLateUi) {
                             let lateDiv = document.createElement('div');
                             lateDiv.className = 'late-time-ui';
-                            lateDiv.style.cssText = 'display:flex; align-items:center; justify-content:center; gap:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:20px; padding:4px 8px; color:#ef4444; flex-shrink:0;';
+                            lateDiv.style.cssText = 'display:flex; align-items:center; justify-content:center; gap:6px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); border-radius:16px; padding:2px 6px; color:var(--gec-color); flex-shrink:0;';
                             lateDiv.innerHTML = `
-                                <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${studentNo}', -1)" style="width:28px; height:28px; background:#ef4444; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(239,68,68,0.3);">-</span>
-                                <span class="late-time-text" style="font-size:0.95rem; font-weight:800; min-width:24px; text-align:center;">${gecTimeMap[studentNo]}m</span>
-                                <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${studentNo}', 1)" style="width:28px; height:28px; background:#ef4444; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(239,68,68,0.3);">+</span>
+                                <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${studentNo}', -1)" style="width:22px; height:22px; background:var(--gec-color); color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(245,158,11,0.3);">-</span>
+                                <span class="late-time-text" style="font-size:0.85rem; font-weight:800; min-width:20px; text-align:center;">${gecTimeMap[studentNo]}m</span>
+                                <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${studentNo}', 1)" style="width:22px; height:22px; background:var(--gec-color); color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(245,158,11,0.3);">+</span>
                             `;
                             topBar.appendChild(lateDiv);
                         } else {
