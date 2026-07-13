@@ -2333,7 +2333,7 @@
                         });
 
                         try {
-                            const res = await fetch(`https://klbk-backend-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users.json`);
+                            const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
                             const usersDb = await res.json();
                             let foundUser = null;
 
