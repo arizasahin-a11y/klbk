@@ -2006,11 +2006,30 @@
                 html += `<td style="border: 1px solid black; padding: 5px; text-align: center; vertical-align: bottom;"><span style="font-size: 8pt; color: gray;">${tName}</span></td>`;
             }
 
+            let nobetciSet = new Set();
+            for (let i = 1; i <= MAX_HOURS; i++) {
+                let hourStr = i.toString();
+                let hourObj = dayRecords[hourStr] ? dayRecords[hourStr][classVal] : null;
+                if (hourObj && hourObj.records) {
+                    Object.entries(hourObj.records).forEach(([stuNo, st]) => {
+                        if (st === 'NÖBETÇİ') {
+                            nobetciSet.add(stuNo);
+                        }
+                    });
+                }
+            }
+            let nobetciArray = Array.from(nobetciSet).sort((a,b) => parseInt(a) - parseInt(b));
+            let nobetciHtml = '';
+            if (nobetciArray.length > 0) {
+                nobetciHtml = `<div style="font-size: 9pt; color: #4b5563; max-width: 200px; text-align: left; padding-top: 10px;"><strong style="color: #111827;">Nöbetçi:</strong> ${nobetciArray.join(', ')}</div>`;
+            }
+
             html += `</tr>
                     </tbody>
                 </table>
                 <div class="print-footer">
                     <div>
+                        ${nobetciHtml}
                     </div>
                     <div style="text-align: right; margin-right: 30px;">
                         İncelendi<br><br><br>
