@@ -522,9 +522,6 @@
             <div style="font-family: 'Courier New', Courier, monospace; font-size: 1.5rem; font-weight: 900; color: #39ff14; text-shadow: 0 0 8px #39ff14;">
                 <i class="fa-regular fa-clock"></i> <span id="neonCurrentTime" style="letter-spacing: 1px;">--:--:--</span>
             </div>
-            <div id="neonSeparator" style="font-family: 'Courier New', Courier, monospace; font-size: 1.5rem; font-weight: 900; color: #ffffff; display: none;">
-                /
-            </div>
             <div id="neonLessonStatusContainer" style="font-family: 'Courier New', Courier, monospace; font-size: 1.5rem; font-weight: 900; display: none;">
                 <i class="fa-solid fa-hourglass-half"></i> <span id="neonLessonStatus" style="letter-spacing: 1px;">--:--:--</span>
             </div>
@@ -2121,7 +2118,6 @@
             if(neonCurrentTime) neonCurrentTime.textContent = `${h}:${m}:${s}`;
             
             const hourVal = document.getElementById('lessonHour')?.value;
-            const neonSeparator = document.getElementById('neonSeparator');
             const neonLessonStatusContainer = document.getElementById('neonLessonStatusContainer');
             const neonLessonStatus = document.getElementById('neonLessonStatus');
             
@@ -2146,7 +2142,6 @@
                             neonLessonStatusContainer.style.textShadow = '0 0 8px #ffeb3b';
                             neonLessonStatus.textContent = `${diffH}:${diffM}:${diffS}`;
                             neonLessonStatusContainer.style.display = 'block';
-                            if(neonSeparator) neonSeparator.style.display = 'block';
                         } else if (totalSeconds <= endTotalSeconds) {
                             let diffSeconds = endTotalSeconds - totalSeconds;
                             let diffH = String(Math.floor(diffSeconds / 3600)).padStart(2, '0');
@@ -2156,18 +2151,14 @@
                             neonLessonStatusContainer.style.textShadow = '0 0 8px #ff073a';
                             neonLessonStatus.textContent = `${diffH}:${diffM}:${diffS}`;
                             neonLessonStatusContainer.style.display = 'block';
-                            if(neonSeparator) neonSeparator.style.display = 'block';
                         } else {
                             neonLessonStatusContainer.style.display = 'none';
-                            if(neonSeparator) neonSeparator.style.display = 'none';
                         }
                     } else {
                         neonLessonStatusContainer.style.display = 'none';
-                        if(neonSeparator) neonSeparator.style.display = 'none';
                     }
                 } else {
                     neonLessonStatusContainer.style.display = 'none';
-                    if(neonSeparator) neonSeparator.style.display = 'none';
                 }
             }
         }, 1000);
