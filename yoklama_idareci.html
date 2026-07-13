@@ -1942,7 +1942,7 @@
             }
 
             html += `</tr>
-                        <tr>`;
+                        <tr class="total-row">`;
             
             for (let i = 1; i <= MAX_HOURS; i++) {
                 let hourStr = i.toString();
@@ -1957,7 +1957,7 @@
             }
 
             html += `</tr>
-                        <tr>`;
+                        <tr class="signature-row">`;
             
             for (let i = 1; i <= MAX_HOURS; i++) {
                 let hourStr = i.toString();
@@ -1996,9 +1996,14 @@
                     .print-page {
                         page-break-after: always;
                         clear: both;
-                        width: 100%;
-                        height: 27cm;
+                        width: 210mm;
+                        height: 297mm;
+                        padding: 10mm;
                         box-sizing: border-box;
+                        background: white;
+                        box-shadow: 0 0 10px rgba(0,0,0,0.2);
+                        margin-bottom: 20px;
+                        display: block;
                     }
                     .fis-wrapper-multi {
                         width: 48%;
@@ -2007,6 +2012,12 @@
                         box-sizing: border-box;
                         page-break-inside: avoid;
                         overflow: hidden;
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    .fis-wrapper-multi table {
+                        flex-grow: 1;
+                        height: 100%;
                     }
                     .fis-wrapper-multi:nth-child(2n+1) {
                         clear: left;
@@ -2015,10 +2026,10 @@
                         clear: right;
                     }
                     .wrapper-2li, .wrapper-3lu, .wrapper-4lu {
-                        height: 13cm;
+                        height: 13.5cm;
                     }
                     .wrapper-5li {
-                        height: 8.5cm;
+                        height: 8.8cm;
                     }
 
                     /* Scale fonts for 2li, 3lu, 4lu */
@@ -2032,7 +2043,11 @@
                     .wrapper-2li .print-header-info, .wrapper-3lu .print-header-info, .wrapper-4lu .print-header-info { font-size: 9pt !important; margin-bottom: 5px !important; }
                     .wrapper-2li .print-footer, .wrapper-3lu .print-footer, .wrapper-4lu .print-footer { font-size: 8pt !important; margin-top: 5px !important; }
                     .wrapper-2li td[style*="font-size: 12pt"], .wrapper-3lu td[style*="font-size: 12pt"], .wrapper-4lu td[style*="font-size: 12pt"] { font-size: 9pt !important; line-height: 1.2 !important; padding-top: 5px !important; }
-                    .wrapper-2li .students-row, .wrapper-3lu .students-row, .wrapper-4lu .students-row { height: 130px !important; }
+                    
+                    /* Dynamic row heights for 2/3/4 */
+                    .wrapper-2li .students-row, .wrapper-3lu .students-row, .wrapper-4lu .students-row { height: auto !important; }
+                    .wrapper-2li .total-row, .wrapper-3lu .total-row, .wrapper-4lu .total-row { height: 35px !important; }
+                    .wrapper-2li .signature-row, .wrapper-3lu .signature-row, .wrapper-4lu .signature-row { height: 75px !important; }
 
                     /* Scale fonts for 5li heavily */
                     .wrapper-5li table th, .wrapper-5li table td {
@@ -2042,18 +2057,28 @@
                     .wrapper-5li .print-title { font-size: 9pt !important; margin-bottom: 2px !important; }
                     .wrapper-5li .print-header-info { font-size: 7pt !important; margin-bottom: 2px !important;}
                     .wrapper-5li .print-footer { font-size: 6pt !important; margin-top: 2px !important; }
-                    .wrapper-5li .students-row { height: 60px !important; }
+                    
+                    /* Dynamic row heights for 5 */
+                    .wrapper-5li .students-row { height: auto !important; }
+                    .wrapper-5li .total-row { height: 25px !important; }
+                    .wrapper-5li .signature-row { height: 45px !important; }
                     .wrapper-5li td[style*="font-size: 12pt"] { font-size: 7pt !important; line-height: 1 !important; padding-top: 2px !important; }
                 `;
             } else {
                 extraCSS = `
                     .fis-wrapper {
-                        width: 100%;
-                        height: 27cm;
+                        width: 210mm;
+                        height: 297mm;
+                        padding: 10mm;
+                        background: white;
+                        box-shadow: 0 0 10px rgba(0,0,0,0.2);
+                        margin-bottom: 20px;
                         page-break-after: always;
                         box-sizing: border-box;
                     }
                     .students-row { height: 250px; }
+                    .total-row { height: 40px; }
+                    .signature-row { height: 80px; }
                 `;
             }
 
@@ -2065,11 +2090,19 @@
                     <title>Toplu Yazdırma</title>
                     <style>
                         body {
-                            background: white;
+                            background: #e0e0e0;
                             color: black;
-                            padding: 10mm;
+                            padding: 20px;
                             font-family: Arial, sans-serif;
                             margin: 0;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                        }
+                        #print-action {
+                            width: 210mm;
+                            text-align: right;
+                            margin-bottom: 20px;
                         }
                         .print-title {
                             text-align: center;
@@ -2090,19 +2123,23 @@
                             margin-top: 15px;
                             font-size: 9pt;
                         }
-                        .page-break-after {
-                            /* fallback if not covered by nth-child */
-                        }
                         ${extraCSS}
                         @media print {
-                            body { margin: 0; padding: 0; }
+                            body { background: white; padding: 0; display: block; margin: 0; }
                             @page { margin: 10mm; }
-                            button { display: none !important; }
+                            #print-action { display: none !important; }
+                            .print-page, .fis-wrapper {
+                                width: 100%;
+                                height: 277mm; /* Total A4 minus margins */
+                                box-shadow: none;
+                                margin: 0;
+                                padding: 0;
+                            }
                         }
                     </style>
                 </head>
                 <body>
-                    <div style="text-align: right; margin-bottom: 20px;">
+                    <div id="print-action">
                         <button onclick="window.print()" style="padding: 10px 20px; background: #10b981; color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; font-size: 14px;">🖨️ YAZDIR</button>
                     </div>
                     ${htmlContent}
