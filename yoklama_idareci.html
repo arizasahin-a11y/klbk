@@ -1880,6 +1880,27 @@
         }
 
         function generateSinglePrintFis(classVal, dateVal, format) {
+            function formatTeacherInitials(nameStr) {
+                if (!nameStr) return '';
+                let teachers = nameStr.split(/\s*[\/,]\s*|\s+ve\s+/i);
+                let formattedTeachers = teachers.map(t => {
+                    t = t.trim();
+                    if (!t) return '';
+                    let words = t.split(/\s+/).filter(w => w.length > 0);
+                    if (words.length === 0) return '';
+                    if (words.length === 1) {
+                        return words[0].substring(0, 2).toLocaleUpperCase('tr-TR') + '.';
+                    } else if (words.length === 2) {
+                        let first = words[0].substring(0, 2).toLocaleUpperCase('tr-TR');
+                        let second = words[1].substring(0, 2).toLocaleUpperCase('tr-TR');
+                        return `${first}.${second}.`;
+                    } else {
+                        return words.map(w => w.charAt(0).toLocaleUpperCase('tr-TR') + '.').join('');
+                    }
+                });
+                return formattedTeachers.filter(Boolean).join('/');
+            }
+
             const dayRecords = attendanceDb[dateVal] || {};
             const MAX_HOURS = 8;
             
@@ -1980,7 +2001,7 @@
                 let tName = '';
                 if (hourObj) {
                     let rawName = hourObj.teacherName || hourObj.teacher || '';
-                    tName = shorten(rawName, 12);
+                    tName = formatTeacherInitials(rawName);
                 }
                 html += `<td style="border: 1px solid black; padding: 5px; text-align: center; vertical-align: bottom;"><span style="font-size: 8pt; color: gray;">${tName}</span></td>`;
             }
