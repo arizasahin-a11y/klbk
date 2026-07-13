@@ -1235,7 +1235,7 @@
 
             // Filter students in selected class
             const studentsInClass = allStudents.filter(s => s.class && s.class.trim() === classVal.trim());
-            studentsInClass.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr'));
+            studentsInClass.sort((a, b) => (parseInt(a.no) || 0) - (parseInt(b.no) || 0));
 
             const tbody = document.getElementById('sinifTableBody');
             tbody.innerHTML = '';
