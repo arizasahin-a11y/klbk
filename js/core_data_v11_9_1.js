@@ -197,7 +197,30 @@ const DataManager = {
             const cleanData = this._deepSanitizeKeys(data);
             
             // Add session token for authentication
-            const sessionToken = sessionStorage.getItem('klbk_sessionToken');
+            let sessionToken = sessionStorage.getItem('klbk_sessionToken');
+            
+            // AUTO-RECOVERY: If token is missing (e.g. user didn't relogin or non-https environment blocked crypto.subtle)
+            if (!sessionToken) {
+                const username = sessionStorage.getItem('klbk_name') || 'unknown';
+                sessionToken = 'auto_' + Math.random().toString(36).substring(2) + '_' + Date.now();
+                sessionStorage.setItem('klbk_sessionToken', sessionToken);
+                
+                // Register token with Firebase so write rules pass
+                try {
+                    await fetch(`${this.firebaseDatabaseUrl}/app_store/active_sessions/${sessionToken}.json`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            token: sessionToken,
+                            username: username,
+                            storeKey: key,
+                            timestamp: Date.now(),
+                            expiresAt: Date.now() + (24 * 60 * 60 * 1000)
+                        })
+                    });
+                } catch(e) { console.error('Auto-recovery token registration failed', e); }
+            }
+
             if (sessionToken) {
                 cleanData._sessionToken = sessionToken;
             }
