@@ -165,21 +165,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Auto-redirect if not coming from a "Back" action
                 // We check if we are on the login page and NOT explicitly logging out
                 const role = (data.klbk_role || '').toLowerCase().trim();
-                let targetUrl = '/j2k5l0p8'; // Default (ogrenci)
-                if (role === 'ogretmen') {
-                    targetUrl = '/h6t3y9w1';
-                } else if (role === 'idareci') {
-                    targetUrl = '/yoklama_idareci';
-                } else if (role === 'master' || role === 'admin' || role === 'dashboard') {
-                    targetUrl = '/r1p5s8q3';
-                }
-                
-                // If we are already on the login page and have a session, 
-                // we only redirect if we didn't just come from that page (to allow 'Back' button)
-                const lastRedirect = sessionStorage.getItem('klbk_last_redirect');
-                if (lastRedirect !== targetUrl) {
-                    sessionStorage.setItem('klbk_last_redirect', targetUrl);
-                    window.location.href = targetUrl;
+                const currentPath = window.location.pathname;
+
+                if (currentPath.includes('yoklama_idareci') && (role === 'admin' || role === 'master' || role === 'idareci')) {
+                    // Do not auto-redirect away from yoklama_idareci if they are authorized for it.
+                    // Instead, just clear the last_redirect to ensure normal behavior.
+                    sessionStorage.removeItem('klbk_last_redirect');
+                } else {
+                    let targetUrl = '/j2k5l0p8'; // Default (ogrenci)
+                    if (role === 'ogretmen') {
+                        targetUrl = '/h6t3y9w1';
+                    } else if (role === 'idareci') {
+                        targetUrl = '/yoklama_idareci.html';
+                    } else if (role === 'master' || role === 'admin' || role === 'dashboard') {
+                        targetUrl = '/r1p5s8q3';
+                    }
+                    
+                    // If we are already on the login page and have a session, 
+                    // we only redirect if we didn't just come from that page (to allow 'Back' button)
+                    const lastRedirect = sessionStorage.getItem('klbk_last_redirect');
+                    if (lastRedirect !== targetUrl) {
+                        sessionStorage.setItem('klbk_last_redirect', targetUrl);
+                        window.location.href = targetUrl;
+                    }
                 }
                 return; 
             } else {
@@ -413,7 +421,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         const rawRole = userData.role || 'admin';
                         const role = rawRole.toLowerCase().trim();
                         
-                        if (role === 'ogretmen') {
+                        const currentPath = window.location.pathname;
+
+                        if (currentPath.includes('yoklama_idareci') && (role === 'admin' || role === 'master' || role === 'idareci')) {
+                            // If they are logging in directly from yoklama_idareci and have sufficient privileges, just reload
+                            window.location.reload();
+                        } else if (role === 'ogretmen') {
                             window.location.href = '/h6t3y9w1';
                         } else if (role === 'idareci') {
                             window.location.href = '/yoklama_idareci.html';

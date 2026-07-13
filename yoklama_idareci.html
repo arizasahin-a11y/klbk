@@ -497,6 +497,9 @@
             <button class="tab-btn" id="btnTabSiralama" onclick="switchTab('siralama')">
                 <i class="fa-solid fa-ranking-star"></i> Sıralamalar
             </button>
+            <button class="tab-btn" id="btnTabYazdir" onclick="switchTab('yazdir')">
+                <i class="fa-solid fa-print"></i> Yazdır
+            </button>
         </div>
 
         <!-- TAB 1: Sınıf Bazlı Takip -->
@@ -555,11 +558,6 @@
                 </div>
 
                 <div class="hidden table-responsive" id="sinifTableWrapper">
-                    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-                        <button class="btn" onclick="printYoklamaFisi()" style="background: #10b981; border-color: #10b981; color: white; padding: 8px 15px; border-radius: 8px; font-weight: 700;">
-                            <i class="fa-solid fa-print"></i> Fişi Yazdır (Kağıt)
-                        </button>
-                    </div>
                     <table class="report-table">
                         <thead>
                             <tr id="sinifTableHead">
@@ -793,6 +791,65 @@
             </div>
         </div>
 
+        <!-- TAB 7: Yazdır -->
+        <div id="tabYazdir" class="tab-content hidden">
+            <div class="glass-panel" style="padding: 1.5rem; margin-bottom: 2rem;">
+                <h3 style="margin-top:0; font-weight: 800; color: var(--primary);"><i class="fa-solid fa-print"></i> Yoklama Fişi Yazdır</h3>
+                <p style="color: var(--gray-500); font-size: 0.9rem; margin-bottom: 1.5rem;">İstediğiniz tarihleri ve sınıfları seçerek çoklu yazdırma işlemlerinizi buradan yapabilirsiniz.</p>
+                
+                <div class="grid-filters" style="margin-bottom: 1.5rem;">
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-calendar-day"></i> Tarih Aralığı Tipi</label>
+                        <select id="printDateType" class="form-select-custom" onchange="togglePrintDateInputs()">
+                            <option value="single">Tek Gün Seçimi</option>
+                            <option value="range">Tarih Aralığı Seçimi</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="printSingleDateContainer">
+                        <label><i class="fa-solid fa-calendar"></i> Tarih</label>
+                        <input type="date" id="printSingleDate" class="form-select-custom">
+                    </div>
+
+                    <div class="form-group hidden" id="printRangeStartContainer">
+                        <label><i class="fa-solid fa-calendar"></i> Başlangıç Tarihi</label>
+                        <input type="date" id="printRangeStart" class="form-select-custom">
+                    </div>
+
+                    <div class="form-group hidden" id="printRangeEndContainer">
+                        <label><i class="fa-solid fa-calendar"></i> Bitiş Tarihi</label>
+                        <input type="date" id="printRangeEnd" class="form-select-custom">
+                    </div>
+                </div>
+
+                <div class="grid-filters" style="margin-bottom: 1.5rem;">
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-graduation-cap"></i> Sınıflar (Çoklu Seçim)</label>
+                        <div style="border: 2px solid var(--gray-200); border-radius: 8px; padding: 10px; max-height: 150px; overflow-y: auto; background: white;" id="printClassListContainer">
+                            <!-- JS ile doldurulacak -->
+                        </div>
+                        <button class="btn btn-sm" style="margin-top: 8px; font-size: 0.8rem; background: var(--gray-200); color: var(--dark);" onclick="toggleAllPrintClasses()">Tümünü Seç / Temizle</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-file-invoice"></i> Kağıt Boyutu / Format</label>
+                        <select id="printFormatType" class="form-select-custom">
+                            <option value="a4">A4 (Sayfa başına 1 fiş)</option>
+                            <option value="a5">A5 (Sayfa başına 2 fiş)</option>
+                            <option value="a6">A6 (Sayfa başına 4 fiş)</option>
+                            <option value="haftalik_a4">1 Haftalık (5 Gün) A4 Tablo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="text-align: right;">
+                    <button class="btn btn-primary" onclick="executePrint()" style="padding: 10px 25px; font-size: 1rem;">
+                        <i class="fa-solid fa-print"></i> Seçilenleri Yazdır
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </div>
     <!-- XLSX Helper for exporting to Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -864,7 +921,7 @@
         function logoutIdareci() {
             sessionStorage.clear();
             localStorage.removeItem('klbk_persistent_session');
-            window.location.href = '/k9x7v2m4';
+            window.location.href = '/k9x7v2m4?logout=true';
         }
 
         // Sorting configuration for general tab
@@ -952,7 +1009,140 @@
                     el.appendChild(opt);
                 });
             });
+
+            // Populate printClassListContainer
+            const printListContainer = document.getElementById('printClassListContainer');
+            if(printListContainer) {
+                printListContainer.innerHTML = '';
+                classList.forEach(cls => {
+                    const div = document.createElement('div');
+                    div.style.marginBottom = '5px';
+                    div.innerHTML = `<label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" class="print-class-checkbox" value="${cls}"> <strong>${cls}</strong></label>`;
+                    printListContainer.appendChild(div);
+                });
+            }
         }
+
+        function togglePrintDateInputs() {
+            const type = document.getElementById('printDateType').value;
+            document.getElementById('printSingleDateContainer').classList.toggle('hidden', type !== 'single');
+            document.getElementById('printRangeStartContainer').classList.toggle('hidden', type !== 'range');
+            document.getElementById('printRangeEndContainer').classList.toggle('hidden', type !== 'range');
+        }
+
+        function toggleAllPrintClasses() {
+            const checkboxes = document.querySelectorAll('.print-class-checkbox');
+            const allChecked = Array.from(checkboxes).every(c => c.checked);
+            checkboxes.forEach(c => c.checked = !allChecked);
+        }
+
+        function executePrint() {
+            const selectedClasses = Array.from(document.querySelectorAll('.print-class-checkbox:checked')).map(c => c.value);
+            const dateType = document.getElementById('printDateType').value;
+            const format = document.getElementById('printFormatType').value;
+
+            if (selectedClasses.length === 0) {
+                Swal.fire('Hata', 'Lütfen en az bir sınıf seçin.', 'error');
+                return;
+            }
+
+            let dates = [];
+            if (dateType === 'single') {
+                dates.push(document.getElementById('printSingleDate').value);
+            } else {
+                const start = new Date(document.getElementById('printRangeStart').value);
+                const end = new Date(document.getElementById('printRangeEnd').value);
+                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    // Sadece hafta içini al (Pazartesi=1 ... Cuma=5)
+                    if (format === 'haftalik_a4' && (d.getDay() === 0 || d.getDay() === 6)) {
+                        continue;
+                    }
+                    dates.push(d.toISOString().slice(0, 10));
+                }
+            }
+
+            let printWindowContent = `<html><head><title>Yoklama Fişleri</title><style>body{font-family:sans-serif; margin:0; padding:20px;} .page{page-break-after:always;} .fis{border:1px solid #000; padding:15px; margin-bottom:10px; width:100%;} table{width:100%; border-collapse:collapse;} th,td{border:1px solid #ccc; padding:5px; text-align:center;} h2{text-align:center; margin:5px 0;}</style></head><body>`;
+            
+            if (format === 'haftalik_a4') {
+                selectedClasses.forEach(cls => {
+                    printWindowContent += generateWeeklyPrintFis(cls, dates);
+                });
+            } else {
+                selectedClasses.forEach(cls => {
+                    dates.forEach(date => {
+                        printWindowContent += generateSinglePrintFis(cls, date, format);
+                    });
+                });
+            }
+
+            printWindowContent += '</body></html>';
+            openPrintWindow(printWindowContent, format);
+        }
+
+        function generateWeeklyPrintFis(cls, dates) {
+            const students = allStudents.filter(s => s.class === cls).sort((a,b) => (a.name || '').localeCompare(b.name || '', 'tr'));
+            const MAX_HOURS = 8;
+            
+            let html = `<div class="fis-wrapper page-break-after">
+                <div class="print-title">${cls} Sınıfı Haftalık Yoklama Çizelgesi</div>
+                <div class="print-header-info" style="margin-bottom: 10px;">
+                    <div>Tarih Aralığı: <b>${dates.length > 0 ? dates[0].split('-').reverse().join('.') : ''} - ${dates.length > 0 ? dates[dates.length-1].split('-').reverse().join('.') : ''}</b></div>
+                    <div>Mevcut: <b>${students.length}</b></div>
+                </div>
+                <table class="print-table" style="width: 100%; border: 2px solid black; border-collapse: collapse; font-size: 8pt;">
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid black; padding: 5px; width: 20px;">No</th>
+                            <th style="border: 1px solid black; padding: 5px; width: 120px; text-align: left;">Ad Soyad</th>`;
+            
+            dates.forEach(date => {
+                const parts = date.split('-');
+                const dStr = `${parts[2]}.${parts[1]}`;
+                html += `<th colspan="${MAX_HOURS}" style="border: 1px solid black; border-left: 2px solid black; padding: 5px;">${dStr}</th>`;
+            });
+
+            html += `</tr><tr><th colspan="2" style="border: 1px solid black;"></th>`;
+
+            dates.forEach(date => {
+                for (let i = 1; i <= MAX_HOURS; i++) {
+                    html += `<th style="border: 1px solid black; padding: 2px; width: 15px;${i === 1 ? ' border-left: 2px solid black;' : ''}">${i}</th>`;
+                }
+            });
+
+            html += `</tr></thead><tbody>`;
+
+            students.forEach(s => {
+                html += `<tr>
+                    <td style="border: 1px solid black; padding: 2px;">${s.no}</td>
+                    <td style="border: 1px solid black; padding: 2px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;">${s.name} ${s.surname || ''}</td>`;
+                
+                dates.forEach(date => {
+                    const dayRecords = attendanceDb[date] || {};
+                    for (let i = 1; i <= MAX_HOURS; i++) {
+                        let statusMarker = '';
+                        let hourObj = dayRecords[i.toString()] ? dayRecords[i.toString()][cls] : null;
+                        if (hourObj && hourObj.records && hourObj.records[s.no]) {
+                            const st = hourObj.records[s.no];
+                            if (st === 'GELMEDİ') statusMarker = 'X';
+                            else if (st === 'GEÇ') statusMarker = 'G';
+                            else if (st === 'RAHATSIZLANDI') statusMarker = 'R';
+                        }
+                        html += `<td style="border: 1px solid black; padding: 2px; text-align: center;${i === 1 ? ' border-left: 2px solid black;' : ''}">${statusMarker}</td>`;
+                    }
+                });
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table>
+                <div class="print-footer" style="margin-top: 10px;">
+                    <div>Haftalık Toplu Devamsızlık Çizelgesi</div>
+                    <div>(X) Gelmedi - (G) Geç Kaldı - (R) Rahatsızlandı</div>
+                </div>
+            </div>`;
+            return html;
+        }
+
+
 
         function computeOverallStats() {
             let totalRecordsCount = 0;
@@ -1487,12 +1677,14 @@
 
         // --- Tab Switching Logic ---
         function switchTab(tabName) {
-            const tabs = ['sinif', 'ders', 'saat', 'aralik', 'genel', 'siralama'];
+            const tabs = ['sinif', 'ders', 'saat', 'aralik', 'genel', 'siralama', 'yazdir'];
             
             tabs.forEach(t => {
                 const content = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
                 const btn = document.getElementById('btnTab' + t.charAt(0).toUpperCase() + t.slice(1));
                 
+                if(!content || !btn) return;
+
                 if (t === tabName) {
                     content.classList.remove('hidden');
                     btn.className = 'tab-btn active';
@@ -1571,77 +1763,123 @@
 
             const topRahatsiz = [...statArr].sort((a,b) => b.rahatsiz - a.rahatsiz).slice(0, 10);
             const trBody = document.getElementById('topRahatsizBody');
-            trBody.innerHTML = topRahatsiz.filter(s => s.rahatsiz > 0).map(s => `<tr><td style="padding: 8px 12px;">${s.name}<br><small style="color:var(--gray-400)">${s.no || ''}</small></td><td style="padding: 8px 12px;">${s.class || ''}</td><td style="padding: 8px 12px; text-align:center; font-weight:800; color:#be185d;">${s.rahatsiz}</td></tr>`).join('') || `<tr><td colspan="3" style="text-align:center; padding: 1rem;">Kayıt yok.</td></tr>`;
+            trBody.innerHTML = topRahatsiz.filter(s => s.rahatsiz > 0).map(s => `<tr><td style="padding: 8px 12px;">${s.name}<br><small style="color:var(--gray-400)">${s.no || ''}</small></td><td style="padding: 8px 12px;">${s.class || ''}</td><td style="padding: 8px 12px; text-align:center; font-weight:800; color:#1d4ed8;">${s.rahatsiz}</td></tr>`).join('') || `<tr><td colspan="3" style="text-align:center; padding: 1rem;">Kayıt yok.</td></tr>`;
         }
 
-        function printYoklamaFisi() {
-            const dateVal = document.getElementById('sinifFilterDate').value;
-            const classVal = document.getElementById('sinifFilterClass').value;
-            
-            if (!dateVal || !classVal) {
-                Swal.fire('Hata', 'Lütfen sınıf ve tarih seçin.', 'error');
+        function togglePrintDateInputs() {
+            const type = document.getElementById('printDateType').value;
+            if (type === 'single') {
+                document.getElementById('printSingleDateContainer').classList.remove('hidden');
+                document.getElementById('printRangeStartContainer').classList.add('hidden');
+                document.getElementById('printRangeEndContainer').classList.add('hidden');
+            } else {
+                document.getElementById('printSingleDateContainer').classList.add('hidden');
+                document.getElementById('printRangeStartContainer').classList.remove('hidden');
+                document.getElementById('printRangeEndContainer').classList.remove('hidden');
+            }
+        }
+
+        let allPrintClassesSelected = false;
+        function toggleAllPrintClasses() {
+            allPrintClassesSelected = !allPrintClassesSelected;
+            document.querySelectorAll('.print-class-checkbox').forEach(cb => {
+                cb.checked = allPrintClassesSelected;
+            });
+        }
+
+        function getDatesInRange(startStr, endStr) {
+            const dates = [];
+            let curr = new Date(startStr);
+            const end = new Date(endStr);
+            while (curr <= end) {
+                dates.push(curr.toISOString().slice(0, 10));
+                curr.setDate(curr.getDate() + 1);
+            }
+            return dates;
+        }
+
+        function executePrint() {
+            const type = document.getElementById('printDateType').value;
+            let datesToPrint = [];
+
+            if (type === 'single') {
+                const sDate = document.getElementById('printSingleDate').value;
+                if (!sDate) return Swal.fire('Hata', 'Lütfen tarih seçin.', 'error');
+                datesToPrint.push(sDate);
+            } else {
+                const sStart = document.getElementById('printRangeStart').value;
+                const sEnd = document.getElementById('printRangeEnd').value;
+                if (!sStart || !sEnd) return Swal.fire('Hata', 'Lütfen tarih aralığını seçin.', 'error');
+                if (new Date(sStart) > new Date(sEnd)) return Swal.fire('Hata', 'Başlangıç tarihi bitiş tarihinden büyük olamaz.', 'error');
+                datesToPrint = getDatesInRange(sStart, sEnd);
+            }
+
+            const selectedClasses = Array.from(document.querySelectorAll('.print-class-checkbox:checked')).map(cb => cb.value);
+            if (selectedClasses.length === 0) return Swal.fire('Hata', 'Lütfen en az bir sınıf seçin.', 'error');
+
+            const format = document.getElementById('printFormatType').value;
+
+            // Generate HTML for print
+            let printContent = '';
+
+            datesToPrint.forEach(date => {
+                selectedClasses.forEach(cls => {
+                    const html = generateSinglePrintFis(cls, date, format);
+                    if (html) {
+                        printContent += html;
+                    }
+                });
+            });
+
+            if (!printContent) {
+                Swal.fire('Bilgi', 'Seçilen kriterlere uygun veri bulunamadı.', 'info');
                 return;
             }
 
+            openPrintWindow(printContent, format);
+        }
+
+        function generateSinglePrintFis(classVal, dateVal, format) {
             const dayRecords = attendanceDb[dateVal] || {};
             const MAX_HOURS = 8;
             
-            // Hangi saatlerin yoklaması alınmamış kontrol edelim
-            let missingHours = [];
-            for (let i = 1; i <= MAX_HOURS; i++) {
-                if (!dayRecords[i.toString()] || !dayRecords[i.toString()][classVal]) {
-                    missingHours.push(`${i}.`);
-                }
-            }
-
-            if (missingHours.length > 0) {
-                Swal.fire({
-                    title: 'Eksik Yoklama Uyarısı',
-                    text: `${classVal} sınıfının ${missingHours.join(', ')} ders yoklamaları henüz alınmamış/sisteme işlenmemiş. Yine de boş haliyle fişi yazdırmak istiyor musunuz?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#10b981',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Evet, Yazdır',
-                    cancelButtonText: 'İptal'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        generateAndOpenPrintTab(classVal, dateVal, dayRecords, MAX_HOURS);
-                    }
-                });
-            } else {
-                generateAndOpenPrintTab(classVal, dateVal, dayRecords, MAX_HOURS);
-            }
-        }
-
-        function generateAndOpenPrintTab(classVal, dateVal, dayRecords, MAX_HOURS) {
             const printDate = dateVal.split('-').reverse().join('.');
             const title = `${classVal} SINIFI GÜNLÜK YOKLAMA FİŞİ`;
             
             const sList = allStudents.filter(s => s.class === classVal && s.status !== 'Pasif');
             const mevcut = sList.length;
 
-            // Kısaltma fonksiyonu
             function shorten(text, max = 12) {
                 if (!text) return '';
                 if (text.length > max) return text.substring(0, max) + '.';
                 return text;
             }
 
-            let tableHTML = `<table class="print-table" style="width: 100%; border: 2px solid black; border-collapse: collapse;">
-                <thead>
-                    <tr>
-                        <th style="width: 12%; border: 1px solid black; padding: 10px; text-align: left; font-weight: normal;">Ders Saati</th>`;
+            let wrapperClass = "fis-wrapper";
+            if (format === 'a5') wrapperClass = "fis-wrapper-a5";
+            if (format === 'a6') wrapperClass = "fis-wrapper-a6";
+            
+            let html = `<div class="${wrapperClass} page-break-after">`;
+            
+            html += `
+                <div class="print-title">${title}</div>
+                <div class="print-header-info">
+                    <div style="flex: 1; text-align: left;">Sınıf Mevcudu : <b>${mevcut}</b></div>
+                    <div style="flex: 1; text-align: right;">Tarih : <b>${printDate}</b></div>
+                </div>
+                <table class="print-table" style="width: 100%; border: 2px solid black; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="width: 12%; border: 1px solid black; padding: 10px; text-align: left; font-weight: normal;">Ders Saati</th>`;
             
             for (let i = 1; i <= MAX_HOURS; i++) {
-                tableHTML += `<th style="border: 1px solid black; padding: 10px; text-align: center; font-weight: bold;">${i}. DERS</th>`;
+                html += `<th style="border: 1px solid black; padding: 10px; text-align: center; font-weight: bold;">${i}. DERS</th>`;
             }
             
-            tableHTML += `</tr>
-                    <tr>
-                        <td style="border: 1px solid black; padding: 10px; text-align: center; vertical-align: middle;">Derslerin<br>Adı</td>`;
+            html += `</tr>
+                        <tr>
+                            <td style="border: 1px solid black; padding: 10px; text-align: center; vertical-align: middle;">Derslerin<br>Adı</td>`;
             
-            // Ders satırı (Sadece Ders Adı)
             for (let i = 1; i <= MAX_HOURS; i++) {
                 let hourStr = i.toString();
                 let hourObj = dayRecords[hourStr] ? dayRecords[hourStr][classVal] : null;
@@ -1650,14 +1888,14 @@
                     let subj = hourObj.subject || '';
                     textStr = `<strong>${shorten(subj, 12)}</strong>`;
                 }
-                tableHTML += `<td style="border: 1px solid black; padding: 5px; text-align: center; vertical-align: middle; font-size: 10pt;">${textStr}</td>`;
+                html += `<td style="border: 1px solid black; padding: 5px; text-align: center; vertical-align: middle; font-size: 10pt;">${textStr}</td>`;
             }
             
-            tableHTML += `</tr>
-                </thead>
-                <tbody>
-                    <tr style="height: 500px;">
-                        <td style="border: 1px solid black; border-bottom: 2px solid black;"></td>`;
+            html += `</tr>
+                    </thead>
+                    <tbody>
+                        <tr style="height: 250px;">
+                            <td style="border: 1px solid black; border-bottom: 2px solid black;"></td>`;
             
             for (let i = 1; i <= MAX_HOURS; i++) {
                 let hourStr = i.toString();
@@ -1676,12 +1914,12 @@
                         absentText = missing.join('<br>');
                     }
                 }
-                tableHTML += `<td style="border: 1px solid black; border-bottom: 2px solid black; font-size: 13pt; line-height: 1.6; padding-top: 15px; text-align: center; vertical-align: top;">${absentText}</td>`;
+                html += `<td style="border: 1px solid black; border-bottom: 2px solid black; font-size: 12pt; line-height: 1.6; padding-top: 10px; text-align: center; vertical-align: top;">${absentText}</td>`;
             }
 
-            tableHTML += `</tr>
-                    <tr>
-                        <td style="border: 1px solid black; padding: 10px; text-align: center; font-weight: normal;">Toplam</td>`;
+            html += `</tr>
+                        <tr>
+                            <td style="border: 1px solid black; padding: 10px; text-align: center; font-weight: normal;">Toplam</td>`;
             
             for (let i = 1; i <= MAX_HOURS; i++) {
                 let hourStr = i.toString();
@@ -1692,14 +1930,13 @@
                         if (st === 'GELMEDİ' || st === 'GEÇ') count++;
                     });
                 }
-                tableHTML += `<td style="border: 1px solid black; padding: 10px; text-align: center;">${count > 0 ? count : ''}</td>`;
+                html += `<td style="border: 1px solid black; padding: 10px; text-align: center;">${count > 0 ? count : ''}</td>`;
             }
 
-            tableHTML += `</tr>
-                    <tr>
-                        <td style="border: 1px solid black; padding: 10px; text-align: center; height: 50px; font-size: 10pt;">Öğretmenin<br>Adı Soyadı<br>İmzası</td>`;
+            html += `</tr>
+                        <tr>
+                            <td style="border: 1px solid black; padding: 10px; text-align: center; height: 40px; font-size: 10pt;">Öğretmenin<br>Adı Soyadı<br>İmzası</td>`;
             
-            // Boş imza alanları ve gri öğretmen adı
             for (let i = 1; i <= MAX_HOURS; i++) {
                 let hourStr = i.toString();
                 let hourObj = dayRecords[hourStr] ? dayRecords[hourStr][classVal] : null;
@@ -1708,31 +1945,89 @@
                     let rawName = hourObj.teacherName || hourObj.teacher || '';
                     tName = shorten(rawName, 12);
                 }
-                tableHTML += `<td style="border: 1px solid black; padding: 5px; text-align: center; vertical-align: bottom;"><span style="font-size: 8pt; color: gray;">${tName}</span></td>`;
+                html += `<td style="border: 1px solid black; padding: 5px; text-align: center; vertical-align: bottom;"><span style="font-size: 8pt; color: gray;">${tName}</span></td>`;
             }
 
-            tableHTML += `</tr>
-                </tbody>
-            </table>`;
+            html += `</tr>
+                    </tbody>
+                </table>
+                <div class="print-footer">
+                    <div>
+                        1- Derste bulunmayan öğrencinin numarası ile ilgili ders sütununa ayrı ayrı yazılır.<br>
+                        2- Yoklama fişi ve ders defteri son dersin öğretmeni tarafından yönetime teslim edilir.
+                    </div>
+                    <div style="text-align: center; margin-right: 30px;">
+                        İncelendi<br>Müdür Yardımcısı<br>İmza
+                    </div>
+                </div>
+            </div>`;
+
+            return html;
+        }
+
+        function openPrintWindow(htmlContent, format) {
+            let columnStyle = '';
+            let extraCSS = '';
+
+            if (format === 'a5') {
+                extraCSS = `
+                    .fis-wrapper-a5 {
+                        width: 100%;
+                        height: 48%; /* A4'ün yarısı yaklaşık olarak */
+                        margin-bottom: 2%;
+                        box-sizing: border-box;
+                    }
+                    /* İki fişte bir sayfa sonu */
+                    .fis-wrapper-a5:nth-child(even) {
+                        page-break-after: always;
+                    }
+                `;
+            } else if (format === 'a6') {
+                extraCSS = `
+                    .fis-wrapper-a6 {
+                        width: 48%;
+                        height: 48%;
+                        float: left;
+                        margin: 1%;
+                        box-sizing: border-box;
+                        font-size: 0.8em;
+                    }
+                    /* Dört fişte bir sayfa sonu */
+                    .fis-wrapper-a6:nth-child(4n) {
+                        page-break-after: always;
+                        float: none;
+                        clear: both;
+                    }
+                `;
+            } else {
+                extraCSS = `
+                    .fis-wrapper {
+                        width: 100%;
+                        height: 100%;
+                        page-break-after: always;
+                    }
+                `;
+            }
 
             const printHTML = `
                 <!DOCTYPE html>
                 <html lang="tr">
                 <head>
                     <meta charset="UTF-8">
-                    <title>${title}</title>
+                    <title>Toplu Yazdırma</title>
                     <style>
                         body {
                             background: white;
                             color: black;
                             padding: 10mm;
                             font-family: Arial, sans-serif;
+                            margin: 0;
                         }
                         .print-title {
                             text-align: center;
                             font-size: 16pt;
                             font-weight: bold;
-                            margin-bottom: 20px;
+                            margin-bottom: 10px;
                             text-transform: uppercase;
                         }
                         .print-header-info {
@@ -1745,8 +2040,12 @@
                             display: flex;
                             justify-content: space-between;
                             margin-top: 15px;
-                            font-size: 10pt;
+                            font-size: 9pt;
                         }
+                        .page-break-after {
+                            /* fallback if not covered by nth-child */
+                        }
+                        ${extraCSS}
                         @media print {
                             body { margin: 0; padding: 0; }
                             @page { margin: 10mm; }
@@ -1758,21 +2057,7 @@
                     <div style="text-align: right; margin-bottom: 20px;">
                         <button onclick="window.print()" style="padding: 10px 20px; background: #10b981; color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; font-size: 14px;">🖨️ YAZDIR</button>
                     </div>
-                    <div class="print-title">${title}</div>
-                    <div class="print-header-info">
-                        <div style="flex: 1; text-align: left;">Sınıf Mevcudu : <b>${mevcut}</b></div>
-                        <div style="flex: 1; text-align: right;">Tarih : <b>${printDate}</b></div>
-                    </div>
-                    ${tableHTML}
-                    <div class="print-footer">
-                        <div>
-                            1- Derste bulunmayan öğrencinin numarası ile ilgili ders sütununa ayrı ayrı yazılır.<br>
-                            2- Yoklama fişi ve ders defteri son dersin öğretmeni tarafından yönetime teslim edilir.
-                        </div>
-                        <div style="text-align: center; margin-right: 30px;">
-                            İncelendi<br>Müdür Yardımcısı<br>İmza
-                        </div>
-                    </div>
+                    ${htmlContent}
                 </body>
                 </html>
             `;
