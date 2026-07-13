@@ -518,15 +518,15 @@
         </div>
 
         <!-- Neon Clock Container -->
-        <div class="glass-panel" style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; padding: 0.5rem; margin-bottom: 0.8rem; background: #111827; border: 2px solid #374151; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); position: sticky; top: 10px; z-index: 9998;">
-            <div id="neonCurrentTime" style="font-family: 'Courier New', Courier, monospace; font-size: 1.5rem; font-weight: 900; color: #39ff14; text-shadow: 0 0 8px #39ff14, 0 0 12px #39ff14; letter-spacing: 2px;">
-                --:--:--
+        <div class="glass-panel" style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; padding: 0.5rem; margin-bottom: 0.8rem; background: #111827; border: 2px solid #374151; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); position: sticky; top: 10px; z-index: 9998; flex-wrap: wrap; text-align: center;">
+            <div style="font-family: 'Courier New', Courier, monospace; font-size: 1.2rem; font-weight: 900; color: #ffffff;">
+                Şu anki saat(<span id="neonCurrentTime" style="color: #39ff14; text-shadow: 0 0 8px #39ff14; letter-spacing: 1px;">--:--:--</span>)
             </div>
-            <div id="neonSeparator" style="font-family: 'Courier New', Courier, monospace; font-size: 1.5rem; font-weight: 900; color: #ffffff; display: none;">
+            <div id="neonSeparator" style="font-family: 'Courier New', Courier, monospace; font-size: 1.2rem; font-weight: 900; color: #ffffff; display: none;">
                 /
             </div>
-            <div id="neonLessonStatus" style="font-family: 'Courier New', Courier, monospace; font-size: 1.5rem; font-weight: 900; letter-spacing: 2px; display: none;">
-                <!-- Dinamik Kalan Süre -->
+            <div id="neonLessonStatusContainer" style="font-family: 'Courier New', Courier, monospace; font-size: 1.2rem; font-weight: 900; color: #ffffff; display: none;">
+                KALAN SÜRE(<span id="neonLessonStatus" style="letter-spacing: 1px;">--:--:--</span>)
             </div>
         </div>
 
@@ -2122,9 +2122,10 @@
             
             const hourVal = document.getElementById('lessonHour')?.value;
             const neonSeparator = document.getElementById('neonSeparator');
+            const neonLessonStatusContainer = document.getElementById('neonLessonStatusContainer');
             const neonLessonStatus = document.getElementById('neonLessonStatus');
             
-            if (neonLessonStatus) {
+            if (neonLessonStatus && neonLessonStatusContainer) {
                 if (hourVal && schoolData && schoolData.lessonTimes) {
                     const startStr = schoolData.lessonTimes[`${hourVal}_start`];
                     const endStr = schoolData.lessonTimes[`${hourVal}_end`];
@@ -2144,7 +2145,7 @@
                             neonLessonStatus.style.color = '#ffeb3b';
                             neonLessonStatus.style.textShadow = '0 0 8px #ffeb3b';
                             neonLessonStatus.textContent = `${diffH}:${diffM}:${diffS}`;
-                            neonLessonStatus.style.display = 'block';
+                            neonLessonStatusContainer.style.display = 'block';
                             if(neonSeparator) neonSeparator.style.display = 'block';
                         } else if (totalSeconds <= endTotalSeconds) {
                             let diffSeconds = endTotalSeconds - totalSeconds;
@@ -2154,18 +2155,18 @@
                             neonLessonStatus.style.color = '#ff073a';
                             neonLessonStatus.style.textShadow = '0 0 8px #ff073a';
                             neonLessonStatus.textContent = `${diffH}:${diffM}:${diffS}`;
-                            neonLessonStatus.style.display = 'block';
+                            neonLessonStatusContainer.style.display = 'block';
                             if(neonSeparator) neonSeparator.style.display = 'block';
                         } else {
-                            neonLessonStatus.style.display = 'none';
+                            neonLessonStatusContainer.style.display = 'none';
                             if(neonSeparator) neonSeparator.style.display = 'none';
                         }
                     } else {
-                        neonLessonStatus.style.display = 'none';
+                        neonLessonStatusContainer.style.display = 'none';
                         if(neonSeparator) neonSeparator.style.display = 'none';
                     }
                 } else {
-                    neonLessonStatus.style.display = 'none';
+                    neonLessonStatusContainer.style.display = 'none';
                     if(neonSeparator) neonSeparator.style.display = 'none';
                 }
             }
