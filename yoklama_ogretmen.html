@@ -1451,8 +1451,8 @@
                 const noColor = isNobetci ? 'red' : 'var(--primary)';
 
                 const buttons = `
-                    <button type="button" class="status-btn ${currentStatus === 'GELDİ' ? 'active' : ''}" data-status="GELDİ" onclick="setStudentStatus('${s.no}', 'GELDİ')" title="Geldi">
-                        <i class="fa-solid fa-plus"></i>
+                    <button type="button" class="status-btn ${(currentStatus === 'GELDİ' || isNobetci) ? 'active' : ''}" data-status="GELDİ" onclick="setStudentStatus('${s.no}', 'GELDİ')" ondblclick="setStudentStatus('${s.no}', 'NÖBETÇİ')" oncontextmenu="event.preventDefault(); setStudentStatus('${s.no}', 'NÖBETÇİ');" title="Geldi (Çift Tıkla/Basılı Tut: Nöbetçi)">
+                        <i class="fa-solid fa-plus" style="color: ${isNobetci ? 'var(--dark)' : ''};"></i>
                     </button>
                     <button type="button" class="status-btn ${currentStatus === 'GELMEDİ' ? 'active' : ''}" data-status="GELMEDİ" onclick="setStudentStatus('${s.no}', 'GELMEDİ')" title="Gelmedi">
                         <i class="fa-solid fa-minus"></i>
@@ -1460,8 +1460,8 @@
                     <button type="button" class="status-btn ${currentStatus === 'GEÇ' ? 'active' : ''}" data-status="GEÇ" onclick="setStudentStatus('${s.no}', 'GEÇ')" title="Geç">
                         <i class="fa-solid fa-clock"></i>
                     </button>
-                    <button type="button" class="status-btn ${(currentStatus === 'RAHATSIZLANDI' || isNobetci) ? 'active' : ''}" data-status="RAHATSIZLANDI" onclick="setStudentStatus('${s.no}', 'RAHATSIZLANDI')" ondblclick="setStudentStatus('${s.no}', 'NÖBETÇİ')" oncontextmenu="event.preventDefault(); setStudentStatus('${s.no}', 'NÖBETÇİ');" title="Rahatsız (Çift Tıkla/Basılı Tut: Nöbetçi)">
-                        <i class="fa-solid fa-moon" style="color: ${isNobetci ? 'var(--dark)' : '#ef4444'};"></i>
+                    <button type="button" class="status-btn ${currentStatus === 'RAHATSIZLANDI' ? 'active' : ''}" data-status="RAHATSIZLANDI" onclick="setStudentStatus('${s.no}', 'RAHATSIZLANDI')" title="Rahatsız">
+                        <i class="fa-solid fa-moon" style="color: #ef4444;"></i>
                     </button>
                     <button type="button" class="status-btn ${currentStatus === 'BOŞ' ? 'active' : ''}" data-status="BOŞ" onclick="setStudentStatus('${s.no}', 'BOŞ')" style="color:var(--dark); border-color:#e2e8f0; background:#f1f5f9;" title="Sıfırla">
                         <i class="fa-solid fa-trash"></i>
