@@ -1429,16 +1429,7 @@
                         <i class="fa-solid fa-minus"></i>
                     </button>
                     <button type="button" class="status-btn ${currentStatus === 'GEÇ' ? 'active' : ''}" data-status="GEÇ" onclick="setStudentStatus('${s.no}', 'GEÇ')" title="Geç">
-                        ${currentStatus === 'GEÇ' && gecTimeMap[s.no] !== undefined ? `
-                            <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
-                                <i class="fa-solid fa-clock"></i>
-                                <div style="display:flex; align-items:center; justify-content:center; gap:4px; margin-top:3px; background:rgba(255,255,255,0.15); border-radius:12px; padding:2px 4px;">
-                                    <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${s.no}', -1)" style="width:18px; height:18px; background:rgba(0,0,0,0.2); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; cursor:pointer;">-</span>
-                                    <span style="font-size:0.65rem; font-weight:800; min-width:16px; text-align:center;">${gecTimeMap[s.no]}m</span>
-                                    <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${s.no}', 1)" style="width:18px; height:18px; background:rgba(0,0,0,0.2); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; cursor:pointer;">+</span>
-                                </div>
-                            </div>
-                        ` : '<i class="fa-solid fa-clock"></i>'}
+                        <i class="fa-solid fa-clock"></i>
                     </button>
                     <button type="button" class="status-btn ${currentStatus === 'RAHATSIZLANDI' ? 'active' : ''}" data-status="RAHATSIZLANDI" onclick="setStudentStatus('${s.no}', 'RAHATSIZLANDI')" title="Rahatsız">
                         <i class="fa-solid fa-moon" style="color: #ef4444;"></i>
@@ -1453,7 +1444,14 @@
                         <div style="display: flex; align-items: center; gap: 10px; padding: 12px 15px; background: #f8fafc; border-bottom: 1px solid var(--primary-light);">
                             <div class="student-avatar" style="flex-shrink:0; width: 36px; height: 36px; font-size: 0.9rem;">${s.name ? s.name.charAt(0) : '?'}</div>
                             <span class="student-no" style="font-size: 1rem; font-weight: 700; color: var(--primary);">${s.no}</span>
-                            <span class="student-name" style="font-size: 0.95rem; font-weight: 600; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${s.name} ${s.surname || ''}</span>
+                            <span class="student-name" style="font-size: 0.95rem; font-weight: 600; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">${s.name} ${s.surname || ''}</span>
+                            ${currentStatus === 'GEÇ' && gecTimeMap[s.no] !== undefined ? `
+                                <div style="display:flex; align-items:center; justify-content:center; gap:8px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:20px; padding:4px 8px; color:#ef4444; flex-shrink:0;">
+                                    <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${s.no}', -1)" style="width:28px; height:28px; background:#ef4444; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(239,68,68,0.3);">-</span>
+                                    <span style="font-size:0.95rem; font-weight:800; min-width:24px; text-align:center;">${gecTimeMap[s.no]}m</span>
+                                    <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${s.no}', 1)" style="width:28px; height:28px; background:#ef4444; color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:18px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(239,68,68,0.3);">+</span>
+                                </div>
+                            ` : ''}
                         </div>
                         <div style="padding: 12px 10px; background: white;">
                             <div class="status-button-group" style="display: flex; gap: 8px; justify-content: center; width: 100%;">
