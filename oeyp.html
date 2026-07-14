@@ -263,6 +263,11 @@
                     </div>
                 </div>
 
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Çalışmanın Amacı</label>
+                    <textarea id="newActPurpose" class="form-select-custom" style="height: 80px; resize: vertical; width: 100%; box-sizing: border-box;" placeholder="Örn: Öğrencilerin analitik düşünme ve problem çözme becerilerini geliştirmek..."></textarea>
+                </div>
+
                 <!-- Student Selection Box -->
                 <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 1rem;">
                     <h4 style="margin-top:0; margin-bottom: 10px; color:#1e293b; font-size:1rem;"><i class="fa-solid fa-user-plus" style="color:#4f46e5;"></i> Öğrenci Ekle</h4>
@@ -768,6 +773,8 @@
             const teacherCbs = Array.from(document.getElementById('newActTeachersList').querySelectorAll('input[type="checkbox"]:checked'));
             const teachers = teacherCbs.map(cb => cb.value).join(', ');
             
+            const purpose = document.getElementById('newActPurpose') ? document.getElementById('newActPurpose').value.trim() : '';
+
             if (!name || !teachers) {
                 Swal.fire('Eksik Bilgi', 'Lütfen etkinlik adı giriniz ve en az bir sorumlu öğretmen seçiniz.', 'warning');
                 return;
@@ -800,6 +807,7 @@
                     id: "act_" + Date.now() + "_" + Math.floor(Math.random()*1000),
                     name: name,
                     type: type,
+                    purpose: purpose,
                     teachers: teachers,
                     schedules: JSON.parse(JSON.stringify(newActSchedules)),
                     students: JSON.parse(JSON.stringify(newActStudents)),
@@ -817,6 +825,7 @@
                 document.getElementById('newActName').value = '';
                 const defaultType = document.querySelector('input[name="newActType"][value="Ders İçi"]');
                 if (defaultType) defaultType.checked = true;
+                if(document.getElementById('newActPurpose')) document.getElementById('newActPurpose').value = '';
                 
                 newActStudents = [];
                 newActSchedules = [];
@@ -893,6 +902,7 @@
                 }
 
                 const typeBadge = act.type ? `<span style="background:rgba(14,165,233,0.1); color:#0ea5e9; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600; margin-left:8px;">${act.type}</span>` : '';
+                const purposeHtml = act.purpose ? `<div style="background:#f1f5f9; border-left: 3px solid #cbd5e1; padding:10px 15px; border-radius:0 6px 6px 0; margin-bottom:15px; color:#475569; font-size:0.9rem;"><strong><i class="fa-solid fa-bullseye" style="color:#64748b; margin-right:5px;"></i> Amacı:</strong> ${act.purpose}</div>` : '';
 
                 const itemHtml = `
                     <div class="accordion-item ${index === 0 ? 'active' : ''}">
@@ -911,6 +921,8 @@
                                 <span><i class="fa-solid fa-users"></i> ${act.students ? act.students.length : 0} Öğrenci</span>
                                 <span style="cursor:pointer; color:#ef4444; border-color:#fecaca;" onclick="deleteActivity('${act.id}', event)"><i class="fa-solid fa-trash"></i> Sil</span>
                             </div>
+                            
+                            ${purposeHtml}
                             
                             <h4 style="margin-bottom: 10px; color:#1e293b; font-size:1rem;">Görevli Öğrenciler</h4>
                             <table class="student-table">
