@@ -381,7 +381,11 @@
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Çalışma Saatleri</label>
-                            <input type="text" id="newActTime" class="form-select-custom" placeholder="15:30 - 17:00">
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <input type="time" id="newActTimeStart" class="form-select-custom" style="flex:1;">
+                                <span style="font-weight:bold; color:#94a3b8;">-</span>
+                                <input type="time" id="newActTimeEnd" class="form-select-custom" style="flex:1;">
+                            </div>
                         </div>
                     </div>
                     
@@ -424,6 +428,20 @@
                 <div id="emptyState" style="display: none; text-align: center; padding: 3rem 1rem;">
                     <i class="fa-solid fa-folder-open" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
                     <h4 style="color: #64748b; font-weight: 600;">Kayıtlı bir etkinlik veya çalışmanız bulunmuyor.</h4>
+                </div>
+            </div>
+        </div>
+
+        <div id="teacherPastActivitiesSection" class="glass-panel accordion-item" style="margin-bottom: 2rem; padding: 0; display:none;">
+            <div class="accordion-header" onclick="toggleAccordion(this)" style="border-radius: 12px 12px 0 0;">
+                <div style="font-weight: 800; font-size: 1.15rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-clock-rotate-left" style="color:#3b82f6;"></i> Geçmiş Çalışmalar
+                </div>
+                <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b; transform: rotate(180deg);"></i>
+            </div>
+            <div class="accordion-body" style="border-radius: 0 0 12px 12px; display:none;">
+                <div id="teacherPastActivitiesList">
+                    <!-- Past occurrences will be rendered here -->
                 </div>
             </div>
         </div>
@@ -618,7 +636,8 @@
             if (daysContainer) {
                 Array.from(daysContainer.querySelectorAll('input[type="checkbox"]')).forEach(cb => cb.checked = false);
             }
-            document.getElementById('newActTime').value = '';
+            document.getElementById('newActTimeStart').value = '';
+            document.getElementById('newActTimeEnd').value = '';
             
             const locInput = document.getElementById('newActLocation');
             if(locInput) locInput.value = '';
@@ -788,8 +807,9 @@
 
         function updateDefaultTimeFromCheckboxes() {
             const daysContainer = document.getElementById('newActDays');
-            const timeInput = document.getElementById('newActTime');
-            if (!daysContainer || !timeInput) return;
+            const timeStartInput = document.getElementById('newActTimeStart');
+            const timeEndInput = document.getElementById('newActTimeEnd');
+            if (!daysContainer || !timeStartInput || !timeEndInput) return;
             
             const checkboxes = Array.from(daysContainer.querySelectorAll('input[type="checkbox"]:checked'));
             if (checkboxes.length === 0) return;
@@ -798,9 +818,11 @@
             const isWeekend = lastChecked === 'Cumartesi' || lastChecked === 'Pazar';
             
             if (isWeekend) {
-                timeInput.value = '09:00 - 10:30';
+                timeStartInput.value = '09:00';
+                timeEndInput.value = '10:30';
             } else {
-                timeInput.value = '15:30 - 17:00';
+                timeStartInput.value = '15:30';
+                timeEndInput.value = '17:00';
             }
         }
 
@@ -814,9 +836,11 @@
                 return;
             }
             
-            const time = document.getElementById('newActTime').value.trim();
-            if (!time) {
-                Swal.fire('Uyarı', 'Lütfen çalışma saatlerini girin.', 'warning');
+            const timeStart = document.getElementById('newActTimeStart').value.trim();
+            const timeEnd = document.getElementById('newActTimeEnd').value.trim();
+            const time = (timeStart && timeEnd) ? `${timeStart} - ${timeEnd}` : '';
+            if (!timeStart || !timeEnd) {
+                Swal.fire('Uyarı', 'Lütfen başlangıç ve bitiş saatlerini girin.', 'warning');
                 return;
             }
             
@@ -829,7 +853,8 @@
             });
             
             checkboxes.forEach(cb => cb.checked = false);
-            document.getElementById('newActTime').value = '';
+            document.getElementById('newActTimeStart').value = '';
+            document.getElementById('newActTimeEnd').value = '';
             document.getElementById('newActLocation').value = '';
             
             renderNewActSchedules();
@@ -1140,15 +1165,25 @@
             
             let actionButtons = '';
             if (isResponsible) {
+                let dropdownId = `printDropdown_${act.id}${occOverride ? '_' + occOverride.dateString : ''}`;
+                let dropdownHtml = '';
+                if (occOverride) {
+                    dropdownHtml = `<a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem;" onclick="printYoklamaListesi('${act.id}', event, '${occOverride.dateString}')">Yoklama Listesi</a>`;
+                } else {
+                    dropdownHtml = `
+                        <a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem; border-bottom:1px solid #e2e8f0;" onclick="printIdariIzin('${act.id}', event)">İdari İzin Dilekçesi</a>
+                        <a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem; border-bottom:1px solid #e2e8f0;" onclick="printVeliIzin('${act.id}', event)">Veli İzin Dilekçeleri</a>
+                        <a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem;" onclick="printYoklamaListesi('${act.id}', event)">Tüm Yoklama Listeleri</a>
+                    `;
+                }
+
                 actionButtons = `
                     <div class="dropdown" style="position:relative; display:inline-block;">
-                        <button class="btn" style="padding:4px 8px; font-size:0.85rem; background:rgba(16,185,129,0.1); color:#10b981; border:none;" onclick="toggleDropdown('printDropdown_${act.id}')">
+                        <button class="btn" style="padding:4px 8px; font-size:0.85rem; background:rgba(16,185,129,0.1); color:#10b981; border:none;" onclick="toggleDropdown('${dropdownId}')">
                             <i class="fa-solid fa-print"></i> <i class="fa-solid fa-caret-down"></i>
                         </button>
-                        <div id="printDropdown_${act.id}" class="dropdown-content" style="display:none; position:absolute; right:0; top:100%; margin-top:5px; background-color:#fff; min-width:180px; box-shadow:0px 8px 16px 0px rgba(0,0,0,0.2); z-index:100; border-radius:6px; overflow:hidden; border:1px solid #e2e8f0; text-align:left;">
-                            <a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem; border-bottom:1px solid #e2e8f0;" onclick="printIdariIzin('${act.id}', event)">İdari İzin Dilekçesi</a>
-                            <a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem; border-bottom:1px solid #e2e8f0;" onclick="printVeliIzin('${act.id}', event)">Veli İzin Dilekçeleri</a>
-                            <a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem;" onclick="printYoklamaListesi('${act.id}', event)">Yoklama Listesi</a>
+                        <div id="${dropdownId}" class="dropdown-content" style="display:none; position:absolute; right:0; top:100%; margin-top:5px; background-color:#fff; min-width:180px; box-shadow:0px 8px 16px 0px rgba(0,0,0,0.2); z-index:100; border-radius:6px; overflow:hidden; border:1px solid #e2e8f0; text-align:left;">
+                            ${dropdownHtml}
                         </div>
                     </div>
                     <span style="cursor:pointer; color:#3b82f6; padding:4px 8px; border-radius:4px; background:rgba(59,130,246,0.1); margin-right:2px;" onclick="editActivity('${act.id}', event)" title="Düzenle"><i class="fa-solid fa-pen"></i></span>
@@ -1214,11 +1249,13 @@
             let activities = schoolData.activities || [];
             
             const teacherSection = document.getElementById('teacherActivitiesSection');
+            const teacherPastSection = document.getElementById('teacherPastActivitiesSection');
             const adminSection = document.getElementById('adminActivitiesSection');
             const newActPanel = document.getElementById('newActivityPanel');
             
             if (currentUser.role === 'ogretmen') {
                 teacherSection.style.display = 'block';
+                teacherPastSection.style.display = 'block';
                 adminSection.style.display = 'none';
                 if (newActPanel) {
                     teacherSection.parentNode.insertBefore(newActPanel, teacherSection);
@@ -1229,9 +1266,26 @@
                 const listContainer = document.getElementById('activitiesList');
                 const emptyState = document.getElementById('emptyState');
                 
+                let teacherPastOccurrences = [];
+                activities.forEach(act => {
+                    if (act.statusHistory) {
+                        for (let dateStr in act.statusHistory) {
+                            let s = act.statusHistory[dateStr];
+                            if (s === 'YAPILDI' || s === 'İPTAL' || s === 'İPTAL EDİLDİ') {
+                                teacherPastOccurrences.push({
+                                    act: act,
+                                    occOverride: { dateString: dateStr, status: s }
+                                });
+                            }
+                        }
+                    }
+                });
+                teacherPastOccurrences.sort((a, b) => b.occOverride.dateString.localeCompare(a.occOverride.dateString));
+
                 if (!activities || activities.length === 0) {
                     listContainer.style.display = 'none';
                     emptyState.style.display = 'block';
+                    teacherPastSection.style.display = 'none';
                     return;
                 }
 
@@ -1242,6 +1296,17 @@
                 activities.slice().reverse().forEach((act, index) => {
                     listContainer.innerHTML += getActivityHTML(act, index === 0);
                 });
+
+                const pastList = document.getElementById('teacherPastActivitiesList');
+                pastList.innerHTML = '';
+                if (teacherPastOccurrences.length > 0) {
+                    teacherPastOccurrences.forEach((item, index) => {
+                        pastList.innerHTML += getActivityHTML(item.act, false, item.occOverride);
+                    });
+                } else {
+                    pastList.innerHTML = `<div style="text-align:center; padding: 2rem; color:#64748b;">Geçmiş çalışma bulunmuyor</div>`;
+                }
+
             } else {
                 // Admin or Idareci
                 teacherSection.style.display = 'none';
@@ -2135,7 +2200,7 @@
                 });
             }
         });
-        function printYoklamaListesi(actId, event) {
+        function printYoklamaListesi(actId, event, targetDate = null) {
             event.stopPropagation();
             const act = schoolData.activities.find(a => a.id === actId);
             if (!act) return;
@@ -2145,7 +2210,13 @@
                 return;
             }
             
-            const dates = Object.keys(act.attendanceHistory).sort();
+            let dates = Object.keys(act.attendanceHistory).sort();
+            if (targetDate && dates.includes(targetDate)) {
+                dates = [targetDate];
+            } else if (targetDate) {
+                Swal.fire('Bilgi', 'Seçilen tarih için yoklama verisi bulunamadı.', 'info');
+                return;
+            }
             
             let students = [...(act.students || [])];
             students.sort((a, b) => {
