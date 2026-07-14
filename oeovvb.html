@@ -463,7 +463,20 @@
             document.getElementById('loginStep1').classList.add('hidden');
             document.getElementById('loginStep2').classList.remove('hidden');
 
-            if (student.parentPhone && student.parentPhone.length >= 6) {
+            // Find parentPhone from activities
+            let foundParentPhone = null;
+            const activities = schoolData.activities || [];
+            activities.forEach(act => {
+                if (act.students) {
+                    const enrolled = act.students.find(s => String(s.no) === String(currentStudent.no));
+                    if (enrolled && enrolled.parentPhone && String(enrolled.parentPhone).length >= 6) {
+                        foundParentPhone = String(enrolled.parentPhone);
+                    }
+                }
+            });
+            currentStudent._activityParentPhone = foundParentPhone;
+
+            if (foundParentPhone) {
                 document.getElementById('phoneExistUI').classList.remove('hidden');
                 document.getElementById('phoneNewUI').classList.add('hidden');
                 document.getElementById('phoneVerifyInput').value = '';
@@ -485,13 +498,13 @@
         async function handleStep2() {
             if (!currentStudent) return;
 
-            if (currentStudent.parentPhone && currentStudent.parentPhone.length >= 6) {
+            if (currentStudent._activityParentPhone) {
                 const val = document.getElementById('phoneVerifyInput').value.trim();
                 if (val.length < 6) {
                     Swal.fire('Uyarı', 'Lütfen telefonun son 6 hanesini girin.', 'warning');
                     return;
                 }
-                const correctLast6 = currentStudent.parentPhone.slice(-6);
+                const correctLast6 = currentStudent._activityParentPhone.slice(-6);
                 if (val !== correctLast6) {
                     Swal.fire('Hata', 'Girdiğiniz son 6 hane sistemdeki telefonla eşleşmiyor.', 'error');
                     return;
@@ -512,14 +525,22 @@
                     didOpen: () => { Swal.showLoading(); }
                 });
 
-                currentStudent.parentPhone = val;
-                
-                // Update in allStudents array and save
-                const idx = allStudents.findIndex(s => s.no === currentStudent.no);
-                if (idx !== -1) allStudents[idx] = currentStudent;
+                let updated = false;
+                const activities = schoolData.activities || [];
+                activities.forEach(act => {
+                    if (act.students) {
+                        const enrolled = act.students.find(s => String(s.no) === String(currentStudent.no));
+                        if (enrolled) {
+                            enrolled.parentPhone = val;
+                            updated = true;
+                        }
+                    }
+                });
                 
                 try {
-                    await DataManager.saveSchoolSettings({ students: allStudents });
+                    if (updated) {
+                        await DataManager.saveSchoolSettings({ activities: activities });
+                    }
                     Swal.close();
                     finalizeLogin();
                 } catch (e) {
