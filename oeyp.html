@@ -763,8 +763,8 @@
                 `;
                 list.appendChild(li);
             });
-        }
-
+        let editingActivityId = null;
+        
         function saveNewActivity() {
             const name = document.getElementById('newActName').value.trim();
             const typeEl = document.querySelector('input[name="newActType"]:checked');
@@ -804,7 +804,7 @@
                 Swal.fire({ title: 'Kaydediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
                 
                 const newAct = {
-                    id: "act_" + Date.now() + "_" + Math.floor(Math.random()*1000),
+                    id: editingActivityId ? editingActivityId : ("act_" + Date.now() + "_" + Math.floor(Math.random()*1000)),
                     name: name,
                     type: type,
                     purpose: purpose,
@@ -819,7 +819,18 @@
                     schoolData.activities = [];
                 }
                 
-                schoolData.activities.push(newAct);
+                if (editingActivityId) {
+                    const idx = schoolData.activities.findIndex(a => a.id === editingActivityId);
+                    if (idx !== -1) {
+                        newAct.createdAt = schoolData.activities[idx].createdAt; // preserve date
+                        schoolData.activities[idx] = newAct;
+                    } else {
+                        schoolData.activities.push(newAct);
+                    }
+                } else {
+                    schoolData.activities.push(newAct);
+                }
+                
                 DataManager.saveSchoolSettings({ activities: schoolData.activities });
                 
                 document.getElementById('newActName').value = '';
@@ -832,6 +843,10 @@
                 renderNewActStudents();
                 renderNewActSchedules();
                 
+                editingActivityId = null;
+                const saveBtn = document.querySelector('button[onclick="saveNewActivity()"]');
+                if (saveBtn) saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Tüm Planlamayı Kaydet';
+                
                 const formAccordion = document.querySelector('.accordion-item');
                 if(formAccordion && formAccordion.classList.contains('active')) {
                     formAccordion.classList.remove('active');
@@ -842,10 +857,69 @@
                 Swal.fire({ 
                     icon: 'success', 
                     title: 'Başarılı', 
-                    text: 'Tüm planlama veritabanına başarıyla kaydedildi!', 
+                    text: 'Planlama başarıyla kaydedildi!', 
                     timer: 2500, 
                     showConfirmButton: false 
                 });
+            }
+        }
+
+        function editActivity(id, event) {
+            event.stopPropagation();
+            const act = schoolData.activities.find(a => a.id === id);
+            if (!act) return;
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Open accordion if closed
+            const formAccordion = document.querySelector('.accordion-item');
+            if(formAccordion && !formAccordion.classList.contains('active')) {
+                formAccordion.classList.add('active');
+            }
+            
+            // Fill the form
+            document.getElementById('newActName').value = act.name || '';
+            
+            // Type
+            if (act.type) {
+                const typeEl = document.querySelector(`input[name="newActType"][value="${act.type}"]`);
+                if (typeEl) typeEl.checked = true;
+            }
+            
+            // Teachers
+            const teacherCbs = document.getElementById('newActTeachersList').querySelectorAll('input[type="checkbox"]');
+            const actTeachersList = act.teachers ? act.teachers.split(',').map(t => t.trim()) : [];
+            teacherCbs.forEach(cb => {
+                if (actTeachersList.includes(cb.value)) {
+                    cb.checked = true;
+                } else {
+                    cb.checked = false;
+                }
+            });
+            
+            // Purpose
+            if(document.getElementById('newActPurpose')) {
+                document.getElementById('newActPurpose').value = act.purpose || '';
+            }
+            
+            // Schedules
+            newActSchedules = act.schedules ? JSON.parse(JSON.stringify(act.schedules)) : [];
+            if (!act.schedules && act.days && act.time) { 
+                newActSchedules.push({ days: act.days, time: act.time, location: act.location || '' });
+            }
+            renderNewActSchedules();
+            
+            // Students
+            newActStudents = act.students ? JSON.parse(JSON.stringify(act.students)) : [];
+            renderNewActStudents();
+            
+            editingActivityId = id;
+            
+            // Update save button text
+            const saveBtn = document.querySelector('button[onclick="saveNewActivity()"]');
+            if (saveBtn) {
+                saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Değişiklikleri Kaydet';
             }
         }
 
@@ -903,13 +977,14 @@
 
                 const typeBadge = act.type ? `<span style="background:rgba(14,165,233,0.1); color:#0ea5e9; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600; margin-left:8px;">${act.type}</span>` : '';
                 const purposeHtml = act.purpose ? `<div style="background:#f1f5f9; border-left: 3px solid #cbd5e1; padding:10px 15px; border-radius:0 6px 6px 0; margin-bottom:15px; color:#475569; font-size:0.9rem;"><strong><i class="fa-solid fa-bullseye" style="color:#64748b; margin-right:5px;"></i> Amacı:</strong> ${act.purpose}</div>` : '';
+                const teachersHtml = `<div style="margin-bottom: 15px; color:#475569; font-size:0.9rem;"><strong><i class="fa-solid fa-chalkboard-user" style="color:#64748b; margin-right:5px;"></i> Sorumlu Öğretmenler:</strong> ${act.teachers}</div>`;
 
                 const itemHtml = `
                     <div class="accordion-item ${index === 0 ? 'active' : ''}">
                         <div class="accordion-header" onclick="toggleAccordion(this)">
                             <div style="flex:1; min-width:0; padding-right:10px;">
                                 <i class="fa-solid fa-puzzle-piece" style="color:#4f46e5; margin-right:8px;"></i>
-                                ${act.name} ${typeBadge} <span style="font-size:0.8rem; color:#64748b; margin-left:10px; font-weight:500;"><i class="fa-solid fa-chalkboard-user"></i> ${act.teachers}</span>
+                                ${act.name} ${typeBadge}
                             </div>
                             <div style="display:flex; align-items:center; gap:5px;" onclick="event.stopPropagation()">
                                 <div class="dropdown" style="position:relative; display:inline-block;">
@@ -921,19 +996,21 @@
                                         <a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem;" onclick="printVeliIzin('${act.id}', event)">Veli İzin Dilekçeleri</a>
                                     </div>
                                 </div>
+                                <span style="cursor:pointer; color:#3b82f6; padding:4px 8px; border-radius:4px; background:rgba(59,130,246,0.1); margin-right:2px;" onclick="editActivity('${act.id}', event)" title="Düzenle"><i class="fa-solid fa-pen"></i></span>
                                 <span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px;" onclick="deleteActivity('${act.id}', event)" title="Sil"><i class="fa-solid fa-trash"></i></span>
                                 <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
                             </div>
                         </div>
                         <div class="accordion-body">
+                            ${purposeHtml}
+                            ${teachersHtml}
+                            
                             <div class="activity-meta" style="flex-wrap:wrap; margin-bottom: 15px;">
                                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
                                     ${scheduleBadges}
                                 </div>
                                 <span><i class="fa-solid fa-users"></i> ${act.students ? act.students.length : 0} Öğrenci</span>
                             </div>
-                            
-                            ${purposeHtml}
                             
                             <h4 style="margin-bottom: 10px; color:#1e293b; font-size:1rem;">Görevli Öğrenciler</h4>
                             <table class="student-table">
@@ -1008,12 +1085,29 @@
             const act = schoolData.activities.find(a => a.id === id);
             if (!act) return;
             
-            let schedulesText = '';
+            let schedulesRows = '';
             if (act.schedules && act.schedules.length > 0) {
-                schedulesText = act.schedules.map(s => `<b>${s.days}</b> günleri <b>${s.time}</b> saatleri arasında${s.location ? ' <b>' + s.location + '</b> mekanında' : ''}`).join(', ');
+                act.schedules.forEach(s => {
+                    schedulesRows += `<tr><td style="border:1px solid #000; padding:5px;">${s.days}</td><td style="border:1px solid #000; padding:5px; text-align:center;">${s.time}</td><td style="border:1px solid #000; padding:5px;">${s.location || '-'}</td></tr>`;
+                });
             } else {
-                schedulesText = `<b>${act.days || ''}</b> günleri <b>${act.time || ''}</b> saatleri arasında${act.location ? ' <b>' + act.location + '</b> mekanında' : ''}`;
+                schedulesRows += `<tr><td style="border:1px solid #000; padding:5px;">${act.days || '-'}</td><td style="border:1px solid #000; padding:5px; text-align:center;">${act.time || '-'}</td><td style="border:1px solid #000; padding:5px;">${act.location || '-'}</td></tr>`;
             }
+
+            let studentsRows = '';
+            if (act.students && act.students.length > 0) {
+                act.students.forEach((s, idx) => {
+                    studentsRows += `<tr><td style="border:1px solid #000; padding:5px; text-align:center;">${idx+1}</td><td style="border:1px solid #000; padding:5px; text-align:center;">${s.no}</td><td style="border:1px solid #000; padding:5px;">${s.name}</td><td style="border:1px solid #000; padding:5px; text-align:center;">${s.class}</td></tr>`;
+                });
+            } else {
+                studentsRows = `<tr><td colspan="4" style="border:1px solid #000; padding:5px; text-align:center;">Öğrenci bulunmuyor.</td></tr>`;
+            }
+
+            let teachersSignatures = '';
+            const teacherList = act.teachers ? act.teachers.split(',').map(t => t.trim()) : [];
+            teacherList.forEach(t => {
+                teachersSignatures += `<div style="margin-bottom: 30px; text-align:center;">İmza<br><br><br>${t}<br>(Sorumlu Öğretmen)</div>`;
+            });
             
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
@@ -1023,8 +1117,10 @@
                     <style>
                         body { font-family: 'Times New Roman', Times, serif; line-height: 1.6; padding: 40px; font-size: 16px; }
                         .header { text-align: center; font-weight: bold; margin-bottom: 50px; font-size: 18px; }
-                        .content { text-indent: 40px; text-align: justify; margin-bottom: 40px; }
+                        .content { text-align: justify; margin-bottom: 40px; }
                         .footer { margin-top: 60px; display: flex; justify-content: space-between; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 15px; }
+                        th { background: #f0f0f0; }
                         @media print {
                             body { padding: 20px; }
                         }
@@ -1036,18 +1132,51 @@
                         ${schoolData.schoolName ? schoolData.schoolName.toUpperCase() : ''}
                     </div>
                     <div class="content">
-                        Okulumuzda planlanan <b>${act.name}</b> (${act.type || 'Ders İçi'}) çalışması kapsamında, ${act.teachers} sorumluluğunda, ${schedulesText} etkinlik yapılması planlanmaktadır.
-                        <br><br>
-                        <b>Etkinliğin Amacı:</b> ${act.purpose || 'Belirtilmemiş'}
-                        <br><br>
-                        Gereğini bilgilerinize arz ederim.
+                        <div style="text-indent: 40px; margin-bottom: 15px;">Okulumuzda planlanan <b>${act.name}</b> (${act.type || 'Ders İçi'}) çalışması kapsamında, detayları aşağıda verilen etkinlik yapılması planlanmaktadır.</div>
+                        
+                        <div style="margin-bottom: 20px;"><b>Etkinliğin Amacı:</b> ${act.purpose || 'Belirtilmemiş'}</div>
+                        
+                        <div style="font-weight:bold; margin-bottom:5px;">Çalışma Zamanı ve Yeri:</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="border:1px solid #000; padding:5px;">Günler</th>
+                                    <th style="border:1px solid #000; padding:5px; width:120px;">Saatler</th>
+                                    <th style="border:1px solid #000; padding:5px;">Mekan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${schedulesRows}
+                            </tbody>
+                        </table>
+                        
+                        <div style="font-weight:bold; margin-bottom:5px;">Katılacak Öğrenciler:</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="border:1px solid #000; padding:5px; width:50px;">S.No</th>
+                                    <th style="border:1px solid #000; padding:5px; width:80px;">Okul No</th>
+                                    <th style="border:1px solid #000; padding:5px;">Ad Soyad</th>
+                                    <th style="border:1px solid #000; padding:5px; width:80px;">Sınıf</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${studentsRows}
+                            </tbody>
+                        </table>
+                        
+                        <div style="text-indent: 40px;">Gereğini bilgilerinize arz ederim.</div>
                     </div>
+                    
                     <div class="footer">
-                        <div></div>
+                        <div style="display:flex; flex-direction:column; gap:20px;">
+                            ${teachersSignatures}
+                        </div>
                         <div style="text-align:center;">
                             Tarih: ...../...../20....<br><br>
-                            İmza<br><br>
-                            ${act.teachers}
+                            <b>UYGUNDUR</b><br><br><br><br>
+                            .......................................<br>
+                            Okul Müdürü
                         </div>
                     </div>
                 </body>
@@ -1080,7 +1209,10 @@
             act.students.forEach((student, index) => {
                 pagesHtml += `
                     <div class="page">
-                        <div class="header">VELİ İZİN BELGESİ</div>
+                        <div class="header">
+                            VELİ İZİN BELGESİ<br>
+                            <span style="font-size: 16px; font-weight: normal;">${schoolData.schoolName ? schoolData.schoolName.toUpperCase() : ''}</span>
+                        </div>
                         <div class="content">
                             Okulumuz öğrencilerinden <b>${student.class}</b> sınıfı <b>${student.no}</b> numaralı <b>${student.name}</b> isimli öğrencinin velisiyim.
                             <br><br>
@@ -1114,7 +1246,7 @@
                         body { font-family: 'Times New Roman', Times, serif; line-height: 1.6; font-size: 16px; margin: 0; padding: 0; }
                         .page { padding: 40px; box-sizing: border-box; }
                         .page-break { page-break-after: always; }
-                        .header { text-align: center; font-weight: bold; font-size: 20px; margin-bottom: 50px; text-decoration: underline; }
+                        .header { text-align: center; font-weight: bold; font-size: 20px; margin-bottom: 50px; text-decoration: underline; line-height:1.4; }
                         .content { text-indent: 40px; text-align: justify; margin-bottom: 50px; }
                         .footer { display: flex; justify-content: space-between; }
                         @media print {
