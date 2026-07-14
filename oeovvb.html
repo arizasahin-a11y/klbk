@@ -562,12 +562,22 @@
                         
                         // If it's a past date
                         if (dateStr < todayStr) {
+                            const pastDayDate = new Date(dateStr);
+                            const pastDayName = dayMap[pastDayDate.getDay()];
+                            let pastSch = null;
+                            if (act.schedules) {
+                                pastSch = act.schedules.find(sch => sch.days && sch.days.includes(pastDayName));
+                            }
+                            const pastTimeStr = pastSch ? pastSch.time : act.time;
+                            const pastLocStr = pastSch ? pastSch.location : act.location;
+
                             pastActs.push({
                                 act: act,
                                 dateStr: dateStr,
                                 actStatus: actStatus,
                                 attStatus: att,
-                                timeStr: act.time
+                                timeStr: pastTimeStr,
+                                locStr: pastLocStr
                             });
                         }
                     }
@@ -590,6 +600,7 @@
                     
                     let currentStatus = 'YAPILACAK';
                     let actTimeStr = todaySch ? todaySch.time : act.time;
+                    let actLocStr = todaySch ? todaySch.location : act.location;
                     
                     if (todayStatusOverride === 'İPTAL') {
                         currentStatus = 'İPTAL EDİLDİ';
@@ -608,14 +619,16 @@
                             dateStr: todayStr,
                             actStatus: currentStatus,
                             attStatus: att,
-                            timeStr: actTimeStr
+                            timeStr: actTimeStr,
+                            locStr: actLocStr
                         });
                     } else {
                         todayActs.push({
                             act: act,
                             actStatus: currentStatus,
                             attStatus: att,
-                            timeStr: actTimeStr
+                            timeStr: actTimeStr,
+                            locStr: actLocStr
                         });
                     }
                 }
@@ -632,7 +645,7 @@
                     let sName = currentStudent.name;
                     let actName = sa.act.name;
                     let time = sa.timeStr || '-';
-                    let loc = sa.act.location || 'Belirtilmedi';
+                    let loc = sa.locStr || 'Belirtilmedi';
 
                     let studentStatus = '';
                     if (sa.attStatus === 'KATILDI') studentStatus = ` Öğrenciniz ${sName} etkinliğe <b>katılmıştır</b>.`;
@@ -674,8 +687,8 @@
                     const formattedDate = `${d}.${m}.${y}`;
                     let sName = currentStudent.name;
                     let actName = sa.act.name;
-                    let time = sa.timeStr || sa.act.time || '-';
-                    let loc = sa.act.location || 'Belirtilmedi';
+                    let time = sa.timeStr || '-';
+                    let loc = sa.locStr || 'Belirtilmedi';
                     
                     let studentStatus = '';
                     if (sa.attStatus === 'KATILDI') studentStatus = ` Öğrenciniz ${sName} etkinliğe <b>katılmıştır</b>.`;
