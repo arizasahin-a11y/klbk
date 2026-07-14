@@ -406,7 +406,7 @@
         // On Load
         window.onload = async function() {
             try {
-                await DataManager.initCloudSync();
+                await DataManager.initCloud();
                 schoolData = DataManager._getData() || {};
                 allStudents = DataManager.getStudents() || [];
 
