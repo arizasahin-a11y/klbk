@@ -1020,8 +1020,8 @@
 
                     sortedStudents.forEach((s, idx) => {
                         let infoBadges = [];
-                        if (s.studentPhone) infoBadges.push(`<span style="font-size:0.75rem; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px;"><i class="fa-solid fa-phone"></i> Ö.</span>`);
-                        if (s.parentPhone) infoBadges.push(`<span style="font-size:0.75rem; background:#fce7f3; color:#be185d; padding:2px 6px; border-radius:4px;"><i class="fa-solid fa-phone"></i> V.</span>`);
+                        if (s.studentPhone) infoBadges.push(`<span style="font-size:0.75rem; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; cursor:pointer;" onclick="Swal.fire({title:'Öğrenci Telefonu', text:'${s.studentPhone}', icon:'info'})"><i class="fa-solid fa-phone"></i> Ö.</span>`);
+                        if (s.parentPhone) infoBadges.push(`<span style="font-size:0.75rem; background:#fce7f3; color:#be185d; padding:2px 6px; border-radius:4px; cursor:pointer;" onclick="Swal.fire({title:'Veli Telefonu', text:'${s.parentPhone}', icon:'info'})"><i class="fa-solid fa-phone"></i> V.</span>`);
                         if (s.parentInformed) infoBadges.push(`<span style="font-size:0.75rem; background:#dcfce7; color:#15803d; padding:2px 6px; border-radius:4px;"><i class="fa-solid fa-check"></i> Onay</span>`);
                         
                         studentsHtml += `
@@ -1367,8 +1367,8 @@
                     return `
                         <div class="slip">
                             <div class="header">
-                                <span style="font-size: 15px;">${sName ? sName.toUpperCase() + ' MÜDÜRLÜĞÜNE' : 'OKUL MÜDÜRLÜĞÜNE'}</span><br>
-                                <span style="font-weight: normal; text-decoration: underline;">VELİ İZİN BELGESİ</span>
+                                <span style="font-weight: bold; text-decoration: underline;">VELİ İZİN DİLEKÇESİ</span><br>
+                                <span style="font-size: 15px; font-weight: normal;">${sName ? sName.toUpperCase() + ' MÜDÜRLÜĞÜNE' : 'OKUL MÜDÜRLÜĞÜNE'}</span>
                             </div>
                             <div class="content">
                                 Okulumuz öğrencilerinden <b>${student.class}</b> sınıfı <b>${student.no}</b> numaralı <b>${student.name}</b> isimli öğrencinin velisiyim.
