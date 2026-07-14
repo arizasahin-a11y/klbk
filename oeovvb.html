@@ -598,6 +598,28 @@
         let allStudents = [];
         let currentStudent = null;
 
+        function findStudentByNo(targetNo) {
+            if (!targetNo) return null;
+            const normalizeNo = (val) => String(val || '').trim().replace(/^0+/, '');
+            const tNo = normalizeNo(targetNo);
+            
+            // First check allStudents
+            let student = allStudents.find(s => s && s.no && normalizeNo(s.no) === tNo);
+            if (student) return student;
+
+            // If not found, check inside activities
+            const activities = schoolData.activities || [];
+            for (let act of activities) {
+                if (act.students) {
+                    let actStudent = act.students.find(s => s && s.no && normalizeNo(s.no) === tNo);
+                    if (actStudent) {
+                        return actStudent;
+                    }
+                }
+            }
+            return null;
+        }
+
         // On Load
         window.onload = async function() {
             try {
@@ -624,7 +646,7 @@
         function checkSession() {
             const savedNo = localStorage.getItem('oeovvb_student_no');
             if (savedNo) {
-                const s = allStudents.find(st => st.no == savedNo);
+                const s = findStudentByNo(savedNo);
                 if (s) {
                     currentStudent = s;
                     showDashboard();
@@ -645,7 +667,7 @@
             const normalizeNo = (val) => String(val || '').trim().replace(/^0+/, '');
             const targetNo = normalizeNo(noVal);
 
-            const student = allStudents.find(s => s && s.no && normalizeNo(s.no) === targetNo);
+            const student = findStudentByNo(targetNo);
             
             if (!student) {
                 Swal.fire('Hata', 'Öğrenci bulunamadı. Lütfen numarayı kontrol edin.', 'error');
