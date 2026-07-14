@@ -325,21 +325,8 @@
 
             <div class="glass-panel" style="padding: 2rem;">
                 <h3 style="margin-top: 0; color: var(--gray-800);"><i class="fa-solid fa-clock-rotate-left"></i> Geçmiş Çalışmalar</h3>
-                <div class="table-responsive">
-                    <table class="custom-table">
-                        <thead>
-                            <tr>
-                                <th>Tarih</th>
-                                <th>Çalışma / Etkinlik</th>
-                                <th>Saat / Yer</th>
-                                <th>Durum</th>
-                                <th>Katılım</th>
-                            </tr>
-                        </thead>
-                        <tbody id="historyTableBody">
-                            <!-- History rows will be injected here -->
-                        </tbody>
-                    </table>
+                <div id="historyContainer" style="display: flex; flex-direction: column; gap: 15px;">
+                    <!-- History cards will be injected here -->
                 </div>
                 <div id="historyEmptyMsg" class="hidden" style="text-align: center; color: var(--gray-700); padding: 2rem;">
                     Geçmiş çalışma kaydı bulunmamaktadır.
@@ -529,6 +516,32 @@
             let todayActs = [];
             let pastActs = [];
             
+            function checkTimeStatus(timeStr) {
+                if (!timeStr) return 'YAPILACAK';
+                const parts = timeStr.split('-');
+                if (parts.length !== 2) return 'YAPILACAK';
+                
+                const startParts = parts[0].trim().split(':');
+                const endParts = parts[1].trim().split(':');
+                if (startParts.length !== 2 || endParts.length !== 2) return 'YAPILACAK';
+                
+                const startHour = parseInt(startParts[0], 10);
+                const startMin = parseInt(startParts[1], 10);
+                const endHour = parseInt(endParts[0], 10);
+                const endMin = parseInt(endParts[1], 10);
+                
+                const currHour = now.getHours();
+                const currMin = now.getMinutes();
+                
+                const startTime = startHour * 60 + startMin;
+                const endTime = endHour * 60 + endMin;
+                const currTime = currHour * 60 + currMin;
+                
+                if (currTime < startTime) return 'YAPILACAK';
+                if (currTime > endTime) return 'YAPILDI';
+                return 'YAPILIYOR';
+            }
+            
             activities.forEach(act => {
                 if (!act.students) return;
                 const normalizeNo = (val) => String(val || '').trim().replace(/^0+/, '');
@@ -553,22 +566,20 @@
                                 act: act,
                                 dateStr: dateStr,
                                 actStatus: actStatus,
-                                attStatus: att
+                                attStatus: att,
+                                timeStr: act.time
                             });
                         }
                     }
                 });
 
                 // 2. Check today specifically
-                let isTodayScheduled = false;
+                let todaySch = null;
                 if (act.schedules) {
-                    act.schedules.forEach(sch => {
-                        if (sch.days && sch.days.includes(todayName)) {
-                            isTodayScheduled = true;
-                        }
-                    });
+                    todaySch = act.schedules.find(sch => sch.days && sch.days.includes(todayName));
                 }
                 
+                let isTodayScheduled = !!todaySch;
                 let todayStatusOverride = act.statusHistory ? act.statusHistory[todayStr] : null;
 
                 if (isTodayScheduled || todayStatusOverride) {
@@ -578,14 +589,33 @@
                     }
                     
                     let currentStatus = 'YAPILACAK';
-                    if (todayStatusOverride === 'İPTAL') currentStatus = 'İPTAL EDİLDİ';
-                    else if (todayStatusOverride) currentStatus = todayStatusOverride;
+                    let actTimeStr = todaySch ? todaySch.time : act.time;
                     
-                    todayActs.push({
-                        act: act,
-                        actStatus: currentStatus,
-                        attStatus: att
-                    });
+                    if (todayStatusOverride === 'İPTAL') {
+                        currentStatus = 'İPTAL EDİLDİ';
+                    } else if (todayStatusOverride === 'YAPILDI') {
+                        currentStatus = 'YAPILDI';
+                    } else {
+                        currentStatus = checkTimeStatus(actTimeStr);
+                        if (todayStatusOverride === 'YAPILIYOR') currentStatus = 'YAPILIYOR';
+                    }
+                    
+                    if (currentStatus === 'YAPILDI') {
+                        pastActs.push({
+                            act: act,
+                            dateStr: todayStr,
+                            actStatus: currentStatus,
+                            attStatus: att,
+                            timeStr: actTimeStr
+                        });
+                    } else {
+                        todayActs.push({
+                            act: act,
+                            actStatus: currentStatus,
+                            attStatus: att,
+                            timeStr: actTimeStr
+                        });
+                    }
                 }
             });
 
@@ -596,17 +626,22 @@
             let todayHtml = '';
             if (todayActs.length > 0) {
                 todayActs.forEach(sa => {
-                    let badgeHtml = '';
+                    let statusText = '';
+                    let sName = currentStudent.name;
+                    let actName = sa.act.name;
+                    let time = sa.timeStr || '-';
+
                     if (sa.actStatus === 'İPTAL EDİLDİ') {
-                        badgeHtml = `<span class="badge badge-cancelled"><i class="fa-solid fa-ban"></i> İptal Edildi</span>`;
-                    } else if (sa.actStatus === 'YAPILDI') {
-                        if (sa.attStatus === 'KATILDI') badgeHtml = `<span class="badge badge-attended"><i class="fa-solid fa-check"></i> Katıldı</span>`;
-                        else if (sa.attStatus === 'KATILMADI') badgeHtml = `<span class="badge badge-missed"><i class="fa-solid fa-xmark"></i> Katılmadı</span>`;
-                        else badgeHtml = `<span class="badge badge-upcoming"><i class="fa-solid fa-clock"></i> Bilinmiyor</span>`;
+                        statusText = `<div style="color:var(--red); font-weight:600; font-size:1.05rem;"><i class="fa-solid fa-ban"></i> <b>${actName}</b> etkinliği iptal edilmiştir.</div>`;
+                    } else if (sa.actStatus === 'YAPILACAK') {
+                        statusText = `<div style="color:var(--gray-800); font-weight:500; font-size:1.05rem;"><i class="fa-solid fa-clock"></i> <b>${actName}</b> etkinliği saat <b>${time}</b> itibarıyla yapılacaktır.</div>`;
                     } else if (sa.actStatus === 'YAPILIYOR') {
-                        badgeHtml = `<span class="badge badge-upcoming" style="background:#e0f2fe; color:#0284c7;"><i class="fa-solid fa-spinner"></i> Devam Ediyor</span>`;
-                    } else {
-                        badgeHtml = `<span class="badge badge-upcoming"><i class="fa-solid fa-clock"></i> YAPILACAK</span>`;
+                        let innerText = `<b>${actName}</b> etkinliği şu an yapılıyor. `;
+                        if (sa.attStatus === 'KATILDI') innerText += `<span style="color:var(--green);"><i class="fa-solid fa-check"></i> Öğrenciniz ${sName} etkinliğe <b>katılmıştır</b>.</span>`;
+                        else if (sa.attStatus === 'KATILMADI') innerText += `<span style="color:var(--red);"><i class="fa-solid fa-xmark"></i> Öğrenciniz ${sName} etkinliğe <b>katılmamıştır</b>.</span>`;
+                        else innerText += `<span style="color:var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Yoklama durumu henüz belli değil.</span>`;
+                        
+                        statusText = `<div style="background:#e0f2fe; padding:12px; border-radius:8px; border:1px solid #bae6fd; font-weight:500; font-size:1.05rem; margin-top:10px;">${innerText}</div>`;
                     }
 
                     todayHtml += `
@@ -615,12 +650,12 @@
                                 <h4>${sa.act.name}</h4>
                                 <div class="activity-meta">
                                     <span><i class="fa-solid fa-chalkboard-user"></i> ${sa.act.teachers || '-'}</span>
-                                    <span><i class="fa-regular fa-clock"></i> ${sa.act.time || '-'}</span>
+                                    <span><i class="fa-regular fa-clock"></i> ${time}</span>
                                     <span><i class="fa-solid fa-location-dot"></i> ${sa.act.location || '-'}</span>
                                 </div>
-                            </div>
-                            <div>
-                                ${badgeHtml}
+                                <div style="margin-top: 1rem;">
+                                    ${statusText}
+                                </div>
                             </div>
                         </div>
                     `;
@@ -630,7 +665,7 @@
                 document.getElementById('todayActivitiesContainer').innerHTML = `
                     <div style="text-align: center; color: var(--gray-700); padding: 2rem;">
                         <i class="fa-regular fa-face-smile" style="font-size: 2rem; color: #cbd5e1; margin-bottom: 1rem; display: block;"></i>
-                        Bugün için kayıtlı bir çalışma veya etkinlik bulunmamaktadır.
+                        Bugün için kayıtlı devam eden bir çalışma bulunmamaktadır.
                     </div>
                 `;
             }
@@ -642,29 +677,38 @@
                 pastActs.forEach(sa => {
                     const [y, m, d] = sa.dateStr.split('-');
                     const formattedDate = `${d}.${m}.${y}`;
-
-                    let badgeHtml = '';
-                    if (sa.actStatus === 'İPTAL') {
-                        badgeHtml = `<span style="color: var(--gelmedi-color); font-weight: bold;"><i class="fa-solid fa-ban"></i> İptal</span>`;
+                    let sName = currentStudent.name;
+                    let actName = sa.act.name;
+                    
+                    let descHtml = '';
+                    if (sa.actStatus === 'İPTAL' || sa.actStatus === 'İPTAL EDİLDİ') {
+                        descHtml = `<span style="color:var(--red); font-weight:600;"><i class="fa-solid fa-ban"></i> Etkinlik iptal edilmiştir.</span>`;
                     } else {
-                        if (sa.attStatus === 'KATILDI') badgeHtml = `<span style="color: var(--geldi-color); font-weight: bold;"><i class="fa-solid fa-check"></i> Katıldı</span>`;
-                        else if (sa.attStatus === 'KATILMADI') badgeHtml = `<span style="color: var(--gelmedi-color); font-weight: bold;"><i class="fa-solid fa-xmark"></i> Katılmadı</span>`;
-                        else badgeHtml = `<span style="color: var(--gray-700); font-weight: bold;">-</span>`;
+                        descHtml = `Etkinlik tamamlandı. `;
+                        if (sa.attStatus === 'KATILDI') descHtml += `<span style="color:var(--green); font-weight:600;"><i class="fa-solid fa-check"></i> Öğrenciniz ${sName} katıldı.</span>`;
+                        else if (sa.attStatus === 'KATILMADI') descHtml += `<span style="color:var(--red); font-weight:600;"><i class="fa-solid fa-xmark"></i> Öğrenciniz ${sName} katılmadı.</span>`;
+                        else descHtml += `<span style="color:var(--gray-500);"><i class="fa-solid fa-circle-question"></i> Yoklama durumu girilmedi.</span>`;
                     }
 
                     historyHtml += `
-                        <tr>
-                            <td><b>${formattedDate}</b></td>
-                            <td>${sa.act.name}</td>
-                            <td>${sa.act.time || '-'} <br> <small style="color:var(--gray-700);">${sa.act.location || '-'}</small></td>
-                            <td>${sa.actStatus === 'İPTAL' ? 'İptal Edildi' : 'Yapıldı'}</td>
-                            <td>${badgeHtml}</td>
-                        </tr>
+                        <div class="activity-card" style="padding:1rem; border-left: 4px solid var(--gray-400);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                                <h4 style="margin:0; font-size:1.1rem; color:var(--gray-800);">${actName}</h4>
+                                <span style="font-size: 0.85rem; color: var(--gray-700); background: #f1f5f9; padding: 3px 8px; border-radius: 12px; font-weight:600;">${formattedDate}</span>
+                            </div>
+                            <div class="activity-meta" style="margin-bottom:0.5rem;">
+                                <span><i class="fa-solid fa-chalkboard-user"></i> ${sa.act.teachers || '-'}</span>
+                                <span><i class="fa-regular fa-clock"></i> ${sa.timeStr || sa.act.time || '-'}</span>
+                            </div>
+                            <div style="font-size: 0.95rem; margin-top: 0.5rem; background: #f8fafc; padding: 10px; border-radius: 6px;">
+                                ${descHtml}
+                            </div>
+                        </div>
                     `;
                 });
-                document.getElementById('historyTableBody').innerHTML = historyHtml;
+                document.getElementById('historyContainer').innerHTML = historyHtml;
             } else {
-                document.getElementById('historyTableBody').innerHTML = '';
+                document.getElementById('historyContainer').innerHTML = '';
                 document.getElementById('historyEmptyMsg').classList.remove('hidden');
             }
         }
