@@ -1018,14 +1018,25 @@
             }
         }
 
-        function getActivityHTML(act, isActive) {
-            const occ = getNextOccurrence(act);
-            let isOngoing = false;
+        function getActivityHTML(act, isActive, occOverride) {
+            const occ = occOverride ? null : getNextOccurrence(act);
+            let showAttendance = false;
             let currentAttendance = null;
-            if (occ && act.statusHistory && act.statusHistory[occ.dateString] === 'YAPILIYOR') {
-                isOngoing = true;
-                if (act.attendanceHistory && act.attendanceHistory[occ.dateString]) {
-                    currentAttendance = act.attendanceHistory[occ.dateString];
+            let titleHtml = `${act.name}`;
+            
+            if (occOverride) {
+                showAttendance = (occOverride.status === 'YAPILDI' || occOverride.status === 'YAPILIYOR');
+                if (act.attendanceHistory && act.attendanceHistory[occOverride.dateString]) {
+                    currentAttendance = act.attendanceHistory[occOverride.dateString];
+                }
+                const statusColor = occOverride.status === 'İPTAL' ? '#ef4444' : '#10b981';
+                titleHtml += ` <span style="font-size:0.8rem; margin-left:10px; padding:2px 8px; border-radius:12px; background:rgba(0,0,0,0.05); color:${statusColor};"><i class="fa-regular fa-calendar"></i> ${occOverride.dateString} - ${occOverride.status}</span>`;
+            } else {
+                if (occ && act.statusHistory && act.statusHistory[occ.dateString] === 'YAPILIYOR') {
+                    showAttendance = true;
+                    if (act.attendanceHistory && act.attendanceHistory[occ.dateString]) {
+                        currentAttendance = act.attendanceHistory[occ.dateString];
+                    }
                 }
             }
             
@@ -1061,7 +1072,7 @@
                     if (s.parentInformed) infoBadges.push(`<span style="font-size:0.75rem; background:#dcfce7; color:#15803d; padding:2px 6px; border-radius:4px;"><i class="fa-solid fa-check"></i> Onay</span>`);
                     
                     let attendanceBadge = '';
-                    if (isOngoing && currentAttendance) {
+                    if (showAttendance && currentAttendance) {
                         if (currentAttendance[s.no] === true) {
                             attendanceBadge = `<span style="color:#10b981; margin-left:8px;" title="Katıldı"><i class="fa-solid fa-circle-check"></i></span>`;
                         } else {
@@ -1102,7 +1113,7 @@
                     <div class="accordion-header" onclick="toggleAccordion(this)" style="background: white; border-bottom: 1px solid #e2e8f0;">
                         <div style="flex:1; min-width:0; padding-right:10px;">
                             <i class="fa-solid fa-puzzle-piece" style="color:#4f46e5; margin-right:8px;"></i>
-                            ${act.name} ${typeBadge}
+                            ${titleHtml} ${typeBadge}
                         </div>
                         <div style="display:flex; align-items:center; gap:5px;" onclick="event.stopPropagation()">
                             <div class="dropdown" style="position:relative; display:inline-block;">
@@ -1194,7 +1205,7 @@
                 let reversedActs = [...activities].reverse();
                 let ongoingActs = [];
                 let upcomingActs = [];
-                let doneActs = [];
+                let pastOccurrences = [];
                 let allActs = reversedActs;
                 
                 const now = new Date();
@@ -1211,23 +1222,39 @@
                     
                     if (status === 'YAPILIYOR') {
                         ongoingActs.push(act);
-                    } else if (status === 'YAPILDI') {
-                        doneActs.push(act);
                     } else if ((status === 'YAPILACAK' || !status) && occ && occ.start <= nextWeek) {
                         upcomingActs.push(act);
                     } else if (!occ && (!status || status === 'YAPILACAK')) {
                         // Include activities without a schedule if they are not explicitly cancelled or done
                         upcomingActs.push(act);
                     }
+                    
+                    // Extract past occurrences
+                    if (act.statusHistory) {
+                        for (let dateStr in act.statusHistory) {
+                            let s = act.statusHistory[dateStr];
+                            if (s === 'YAPILDI' || s === 'İPTAL') {
+                                pastOccurrences.push({
+                                    act: act,
+                                    occOverride: { dateString: dateStr, status: s }
+                                });
+                            }
+                        }
+                    }
                 });
                 
-                const createCategory = (title, iconClass, color, actsArr, isActive) => {
+                // Sort past occurrences descending
+                pastOccurrences.sort((a, b) => b.occOverride.dateString.localeCompare(a.occOverride.dateString));
+                
+                const createCategory = (title, iconClass, color, itemsArr, isActive) => {
                     let contentHtml = '';
-                    if (actsArr.length === 0) {
+                    if (itemsArr.length === 0) {
                         contentHtml = `<div style="text-align:center; padding: 2rem; color:#64748b;">Kayıt Bulunmuyor</div>`;
                     } else {
-                        actsArr.forEach((act, idx) => {
-                            contentHtml += getActivityHTML(act, isActive && idx === 0);
+                        itemsArr.forEach((item, idx) => {
+                            let act = item.act || item;
+                            let occOverride = item.occOverride || null;
+                            contentHtml += getActivityHTML(act, isActive && idx === 0, occOverride);
                         });
                     }
                     
@@ -1248,7 +1275,7 @@
                 
                 adminSection.innerHTML += createCategory('Devam Eden Çalışmalar', 'fa-solid fa-spinner fa-spin', '#10b981', ongoingActs, true);
                 adminSection.innerHTML += createCategory('1 Hafta İçinde Yapılacak Çalışmalar', 'fa-regular fa-clock', '#f59e0b', upcomingActs, false);
-                adminSection.innerHTML += createCategory('Yapılmış Çalışmalar', 'fa-solid fa-check-double', '#3b82f6', doneActs, false);
+                adminSection.innerHTML += createCategory('Geçmiş Çalışmalar', 'fa-solid fa-clock-rotate-left', '#3b82f6', pastOccurrences, false);
                 adminSection.innerHTML += createCategory('Tüm Planlanmış Çalışmalar', 'fa-solid fa-list-check', '#6366f1', allActs, false);
             }
         }
