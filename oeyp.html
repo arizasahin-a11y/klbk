@@ -269,7 +269,7 @@
         </div>
 
         <!-- Create New Activity Section -->
-        <div class="glass-panel accordion-item" style="margin-bottom: 2rem;">
+        <div id="newActivityPanel" class="glass-panel accordion-item" style="margin-bottom: 2rem;">
             <div class="accordion-header" onclick="toggleAccordion(this)">
                 <div>
                     <i class="fa-solid fa-plus-circle" style="color:#10b981; margin-right:8px;"></i>
@@ -1019,6 +1019,16 @@
         }
 
         function getActivityHTML(act, isActive) {
+            const occ = getNextOccurrence(act);
+            let isOngoing = false;
+            let currentAttendance = null;
+            if (occ && act.statusHistory && act.statusHistory[occ.dateString] === 'YAPILIYOR') {
+                isOngoing = true;
+                if (act.attendanceHistory && act.attendanceHistory[occ.dateString]) {
+                    currentAttendance = act.attendanceHistory[occ.dateString];
+                }
+            }
+            
             let studentsHtml = '';
             if (act.students && act.students.length > 0) {
                 let sortedStudents = [...act.students];
@@ -1050,12 +1060,21 @@
                     if (s.parentPhone) infoBadges.push(`<span style="font-size:0.75rem; background:#fce7f3; color:#be185d; padding:2px 6px; border-radius:4px; cursor:pointer;" onclick="Swal.fire({title:'Veli Telefonu', text:'${s.parentPhone}', icon:'info'})"><i class="fa-solid fa-phone"></i> V.</span>`);
                     if (s.parentInformed) infoBadges.push(`<span style="font-size:0.75rem; background:#dcfce7; color:#15803d; padding:2px 6px; border-radius:4px;"><i class="fa-solid fa-check"></i> Onay</span>`);
                     
+                    let attendanceBadge = '';
+                    if (isOngoing && currentAttendance) {
+                        if (currentAttendance[s.no] === true) {
+                            attendanceBadge = `<span style="color:#10b981; margin-left:8px;" title="Katıldı"><i class="fa-solid fa-circle-check"></i></span>`;
+                        } else {
+                            attendanceBadge = `<span style="color:#ef4444; margin-left:8px;" title="Katılmadı"><i class="fa-solid fa-circle-xmark"></i></span>`;
+                        }
+                    }
+                    
                     studentsHtml += `
                         <tr>
                             <td>${idx + 1}</td>
                             <td>${s.class}</td>
                             <td><b>${s.no}</b></td>
-                            <td>${s.name} ${infoBadges.join(' ')}</td>
+                            <td>${s.name} ${attendanceBadge} ${infoBadges.join(' ')}</td>
                         </tr>
                     `;
                 });
@@ -1136,10 +1155,14 @@
             
             const teacherSection = document.getElementById('teacherActivitiesSection');
             const adminSection = document.getElementById('adminActivitiesSection');
+            const newActPanel = document.getElementById('newActivityPanel');
             
             if (currentUser.role === 'ogretmen') {
                 teacherSection.style.display = 'block';
                 adminSection.style.display = 'none';
+                if (newActPanel) {
+                    teacherSection.parentNode.insertBefore(newActPanel, teacherSection);
+                }
                 
                 activities = activities.filter(a => a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase())));
                 
@@ -1164,6 +1187,9 @@
                 teacherSection.style.display = 'none';
                 adminSection.style.display = 'block';
                 adminSection.innerHTML = '';
+                if (newActPanel) {
+                    adminSection.parentNode.appendChild(newActPanel);
+                }
                 
                 let reversedActs = [...activities].reverse();
                 let ongoingActs = [];
@@ -1172,7 +1198,9 @@
                 let allActs = reversedActs;
                 
                 const now = new Date();
-                const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+                const nextWeek = new Date();
+                nextWeek.setDate(nextWeek.getDate() + 7);
+                nextWeek.setHours(23, 59, 59, 999);
                 
                 reversedActs.forEach(act => {
                     const occ = getNextOccurrence(act);
@@ -1185,9 +1213,10 @@
                         ongoingActs.push(act);
                     } else if (status === 'YAPILDI') {
                         doneActs.push(act);
-                    } else if (status === 'YAPILACAK' && occ && occ.start <= nextWeek) {
+                    } else if ((status === 'YAPILACAK' || !status) && occ && occ.start <= nextWeek) {
                         upcomingActs.push(act);
-                    } else if (!status && occ && occ.start <= nextWeek) {
+                    } else if (!occ && (!status || status === 'YAPILACAK')) {
+                        // Include activities without a schedule if they are not explicitly cancelled or done
                         upcomingActs.push(act);
                     }
                 });
