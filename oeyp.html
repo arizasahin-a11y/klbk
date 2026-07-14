@@ -261,6 +261,12 @@
                             <input type="radio" name="uaStatus" value="İPTAL" onchange="updateUpcomingStatus(this.value)"> İPTAL EDİLDİ
                         </label>
                     </div>
+                    
+                    <div id="uaAttendanceBtnContainer" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                        <button class="btn btn-primary" style="width: 100%; font-size: 0.9rem;" onclick="openAttendanceModal()">
+                            <i class="fa-solid fa-clipboard-user"></i> Yoklama Al
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1273,6 +1279,13 @@
                 }
             });
             
+            const attendanceBtnContainer = document.getElementById('uaAttendanceBtnContainer');
+            if (currentStatus === 'YAPILIYOR' || currentStatus === 'YAPILDI') {
+                attendanceBtnContainer.style.display = 'block';
+            } else {
+                attendanceBtnContainer.style.display = 'none';
+            }
+            
             const countdownEl = document.getElementById('uaCountdown');
             if (now > end) {
                 countdownEl.innerText = "SÜRE BİTTİ";
@@ -1318,6 +1331,99 @@
                 timer: 2000,
                 showConfirmButton: false
             });
+        }
+        
+        function openAttendanceModal() {
+            if (!currentUpcomingData) return;
+            const { activity, dateString } = currentUpcomingData;
+            
+            if (!activity.students || activity.students.length === 0) {
+                Swal.fire('Uyarı', 'Bu çalışmaya kayıtlı öğrenci bulunmuyor.', 'warning');
+                return;
+            }
+            
+            if (!activity.attendanceHistory) activity.attendanceHistory = {};
+            const existingAttendance = activity.attendanceHistory[dateString] || {};
+            const isFirstTime = !activity.attendanceHistory[dateString];
+            
+            const allStudents = DataManager.getStudents();
+            const enrolledStudents = allStudents.filter(s => activity.students.includes(s.no));
+            
+            enrolledStudents.sort((a, b) => {
+                const na = parseInt(a.no) || 0;
+                const nb = parseInt(b.no) || 0;
+                return na - nb;
+            });
+            
+            let html = `
+                <div style="text-align:left; max-height: 400px; overflow-y: auto; padding-right: 5px;">
+                    <table class="student-table" style="width: 100%; font-size: 0.9rem;">
+                        <thead style="position: sticky; top: 0; z-index: 1;">
+                            <tr>
+                                <th style="width: 50px; text-align: center;">Durum</th>
+                                <th>Öğrenci</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            enrolledStudents.forEach(s => {
+                let isChecked = isFirstTime ? true : (existingAttendance[s.no] === true);
+                html += `
+                    <tr>
+                        <td style="text-align: center;">
+                            <input type="checkbox" id="att_${s.no}" class="att-checkbox" style="width: 20px; height: 20px; cursor: pointer;" ${isChecked ? 'checked' : ''}>
+                        </td>
+                        <td>
+                            <label for="att_${s.no}" style="cursor: pointer; display: block; margin: 0;">
+                                <b>${s.no}</b> - ${s.name} <span style="color:#64748b; font-size:0.8rem;">(${s.class})</span>
+                            </label>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `</tbody></table></div>`;
+            
+            Swal.fire({
+                title: 'Yoklama Al',
+                html: html,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-save"></i> Kaydet',
+                cancelButtonText: 'İptal',
+                width: '600px',
+                preConfirm: () => {
+                    const checkboxes = document.querySelectorAll('.att-checkbox');
+                    const results = {};
+                    checkboxes.forEach(cb => {
+                        const no = cb.id.replace('att_', '');
+                        results[no] = cb.checked;
+                    });
+                    return results;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    saveAttendance(dateString, activity.id, result.value);
+                }
+            });
+        }
+        
+        function saveAttendance(dateString, actId, attendanceData) {
+            const act = schoolData.activities.find(a => a.id === actId);
+            if (act) {
+                if (!act.attendanceHistory) act.attendanceHistory = {};
+                act.attendanceHistory[dateString] = attendanceData;
+                
+                DataManager.saveSchoolSettings({ activities: schoolData.activities });
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Yoklama Kaydedildi',
+                    toast: true,
+                    position: 'top-end',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
         }
 
         function deleteActivity(id, event) {
