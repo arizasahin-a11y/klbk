@@ -228,6 +228,109 @@
             </div>
         </div>
 
+        <!-- Create New Activity Section -->
+        <div class="glass-panel accordion-item" style="margin-bottom: 2rem;">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+                <div>
+                    <i class="fa-solid fa-plus-circle" style="color:#10b981; margin-right:8px;"></i>
+                    Yeni Çalışma Planla
+                </div>
+                <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
+            </div>
+            <div class="accordion-body">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Etkinlik Adı</label>
+                        <input type="text" id="newActName" class="form-select-custom" placeholder="Örn: Satranç Kulübü">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Sorumlu Öğretmenler</label>
+                        <input type="text" id="newActTeachers" class="form-select-custom" placeholder="Örn: Ali Yılmaz, Ayşe Kaya">
+                    </div>
+                </div>
+
+                <!-- Student Selection Box -->
+                <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 1rem;">
+                    <h4 style="margin-top:0; margin-bottom: 10px; color:#1e293b; font-size:1rem;"><i class="fa-solid fa-user-plus" style="color:#4f46e5;"></i> Öğrenci Ekle</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
+                        <div>
+                            <label style="font-weight: 600; color:#475569; font-size:0.85rem;">Sınıf Seçin</label>
+                            <select id="newActClassSelect" class="form-select-custom" onchange="loadStudentsForNewAct()">
+                                <option value="">-- Sınıf --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color:#475569; font-size:0.85rem;">Öğrenci Seçin</label>
+                            <select id="newActStudentSelect" class="form-select-custom" onchange="onStudentSelectedForNewAct()">
+                                <option value="">-- Önce Sınıf Seçin --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="studentDetailsBox" style="display:none; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px dashed #cbd5e1; margin-bottom:10px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
+                            <div>
+                                <label style="font-weight: 600; color:#475569; font-size:0.85rem;">Öğrenci Telefonu</label>
+                                <input type="text" id="newActStudentPhone" class="form-select-custom" placeholder="05XX XXX XX XX">
+                            </div>
+                            <div>
+                                <label style="font-weight: 600; color:#475569; font-size:0.85rem;">Veli Telefonu</label>
+                                <input type="text" id="newActParentPhone" class="form-select-custom" placeholder="05XX XXX XX XX">
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; justify-content: space-between;">
+                            <label style="display:flex; align-items:center; gap:8px; font-weight:600; color:#1e293b; cursor:pointer;">
+                                <input type="checkbox" id="newActParentInformed" style="width:18px; height:18px; cursor:pointer;"> 
+                                Veli Bilgilendirildi
+                            </label>
+                            <button class="btn btn-primary" onclick="addStudentToNewAct()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                                <i class="fa-solid fa-plus"></i> Listeye Ekle
+                            </button>
+                        </div>
+                    </div>
+
+                    <table class="student-table" id="newActStudentsTable" style="display:none;">
+                        <thead>
+                            <tr>
+                                <th style="padding:8px 10px; font-size:0.85rem;">No</th>
+                                <th style="padding:8px 10px; font-size:0.85rem;">Ad Soyad</th>
+                                <th style="padding:8px 10px; font-size:0.85rem;">Sınıf</th>
+                                <th style="padding:8px 10px; font-size:0.85rem;">Ö. Tel</th>
+                                <th style="padding:8px 10px; font-size:0.85rem;">V. Tel</th>
+                                <th style="padding:8px 10px; font-size:0.85rem;">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="newActStudentsBody"></tbody>
+                    </table>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 1.5rem;">
+                    <div class="form-group">
+                        <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Çalışma Günleri</label>
+                        <div style="display:flex; flex-wrap:wrap; gap:10px;" id="newActDays">
+                            <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" value="Pazartesi"> Pzt</label>
+                            <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" value="Salı"> Sal</label>
+                            <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" value="Çarşamba"> Çar</label>
+                            <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" value="Perşembe"> Per</label>
+                            <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" value="Cuma"> Cum</label>
+                            <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" value="Cumartesi"> Cmt</label>
+                            <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" value="Pazar"> Paz</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Çalışma Saatleri (Örn: 15:00 - 16:30)</label>
+                        <input type="text" id="newActTime" class="form-select-custom" placeholder="15:00 - 16:30">
+                    </div>
+                </div>
+
+                <div style="text-align: right;">
+                    <button class="btn btn-primary" onclick="saveNewActivity()" style="background:#10b981;">
+                        <i class="fa-solid fa-save"></i> Çalışmayı Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Activities Section -->
         <div class="glass-panel" style="padding: 2rem;">
             <h3 style="font-weight: 800; font-size: 1.25rem; margin-bottom: 1.5rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
@@ -340,6 +443,7 @@
                 await DataManager.initCloud();
                 schoolData = DataManager.getSchoolSettings();
                 
+                initNewActForm();
                 renderActivities();
                 Swal.close();
             } catch (err) {
@@ -359,37 +463,216 @@
             item.classList.toggle('active');
         }
 
+        // --- NEW ACTIVITY FORM LOGIC ---
+        let newActStudents = []; 
+
+        function initNewActForm() {
+            document.getElementById('newActTeachers').value = currentUser.name || currentUser.username;
+            
+            const classSelect = document.getElementById('newActClassSelect');
+            classSelect.innerHTML = '<option value="">-- Sınıf --</option>';
+            const classes = DataManager.getClasses();
+            classes.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                classSelect.appendChild(opt);
+            });
+            
+            newActStudents = [];
+            renderNewActStudents();
+        }
+
+        function loadStudentsForNewAct() {
+            const classSelect = document.getElementById('newActClassSelect');
+            const studentSelect = document.getElementById('newActStudentSelect');
+            const selectedClass = classSelect.value;
+            
+            studentSelect.innerHTML = '<option value="">-- Öğrenci Seçin --</option>';
+            document.getElementById('studentDetailsBox').style.display = 'none';
+            
+            if (!selectedClass) return;
+            
+            const students = DataManager.getStudentsByClass(selectedClass);
+            students.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.no;
+                opt.dataset.name = s.name;
+                opt.dataset.class = selectedClass;
+                opt.textContent = `${s.no} - ${s.name}`;
+                studentSelect.appendChild(opt);
+            });
+        }
+
+        function onStudentSelectedForNewAct() {
+            const studentSelect = document.getElementById('newActStudentSelect');
+            const detailsBox = document.getElementById('studentDetailsBox');
+            
+            if (studentSelect.value) {
+                detailsBox.style.display = 'block';
+                document.getElementById('newActStudentPhone').value = '';
+                document.getElementById('newActParentPhone').value = '';
+                document.getElementById('newActParentInformed').checked = false;
+            } else {
+                detailsBox.style.display = 'none';
+            }
+        }
+
+        function addStudentToNewAct() {
+            const studentSelect = document.getElementById('newActStudentSelect');
+            if (!studentSelect.value) return;
+            
+            const opt = studentSelect.options[studentSelect.selectedIndex];
+            const no = opt.value;
+            const name = opt.dataset.name;
+            const cls = opt.dataset.class;
+            
+            if (newActStudents.some(s => s.no === no)) {
+                Swal.fire('Uyarı', 'Bu öğrenci zaten listeye eklendi.', 'warning');
+                return;
+            }
+            
+            const sPhone = document.getElementById('newActStudentPhone').value.trim();
+            const pPhone = document.getElementById('newActParentPhone').value.trim();
+            const pInformed = document.getElementById('newActParentInformed').checked;
+            
+            newActStudents.push({
+                no: no,
+                name: name,
+                class: cls,
+                studentPhone: sPhone,
+                parentPhone: pPhone,
+                parentInformed: pInformed
+            });
+            
+            studentSelect.value = '';
+            document.getElementById('studentDetailsBox').style.display = 'none';
+            renderNewActStudents();
+        }
+
+        function removeNewActStudent(no) {
+            newActStudents = newActStudents.filter(s => s.no !== no);
+            renderNewActStudents();
+        }
+
+        function renderNewActStudents() {
+            const table = document.getElementById('newActStudentsTable');
+            const tbody = document.getElementById('newActStudentsBody');
+            
+            if (newActStudents.length === 0) {
+                table.style.display = 'none';
+                tbody.innerHTML = '';
+                return;
+            }
+            
+            table.style.display = 'table';
+            tbody.innerHTML = '';
+            
+            newActStudents.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding:8px 10px; font-size:0.85rem;"><b>${s.no}</b></td>
+                    <td style="padding:8px 10px; font-size:0.85rem;">${s.name}</td>
+                    <td style="padding:8px 10px; font-size:0.85rem;">${s.class}</td>
+                    <td style="padding:8px 10px; font-size:0.85rem;">${s.studentPhone || '-'}</td>
+                    <td style="padding:8px 10px; font-size:0.85rem;">${s.parentPhone || '-'}</td>
+                    <td style="padding:8px 10px; font-size:0.85rem;">
+                        <button class="btn" style="padding:4px 8px; font-size:0.75rem; background:rgba(239,68,68,0.1); color:#ef4444;" onclick="removeNewActStudent('${s.no}')"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function saveNewActivity() {
+            const name = document.getElementById('newActName').value.trim();
+            const teachers = document.getElementById('newActTeachers').value.trim();
+            
+            if (!name || !teachers) {
+                Swal.fire('Eksik Bilgi', 'Lütfen etkinlik adı ve sorumlu öğretmenleri giriniz.', 'warning');
+                return;
+            }
+            
+            const daysContainer = document.getElementById('newActDays');
+            const checkboxes = daysContainer.querySelectorAll('input[type="checkbox"]:checked');
+            const daysArr = Array.from(checkboxes).map(cb => cb.value);
+            
+            if (daysArr.length === 0) {
+                Swal.fire('Eksik Bilgi', 'Lütfen en az bir çalışma günü seçiniz.', 'warning');
+                return;
+            }
+            
+            const time = document.getElementById('newActTime').value.trim();
+            if (!time) {
+                Swal.fire('Eksik Bilgi', 'Lütfen çalışma saatlerini giriniz.', 'warning');
+                return;
+            }
+            
+            if (newActStudents.length === 0) {
+                Swal.fire({
+                    title: 'Uyarı',
+                    text: 'Çalışmaya hiç öğrenci eklemediniz. Yine de kaydetmek istiyor musunuz?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet',
+                    cancelButtonText: 'Hayır'
+                }).then(res => {
+                    if (res.isConfirmed) proceedSaveActivity();
+                });
+            } else {
+                proceedSaveActivity();
+            }
+            
+            function proceedSaveActivity() {
+                Swal.fire({ title: 'Kaydediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                
+                const newAct = {
+                    id: "act_" + Date.now(),
+                    name: name,
+                    teachers: teachers,
+                    days: daysArr.join(', '),
+                    time: time,
+                    students: newActStudents,
+                    createdBy: currentUser.username,
+                    createdAt: new Date().toISOString()
+                };
+                
+                if (!schoolData.activities) {
+                    schoolData.activities = [];
+                }
+                
+                schoolData.activities.push(newAct);
+                DataManager.saveSchoolSettings({ activities: schoolData.activities });
+                
+                document.getElementById('newActName').value = '';
+                Array.from(checkboxes).forEach(cb => cb.checked = false);
+                document.getElementById('newActTime').value = '';
+                newActStudents = [];
+                renderNewActStudents();
+                
+                // Collapse the form
+                const formAccordion = document.querySelector('.accordion-item');
+                if(formAccordion && formAccordion.classList.contains('active')) {
+                    formAccordion.classList.remove('active');
+                }
+                
+                renderActivities();
+                
+                Swal.fire({ icon: 'success', title: 'Başarılı', text: 'Çalışma planı başarıyla kaydedildi.', timer: 1500, showConfirmButton: false });
+            }
+        }
+
+        // --- RENDER ACTIVITIES LIST ---
         function renderActivities() {
             const listContainer = document.getElementById('activitiesList');
             const emptyState = document.getElementById('emptyState');
             
-            // Mock data representing approved activities for this teacher
-            // In a real scenario, this would be fetched from schoolData.activities
-            let activities = [
-                {
-                    id: "act_001",
-                    name: "Satranç Kulübü",
-                    days: "Pazartesi, Çarşamba",
-                    time: "15:00 - 16:30",
-                    students: [
-                        { no: "102", name: "Ahmet Yılmaz", class: "9-A" },
-                        { no: "155", name: "Ayşe Kaya", class: "9-B" },
-                        { no: "230", name: "Mehmet Demir", class: "10-C" }
-                    ]
-                },
-                {
-                    id: "act_002",
-                    name: "TÜBİTAK Proje Çalışması",
-                    days: "Cuma",
-                    time: "15:30 - 17:00",
-                    students: [
-                        { no: "340", name: "Zeynep Çelik", class: "11-A" },
-                        { no: "412", name: "Ali Can", class: "11-A" }
-                    ]
-                }
-            ];
-
-            // Filter for current teacher (mocking that logic for now, showing all mock data)
+            let activities = schoolData.activities || [];
+            
+            // Only show activities created by or involving this teacher
+            if (currentUser.role === 'ogretmen') {
+                activities = activities.filter(a => a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase())));
+            }
             
             if (!activities || activities.length === 0) {
                 listContainer.style.display = 'none';
@@ -401,14 +684,20 @@
             emptyState.style.display = 'none';
             listContainer.innerHTML = '';
 
-            activities.forEach((act, index) => {
+            // Render from newest to oldest
+            activities.slice().reverse().forEach((act, index) => {
                 let studentsHtml = '';
                 if (act.students && act.students.length > 0) {
                     act.students.forEach(s => {
+                        let infoBadges = [];
+                        if (s.studentPhone) infoBadges.push(`<span style="font-size:0.75rem; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px;"><i class="fa-solid fa-phone"></i> Ö.</span>`);
+                        if (s.parentPhone) infoBadges.push(`<span style="font-size:0.75rem; background:#fce7f3; color:#be185d; padding:2px 6px; border-radius:4px;"><i class="fa-solid fa-phone"></i> V.</span>`);
+                        if (s.parentInformed) infoBadges.push(`<span style="font-size:0.75rem; background:#dcfce7; color:#15803d; padding:2px 6px; border-radius:4px;"><i class="fa-solid fa-check"></i> Onay</span>`);
+                        
                         studentsHtml += `
                             <tr>
                                 <td><b>${s.no}</b></td>
-                                <td>${s.name}</td>
+                                <td>${s.name} ${infoBadges.join(' ')}</td>
                                 <td>${s.class}</td>
                             </tr>
                         `;
@@ -422,7 +711,7 @@
                         <div class="accordion-header" onclick="toggleAccordion(this)">
                             <div>
                                 <i class="fa-solid fa-puzzle-piece" style="color:#4f46e5; margin-right:8px;"></i>
-                                ${act.name}
+                                ${act.name} <span style="font-size:0.8rem; color:#64748b; margin-left:10px; font-weight:500;"><i class="fa-solid fa-chalkboard-user"></i> ${act.teachers}</span>
                             </div>
                             <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
                         </div>
