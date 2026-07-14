@@ -1076,7 +1076,10 @@
                     let infoBadges = [];
                     if (s.studentPhone) infoBadges.push(`<span style="font-size:0.75rem; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; cursor:pointer;" onclick="Swal.fire({title:'Öğrenci Telefonu', text:'${s.studentPhone}', icon:'info'})"><i class="fa-solid fa-phone"></i> Ö.</span>`);
                     if (s.parentPhone) infoBadges.push(`<span style="font-size:0.75rem; background:#fce7f3; color:#be185d; padding:2px 6px; border-radius:4px; cursor:pointer;" onclick="Swal.fire({title:'Veli Telefonu', text:'${s.parentPhone}', icon:'info'})"><i class="fa-solid fa-phone"></i> V.</span>`);
-                    if (s.parentInformed) infoBadges.push(`<span style="font-size:0.75rem; background:#dcfce7; color:#15803d; padding:2px 6px; border-radius:4px;"><i class="fa-solid fa-check"></i> Onay</span>`);
+                    
+                    let consentIcon = s.parentInformed 
+                        ? `<i class="fa-solid fa-stamp" style="color:#10b981; font-size:1.2rem;" title="Veli Onayı Alındı"></i>` 
+                        : `<span style="color:#ef4444; font-weight:900; font-size:1.2rem;" title="Veli Onayı Yok">!!</span>`;
                     
                     let attendanceBadge = '';
                     if (showAttendance && currentAttendance) {
@@ -1086,13 +1089,13 @@
                             attendanceBadge = `<span style="color:#ef4444; margin-left:8px;" title="Katılmadı"><i class="fa-solid fa-circle-xmark"></i></span>`;
                         }
                     }
-                    
                     studentsHtml += `
                         <tr>
                             <td>${idx + 1}</td>
                             <td>${s.class}</td>
                             <td><b>${s.no}</b></td>
                             <td>${s.name} ${attendanceBadge} ${infoBadges.join(' ')}</td>
+                            <td style="text-align:center;">${consentIcon}</td>
                         </tr>
                     `;
                 });
@@ -1170,6 +1173,7 @@
                                     <th style="width:100px;">Sınıf</th>
                                     <th style="width:100px;">Okul No</th>
                                     <th>Ad Soyad</th>
+                                    <th style="width:100px; text-align:center;">Veli Onayı</th>
                                 </tr>
                             </thead>
                             <tbody>
