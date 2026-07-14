@@ -948,7 +948,29 @@
             activities.slice().reverse().forEach((act, index) => {
                 let studentsHtml = '';
                 if (act.students && act.students.length > 0) {
-                    act.students.forEach(s => {
+                    let sortedStudents = [...act.students];
+                    sortedStudents.sort((a, b) => {
+                        const parseClass = (cls) => {
+                            const numMatch = cls.match(/\d+/);
+                            const letterMatch = cls.match(/[A-Za-zÇĞİÖŞÜçğıöşü]+/);
+                            return {
+                                num: numMatch ? parseInt(numMatch[0]) : 0,
+                                let: letterMatch ? letterMatch[0].toUpperCase() : ''
+                            };
+                        };
+                        const ca = parseClass(a.class || '');
+                        const cb = parseClass(b.class || '');
+                        if (ca.num !== cb.num) return ca.num - cb.num;
+                        if (ca.let !== cb.let) return ca.let.localeCompare(cb.let);
+                        
+                        const na = parseInt(a.no) || 0;
+                        const nb = parseInt(b.no) || 0;
+                        if (na !== nb) return na - nb;
+                        
+                        return (a.name || '').localeCompare(b.name || '');
+                    });
+
+                    sortedStudents.forEach((s, idx) => {
                         let infoBadges = [];
                         if (s.studentPhone) infoBadges.push(`<span style="font-size:0.75rem; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px;"><i class="fa-solid fa-phone"></i> Ö.</span>`);
                         if (s.parentPhone) infoBadges.push(`<span style="font-size:0.75rem; background:#fce7f3; color:#be185d; padding:2px 6px; border-radius:4px;"><i class="fa-solid fa-phone"></i> V.</span>`);
@@ -956,9 +978,10 @@
                         
                         studentsHtml += `
                             <tr>
+                                <td>${idx + 1}</td>
+                                <td>${s.class}</td>
                                 <td><b>${s.no}</b></td>
                                 <td>${s.name} ${infoBadges.join(' ')}</td>
-                                <td>${s.class}</td>
                             </tr>
                         `;
                     });
@@ -1018,9 +1041,10 @@
                             <table class="student-table">
                                 <thead>
                                     <tr>
+                                        <th style="width:50px;">S.No</th>
+                                        <th style="width:100px;">Sınıf</th>
                                         <th style="width:100px;">Okul No</th>
                                         <th>Ad Soyad</th>
-                                        <th style="width:100px;">Sınıf</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1098,8 +1122,30 @@
 
             let studentsRows = '';
             if (act.students && act.students.length > 0) {
-                act.students.forEach((s, idx) => {
-                    studentsRows += `<tr><td style="border:1px solid #000; padding:5px; text-align:center;">${idx+1}</td><td style="border:1px solid #000; padding:5px; text-align:center;">${s.no}</td><td style="border:1px solid #000; padding:5px;">${s.name}</td><td style="border:1px solid #000; padding:5px; text-align:center;">${s.class}</td></tr>`;
+                let sortedStudents = [...act.students];
+                sortedStudents.sort((a, b) => {
+                    const parseClass = (cls) => {
+                        const numMatch = cls.match(/\d+/);
+                        const letterMatch = cls.match(/[A-Za-zÇĞİÖŞÜçğıöşü]+/);
+                        return {
+                            num: numMatch ? parseInt(numMatch[0]) : 0,
+                            let: letterMatch ? letterMatch[0].toUpperCase() : ''
+                        };
+                    };
+                    const ca = parseClass(a.class || '');
+                    const cb = parseClass(b.class || '');
+                    if (ca.num !== cb.num) return ca.num - cb.num;
+                    if (ca.let !== cb.let) return ca.let.localeCompare(cb.let);
+                    
+                    const na = parseInt(a.no) || 0;
+                    const nb = parseInt(b.no) || 0;
+                    if (na !== nb) return na - nb;
+                    
+                    return (a.name || '').localeCompare(b.name || '');
+                });
+
+                sortedStudents.forEach((s, idx) => {
+                    studentsRows += `<tr><td style="border:1px solid #000; padding:5px; text-align:center;">${idx+1}</td><td style="border:1px solid #000; padding:5px; text-align:center;">${s.class}</td><td style="border:1px solid #000; padding:5px; text-align:center;">${s.no}</td><td style="border:1px solid #000; padding:5px;">${s.name}</td></tr>`;
                 });
             } else {
                 studentsRows = `<tr><td colspan="4" style="border:1px solid #000; padding:5px; text-align:center;">Öğrenci bulunmuyor.</td></tr>`;
@@ -1130,8 +1176,7 @@
                 </head>
                 <body>
                     <div class="header">
-                        OKUL MÜDÜRLÜĞÜNE<br>
-                        ${schoolData.schoolName ? schoolData.schoolName.toUpperCase() : ''}
+                        ${schoolData.schoolName ? schoolData.schoolName.toUpperCase() + '<br>MÜDÜRLÜĞÜNE' : 'OKUL MÜDÜRLÜĞÜNE'}
                     </div>
                     <div class="content">
                         <div style="text-indent: 40px; margin-bottom: 15px;">Okulumuzda planlanan <b>${act.name}</b> (${act.type || 'Ders İçi'}) çalışması kapsamında, detayları aşağıda verilen etkinlik yapılması planlanmaktadır.</div>
@@ -1157,9 +1202,9 @@
                             <thead>
                                 <tr>
                                     <th style="border:1px solid #000; padding:5px; width:50px;">S.No</th>
+                                    <th style="border:1px solid #000; padding:5px; width:80px;">Sınıf</th>
                                     <th style="border:1px solid #000; padding:5px; width:80px;">Okul No</th>
                                     <th style="border:1px solid #000; padding:5px;">Ad Soyad</th>
-                                    <th style="border:1px solid #000; padding:5px; width:80px;">Sınıf</th>
                                 </tr>
                             </thead>
                             <tbody>
