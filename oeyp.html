@@ -216,7 +216,7 @@
                     <i class="fa-solid fa-clipboard-user fa-2x"></i>
                 </div>
                 <div>
-                    <h1 style="font-size: 1.25rem; font-weight: 800; color: #1e293b; margin: 0;">Okul Etkinlik Yönetim Paneli</h1>
+                    <h1 style="font-size: 1.25rem; font-weight: 800; color: #1e293b; margin: 0; cursor: context-menu;" oncontextmenu="setManagerName(event)" title="Müdür ismini düzenlemek için sağ tıklayın">Okul Etkinlik Yönetim Paneli</h1>
                     <p style="font-size: 0.85rem; color: #64748b; margin: 2px 0 0 0;" id="teacherWelcome">Yükleniyor...</p>
                 </div>
             </div>
@@ -1103,6 +1103,29 @@
             if(dd) dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
         }
 
+        function setManagerName(event) {
+            event.preventDefault();
+            Swal.fire({
+                title: 'Okul Müdürü Adı Soyadı',
+                input: 'text',
+                inputValue: schoolData.managerName || '',
+                showCancelButton: true,
+                confirmButtonText: 'Kaydet',
+                cancelButtonText: 'İptal',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'Müdür adı boş bırakılamaz!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    schoolData.managerName = result.value.trim();
+                    DataManager.saveSchoolSettings({ managerName: schoolData.managerName });
+                    Swal.fire('Kaydedildi', 'Okul müdürü ismi güncellendi.', 'success');
+                }
+            });
+        }
+
         function printIdariIzin(id, event) {
             event.preventDefault();
             event.stopPropagation();
@@ -1154,7 +1177,7 @@
             let teachersSignatures = '';
             const teacherList = act.teachers ? act.teachers.split(',').map(t => t.trim()) : [];
             teacherList.forEach(t => {
-                teachersSignatures += `<div style="margin-bottom: 30px; text-align:center;">İmza<br><br><br>${t}<br>(Sorumlu Öğretmen)</div>`;
+                teachersSignatures += `<div style="text-align:center;">İmza<br><br><br>${t}<br>(Sorumlu Öğretmen)</div>`;
             });
             
             const printWindow = window.open('', '_blank');
@@ -1215,14 +1238,16 @@
                         <div style="text-indent: 40px;">Gereğini bilgilerinize arz ederim.</div>
                     </div>
                     
-                    <div class="footer">
-                        <div style="display:flex; flex-direction:column; gap:20px;">
+                    <div class="footer" style="display:block;">
+                        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; row-gap:40px; margin-top:20px;">
                             ${teachersSignatures}
                         </div>
-                        <div style="text-align:center;">
-                            Tarih: ...../...../20....<br><br>
+                        <div style="text-align:right; margin-top: 50px; padding-right: 50px;">
+                            Tarih: ...../...../20....
+                        </div>
+                        <div style="text-align:center; margin-top: 30px;">
                             <b>UYGUNDUR</b><br><br><br><br>
-                            .......................................<br>
+                            ${schoolData.managerName ? '<b>' + schoolData.managerName + '</b>' : '.......................................'}<br>
                             Okul Müdürü
                         </div>
                     </div>
