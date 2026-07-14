@@ -121,11 +121,11 @@
             border-top: 1px solid #e2e8f0;
         }
 
-        .accordion-item.active .accordion-body {
+        .accordion-item.active > .accordion-body {
             display: block;
         }
 
-        .accordion-item.active .accordion-header i.fa-chevron-down {
+        .accordion-item.active > .accordion-header i.fa-chevron-down {
             transform: rotate(180deg);
         }
 
@@ -369,18 +369,22 @@
         </div>
 
         <!-- Activities Section -->
-        <div class="glass-panel" style="padding: 2rem;">
-            <h3 style="font-weight: 800; font-size: 1.25rem; margin-bottom: 1.5rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-calendar-check" style="color:#4f46e5;"></i> Planlanmış Çalışmalarım
-            </h3>
-
-            <div id="activitiesList">
-                <!-- Accordion items will be rendered here -->
+        <div class="glass-panel accordion-item active" style="margin-bottom: 2rem; padding: 0;">
+            <div class="accordion-header" onclick="toggleAccordion(this)" style="border-radius: 12px 12px 0 0;">
+                <div style="font-weight: 800; font-size: 1.15rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-calendar-check" style="color:#4f46e5;"></i> Planlanmış Çalışmalarım
+                </div>
+                <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
             </div>
-            
-            <div id="emptyState" style="display: none; text-align: center; padding: 3rem 1rem;">
-                <i class="fa-solid fa-folder-open" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
-                <h4 style="color: #64748b; font-weight: 600;">Kayıtlı bir etkinlik veya çalışmanız bulunmuyor.</h4>
+            <div class="accordion-body" style="border-radius: 0 0 12px 12px;">
+                <div id="activitiesList">
+                    <!-- Accordion items will be rendered here -->
+                </div>
+                
+                <div id="emptyState" style="display: none; text-align: center; padding: 3rem 1rem;">
+                    <i class="fa-solid fa-folder-open" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
+                    <h4 style="color: #64748b; font-weight: 600;">Kayıtlı bir etkinlik veya çalışmanız bulunmuyor.</h4>
+                </div>
             </div>
         </div>
 
