@@ -363,7 +363,7 @@
         window.onload = async function() {
             try {
                 await DataManager.initCloud();
-                schoolData = DataManager._getData() || {};
+                schoolData = DataManager.getSchoolSettings() || {};
                 allStudents = DataManager.getStudents() || [];
 
                 if (schoolData.name) {
