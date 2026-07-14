@@ -597,7 +597,9 @@
                         currentStatus = 'YAPILDI';
                     } else {
                         currentStatus = checkTimeStatus(actTimeStr);
-                        if (todayStatusOverride === 'YAPILIYOR') currentStatus = 'YAPILIYOR';
+                        if (todayStatusOverride === 'YAPILIYOR' && currentStatus !== 'YAPILDI') {
+                            currentStatus = 'YAPILIYOR';
+                        }
                     }
                     
                     if (currentStatus === 'YAPILDI') {
@@ -630,33 +632,26 @@
                     let sName = currentStudent.name;
                     let actName = sa.act.name;
                     let time = sa.timeStr || '-';
+                    let loc = sa.act.location || 'Belirtilmedi';
+
+                    let studentStatus = '';
+                    if (sa.attStatus === 'KATILDI') studentStatus = ` Öğrenciniz ${sName} etkinliğe <b>katılmıştır</b>.`;
+                    else if (sa.attStatus === 'KATILMADI') studentStatus = ` Öğrenciniz ${sName} etkinliğe <b>katılmamıştır</b>.`;
+                    else studentStatus = ` Yoklama durumu henüz belli değil.`;
 
                     if (sa.actStatus === 'İPTAL EDİLDİ') {
-                        statusText = `<div style="color:var(--red); font-weight:600; font-size:1.05rem;"><i class="fa-solid fa-ban"></i> <b>${actName}</b> etkinliği iptal edilmiştir.</div>`;
+                        statusText = `<div style="color:var(--red); font-weight:500; font-size:1.05rem;"><b>${actName}</b> isimli çalışma <b>${loc}</b> konumunda (Saat: <b>${time}</b>) iptal edilmiştir.</div>`;
                     } else if (sa.actStatus === 'YAPILACAK') {
-                        statusText = `<div style="color:var(--gray-800); font-weight:500; font-size:1.05rem;"><i class="fa-solid fa-clock"></i> <b>${actName}</b> etkinliği saat <b>${time}</b> itibarıyla yapılacaktır.</div>`;
+                        statusText = `<div style="color:var(--gray-800); font-weight:500; font-size:1.05rem;"><b>${actName}</b> isimli çalışma <b>${loc}</b> konumunda saat <b>${time}</b> itibarıyla yapılacaktır.</div>`;
                     } else if (sa.actStatus === 'YAPILIYOR') {
-                        let innerText = `<b>${actName}</b> etkinliği şu an yapılıyor. `;
-                        if (sa.attStatus === 'KATILDI') innerText += `<span style="color:var(--green);"><i class="fa-solid fa-check"></i> Öğrenciniz ${sName} etkinliğe <b>katılmıştır</b>.</span>`;
-                        else if (sa.attStatus === 'KATILMADI') innerText += `<span style="color:var(--red);"><i class="fa-solid fa-xmark"></i> Öğrenciniz ${sName} etkinliğe <b>katılmamıştır</b>.</span>`;
-                        else innerText += `<span style="color:var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Yoklama durumu henüz belli değil.</span>`;
-                        
-                        statusText = `<div style="background:#e0f2fe; padding:12px; border-radius:8px; border:1px solid #bae6fd; font-weight:500; font-size:1.05rem; margin-top:10px;">${innerText}</div>`;
+                        let innerText = `<b>${actName}</b> isimli çalışma <b>${loc}</b> konumunda saat <b>${time}</b> itibarıyla şu an yapılıyor.${studentStatus}`;
+                        statusText = `<div style="background:#e0f2fe; padding:12px; border-radius:8px; border:1px solid #bae6fd; font-weight:500; font-size:1.05rem;">${innerText}</div>`;
                     }
 
                     todayHtml += `
-                        <div class="activity-card">
-                            <div class="activity-info">
-                                <h4>${sa.act.name}</h4>
-                                <div class="activity-meta">
-                                    <span><i class="fa-solid fa-chalkboard-user"></i> ${sa.act.teachers || '-'}</span>
-                                    <span><i class="fa-regular fa-clock"></i> ${time}</span>
-                                    <span><i class="fa-solid fa-location-dot"></i> ${sa.act.location || '-'}</span>
-                                </div>
-                                <div style="margin-top: 1rem;">
-                                    ${statusText}
-                                </div>
-                            </div>
+                        <div class="activity-card" style="padding: 1.25rem;">
+                            <h4 style="margin-top:0; margin-bottom:0.75rem; color:var(--gray-800); font-size: 1.15rem;">${actName}</h4>
+                            ${statusText}
                         </div>
                     `;
                 });
@@ -679,28 +674,25 @@
                     const formattedDate = `${d}.${m}.${y}`;
                     let sName = currentStudent.name;
                     let actName = sa.act.name;
+                    let time = sa.timeStr || sa.act.time || '-';
+                    let loc = sa.act.location || 'Belirtilmedi';
                     
+                    let studentStatus = '';
+                    if (sa.attStatus === 'KATILDI') studentStatus = ` Öğrenciniz ${sName} etkinliğe <b>katılmıştır</b>.`;
+                    else if (sa.attStatus === 'KATILMADI') studentStatus = ` Öğrenciniz ${sName} etkinliğe <b>katılmamıştır</b>.`;
+                    else studentStatus = ` Yoklama durumu girilmemiştir.`;
+
                     let descHtml = '';
                     if (sa.actStatus === 'İPTAL' || sa.actStatus === 'İPTAL EDİLDİ') {
-                        descHtml = `<span style="color:var(--red); font-weight:600;"><i class="fa-solid fa-ban"></i> Etkinlik iptal edilmiştir.</span>`;
+                        descHtml = `<span style="color:var(--red); font-weight:500;"><b>${formattedDate}</b> tarihindeki <b>${actName}</b> isimli çalışma <b>${loc}</b> konumunda (Saat: <b>${time}</b>) iptal edilmiştir.</span>`;
                     } else {
-                        descHtml = `Etkinlik tamamlandı. `;
-                        if (sa.attStatus === 'KATILDI') descHtml += `<span style="color:var(--green); font-weight:600;"><i class="fa-solid fa-check"></i> Öğrenciniz ${sName} katıldı.</span>`;
-                        else if (sa.attStatus === 'KATILMADI') descHtml += `<span style="color:var(--red); font-weight:600;"><i class="fa-solid fa-xmark"></i> Öğrenciniz ${sName} katılmadı.</span>`;
-                        else descHtml += `<span style="color:var(--gray-500);"><i class="fa-solid fa-circle-question"></i> Yoklama durumu girilmedi.</span>`;
+                        descHtml = `<span style="color:var(--gray-800); font-weight:500;"><b>${formattedDate}</b> tarihindeki <b>${actName}</b> isimli çalışma <b>${loc}</b> konumunda saat <b>${time}</b> itibarıyla tamamlanmıştır.${studentStatus}</span>`;
                     }
 
                     historyHtml += `
-                        <div class="activity-card" style="padding:1rem; border-left: 4px solid var(--gray-400);">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-                                <h4 style="margin:0; font-size:1.1rem; color:var(--gray-800);">${actName}</h4>
-                                <span style="font-size: 0.85rem; color: var(--gray-700); background: #f1f5f9; padding: 3px 8px; border-radius: 12px; font-weight:600;">${formattedDate}</span>
-                            </div>
-                            <div class="activity-meta" style="margin-bottom:0.5rem;">
-                                <span><i class="fa-solid fa-chalkboard-user"></i> ${sa.act.teachers || '-'}</span>
-                                <span><i class="fa-regular fa-clock"></i> ${sa.timeStr || sa.act.time || '-'}</span>
-                            </div>
-                            <div style="font-size: 0.95rem; margin-top: 0.5rem; background: #f8fafc; padding: 10px; border-radius: 6px;">
+                        <div class="activity-card" style="padding:1.25rem; border-left: 4px solid var(--gray-400);">
+                            <h4 style="margin:0; margin-bottom: 0.75rem; font-size:1.15rem; color:var(--gray-800);">${actName}</h4>
+                            <div style="font-size: 1.05rem; background: #f8fafc; padding: 12px; border-radius: 8px;">
                                 ${descHtml}
                             </div>
                         </div>
