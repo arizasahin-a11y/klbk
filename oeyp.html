@@ -259,7 +259,7 @@
                         <input type="radio" name="uaStatus" value="İPTAL" onchange="updateUpcomingStatus(this.value)" style="margin:0;"> İPTAL
                     </label>
                     
-                    <div id="uaAttendanceBtnContainer" style="display: none; margin-left: 10px;">
+                    <div id="uaAttendanceBtnContainer" style="display: none; margin-left: auto; margin-right: 20px;">
                         <button class="btn btn-primary" style="font-size: 0.75rem; padding: 4px 10px; border-radius: 6px;" onclick="openAttendanceModal()">
                             <i class="fa-solid fa-clipboard-user"></i> Yoklama
                         </button>
@@ -409,7 +409,7 @@
         </div>
 
         <!-- Activities Section -->
-        <div class="glass-panel accordion-item active" style="margin-bottom: 2rem; padding: 0;">
+        <div id="teacherActivitiesSection" class="glass-panel accordion-item active" style="margin-bottom: 2rem; padding: 0;">
             <div class="accordion-header" onclick="toggleAccordion(this)" style="border-radius: 12px 12px 0 0;">
                 <div style="font-weight: 800; font-size: 1.15rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
                     <i class="fa-solid fa-calendar-check" style="color:#4f46e5;"></i> Planlanmış Çalışmalarım
@@ -426,6 +426,11 @@
                     <h4 style="color: #64748b; font-weight: 600;">Kayıtlı bir etkinlik veya çalışmanız bulunmuyor.</h4>
                 </div>
             </div>
+        </div>
+
+        <!-- Admin Activities Section -->
+        <div id="adminActivitiesSection" style="display: none; margin-bottom: 2rem;">
+            <!-- Categories will be generated here dynamically -->
         </div>
 
     </div>
@@ -1013,139 +1018,210 @@
             }
         }
 
-        function renderActivities() {
-            const listContainer = document.getElementById('activitiesList');
-            const emptyState = document.getElementById('emptyState');
-            
-            let activities = schoolData.activities || [];
-            
-            if (currentUser.role === 'ogretmen') {
-                activities = activities.filter(a => a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase())));
-            }
-            
-            if (!activities || activities.length === 0) {
-                listContainer.style.display = 'none';
-                emptyState.style.display = 'block';
-                return;
-            }
-
-            listContainer.style.display = 'block';
-            emptyState.style.display = 'none';
-            listContainer.innerHTML = '';
-
-            activities.slice().reverse().forEach((act, index) => {
-                let studentsHtml = '';
-                if (act.students && act.students.length > 0) {
-                    let sortedStudents = [...act.students];
-                    sortedStudents.sort((a, b) => {
-                        const parseClass = (cls) => {
-                            cls = String(cls || '');
-                            const numMatch = cls.match(/\d+/);
-                            const letterMatch = cls.match(/[A-Za-zÇĞİÖŞÜçğıöşü]+/);
-                            return {
-                                num: numMatch ? parseInt(numMatch[0]) : 0,
-                                let: letterMatch ? letterMatch[0].toUpperCase() : ''
-                            };
+        function getActivityHTML(act, isActive) {
+            let studentsHtml = '';
+            if (act.students && act.students.length > 0) {
+                let sortedStudents = [...act.students];
+                sortedStudents.sort((a, b) => {
+                    const parseClass = (cls) => {
+                        cls = String(cls || '');
+                        const numMatch = cls.match(/\d+/);
+                        const letterMatch = cls.match(/[A-Za-zÇĞİÖŞÜçğıöşü]+/);
+                        return {
+                            num: numMatch ? parseInt(numMatch[0]) : 0,
+                            let: letterMatch ? letterMatch[0].toUpperCase() : ''
                         };
-                        const ca = parseClass(a.class);
-                        const cb = parseClass(b.class);
-                        if (ca.num !== cb.num) return ca.num - cb.num;
-                        if (ca.let !== cb.let) return ca.let.localeCompare(cb.let);
-                        
-                        const na = parseInt(a.no) || 0;
-                        const nb = parseInt(b.no) || 0;
-                        if (na !== nb) return na - nb;
-                        
-                        return (a.name || '').localeCompare(b.name || '');
-                    });
+                    };
+                    const ca = parseClass(a.class);
+                    const cb = parseClass(b.class);
+                    if (ca.num !== cb.num) return ca.num - cb.num;
+                    if (ca.let !== cb.let) return ca.let.localeCompare(cb.let);
+                    
+                    const na = parseInt(a.no) || 0;
+                    const nb = parseInt(b.no) || 0;
+                    if (na !== nb) return na - nb;
+                    
+                    return (a.name || '').localeCompare(b.name || '');
+                });
 
-                    sortedStudents.forEach((s, idx) => {
-                        let infoBadges = [];
-                        if (s.studentPhone) infoBadges.push(`<span style="font-size:0.75rem; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; cursor:pointer;" onclick="Swal.fire({title:'Öğrenci Telefonu', text:'${s.studentPhone}', icon:'info'})"><i class="fa-solid fa-phone"></i> Ö.</span>`);
-                        if (s.parentPhone) infoBadges.push(`<span style="font-size:0.75rem; background:#fce7f3; color:#be185d; padding:2px 6px; border-radius:4px; cursor:pointer;" onclick="Swal.fire({title:'Veli Telefonu', text:'${s.parentPhone}', icon:'info'})"><i class="fa-solid fa-phone"></i> V.</span>`);
-                        if (s.parentInformed) infoBadges.push(`<span style="font-size:0.75rem; background:#dcfce7; color:#15803d; padding:2px 6px; border-radius:4px;"><i class="fa-solid fa-check"></i> Onay</span>`);
-                        
-                        studentsHtml += `
-                            <tr>
-                                <td>${idx + 1}</td>
-                                <td>${s.class}</td>
-                                <td><b>${s.no}</b></td>
-                                <td>${s.name} ${infoBadges.join(' ')}</td>
-                            </tr>
-                        `;
-                    });
-                } else {
-                    studentsHtml = `<tr><td colspan="3" style="text-align:center; color:#64748b;">Bu çalışmaya kayıtlı öğrenci bulunmuyor.</td></tr>`;
-                }
+                sortedStudents.forEach((s, idx) => {
+                    let infoBadges = [];
+                    if (s.studentPhone) infoBadges.push(`<span style="font-size:0.75rem; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; cursor:pointer;" onclick="Swal.fire({title:'Öğrenci Telefonu', text:'${s.studentPhone}', icon:'info'})"><i class="fa-solid fa-phone"></i> Ö.</span>`);
+                    if (s.parentPhone) infoBadges.push(`<span style="font-size:0.75rem; background:#fce7f3; color:#be185d; padding:2px 6px; border-radius:4px; cursor:pointer;" onclick="Swal.fire({title:'Veli Telefonu', text:'${s.parentPhone}', icon:'info'})"><i class="fa-solid fa-phone"></i> V.</span>`);
+                    if (s.parentInformed) infoBadges.push(`<span style="font-size:0.75rem; background:#dcfce7; color:#15803d; padding:2px 6px; border-radius:4px;"><i class="fa-solid fa-check"></i> Onay</span>`);
+                    
+                    studentsHtml += `
+                        <tr>
+                            <td>${idx + 1}</td>
+                            <td>${s.class}</td>
+                            <td><b>${s.no}</b></td>
+                            <td>${s.name} ${infoBadges.join(' ')}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                studentsHtml = `<tr><td colspan="4" style="text-align:center; color:#64748b;">Bu çalışmaya kayıtlı öğrenci bulunmuyor.</td></tr>`;
+            }
 
-                let scheduleBadges = '';
-                if (act.schedules && act.schedules.length > 0) {
-                    act.schedules.forEach(sch => {
-                        const locHtml = sch.location ? ` &nbsp;<i class="fa-solid fa-location-dot" style="color:#ca8a04;"></i> ${sch.location}` : '';
-                        scheduleBadges += `<span style="background:rgba(79,70,229,0.1); color:#4f46e5; padding:4px 8px; border-radius:4px; font-size:0.85rem;"><i class="fa-regular fa-calendar"></i> ${sch.days} &nbsp;<i class="fa-regular fa-clock"></i> ${sch.time}${locHtml}</span>`;
-                    });
-                } else {
-                    const locHtml = act.location ? ` &nbsp;<i class="fa-solid fa-location-dot" style="color:#ca8a04;"></i> ${act.location}` : '';
-                    scheduleBadges = `<span style="background:rgba(79,70,229,0.1); color:#4f46e5; padding:4px 8px; border-radius:4px; font-size:0.85rem;"><i class="fa-regular fa-calendar"></i> ${act.days || ''} &nbsp;<i class="fa-regular fa-clock"></i> ${act.time || ''}${locHtml}</span>`;
-                }
+            let scheduleBadges = '';
+            if (act.schedules && act.schedules.length > 0) {
+                act.schedules.forEach(sch => {
+                    const locHtml = sch.location ? ` &nbsp;<i class="fa-solid fa-location-dot" style="color:#ca8a04;"></i> ${sch.location}` : '';
+                    scheduleBadges += `<span style="background:rgba(79,70,229,0.1); color:#4f46e5; padding:4px 8px; border-radius:4px; font-size:0.85rem;"><i class="fa-regular fa-calendar"></i> ${sch.days} &nbsp;<i class="fa-regular fa-clock"></i> ${sch.time}${locHtml}</span>`;
+                });
+            } else {
+                const locHtml = act.location ? ` &nbsp;<i class="fa-solid fa-location-dot" style="color:#ca8a04;"></i> ${act.location}` : '';
+                scheduleBadges = `<span style="background:rgba(79,70,229,0.1); color:#4f46e5; padding:4px 8px; border-radius:4px; font-size:0.85rem;"><i class="fa-regular fa-calendar"></i> ${act.days || ''} &nbsp;<i class="fa-regular fa-clock"></i> ${act.time || ''}${locHtml}</span>`;
+            }
 
-                const typeBadge = act.type ? `<span style="background:rgba(14,165,233,0.1); color:#0ea5e9; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600; margin-left:8px;">${act.type}</span>` : '';
-                const purposeHtml = act.purpose ? `<div style="background:#f1f5f9; border-left: 3px solid #cbd5e1; padding:10px 15px; border-radius:0 6px 6px 0; margin-bottom:15px; color:#475569; font-size:0.9rem;"><strong><i class="fa-solid fa-bullseye" style="color:#64748b; margin-right:5px;"></i> Amacı:</strong> ${act.purpose}</div>` : '';
-                const teachersHtml = `<div style="margin-bottom: 15px; color:#475569; font-size:0.9rem;"><strong><i class="fa-solid fa-chalkboard-user" style="color:#64748b; margin-right:5px;"></i> Sorumlu Öğretmenler:</strong> ${act.teachers}</div>`;
+            const typeBadge = act.type ? `<span style="background:rgba(14,165,233,0.1); color:#0ea5e9; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600; margin-left:8px;">${act.type}</span>` : '';
+            const purposeHtml = act.purpose ? `<div style="background:#f1f5f9; border-left: 3px solid #cbd5e1; padding:10px 15px; border-radius:0 6px 6px 0; margin-bottom:15px; color:#475569; font-size:0.9rem;"><strong><i class="fa-solid fa-bullseye" style="color:#64748b; margin-right:5px;"></i> Amacı:</strong> ${act.purpose}</div>` : '';
+            const teachersHtml = `<div style="margin-bottom: 15px; color:#475569; font-size:0.9rem;"><strong><i class="fa-solid fa-chalkboard-user" style="color:#64748b; margin-right:5px;"></i> Sorumlu Öğretmenler:</strong> ${act.teachers}</div>`;
 
-                const itemHtml = `
-                    <div class="accordion-item ${index === 0 ? 'active' : ''}">
-                        <div class="accordion-header" onclick="toggleAccordion(this)">
-                            <div style="flex:1; min-width:0; padding-right:10px;">
-                                <i class="fa-solid fa-puzzle-piece" style="color:#4f46e5; margin-right:8px;"></i>
-                                ${act.name} ${typeBadge}
-                            </div>
-                            <div style="display:flex; align-items:center; gap:5px;" onclick="event.stopPropagation()">
-                                <div class="dropdown" style="position:relative; display:inline-block;">
-                                    <button class="btn" style="padding:4px 8px; font-size:0.85rem; background:rgba(16,185,129,0.1); color:#10b981; border:none;" onclick="toggleDropdown('printDropdown_${act.id}')">
-                                        <i class="fa-solid fa-print"></i> <i class="fa-solid fa-caret-down"></i>
-                                    </button>
-                                    <div id="printDropdown_${act.id}" class="dropdown-content" style="display:none; position:absolute; right:0; top:100%; margin-top:5px; background-color:#fff; min-width:180px; box-shadow:0px 8px 16px 0px rgba(0,0,0,0.2); z-index:100; border-radius:6px; overflow:hidden; border:1px solid #e2e8f0; text-align:left;">
-                                        <a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem; border-bottom:1px solid #e2e8f0;" onclick="printIdariIzin('${act.id}', event)">İdari İzin Dilekçesi</a>
-                                        <a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem; border-bottom:1px solid #e2e8f0;" onclick="printVeliIzin('${act.id}', event)">Veli İzin Dilekçeleri</a>
-                                        <a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem;" onclick="printYoklamaListesi('${act.id}', event)">Yoklama Listesi</a>
-                                    </div>
-                                </div>
-                                <span style="cursor:pointer; color:#3b82f6; padding:4px 8px; border-radius:4px; background:rgba(59,130,246,0.1); margin-right:2px;" onclick="editActivity('${act.id}', event)" title="Düzenle"><i class="fa-solid fa-pen"></i></span>
-                                <span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px;" onclick="deleteActivity('${act.id}', event)" title="Sil"><i class="fa-solid fa-trash"></i></span>
-                                <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
-                            </div>
+            return `
+                <div class="accordion-item ${isActive ? 'active' : ''}" style="margin-bottom: 10px; border-radius: 8px; border: 1px solid #e2e8f0; overflow:hidden;">
+                    <div class="accordion-header" onclick="toggleAccordion(this)" style="background: white; border-bottom: 1px solid #e2e8f0;">
+                        <div style="flex:1; min-width:0; padding-right:10px;">
+                            <i class="fa-solid fa-puzzle-piece" style="color:#4f46e5; margin-right:8px;"></i>
+                            ${act.name} ${typeBadge}
                         </div>
-                        <div class="accordion-body">
-                            ${purposeHtml}
-                            ${teachersHtml}
-                            
-                            <div class="activity-meta" style="flex-wrap:wrap; margin-bottom: 15px;">
-                                <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                                    ${scheduleBadges}
+                        <div style="display:flex; align-items:center; gap:5px;" onclick="event.stopPropagation()">
+                            <div class="dropdown" style="position:relative; display:inline-block;">
+                                <button class="btn" style="padding:4px 8px; font-size:0.85rem; background:rgba(16,185,129,0.1); color:#10b981; border:none;" onclick="toggleDropdown('printDropdown_${act.id}')">
+                                    <i class="fa-solid fa-print"></i> <i class="fa-solid fa-caret-down"></i>
+                                </button>
+                                <div id="printDropdown_${act.id}" class="dropdown-content" style="display:none; position:absolute; right:0; top:100%; margin-top:5px; background-color:#fff; min-width:180px; box-shadow:0px 8px 16px 0px rgba(0,0,0,0.2); z-index:100; border-radius:6px; overflow:hidden; border:1px solid #e2e8f0; text-align:left;">
+                                    <a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem; border-bottom:1px solid #e2e8f0;" onclick="printIdariIzin('${act.id}', event)">İdari İzin Dilekçesi</a>
+                                    <a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem; border-bottom:1px solid #e2e8f0;" onclick="printVeliIzin('${act.id}', event)">Veli İzin Dilekçeleri</a>
+                                    <a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem;" onclick="printYoklamaListesi('${act.id}', event)">Yoklama Listesi</a>
                                 </div>
-                                <span><i class="fa-solid fa-users"></i> ${act.students ? act.students.length : 0} Öğrenci</span>
                             </div>
-                            
-                            <h4 style="margin-bottom: 10px; color:#1e293b; font-size:1rem;">Görevli Öğrenciler</h4>
-                            <table class="student-table">
-                                <thead>
-                                    <tr>
-                                        <th style="width:50px;">S.No</th>
-                                        <th style="width:100px;">Sınıf</th>
-                                        <th style="width:100px;">Okul No</th>
-                                        <th>Ad Soyad</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${studentsHtml}
-                                </tbody>
-                            </table>
+                            <span style="cursor:pointer; color:#3b82f6; padding:4px 8px; border-radius:4px; background:rgba(59,130,246,0.1); margin-right:2px;" onclick="editActivity('${act.id}', event)" title="Düzenle"><i class="fa-solid fa-pen"></i></span>
+                            <span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px;" onclick="deleteActivity('${act.id}', event)" title="Sil"><i class="fa-solid fa-trash"></i></span>
+                            <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
                         </div>
                     </div>
-                `;
-                listContainer.innerHTML += itemHtml;
-            });
+                    <div class="accordion-body" style="background: #f8fafc; padding: 15px;">
+                        ${purposeHtml}
+                        ${teachersHtml}
+                        
+                        <div class="activity-meta" style="flex-wrap:wrap; margin-bottom: 15px;">
+                            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                ${scheduleBadges}
+                            </div>
+                            <span><i class="fa-solid fa-users"></i> ${act.students ? act.students.length : 0} Öğrenci</span>
+                        </div>
+                        
+                        <h4 style="margin-bottom: 10px; color:#1e293b; font-size:1rem;">Görevli Öğrenciler</h4>
+                        <table class="student-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:50px;">S.No</th>
+                                    <th style="width:100px;">Sınıf</th>
+                                    <th style="width:100px;">Okul No</th>
+                                    <th>Ad Soyad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${studentsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderActivities() {
+            let activities = schoolData.activities || [];
+            
+            const teacherSection = document.getElementById('teacherActivitiesSection');
+            const adminSection = document.getElementById('adminActivitiesSection');
+            
+            if (currentUser.role === 'ogretmen') {
+                teacherSection.style.display = 'block';
+                adminSection.style.display = 'none';
+                
+                activities = activities.filter(a => a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase())));
+                
+                const listContainer = document.getElementById('activitiesList');
+                const emptyState = document.getElementById('emptyState');
+                
+                if (!activities || activities.length === 0) {
+                    listContainer.style.display = 'none';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                listContainer.style.display = 'block';
+                emptyState.style.display = 'none';
+                listContainer.innerHTML = '';
+                
+                activities.slice().reverse().forEach((act, index) => {
+                    listContainer.innerHTML += getActivityHTML(act, index === 0);
+                });
+            } else {
+                // Admin or Idareci
+                teacherSection.style.display = 'none';
+                adminSection.style.display = 'block';
+                adminSection.innerHTML = '';
+                
+                let reversedActs = [...activities].reverse();
+                let ongoingActs = [];
+                let upcomingActs = [];
+                let doneActs = [];
+                let allActs = reversedActs;
+                
+                const now = new Date();
+                const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+                
+                reversedActs.forEach(act => {
+                    const occ = getNextOccurrence(act);
+                    let status = null;
+                    if (occ && act.statusHistory) {
+                        status = act.statusHistory[occ.dateString];
+                    }
+                    
+                    if (status === 'YAPILIYOR') {
+                        ongoingActs.push(act);
+                    } else if (status === 'YAPILDI') {
+                        doneActs.push(act);
+                    } else if (status === 'YAPILACAK' && occ && occ.start <= nextWeek) {
+                        upcomingActs.push(act);
+                    } else if (!status && occ && occ.start <= nextWeek) {
+                        upcomingActs.push(act);
+                    }
+                });
+                
+                const createCategory = (title, iconClass, color, actsArr, isActive) => {
+                    let contentHtml = '';
+                    if (actsArr.length === 0) {
+                        contentHtml = `<div style="text-align:center; padding: 2rem; color:#64748b;">Kayıt Bulunmuyor</div>`;
+                    } else {
+                        actsArr.forEach((act, idx) => {
+                            contentHtml += getActivityHTML(act, isActive && idx === 0);
+                        });
+                    }
+                    
+                    return `
+                        <div class="glass-panel accordion-item ${isActive ? 'active' : ''}" style="margin-bottom: 1.5rem; padding: 0;">
+                            <div class="accordion-header" onclick="toggleAccordion(this)" style="border-radius: 12px 12px 0 0;">
+                                <div style="font-weight: 800; font-size: 1.15rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                                    <i class="${iconClass}" style="color:${color};"></i> ${title} <span style="background:#f1f5f9; padding:2px 8px; border-radius:12px; font-size:0.8rem; color:#64748b;">${actsArr.length}</span>
+                                </div>
+                                <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
+                            </div>
+                            <div class="accordion-body" style="border-radius: 0 0 12px 12px; padding: 15px;">
+                                ${contentHtml}
+                            </div>
+                        </div>
+                    `;
+                };
+                
+                adminSection.innerHTML += createCategory('Devam Eden Çalışmalar', 'fa-solid fa-spinner fa-spin', '#10b981', ongoingActs, true);
+                adminSection.innerHTML += createCategory('1 Hafta İçinde Yapılacak Çalışmalar', 'fa-regular fa-clock', '#f59e0b', upcomingActs, false);
+                adminSection.innerHTML += createCategory('Yapılmış Çalışmalar', 'fa-solid fa-check-double', '#3b82f6', doneActs, false);
+                adminSection.innerHTML += createCategory('Tüm Planlanmış Çalışmalar', 'fa-solid fa-list-check', '#6366f1', allActs, false);
+            }
         }
         let upcomingActInterval = null;
         let currentUpcomingData = null;
@@ -1207,6 +1283,11 @@
 
         function renderUpcomingActivity() {
             if (upcomingActInterval) clearInterval(upcomingActInterval);
+            
+            if (currentUser.role === 'admin' || currentUser.role === 'idareci') {
+                document.getElementById('upcomingActivityPanel').style.display = 'none';
+                return;
+            }
             
             if (!schoolData.activities) return;
             
