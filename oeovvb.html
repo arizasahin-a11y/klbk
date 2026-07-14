@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Öğrenci ve Veli Bilgilendirme Sistemi (OEOVVB)</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="img/amblem.jpg">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --geldi-color: #10b981;
+            --gelmedi-color: #ef4444;
+            --gec-color: #f59e0b;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%);
+            min-height: 100vh;
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            color: var(--gray-800);
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .header-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            flex: 1;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--gray-700);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0.85rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .btn-outline:hover {
+            background: var(--gray-100);
+            border-color: var(--gray-200);
+        }
+
+        /* Activity Cards */
+        .activity-card {
+            background: white;
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--gray-200);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .activity-info h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.1rem;
+            color: var(--gray-800);
+        }
+
+        .activity-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 0.85rem;
+            color: var(--gray-700);
+            flex-wrap: wrap;
+        }
+
+        .activity-meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--gray-100);
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge-upcoming { background: #e0e7ff; color: #4338ca; }
+        .badge-cancelled { background: #fee2e2; color: #b91c1c; }
+        .badge-attended { background: #d1fae5; color: #047857; }
+        .badge-missed { background: #fef08a; color: #854d0e; }
+
+        /* Tables */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--gray-200);
+        }
+
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        .custom-table th, .custom-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .custom-table th {
+            background: var(--gray-100);
+            font-weight: 700;
+            color: var(--gray-700);
+        }
+
+        .custom-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Helpers */
+        .hidden { display: none !important; }
+        .text-center { text-align: center; }
+        .mt-4 { margin-top: 1.5rem; }
+        .mb-4 { margin-bottom: 1.5rem; }
+        
+        #loginPanel, #dashboardPanel {
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0,0,0,0.1);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border-left-color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner mb-4"></div>
+        <h3 id="loadingText" style="color: var(--primary); font-weight: 700;">Veriler Yükleniyor...</h3>
+    </div>
+
+    <div class="header">
+        <div class="header-title">
+            <i class="fa-solid fa-graduation-cap"></i> OEOVVB
+        </div>
+        <div id="userHeader" class="hidden" style="font-weight: 600; display: flex; align-items: center; gap: 15px;">
+            <span id="headerName"><i class="fa-regular fa-user"></i> Öğrenci Adı</span>
+            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 0.85rem; width: auto;" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i> Çıkış
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- LOGIN PANEL -->
+        <div id="loginPanel" class="glass-panel hidden" style="max-width: 450px; margin: 4rem auto; padding: 2.5rem;">
+            <div class="text-center mb-4">
+                <i class="fa-solid fa-shield-halved" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                <h2 style="margin: 0; font-weight: 800;">Hoş Geldiniz</h2>
+                <p style="color: var(--gray-700); margin-top: 0.5rem;" id="schoolNameDisplay">Öğrenci ve Veli Bilgilendirme Sistemi</p>
+            </div>
+
+            <!-- Step 1: Okul No -->
+            <div id="loginStep1">
+                <div class="form-group">
+                    <label class="form-label">Öğrenci Okul No</label>
+                    <input type="number" id="studentNoInput" class="form-control" placeholder="Örn: 1234">
+                </div>
+                <button class="btn btn-primary" onclick="handleStep1()">
+                    İleri <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- Step 2: Veli Telefon -->
+            <div id="loginStep2" class="hidden">
+                <div style="background: var(--gray-100); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem;">
+                    <b>Öğrenci:</b> <span id="verifyStudentName"></span>
+                </div>
+                
+                <div id="phoneExistUI" class="hidden">
+                    <div class="form-group">
+                        <label class="form-label">Veli Telefonunun Son 6 Rakamı</label>
+                        <input type="number" id="phoneVerifyInput" class="form-control" placeholder="Örn: 123456" maxlength="6">
+                    </div>
+                </div>
+
+                <div id="phoneNewUI" class="hidden">
+                    <div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 8px; border: 1px solid #ffeeba; margin-bottom: 15px; font-size: 0.85rem;">
+                        <i class="fa-solid fa-circle-info"></i> Sistemde veli telefon numaranız kayıtlı değil. Lütfen güvenlik ve bilgilendirme için numaranızı sisteme kaydedin.
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Veli Telefon Numarası (10 Haneli)</label>
+                        <input type="number" id="phoneNewInput" class="form-control" placeholder="Örn: 5051234567" oninput="if(this.value.length > 10) this.value = this.value.slice(0, 10);">
+                        <small style="color: var(--gray-700); display: block; margin-top: 5px;">Başında 0 olmadan 10 haneli giriniz.</small>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-outline" onclick="goBackToStep1()">
+                        <i class="fa-solid fa-arrow-left"></i> Geri
+                    </button>
+                    <button class="btn btn-primary" onclick="handleStep2()">
+                        Giriş Yap <i class="fa-solid fa-check"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD PANEL -->
+        <div id="dashboardPanel" class="hidden">
+            <div class="glass-panel" style="padding: 2rem; margin-bottom: 2rem;">
+                <h2 style="margin-top: 0; color: var(--primary);"><i class="fa-solid fa-calendar-day"></i> Günün Özeti (<span id="todayDateStr"></span>)</h2>
+                <div id="todayActivitiesContainer">
+                    <!-- Today's activities will be injected here -->
+                    <div style="text-align: center; color: var(--gray-700); padding: 2rem;">
+                        Bugün için kayıtlı bir çalışma bulunmamaktadır.
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel" style="padding: 2rem;">
+                <h3 style="margin-top: 0; color: var(--gray-800);"><i class="fa-solid fa-clock-rotate-left"></i> Geçmiş Çalışmalar</h3>
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Çalışma / Etkinlik</th>
+                                <th>Saat / Yer</th>
+                                <th>Durum</th>
+                                <th>Katılım</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <!-- History rows will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="historyEmptyMsg" class="hidden" style="text-align: center; color: var(--gray-700); padding: 2rem;">
+                    Geçmiş çalışma kaydı bulunmamaktadır.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/core_data_v11_9_1.js"></script>
+    <script>
+        // Initialize DataManager with ?school=XYZ parameter
+        DataManager._getStorageKey = function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const q = urlParams.get('school');
+            
+            if (q) {
+                localStorage.setItem('klbk_last_school', q);
+                return `klbk_data_${q}`;
+            }
+
+            const lastSchool = localStorage.getItem('klbk_last_school');
+            if (lastSchool) return `klbk_data_${lastSchool}`;
+
+            return `klbk_data_admin`;
+        };
+
+        let schoolData = {};
+        let allStudents = [];
+        let currentStudent = null;
+
+        // On Load
+        window.onload = async function() {
+            try {
+                await DataManager.initCloudSync();
+                schoolData = DataManager._getData() || {};
+                allStudents = DataManager.getStudents() || [];
+
+                if (schoolData.name) {
+                    document.getElementById('schoolNameDisplay').innerText = schoolData.name;
+                    document.title = schoolData.name + " - OEOVVB";
+                }
+
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                
+                checkSession();
+            } catch (err) {
+                console.error("Init Error:", err);
+                document.getElementById('loadingText').innerText = "Veriler yüklenirken hata oluştu!";
+                document.getElementById('loadingText').style.color = "red";
+                Swal.fire('Bağlantı Hatası', 'Verilere erişilemedi. Lütfen bağlantınızı kontrol edin.', 'error');
+            }
+        };
+
+        function checkSession() {
+            const savedNo = localStorage.getItem('oeovvb_student_no');
+            if (savedNo) {
+                const s = allStudents.find(st => st.no == savedNo);
+                if (s) {
+                    currentStudent = s;
+                    showDashboard();
+                    return;
+                }
+            }
+            document.getElementById('loginPanel').classList.remove('hidden');
+        }
+
+        // --- LOGIN FLOW ---
+        function handleStep1() {
+            const noVal = document.getElementById('studentNoInput').value.trim();
+            if (!noVal) {
+                Swal.fire('Uyarı', 'Lütfen okul numaranızı girin.', 'warning');
+                return;
+            }
+
+            const normalizeNo = (val) => String(val || '').trim().replace(/^0+/, '');
+            const targetNo = normalizeNo(noVal);
+
+            const student = allStudents.find(s => s && s.no && normalizeNo(s.no) === targetNo);
+            
+            if (!student) {
+                Swal.fire('Hata', 'Öğrenci bulunamadı. Lütfen numarayı kontrol edin.', 'error');
+                return;
+            }
+
+            currentStudent = student;
+            document.getElementById('verifyStudentName').innerText = `${student.name} (${student.class})`;
+            
+            document.getElementById('loginStep1').classList.add('hidden');
+            document.getElementById('loginStep2').classList.remove('hidden');
+
+            if (student.parentPhone && student.parentPhone.length >= 6) {
+                document.getElementById('phoneExistUI').classList.remove('hidden');
+                document.getElementById('phoneNewUI').classList.add('hidden');
+                document.getElementById('phoneVerifyInput').value = '';
+                document.getElementById('phoneVerifyInput').focus();
+            } else {
+                document.getElementById('phoneExistUI').classList.add('hidden');
+                document.getElementById('phoneNewUI').classList.remove('hidden');
+                document.getElementById('phoneNewInput').value = '';
+                document.getElementById('phoneNewInput').focus();
+            }
+        }
+
+        function goBackToStep1() {
+            document.getElementById('loginStep2').classList.add('hidden');
+            document.getElementById('loginStep1').classList.remove('hidden');
+            currentStudent = null;
+        }
+
+        async function handleStep2() {
+            if (!currentStudent) return;
+
+            if (currentStudent.parentPhone && currentStudent.parentPhone.length >= 6) {
+                const val = document.getElementById('phoneVerifyInput').value.trim();
+                if (val.length < 6) {
+                    Swal.fire('Uyarı', 'Lütfen telefonun son 6 hanesini girin.', 'warning');
+                    return;
+                }
+                const correctLast6 = currentStudent.parentPhone.slice(-6);
+                if (val !== correctLast6) {
+                    Swal.fire('Hata', 'Girdiğiniz son 6 hane sistemdeki telefonla eşleşmiyor.', 'error');
+                    return;
+                }
+                // Login Success
+                finalizeLogin();
+            } else {
+                const val = document.getElementById('phoneNewInput').value.trim();
+                if (val.length !== 10) {
+                    Swal.fire('Uyarı', 'Lütfen telefon numarasını başında sıfır olmadan 10 haneli olarak girin.', 'warning');
+                    return;
+                }
+                
+                // Save new phone
+                Swal.fire({
+                    title: 'Kaydediliyor...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                currentStudent.parentPhone = val;
+                
+                // Update in allStudents array and save
+                const idx = allStudents.findIndex(s => s.no === currentStudent.no);
+                if (idx !== -1) allStudents[idx] = currentStudent;
+                
+                try {
+                    await DataManager.saveSchoolSettings({ students: allStudents });
+                    Swal.close();
+                    finalizeLogin();
+                } catch (e) {
+                    console.error("Kayıt hatası", e);
+                    Swal.fire('Hata', 'Numara kaydedilirken bir sorun oluştu.', 'error');
+                }
+            }
+        }
+
+        function finalizeLogin() {
+            localStorage.setItem('oeovvb_student_no', currentStudent.no);
+            document.getElementById('loginPanel').classList.add('hidden');
+            showDashboard();
+        }
+
+        function logout() {
+            localStorage.removeItem('oeovvb_student_no');
+            currentStudent = null;
+            document.getElementById('dashboardPanel').classList.add('hidden');
+            document.getElementById('userHeader').classList.add('hidden');
+            document.getElementById('loginPanel').classList.remove('hidden');
+            document.getElementById('studentNoInput').value = '';
+            goBackToStep1();
+        }
+
+        // --- DASHBOARD LOGIC ---
+        function getTodayStr() {
+            const d = new Date();
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        function showDashboard() {
+            document.getElementById('userHeader').classList.remove('hidden');
+            document.getElementById('headerName').innerHTML = `<i class="fa-regular fa-user"></i> ${currentStudent.name}`;
+            document.getElementById('dashboardPanel').classList.remove('hidden');
+
+            const today = getTodayStr();
+            const [ty, tm, td] = today.split('-');
+            document.getElementById('todayDateStr').innerText = `${td}.${tm}.${ty}`;
+
+            const activities = schoolData.activities || [];
+            
+            // Filter activities where the student is enrolled
+            let studentActivities = [];
+            
+            activities.forEach(act => {
+                if (!act.students) return;
+                const isEnrolled = act.students.some(s => String(s.no) === String(currentStudent.no));
+                if (!isEnrolled) return;
+
+                // Process occurrences (past dates from act.attendanceHistory and future from schedules)
+                // For simplicity, we check attendanceHistory dates and schedules
+                
+                // 1. Gather all dates from attendanceHistory (these are definitively past/today)
+                let recordedDates = Object.keys(act.attendanceHistory || {});
+                
+                recordedDates.forEach(dateStr => {
+                    const status = (act.attendanceHistory[dateStr][currentStudent.no] === true) ? 'KATILDI' : 
+                                   (act.attendanceHistory[dateStr][currentStudent.no] === false) ? 'KATILMADI' : 'BİLİNMİYOR';
+                    
+                    studentActivities.push({
+                        act: act,
+                        dateStr: dateStr,
+                        status: status, // Yapıldı ve yoklama alındı
+                        isRecorded: true
+                    });
+                });
+
+                // 2. Check today specifically from schedules/overrides if not already in recordedDates
+                // Note: OEYP uses act.occurrences for today, but for a general view, we can check 
+                // if there's an override for today, or if today is a scheduled day.
+                // Since this is read-only, we mainly care about what's explicitly set today.
+                if (act.occurrences) {
+                    const todayOcc = act.occurrences.find(o => o.dateString === today);
+                    if (todayOcc && !recordedDates.includes(today)) {
+                        studentActivities.push({
+                            act: act,
+                            dateStr: today,
+                            status: todayOcc.status === 'İPTAL' ? 'İPTAL EDİLDİ' : (todayOcc.status === 'YAPILACAK' ? 'YAPILACAK' : todayOcc.status),
+                            isRecorded: false
+                        });
+                    }
+                }
+            });
+
+            // Sort descending by date
+            studentActivities.sort((a, b) => b.dateStr.localeCompare(a.dateStr));
+
+            // Separate today vs history
+            let todayHtml = '';
+            let historyHtml = '';
+
+            const todayActs = studentActivities.filter(sa => sa.dateStr === today);
+            const historyActs = studentActivities.filter(sa => sa.dateStr !== today);
+
+            // Render Today
+            if (todayActs.length > 0) {
+                todayActs.forEach(sa => {
+                    let badgeHtml = '';
+                    if (sa.status === 'KATILDI') badgeHtml = `<span class="badge badge-attended"><i class="fa-solid fa-check"></i> Katıldı</span>`;
+                    else if (sa.status === 'KATILMADI') badgeHtml = `<span class="badge badge-missed"><i class="fa-solid fa-xmark"></i> Katılmadı</span>`;
+                    else if (sa.status === 'İPTAL EDİLDİ' || sa.status === 'İPTAL') badgeHtml = `<span class="badge badge-cancelled"><i class="fa-solid fa-ban"></i> İptal Edildi</span>`;
+                    else badgeHtml = `<span class="badge badge-upcoming"><i class="fa-solid fa-clock"></i> ${sa.status}</span>`;
+
+                    todayHtml += `
+                        <div class="activity-card">
+                            <div class="activity-info">
+                                <h4>${sa.act.name}</h4>
+                                <div class="activity-meta">
+                                    <span><i class="fa-solid fa-chalkboard-user"></i> ${sa.act.teachers || '-'}</span>
+                                    <span><i class="fa-regular fa-clock"></i> ${sa.act.time || '-'}</span>
+                                    <span><i class="fa-solid fa-location-dot"></i> ${sa.act.location || '-'}</span>
+                                </div>
+                            </div>
+                            <div>
+                                ${badgeHtml}
+                            </div>
+                        </div>
+                    `;
+                });
+                document.getElementById('todayActivitiesContainer').innerHTML = todayHtml;
+            } else {
+                document.getElementById('todayActivitiesContainer').innerHTML = `
+                    <div style="text-align: center; color: var(--gray-700); padding: 2rem;">
+                        <i class="fa-regular fa-face-smile" style="font-size: 2rem; color: #cbd5e1; margin-bottom: 1rem; display: block;"></i>
+                        Bugün için kayıtlı bir çalışma veya etkinlik bulunmamaktadır.
+                    </div>
+                `;
+            }
+
+            // Render History
+            if (historyActs.length > 0) {
+                document.getElementById('historyEmptyMsg').classList.add('hidden');
+                historyActs.forEach(sa => {
+                    const [y, m, d] = sa.dateStr.split('-');
+                    const formattedDate = `${d}.${m}.${y}`;
+
+                    let badgeHtml = '';
+                    if (sa.status === 'KATILDI') badgeHtml = `<span style="color: var(--geldi-color); font-weight: bold;"><i class="fa-solid fa-check"></i> Katıldı</span>`;
+                    else if (sa.status === 'KATILMADI') badgeHtml = `<span style="color: var(--gelmedi-color); font-weight: bold;"><i class="fa-solid fa-xmark"></i> Katılmadı</span>`;
+                    else if (sa.status === 'İPTAL EDİLDİ' || sa.status === 'İPTAL') badgeHtml = `<span style="color: var(--gelmedi-color); font-weight: bold;"><i class="fa-solid fa-ban"></i> İptal</span>`;
+                    else badgeHtml = `<span style="color: var(--gray-700); font-weight: bold;">${sa.status}</span>`;
+
+                    historyHtml += `
+                        <tr>
+                            <td><b>${formattedDate}</b></td>
+                            <td>${sa.act.name}</td>
+                            <td>${sa.act.time || '-'} <br> <small style="color:var(--gray-700);">${sa.act.location || '-'}</small></td>
+                            <td>Yapıldı</td>
+                            <td>${badgeHtml}</td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('historyTableBody').innerHTML = historyHtml;
+            } else {
+                document.getElementById('historyTableBody').innerHTML = '';
+                document.getElementById('historyEmptyMsg').classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
