@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
@@ -289,49 +289,6 @@
 
     <div class="container">
         <!-- LOGIN PANEL -->
-        <div id="loginPanel" class="glass-panel hidden" style="max-width: 450px; margin: 4rem auto; padding: 2.5rem;">
-            <div class="text-center mb-4">
-                <i class="fa-solid fa-shield-halved" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
-                <h2 style="margin: 0; font-weight: 800;">Hoş Geldiniz</h2>
-                <p style="color: var(--gray-700); margin-top: 0.5rem;" id="schoolNameDisplay">Öğrenci ve Veli Bilgilendirme Sistemi</p>
-            </div>
-
-            <!-- Step 1: Okul No -->
-            <div id="loginStep1">
-                <div class="form-group">
-                    <label class="form-label">Öğrenci Okul No</label>
-                    <input type="number" id="studentNoInput" class="form-control" placeholder="Örn: 1234">
-                </div>
-                <button class="btn btn-primary" onclick="handleStep1()">
-                    İleri <i class="fa-solid fa-arrow-right"></i>
-                </button>
-            </div>
-
-            <!-- Step 2: Veli Telefon -->
-            <div id="loginStep2" class="hidden">
-                <div style="background: var(--gray-100); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem;">
-                    <b>Öğrenci:</b> <span id="verifyStudentName"></span>
-                </div>
-                
-                <div id="phoneExistUI">
-                    <div class="form-group">
-                        <label class="form-label">Veli Telefonunun Son 6 Rakamı</label>
-                        <input type="number" id="phoneVerifyInput" class="form-control" placeholder="Örn: 123456" maxlength="6">
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-outline" onclick="goBackToStep1()">
-                        <i class="fa-solid fa-arrow-left"></i> Geri
-                    </button>
-                    <button class="btn btn-primary" onclick="handleStep2()">
-                        Giriş Yap <i class="fa-solid fa-check"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- DASHBOARD PANEL -->
         <div id="dashboardPanel" class="hidden">
             <div class="glass-panel" style="padding: 2rem; margin-bottom: 2rem;">
                 <h2 style="margin-top: 0; color: var(--primary);"><i class="fa-solid fa-calendar-day"></i> Günün Özeti (<span id="todayDateStr"></span>)</h2>
@@ -455,9 +412,19 @@
                 schoolData = DataManager._getData() || {};
                 allStudents = DataManager.getStudents() || [];
 
-                if (schoolData.name) {
+                if (schoolData && schoolData.name) {
                     document.getElementById('schoolNameDisplay').innerText = schoolData.name;
                     document.title = schoolData.name + " - OEOVVB";
+                } else {
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    document.getElementById('loginPanel').innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--gray-700);">
+                        <i class="fa-solid fa-circle-exclamation" style="font-size: 3rem; color: #ef4444; margin-bottom: 1rem;"></i>
+                        <h3 style="margin-top: 0;">Hatalı Bağlantı</h3>
+                        <p>Lütfen okul idaresinden veya öğretmeninizden aldığınız <b>tam bağlantı adresini (linki)</b> kullanarak sayfaya giriş yapın.</p>
+                        <small style="color: #6b7280;">(Geçersiz veya eksik okul kodu)</small>
+                    </div>`;
+                    document.getElementById('loginPanel').classList.remove('hidden');
+                    return;
                 }
 
                 document.getElementById('loadingOverlay').classList.add('hidden');
@@ -485,10 +452,16 @@
         }
 
         // --- LOGIN FLOW ---
-        function handleStep1() {
+        function handleLogin() {
             const noVal = document.getElementById('studentNoInput').value.trim();
+            const phoneVal = document.getElementById('phoneVerifyInput').value.trim();
+
             if (!noVal) {
                 Swal.fire('Uyarı', 'Lütfen okul numaranızı girin.', 'warning');
+                return;
+            }
+            if (phoneVal.length < 6) {
+                Swal.fire('Uyarı', 'Lütfen veli telefonunun son 6 hanesini eksiksiz girin.', 'warning');
                 return;
             }
 
@@ -498,12 +471,9 @@
             const student = findStudentByNo(targetNo);
             
             if (!student) {
-                Swal.fire('Hata', 'Öğrenci bulunamadı. Lütfen numarayı kontrol edin.', 'error');
+                Swal.fire('Hata', 'Öğrenci bulunamadı. Lütfen okul numaranızı kontrol edin.', 'error');
                 return;
             }
-
-            currentStudent = student;
-            document.getElementById('verifyStudentName').innerText = `${student.name} (${student.class})`;
             
             // Find parentPhone from activities or student object
             let foundParentPhone = student.parentPhone ? String(student.parentPhone) : null;
@@ -522,45 +492,19 @@
 
             if (!foundParentPhone || foundParentPhone.length < 6) {
                 Swal.fire('Eksik Bilgi', 'Sistemde veli telefon numaranız kayıtlı değil. Lütfen okul idaresine veya etkinlik öğretmeninize başvurarak numaranızı kaydettirip tekrar deneyiniz.', 'warning');
-                return; // Do NOT proceed to step 2
+                return; // Do NOT proceed
             }
 
-            currentStudent._activityParentPhone = foundParentPhone;
-
-            // Proceed to Step 2
-            document.getElementById('loginStep1').classList.add('hidden');
-            document.getElementById('loginStep2').classList.remove('hidden');
-            
-            // Show only the verify UI
-            document.getElementById('phoneExistUI').classList.remove('hidden');
-            document.getElementById('phoneVerifyInput').value = '';
-            document.getElementById('phoneVerifyInput').focus();
-        }
-
-        function goBackToStep1() {
-            document.getElementById('loginStep2').classList.add('hidden');
-            document.getElementById('loginStep1').classList.remove('hidden');
-            currentStudent = null;
-        }
-
-        async function handleStep2() {
-            if (!currentStudent || !currentStudent._activityParentPhone) return;
-
-            const val = document.getElementById('phoneVerifyInput').value.trim();
-            if (val.length < 6) {
-                Swal.fire('Uyarı', 'Lütfen telefonun son 6 hanesini girin.', 'warning');
-                return;
-            }
-            const correctLast6 = currentStudent._activityParentPhone.slice(-6);
-            if (val !== correctLast6) {
+            const correctLast6 = foundParentPhone.slice(-6);
+            if (phoneVal !== correctLast6) {
                 Swal.fire('Hata', 'Girdiğiniz son 6 hane sistemdeki telefonla eşleşmiyor.', 'error');
                 return;
             }
-            // Login Success
-            finalizeLogin();
-        }
 
-        function finalizeLogin() {
+            currentStudent = student;
+            currentStudent._activityParentPhone = foundParentPhone;
+
+            // Login Success
             localStorage.setItem('oeovvb_student_no', currentStudent.no);
             document.getElementById('loginPanel').classList.add('hidden');
             showDashboard();
