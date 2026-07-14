@@ -247,18 +247,18 @@
                 
                 <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
                     <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 8px; text-transform: uppercase;">Çalışma Durumu</div>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; color: #475569;">
-                            <input type="radio" name="uaStatus" value="YAPILACAK" onchange="updateUpcomingStatus(this.value)"> YAPILACAK (Başlat)
+                    <div id="uaStatusContainer" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 10px;">
+                        <label id="lbl_YAPILACAK" style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; transition: all 0.2s;">
+                            <input type="radio" name="uaStatus" value="YAPILACAK" onchange="updateUpcomingStatus(this.value)" style="margin:0;"> YAPILACAK
                         </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; color: #475569;">
-                            <input type="radio" name="uaStatus" value="YAPILIYOR" disabled> YAPILIYOR (Otomatik)
+                        <label id="lbl_YAPILIYOR" style="display: flex; align-items: center; gap: 6px; cursor: not-allowed; font-size: 0.85rem; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; transition: all 0.2s;">
+                            <input type="radio" name="uaStatus" value="YAPILIYOR" disabled style="margin:0;"> YAPILIYOR
                         </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; color: #475569;">
-                            <input type="radio" name="uaStatus" value="YAPILDI" disabled> YAPILDI (Otomatik)
+                        <label id="lbl_YAPILDI" style="display: flex; align-items: center; gap: 6px; cursor: not-allowed; font-size: 0.85rem; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; transition: all 0.2s;">
+                            <input type="radio" name="uaStatus" value="YAPILDI" disabled style="margin:0;"> YAPILDI
                         </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; color: #ef4444;">
-                            <input type="radio" name="uaStatus" value="İPTAL" onchange="updateUpcomingStatus(this.value)"> İPTAL EDİLDİ
+                        <label id="lbl_İPTAL" style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; transition: all 0.2s;">
+                            <input type="radio" name="uaStatus" value="İPTAL" onchange="updateUpcomingStatus(this.value)" style="margin:0;"> İPTAL
                         </label>
                     </div>
                     
@@ -1270,12 +1270,28 @@
                 DataManager.saveSchoolSettings({ activities: schoolData.activities });
             }
             
+            const colors = {
+                'YAPILACAK': { bg: '#dbeafe', color: '#1e3a8a', border: '#bfdbfe' },
+                'YAPILIYOR': { bg: '#dcfce7', color: '#14532d', border: '#bbf7d0' },
+                'YAPILDI': { bg: '#ffedd5', color: '#9a3412', border: '#fed7aa' },
+                'İPTAL': { bg: '#fee2e2', color: '#991b1b', border: '#fecaca' }
+            };
+
             const radios = document.getElementsByName('uaStatus');
             radios.forEach(r => {
+                const lbl = document.getElementById('lbl_' + r.value);
                 if (currentStatus === r.value) {
                     r.checked = true;
+                    lbl.style.backgroundColor = colors[r.value].bg;
+                    lbl.style.color = colors[r.value].color;
+                    lbl.style.borderColor = colors[r.value].border;
+                    lbl.style.fontWeight = '700';
                 } else {
                     r.checked = false;
+                    lbl.style.backgroundColor = 'transparent';
+                    lbl.style.color = '#475569';
+                    lbl.style.borderColor = '#cbd5e1';
+                    lbl.style.fontWeight = 'normal';
                 }
             });
             
@@ -1346,8 +1362,9 @@
             const existingAttendance = activity.attendanceHistory[dateString] || {};
             const isFirstTime = !activity.attendanceHistory[dateString];
             
-            const allStudents = DataManager.getStudents();
-            const enrolledStudents = allStudents.filter(s => activity.students.includes(s.no));
+            let enrolledStudents = activity.students.map(s => ({
+                no: s.no, name: s.name, class: s.class
+            }));
             
             enrolledStudents.sort((a, b) => {
                 const na = parseInt(a.no) || 0;
