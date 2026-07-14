@@ -415,28 +415,7 @@
             return null;
         }
 
-        // On Load
-        window.onload = async function() {
-            try {
-                await DataManager.initCloud();
-                schoolData = DataManager._getData() || {};
-                allStudents = DataManager.getStudents() || [];
 
-                if (schoolData && schoolData.name) {
-                    document.getElementById('schoolNameDisplay').innerText = schoolData.name;
-                    document.title = schoolData.name + " - OEOVVB";
-                }
-
-                document.getElementById('loadingOverlay').classList.add('hidden');
-                
-                checkSession();
-            } catch (err) {
-                console.error("Init Error:", err);
-                document.getElementById('loadingText').innerText = "Veriler yüklenirken hata oluştu!";
-                document.getElementById('loadingText').style.color = "red";
-                Swal.fire('Bağlantı Hatası', 'Verilere erişilemedi. Lütfen bağlantınızı kontrol edin.', 'error');
-            }
-        };
 
         function checkSession() {
             const savedNo = localStorage.getItem('oeovvb_student_no');
@@ -546,7 +525,6 @@
             const todayName = dayMap[now.getDay()];
 
             const activities = schoolData.activities || [];
-            alert("Sistem Güncellemesi Kontrolü: Yüklenen etkinlik sayısı = " + activities.length);
             
             let todayActs = [];
             let pastActs = [];
