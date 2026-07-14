@@ -907,11 +907,23 @@
                 const itemHtml = `
                     <div class="accordion-item ${index === 0 ? 'active' : ''}">
                         <div class="accordion-header" onclick="toggleAccordion(this)">
-                            <div>
+                            <div style="flex:1; min-width:0; padding-right:10px;">
                                 <i class="fa-solid fa-puzzle-piece" style="color:#4f46e5; margin-right:8px;"></i>
                                 ${act.name} ${typeBadge} <span style="font-size:0.8rem; color:#64748b; margin-left:10px; font-weight:500;"><i class="fa-solid fa-chalkboard-user"></i> ${act.teachers}</span>
                             </div>
-                            <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
+                            <div style="display:flex; align-items:center; gap:5px;" onclick="event.stopPropagation()">
+                                <div class="dropdown" style="position:relative; display:inline-block;">
+                                    <button class="btn" style="padding:4px 8px; font-size:0.85rem; background:rgba(16,185,129,0.1); color:#10b981; border:none;" onclick="toggleDropdown('printDropdown_${act.id}')">
+                                        <i class="fa-solid fa-print"></i> <i class="fa-solid fa-caret-down"></i>
+                                    </button>
+                                    <div id="printDropdown_${act.id}" class="dropdown-content" style="display:none; position:absolute; right:0; top:100%; margin-top:5px; background-color:#fff; min-width:180px; box-shadow:0px 8px 16px 0px rgba(0,0,0,0.2); z-index:100; border-radius:6px; overflow:hidden; border:1px solid #e2e8f0; text-align:left;">
+                                        <a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem; border-bottom:1px solid #e2e8f0;" onclick="printIdariIzin('${act.id}', event)">İdari İzin Dilekçesi</a>
+                                        <a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem;" onclick="printVeliIzin('${act.id}', event)">Veli İzin Dilekçeleri</a>
+                                    </div>
+                                </div>
+                                <span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px;" onclick="deleteActivity('${act.id}', event)" title="Sil"><i class="fa-solid fa-trash"></i></span>
+                                <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
+                            </div>
                         </div>
                         <div class="accordion-body">
                             <div class="activity-meta" style="flex-wrap:wrap; margin-bottom: 15px;">
@@ -919,7 +931,6 @@
                                     ${scheduleBadges}
                                 </div>
                                 <span><i class="fa-solid fa-users"></i> ${act.students ? act.students.length : 0} Öğrenci</span>
-                                <span style="cursor:pointer; color:#ef4444; border-color:#fecaca;" onclick="deleteActivity('${act.id}', event)"><i class="fa-solid fa-trash"></i> Sil</span>
                             </div>
                             
                             ${purposeHtml}
@@ -948,23 +959,177 @@
             event.stopPropagation();
             Swal.fire({
                 title: 'Emin misiniz?',
-                text: "Bu etkinliği silmek istediğinize emin misiniz?",
+                text: "Bu etkinliği/çalışmayı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'Evet, Sil!',
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Evet, Sil',
                 cancelButtonText: 'İptal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    if (schoolData.activities) {
-                        schoolData.activities = schoolData.activities.filter(a => a.id !== id);
-                        DataManager.saveSchoolSettings({ activities: schoolData.activities });
-                        renderActivities();
-                        Swal.fire('Silindi!', 'Etkinlik silindi.', 'success');
-                    }
+                    schoolData.activities = schoolData.activities.filter(a => a.id !== id);
+                    DataManager.saveSchoolSettings({ activities: schoolData.activities });
+                    renderActivities();
+                    Swal.fire('Silindi!', 'Etkinlik başarıyla silindi.', 'success');
                 }
             });
+        }
+
+        // Print Functions
+        window.onclick = function(event) {
+            if (!event.target.closest('.dropdown')) {
+                var dropdowns = document.getElementsByClassName("dropdown-content");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    var openDropdown = dropdowns[i];
+                    if (openDropdown.style.display === 'block') {
+                        openDropdown.style.display = 'none';
+                    }
+                }
+            }
+        }
+
+        function toggleDropdown(id) {
+            var dropdowns = document.getElementsByClassName("dropdown-content");
+            for (var i = 0; i < dropdowns.length; i++) {
+                if(dropdowns[i].id !== id) {
+                    dropdowns[i].style.display = 'none';
+                }
+            }
+            const dd = document.getElementById(id);
+            if(dd) dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function printIdariIzin(id, event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('printDropdown_' + id).style.display = 'none';
+            
+            const act = schoolData.activities.find(a => a.id === id);
+            if (!act) return;
+            
+            let schedulesText = '';
+            if (act.schedules && act.schedules.length > 0) {
+                schedulesText = act.schedules.map(s => `<b>${s.days}</b> günleri <b>${s.time}</b> saatleri arasında${s.location ? ' <b>' + s.location + '</b> mekanında' : ''}`).join(', ');
+            } else {
+                schedulesText = `<b>${act.days || ''}</b> günleri <b>${act.time || ''}</b> saatleri arasında${act.location ? ' <b>' + act.location + '</b> mekanında' : ''}`;
+            }
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>İdari İzin Dilekçesi - ${act.name}</title>
+                    <style>
+                        body { font-family: 'Times New Roman', Times, serif; line-height: 1.6; padding: 40px; font-size: 16px; }
+                        .header { text-align: center; font-weight: bold; margin-bottom: 50px; font-size: 18px; }
+                        .content { text-indent: 40px; text-align: justify; margin-bottom: 40px; }
+                        .footer { margin-top: 60px; display: flex; justify-content: space-between; }
+                        @media print {
+                            body { padding: 20px; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        OKUL MÜDÜRLÜĞÜNE<br>
+                        ${schoolData.schoolName ? schoolData.schoolName.toUpperCase() : ''}
+                    </div>
+                    <div class="content">
+                        Okulumuzda planlanan <b>${act.name}</b> (${act.type || 'Ders İçi'}) çalışması kapsamında, ${act.teachers} sorumluluğunda, ${schedulesText} etkinlik yapılması planlanmaktadır.
+                        <br><br>
+                        <b>Etkinliğin Amacı:</b> ${act.purpose || 'Belirtilmemiş'}
+                        <br><br>
+                        Gereğini bilgilerinize arz ederim.
+                    </div>
+                    <div class="footer">
+                        <div></div>
+                        <div style="text-align:center;">
+                            Tarih: ...../...../20....<br><br>
+                            İmza<br><br>
+                            ${act.teachers}
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            setTimeout(() => { printWindow.print(); }, 500);
+        }
+
+        function printVeliIzin(id, event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('printDropdown_' + id).style.display = 'none';
+            
+            const act = schoolData.activities.find(a => a.id === id);
+            if (!act) return;
+            if (!act.students || act.students.length === 0) {
+                Swal.fire('Hata', 'Bu çalışmaya kayıtlı öğrenci bulunmuyor. Dilekçe oluşturulamadı.', 'error');
+                return;
+            }
+            
+            let schedulesText = '';
+            if (act.schedules && act.schedules.length > 0) {
+                schedulesText = act.schedules.map(s => `<b>${s.days}</b> günleri <b>${s.time}</b> saatleri arasında${s.location ? ' <b>' + s.location + '</b> mekanında' : ''}`).join(', ');
+            } else {
+                schedulesText = `<b>${act.days || ''}</b> günleri <b>${act.time || ''}</b> saatleri arasında${act.location ? ' <b>' + act.location + '</b> mekanında' : ''}`;
+            }
+            
+            let pagesHtml = '';
+            act.students.forEach((student, index) => {
+                pagesHtml += `
+                    <div class="page">
+                        <div class="header">VELİ İZİN BELGESİ</div>
+                        <div class="content">
+                            Okulumuz öğrencilerinden <b>${student.class}</b> sınıfı <b>${student.no}</b> numaralı <b>${student.name}</b> isimli öğrencinin velisiyim.
+                            <br><br>
+                            Öğrencimin okulumuzda ${act.teachers} gözetiminde düzenlenecek olan <b>${act.name}</b> (${act.type || 'Ders İçi'}) çalışmasına katılmasına ve ${schedulesText} bulunmasına izin veriyorum.
+                            <br><br>
+                            <b>Etkinliğin Amacı:</b> ${act.purpose || 'Belirtilmemiş'}
+                        </div>
+                        <div class="footer">
+                            <div>
+                                <b>Veli Adı Soyadı:</b> .......................................<br><br>
+                                <b>Telefon:</b> .......................................<br><br>
+                                <b>İmza:</b> .......................................
+                            </div>
+                            <div style="text-align:right;">
+                                Tarih: ...../...../20....
+                            </div>
+                        </div>
+                    </div>
+                `;
+                if (index < act.students.length - 1) {
+                    pagesHtml += `<div class="page-break"></div>`;
+                }
+            });
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Veli İzin Dilekçeleri - ${act.name}</title>
+                    <style>
+                        body { font-family: 'Times New Roman', Times, serif; line-height: 1.6; font-size: 16px; margin: 0; padding: 0; }
+                        .page { padding: 40px; box-sizing: border-box; }
+                        .page-break { page-break-after: always; }
+                        .header { text-align: center; font-weight: bold; font-size: 20px; margin-bottom: 50px; text-decoration: underline; }
+                        .content { text-indent: 40px; text-align: justify; margin-bottom: 50px; }
+                        .footer { display: flex; justify-content: space-between; }
+                        @media print {
+                            body { margin: 0; }
+                            .page { padding: 2cm; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${pagesHtml}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            setTimeout(() => { printWindow.print(); }, 500);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
