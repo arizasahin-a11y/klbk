@@ -566,6 +566,201 @@
             goBackToStep1();
         }
 
+                </div>
+                <div id="historyEmptyMsg" class="hidden" style="text-align: center; color: var(--gray-700); padding: 2rem;">
+                    Geçmiş çalışma kaydı bulunmamaktadır.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/core_data_v11_9_1.js"></script>
+    <script>
+        // Initialize DataManager with ?school=XYZ parameter
+        DataManager._getStorageKey = function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const q = urlParams.get('school');
+            
+            if (q) {
+                localStorage.setItem('klbk_last_school', q);
+                return `klbk_data_${q}`;
+            }
+
+            const lastSchool = localStorage.getItem('klbk_last_school');
+            if (lastSchool) return `klbk_data_${lastSchool}`;
+
+            return `klbk_data_admin`;
+        };
+
+        let schoolData = {};
+        let allStudents = [];
+        let currentStudent = null;
+
+        // On Load
+        window.onload = async function() {
+            try {
+                await DataManager.initCloud();
+                schoolData = DataManager._getData() || {};
+                allStudents = DataManager.getStudents() || [];
+
+                if (schoolData.name) {
+                    document.getElementById('schoolNameDisplay').innerText = schoolData.name;
+                    document.title = schoolData.name + " - OEOVVB";
+                }
+
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                
+                checkSession();
+            } catch (err) {
+                console.error("Init Error:", err);
+                document.getElementById('loadingText').innerText = "Veriler yüklenirken hata oluştu!";
+                document.getElementById('loadingText').style.color = "red";
+                Swal.fire('Bağlantı Hatası', 'Verilere erişilemedi. Lütfen bağlantınızı kontrol edin.', 'error');
+            }
+        };
+
+        function checkSession() {
+            const savedNo = localStorage.getItem('oeovvb_student_no');
+            if (savedNo) {
+                const s = allStudents.find(st => st.no == savedNo);
+                if (s) {
+                    currentStudent = s;
+                    showDashboard();
+                    return;
+                }
+            }
+            document.getElementById('loginPanel').classList.remove('hidden');
+        }
+
+        // --- LOGIN FLOW ---
+        function handleStep1() {
+            const noVal = document.getElementById('studentNoInput').value.trim();
+            if (!noVal) {
+                Swal.fire('Uyarı', 'Lütfen okul numaranızı girin.', 'warning');
+                return;
+            }
+
+            const normalizeNo = (val) => String(val || '').trim().replace(/^0+/, '');
+            const targetNo = normalizeNo(noVal);
+
+            const student = allStudents.find(s => s && s.no && normalizeNo(s.no) === targetNo);
+            
+            if (!student) {
+                Swal.fire('Hata', 'Öğrenci bulunamadı. Lütfen numarayı kontrol edin.', 'error');
+                return;
+            }
+
+            currentStudent = student;
+            document.getElementById('verifyStudentName').innerText = `${student.name} (${student.class})`;
+            
+            document.getElementById('loginStep1').classList.add('hidden');
+            document.getElementById('loginStep2').classList.remove('hidden');
+
+            // Find parentPhone from activities
+            let foundParentPhone = null;
+            const activities = schoolData.activities || [];
+            activities.forEach(act => {
+                if (act.students) {
+                    const enrolled = act.students.find(s => String(s.no) === String(currentStudent.no));
+                    if (enrolled && enrolled.parentPhone && String(enrolled.parentPhone).length >= 6) {
+                        foundParentPhone = String(enrolled.parentPhone);
+                    }
+                }
+            });
+            currentStudent._activityParentPhone = foundParentPhone;
+
+            if (foundParentPhone) {
+                document.getElementById('phoneExistUI').classList.remove('hidden');
+                document.getElementById('phoneNewUI').classList.add('hidden');
+                document.getElementById('phoneVerifyInput').value = '';
+                document.getElementById('phoneVerifyInput').focus();
+            } else {
+                document.getElementById('phoneExistUI').classList.add('hidden');
+                document.getElementById('phoneNewUI').classList.remove('hidden');
+                document.getElementById('phoneNewInput').value = '';
+                document.getElementById('phoneNewInput').focus();
+            }
+        }
+
+        function goBackToStep1() {
+            document.getElementById('loginStep2').classList.add('hidden');
+            document.getElementById('loginStep1').classList.remove('hidden');
+            currentStudent = null;
+        }
+
+        async function handleStep2() {
+            if (!currentStudent) return;
+
+            if (currentStudent._activityParentPhone) {
+                const val = document.getElementById('phoneVerifyInput').value.trim();
+                if (val.length < 6) {
+                    Swal.fire('Uyarı', 'Lütfen telefonun son 6 hanesini girin.', 'warning');
+                    return;
+                }
+                const correctLast6 = currentStudent._activityParentPhone.slice(-6);
+                if (val !== correctLast6) {
+                    Swal.fire('Hata', 'Girdiğiniz son 6 hane sistemdeki telefonla eşleşmiyor.', 'error');
+                    return;
+                }
+                // Login Success
+                finalizeLogin();
+            } else {
+                const val = document.getElementById('phoneNewInput').value.trim();
+                if (val.length !== 10) {
+                    Swal.fire('Uyarı', 'Lütfen telefon numarasını başında sıfır olmadan 10 haneli olarak girin.', 'warning');
+                    return;
+                }
+                
+                // Save new phone
+                Swal.fire({
+                    title: 'Kaydediliyor...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                let updated = false;
+                const activities = schoolData.activities || [];
+                activities.forEach(act => {
+                    if (act.students) {
+                        const enrolled = act.students.find(s => String(s.no) === String(currentStudent.no));
+                        if (enrolled) {
+                            enrolled.parentPhone = val;
+                            updated = true;
+                        }
+                    }
+                });
+                
+                try {
+                    if (updated) {
+                        await DataManager.saveSchoolSettings({ activities: activities });
+                    }
+                    Swal.close();
+                    finalizeLogin();
+                } catch (e) {
+                    console.error("Kayıt hatası", e);
+                    Swal.fire('Hata', 'Numara kaydedilirken bir sorun oluştu.', 'error');
+                }
+            }
+        }
+
+        function finalizeLogin() {
+            localStorage.setItem('oeovvb_student_no', currentStudent.no);
+            document.getElementById('loginPanel').classList.add('hidden');
+            showDashboard();
+        }
+
+        function logout() {
+            localStorage.removeItem('oeovvb_student_no');
+            currentStudent = null;
+            document.getElementById('dashboardPanel').classList.add('hidden');
+            document.getElementById('userHeader').classList.add('hidden');
+            document.getElementById('loginPanel').classList.remove('hidden');
+            document.getElementById('studentNoInput').value = '';
+            goBackToStep1();
+        }
+
         // --- DASHBOARD LOGIC ---
         function getTodayStr() {
             const d = new Date();
@@ -580,73 +775,99 @@
             document.getElementById('headerName').innerHTML = `<i class="fa-regular fa-user"></i> ${currentStudent.name}`;
             document.getElementById('dashboardPanel').classList.remove('hidden');
 
-            const today = getTodayStr();
-            const [ty, tm, td] = today.split('-');
-            document.getElementById('todayDateStr').innerText = `${td}.${tm}.${ty}`;
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            const todayStr = `${y}-${m}-${d}`;
+            
+            document.getElementById('todayDateStr').innerText = `${d}.${m}.${y}`;
+
+            const dayMap = { 0: 'Pazar', 1: 'Pazartesi', 2: 'Salı', 3: 'Çarşamba', 4: 'Perşembe', 5: 'Cuma', 6: 'Cumartesi' };
+            const todayName = dayMap[now.getDay()];
 
             const activities = schoolData.activities || [];
             
-            // Filter activities where the student is enrolled
-            let studentActivities = [];
+            let todayActs = [];
+            let pastActs = [];
             
             activities.forEach(act => {
                 if (!act.students) return;
-                const isEnrolled = act.students.some(s => String(s.no) === String(currentStudent.no));
-                if (!isEnrolled) return;
+                const enrolled = act.students.find(s => String(s.no) === String(currentStudent.no));
+                if (!enrolled) return;
 
-                // Process occurrences (past dates from act.attendanceHistory and future from schedules)
-                // For simplicity, we check attendanceHistory dates and schedules
-                
-                // 1. Gather all dates from attendanceHistory (these are definitively past/today)
-                let recordedDates = Object.keys(act.attendanceHistory || {});
+                // 1. Gather all dates from statusHistory
+                let recordedDates = Object.keys(act.statusHistory || {});
                 
                 recordedDates.forEach(dateStr => {
-                    const status = (act.attendanceHistory[dateStr][currentStudent.no] === true) ? 'KATILDI' : 
-                                   (act.attendanceHistory[dateStr][currentStudent.no] === false) ? 'KATILMADI' : 'BİLİNMİYOR';
-                    
-                    studentActivities.push({
-                        act: act,
-                        dateStr: dateStr,
-                        status: status, // Yapıldı ve yoklama alındı
-                        isRecorded: true
-                    });
+                    const actStatus = act.statusHistory[dateStr];
+                    if (actStatus === 'YAPILDI' || actStatus === 'İPTAL') {
+                        let att = 'BİLİNMİYOR';
+                        if (act.attendanceHistory && act.attendanceHistory[dateStr] && typeof act.attendanceHistory[dateStr][currentStudent.no] !== 'undefined') {
+                            att = act.attendanceHistory[dateStr][currentStudent.no] ? 'KATILDI' : 'KATILMADI';
+                        }
+                        
+                        // If it's a past date
+                        if (dateStr < todayStr) {
+                            pastActs.push({
+                                act: act,
+                                dateStr: dateStr,
+                                actStatus: actStatus,
+                                attStatus: att
+                            });
+                        }
+                    }
                 });
 
-                // 2. Check today specifically from schedules/overrides if not already in recordedDates
-                // Note: OEYP uses act.occurrences for today, but for a general view, we can check 
-                // if there's an override for today, or if today is a scheduled day.
-                // Since this is read-only, we mainly care about what's explicitly set today.
-                if (act.occurrences) {
-                    const todayOcc = act.occurrences.find(o => o.dateString === today);
-                    if (todayOcc && !recordedDates.includes(today)) {
-                        studentActivities.push({
-                            act: act,
-                            dateStr: today,
-                            status: todayOcc.status === 'İPTAL' ? 'İPTAL EDİLDİ' : (todayOcc.status === 'YAPILACAK' ? 'YAPILACAK' : todayOcc.status),
-                            isRecorded: false
-                        });
+                // 2. Check today specifically
+                let isTodayScheduled = false;
+                if (act.schedules) {
+                    act.schedules.forEach(sch => {
+                        if (sch.days && sch.days.includes(todayName)) {
+                            isTodayScheduled = true;
+                        }
+                    });
+                }
+                
+                let todayStatusOverride = act.statusHistory ? act.statusHistory[todayStr] : null;
+
+                if (isTodayScheduled || todayStatusOverride) {
+                    let att = 'BİLİNMİYOR';
+                    if (act.attendanceHistory && act.attendanceHistory[todayStr] && typeof act.attendanceHistory[todayStr][currentStudent.no] !== 'undefined') {
+                        att = act.attendanceHistory[todayStr][currentStudent.no] ? 'KATILDI' : 'KATILMADI';
                     }
+                    
+                    let currentStatus = 'YAPILACAK';
+                    if (todayStatusOverride === 'İPTAL') currentStatus = 'İPTAL EDİLDİ';
+                    else if (todayStatusOverride) currentStatus = todayStatusOverride;
+                    
+                    todayActs.push({
+                        act: act,
+                        actStatus: currentStatus,
+                        attStatus: att
+                    });
                 }
             });
 
             // Sort descending by date
-            studentActivities.sort((a, b) => b.dateStr.localeCompare(a.dateStr));
-
-            // Separate today vs history
-            let todayHtml = '';
-            let historyHtml = '';
-
-            const todayActs = studentActivities.filter(sa => sa.dateStr === today);
-            const historyActs = studentActivities.filter(sa => sa.dateStr !== today);
+            pastActs.sort((a, b) => b.dateStr.localeCompare(a.dateStr));
 
             // Render Today
+            let todayHtml = '';
             if (todayActs.length > 0) {
                 todayActs.forEach(sa => {
                     let badgeHtml = '';
-                    if (sa.status === 'KATILDI') badgeHtml = `<span class="badge badge-attended"><i class="fa-solid fa-check"></i> Katıldı</span>`;
-                    else if (sa.status === 'KATILMADI') badgeHtml = `<span class="badge badge-missed"><i class="fa-solid fa-xmark"></i> Katılmadı</span>`;
-                    else if (sa.status === 'İPTAL EDİLDİ' || sa.status === 'İPTAL') badgeHtml = `<span class="badge badge-cancelled"><i class="fa-solid fa-ban"></i> İptal Edildi</span>`;
-                    else badgeHtml = `<span class="badge badge-upcoming"><i class="fa-solid fa-clock"></i> ${sa.status}</span>`;
+                    if (sa.actStatus === 'İPTAL EDİLDİ') {
+                        badgeHtml = `<span class="badge badge-cancelled"><i class="fa-solid fa-ban"></i> İptal Edildi</span>`;
+                    } else if (sa.actStatus === 'YAPILDI') {
+                        if (sa.attStatus === 'KATILDI') badgeHtml = `<span class="badge badge-attended"><i class="fa-solid fa-check"></i> Katıldı</span>`;
+                        else if (sa.attStatus === 'KATILMADI') badgeHtml = `<span class="badge badge-missed"><i class="fa-solid fa-xmark"></i> Katılmadı</span>`;
+                        else badgeHtml = `<span class="badge badge-upcoming"><i class="fa-solid fa-clock"></i> Bilinmiyor</span>`;
+                    } else if (sa.actStatus === 'YAPILIYOR') {
+                        badgeHtml = `<span class="badge badge-upcoming" style="background:#e0f2fe; color:#0284c7;"><i class="fa-solid fa-spinner"></i> Devam Ediyor</span>`;
+                    } else {
+                        badgeHtml = `<span class="badge badge-upcoming"><i class="fa-solid fa-clock"></i> YAPILACAK</span>`;
+                    }
 
                     todayHtml += `
                         <div class="activity-card">
@@ -675,24 +896,28 @@
             }
 
             // Render History
-            if (historyActs.length > 0) {
+            let historyHtml = '';
+            if (pastActs.length > 0) {
                 document.getElementById('historyEmptyMsg').classList.add('hidden');
-                historyActs.forEach(sa => {
+                pastActs.forEach(sa => {
                     const [y, m, d] = sa.dateStr.split('-');
                     const formattedDate = `${d}.${m}.${y}`;
 
                     let badgeHtml = '';
-                    if (sa.status === 'KATILDI') badgeHtml = `<span style="color: var(--geldi-color); font-weight: bold;"><i class="fa-solid fa-check"></i> Katıldı</span>`;
-                    else if (sa.status === 'KATILMADI') badgeHtml = `<span style="color: var(--gelmedi-color); font-weight: bold;"><i class="fa-solid fa-xmark"></i> Katılmadı</span>`;
-                    else if (sa.status === 'İPTAL EDİLDİ' || sa.status === 'İPTAL') badgeHtml = `<span style="color: var(--gelmedi-color); font-weight: bold;"><i class="fa-solid fa-ban"></i> İptal</span>`;
-                    else badgeHtml = `<span style="color: var(--gray-700); font-weight: bold;">${sa.status}</span>`;
+                    if (sa.actStatus === 'İPTAL') {
+                        badgeHtml = `<span style="color: var(--gelmedi-color); font-weight: bold;"><i class="fa-solid fa-ban"></i> İptal</span>`;
+                    } else {
+                        if (sa.attStatus === 'KATILDI') badgeHtml = `<span style="color: var(--geldi-color); font-weight: bold;"><i class="fa-solid fa-check"></i> Katıldı</span>`;
+                        else if (sa.attStatus === 'KATILMADI') badgeHtml = `<span style="color: var(--gelmedi-color); font-weight: bold;"><i class="fa-solid fa-xmark"></i> Katılmadı</span>`;
+                        else badgeHtml = `<span style="color: var(--gray-700); font-weight: bold;">-</span>`;
+                    }
 
                     historyHtml += `
                         <tr>
                             <td><b>${formattedDate}</b></td>
                             <td>${sa.act.name}</td>
                             <td>${sa.act.time || '-'} <br> <small style="color:var(--gray-700);">${sa.act.location || '-'}</small></td>
-                            <td>Yapıldı</td>
+                            <td>${sa.actStatus === 'İPTAL' ? 'İptal Edildi' : 'Yapıldı'}</td>
                             <td>${badgeHtml}</td>
                         </tr>
                     `;
