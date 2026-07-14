@@ -603,20 +603,31 @@
             const normalizeNo = (val) => String(val || '').trim().replace(/^0+/, '');
             const tNo = normalizeNo(targetNo);
             
+            console.log("Searching for student:", tNo);
+            console.log("Total students in allStudents:", allStudents.length);
+            
             // First check allStudents
             let student = allStudents.find(s => s && s.no && normalizeNo(s.no) === tNo);
-            if (student) return student;
+            if (student) {
+                console.log("Found in allStudents:", student);
+                return student;
+            }
 
             // If not found, check inside activities
             const activities = schoolData.activities || [];
+            console.log("Total activities loaded:", activities.length);
+            
             for (let act of activities) {
                 if (act.students) {
                     let actStudent = act.students.find(s => s && s.no && normalizeNo(s.no) === tNo);
                     if (actStudent) {
+                        console.log("Found in activity:", act.name, actStudent);
                         return actStudent;
                     }
                 }
             }
+            
+            console.warn("Student NOT FOUND anywhere. targetNo:", tNo);
             return null;
         }
 
