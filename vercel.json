@@ -3,8 +3,7 @@
     { "source": "/master(|.html)", "destination": "/security_error", "permanent": false },
     { "source": "/ogrenci(|.html)", "destination": "/security_error", "permanent": false },
     { "source": "/ogretmen(|.html)", "destination": "/security_error", "permanent": false },
-    { "source": "/dashboard(|.html)", "destination": "/security_error", "permanent": false },
-    { "source": "/oeovvb(|.html)", "destination": "/security_error", "permanent": false }
+    { "source": "/dashboard(|.html)", "destination": "/security_error", "permanent": false }
   ],
   "rewrites": [
     { "source": "/k9x7v2m4(|.html)", "destination": "/index.html" },
@@ -12,7 +11,6 @@
     { "source": "/r1p5s8q3(|.html)", "destination": "/dashboard.html" },
     { "source": "/n4b9v1c7(|.html)", "destination": "/master.html" },
     { "source": "/j2k5l0p8(|.html)", "destination": "/ogrenci.html" },
-    { "source": "/v7b3n9m2(|.html)", "destination": "/oeovvb.html" },
     { "source": "/yoklama_ogretmen(|.html)", "destination": "/yoklama_ogretmen.html" },
     { "source": "/yoklama_idareci(|.html)", "destination": "/yoklama_idareci.html" },
     { "source": "/security_error", "destination": "/404.html" }
