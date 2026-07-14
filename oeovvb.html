@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
@@ -313,21 +313,10 @@
                     <b>Öğrenci:</b> <span id="verifyStudentName"></span>
                 </div>
                 
-                <div id="phoneExistUI" class="hidden">
+                <div id="phoneExistUI">
                     <div class="form-group">
                         <label class="form-label">Veli Telefonunun Son 6 Rakamı</label>
                         <input type="number" id="phoneVerifyInput" class="form-control" placeholder="Örn: 123456" maxlength="6">
-                    </div>
-                </div>
-
-                <div id="phoneNewUI" class="hidden">
-                    <div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 8px; border: 1px solid #ffeeba; margin-bottom: 15px; font-size: 0.85rem;">
-                        <i class="fa-solid fa-circle-info"></i> Sistemde veli telefon numaranız kayıtlı değil. Lütfen güvenlik ve bilgilendirme için numaranızı sisteme kaydedin.
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Veli Telefon Numarası (10 Haneli)</label>
-                        <input type="number" id="phoneNewInput" class="form-control" placeholder="Örn: 5051234567" oninput="if(this.value.length > 10) this.value = this.value.slice(0, 10);">
-                        <small style="color: var(--gray-700); display: block; margin-top: 5px;">Başında 0 olmadan 10 haneli giriniz.</small>
                     </div>
                 </div>
 
@@ -426,178 +415,6 @@
             }
         };
 
-        function checkSession() {
-            const savedNo = localStorage.getItem('oeovvb_student_no');
-            if (savedNo) {
-                const s = allStudents.find(st => st.no == savedNo);
-                if (s) {
-                    currentStudent = s;
-                    showDashboard();
-                    return;
-                }
-            }
-            document.getElementById('loginPanel').classList.remove('hidden');
-        }
-
-        // --- LOGIN FLOW ---
-        function handleStep1() {
-            const noVal = document.getElementById('studentNoInput').value.trim();
-            if (!noVal) {
-                Swal.fire('Uyarı', 'Lütfen okul numaranızı girin.', 'warning');
-                return;
-            }
-
-            const normalizeNo = (val) => String(val || '').trim().replace(/^0+/, '');
-            const targetNo = normalizeNo(noVal);
-
-            const student = allStudents.find(s => s && s.no && normalizeNo(s.no) === targetNo);
-            
-            if (!student) {
-                Swal.fire('Hata', 'Öğrenci bulunamadı. Lütfen numarayı kontrol edin.', 'error');
-                return;
-            }
-
-            currentStudent = student;
-            document.getElementById('verifyStudentName').innerText = `${student.name} (${student.class})`;
-            
-            document.getElementById('loginStep1').classList.add('hidden');
-            document.getElementById('loginStep2').classList.remove('hidden');
-
-            // Find parentPhone from activities
-            let foundParentPhone = null;
-            const activities = schoolData.activities || [];
-            activities.forEach(act => {
-                if (act.students) {
-                    const enrolled = act.students.find(s => String(s.no) === String(currentStudent.no));
-                    if (enrolled && enrolled.parentPhone && String(enrolled.parentPhone).length >= 6) {
-                        foundParentPhone = String(enrolled.parentPhone);
-                    }
-                }
-            });
-            currentStudent._activityParentPhone = foundParentPhone;
-
-            if (foundParentPhone) {
-                document.getElementById('phoneExistUI').classList.remove('hidden');
-                document.getElementById('phoneNewUI').classList.add('hidden');
-                document.getElementById('phoneVerifyInput').value = '';
-                document.getElementById('phoneVerifyInput').focus();
-            } else {
-                document.getElementById('phoneExistUI').classList.add('hidden');
-                document.getElementById('phoneNewUI').classList.remove('hidden');
-                document.getElementById('phoneNewInput').value = '';
-                document.getElementById('phoneNewInput').focus();
-            }
-        }
-
-        function goBackToStep1() {
-            document.getElementById('loginStep2').classList.add('hidden');
-            document.getElementById('loginStep1').classList.remove('hidden');
-            currentStudent = null;
-        }
-
-        async function handleStep2() {
-            if (!currentStudent) return;
-
-            if (currentStudent._activityParentPhone) {
-                const val = document.getElementById('phoneVerifyInput').value.trim();
-                if (val.length < 6) {
-                    Swal.fire('Uyarı', 'Lütfen telefonun son 6 hanesini girin.', 'warning');
-                    return;
-                }
-                const correctLast6 = currentStudent._activityParentPhone.slice(-6);
-                if (val !== correctLast6) {
-                    Swal.fire('Hata', 'Girdiğiniz son 6 hane sistemdeki telefonla eşleşmiyor.', 'error');
-                    return;
-                }
-                // Login Success
-                finalizeLogin();
-            } else {
-                const val = document.getElementById('phoneNewInput').value.trim();
-                if (val.length !== 10) {
-                    Swal.fire('Uyarı', 'Lütfen telefon numarasını başında sıfır olmadan 10 haneli olarak girin.', 'warning');
-                    return;
-                }
-                
-                // Save new phone
-                Swal.fire({
-                    title: 'Kaydediliyor...',
-                    allowOutsideClick: false,
-                    didOpen: () => { Swal.showLoading(); }
-                });
-
-                let updated = false;
-                const activities = schoolData.activities || [];
-                activities.forEach(act => {
-                    if (act.students) {
-                        const enrolled = act.students.find(s => String(s.no) === String(currentStudent.no));
-                        if (enrolled) {
-                            enrolled.parentPhone = val;
-                            updated = true;
-                        }
-                    }
-                });
-                
-                try {
-                    if (updated) {
-                        await DataManager.saveSchoolSettings({ activities: activities });
-                    }
-                    Swal.close();
-                    finalizeLogin();
-                } catch (e) {
-                    console.error("Kayıt hatası", e);
-                    Swal.fire('Hata', 'Numara kaydedilirken bir sorun oluştu.', 'error');
-                }
-            }
-        }
-
-        function finalizeLogin() {
-            localStorage.setItem('oeovvb_student_no', currentStudent.no);
-            document.getElementById('loginPanel').classList.add('hidden');
-            showDashboard();
-        }
-
-        function logout() {
-            localStorage.removeItem('oeovvb_student_no');
-            currentStudent = null;
-            document.getElementById('dashboardPanel').classList.add('hidden');
-            document.getElementById('userHeader').classList.add('hidden');
-            document.getElementById('loginPanel').classList.remove('hidden');
-            document.getElementById('studentNoInput').value = '';
-            goBackToStep1();
-        }
-
-                </div>
-                <div id="historyEmptyMsg" class="hidden" style="text-align: center; color: var(--gray-700); padding: 2rem;">
-                    Geçmiş çalışma kaydı bulunmamaktadır.
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="js/core_data_v11_9_1.js"></script>
-    <script>
-        // Initialize DataManager with ?school=XYZ parameter
-        DataManager._getStorageKey = function () {
-            const urlParams = new URLSearchParams(window.location.search);
-            const q = urlParams.get('school');
-            
-            if (q) {
-                localStorage.setItem('klbk_last_school', q);
-                return `klbk_data_${q}`;
-            }
-
-            const lastSchool = localStorage.getItem('klbk_last_school');
-            if (lastSchool) return `klbk_data_${lastSchool}`;
-
-            return `klbk_data_admin`;
-        };
-
-        let schoolData = {};
-        let allStudents = [];
-        let currentStudent = null;
-
         function findStudentByNo(targetNo) {
             if (!targetNo) return null;
             const normalizeNo = (val) => String(val || '').trim().replace(/^0+/, '');
@@ -688,33 +505,36 @@
             currentStudent = student;
             document.getElementById('verifyStudentName').innerText = `${student.name} (${student.class})`;
             
-            document.getElementById('loginStep1').classList.add('hidden');
-            document.getElementById('loginStep2').classList.remove('hidden');
-
-            // Find parentPhone from activities
-            let foundParentPhone = null;
-            const activities = schoolData.activities || [];
-            activities.forEach(act => {
-                if (act.students) {
-                    const enrolled = act.students.find(s => String(s.no) === String(currentStudent.no));
-                    if (enrolled && enrolled.parentPhone && String(enrolled.parentPhone).length >= 6) {
-                        foundParentPhone = String(enrolled.parentPhone);
+            // Find parentPhone from activities or student object
+            let foundParentPhone = student.parentPhone ? String(student.parentPhone) : null;
+            if (!foundParentPhone || foundParentPhone.length < 6) {
+                const activities = schoolData.activities || [];
+                for (let act of activities) {
+                    if (act.students) {
+                        const enrolled = act.students.find(s => s && s.no && normalizeNo(s.no) === targetNo);
+                        if (enrolled && enrolled.parentPhone && String(enrolled.parentPhone).length >= 6) {
+                            foundParentPhone = String(enrolled.parentPhone);
+                            break; // found one!
+                        }
                     }
                 }
-            });
+            }
+
+            if (!foundParentPhone || foundParentPhone.length < 6) {
+                Swal.fire('Eksik Bilgi', 'Sistemde veli telefon numaranız kayıtlı değil. Lütfen okul idaresine veya etkinlik öğretmeninize başvurarak numaranızı kaydettirip tekrar deneyiniz.', 'warning');
+                return; // Do NOT proceed to step 2
+            }
+
             currentStudent._activityParentPhone = foundParentPhone;
 
-            if (foundParentPhone) {
-                document.getElementById('phoneExistUI').classList.remove('hidden');
-                document.getElementById('phoneNewUI').classList.add('hidden');
-                document.getElementById('phoneVerifyInput').value = '';
-                document.getElementById('phoneVerifyInput').focus();
-            } else {
-                document.getElementById('phoneExistUI').classList.add('hidden');
-                document.getElementById('phoneNewUI').classList.remove('hidden');
-                document.getElementById('phoneNewInput').value = '';
-                document.getElementById('phoneNewInput').focus();
-            }
+            // Proceed to Step 2
+            document.getElementById('loginStep1').classList.add('hidden');
+            document.getElementById('loginStep2').classList.remove('hidden');
+            
+            // Show only the verify UI
+            document.getElementById('phoneExistUI').classList.remove('hidden');
+            document.getElementById('phoneVerifyInput').value = '';
+            document.getElementById('phoneVerifyInput').focus();
         }
 
         function goBackToStep1() {
@@ -724,58 +544,20 @@
         }
 
         async function handleStep2() {
-            if (!currentStudent) return;
+            if (!currentStudent || !currentStudent._activityParentPhone) return;
 
-            if (currentStudent._activityParentPhone) {
-                const val = document.getElementById('phoneVerifyInput').value.trim();
-                if (val.length < 6) {
-                    Swal.fire('Uyarı', 'Lütfen telefonun son 6 hanesini girin.', 'warning');
-                    return;
-                }
-                const correctLast6 = currentStudent._activityParentPhone.slice(-6);
-                if (val !== correctLast6) {
-                    Swal.fire('Hata', 'Girdiğiniz son 6 hane sistemdeki telefonla eşleşmiyor.', 'error');
-                    return;
-                }
-                // Login Success
-                finalizeLogin();
-            } else {
-                const val = document.getElementById('phoneNewInput').value.trim();
-                if (val.length !== 10) {
-                    Swal.fire('Uyarı', 'Lütfen telefon numarasını başında sıfır olmadan 10 haneli olarak girin.', 'warning');
-                    return;
-                }
-                
-                // Save new phone
-                Swal.fire({
-                    title: 'Kaydediliyor...',
-                    allowOutsideClick: false,
-                    didOpen: () => { Swal.showLoading(); }
-                });
-
-                let updated = false;
-                const activities = schoolData.activities || [];
-                activities.forEach(act => {
-                    if (act.students) {
-                        const enrolled = act.students.find(s => String(s.no) === String(currentStudent.no));
-                        if (enrolled) {
-                            enrolled.parentPhone = val;
-                            updated = true;
-                        }
-                    }
-                });
-                
-                try {
-                    if (updated) {
-                        await DataManager.saveSchoolSettings({ activities: activities });
-                    }
-                    Swal.close();
-                    finalizeLogin();
-                } catch (e) {
-                    console.error("Kayıt hatası", e);
-                    Swal.fire('Hata', 'Numara kaydedilirken bir sorun oluştu.', 'error');
-                }
+            const val = document.getElementById('phoneVerifyInput').value.trim();
+            if (val.length < 6) {
+                Swal.fire('Uyarı', 'Lütfen telefonun son 6 hanesini girin.', 'warning');
+                return;
             }
+            const correctLast6 = currentStudent._activityParentPhone.slice(-6);
+            if (val !== correctLast6) {
+                Swal.fire('Hata', 'Girdiğiniz son 6 hane sistemdeki telefonla eşleşmiyor.', 'error');
+                return;
+            }
+            // Login Success
+            finalizeLogin();
         }
 
         function finalizeLogin() {
