@@ -413,7 +413,7 @@
         </div>
 
         <!-- Activities Section -->
-        <div id="teacherActivitiesSection" class="glass-panel accordion-item active" style="margin-bottom: 2rem; padding: 0;">
+        <div id="teacherActivitiesSection" class="glass-panel accordion-item" style="margin-bottom: 2rem; padding: 0;">
             <div class="accordion-header" onclick="toggleAccordion(this)" style="border-radius: 12px 12px 0 0;">
                 <div style="font-weight: 800; font-size: 1.15rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
                     <i class="fa-solid fa-calendar-check" style="color:#4f46e5;"></i> Planlanmış Çalışmalarım
@@ -437,9 +437,9 @@
                 <div style="font-weight: 800; font-size: 1.15rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
                     <i class="fa-solid fa-clock-rotate-left" style="color:#3b82f6;"></i> Geçmiş Çalışmalar
                 </div>
-                <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b; transform: rotate(180deg);"></i>
+                <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
             </div>
-            <div class="accordion-body" style="border-radius: 0 0 12px 12px; display:none;">
+            <div class="accordion-body" style="border-radius: 0 0 12px 12px;">
                 <div id="teacherPastActivitiesList">
                     <!-- Past occurrences will be rendered here -->
                 </div>
@@ -1270,7 +1270,7 @@
                 activities.forEach(act => {
                     if (act.statusHistory) {
                         for (let dateStr in act.statusHistory) {
-                            let s = act.statusHistory[dateStr];
+                            let s = (act.statusHistory[dateStr] || '').trim().toUpperCase();
                             if (s === 'YAPILDI' || s === 'İPTAL' || s === 'İPTAL EDİLDİ') {
                                 teacherPastOccurrences.push({
                                     act: act,
@@ -1294,7 +1294,7 @@
                 listContainer.innerHTML = '';
                 
                 activities.slice().reverse().forEach((act, index) => {
-                    listContainer.innerHTML += getActivityHTML(act, index === 0);
+                    listContainer.innerHTML += getActivityHTML(act, false);
                 });
 
                 const pastList = document.getElementById('teacherPastActivitiesList');
@@ -1310,6 +1310,7 @@
             } else {
                 // Admin or Idareci
                 teacherSection.style.display = 'none';
+                if (teacherPastSection) teacherPastSection.style.display = 'none';
                 adminSection.style.display = 'block';
                 adminSection.innerHTML = '';
                 if (newActPanel) {
@@ -1356,8 +1357,8 @@
                     // Extract past occurrences
                     if (act.statusHistory) {
                         for (let dateStr in act.statusHistory) {
-                            let s = act.statusHistory[dateStr];
-                            if (s === 'YAPILDI' || s === 'İPTAL') {
+                            let s = (act.statusHistory[dateStr] || '').trim().toUpperCase();
+                            if (s === 'YAPILDI' || s === 'İPTAL' || s === 'İPTAL EDİLDİ') {
                                 pastOccurrences.push({
                                     act: act,
                                     occOverride: { dateString: dateStr, status: s }
