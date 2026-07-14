@@ -291,9 +291,10 @@
         <!-- LOGIN PANEL -->
         <div id="loginPanel" class="glass-panel hidden" style="max-width: 450px; margin: 4rem auto; padding: 2.5rem;">
             <div class="text-center mb-4">
+                <h4 id="schoolNameDisplay" style="color: var(--primary); margin: 0 0 1rem 0; font-weight: 700;"></h4>
                 <i class="fa-solid fa-shield-halved" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
                 <h2 style="margin: 0; font-weight: 800;">Hoş Geldiniz</h2>
-                <p style="color: var(--gray-700); margin-top: 0.5rem;" id="schoolNameDisplay">Öğrenci ve Veli Bilgilendirme Sistemi</p>
+                <p style="color: var(--gray-700); margin-top: 0.5rem;">Öğrenci ve Veli Etkinlik Bilgilendirme Ekranı</p>
             </div>
 
             <!-- Unified Login Step -->
@@ -551,7 +552,9 @@
             
             activities.forEach(act => {
                 if (!act.students) return;
-                const enrolled = act.students.find(s => String(s.no) === String(currentStudent.no));
+                const normalizeNo = (val) => String(val || '').trim().replace(/^0+/, '');
+                const targetNo = normalizeNo(currentStudent.no);
+                const enrolled = act.students.find(s => normalizeNo(s.no) === targetNo);
                 if (!enrolled) return;
 
                 // 1. Gather all dates from statusHistory
