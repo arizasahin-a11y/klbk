@@ -1039,7 +1039,13 @@
                 else if (occOverride.status === 'YAPILACAK') statusColor = '#f59e0b';
                 
                 let timeStr = occOverride.scheduleStr ? ` (${occOverride.scheduleStr})` : '';
-                titleHtml += ` <span style="font-size:0.8rem; margin-left:10px; padding:2px 8px; border-radius:12px; background:rgba(0,0,0,0.05); color:${statusColor};"><i class="fa-regular fa-calendar"></i> ${occOverride.dateString}${timeStr} - ${occOverride.status}</span>`;
+                let displayDate = occOverride.dateString.split('-').reverse().join('.');
+                titleHtml += ` <span style="font-size:0.8rem; margin-left:10px; padding:2px 8px; border-radius:12px; background:rgba(0,0,0,0.05); color:${statusColor};"><i class="fa-regular fa-calendar"></i> ${displayDate}${timeStr} - ${occOverride.status}</span>`;
+                
+                if (occOverride.status === 'YAPILACAK' && occOverride.scheduleStr) {
+                    const dayName = occOverride.scheduleStr.split(' ')[0];
+                    titleHtml = `<span style="color:#f59e0b; margin-right:5px; font-weight:700;">${dayName}</span> ` + titleHtml;
+                }
             } else {
                 if (occ && act.statusHistory && act.statusHistory[occ.dateString] === 'YAPILIYOR') {
                     showAttendance = true;
@@ -1478,7 +1484,8 @@
             currentUpcomingData = closestGlobal;
             
             document.getElementById('uaTitle').innerHTML = `<i class="fa-solid fa-puzzle-piece" style="color:#4f46e5; margin-right:5px;"></i> ${closestGlobal.activity.name}`;
-            document.getElementById('uaTimeLocation').innerHTML = `<i class="fa-regular fa-calendar"></i> ${closestGlobal.scheduleStr} &nbsp; <i class="fa-solid fa-location-dot" style="color:#ca8a04;"></i> ${closestGlobal.location}`;
+            const uDate = closestGlobal.dateString.split('-').reverse().join('.');
+            document.getElementById('uaTimeLocation').innerHTML = `<i class="fa-regular fa-calendar"></i> ${uDate} ${closestGlobal.scheduleStr} &nbsp; <i class="fa-solid fa-location-dot" style="color:#ca8a04;"></i> ${closestGlobal.location}`;
             
             updateUpcomingUI();
             upcomingActInterval = setInterval(updateUpcomingUI, 1000);
