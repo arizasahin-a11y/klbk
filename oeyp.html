@@ -1089,12 +1089,18 @@
                             attendanceBadge = `<span style="color:#ef4444; margin-left:8px;" title="Katılmadı"><i class="fa-solid fa-circle-xmark"></i></span>`;
                         }
                     }
+                    let attendanceCell = '';
+                    if (showAttendance) {
+                        attendanceCell = `<td style="text-align:center; font-size:1.2rem;">${attendanceBadge}</td>`;
+                    }
+                    
                     studentsHtml += `
                         <tr>
                             <td>${idx + 1}</td>
                             <td>${s.class}</td>
                             <td><b>${s.no}</b></td>
-                            <td>${s.name} ${attendanceBadge} ${infoBadges.join(' ')}</td>
+                            <td>${s.name} ${infoBadges.join(' ')}</td>
+                            ${attendanceCell}
                             <td style="text-align:center;">${consentIcon}</td>
                         </tr>
                     `;
@@ -1173,6 +1179,7 @@
                                     <th style="width:100px;">Sınıf</th>
                                     <th style="width:100px;">Okul No</th>
                                     <th>Ad Soyad</th>
+                                    ${showAttendance ? '<th style="width:80px; text-align:center;">Katılım</th>' : ''}
                                     <th style="width:100px; text-align:center;">Veli Onayı</th>
                                 </tr>
                             </thead>
