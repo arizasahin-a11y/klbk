@@ -645,7 +645,7 @@
                     let sName = currentStudent.name;
                     let actName = sa.act.name;
                     let time = sa.timeStr || '-';
-                    let loc = sa.locStr || 'Belirtilmedi';
+                    let locHtml = (sa.locStr && sa.locStr.trim() !== '') ? ` <b>${sa.locStr.trim()}</b> konumunda` : '';
 
                     let studentStatus = '';
                     if (sa.attStatus === 'KATILDI') studentStatus = ` Öğrenciniz ${sName} etkinliğe <b>katılmıştır</b>.`;
@@ -653,11 +653,11 @@
                     else studentStatus = ` Yoklama durumu henüz belli değil.`;
 
                     if (sa.actStatus === 'İPTAL EDİLDİ') {
-                        statusText = `<div style="color:var(--red); font-weight:500; font-size:1.05rem;"><b>${actName}</b> isimli çalışma <b>${loc}</b> konumunda (Saat: <b>${time}</b>) iptal edilmiştir.</div>`;
+                        statusText = `<div style="color:var(--red); font-weight:500; font-size:1.05rem;"><b>${actName}</b> isimli çalışma${locHtml} (Saat: <b>${time}</b>) iptal edilmiştir.</div>`;
                     } else if (sa.actStatus === 'YAPILACAK') {
-                        statusText = `<div style="color:var(--gray-800); font-weight:500; font-size:1.05rem;"><b>${actName}</b> isimli çalışma <b>${loc}</b> konumunda saat <b>${time}</b> itibarıyla yapılacaktır.</div>`;
+                        statusText = `<div style="color:var(--gray-800); font-weight:500; font-size:1.05rem;"><b>${actName}</b> isimli çalışma${locHtml} saat <b>${time}</b> itibarıyla yapılacaktır.</div>`;
                     } else if (sa.actStatus === 'YAPILIYOR') {
-                        let innerText = `<b>${actName}</b> isimli çalışma <b>${loc}</b> konumunda saat <b>${time}</b> itibarıyla şu an yapılıyor.${studentStatus}`;
+                        let innerText = `<b>${actName}</b> isimli çalışma${locHtml} saat <b>${time}</b> itibarıyla şu an yapılıyor.${studentStatus}`;
                         statusText = `<div style="background:#e0f2fe; padding:12px; border-radius:8px; border:1px solid #bae6fd; font-weight:500; font-size:1.05rem;">${innerText}</div>`;
                     }
 
@@ -688,7 +688,7 @@
                     let sName = currentStudent.name;
                     let actName = sa.act.name;
                     let time = sa.timeStr || '-';
-                    let loc = sa.locStr || 'Belirtilmedi';
+                    let locHtml = (sa.locStr && sa.locStr.trim() !== '') ? ` <b>${sa.locStr.trim()}</b> konumunda` : '';
                     
                     let studentStatus = '';
                     if (sa.attStatus === 'KATILDI') studentStatus = ` Öğrenciniz ${sName} etkinliğe <b>katılmıştır</b>.`;
@@ -697,9 +697,9 @@
 
                     let descHtml = '';
                     if (sa.actStatus === 'İPTAL' || sa.actStatus === 'İPTAL EDİLDİ') {
-                        descHtml = `<span style="color:var(--red); font-weight:500;"><b>${formattedDate}</b> tarihindeki <b>${actName}</b> isimli çalışma <b>${loc}</b> konumunda (Saat: <b>${time}</b>) iptal edilmiştir.</span>`;
+                        descHtml = `<span style="color:var(--red); font-weight:500;"><b>${formattedDate}</b> tarihindeki <b>${actName}</b> isimli çalışma${locHtml} (Saat: <b>${time}</b>) iptal edilmiştir.</span>`;
                     } else {
-                        descHtml = `<span style="color:var(--gray-800); font-weight:500;"><b>${formattedDate}</b> tarihindeki <b>${actName}</b> isimli çalışma <b>${loc}</b> konumunda saat <b>${time}</b> itibarıyla tamamlanmıştır.${studentStatus}</span>`;
+                        descHtml = `<span style="color:var(--gray-800); font-weight:500;"><b>${formattedDate}</b> tarihindeki <b>${actName}</b> isimli çalışma${locHtml} saat <b>${time}</b> itibarıyla tamamlanmıştır.${studentStatus}</span>`;
                     }
 
                     historyHtml += `
