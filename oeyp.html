@@ -306,26 +306,26 @@
 
                 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 1.5rem;">
                     <div class="form-group">
-                        <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Çalışma Günleri</label>
-                        <div style="display:flex; flex-wrap:wrap; gap:10px;" id="newActDays">
-                            <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" value="Pazartesi"> Pzt</label>
-                            <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" value="Salı"> Sal</label>
-                            <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" value="Çarşamba"> Çar</label>
-                            <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" value="Perşembe"> Per</label>
-                            <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" value="Cuma"> Cum</label>
-                            <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" value="Cumartesi"> Cmt</label>
-                            <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" value="Pazar"> Paz</label>
-                        </div>
+                        <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Çalışma Günü Seçiniz</label>
+                        <select id="newActDaySelect" class="form-select-custom" onchange="updateDefaultTime()">
+                            <option value="Pazartesi">Pazartesi</option>
+                            <option value="Salı">Salı</option>
+                            <option value="Çarşamba">Çarşamba</option>
+                            <option value="Perşembe">Perşembe</option>
+                            <option value="Cuma">Cuma</option>
+                            <option value="Cumartesi">Cumartesi</option>
+                            <option value="Pazar">Pazar</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Çalışma Saatleri (Örn: 15:00 - 16:30)</label>
-                        <input type="text" id="newActTime" class="form-select-custom" placeholder="15:00 - 16:30">
+                        <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Çalışma Saatleri (Örn: 15:30 - 17:00)</label>
+                        <input type="text" id="newActTime" class="form-select-custom" placeholder="15:30 - 17:00">
                     </div>
                 </div>
 
                 <div style="text-align: right;">
                     <button class="btn btn-primary" onclick="saveNewActivity()" style="background:#10b981;">
-                        <i class="fa-solid fa-save"></i> Çalışmayı Kaydet
+                        <i class="fa-solid fa-save"></i> Çalışmayı Kaydet / Ekle
                     </button>
                 </div>
             </div>
@@ -463,7 +463,6 @@
             item.classList.toggle('active');
         }
 
-        // --- NEW ACTIVITY FORM LOGIC ---
         let newActStudents = []; 
 
         function initNewActForm() {
@@ -471,8 +470,18 @@
             
             const classSelect = document.getElementById('newActClassSelect');
             classSelect.innerHTML = '<option value="">-- Sınıf --</option>';
-            const classes = DataManager.getClasses();
-            classes.forEach(c => {
+            
+            const allStudents = DataManager.getStudents();
+            const classesArray = [];
+            allStudents.forEach(s => {
+                if (s.class) {
+                    const c = s.class.trim();
+                    if (c && classesArray.indexOf(c) === -1) {
+                        classesArray.push(c);
+                    }
+                }
+            });
+            classesArray.sort().forEach(c => {
                 const opt = document.createElement('option');
                 opt.value = c;
                 opt.textContent = c;
@@ -481,6 +490,8 @@
             
             newActStudents = [];
             renderNewActStudents();
+
+            updateDefaultTime();
         }
 
         function loadStudentsForNewAct() {
@@ -493,7 +504,9 @@
             
             if (!selectedClass) return;
             
-            const students = DataManager.getStudentsByClass(selectedClass);
+            const allStudents = DataManager.getStudents();
+            const students = allStudents.filter(s => s.class === selectedClass);
+            
             students.forEach(s => {
                 const opt = document.createElement('option');
                 opt.value = s.no;
@@ -513,6 +526,22 @@
                 document.getElementById('newActStudentPhone').value = '';
                 document.getElementById('newActParentPhone').value = '';
                 document.getElementById('newActParentInformed').checked = false;
+                
+                const no = studentSelect.value;
+                const acts = schoolData.activities || [];
+                const foundActs = acts.filter(a => a.students && a.students.some(s => s.no === no));
+                if (foundActs.length > 0) {
+                    const actNames = foundActs.map(a => a.name).join(', ');
+                    Swal.fire({
+                        title: 'Bilgi',
+                        text: `Seçilen öğrenci şu çalışmalarda zaten kayıtlı: ${actNames}`,
+                        icon: 'info',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 4000
+                    });
+                }
             } else {
                 detailsBox.style.display = 'none';
             }
@@ -584,25 +613,35 @@
             });
         }
 
+        function updateDefaultTime() {
+            const daySelect = document.getElementById('newActDaySelect');
+            const timeInput = document.getElementById('newActTime');
+            if (daySelect && timeInput) {
+                const isWeekend = daySelect.value === 'Cumartesi' || daySelect.value === 'Pazar';
+                if (isWeekend) {
+                    timeInput.value = '09:00 - 10:30';
+                } else {
+                    timeInput.value = '15:30 - 17:00';
+                }
+            }
+        }
+
         function saveNewActivity() {
             const name = document.getElementById('newActName').value.trim();
             const teachers = document.getElementById('newActTeachers').value.trim();
+            const day = document.getElementById('newActDaySelect') ? document.getElementById('newActDaySelect').value : '';
+            const time = document.getElementById('newActTime').value.trim();
             
             if (!name || !teachers) {
                 Swal.fire('Eksik Bilgi', 'Lütfen etkinlik adı ve sorumlu öğretmenleri giriniz.', 'warning');
                 return;
             }
             
-            const daysContainer = document.getElementById('newActDays');
-            const checkboxes = daysContainer.querySelectorAll('input[type="checkbox"]:checked');
-            const daysArr = Array.from(checkboxes).map(cb => cb.value);
-            
-            if (daysArr.length === 0) {
-                Swal.fire('Eksik Bilgi', 'Lütfen en az bir çalışma günü seçiniz.', 'warning');
+            if (!day) {
+                Swal.fire('Eksik Bilgi', 'Lütfen bir çalışma günü seçiniz.', 'warning');
                 return;
             }
             
-            const time = document.getElementById('newActTime').value.trim();
             if (!time) {
                 Swal.fire('Eksik Bilgi', 'Lütfen çalışma saatlerini giriniz.', 'warning');
                 return;
@@ -627,12 +666,12 @@
                 Swal.fire({ title: 'Kaydediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
                 
                 const newAct = {
-                    id: "act_" + Date.now(),
+                    id: "act_" + Date.now() + "_" + Math.floor(Math.random()*1000),
                     name: name,
                     teachers: teachers,
-                    days: daysArr.join(', '),
+                    days: day,
                     time: time,
-                    students: newActStudents,
+                    students: JSON.parse(JSON.stringify(newActStudents)),
                     createdBy: currentUser.username,
                     createdAt: new Date().toISOString()
                 };
@@ -644,32 +683,24 @@
                 schoolData.activities.push(newAct);
                 DataManager.saveSchoolSettings({ activities: schoolData.activities });
                 
-                document.getElementById('newActName').value = '';
-                Array.from(checkboxes).forEach(cb => cb.checked = false);
-                document.getElementById('newActTime').value = '';
-                newActStudents = [];
-                renderNewActStudents();
-                
-                // Collapse the form
-                const formAccordion = document.querySelector('.accordion-item');
-                if(formAccordion && formAccordion.classList.contains('active')) {
-                    formAccordion.classList.remove('active');
-                }
-                
                 renderActivities();
                 
-                Swal.fire({ icon: 'success', title: 'Başarılı', text: 'Çalışma planı başarıyla kaydedildi.', timer: 1500, showConfirmButton: false });
+                Swal.fire({ 
+                    icon: 'success', 
+                    title: 'Başarılı', 
+                    text: 'Çalışma planı veri tabanına başarıyla eklendi! Başka bir gün/saat seçip tekrar ekleyebilirsiniz.', 
+                    timer: 2500, 
+                    showConfirmButton: false 
+                });
             }
         }
 
-        // --- RENDER ACTIVITIES LIST ---
         function renderActivities() {
             const listContainer = document.getElementById('activitiesList');
             const emptyState = document.getElementById('emptyState');
             
             let activities = schoolData.activities || [];
             
-            // Only show activities created by or involving this teacher
             if (currentUser.role === 'ogretmen') {
                 activities = activities.filter(a => a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase())));
             }
@@ -684,7 +715,6 @@
             emptyState.style.display = 'none';
             listContainer.innerHTML = '';
 
-            // Render from newest to oldest
             activities.slice().reverse().forEach((act, index) => {
                 let studentsHtml = '';
                 if (act.students && act.students.length > 0) {
@@ -720,6 +750,7 @@
                                 <span><i class="fa-regular fa-calendar"></i> ${act.days}</span>
                                 <span><i class="fa-regular fa-clock"></i> ${act.time}</span>
                                 <span><i class="fa-solid fa-users"></i> ${act.students ? act.students.length : 0} Öğrenci</span>
+                                <span style="cursor:pointer; color:#ef4444; border-color:#fecaca;" onclick="deleteActivity('${act.id}', event)"><i class="fa-solid fa-trash"></i> Sil</span>
                             </div>
                             
                             <h4 style="margin-bottom: 10px; color:#1e293b; font-size:1rem;">Görevli Öğrenciler</h4>
@@ -742,7 +773,29 @@
             });
         }
 
-        // --- Forgot Password Logic ---
+        function deleteActivity(id, event) {
+            event.stopPropagation();
+            Swal.fire({
+                title: 'Emin misiniz?',
+                text: "Bu etkinliği silmek istediğinize emin misiniz?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Evet, Sil!',
+                cancelButtonText: 'İptal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (schoolData.activities) {
+                        schoolData.activities = schoolData.activities.filter(a => a.id !== id);
+                        DataManager.saveSchoolSettings({ activities: schoolData.activities });
+                        renderActivities();
+                        Swal.fire('Silindi!', 'Etkinlik silindi.', 'success');
+                    }
+                }
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const forgotLink = document.querySelector('.forgot-link');
             if (forgotLink) {
