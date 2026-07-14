@@ -242,6 +242,18 @@
                     <div class="form-group">
                         <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Etkinlik Adı</label>
                         <input type="text" id="newActName" class="form-select-custom" placeholder="Örn: Satranç Kulübü">
+                        
+                        <div style="margin-top: 15px;">
+                            <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Etkinlik Türü</label>
+                            <div style="display: flex; gap: 15px; padding-top: 5px;">
+                                <label style="cursor:pointer; display:flex; align-items:center; gap:5px; font-size: 0.95rem;">
+                                    <input type="radio" name="newActType" value="Ders İçi" checked> Ders İçi
+                                </label>
+                                <label style="cursor:pointer; display:flex; align-items:center; gap:5px; font-size: 0.95rem;">
+                                    <input type="radio" name="newActType" value="Ders Dışı"> Ders Dışı
+                                </label>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Sorumlu Öğretmenler (Birden fazla seçebilirsiniz)</label>
@@ -750,6 +762,8 @@
 
         function saveNewActivity() {
             const name = document.getElementById('newActName').value.trim();
+            const typeEl = document.querySelector('input[name="newActType"]:checked');
+            const type = typeEl ? typeEl.value : 'Ders İçi';
             
             const teacherCbs = Array.from(document.getElementById('newActTeachersList').querySelectorAll('input[type="checkbox"]:checked'));
             const teachers = teacherCbs.map(cb => cb.value).join(', ');
@@ -785,6 +799,7 @@
                 const newAct = {
                     id: "act_" + Date.now() + "_" + Math.floor(Math.random()*1000),
                     name: name,
+                    type: type,
                     teachers: teachers,
                     schedules: JSON.parse(JSON.stringify(newActSchedules)),
                     students: JSON.parse(JSON.stringify(newActStudents)),
@@ -800,6 +815,9 @@
                 DataManager.saveSchoolSettings({ activities: schoolData.activities });
                 
                 document.getElementById('newActName').value = '';
+                const defaultType = document.querySelector('input[name="newActType"][value="Ders İçi"]');
+                if (defaultType) defaultType.checked = true;
+                
                 newActStudents = [];
                 newActSchedules = [];
                 renderNewActStudents();
@@ -874,12 +892,14 @@
                     scheduleBadges = `<span style="background:rgba(79,70,229,0.1); color:#4f46e5; padding:4px 8px; border-radius:4px; font-size:0.85rem;"><i class="fa-regular fa-calendar"></i> ${act.days || ''} &nbsp;<i class="fa-regular fa-clock"></i> ${act.time || ''}${locHtml}</span>`;
                 }
 
+                const typeBadge = act.type ? `<span style="background:rgba(14,165,233,0.1); color:#0ea5e9; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600; margin-left:8px;">${act.type}</span>` : '';
+
                 const itemHtml = `
                     <div class="accordion-item ${index === 0 ? 'active' : ''}">
                         <div class="accordion-header" onclick="toggleAccordion(this)">
                             <div>
                                 <i class="fa-solid fa-puzzle-piece" style="color:#4f46e5; margin-right:8px;"></i>
-                                ${act.name} <span style="font-size:0.8rem; color:#64748b; margin-left:10px; font-weight:500;"><i class="fa-solid fa-chalkboard-user"></i> ${act.teachers}</span>
+                                ${act.name} ${typeBadge} <span style="font-size:0.8rem; color:#64748b; margin-left:10px; font-weight:500;"><i class="fa-solid fa-chalkboard-user"></i> ${act.teachers}</span>
                             </div>
                             <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
                         </div>
