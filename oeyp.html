@@ -489,8 +489,8 @@
                     const passHash = await hashPassword(password);
                     
                     if (userObj.password === password || userObj.password === passHash) {
-                        if (userObj.role !== 'ogretmen' && userObj.role !== 'idareci') {
-                             Swal.fire('Yetkisiz', 'Sadece yetkili öğretmenler giriş yapabilir.', 'error');
+                        if (userObj.role !== 'ogretmen' && userObj.role !== 'idareci' && userObj.role !== 'admin') {
+                             Swal.fire('Yetkisiz', 'Sadece yetkili personel giriş yapabilir.', 'error');
                              return;
                         }
                         
