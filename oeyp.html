@@ -244,8 +244,10 @@
                         <input type="text" id="newActName" class="form-select-custom" placeholder="Örn: Satranç Kulübü">
                     </div>
                     <div class="form-group">
-                        <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Sorumlu Öğretmenler</label>
-                        <input type="text" id="newActTeachers" class="form-select-custom" placeholder="Örn: Ali Yılmaz, Ayşe Kaya">
+                        <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Sorumlu Öğretmenler (Birden fazla seçebilirsiniz)</label>
+                        <div id="newActTeachersList" style="max-height:100px; overflow-y:auto; border:1px solid #cbd5e1; border-radius:6px; padding:10px; background:#f8fafc; display:flex; flex-direction:column; gap:6px;">
+                            <span style="color:#94a3b8; font-size:0.85rem;">Yükleniyor...</span>
+                        </div>
                     </div>
                 </div>
 
@@ -331,9 +333,14 @@
                         </div>
                     </div>
 
-                    <ul id="newActSchedulesList" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:5px;">
+                    <ul id="newActSchedulesList" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:5px; margin-bottom: 15px;">
                         <!-- Added schedules will appear here -->
                     </ul>
+                    
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Çalışma Mekanı / Yeri (İsteğe Bağlı)</label>
+                        <input type="text" id="newActLocation" class="form-select-custom" placeholder="Örn: Spor Salonu, Kütüphane, Laboratuvar">
+                    </div>
                 </div>
 
                 <div style="text-align: right; border-top: 1px solid #e2e8f0; padding-top: 15px;">
@@ -479,9 +486,42 @@
         let newActStudents = []; 
         let newActSchedules = [];
 
-        function initNewActForm() {
-            document.getElementById('newActTeachers').value = currentUser.name || currentUser.username;
-            
+        async function initNewActForm() {
+            // Load Teachers from DB
+            try {
+                const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
+                const users = await res.json();
+                const teachersContainer = document.getElementById('newActTeachersList');
+                if (teachersContainer) {
+                    teachersContainer.innerHTML = '';
+                    if (users) {
+                        const teachers = Object.values(users).filter(u => 
+                            (u.role === 'ogretmen' || u.role === 'idareci') && 
+                            (u.schoolName === currentUser.schoolName || u.schoolName === sessionStorage.getItem('klbk_schoolName'))
+                        ).sort((a,b) => (a.name || a.username).localeCompare(b.name || b.username, 'tr'));
+                        
+                        teachers.forEach(t => {
+                            const lbl = document.createElement('label');
+                            lbl.style.cssText = "cursor:pointer; display:flex; align-items:center; gap:8px; font-size:0.9rem; margin:0;";
+                            const cb = document.createElement('input');
+                            cb.type = 'checkbox';
+                            const tName = t.name || t.username;
+                            cb.value = tName;
+                            if (t.username === currentUser.username) {
+                                cb.checked = true;
+                            }
+                            lbl.appendChild(cb);
+                            lbl.appendChild(document.createTextNode(tName));
+                            teachersContainer.appendChild(lbl);
+                        });
+                    }
+                }
+            } catch(e) {
+                console.error("Öğretmenler yüklenemedi", e);
+                const teachersContainer = document.getElementById('newActTeachersList');
+                if(teachersContainer) teachersContainer.innerHTML = `<span style="color:#ef4444; font-size:0.85rem;">Öğretmen listesi yüklenemedi. Sayfayı yenileyin.</span>`;
+            }
+
             const classSelect = document.getElementById('newActClassSelect');
             classSelect.innerHTML = '<option value="">-- Sınıf --</option>';
             
@@ -495,7 +535,7 @@
                     }
                 }
             });
-            classesArray.sort().forEach(c => {
+            classesArray.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })).forEach(c => {
                 const opt = document.createElement('option');
                 opt.value = c;
                 opt.textContent = c;
@@ -512,6 +552,9 @@
                 Array.from(daysContainer.querySelectorAll('input[type="checkbox"]')).forEach(cb => cb.checked = false);
             }
             document.getElementById('newActTime').value = '';
+            
+            const locInput = document.getElementById('newActLocation');
+            if(locInput) locInput.value = '';
         }
 
         function loadStudentsForNewAct() {
@@ -702,7 +745,11 @@
 
         function saveNewActivity() {
             const name = document.getElementById('newActName').value.trim();
-            const teachers = document.getElementById('newActTeachers').value.trim();
+            
+            const teacherCbs = Array.from(document.getElementById('newActTeachersList').querySelectorAll('input[type="checkbox"]:checked'));
+            const teachers = teacherCbs.map(cb => cb.value).join(', ');
+
+            const location = document.getElementById('newActLocation') ? document.getElementById('newActLocation').value.trim() : '';
             
             if (!name || !teachers) {
                 Swal.fire('Eksik Bilgi', 'Lütfen etkinlik adı ve sorumlu öğretmenleri giriniz.', 'warning');
@@ -736,6 +783,7 @@
                     id: "act_" + Date.now() + "_" + Math.floor(Math.random()*1000),
                     name: name,
                     teachers: teachers,
+                    location: location,
                     schedules: JSON.parse(JSON.stringify(newActSchedules)),
                     students: JSON.parse(JSON.stringify(newActStudents)),
                     createdBy: currentUser.username,
@@ -750,6 +798,7 @@
                 DataManager.saveSchoolSettings({ activities: schoolData.activities });
                 
                 document.getElementById('newActName').value = '';
+                if(document.getElementById('newActLocation')) document.getElementById('newActLocation').value = '';
                 newActStudents = [];
                 newActSchedules = [];
                 renderNewActStudents();
@@ -823,6 +872,8 @@
                     scheduleBadges = `<span style="background:rgba(79,70,229,0.1); color:#4f46e5; padding:4px 8px; border-radius:4px; font-size:0.85rem;"><i class="fa-regular fa-calendar"></i> ${act.days || ''} &nbsp;<i class="fa-regular fa-clock"></i> ${act.time || ''}</span>`;
                 }
 
+                const locationBadge = act.location ? `<span style="background:rgba(234,179,8,0.1); color:#ca8a04; padding:4px 8px; border-radius:4px; font-size:0.85rem;"><i class="fa-solid fa-location-dot"></i> ${act.location}</span>` : '';
+
                 const itemHtml = `
                     <div class="accordion-item ${index === 0 ? 'active' : ''}">
                         <div class="accordion-header" onclick="toggleAccordion(this)">
@@ -833,8 +884,11 @@
                             <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
                         </div>
                         <div class="accordion-body">
-                            <div class="activity-meta" style="flex-wrap:wrap;">
-                                <div style="display:flex; gap:10px; flex-wrap:wrap;">${scheduleBadges}</div>
+                            <div class="activity-meta" style="flex-wrap:wrap; margin-bottom: 15px;">
+                                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                    ${scheduleBadges}
+                                    ${locationBadge}
+                                </div>
                                 <span><i class="fa-solid fa-users"></i> ${act.students ? act.students.length : 0} Öğrenci</span>
                                 <span style="cursor:pointer; color:#ef4444; border-color:#fecaca;" onclick="deleteActivity('${act.id}', event)"><i class="fa-solid fa-trash"></i> Sil</span>
                             </div>
