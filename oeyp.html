@@ -228,6 +228,43 @@
             </div>
         </div>
 
+        <!-- Upcoming Activity Panel -->
+        <div id="upcomingActivityPanel" class="glass-panel" style="margin-bottom: 2rem; display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                <div style="font-weight: 700; color: #1e293b; font-size: 1.1rem;">
+                    <i class="fa-solid fa-clock-rotate-left" style="color: #f59e0b; margin-right: 8px;"></i> Sıradaki Çalışmanız
+                </div>
+                <div id="uaCountdown" style="font-size: 1.25rem; font-weight: 800; color: #ef4444; background: #fee2e2; padding: 5px 15px; border-radius: 8px;">
+                    --:--:--
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+                <div>
+                    <h3 id="uaTitle" style="margin: 0 0 5px 0; color: #334155; font-size: 1.2rem;">Yükleniyor...</h3>
+                    <p id="uaTimeLocation" style="margin: 0; color: #64748b; font-size: 0.9rem;">...</p>
+                </div>
+                
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+                    <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 8px; text-transform: uppercase;">Çalışma Durumu</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; color: #475569;">
+                            <input type="radio" name="uaStatus" value="YAPILACAK" onchange="updateUpcomingStatus(this.value)"> YAPILACAK (Başlat)
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; color: #475569;">
+                            <input type="radio" name="uaStatus" value="YAPILIYOR" disabled> YAPILIYOR (Otomatik)
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; color: #475569;">
+                            <input type="radio" name="uaStatus" value="YAPILDI" disabled> YAPILDI (Otomatik)
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; color: #ef4444;">
+                            <input type="radio" name="uaStatus" value="İPTAL" onchange="updateUpcomingStatus(this.value)"> İPTAL EDİLDİ
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Create New Activity Section -->
         <div class="glass-panel accordion-item" style="margin-bottom: 2rem;">
             <div class="accordion-header" onclick="toggleAccordion(this)">
@@ -486,6 +523,7 @@
                 
                 initNewActForm();
                 renderActivities();
+                renderUpcomingActivity();
                 Swal.close();
             } catch (err) {
                 console.error(err);
@@ -1103,6 +1141,182 @@
                     </div>
                 `;
                 listContainer.innerHTML += itemHtml;
+            });
+        }
+        let upcomingActInterval = null;
+        let currentUpcomingData = null;
+
+        function getNextOccurrence(activity) {
+            if (!activity.schedules || activity.schedules.length === 0) return null;
+            
+            const dayMap = { 'Pazar':0, 'Pazartesi':1, 'Salı':2, 'Çarşamba':3, 'Perşembe':4, 'Cuma':5, 'Cumartesi':6 };
+            const now = new Date();
+            let closest = null;
+            
+            activity.schedules.forEach(sch => {
+                const days = sch.days.split(',').map(d => d.trim());
+                const [startStr, endStr] = sch.time.split('-').map(t => t.trim());
+                const [startH, startM] = startStr.split(':').map(Number);
+                const [endH, endM] = endStr.split(':').map(Number);
+                
+                days.forEach(dayStr => {
+                    const targetDay = dayMap[dayStr];
+                    if (targetDay === undefined) return;
+                    
+                    let d = new Date(now.getTime());
+                    d.setHours(startH, startM, 0, 0);
+                    
+                    let dayDiff = targetDay - d.getDay();
+                    
+                    if (dayDiff === 0) {
+                        let endD = new Date(d.getTime());
+                        endD.setHours(endH, endM, 0, 0);
+                        if (now > endD) {
+                            dayDiff = 7;
+                        }
+                    } else if (dayDiff < 0) {
+                        dayDiff += 7;
+                    }
+                    
+                    d.setDate(d.getDate() + dayDiff);
+                    
+                    let endD = new Date(d.getTime());
+                    endD.setHours(endH, endM, 0, 0);
+                    
+                    const dateString = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+                    
+                    if (!closest || d < closest.start) {
+                        closest = {
+                            activity: activity,
+                            start: d,
+                            end: endD,
+                            dateString: dateString,
+                            scheduleStr: `${dayStr} ${sch.time}`,
+                            location: sch.location || activity.location || ''
+                        };
+                    }
+                });
+            });
+            
+            return closest;
+        }
+
+        function renderUpcomingActivity() {
+            if (upcomingActInterval) clearInterval(upcomingActInterval);
+            
+            if (!schoolData.activities) return;
+            
+            const tName = currentUser.name || currentUser.username;
+            const myActs = schoolData.activities.filter(a => a.teachers && a.teachers.includes(tName));
+            
+            let closestGlobal = null;
+            
+            myActs.forEach(act => {
+                const occ = getNextOccurrence(act);
+                if (occ) {
+                    if (!closestGlobal || occ.start < closestGlobal.start) {
+                        closestGlobal = occ;
+                    }
+                }
+            });
+            
+            const panel = document.getElementById('upcomingActivityPanel');
+            if (!closestGlobal) {
+                panel.style.display = 'none';
+                return;
+            }
+            
+            panel.style.display = 'block';
+            currentUpcomingData = closestGlobal;
+            
+            document.getElementById('uaTitle').innerHTML = `<i class="fa-solid fa-puzzle-piece" style="color:#4f46e5; margin-right:5px;"></i> ${closestGlobal.activity.name}`;
+            document.getElementById('uaTimeLocation').innerHTML = `<i class="fa-regular fa-calendar"></i> ${closestGlobal.scheduleStr} &nbsp; <i class="fa-solid fa-location-dot" style="color:#ca8a04;"></i> ${closestGlobal.location}`;
+            
+            updateUpcomingUI();
+            upcomingActInterval = setInterval(updateUpcomingUI, 1000);
+        }
+
+        function updateUpcomingUI() {
+            if (!currentUpcomingData) return;
+            
+            const now = new Date();
+            const { activity, start, end, dateString } = currentUpcomingData;
+            
+            if (!activity.statusHistory) activity.statusHistory = {};
+            let savedStatus = activity.statusHistory[dateString];
+            
+            let currentStatus = savedStatus; 
+            let needSave = false;
+            
+            if (savedStatus === 'YAPILACAK' || savedStatus === 'YAPILIYOR') {
+                if (savedStatus === 'YAPILACAK' && now >= start && now <= end) {
+                    currentStatus = 'YAPILIYOR';
+                    activity.statusHistory[dateString] = currentStatus;
+                    needSave = true;
+                } else if (now > end) {
+                    currentStatus = 'YAPILDI';
+                    activity.statusHistory[dateString] = currentStatus;
+                    needSave = true;
+                }
+            }
+            
+            if (needSave) {
+                DataManager.saveSchoolSettings({ activities: schoolData.activities });
+            }
+            
+            const radios = document.getElementsByName('uaStatus');
+            radios.forEach(r => {
+                if (currentStatus === r.value) {
+                    r.checked = true;
+                } else {
+                    r.checked = false;
+                }
+            });
+            
+            const countdownEl = document.getElementById('uaCountdown');
+            if (now > end) {
+                countdownEl.innerText = "SÜRE BİTTİ";
+                countdownEl.style.background = "#e2e8f0";
+                countdownEl.style.color = "#475569";
+            } else if (now >= start && now <= end) {
+                countdownEl.innerText = "DEVAM EDİYOR";
+                countdownEl.style.background = "#dcfce7";
+                countdownEl.style.color = "#15803d";
+            } else {
+                let diff = start.getTime() - now.getTime();
+                let d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                let h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                let m = Math.floor((diff / 1000 / 60) % 60);
+                let s = Math.floor((diff / 1000) % 60);
+                
+                let str = "";
+                if (d > 0) str += d + "g ";
+                str += String(h).padStart(2,'0') + ":" + String(m).padStart(2,'0') + ":" + String(s).padStart(2,'0');
+                
+                countdownEl.innerText = str;
+                countdownEl.style.background = "#fee2e2";
+                countdownEl.style.color = "#ef4444";
+            }
+        }
+        
+        function updateUpcomingStatus(val) {
+            if (!currentUpcomingData) return;
+            const { activity, dateString } = currentUpcomingData;
+            
+            if (!activity.statusHistory) activity.statusHistory = {};
+            activity.statusHistory[dateString] = val;
+            
+            DataManager.saveSchoolSettings({ activities: schoolData.activities });
+            updateUpcomingUI();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Durum Güncellendi',
+                text: `Çalışma durumu "${val}" olarak kaydedildi.`,
+                toast: true,
+                position: 'top-end',
+                timer: 2000,
+                showConfirmButton: false
             });
         }
 
