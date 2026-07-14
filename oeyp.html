@@ -918,6 +918,8 @@
                     const idx = schoolData.activities.findIndex(a => a.id === editingActivityId);
                     if (idx !== -1) {
                         newAct.createdAt = schoolData.activities[idx].createdAt; // preserve date
+                        if (schoolData.activities[idx].statusHistory) newAct.statusHistory = schoolData.activities[idx].statusHistory;
+                        if (schoolData.activities[idx].attendanceHistory) newAct.attendanceHistory = schoolData.activities[idx].attendanceHistory;
                         schoolData.activities[idx] = newAct;
                     } else {
                         schoolData.activities.push(newAct);
