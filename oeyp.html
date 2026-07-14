@@ -239,34 +239,31 @@
                 </div>
             </div>
             
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
-                <div>
+            <div style="display: flex; flex-direction: column;">
+                <div style="margin-bottom: 15px;">
                     <h3 id="uaTitle" style="margin: 0 0 5px 0; color: #334155; font-size: 1.2rem;">Yükleniyor...</h3>
                     <p id="uaTimeLocation" style="margin: 0; color: #64748b; font-size: 0.9rem;">...</p>
                 </div>
                 
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
-                    <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 8px; text-transform: uppercase;">Çalışma Durumu</div>
-                    <div id="uaStatusContainer" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 10px;">
-                        <label id="lbl_YAPILACAK" style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; transition: all 0.2s;">
-                            <input type="radio" name="uaStatus" value="YAPILACAK" onchange="updateUpcomingStatus(this.value)" style="margin:0;"> YAPILACAK
-                        </label>
-                        <label id="lbl_YAPILIYOR" style="display: flex; align-items: center; gap: 6px; cursor: not-allowed; font-size: 0.85rem; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; transition: all 0.2s;">
-                            <input type="radio" name="uaStatus" value="YAPILIYOR" disabled style="margin:0;"> YAPILIYOR
-                        </label>
-                        <label id="lbl_YAPILDI" style="display: flex; align-items: center; gap: 6px; cursor: not-allowed; font-size: 0.85rem; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; transition: all 0.2s;">
-                            <input type="radio" name="uaStatus" value="YAPILDI" disabled style="margin:0;"> YAPILDI
-                        </label>
-                        <label id="lbl_İPTAL" style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; transition: all 0.2s;">
-                            <input type="radio" name="uaStatus" value="İPTAL" onchange="updateUpcomingStatus(this.value)" style="margin:0;"> İPTAL
-                        </label>
-                    </div>
-                    
-                    <div id="uaAttendanceBtnContainer" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
-                        <button class="btn btn-primary" style="width: 100%; font-size: 0.9rem;" onclick="openAttendanceModal()">
-                            <i class="fa-solid fa-clipboard-user"></i> Yoklama Al
-                        </button>
-                    </div>
+                <div id="uaStatusContainer" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 10px;">
+                    <label id="lbl_YAPILACAK" style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; transition: all 0.2s;">
+                        <input type="radio" name="uaStatus" value="YAPILACAK" onchange="updateUpcomingStatus(this.value)" style="margin:0;"> YAPILACAK
+                    </label>
+                    <label id="lbl_YAPILIYOR" style="display: flex; align-items: center; gap: 6px; cursor: not-allowed; font-size: 0.85rem; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; transition: all 0.2s;">
+                        <input type="radio" name="uaStatus" value="YAPILIYOR" disabled style="margin:0;"> YAPILIYOR
+                    </label>
+                    <label id="lbl_YAPILDI" style="display: flex; align-items: center; gap: 6px; cursor: not-allowed; font-size: 0.85rem; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; transition: all 0.2s;">
+                        <input type="radio" name="uaStatus" value="YAPILDI" disabled style="margin:0;"> YAPILDI
+                    </label>
+                    <label id="lbl_İPTAL" style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; transition: all 0.2s;">
+                        <input type="radio" name="uaStatus" value="İPTAL" onchange="updateUpcomingStatus(this.value)" style="margin:0;"> İPTAL
+                    </label>
+                </div>
+                
+                <div id="uaAttendanceBtnContainer" style="display: none; margin-top: 15px;">
+                    <button class="btn btn-primary" style="font-size: 0.9rem; padding: 8px 16px;" onclick="openAttendanceModal()">
+                        <i class="fa-solid fa-clipboard-user"></i> Yoklama Al
+                    </button>
                 </div>
             </div>
         </div>
