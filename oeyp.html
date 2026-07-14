@@ -324,23 +324,23 @@
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Çalışma Saatleri</label>
-                            <div style="display:flex; gap:10px;">
-                                <input type="text" id="newActTime" class="form-select-custom" placeholder="15:30 - 17:00">
-                                <button class="btn btn-primary" onclick="addScheduleToNewAct()" style="white-space:nowrap; padding: 10px 15px;">
-                                    <i class="fa-solid fa-plus"></i> Ekle
-                                </button>
-                            </div>
+                            <input type="text" id="newActTime" class="form-select-custom" placeholder="15:30 - 17:00">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom:15px;">
+                        <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Çalışma Mekanı / Yeri (İsteğe Bağlı)</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="newActLocation" class="form-select-custom" placeholder="Örn: Spor Salonu, Kütüphane, Laboratuvar">
+                            <button class="btn btn-primary" onclick="addScheduleToNewAct()" style="white-space:nowrap; padding: 10px 15px;">
+                                <i class="fa-solid fa-plus"></i> Ekle
+                            </button>
                         </div>
                     </div>
 
                     <ul id="newActSchedulesList" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:5px; margin-bottom: 15px;">
                         <!-- Added schedules will appear here -->
                     </ul>
-                    
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Çalışma Mekanı / Yeri (İsteğe Bağlı)</label>
-                        <input type="text" id="newActLocation" class="form-select-custom" placeholder="Örn: Spor Salonu, Kütüphane, Laboratuvar">
-                    </div>
                 </div>
 
                 <div style="text-align: right; border-top: 1px solid #e2e8f0; padding-top: 15px;">
@@ -710,13 +710,17 @@
                 return;
             }
             
+            const location = document.getElementById('newActLocation').value.trim();
+            
             newActSchedules.push({
                 days: daysArr.join(', '),
-                time: time
+                time: time,
+                location: location
             });
             
             checkboxes.forEach(cb => cb.checked = false);
             document.getElementById('newActTime').value = '';
+            document.getElementById('newActLocation').value = '';
             
             renderNewActSchedules();
         }
@@ -735,8 +739,9 @@
             newActSchedules.forEach((sch, idx) => {
                 const li = document.createElement('li');
                 li.style.cssText = "background: #fff; padding: 8px 12px; border-radius: 4px; border: 1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; font-size:0.9rem;";
+                const locHtml = sch.location ? `<span style="color:#ca8a04; margin-left:10px;"><i class="fa-solid fa-location-dot"></i> ${sch.location}</span>` : '';
                 li.innerHTML = `
-                    <span><b>${sch.days}</b> <span style="color:#64748b; margin-left:10px;">${sch.time}</span></span>
+                    <span><b>${sch.days}</b> <span style="color:#64748b; margin-left:10px;">${sch.time}</span> ${locHtml}</span>
                     <button class="btn" style="padding:2px 6px; font-size:0.75rem; background:rgba(239,68,68,0.1); color:#ef4444;" onclick="removeSchedule(${idx})"><i class="fa-solid fa-times"></i></button>
                 `;
                 list.appendChild(li);
@@ -748,11 +753,9 @@
             
             const teacherCbs = Array.from(document.getElementById('newActTeachersList').querySelectorAll('input[type="checkbox"]:checked'));
             const teachers = teacherCbs.map(cb => cb.value).join(', ');
-
-            const location = document.getElementById('newActLocation') ? document.getElementById('newActLocation').value.trim() : '';
             
             if (!name || !teachers) {
-                Swal.fire('Eksik Bilgi', 'Lütfen etkinlik adı ve sorumlu öğretmenleri giriniz.', 'warning');
+                Swal.fire('Eksik Bilgi', 'Lütfen etkinlik adı giriniz ve en az bir sorumlu öğretmen seçiniz.', 'warning');
                 return;
             }
             
@@ -783,7 +786,6 @@
                     id: "act_" + Date.now() + "_" + Math.floor(Math.random()*1000),
                     name: name,
                     teachers: teachers,
-                    location: location,
                     schedules: JSON.parse(JSON.stringify(newActSchedules)),
                     students: JSON.parse(JSON.stringify(newActStudents)),
                     createdBy: currentUser.username,
@@ -798,7 +800,6 @@
                 DataManager.saveSchoolSettings({ activities: schoolData.activities });
                 
                 document.getElementById('newActName').value = '';
-                if(document.getElementById('newActLocation')) document.getElementById('newActLocation').value = '';
                 newActStudents = [];
                 newActSchedules = [];
                 renderNewActStudents();
@@ -862,17 +863,16 @@
                     studentsHtml = `<tr><td colspan="3" style="text-align:center; color:#64748b;">Bu çalışmaya kayıtlı öğrenci bulunmuyor.</td></tr>`;
                 }
 
-                // Handle both new schedules array and old days/time string format
                 let scheduleBadges = '';
                 if (act.schedules && act.schedules.length > 0) {
                     act.schedules.forEach(sch => {
-                        scheduleBadges += `<span style="background:rgba(79,70,229,0.1); color:#4f46e5; padding:4px 8px; border-radius:4px; font-size:0.85rem;"><i class="fa-regular fa-calendar"></i> ${sch.days} &nbsp;<i class="fa-regular fa-clock"></i> ${sch.time}</span>`;
+                        const locHtml = sch.location ? ` &nbsp;<i class="fa-solid fa-location-dot" style="color:#ca8a04;"></i> ${sch.location}` : '';
+                        scheduleBadges += `<span style="background:rgba(79,70,229,0.1); color:#4f46e5; padding:4px 8px; border-radius:4px; font-size:0.85rem;"><i class="fa-regular fa-calendar"></i> ${sch.days} &nbsp;<i class="fa-regular fa-clock"></i> ${sch.time}${locHtml}</span>`;
                     });
                 } else {
-                    scheduleBadges = `<span style="background:rgba(79,70,229,0.1); color:#4f46e5; padding:4px 8px; border-radius:4px; font-size:0.85rem;"><i class="fa-regular fa-calendar"></i> ${act.days || ''} &nbsp;<i class="fa-regular fa-clock"></i> ${act.time || ''}</span>`;
+                    const locHtml = act.location ? ` &nbsp;<i class="fa-solid fa-location-dot" style="color:#ca8a04;"></i> ${act.location}` : '';
+                    scheduleBadges = `<span style="background:rgba(79,70,229,0.1); color:#4f46e5; padding:4px 8px; border-radius:4px; font-size:0.85rem;"><i class="fa-regular fa-calendar"></i> ${act.days || ''} &nbsp;<i class="fa-regular fa-clock"></i> ${act.time || ''}${locHtml}</span>`;
                 }
-
-                const locationBadge = act.location ? `<span style="background:rgba(234,179,8,0.1); color:#ca8a04; padding:4px 8px; border-radius:4px; font-size:0.85rem;"><i class="fa-solid fa-location-dot"></i> ${act.location}</span>` : '';
 
                 const itemHtml = `
                     <div class="accordion-item ${index === 0 ? 'active' : ''}">
@@ -887,7 +887,6 @@
                             <div class="activity-meta" style="flex-wrap:wrap; margin-bottom: 15px;">
                                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
                                     ${scheduleBadges}
-                                    ${locationBadge}
                                 </div>
                                 <span><i class="fa-solid fa-users"></i> ${act.students ? act.students.length : 0} Öğrenci</span>
                                 <span style="cursor:pointer; color:#ef4444; border-color:#fecaca;" onclick="deleteActivity('${act.id}', event)"><i class="fa-solid fa-trash"></i> Sil</span>
