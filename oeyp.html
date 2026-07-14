@@ -1193,33 +1193,50 @@
                 <head>
                     <title>İdari İzin Dilekçesi - ${act.name}</title>
                     <style>
-                        body { font-family: 'Times New Roman', Times, serif; line-height: 1.4; padding: 40px; font-size: 14px; margin: 0 auto; max-width: 21cm; }
+                        body { font-family: 'Times New Roman', Times, serif; line-height: 1.4; padding: 20px; font-size: 14px; margin: 0 auto; background: #f8fafc; }
+                        .page { max-width: 21cm; margin: 0 auto; background: white; padding: 2cm; box-sizing: border-box; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
                         .header { text-align: center; font-weight: bold; margin-bottom: 20px; font-size: 16px; }
                         .content { text-align: justify; margin-bottom: 20px; }
                         .footer { margin-top: 30px; display: flex; justify-content: space-between; page-break-inside: avoid; }
                         table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 13px; }
                         th, td { padding: 4px; }
                         th { background: #f0f0f0; }
-                        .action-buttons { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }
+                        .action-buttons { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; padding: 15px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); max-width: 21cm; margin-left: auto; margin-right: auto; }
                         .btn { padding: 10px 20px; font-size: 14px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; }
                         .btn-print { background: #4f46e5; color: white; }
                         .btn-pdf { background: #10b981; color: white; }
                         @media print {
-                            body { padding: 0; margin: 0; max-width: 100%; }
+                            body { padding: 0; margin: 0; background: white; }
+                            .page { padding: 1cm; box-shadow: none; margin: 0; max-width: 100%; }
                             .action-buttons { display: none; }
                             @page { size: A4; margin: 1cm; }
                         }
                     </style>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+                    <script>
+                        function downloadPDF() {
+                            const element = document.getElementById('pdf-content');
+                            const opt = {
+                                margin:       10,
+                                filename:     'Idari_Izin_Dilekcesi.pdf',
+                                image:        { type: 'jpeg', quality: 0.98 },
+                                html2canvas:  { scale: 2 },
+                                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                            };
+                            html2pdf().set(opt).from(element).save();
+                        }
+                    </script>
                 </head>
                 <body>
                     <div class="action-buttons">
                         <button class="btn btn-print" onclick="window.print()">Yazdır</button>
-                        <button class="btn btn-pdf" onclick="window.print()">PDF Olarak İndir (Yazdır'dan PDF'i seçin)</button>
+                        <button class="btn btn-pdf" onclick="downloadPDF()">PDF Olarak İndir</button>
                     </div>
                     
-                    <div class="header">
-                        ${sName ? sName.toUpperCase() + '<br>MÜDÜRLÜĞÜNE' : 'OKUL MÜDÜRLÜĞÜNE'}
-                    </div>
+                    <div class="page" id="pdf-content">
+                        <div class="header">
+                            ${sName ? sName.toUpperCase() + ' MÜDÜRLÜĞÜNE' : 'OKUL MÜDÜRLÜĞÜNE'}
+                        </div>
                     <div class="content">
                         <div style="text-indent: 40px; margin-bottom: 15px;">Okulumuzda planlanan <b>${act.name}</b> (${act.type || 'Ders İçi'}) çalışması kapsamında, detayları aşağıda verilen etkinlik yapılması planlanmaktadır.</div>
                         
@@ -1267,7 +1284,8 @@
                             ${schoolData.managerName ? '<b>' + schoolData.managerName + '</b>' : '.......................................'}<br>
                             Okul Müdürü
                         </div>
-                    </div>
+                    </div> <!-- End of content -->
+                    </div> <!-- End of page -->
                 </body>
                 </html>
             `);
@@ -1334,32 +1352,50 @@
                 <head>
                     <title>Veli İzin Dilekçeleri - ${act.name}</title>
                     <style>
-                        body { font-family: 'Times New Roman', Times, serif; line-height: 1.4; font-size: 14px; margin: 0 auto; max-width: 21cm; background: #f8fafc; padding: 20px; }
+                        body { font-family: 'Times New Roman', Times, serif; line-height: 1.4; font-size: 14px; margin: 0 auto; background: #f8fafc; padding: 20px; }
+                        #pdf-content { max-width: 21cm; margin: 0 auto; }
                         .page { padding: 2cm; box-sizing: border-box; background: white; margin-bottom: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
                         .page-break { page-break-after: always; }
                         .header { text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 30px; text-decoration: underline; line-height: 1.4; }
                         .content { text-indent: 40px; text-align: justify; margin-bottom: 30px; }
                         .footer { display: flex; justify-content: space-between; }
                         
-                        .action-buttons { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; padding: 15px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+                        .action-buttons { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; padding: 15px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); max-width: 21cm; margin-left: auto; margin-right: auto; }
                         .btn { padding: 10px 20px; font-size: 14px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; }
                         .btn-print { background: #4f46e5; color: white; }
                         .btn-pdf { background: #10b981; color: white; }
                         
                         @media print {
                             body { margin: 0; padding: 0; background: white; max-width: 100%; }
+                            #pdf-content { max-width: 100%; }
                             .page { padding: 1cm; box-shadow: none; margin-bottom: 0; }
                             .action-buttons { display: none; }
                             @page { size: A4; margin: 1cm; }
                         }
                     </style>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+                    <script>
+                        function downloadPDF() {
+                            const element = document.getElementById('pdf-content');
+                            const opt = {
+                                margin:       10,
+                                filename:     'Veli_Izin_Dilekcesi.pdf',
+                                image:        { type: 'jpeg', quality: 0.98 },
+                                html2canvas:  { scale: 2 },
+                                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                            };
+                            html2pdf().set(opt).from(element).save();
+                        }
+                    </script>
                 </head>
                 <body>
                     <div class="action-buttons">
                         <button class="btn btn-print" onclick="window.print()">Yazdır</button>
-                        <button class="btn btn-pdf" onclick="window.print()">PDF Olarak İndir (Yazdır'dan PDF'i seçin)</button>
+                        <button class="btn btn-pdf" onclick="downloadPDF()">PDF Olarak İndir</button>
                     </div>
-                    ${pagesHtml}
+                    <div id="pdf-content">
+                        ${pagesHtml}
+                    </div>
                 </body>
                 </html>
             `);
