@@ -1029,8 +1029,15 @@
                 if (act.attendanceHistory && act.attendanceHistory[occOverride.dateString]) {
                     currentAttendance = act.attendanceHistory[occOverride.dateString];
                 }
-                const statusColor = occOverride.status === 'İPTAL' ? '#ef4444' : '#10b981';
-                titleHtml += ` <span style="font-size:0.8rem; margin-left:10px; padding:2px 8px; border-radius:12px; background:rgba(0,0,0,0.05); color:${statusColor};"><i class="fa-regular fa-calendar"></i> ${occOverride.dateString} - ${occOverride.status}</span>`;
+                
+                let statusColor = '#64748b';
+                if (occOverride.status === 'İPTAL') statusColor = '#ef4444';
+                else if (occOverride.status === 'YAPILDI') statusColor = '#3b82f6';
+                else if (occOverride.status === 'YAPILIYOR') statusColor = '#10b981';
+                else if (occOverride.status === 'YAPILACAK') statusColor = '#f59e0b';
+                
+                let timeStr = occOverride.scheduleStr ? ` (${occOverride.scheduleStr})` : '';
+                titleHtml += ` <span style="font-size:0.8rem; margin-left:10px; padding:2px 8px; border-radius:12px; background:rgba(0,0,0,0.05); color:${statusColor};"><i class="fa-regular fa-calendar"></i> ${occOverride.dateString}${timeStr} - ${occOverride.status}</span>`;
             } else {
                 if (occ && act.statusHistory && act.statusHistory[occ.dateString] === 'YAPILIYOR') {
                     showAttendance = true;
@@ -1214,19 +1221,29 @@
                 nextWeek.setHours(23, 59, 59, 999);
                 
                 reversedActs.forEach(act => {
-                    const occ = getNextOccurrence(act);
-                    let status = null;
-                    if (occ && act.statusHistory) {
-                        status = act.statusHistory[occ.dateString];
-                    }
+                    let occs = getAllOccurrencesWithinWeek(act, nextWeek);
                     
-                    if (status === 'YAPILIYOR') {
-                        ongoingActs.push(act);
-                    } else if ((status === 'YAPILACAK' || !status) && occ && occ.start <= nextWeek) {
-                        upcomingActs.push(act);
-                    } else if (!occ && (!status || status === 'YAPILACAK')) {
-                        // Include activities without a schedule if they are not explicitly cancelled or done
-                        upcomingActs.push(act);
+                    if (!act.schedules || act.schedules.length === 0) {
+                        upcomingActs.push({act: act});
+                    } else {
+                        occs.forEach(occ => {
+                            let status = null;
+                            if (act.statusHistory) {
+                                status = act.statusHistory[occ.dateString];
+                            }
+                            
+                            if (status === 'YAPILIYOR') {
+                                ongoingActs.push({
+                                    act: act,
+                                    occOverride: { dateString: occ.dateString, scheduleStr: occ.scheduleStr, status: 'YAPILIYOR' }
+                                });
+                            } else if (status === 'YAPILACAK' || !status) {
+                                upcomingActs.push({
+                                    act: act,
+                                    occOverride: { dateString: occ.dateString, scheduleStr: occ.scheduleStr, status: 'YAPILACAK' }
+                                });
+                            }
+                        });
                     }
                     
                     // Extract past occurrences
@@ -1245,6 +1262,14 @@
                 
                 // Sort past occurrences descending
                 pastOccurrences.sort((a, b) => b.occOverride.dateString.localeCompare(a.occOverride.dateString));
+                
+                // Sort upcoming occurrences ascending
+                upcomingActs.sort((a, b) => {
+                    if (!a.occOverride && !b.occOverride) return 0;
+                    if (!a.occOverride) return 1;
+                    if (!b.occOverride) return -1;
+                    return a.occOverride.dateString.localeCompare(b.occOverride.dateString);
+                });
                 
                 const createCategory = (title, iconClass, color, itemsArr, isActive) => {
                     let contentHtml = '';
@@ -1273,11 +1298,67 @@
                     `;
                 };
                 
-                adminSection.innerHTML += createCategory('Devam Eden Çalışmalar', 'fa-solid fa-spinner fa-spin', '#10b981', ongoingActs, true);
+                adminSection.innerHTML += createCategory('Devam Eden Çalışmalar', 'fa-solid fa-spinner fa-spin', '#10b981', ongoingActs, false);
                 adminSection.innerHTML += createCategory('1 Hafta İçinde Yapılacak Çalışmalar', 'fa-regular fa-clock', '#f59e0b', upcomingActs, false);
                 adminSection.innerHTML += createCategory('Geçmiş Çalışmalar', 'fa-solid fa-clock-rotate-left', '#3b82f6', pastOccurrences, false);
                 adminSection.innerHTML += createCategory('Tüm Planlanmış Çalışmalar', 'fa-solid fa-list-check', '#6366f1', allActs, false);
             }
+        }
+        
+        function getAllOccurrencesWithinWeek(activity, maxDate) {
+            if (!activity.schedules || activity.schedules.length === 0) return [];
+            
+            const dayMap = { 'Pazar':0, 'Pazartesi':1, 'Salı':2, 'Çarşamba':3, 'Perşembe':4, 'Cuma':5, 'Cumartesi':6 };
+            const now = new Date();
+            let occurrences = [];
+            
+            activity.schedules.forEach(sch => {
+                const days = sch.days.split(',').map(d => d.trim());
+                if (!sch.time) return;
+                const [startStr, endStr] = sch.time.split('-').map(t => t.trim());
+                if (!startStr || !endStr) return;
+                const [startH, startM] = startStr.split(':').map(Number);
+                const [endH, endM] = endStr.split(':').map(Number);
+                
+                days.forEach(dayStr => {
+                    const targetDay = dayMap[dayStr];
+                    if (targetDay === undefined) return;
+                    
+                    let d = new Date(now.getTime());
+                    d.setHours(startH, startM, 0, 0);
+                    
+                    let dayDiff = targetDay - d.getDay();
+                    if (dayDiff === 0) {
+                        let endD = new Date(d.getTime());
+                        endD.setHours(endH, endM, 0, 0);
+                        if (now > endD) {
+                            dayDiff = 7;
+                        }
+                    } else if (dayDiff < 0) {
+                        dayDiff += 7;
+                    }
+                    
+                    d.setDate(d.getDate() + dayDiff);
+                    
+                    if (d <= maxDate) {
+                        let endD = new Date(d.getTime());
+                        endD.setHours(endH, endM, 0, 0);
+                        
+                        const dateString = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+                        occurrences.push({
+                            activity: activity,
+                            start: d,
+                            end: endD,
+                            dateString: dateString,
+                            scheduleStr: `${dayStr} ${sch.time}`,
+                            location: sch.location || activity.location || ''
+                        });
+                    }
+                });
+            });
+            
+            occurrences.sort((a, b) => a.start - b.start);
+            return occurrences;
         }
         let upcomingActInterval = null;
         let currentUpcomingData = null;
