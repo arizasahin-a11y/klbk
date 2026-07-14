@@ -1,4 +1,5 @@
 {
+  "cleanUrls": true,
   "redirects": [
     { "source": "/master(|.html)", "destination": "/security_error", "permanent": false },
     { "source": "/ogrenci(|.html)", "destination": "/security_error", "permanent": false },
