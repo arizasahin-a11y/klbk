@@ -1186,6 +1186,7 @@
                 teachersSignatures += `<div style="text-align:center;">İmza<br><br><br>${t}<br>(Sorumlu Öğretmen)</div>`;
             });
             
+            const sName = currentUser.schoolName || schoolData.name || '';
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
                 <html>
@@ -1217,7 +1218,7 @@
                     </div>
                     
                     <div class="header">
-                        ${schoolData.schoolName ? schoolData.schoolName.toUpperCase() + '<br>MÜDÜRLÜĞÜNE' : 'OKUL MÜDÜRLÜĞÜNE'}
+                        ${sName ? sName.toUpperCase() + '<br>MÜDÜRLÜĞÜNE' : 'OKUL MÜDÜRLÜĞÜNE'}
                     </div>
                     <div class="content">
                         <div style="text-indent: 40px; margin-bottom: 15px;">Okulumuzda planlanan <b>${act.name}</b> (${act.type || 'Ders İçi'}) çalışması kapsamında, detayları aşağıda verilen etkinlik yapılması planlanmaktadır.</div>
@@ -1260,10 +1261,8 @@
                         <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; row-gap:20px; margin-top:10px;">
                             ${teachersSignatures}
                         </div>
-                        <div style="text-align:right; margin-top: 20px; padding-right: 20px;">
-                            Tarih: ...../...../20....
-                        </div>
-                        <div style="text-align:center; margin-top: 10px;">
+                        <div style="text-align:center; margin-top: 30px;">
+                            Tarih: ...../...../20....<br><br>
                             <b>UYGUNDUR</b><br><br><br>
                             ${schoolData.managerName ? '<b>' + schoolData.managerName + '</b>' : '.......................................'}<br>
                             Okul Müdürü
@@ -1296,12 +1295,14 @@
             }
             
             let pagesHtml = '';
+            const sName = currentUser.schoolName || schoolData.name || '';
+            
             act.students.forEach((student, index) => {
                 pagesHtml += `
                     <div class="page">
                         <div class="header">
                             VELİ İZİN BELGESİ<br>
-                            <span style="font-size: 16px; font-weight: normal;">${schoolData.schoolName ? schoolData.schoolName.toUpperCase() : ''}</span>
+                            <span style="font-size: 16px; font-weight: normal;">${sName ? sName.toUpperCase() : ''}</span>
                         </div>
                         <div class="content">
                             Okulumuz öğrencilerinden <b>${student.class}</b> sınıfı <b>${student.no}</b> numaralı <b>${student.name}</b> isimli öğrencinin velisiyim.
