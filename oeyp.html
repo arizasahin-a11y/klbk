@@ -640,27 +640,69 @@
             const name = opt.dataset.name;
             const cls = opt.dataset.class;
             
-            if (newActStudents.some(s => s.no === no)) {
-                Swal.fire('Uyarı', 'Bu öğrenci zaten listeye eklendi.', 'warning');
-                return;
-            }
-            
             const sPhone = document.getElementById('newActStudentPhone').value.trim();
             const pPhone = document.getElementById('newActParentPhone').value.trim();
             const pInformed = document.getElementById('newActParentInformed').checked;
             
-            newActStudents.push({
-                no: no,
-                name: name,
-                class: cls,
-                studentPhone: sPhone,
-                parentPhone: pPhone,
-                parentInformed: pInformed
-            });
+            const existingIndex = newActStudents.findIndex(s => s.no === no);
+            
+            if (existingIndex !== -1) {
+                newActStudents[existingIndex].studentPhone = sPhone;
+                newActStudents[existingIndex].parentPhone = pPhone;
+                newActStudents[existingIndex].parentInformed = pInformed;
+                
+                Swal.fire({
+                    icon: 'success', 
+                    title: 'Güncellendi', 
+                    text: 'Öğrenci bilgileri güncellendi.', 
+                    toast: true, 
+                    position: 'top-end', 
+                    timer: 2000, 
+                    showConfirmButton: false
+                });
+            } else {
+                newActStudents.push({
+                    no: no,
+                    name: name,
+                    class: cls,
+                    studentPhone: sPhone,
+                    parentPhone: pPhone,
+                    parentInformed: pInformed
+                });
+            }
             
             studentSelect.value = '';
             document.getElementById('studentDetailsBox').style.display = 'none';
             renderNewActStudents();
+        }
+
+        function editNewActStudent(no) {
+            const student = newActStudents.find(s => s.no === no);
+            if (!student) return;
+            
+            document.getElementById('newActClassSelect').value = student.class;
+            loadStudentsForNewAct();
+            
+            setTimeout(() => {
+                document.getElementById('newActStudentSelect').value = student.no;
+                onStudentSelectedForNewAct();
+                
+                document.getElementById('newActStudentPhone').value = student.studentPhone || '';
+                document.getElementById('newActParentPhone').value = student.parentPhone || '';
+                document.getElementById('newActParentInformed').checked = student.parentInformed || false;
+                
+                document.getElementById('studentDetailsBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Düzenleme Modu',
+                    text: 'Bilgileri değiştirip "Listeye Ekle" butonuna basarak kaydedebilirsiniz.',
+                    toast: true,
+                    position: 'top-end',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            }, 150);
         }
 
         function removeNewActStudent(no) {
@@ -690,7 +732,8 @@
                     <td style="padding:8px 10px; font-size:0.85rem;">${s.studentPhone || '-'}</td>
                     <td style="padding:8px 10px; font-size:0.85rem;">${s.parentPhone || '-'}</td>
                     <td style="padding:8px 10px; font-size:0.85rem;">
-                        <button class="btn" style="padding:4px 8px; font-size:0.75rem; background:rgba(239,68,68,0.1); color:#ef4444;" onclick="removeNewActStudent('${s.no}')"><i class="fa-solid fa-trash"></i></button>
+                        <button class="btn" style="padding:4px 8px; font-size:0.75rem; background:rgba(79,70,229,0.1); color:#4f46e5; margin-right:5px;" onclick="editNewActStudent('${s.no}')" title="Düzenle"><i class="fa-solid fa-pen"></i></button>
+                        <button class="btn" style="padding:4px 8px; font-size:0.75rem; background:rgba(239,68,68,0.1); color:#ef4444;" onclick="removeNewActStudent('${s.no}')" title="Sil"><i class="fa-solid fa-trash"></i></button>
                     </td>
                 `;
                 tbody.appendChild(tr);
