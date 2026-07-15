@@ -68,13 +68,15 @@
 
         .print-page {
             width: 210mm;
-            height: 296mm; /* A4 height */
-            padding: 10mm 15mm;
+            height: 296mm; /* slightly under 297 to avoid overflow */
+            padding: 5mm; /* 0.5cm kenar boşlukları */
             box-sizing: border-box;
             page-break-after: always;
             position: relative;
             background: white;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         .print-page:last-child {
@@ -83,40 +85,51 @@
 
         .doc-header {
             text-align: center;
-            margin-bottom: 15px;
+            margin-bottom: 5px;
+            flex-shrink: 0;
         }
 
         .doc-title {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 700;
             margin: 0;
             text-transform: uppercase;
         }
 
+        .table-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
         .print-table {
             width: 100%;
+            height: 100%; /* Stretch to fill available height */
             border-collapse: collapse;
-            font-size: 11pt; /* Adjusted for 40 rows */
+            font-size: 10pt; /* smaller font size */
         }
 
         .print-table th, .print-table td {
             border: 1px solid #000;
-            padding: 2px 4px;
+            padding: 1px 3px;
             text-align: left;
-            height: 22px; /* Fixed height to ensure 40 rows fit */
         }
 
         .print-table th {
             font-weight: bold;
             text-align: center;
-            height: 80px; /* Space for rotated text */
+            vertical-align: middle;
         }
 
-        .col-sira { width: 30px; text-align: center !important; }
-        .col-alan { width: 40px; text-align: center !important; }
-        .col-okulno { width: 50px; text-align: center !important; }
+        .header-row-1 th { height: 60px; }
+        .header-row-2 th { height: 25px; }
+
+        .col-sira { width: 25px; text-align: center !important; }
+        .col-alan { width: 35px; text-align: center !important; }
+        .col-okulno { width: 45px; text-align: center !important; }
         .col-ad { width: auto; font-weight: bold; }
-        .col-blank { width: 30px; }
+        .col-blank { width: auto; /* let it distribute evenly */ }
 
         .rotated-header {
             writing-mode: vertical-rl;
@@ -142,7 +155,7 @@
             }
             @page {
                 size: A4 portrait;
-                margin: 0; /* Remove browser margins */
+                margin: 0; /* Remove browser margins, rely on print-page padding */
             }
         }
     </style>
@@ -214,12 +227,6 @@
             const rowsPerPage = 40;
             let pagesHtml = '';
 
-            // Generate Blank Headers
-            let blankHeaders = '';
-            for (let i = 0; i < blankColumnsCount; i++) {
-                blankHeaders += `<th class="col-blank"></th>`;
-            }
-
             function generatePage(title, studentsSubset, startIndex, showAlan) {
                 let rowsHtml = '';
                 
@@ -228,7 +235,7 @@
                     const s = studentsSubset[i];
                     let blankCells = '';
                     for (let j = 0; j < blankColumnsCount; j++) {
-                        blankCells += `<td></td>`;
+                        blankCells += `<td class="col-blank"></td>`;
                     }
 
                     if (s) {
@@ -259,27 +266,42 @@
                     }
                 }
 
-                const alanTh = showAlan ? `<th class="col-alan"><div class="rotated-header">ALAN</div></th>` : '';
+                const alanTh = showAlan ? `<th rowspan="2" class="col-alan"><div class="rotated-header">ALAN</div></th>` : '';
+                
+                let blankHeadersRow2 = '';
+                if (blankColumnsCount > 0) {
+                    for (let j = 0; j < blankColumnsCount; j++) {
+                        blankHeadersRow2 += `<th class="col-blank"></th>`;
+                    }
+                }
+
+                let colspanAttr = blankColumnsCount > 0 ? `colspan="${blankColumnsCount}"` : '';
+                let blankHeadersRow1 = blankColumnsCount > 0 ? `<th ${colspanAttr} style="border-bottom: 1px solid #000;"></th>` : '';
 
                 return `
                     <div class="print-page">
                         <div class="doc-header">
                             <h1 class="doc-title">${title}</h1>
                         </div>
-                        <table class="print-table">
-                            <thead>
-                                <tr>
-                                    <th class="col-sira"><div class="rotated-header">SIRA</div></th>
-                                    ${alanTh}
-                                    <th class="col-okulno"><div class="rotated-header">NUMARA</div></th>
-                                    <th class="col-ad">ÖĞRENCİNİN ADI SOYADI</th>
-                                    ${blankHeaders}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${rowsHtml}
-                            </tbody>
-                        </table>
+                        <div class="table-container">
+                            <table class="print-table">
+                                <thead>
+                                    <tr class="header-row-1">
+                                        <th rowspan="2" class="col-sira"><div class="rotated-header">SIRA</div></th>
+                                        ${alanTh}
+                                        <th rowspan="2" class="col-okulno"><div class="rotated-header">NUMARA</div></th>
+                                        <th rowspan="2" class="col-ad">ÖĞRENCİNİN ADI SOYADI</th>
+                                        ${blankHeadersRow1}
+                                    </tr>
+                                    <tr class="header-row-2">
+                                        ${blankHeadersRow2}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 `;
             }
