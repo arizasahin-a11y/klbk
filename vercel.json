@@ -1,9 +1,9 @@
 {
   "routes": [
-    { "src": "/master\\.html?$", "status": 302, "headers": { "Location": "/security_error" } },
-    { "src": "/ogrenci\\.html?$", "status": 302, "headers": { "Location": "/security_error" } },
-    { "src": "/ogretmen\\.html?$", "status": 302, "headers": { "Location": "/security_error" } },
-    { "src": "/dashboard\\.html?$", "status": 302, "headers": { "Location": "/security_error" } },
+    { "src": "/master(\\.html)?$", "status": 302, "headers": { "Location": "/security_error" } },
+    { "src": "/ogrenci(\\.html)?$", "status": 302, "headers": { "Location": "/security_error" } },
+    { "src": "/ogretmen(\\.html)?$", "status": 302, "headers": { "Location": "/security_error" } },
+    { "src": "/dashboard(\\.html)?$", "status": 302, "headers": { "Location": "/security_error" } },
     { "src": "/k9x7v2m4(\\.html)?$", "dest": "/index.html" },
     { "src": "/h6t3y9w1(\\.html)?$", "dest": "/ogretmen.html" },
     { "src": "/r1p5s8q3(\\.html)?$", "dest": "/dashboard.html" },
@@ -11,7 +11,7 @@
     { "src": "/j2k5l0p8(\\.html)?$", "dest": "/ogrenci.html" },
     { "src": "/yoklama_ogretmen(\\.html)?$", "dest": "/yoklama_ogretmen.html" },
     { "src": "/yoklama_idareci(\\.html)?$", "dest": "/yoklama_idareci.html" },
-    { "src": "/security_error$", "dest": "/404.html" },
-    { "src": "/(.*)", "dest": "/$1" }
+    { "src": "/security_error(\\.html)?$", "dest": "/404.html" },
+    { "handle": "filesystem" }
   ]
 }
