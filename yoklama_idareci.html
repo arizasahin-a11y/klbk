@@ -399,6 +399,7 @@
         <div class="glass-panel" style="padding: 3rem; width: 100%; max-width: 400px; text-align: center;">
             <i class="fa-solid fa-user-shield" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
             <h2 style="font-weight: 800; color: var(--dark); margin-bottom: 0.5rem;">İdareci Girişi</h2>
+            <h3 id="loginSchoolName" style="color: var(--primary); font-weight: 700; margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem; display: none;"></h3>
             <p style="color: var(--gray-500); margin-bottom: 2rem; font-size: 0.9rem;">Yönetim paneline erişmek için giriş yapın.</p>
             
             <div class="form-group" style="text-align: left; margin-bottom: 1rem;">
@@ -943,6 +944,7 @@
                         sessionStorage.setItem('klbk_storeKey', userObj.storeKey || ('klbk_data_' + user));
                         if(userObj.schoolName) {
                             sessionStorage.setItem('klbk_schoolName', userObj.schoolName);
+                            localStorage.setItem('klbk_lastSchoolName', userObj.schoolName);
                         }
                         
                         window.location.reload();
@@ -977,6 +979,32 @@
             
             if (!isLoggedIn || !activeAdminUsername || (role !== 'admin' && role !== 'master' && role !== 'idareci' && role !== 'dashboard')) {
                 document.getElementById('loginPanel').style.display = 'flex';
+                
+                const lastSchoolName = localStorage.getItem('klbk_lastSchoolName');
+                if (lastSchoolName) {
+                    document.getElementById('loginSchoolName').innerText = lastSchoolName;
+                    document.getElementById('loginSchoolName').style.display = 'block';
+                } else {
+                    fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`).then(r => r.json()).then(users => {
+                        if (users) {
+                            let defaultSchool = "";
+                            const lastUser = localStorage.getItem('klbk_currentUser') || sessionStorage.getItem('klbk_currentUser');
+                            if (lastUser && users[lastUser] && users[lastUser].schoolName) {
+                                defaultSchool = users[lastUser].schoolName;
+                            } else {
+                                for (const key in users) {
+                                    if (users[key].schoolName) { defaultSchool = users[key].schoolName; break; }
+                                }
+                            }
+                            if (defaultSchool) {
+                                document.getElementById('loginSchoolName').innerText = defaultSchool;
+                                document.getElementById('loginSchoolName').style.display = 'block';
+                                localStorage.setItem('klbk_lastSchoolName', defaultSchool);
+                            }
+                        }
+                    }).catch(e => console.error(e));
+                }
+                
                 return;
             }
 

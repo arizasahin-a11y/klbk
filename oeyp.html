@@ -244,6 +244,7 @@
         <div class="glass-panel" style="padding: 3rem; width: 100%; max-width: 400px; text-align: center;">
             <i class="fa-solid fa-chalkboard-user" style="font-size: 3rem; color: #4f46e5; margin-bottom: 1rem;"></i>
             <h2 style="font-weight: 800; color: #1e293b; margin-bottom: 0.5rem;">OEYP Girişi</h2>
+            <h3 id="loginSchoolName" style="color: #4f46e5; font-weight: 700; margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem; display: none;"></h3>
             <p style="color: #64748b; margin-bottom: 2rem; font-size: 0.9rem;">Okul Etkinlik Yönetim Paneline erişmek için giriş yapın.</p>
             
             <div class="form-group" style="text-align: left; margin-bottom: 1rem;">
@@ -536,6 +537,36 @@
                     await initializeApp();
                 } catch(e) {
                     sessionStorage.removeItem('klbk_teacher_token');
+                    showLoginSchoolNameFallback();
+                }
+            } else {
+                showLoginSchoolNameFallback();
+            }
+            
+            function showLoginSchoolNameFallback() {
+                const lastSchoolName = localStorage.getItem('klbk_lastSchoolName');
+                if (lastSchoolName) {
+                    document.getElementById('loginSchoolName').innerText = lastSchoolName;
+                    document.getElementById('loginSchoolName').style.display = 'block';
+                } else {
+                    fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`).then(r => r.json()).then(users => {
+                        if (users) {
+                            let defaultSchool = "";
+                            const lastUser = localStorage.getItem('klbk_currentUser') || sessionStorage.getItem('klbk_currentUser');
+                            if (lastUser && users[lastUser] && users[lastUser].schoolName) {
+                                defaultSchool = users[lastUser].schoolName;
+                            } else {
+                                for (const key in users) {
+                                    if (users[key].schoolName) { defaultSchool = users[key].schoolName; break; }
+                                }
+                            }
+                            if (defaultSchool) {
+                                document.getElementById('loginSchoolName').innerText = defaultSchool;
+                                document.getElementById('loginSchoolName').style.display = 'block';
+                                localStorage.setItem('klbk_lastSchoolName', defaultSchool);
+                            }
+                        }
+                    }).catch(e => console.error(e));
                 }
             }
         };
@@ -574,6 +605,9 @@
                         sessionStorage.setItem('klbk_teacher_token', 'true');
                         sessionStorage.setItem('klbk_teacher_user', JSON.stringify(validUser));
                         sessionStorage.setItem('klbk_storeKey', validUser.storeKey || ('klbk_data_' + username));
+                        if(userObj.schoolName) {
+                            localStorage.setItem('klbk_lastSchoolName', userObj.schoolName);
+                        }
                         
                         currentUser = validUser;
                         Swal.close();
