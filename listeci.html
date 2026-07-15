@@ -191,58 +191,13 @@
             </div>
 
             <div class="form-group">
-                <label><i class="fa-solid fa-heading"></i> Başlık Eki (Opsiyonel)</label>
-                <input type="text" id="titleSuffix" class="form-select-custom" placeholder="Örn: FİZİK NOTLARI (Seçilen sınıfların isminin yanına eklenir)">
-            </div>
-
-            <div class="form-group">
-                <label><i class="fa-solid fa-layer-group"></i> Liste Türü ve Düzeni</label>
-                
-                <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
-                    <input type="radio" name="listType" value="normal" checked onchange="toggleListOptions()">
-                    <span>Normal Liste (Seçilen sınıfların listeleri)</span>
-                </label>
-                
-                <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
-                    <input type="radio" name="listType" value="empty_template" onchange="toggleListOptions()">
-                    <span>Boş Liste Şablonu (Genel boş liste şablonu)</span>
-                </label>
-                <div id="emptyTemplateOptions" style="display: none; margin-top: 10px; padding-left: 20px; border-left: 2px solid var(--primary-light);">
-                    <div style="margin-bottom: 10px;">
-                        <label style="font-size: 0.9rem;">Boş Liste Başlığı</label>
-                        <input type="text" id="emptyTemplateTitle" class="form-select-custom" placeholder="Örn: Yoklama Listesi" value="Boş Liste">
-                    </div>
-                    <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center;">
-                        <input type="checkbox" id="showAlanInEmptyTemplate" class="class-checkbox">
-                        <span>Alan Sütunu Görünsün mü?</span>
-                    </label>
-                    <p style="font-size: 0.85rem; color: var(--gray-500); margin-top: 10px;">Sınıf seçimi dikkate alınmaz. Sadece Sıra No yazılı, diğer kısımları boş tek bir şablon çıkarır.</p>
-                </div>
-                
-                <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
-                    <input type="radio" name="listType" value="karma_club" onchange="toggleListOptions()">
-                    <span>Karma Liste (Özel Seçim - Öğrencileri tek tek seçin)</span>
-                </label>
-                <div id="karmaClubOptions" style="display: none; margin-top: 10px; padding-left: 20px; border-left: 2px solid var(--primary-light);">
-                    <div style="margin-bottom: 10px;">
-                        <label style="font-size: 0.9rem;">Karma Liste Başlığı</label>
-                        <input type="text" id="karmaClubTitle" class="form-select-custom" placeholder="Örn: Satranç Kulübü Öğrenci Listesi" value="Satranç Kulübü Öğrenci Listesi">
-                    </div>
-                    <button class="btn-primary" style="margin-top: 10px; background: #3b82f6; padding: 0.5rem 1rem;" onclick="openStudentSelectorModal()">
-                        <i class="fa-solid fa-user-plus"></i> Öğrencileri Seç (<span id="selectedStudentCount">0</span> seçili)
-                    </button>
-                    <p style="font-size: 0.85rem; color: var(--gray-500); margin-top: 10px;">Seçtiğiniz öğrenciler sınıf (9A'dan başlayarak) ve numaraya (küçükten büyüğe) göre sıralanır. Sütunlar: Sıra No, Sınıfı, Numara, Adı Soyadı, Boş Sütunlar.</p>
-                </div>
-            </div>
-
-            <div class="form-group">
                 <label><i class="fa-solid fa-table-columns"></i> Boş Sütun Düzeni</label>
                 <select id="columnPreset" class="form-select-custom" onchange="toggleCustomColumns()">
                     <option value="16">Dar Sütun (16 Sütun)</option>
                     <option value="8">Geniş Sütun (8 Sütun)</option>
                     <option value="custom">Özel Sütun Sayısı Belirle...</option>
                 </select>
-                <small style="color: var(--gray-500); margin-top: 5px; display: block;">Öğrenci bilgilerinin yanına eklenecek boş tablo sütunlarının sayısını seçin.</small>
+                <small style="color: var(--gray-500); margin-top: 5px; display: block;">Öğrenci bilgilerinin yanına eklenecek boş tablo sütunlarının sayısını seçin (Tüm liste türleri için geçerlidir).</small>
             </div>
 
             <div class="form-group" id="customColumnGroup" style="display: none;">
@@ -250,9 +205,54 @@
                 <input type="number" id="blankColumns" class="form-select-custom" value="16" min="0" max="30">
             </div>
 
-            <button class="btn-primary" onclick="generateList()">
-                <i class="fa-solid fa-file-pdf"></i> Listeyi Oluştur (Yeni Sekmede Aç)
-            </button>
+            <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-top: 2rem;">
+                <!-- Normal Liste Card -->
+                <div class="glass-panel" style="border-left: 4px solid var(--primary); padding: 1.5rem;">
+                    <h3 style="margin-top: 0; margin-bottom: 0.5rem;"><i class="fa-solid fa-list-ol"></i> Normal Sınıf Listeleri</h3>
+                    <p style="font-size: 0.9rem; color: var(--gray-500); margin-bottom: 1rem;">Yukarıdan seçtiğiniz sınıfların listelerini ayrı sayfalarda yazdırır.</p>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="font-size: 0.9rem;">Başlık Eki (Opsiyonel)</label>
+                        <input type="text" id="titleSuffix" class="form-select-custom" placeholder="Örn: FİZİK NOTLARI (Sınıf adının yanına eklenir)">
+                    </div>
+                    <button class="btn-primary" style="width: 100%;" onclick="generateList('normal')">
+                        <i class="fa-solid fa-file-pdf"></i> Sınıf Listelerini Oluştur
+                    </button>
+                </div>
+
+                <!-- Karma Liste Card -->
+                <div class="glass-panel" style="border-left: 4px solid #8b5cf6; padding: 1.5rem;">
+                    <h3 style="margin-top: 0; margin-bottom: 0.5rem;"><i class="fa-solid fa-users-viewfinder"></i> Karma Liste (Özel Seçim)</h3>
+                    <p style="font-size: 0.9rem; color: var(--gray-500); margin-bottom: 1rem;">Okuldaki herhangi bir sınıftan öğrencileri tek tek seçerek tek bir birleştirilmiş liste oluşturun.</p>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="font-size: 0.9rem;">Karma Liste Başlığı</label>
+                        <input type="text" id="karmaClubTitle" class="form-select-custom" value="Karma Öğrenci Listesi">
+                    </div>
+                    <button class="btn-primary" style="background: #8b5cf6; margin-bottom: 1rem; width: 100%;" onclick="openStudentSelectorModal()">
+                        <i class="fa-solid fa-user-plus"></i> Öğrencileri Seç (<span id="selectedStudentCount">0</span> seçili)
+                    </button>
+                    <button class="btn-primary" style="width: 100%;" onclick="generateList('karma_club')">
+                        <i class="fa-solid fa-file-pdf"></i> Karma Listeyi Oluştur
+                    </button>
+                </div>
+
+                <!-- Boş Şablon Card -->
+                <div class="glass-panel" style="border-left: 4px solid #10b981; padding: 1.5rem;">
+                    <h3 style="margin-top: 0; margin-bottom: 0.5rem;"><i class="fa-solid fa-table"></i> Genel Boş Liste Şablonu</h3>
+                    <p style="font-size: 0.9rem; color: var(--gray-500); margin-bottom: 1rem;">İçinde öğrenci bilgisi bulunmayan, sadece Sıra No olan boş bir tablo çıkartır. (Sınıf seçimi gerektirmez)</p>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="font-size: 0.9rem;">Şablon Başlığı</label>
+                        <input type="text" id="emptyTemplateTitle" class="form-select-custom" value="Boş Liste">
+                    </div>
+                    <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center; margin-bottom: 1rem;">
+                        <input type="checkbox" id="showAlanInEmptyTemplate" class="class-checkbox">
+                        <span>Alan Sütunu Görünsün mü?</span>
+                    </label>
+                    <button class="btn-primary" style="background: #10b981; width: 100%;" onclick="generateList('empty_template')">
+                        <i class="fa-solid fa-file-pdf"></i> Boş Şablon Çıkart
+                    </button>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -357,12 +357,7 @@
             }
         }
 
-        function toggleListOptions() {
-            const listType = document.querySelector('input[name="listType"]:checked').value;
-            
-            document.getElementById('emptyTemplateOptions').style.display = (listType === 'empty_template') ? 'block' : 'none';
-            document.getElementById('karmaClubOptions').style.display = (listType === 'karma_club') ? 'block' : 'none';
-        }
+
 
         let allStudentsForModal = [];
         let selectedStudentsSet = new Set(); // store 'class_no'
@@ -521,16 +516,14 @@
             document.querySelectorAll('.class-checkbox').forEach(cb => cb.checked = false);
         }
 
-        function generateList() {
-            const listType = document.querySelector('input[name="listType"]:checked').value;
+        function generateList(listType) {
             const selectedClasses = Array.from(document.querySelectorAll('.class-checkbox:checked')).map(cb => cb.value);
             
             if (listType === 'normal' && selectedClasses.length === 0) {
-                Swal.fire('Uyarı', 'Lütfen en az bir sınıf seçin.', 'warning');
+                Swal.fire('Uyarı', 'Lütfen yukarıdaki menüden en az bir sınıf seçin.', 'warning');
                 return;
             }
 
-            const titleSuffix = document.getElementById('titleSuffix').value.trim();
             let blankCols = parseInt(document.getElementById('blankColumns').value) || 0;
             const preset = document.getElementById('columnPreset').value;
             if (preset !== 'custom') {
@@ -545,19 +538,19 @@
             if (listType === 'empty_template') {
                 const emptyTemplateTitle = document.getElementById('emptyTemplateTitle').value.trim();
                 if (!emptyTemplateTitle) {
-                    Swal.fire('Uyarı', 'Lütfen Boş Liste Başlığı girin.', 'warning');
+                    Swal.fire('Uyarı', 'Lütfen Boş Liste Şablonu için bir başlık girin.', 'warning');
                     return;
                 }
             }
 
             const config = {
                 classes: selectedClasses,
-                titleSuffix: titleSuffix,
+                titleSuffix: document.getElementById('titleSuffix') ? document.getElementById('titleSuffix').value.trim() : '',
                 blankColumns: blankCols,
                 listType: listType,
                 emptyTemplateTitle: document.getElementById('emptyTemplateTitle') ? document.getElementById('emptyTemplateTitle').value.trim() : 'Boş Liste',
                 showAlanInEmptyTemplate: document.getElementById('showAlanInEmptyTemplate') ? document.getElementById('showAlanInEmptyTemplate').checked : false,
-                karmaClubTitle: document.getElementById('karmaClubTitle').value.trim() || 'Karma Öğrenci Listesi',
+                karmaClubTitle: document.getElementById('karmaClubTitle') ? document.getElementById('karmaClubTitle').value.trim() : 'Karma Öğrenci Listesi',
                 selectedKarmaStudents: Array.from(selectedStudentsSet)
             };
 
