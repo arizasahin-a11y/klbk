@@ -469,12 +469,25 @@
             const students = DataManager.getStudents();
             
             if (students && students.length > 0) {
-                const classGroups = {};
+                const classToAlans = {};
                 students.forEach(s => {
+                    if (!classToAlans[s.class]) classToAlans[s.class] = new Set();
                     const alan = s.alan || s.track || s.field || s.group || '';
-                    const key = alan ? `${s.class}|${alan}` : `${s.class}|`;
-                    if (!classGroups[key]) classGroups[key] = { cls: s.class, alan: alan };
+                    classToAlans[s.class].add(alan);
                 });
+
+                const classGroups = {};
+                for (const cls in classToAlans) {
+                    const alans = Array.from(classToAlans[cls]);
+                    if (alans.length > 1 || (alans.length === 1 && alans[0] !== '')) {
+                        alans.forEach(alan => {
+                            classGroups[`${cls}|${alan}`] = { cls: cls, alan: alan };
+                        });
+                        classGroups[`${cls}|_ALL_`] = { cls: cls, alan: '_ALL_', label: `${cls} (Tümü)` };
+                    } else {
+                        classGroups[`${cls}|`] = { cls: cls, alan: '' };
+                    }
+                }
 
                 let html = '';
                 const classes = Object.keys(classGroups).sort((a, b) => {
@@ -486,7 +499,7 @@
 
                 classes.forEach(key => {
                     const info = classGroups[key];
-                    const label = info.alan ? `${info.cls} (${info.alan})` : info.cls;
+                    const label = info.label || (info.alan ? `${info.cls} (${info.alan})` : info.cls);
                     html += `
                         <label class="class-checkbox-label" title="${label}">
                             <input type="checkbox" value="${key}" class="class-checkbox">
@@ -509,9 +522,10 @@
         }
 
         function generateList() {
+            const listType = document.querySelector('input[name="listType"]:checked').value;
             const selectedClasses = Array.from(document.querySelectorAll('.class-checkbox:checked')).map(cb => cb.value);
             
-            if (selectedClasses.length === 0) {
+            if (listType === 'normal' && selectedClasses.length === 0) {
                 Swal.fire('Uyarı', 'Lütfen en az bir sınıf seçin.', 'warning');
                 return;
             }
@@ -522,8 +536,6 @@
             if (preset !== 'custom') {
                 blankCols = parseInt(preset);
             }
-
-            const listType = document.querySelector('input[name="listType"]:checked').value;
             
             if (listType === 'karma_club' && selectedStudentsSet.size === 0) {
                 Swal.fire('Uyarı', 'Lütfen karma liste için "Öğrencileri Seç" butonundan en az bir öğrenci seçin.', 'warning');

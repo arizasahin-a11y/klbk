@@ -238,6 +238,11 @@
                 const key = alan ? `${s.class}|${alan}` : `${s.class}|`;
                 if (!classGroups[key]) classGroups[key] = [];
                 classGroups[key].push(s);
+
+                // Add to _ALL_ group as well
+                const allKey = `${s.class}|_ALL_`;
+                if (!classGroups[allKey]) classGroups[allKey] = [];
+                classGroups[allKey].push(s);
             });
 
             const rowsPerPage = 40;
@@ -403,7 +408,7 @@
                     const parts = key.split('|');
                     const cls = parts[0];
                     const alan = parts.length > 1 ? parts[1] : '';
-                    const classNameWithAlan = alan ? `${cls} ${alan}` : cls;
+                    const classNameWithAlan = (alan && alan !== '_ALL_') ? `${cls} ${alan}` : cls;
                     
                     let fullTitle = `${classNameWithAlan} SINIFI ${titleSuffix}`.trim();
                     pagesHtml += processStudentList(fullTitle, students);
@@ -428,7 +433,7 @@
                 } else if (listType === 'empty_template') {
                     filename = `${config.emptyTemplateTitle || 'Bos_Liste'}.pdf`.replace(/\s+/g, '_');
                 } else {
-                    let classNamesText = config.classes.length > 3 ? "KARMA" : config.classes.map(k => k.replace('|', '_')).join('_');
+                    let classNamesText = config.classes.length > 3 ? "KARMA" : config.classes.map(k => k.replace('|_ALL_', '_Tumu').replace('|', '_')).join('_');
                     filename = `${classNamesText}_${config.titleSuffix || 'Liste'}.pdf`.replace(/\s+/g, '_');
                 }
             }
