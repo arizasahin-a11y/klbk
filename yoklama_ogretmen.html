@@ -1469,7 +1469,7 @@
                     <button type="button" class="status-btn ${currentStatus === 'GELMEDİ' ? 'active' : ''}" data-status="GELMEDİ" onclick="setStudentStatus('${s.no}', 'GELMEDİ')" title="Gelmedi">
                         <i class="fa-solid fa-minus"></i>
                     </button>
-                    <button type="button" class="status-btn ${currentStatus === 'GEÇ' ? 'active' : ''}" data-status="GEÇ" onclick="setStudentStatus('${s.no}', 'GEÇ')" title="Geç">
+                    <button type="button" class="status-btn ${currentStatus === 'GEÇ' ? 'active' : ''}" data-status="GEÇ" onclick="setStudentStatus('${s.no}', 'GEÇ')" oncontextmenu="event.preventDefault(); showLatePolicyMenu();" title="Geç (Sağ Tık: Ayarlar)">
                         <i class="fa-solid fa-clock"></i>
                     </button>
                     <button type="button" class="status-btn ${currentStatus === 'DİĞER' ? 'active' : ''}" data-status="DİĞER" onclick="setStudentStatus('${s.no}', 'DİĞER')" title="Diğer">
@@ -1550,7 +1550,56 @@
             });
         }
 
+        function showLatePolicyMenu() {
+            const currentPolicy = localStorage.getItem('klbk_late_policy') || 'all_lessons';
+            Swal.fire({
+                title: 'Geç İşleme Tercihi',
+                html: `
+                    <div style="text-align: left; margin-top: 10px; font-size: 0.95rem;">
+                        <div style="margin-bottom: 15px;">
+                            <label style="cursor: pointer; display: flex; align-items: flex-start; gap: 8px;">
+                                <input type="radio" name="late_policy" value="all_lessons" ${currentPolicy === 'all_lessons' ? 'checked' : ''} style="margin-top: 4px;">
+                                <span>Her Ders Geç işlenebilir <br><small style="color:var(--gray-500);">(Varsayılan)</small></span>
+                            </label>
+                        </div>
+                        <div>
+                            <label style="cursor: pointer; display: flex; align-items: flex-start; gap: 8px;">
+                                <input type="radio" name="late_policy" value="first_lesson_only" ${currentPolicy === 'first_lesson_only' ? 'checked' : ''} style="margin-top: 4px;">
+                                <span>Yalnız ilk ders geç işlenebilir <br><small style="color:var(--gray-500);">(Diğer derslerde geç tuşuna basıldığında 'Devamsız' işlenir)</small></span>
+                            </label>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Kaydet',
+                cancelButtonText: 'İptal',
+                preConfirm: () => {
+                    const selected = document.querySelector('input[name="late_policy"]:checked');
+                    return selected ? selected.value : 'all_lessons';
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.setItem('klbk_late_policy', result.value);
+                    Swal.fire({
+                        title: 'Kaydedildi',
+                        text: 'Geç işleme tercihiniz güncellendi.',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
+            });
+        }
+
         function setStudentStatus(studentNo, status) {
+            if (status === 'GEÇ') {
+                const policy = localStorage.getItem('klbk_late_policy') || 'all_lessons';
+                const hourVal = document.getElementById('lessonHour').value;
+                if (policy === 'first_lesson_only' && String(hourVal) !== '1') {
+                    status = 'GELMEDİ';
+                }
+            }
+
             if (status === 'NÖBETÇİ') {
                 Swal.fire({
                     title: 'Nöbetçi Olarak İşaretle',
