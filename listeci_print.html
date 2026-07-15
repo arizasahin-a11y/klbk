@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liste Çıktısı</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="js/core_data_v11_9_1.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #e2e8f0;
+        }
+
+        .action-bar {
+            background: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .btn {
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-print {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .btn-pdf {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .page-container {
+            width: 210mm; /* A4 width */
+            min-height: 297mm; /* A4 height */
+            margin: 2rem auto;
+            background: white;
+            padding: 15mm; /* Page margins */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+
+        .doc-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .doc-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+        }
+
+        .print-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .print-table th, .print-table td {
+            border: 1px solid #000;
+            padding: 8px 6px;
+            text-align: left;
+        }
+
+        .print-table th {
+            background-color: #f3f4f6;
+            font-weight: bold;
+        }
+
+        .col-sira { width: 40px; text-align: center !important; }
+        .col-sinif { width: 60px; text-align: center !important; }
+        .col-okulno { width: 60px; text-align: center !important; }
+        .col-ad { width: auto; }
+        .col-blank { width: 80px; } /* Empty columns width */
+
+        /* Print Media Queries */
+        @media print {
+            body {
+                background: white;
+            }
+            .action-bar {
+                display: none !important;
+            }
+            .page-container {
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+                width: 100%;
+                min-height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="action-bar" id="actionBar">
+        <div>
+            <h2 style="margin: 0; font-size: 1.2rem; color: #1e293b;"><i class="fa-solid fa-file-lines"></i> Liste Önizleme</h2>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-print" onclick="window.print()">
+                <i class="fa-solid fa-print"></i> Yazdır
+            </button>
+            <button class="btn btn-pdf" onclick="downloadPDF()">
+                <i class="fa-solid fa-file-pdf"></i> PDF İndir
+            </button>
+        </div>
+    </div>
+
+    <!-- The actual A4 page content that will be printed/PDF'd -->
+    <div id="pdfContent">
+        <div class="page-container" id="pageContainer">
+            <!-- Content will be injected here by JS -->
+            <div style="text-align: center; margin-top: 50px;">
+                <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+                <p>Liste Hazırlanıyor...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            generateContent();
+        });
+
+        function generateContent() {
+            const configStr = localStorage.getItem('listeciConfig');
+            if (!configStr) {
+                document.getElementById('pageContainer').innerHTML = '<h3 style="color:red; text-align:center;">Hata: Konfigürasyon bulunamadı. Lütfen listeci.html üzerinden seçim yapın.</h3>';
+                return;
+            }
+
+            const config = JSON.parse(configStr);
+            const classesToFetch = config.classes; // array of class names
+            const titleSuffix = config.titleSuffix;
+            const blankColumnsCount = config.blankColumns;
+
+            if (typeof schoolData === 'undefined' || !schoolData.classes) {
+                document.getElementById('pageContainer').innerHTML = '<h3 style="color:red; text-align:center;">Veri Yüklenemedi!</h3>';
+                return;
+            }
+
+            // Combine students
+            let allStudents = [];
+            classesToFetch.forEach(cls => {
+                if (schoolData.classes[cls]) {
+                    schoolData.classes[cls].forEach(s => {
+                        allStudents.push({
+                            className: cls,
+                            no: s.no,
+                            name: s.name,
+                            surname: s.surname || ''
+                        });
+                    });
+                }
+            });
+
+            // Sort by Class Name, then by School No
+            allStudents.sort((a, b) => {
+                if (a.className !== b.className) {
+                    return a.className.localeCompare(b.className);
+                }
+                const noA = parseInt(a.no) || 0;
+                const noB = parseInt(b.no) || 0;
+                return noA - noB;
+            });
+
+            // Generate Title
+            let classNamesText = classesToFetch.length > 3 
+                ? "KARMA SINIF" 
+                : classesToFetch.join(', ');
+            
+            let fullTitle = `${classNamesText} SINIFI ${titleSuffix}`.trim();
+
+            // Generate Table Header
+            let blankHeaders = '';
+            for (let i = 0; i < blankColumnsCount; i++) {
+                blankHeaders += `<th class="col-blank"></th>`;
+            }
+
+            // Generate Table Rows
+            let rowsHtml = '';
+            allStudents.forEach((s, index) => {
+                let blankCells = '';
+                for (let i = 0; i < blankColumnsCount; i++) {
+                    blankCells += `<td></td>`;
+                }
+
+                rowsHtml += `
+                    <tr>
+                        <td class="col-sira">${index + 1}</td>
+                        <td class="col-sinif">${s.className}</td>
+                        <td class="col-okulno">${s.no}</td>
+                        <td class="col-ad">${s.name} ${s.surname}</td>
+                        ${blankCells}
+                    </tr>
+                `;
+            });
+
+            const html = `
+                <div class="doc-header">
+                    <h1 class="doc-title">${fullTitle}</h1>
+                </div>
+                <table class="print-table">
+                    <thead>
+                        <tr>
+                            <th class="col-sira">Sıra</th>
+                            <th class="col-sinif">Sınıf</th>
+                            <th class="col-okulno">Okul No</th>
+                            <th class="col-ad">Ad Soyad</th>
+                            ${blankHeaders}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+            `;
+
+            document.getElementById('pageContainer').innerHTML = html;
+            document.title = fullTitle;
+        }
+
+        function downloadPDF() {
+            const element = document.getElementById('pdfContent');
+            const configStr = localStorage.getItem('listeciConfig');
+            let filename = 'Liste.pdf';
+            if (configStr) {
+                const config = JSON.parse(configStr);
+                let classNamesText = config.classes.length > 3 ? "KARMA" : config.classes.join('_');
+                filename = `${classNamesText}_${config.titleSuffix || 'Liste'}.pdf`.replace(/\s+/g, '_');
+            }
+
+            const opt = {
+                margin:       0,
+                filename:     filename,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            Swal.fire({
+                title: 'PDF Hazırlanıyor',
+                text: 'Lütfen bekleyin...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                Swal.close();
+            }).catch(err => {
+                Swal.fire('Hata', 'PDF oluşturulurken bir hata oluştu.', 'error');
+                console.error(err);
+            });
+        }
+    </script>
+</body>
+</html>
