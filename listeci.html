@@ -131,6 +131,25 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
         }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 600px) {
+            .glass-panel {
+                padding: 1.25rem;
+            }
+            .container {
+                margin: 1rem auto;
+            }
+            .btn-primary {
+                padding: 0.8rem 1rem;
+                font-size: 1rem;
+            }
+            #studentSelectorModal .glass-panel {
+                height: 100vh;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -191,7 +210,7 @@
             </div>
 
             <div class="form-group">
-                <label><i class="fa-solid fa-table-columns"></i> Boş Sütun Düzeni</label>
+                <label><i class="fa-solid fa-table-columns"></i> Sütun Düzeni</label>
                 <select id="columnPreset" class="form-select-custom" onchange="toggleCustomColumns()">
                     <option value="16">Dar Sütun (16 Sütun)</option>
                     <option value="8">Geniş Sütun (8 Sütun)</option>

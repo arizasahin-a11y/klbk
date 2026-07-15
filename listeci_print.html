@@ -174,6 +174,43 @@
                 margin: 0; /* Remove browser margins, rely on print-page padding */
             }
         }
+
+        /* Mobile Responsiveness for screen view */
+        @media screen and (max-width: 800px) {
+            body {
+                background: #f1f5f9;
+            }
+            .action-bar {
+                flex-direction: column;
+                padding: 1rem;
+                gap: 1rem;
+            }
+            .action-bar > div {
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            #pdfContent {
+                overflow-x: auto;
+                padding-bottom: 2rem;
+            }
+            .page-container {
+                margin: 0;
+                width: max-content; /* allow it to grow horizontally inside the overflow container */
+                min-width: 100%;
+            }
+            .print-page {
+                width: 210mm; /* Force A4 width internally to preserve table layout */
+                box-sizing: border-box;
+                margin-bottom: 1rem;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            }
+        }
     </style>
 </head>
 <body>
