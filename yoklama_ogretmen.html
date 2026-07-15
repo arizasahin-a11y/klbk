@@ -2231,11 +2231,11 @@
             
             if (neonLessonStatus && neonLessonStatusContainer) {
                 let statusInfo = null;
-                if (window.activeTeacherObject && window.activeTeacherObject.schedule && schoolData && schoolData.lessonTimes) {
+                if (activeTeacherObject && activeTeacherObject.schedule && schoolData && schoolData.lessonTimes) {
                     const nowObj = getTRTime();
                     const dayMap = { 1: 'Pa', 2: 'Sa', 3: 'Ça', 4: 'Pe', 5: 'Cu', 6: 'Ct', 0: 'Pz' };
                     const dayKey = dayMap[nowObj.getDay()];
-                    const todaySchedule = window.activeTeacherObject.schedule[dayKey];
+                    const todaySchedule = activeTeacherObject.schedule[dayKey];
                     
                     if (todaySchedule) {
                         const currentTotalSeconds = parseInt(h) * 3600 + parseInt(m) * 60 + parseInt(s);
