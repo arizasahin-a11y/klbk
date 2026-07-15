@@ -386,6 +386,10 @@
                         sessionStorage.setItem('klbk_name', userObj.name || user);
                         sessionStorage.setItem('klbk_storeKey', userObj.storeKey || ('klbk_data_' + user));
                         
+                        if (userObj.schoolName) {
+                            localStorage.setItem('klbk_lastSchoolName', userObj.schoolName);
+                        }
+                        
                         Swal.close();
                         showMainPanel();
                     } else {
@@ -411,8 +415,21 @@
                 const lastSchoolName = localStorage.getItem('klbk_lastSchoolName');
                 if (lastSchoolName) {
                     document.getElementById('loginSchoolName').innerText = lastSchoolName;
+                    document.getElementById('loginSchoolName').style.display = 'block';
                 } else {
-                    document.getElementById('loginSchoolName').style.display = 'none';
+                    // Fallback
+                    const lastSchoolId = localStorage.getItem('klbk_last_school') || 'admin';
+                    fetch(`${firebaseDatabaseUrl}/app_store/klbk_data_${lastSchoolId}.json`)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data && data.school && data.school.name) {
+                                document.getElementById('loginSchoolName').innerText = data.school.name;
+                                document.getElementById('loginSchoolName').style.display = 'block';
+                                localStorage.setItem('klbk_lastSchoolName', data.school.name);
+                            } else {
+                                document.getElementById('loginSchoolName').style.display = 'none';
+                            }
+                        }).catch(() => document.getElementById('loginSchoolName').style.display = 'none');
                 }
                 
             } else {
