@@ -168,6 +168,12 @@
                     <p style="margin: 0; font-size: 0.85rem; color: var(--gray-500);">İstediğiniz sınıfların listesini hazırlayıp PDF/Yazdır formatında alabilirsiniz.</p>
                 </div>
             </div>
+            <div style="text-align: right;">
+                <div id="teacherNameDisplay" style="font-weight: 800; color: var(--primary); margin-bottom: 5px;"></div>
+                <button class="btn" style="background: #ef4444; color: white; border: none; padding: 5px 15px; border-radius: 6px; font-size: 0.8rem; cursor: pointer;" onclick="logout()">
+                    <i class="fa-solid fa-sign-out-alt"></i> Çıkış Yap
+                </button>
+            </div>
         </div>
 
         <div class="glass-panel">
@@ -276,6 +282,14 @@
             document.getElementById('loginPanel').style.display = 'none';
             document.getElementById('mainPanel').style.display = 'block';
             
+            const currentUserStr = sessionStorage.getItem('klbk_currentUser');
+            if (currentUserStr) {
+                try {
+                    const user = JSON.parse(currentUserStr);
+                    document.getElementById('teacherNameDisplay').innerHTML = `<i class="fa-solid fa-user-tie"></i> ${user.name} ${user.surname || ''}`;
+                } catch(e){}
+            }
+
             try {
                 await DataManager.initCloud();
                 window.schoolData = DataManager.getSchoolSettings();
@@ -284,6 +298,12 @@
             }
             
             loadClasses();
+        }
+
+        function logout() {
+            sessionStorage.removeItem('klbk_currentUser');
+            sessionStorage.removeItem('klbk_role');
+            window.location.reload();
         }
 
         function loadClasses() {

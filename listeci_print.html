@@ -128,7 +128,7 @@
         .col-sira { width: 25px; text-align: center !important; }
         .col-alan { width: 35px; text-align: center !important; }
         .col-okulno { width: 45px; text-align: center !important; }
-        .col-ad { width: auto; font-weight: bold; }
+        .col-ad { width: 150px; font-weight: bold; }
         .col-blank { width: auto; /* let it distribute evenly */ }
 
         .rotated-header {
@@ -227,6 +227,28 @@
             const rowsPerPage = 40;
             let pagesHtml = '';
 
+            function formatName(name, surname) {
+                let n = (name || '').trim();
+                let s = (surname || '').trim();
+                let full = (n + ' ' + s).trim();
+                
+                if (full.length <= 22) return full;
+                
+                let nameParts = n.split(/\s+/);
+                if (nameParts.length > 1) {
+                    nameParts[1] = nameParts[1].charAt(0) + '.';
+                    n = nameParts.join(' ');
+                    full = (n + ' ' + s).trim();
+                }
+                
+                if (full.length > 22 && nameParts.length > 2) {
+                    nameParts[2] = nameParts[2].charAt(0) + '.';
+                    n = nameParts.join(' ');
+                    full = (n + ' ' + s).trim();
+                }
+                return full;
+            }
+
             function generatePage(title, studentsSubset, startIndex, showAlan) {
                 let rowsHtml = '';
                 
@@ -241,13 +263,14 @@
                     if (s) {
                         const alanVal = s.alan || s.track || s.field || s.group || '';
                         const alanTd = showAlan ? `<td class="col-alan">${alanVal}</td>` : '';
+                        const formattedName = formatName(s.name, s.surname);
                         
                         rowsHtml += `
                             <tr>
                                 <td class="col-sira">${startIndex + i}</td>
                                 ${alanTd}
                                 <td class="col-okulno">${s.no}</td>
-                                <td class="col-ad">${s.name} ${s.surname || ''}</td>
+                                <td class="col-ad">${formattedName}</td>
                                 ${blankCells}
                             </tr>
                         `;
