@@ -223,12 +223,16 @@
             const mergeClasses = config.mergeClasses || false;
             const emptyClassTitle = config.emptyClassTitle || 'Sınıf Listesi';
             const showAlanInEmpty = config.showAlanInEmpty || false;
-            const clubTemplateTitle = config.clubTemplateTitle || 'Kulüp Öğrenci Listesi';
+            const karmaClubTitle = config.karmaClubTitle || 'Karma Öğrenci Listesi';
+            const selectedKarmaStudents = config.selectedKarmaStudents || [];
 
             const allDataStudents = DataManager.getStudents();
             if (!allDataStudents || allDataStudents.length === 0) {
                 document.getElementById('pageContainer').innerHTML = '<h3 style="color:red; text-align:center;">Veri Yüklenemedi! (Öğrenci Listesi Boş)</h3>';
-                   // Group students by class|alan key
+                return;
+            }
+
+            // Group students by class|alan key
             const classGroups = {};
             allDataStudents.forEach(s => {
                 const alan = s.alan || s.track || s.field || s.group || '';
@@ -264,9 +268,9 @@
 
             function generatePage(title, studentsSubset, startIndex, showAlan) {
                 let rowsHtml = '';
-                const isClubTemplate = listType === 'club_template';
+                const isKarmaClub = listType === 'karma_club';
                 const isEmptyClass = listType === 'empty_class';
-                const showSinif = mergeClasses || isClubTemplate; // Sınıfı column added for mergeClasses or club template
+                const showSinif = mergeClasses || isKarmaClub; // Sınıfı column added for mergeClasses or karma club
                 
                 // Add 40 rows exactly
                 for (let i = 0; i < rowsPerPage; i++) {
@@ -276,12 +280,12 @@
                         blankCells += `<td class="col-blank"></td>`;
                     }
 
-                    if (s && listType === 'normal') {
+                    if (s && !isEmptyClass) {
                         const alanVal = s.alan || s.track || s.field || s.group || '';
                         const alanTd = showAlan ? `<td class="col-alan">${alanVal}</td>` : '';
                         const sinifTd = showSinif ? `<td class="col-sinif">${s.class || ''}</td>` : '';
                         const formattedName = formatName(s.name, s.surname);
-                        const nameTd = isClubTemplate ? '' : `<td class="col-ad">${formattedName}</td>`;
+                        const nameTd = `<td class="col-ad">${formattedName}</td>`;
                         
                         rowsHtml += `
                             <tr>
@@ -297,7 +301,7 @@
                         // Empty row
                         const alanTd = showAlan ? `<td class="col-alan"></td>` : '';
                         const sinifTd = showSinif ? `<td class="col-sinif"></td>` : '';
-                        const nameTd = isClubTemplate ? '' : `<td class="col-ad"></td>`;
+                        const nameTd = `<td class="col-ad"></td>`;
                         rowsHtml += `
                             <tr>
                                 <td class="col-sira">${startIndex + i}</td>
@@ -313,7 +317,7 @@
 
                 const alanTh = showAlan ? `<th rowspan="2" class="col-alan"><div class="rotated-header">ALAN</div></th>` : '';
                 const sinifTh = showSinif ? `<th rowspan="2" class="col-sinif"><div class="rotated-header">SINIFI</div></th>` : '';
-                const nameTh = isClubTemplate ? '' : `<th rowspan="2" class="col-ad">ÖĞRENCİNİN ADI SOYADI</th>`;
+                const nameTh = `<th rowspan="2" class="col-ad">ÖĞRENCİNİN ADI SOYADI</th>`;
                 
                 let blankHeadersRow2 = '';
                 if (blankColumnsCount > 0) {
@@ -359,18 +363,17 @@
                 if (listType === 'empty_class') {
                     hasAlan = showAlanInEmpty;
                     studentList = []; // Force empty
-                } else if (listType === 'club_template') {
-                    hasAlan = false; // Club template doesn't need alan usually, but could add option later
-                    studentList = []; // Force empty
+                } else if (listType === 'karma_club') {
+                    hasAlan = false; // Usually not needed, but we check if any selected has it
+                    hasAlan = studentList.some(s => s.alan || s.track || s.field || s.group);
                 } else {
                     hasAlan = studentList.some(s => s.alan || s.track || s.field || s.group);
                 }
                 
                 // Sort
                 studentList.sort((a, b) => {
-                    if (a.class !== b.class && mergeClasses) {
-                        return (a.class || '').localeCompare(b.class || '');
-                    }
+                    const clsCmp = (a.class || '').localeCompare(b.class || '');
+                    if (clsCmp !== 0 && (mergeClasses || listType === 'karma_club')) return clsCmp;
                     const noA = parseInt(a.no) || 0;
                     const noB = parseInt(b.no) || 0;
                     return noA - noB;
@@ -387,9 +390,11 @@
                 return html;
             }
 
-            if (listType === 'club_template') {
-                pagesHtml = processStudentList(clubTemplateTitle, []);
-                document.title = clubTemplateTitle;
+            if (listType === 'karma_club') {
+                const selectedSet = new Set(selectedKarmaStudents);
+                const karmaList = allDataStudents.filter(s => selectedSet.has(`${s.class}_${s.no}`));
+                pagesHtml = processStudentList(karmaClubTitle, karmaList);
+                document.title = karmaClubTitle;
             } else if (mergeClasses) {
                 let allStudents = [];
                 let displayNames = [];

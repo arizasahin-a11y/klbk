@@ -225,15 +225,18 @@
                 </div>
                 
                 <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
-                    <input type="radio" name="listType" value="club_template" onchange="toggleListOptions()">
-                    <span>Kulüp / Toplama Şablonu (Satranç Kulübü vb. için ortak boş liste)</span>
+                    <input type="radio" name="listType" value="karma_club" onchange="toggleListOptions()">
+                    <span>Karma Liste (Özel Seçim - Öğrencileri tek tek seçin)</span>
                 </label>
-                <div id="clubTemplateOptions" style="display: none; margin-top: 10px; padding-left: 20px; border-left: 2px solid var(--primary-light);">
+                <div id="karmaClubOptions" style="display: none; margin-top: 10px; padding-left: 20px; border-left: 2px solid var(--primary-light);">
                     <div style="margin-bottom: 10px;">
-                        <label style="font-size: 0.9rem;">Şablon Başlığı</label>
-                        <input type="text" id="clubTemplateTitle" class="form-select-custom" placeholder="Örn: Satranç Kulübü Öğrenci Listesi" value="Kulüp Öğrenci Listesi">
+                        <label style="font-size: 0.9rem;">Karma Liste Başlığı</label>
+                        <input type="text" id="karmaClubTitle" class="form-select-custom" placeholder="Örn: Satranç Kulübü Öğrenci Listesi" value="Satranç Kulübü Öğrenci Listesi">
                     </div>
-                    <p style="font-size: 0.85rem; color: var(--gray-500); margin: 0;">Bu liste türünde Sıra, Sınıfı, Numara ve belirlediğiniz Boş Sütunlar yer alacaktır (Adı Soyadı sütunu gizlenir, seçilen sınıfların bir önemi yoktur, tek bir boş şablon çıkarılır).</p>
+                    <button class="btn-primary" style="margin-top: 10px; background: #3b82f6; padding: 0.5rem 1rem;" onclick="openStudentSelectorModal()">
+                        <i class="fa-solid fa-user-plus"></i> Öğrencileri Seç (<span id="selectedStudentCount">0</span> seçili)
+                    </button>
+                    <p style="font-size: 0.85rem; color: var(--gray-500); margin-top: 10px;">Seçtiğiniz öğrenciler sınıf (9A'dan başlayarak) ve numaraya (küçükten büyüğe) göre sıralanır. Sütunlar: Sıra No, Sınıfı, Numara, Adı Soyadı, Boş Sütunlar.</p>
                 </div>
             </div>
 
@@ -255,6 +258,34 @@
             <button class="btn-primary" onclick="generateList()">
                 <i class="fa-solid fa-file-pdf"></i> Listeyi Oluştur (Yeni Sekmede Aç)
             </button>
+        </div>
+    </div>
+
+    <!-- Student Selection Modal -->
+    <div id="studentSelectorModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 1rem;">
+        <div class="glass-panel" style="width: 100%; max-width: 900px; height: 90vh; display: flex; flex-direction: column; background: white; padding: 0;">
+            <div style="padding: 1.5rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1.2rem;"><i class="fa-solid fa-user-check"></i> Öğrenci Seçimi</h3>
+                <button class="btn" style="background: transparent; color: var(--gray-500); border: none; font-size: 1.5rem; cursor: pointer;" onclick="closeStudentSelectorModal()">&times;</button>
+            </div>
+            
+            <div style="padding: 1rem; border-bottom: 1px solid var(--gray-200); display: flex; gap: 10px;">
+                <select id="modalClassFilter" class="form-select-custom" style="flex: 1;" onchange="renderModalStudents()">
+                    <option value="">Tüm Sınıflar</option>
+                </select>
+                <input type="text" id="modalStudentSearch" class="form-select-custom" style="flex: 2;" placeholder="İsim veya numara ara..." onkeyup="renderModalStudents()">
+            </div>
+            
+            <div style="flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 5px;" id="modalStudentsList">
+                <!-- Students will be rendered here -->
+            </div>
+            
+            <div style="padding: 1rem; border-top: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-radius: 0 0 16px 16px;">
+                <div style="font-weight: 600; color: var(--primary);">
+                    Seçili: <span id="modalSelectedCount">0</span> öğrenci
+                </div>
+                <button class="btn-primary" style="width: auto; padding: 0.5rem 2rem;" onclick="closeStudentSelectorModal()">Tamam</button>
+            </div>
         </div>
     </div>
 
@@ -336,7 +367,77 @@
             
             document.getElementById('normalOptions').style.display = (listType === 'normal') ? 'block' : 'none';
             document.getElementById('emptyClassOptions').style.display = (listType === 'empty_class') ? 'block' : 'none';
-            document.getElementById('clubTemplateOptions').style.display = (listType === 'club_template') ? 'block' : 'none';
+            document.getElementById('karmaClubOptions').style.display = (listType === 'karma_club') ? 'block' : 'none';
+        }
+
+        let allStudentsForModal = [];
+        let selectedStudentsSet = new Set(); // store 'class_no'
+
+        function openStudentSelectorModal() {
+            allStudentsForModal = DataManager.getStudents();
+            
+            // Populate class filter
+            const classes = [...new Set(allStudentsForModal.map(s => s.class))].sort();
+            const select = document.getElementById('modalClassFilter');
+            select.innerHTML = '<option value="">Tüm Sınıflar</option>' + classes.map(c => `<option value="${c}">${c}</option>`).join('');
+            
+            document.getElementById('studentSelectorModal').style.display = 'flex';
+            renderModalStudents();
+        }
+
+        function closeStudentSelectorModal() {
+            document.getElementById('studentSelectorModal').style.display = 'none';
+            document.getElementById('selectedStudentCount').innerText = selectedStudentsSet.size;
+        }
+
+        function renderModalStudents() {
+            const filterClass = document.getElementById('modalClassFilter').value;
+            const filterText = document.getElementById('modalStudentSearch').value.toLowerCase();
+            
+            let filtered = allStudentsForModal.filter(s => {
+                if (filterClass && s.class !== filterClass) return false;
+                if (filterText) {
+                    const searchStr = `${s.no} ${s.name} ${s.surname}`.toLowerCase();
+                    if (!searchStr.includes(filterText)) return false;
+                }
+                return true;
+            });
+            
+            // Sort by class then no
+            filtered.sort((a, b) => {
+                const clsCmp = (a.class || '').localeCompare(b.class || '');
+                if (clsCmp !== 0) return clsCmp;
+                return (parseInt(a.no) || 0) - (parseInt(b.no) || 0);
+            });
+
+            const listContainer = document.getElementById('modalStudentsList');
+            let html = '';
+            
+            filtered.forEach(s => {
+                const uid = `${s.class}_${s.no}`;
+                const isChecked = selectedStudentsSet.has(uid) ? 'checked' : '';
+                const alanStr = (s.alan || s.track || s.field || s.group) ? ` (${s.alan || s.track || s.field || s.group})` : '';
+                
+                html += `
+                    <label class="class-checkbox-label" style="justify-content: flex-start;">
+                        <input type="checkbox" value="${uid}" ${isChecked} onchange="toggleStudentSelection(this, '${uid}')">
+                        <span style="width: 50px; display:inline-block; font-weight: bold; color: var(--primary);">${s.class}</span>
+                        <span style="width: 50px; display:inline-block; color: var(--gray-500);">${s.no}</span>
+                        <span>${s.name} ${s.surname || ''}${alanStr}</span>
+                    </label>
+                `;
+            });
+            
+            listContainer.innerHTML = html;
+        }
+
+        function toggleStudentSelection(checkbox, uid) {
+            if (checkbox.checked) {
+                selectedStudentsSet.add(uid);
+            } else {
+                selectedStudentsSet.delete(uid);
+            }
+            document.getElementById('modalSelectedCount').innerText = selectedStudentsSet.size;
         }
 
         async function showMainPanel() {
@@ -429,6 +530,11 @@
             }
 
             const listType = document.querySelector('input[name="listType"]:checked').value;
+            
+            if (listType === 'karma_club' && selectedStudentsSet.size === 0) {
+                Swal.fire('Uyarı', 'Lütfen karma liste için "Öğrencileri Seç" butonundan en az bir öğrenci seçin.', 'warning');
+                return;
+            }
 
             const config = {
                 classes: selectedClasses,
@@ -438,7 +544,8 @@
                 mergeClasses: listType === 'normal' ? document.getElementById('mergeClasses').checked : false,
                 emptyClassTitle: document.getElementById('emptyClassTitle').value.trim() || 'Sınıf Listesi',
                 showAlanInEmpty: document.getElementById('showAlanInEmpty').checked,
-                clubTemplateTitle: document.getElementById('clubTemplateTitle').value.trim() || 'Kulüp Öğrenci Listesi'
+                karmaClubTitle: document.getElementById('karmaClubTitle').value.trim() || 'Karma Öğrenci Listesi',
+                selectedKarmaStudents: Array.from(selectedStudentsSet)
             };
 
             localStorage.setItem('listeciConfig', JSON.stringify(config));
