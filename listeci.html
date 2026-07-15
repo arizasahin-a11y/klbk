@@ -407,13 +407,13 @@
             if (!isLoggedIn || !user) {
                 document.getElementById('loginPanel').style.display = 'flex';
                 
-                // Okul adını getir ve yaz
-                DataManager.initCloud().then(() => {
-                    const settings = DataManager.getSchoolSettings();
-                    if(settings && settings.schoolName) {
-                        document.getElementById('loginSchoolName').innerText = settings.schoolName;
-                    }
-                }).catch(e => console.error("Okul adı yüklenirken hata:", e));
+                // Okul adını getir ve yaz (önceki girişten)
+                const lastSchoolName = localStorage.getItem('klbk_lastSchoolName');
+                if (lastSchoolName) {
+                    document.getElementById('loginSchoolName').innerText = lastSchoolName;
+                } else {
+                    document.getElementById('loginSchoolName').style.display = 'none';
+                }
                 
             } else {
                 showMainPanel();
@@ -642,6 +642,9 @@
             try {
                 await DataManager.initCloud();
                 window.schoolData = DataManager.getSchoolSettings();
+                if(window.schoolData && window.schoolData.schoolName) {
+                    localStorage.setItem('klbk_lastSchoolName', window.schoolData.schoolName);
+                }
             } catch (e) {
                 console.error("Data fetch error", e);
             }
