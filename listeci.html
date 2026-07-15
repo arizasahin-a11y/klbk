@@ -201,7 +201,26 @@
                     <input type="checkbox" id="mergeClasses" class="class-checkbox">
                     <span>Tümünü Tek Listede Birleştir (Karma Liste)</span>
                 </label>
-                <small style="color: var(--gray-500); margin-top: 5px; display: block;">İşaretlenmezse, her sınıf ayrı sayfalara (kağıtlara) yazdırılır.</small>
+                <small style="color: var(--gray-500); margin-top: 5px; display: block;">İşaretlenmezse, her sınıf ayrı sayfalara (kağıtlara) yazdırılır. Karma liste seçildiğinde "Sınıfı" sütunu otomatik eklenir.</small>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fa-solid fa-file"></i> Boş Liste (Şablon) Seçenekleri</label>
+                <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+                    <input type="checkbox" id="emptyList" class="class-checkbox" onchange="toggleEmptyListOptions()">
+                    <span>Boş Şablon Yazdır (Öğrenci isimleri olmadan sadece tablo)</span>
+                </label>
+                
+                <div id="emptyListOptions" style="display: none; margin-top: 10px; padding-left: 20px; border-left: 2px solid var(--primary-light);">
+                    <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center; margin-bottom: 5px;">
+                        <input type="checkbox" id="showAlanInEmpty" class="class-checkbox">
+                        <span>Alan Sütunu Görünsün mü?</span>
+                    </label>
+                    <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center;">
+                        <input type="checkbox" id="hideNameInEmpty" class="class-checkbox">
+                        <span>Adı Soyadı Sütununu Gizle (Kulüp vb. listeler için)</span>
+                    </label>
+                </div>
             </div>
 
             <div class="form-group">
@@ -298,6 +317,16 @@
             }
         }
 
+        function toggleEmptyListOptions() {
+            const emptyList = document.getElementById('emptyList').checked;
+            const optionsGroup = document.getElementById('emptyListOptions');
+            if (emptyList) {
+                optionsGroup.style.display = 'block';
+            } else {
+                optionsGroup.style.display = 'none';
+            }
+        }
+
         async function showMainPanel() {
             document.getElementById('loginPanel').style.display = 'none';
             document.getElementById('mainPanel').style.display = 'block';
@@ -386,7 +415,10 @@
                 classes: selectedClasses,
                 titleSuffix: titleSuffix,
                 blankColumns: blankCols,
-                mergeClasses: document.getElementById('mergeClasses').checked
+                mergeClasses: document.getElementById('mergeClasses').checked,
+                emptyList: document.getElementById('emptyList').checked,
+                showAlanInEmpty: document.getElementById('showAlanInEmpty').checked,
+                hideNameInEmpty: document.getElementById('hideNameInEmpty').checked
             };
 
             localStorage.setItem('listeciConfig', JSON.stringify(config));

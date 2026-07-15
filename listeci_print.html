@@ -128,6 +128,7 @@
         .header-row-2 th { height: 50px; } /* 2 satır yüksekliğinde */
 
         .col-sira { width: 25px; text-align: center !important; }
+        .col-sinif { width: 40px; text-align: center !important; font-weight: bold; }
         .col-alan { width: 35px; text-align: center !important; }
         .col-okulno { width: 45px; text-align: center !important; }
         .col-ad { 
@@ -219,6 +220,9 @@
             const titleSuffix = config.titleSuffix || '';
             const blankColumnsCount = config.blankColumns || 1;
             const mergeClasses = config.mergeClasses || false;
+            const emptyList = config.emptyList || false;
+            const showAlanInEmpty = config.showAlanInEmpty || false;
+            const hideNameInEmpty = config.hideNameInEmpty || false;
 
             const allDataStudents = DataManager.getStudents();
             if (!allDataStudents || allDataStudents.length === 0) {
@@ -260,6 +264,7 @@
 
             function generatePage(title, studentsSubset, startIndex, showAlan) {
                 let rowsHtml = '';
+                const showSinif = mergeClasses; // Sınıfı column added if mergeClasses is true
                 
                 // Add 40 rows exactly
                 for (let i = 0; i < rowsPerPage; i++) {
@@ -269,29 +274,35 @@
                         blankCells += `<td class="col-blank"></td>`;
                     }
 
-                    if (s) {
+                    if (s && !emptyList) {
                         const alanVal = s.alan || s.track || s.field || s.group || '';
                         const alanTd = showAlan ? `<td class="col-alan">${alanVal}</td>` : '';
+                        const sinifTd = showSinif ? `<td class="col-sinif">${s.class || ''}</td>` : '';
                         const formattedName = formatName(s.name, s.surname);
+                        const nameTd = hideNameInEmpty ? '' : `<td class="col-ad">${formattedName}</td>`;
                         
                         rowsHtml += `
                             <tr>
                                 <td class="col-sira">${startIndex + i}</td>
+                                ${sinifTd}
                                 ${alanTd}
-                                <td class="col-okulno">${s.no}</td>
-                                <td class="col-ad">${formattedName}</td>
+                                <td class="col-okulno">${s.no || ''}</td>
+                                ${nameTd}
                                 ${blankCells}
                             </tr>
                         `;
                     } else {
                         // Empty row
                         const alanTd = showAlan ? `<td class="col-alan"></td>` : '';
+                        const sinifTd = showSinif ? `<td class="col-sinif"></td>` : '';
+                        const nameTd = hideNameInEmpty ? '' : `<td class="col-ad"></td>`;
                         rowsHtml += `
                             <tr>
                                 <td class="col-sira">${startIndex + i}</td>
+                                ${sinifTd}
                                 ${alanTd}
                                 <td class="col-okulno"></td>
-                                <td class="col-ad"></td>
+                                ${nameTd}
                                 ${blankCells}
                             </tr>
                         `;
@@ -299,6 +310,8 @@
                 }
 
                 const alanTh = showAlan ? `<th rowspan="2" class="col-alan"><div class="rotated-header">ALAN</div></th>` : '';
+                const sinifTh = showSinif ? `<th rowspan="2" class="col-sinif"><div class="rotated-header">SINIFI</div></th>` : '';
+                const nameTh = hideNameInEmpty ? '' : `<th rowspan="2" class="col-ad">ÖĞRENCİNİN ADI SOYADI</th>`;
                 
                 let blankHeadersRow2 = '';
                 if (blankColumnsCount > 0) {
@@ -320,9 +333,10 @@
                                 <thead>
                                     <tr class="header-row-1">
                                         <th rowspan="2" class="col-sira"><div class="rotated-header">SIRA</div></th>
+                                        ${sinifTh}
                                         ${alanTh}
                                         <th rowspan="2" class="col-okulno"><div class="rotated-header">NUMARA</div></th>
-                                        <th rowspan="2" class="col-ad">ÖĞRENCİNİN ADI SOYADI</th>
+                                        ${nameTh}
                                         ${blankHeadersRow1}
                                     </tr>
                                     <tr class="header-row-2">
@@ -340,7 +354,13 @@
 
             function processStudentList(title, studentList) {
                 // Check if any student has an alan
-                const hasAlan = studentList.some(s => s.alan || s.track || s.field || s.group);
+                let hasAlan = false;
+                if (emptyList) {
+                    hasAlan = showAlanInEmpty;
+                    studentList = []; // Force empty
+                } else {
+                    hasAlan = studentList.some(s => s.alan || s.track || s.field || s.group);
+                }
                 
                 // Sort
                 studentList.sort((a, b) => {
