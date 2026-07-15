@@ -262,9 +262,17 @@
             }
         });
 
-        function showMainPanel() {
+        async function showMainPanel() {
             document.getElementById('loginPanel').style.display = 'none';
             document.getElementById('mainPanel').style.display = 'block';
+            
+            try {
+                await DataManager.initCloud();
+                window.schoolData = DataManager.getSchoolSettings();
+            } catch (e) {
+                console.error("Data fetch error", e);
+            }
+            
             loadClasses();
         }
 

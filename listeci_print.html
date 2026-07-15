@@ -149,7 +149,13 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await DataManager.initCloud();
+                window.schoolData = DataManager.getSchoolSettings();
+            } catch (e) {
+                console.error("Data fetch error", e);
+            }
             generateContent();
         });
 
