@@ -2455,6 +2455,31 @@
                                 text: `${diffH}:${diffM}:${diffS}`,
                                 isCurrent: isCurrent
                             };
+                            
+                            // Otomatik Ders Geçişi
+                            if (isCurrent && String(nextOrCurrentHour) !== window._lastAutoDetectedHour) {
+                                window._lastAutoDetectedHour = String(nextOrCurrentHour);
+                                const hourSelect = document.getElementById('lessonHour');
+                                if (hourSelect && hourSelect.value !== String(nextOrCurrentHour)) {
+                                    hourSelect.value = String(nextOrCurrentHour);
+                                    
+                                    const Toast = Swal.mixin({
+                                        toast: true,
+                                        position: 'top-end',
+                                        showConfirmButton: false,
+                                        timer: 4000,
+                                        timerProgressBar: true
+                                    });
+                                    Toast.fire({
+                                        icon: 'info',
+                                        title: `Zamanı geldiği için otomatik olarak ${nextOrCurrentHour}. Derse geçildi.`
+                                    });
+                                    
+                                    if (typeof checkAndAutoDetectClass === 'function') {
+                                        checkAndAutoDetectClass();
+                                    }
+                                }
+                            }
                         }
                     }
                 }
