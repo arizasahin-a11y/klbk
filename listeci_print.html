@@ -171,16 +171,24 @@
             const titleSuffix = config.titleSuffix;
             const blankColumnsCount = config.blankColumns;
 
-            if (typeof schoolData === 'undefined' || !schoolData.classes) {
-                document.getElementById('pageContainer').innerHTML = '<h3 style="color:red; text-align:center;">Veri Yüklenemedi!</h3>';
+            const allDataStudents = DataManager.getStudents();
+            if (!allDataStudents || allDataStudents.length === 0) {
+                document.getElementById('pageContainer').innerHTML = '<h3 style="color:red; text-align:center;">Veri Yüklenemedi! (Öğrenci Listesi Boş)</h3>';
                 return;
             }
+
+            // Group students by class
+            const classGroups = {};
+            allDataStudents.forEach(s => {
+                if (!classGroups[s.class]) classGroups[s.class] = [];
+                classGroups[s.class].push(s);
+            });
 
             // Combine students
             let allStudents = [];
             classesToFetch.forEach(cls => {
-                if (schoolData.classes[cls]) {
-                    schoolData.classes[cls].forEach(s => {
+                if (classGroups[cls]) {
+                    classGroups[cls].forEach(s => {
                         allStudents.push({
                             className: cls,
                             no: s.no,

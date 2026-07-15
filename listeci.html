@@ -279,9 +279,17 @@
 
         function loadClasses() {
             const container = document.getElementById('classesContainer');
-            if (typeof schoolData !== 'undefined' && schoolData.classes) {
+            const students = DataManager.getStudents();
+            
+            if (students && students.length > 0) {
+                const classGroups = {};
+                students.forEach(s => {
+                    if (!classGroups[s.class]) classGroups[s.class] = [];
+                    classGroups[s.class].push(s);
+                });
+
                 let html = '';
-                const classes = Object.keys(schoolData.classes).sort((a, b) => {
+                const classes = Object.keys(classGroups).sort((a, b) => {
                     const numA = parseInt(a.match(/\d+/)) || 0;
                     const numB = parseInt(b.match(/\d+/)) || 0;
                     if (numA !== numB) return numA - numB;
@@ -298,7 +306,7 @@
                 });
                 container.innerHTML = html;
             } else {
-                container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: red;">Sınıf verileri yüklenemedi. Lütfen internet bağlantınızı kontrol edin veya sayfayı yenileyin.</div>';
+                container.innerHTML = '<div style="grid-column: 1 / -1; color: red; text-align: center; padding: 1rem;">Sınıf verileri bulunamadı. Lütfen önce Okul Yönetim Panelinden öğrenci verilerini yükleyin.</div>';
             }
         }
 
