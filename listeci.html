@@ -117,8 +117,8 @@
         .class-checkbox-label {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
+            gap: 10px;
+            padding: 10px 12px;
             background: white;
             border: 1px solid var(--gray-200);
             border-radius: 8px;
@@ -126,6 +126,7 @@
             font-weight: 600;
             color: var(--dark);
             transition: all 0.2s;
+            line-height: 1;
         }
 
         .class-checkbox-label:hover {
@@ -135,8 +136,11 @@
 
         .class-checkbox-label input[type="checkbox"] {
             accent-color: var(--primary);
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            flex-shrink: 0;
+            display: block;
         }
 
         .btn-primary {
