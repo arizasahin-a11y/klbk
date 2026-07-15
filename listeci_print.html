@@ -220,9 +220,8 @@
             const titleSuffix = config.titleSuffix || '';
             const blankColumnsCount = config.blankColumns || 1;
             const listType = config.listType || 'normal';
-            const mergeClasses = config.mergeClasses || false;
-            const emptyClassTitle = config.emptyClassTitle || 'Sınıf Listesi';
-            const showAlanInEmpty = config.showAlanInEmpty || false;
+            const emptyTemplateTitle = config.emptyTemplateTitle || 'Boş Liste';
+            const showAlanInEmptyTemplate = config.showAlanInEmptyTemplate || false;
             const karmaClubTitle = config.karmaClubTitle || 'Karma Öğrenci Listesi';
             const selectedKarmaStudents = config.selectedKarmaStudents || [];
 
@@ -269,8 +268,8 @@
             function generatePage(title, studentsSubset, startIndex, showAlan) {
                 let rowsHtml = '';
                 const isKarmaClub = listType === 'karma_club';
-                const isEmptyClass = listType === 'empty_class';
-                const showSinif = mergeClasses || isKarmaClub; // Sınıfı column added for mergeClasses or karma club
+                const isEmptyTemplate = listType === 'empty_template';
+                const showSinif = isKarmaClub; // Sınıfı column added for karma club
                 
                 // Add 40 rows exactly
                 for (let i = 0; i < rowsPerPage; i++) {
@@ -280,7 +279,7 @@
                         blankCells += `<td class="col-blank"></td>`;
                     }
 
-                    if (s && !isEmptyClass) {
+                    if (s && !isEmptyTemplate) {
                         const alanVal = s.alan || s.track || s.field || s.group || '';
                         const alanTd = showAlan ? `<td class="col-alan">${alanVal}</td>` : '';
                         const sinifTd = showSinif ? `<td class="col-sinif">${s.class || ''}</td>` : '';
@@ -360,8 +359,8 @@
 
             function processStudentList(title, studentList) {
                 let hasAlan = false;
-                if (listType === 'empty_class') {
-                    hasAlan = showAlanInEmpty;
+                if (listType === 'empty_template') {
+                    hasAlan = showAlanInEmptyTemplate;
                     studentList = []; // Force empty
                 } else if (listType === 'karma_club') {
                     hasAlan = false; // Usually not needed, but we check if any selected has it
@@ -373,7 +372,7 @@
                 // Sort
                 studentList.sort((a, b) => {
                     const clsCmp = (a.class || '').localeCompare(b.class || '');
-                    if (clsCmp !== 0 && (mergeClasses || listType === 'karma_club')) return clsCmp;
+                    if (clsCmp !== 0 && (listType === 'karma_club')) return clsCmp;
                     const noA = parseInt(a.no) || 0;
                     const noB = parseInt(b.no) || 0;
                     return noA - noB;
@@ -395,20 +394,9 @@
                 const karmaList = allDataStudents.filter(s => selectedSet.has(`${s.class}_${s.no}`));
                 pagesHtml = processStudentList(karmaClubTitle, karmaList);
                 document.title = karmaClubTitle;
-            } else if (mergeClasses) {
-                let allStudents = [];
-                let displayNames = [];
-                classesToFetch.forEach(key => {
-                    if (classGroups[key]) {
-                        allStudents.push(...classGroups[key]);
-                        const [cls, alan] = key.split('|');
-                        displayNames.push(alan ? `${cls} ${alan}` : cls);
-                    }
-                });
-                let classNamesText = displayNames.length > 3 ? "KARMA SINIF" : displayNames.join(', ') + " SINIFI";
-                let fullTitle = `${classNamesText} ${titleSuffix}`.trim();
-                pagesHtml = processStudentList(fullTitle, allStudents);
-                document.title = fullTitle;
+            } else if (listType === 'empty_template') {
+                pagesHtml = processStudentList(emptyTemplateTitle, []);
+                document.title = emptyTemplateTitle;
             } else {
                 classesToFetch.forEach(key => {
                     let students = classGroups[key] ? [...classGroups[key]] : [];
@@ -417,12 +405,7 @@
                     const alan = parts.length > 1 ? parts[1] : '';
                     const classNameWithAlan = alan ? `${cls} ${alan}` : cls;
                     
-                    let fullTitle = '';
-                    if (listType === 'empty_class') {
-                        fullTitle = `${classNameWithAlan} ${emptyClassTitle}`.trim();
-                    } else {
-                        fullTitle = `${classNameWithAlan} SINIFI ${titleSuffix}`.trim();
-                    }
+                    let fullTitle = `${classNameWithAlan} SINIFI ${titleSuffix}`.trim();
                     pagesHtml += processStudentList(fullTitle, students);
                 });
                 let docTitleParts = classesToFetch.map(k => k.replace('|', '_'));
@@ -440,11 +423,10 @@
                 const config = JSON.parse(configStr);
                 const listType = config.listType || 'normal';
                 
-                if (listType === 'club_template') {
-                    filename = `${config.clubTemplateTitle || 'Kulup_Listesi'}.pdf`.replace(/\s+/g, '_');
-                } else if (listType === 'empty_class') {
-                    let classNamesText = config.classes.length > 3 ? "KARMA" : config.classes.map(k => k.replace('|', '_')).join('_');
-                    filename = `${classNamesText}_${config.emptyClassTitle || 'Sinif_Listesi'}.pdf`.replace(/\s+/g, '_');
+                if (listType === 'karma_club') {
+                    filename = `${config.karmaClubTitle || 'Karma_Listesi'}.pdf`.replace(/\s+/g, '_');
+                } else if (listType === 'empty_template') {
+                    filename = `${config.emptyTemplateTitle || 'Bos_Liste'}.pdf`.replace(/\s+/g, '_');
                 } else {
                     let classNamesText = config.classes.length > 3 ? "KARMA" : config.classes.map(k => k.replace('|', '_')).join('_');
                     filename = `${classNamesText}_${config.titleSuffix || 'Liste'}.pdf`.replace(/\s+/g, '_');
