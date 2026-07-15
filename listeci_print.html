@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script src="js/core_data_v11_9_1.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
@@ -50,6 +51,11 @@
 
         .btn-pdf {
             background: #ef4444;
+            color: white;
+        }
+
+        .btn-excel {
+            background: #10b981;
             color: white;
         }
 
@@ -177,6 +183,9 @@
             <h2 style="margin: 0; font-size: 1.2rem; color: #1e293b;"><i class="fa-solid fa-file-lines"></i> Liste Önizleme</h2>
         </div>
         <div style="display: flex; gap: 10px;">
+            <button class="btn btn-excel" onclick="downloadExcel()">
+                <i class="fa-solid fa-file-excel"></i> Excel İndir
+            </button>
             <button class="btn btn-print" onclick="window.print()">
                 <i class="fa-solid fa-print"></i> Yazdır
             </button>
@@ -471,6 +480,67 @@
                 console.error(err);
             });
         }
+
+        function downloadExcel() {
+            if (typeof XLSX === 'undefined') {
+                Swal.fire('Hata', 'Excel kütüphanesi yüklenemedi. Lütfen internet bağlantınızı kontrol edin.', 'error');
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+            const pages = document.querySelectorAll('.print-page');
+            
+            if (pages.length === 0) {
+                Swal.fire('Uyarı', 'İndirilecek tablo bulunamadı.', 'warning');
+                return;
+            }
+
+            pages.forEach((page, index) => {
+                const titleEl = page.querySelector('.doc-title');
+                let titleText = titleEl ? titleEl.innerText.trim() : `Sayfa_${index + 1}`;
+                
+                // Sheet names must be <= 31 chars and no illegal chars
+                let sheetName = titleText.replace(/[?*:\\[\]/]/g, '_').substring(0, 31);
+                
+                // Ensure unique sheet name
+                let finalSheetName = sheetName;
+                let counter = 1;
+                while (wb.SheetNames.includes(finalSheetName)) {
+                    const suffix = `(${counter})`;
+                    finalSheetName = sheetName.substring(0, 31 - suffix.length) + suffix;
+                    counter++;
+                }
+
+                const table = page.querySelector('table');
+                if (table) {
+                    const ws = XLSX.utils.table_to_sheet(table);
+                    XLSX.utils.book_append_sheet(wb, ws, finalSheetName);
+                }
+            });
+
+            const configStr = localStorage.getItem('listeciConfig');
+            let filenameToSave = 'Liste';
+            if (configStr) {
+                const config = JSON.parse(configStr);
+                const listType = config.listType || 'normal';
+                
+                if (listType === 'karma_club') {
+                    filenameToSave = config.karmaClubTitle || 'Karma_Listesi';
+                } else if (listType === 'empty_template') {
+                    filenameToSave = config.emptyTemplateTitle || 'Bos_Liste';
+                } else {
+                    let classNamesText = config.classes.length > 3 ? "KARMA" : config.classes.map(k => k.replace('|_ALL_', '_Tumu').replace('|', '_')).join('_');
+                    filenameToSave = `${classNamesText}_${config.titleSuffix || 'Liste'}`;
+                }
+            }
+            
+            filenameToSave = filenameToSave.replace(/\s+/g, '_') + '.xlsx';
+            XLSX.writeFile(wb, filenameToSave);
+        }
+
+        window.onload = function() {
+            generateContent();
+        };
     </script>
 </body>
 </html>
