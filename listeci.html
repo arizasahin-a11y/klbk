@@ -236,6 +236,7 @@
                         sessionStorage.setItem('klbk_currentUser', user);
                         sessionStorage.setItem('klbk_role', userObj.role || 'ogretmen');
                         sessionStorage.setItem('klbk_name', userObj.name || user);
+                        sessionStorage.setItem('klbk_storeKey', userObj.storeKey || ('klbk_data_' + user));
                         
                         Swal.close();
                         showMainPanel();
