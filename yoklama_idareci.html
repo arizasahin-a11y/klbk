@@ -439,7 +439,7 @@
 
         <!-- Dynamic Stats Grid -->
         <div class="stat-grid">
-            <div class="stat-card-custom glass-panel">
+            <div class="stat-card-custom glass-panel" style="cursor: pointer;" onclick="showTodayList('absent')">
                 <div class="stat-icon-custom" style="background: var(--gelmedi-color);">
                     <i class="fa-solid fa-user-xmark"></i>
                 </div>
@@ -449,7 +449,7 @@
                 </div>
             </div>
 
-            <div class="stat-card-custom glass-panel">
+            <div class="stat-card-custom glass-panel" style="cursor: pointer;" onclick="showTodayList('late')">
                 <div class="stat-icon-custom" style="background: var(--gec-color);">
                     <i class="fa-solid fa-clock"></i>
                 </div>
@@ -1155,6 +1155,8 @@
         function computeOverallStats() {
             let todayAbsentCount = 0;
             let todayLateCount = 0;
+            let todayAbsentSet = new Set();
+            let todayLateSet = new Set();
 
             const todayStr = new Date().toISOString().slice(0, 10);
             
@@ -1168,13 +1170,13 @@
 
                         Object.entries(record.records || {}).forEach(([no, status]) => {
                             if (status === 'GELMEDİ') {
-                                if (date === todayStr) todayAbsentCount++;
+                                if (date === todayStr) { todayAbsentCount++; todayAbsentSet.add(no); }
                                 studentAbsenceCounts[no] = (studentAbsenceCounts[no] || 0) + 1;
                             } else if (status === 'GEÇ') {
-                                if (date === todayStr) todayLateCount++;
+                                if (date === todayStr) { todayLateCount++; todayLateSet.add(no); }
                                 studentLateCounts[no] = (studentLateCounts[no] || 0) + 1;
                             } else if (status === 'DİĞER') {
-                                if (date === todayStr) todayAbsentCount++; // counts as absentee for school safety
+                                if (date === todayStr) { todayAbsentCount++; todayAbsentSet.add(no); } // counts as absentee for school safety
                             }
                         });
                     }
@@ -1203,7 +1205,68 @@
 
             document.getElementById('statWorstStudent').textContent = worstStudentArr.length > 0 ? `${worstStudentArr[0].name} ${worstStudentArr[0].surname || ''} (${worstStudentArr[0].count})` : '-';
             document.getElementById('statMostLateStudent').textContent = mostLateStudentArr.length > 0 ? `${mostLateStudentArr[0].name} ${mostLateStudentArr[0].surname || ''} (${mostLateStudentArr[0].count})` : '-';
+
+            window.todayAbsentList = Array.from(todayAbsentSet).map(no => allStudents.find(s => s.no === no) || {no: no, name: 'Bilinmiyor'}).filter(s => s.name !== 'Bilinmiyor');
+            window.todayLateList = Array.from(todayLateSet).map(no => allStudents.find(s => s.no === no) || {no: no, name: 'Bilinmiyor'}).filter(s => s.name !== 'Bilinmiyor');
         }
+
+        window.showTodayList = function(type) {
+            let list = [];
+            let title = '';
+            
+            if (type === 'absent') {
+                list = window.todayAbsentList || [];
+                title = 'Bugün Devamsız Olan Öğrenciler';
+            } else if (type === 'late') {
+                list = window.todayLateList || [];
+                title = 'Bugün Geç Kalan Öğrenciler';
+            }
+            
+            if (list.length === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Kayıt Yok',
+                    text: 'Bugün için kayıt bulunmuyor.',
+                    confirmButtonColor: '#0ea5e9'
+                });
+                return;
+            }
+            
+            list.sort((a,b) => {
+                if (a.class && b.class && a.class !== b.class) return a.class.localeCompare(b.class);
+                return parseInt(a.no || 0) - parseInt(b.no || 0);
+            });
+            
+            let html = `<div style="max-height: 300px; overflow-y: auto; text-align: left; margin-top: 15px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.95rem;">
+                    <thead>
+                        <tr>
+                            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0; text-align:left; position: sticky; top: 0; background: white; z-index: 1;">Sınıf</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0; text-align:left; position: sticky; top: 0; background: white; z-index: 1;">No</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #e2e8f0; text-align:left; position: sticky; top: 0; background: white; z-index: 1;">Ad Soyad</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            list.forEach(s => {
+                html += `
+                    <tr>
+                        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${s.class || '-'}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${s.no}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${s.name} ${s.surname || ''}</td>
+                    </tr>`;
+            });
+            
+            html += `</tbody></table></div>`;
+            
+            Swal.fire({
+                title: title,
+                html: html,
+                width: '600px',
+                confirmButtonText: 'Kapat',
+                confirmButtonColor: '#0ea5e9'
+            });
+        };
 
         window.showWorstStudents = function(type) {
             let list = [];
