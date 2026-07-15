@@ -60,53 +60,76 @@
 
         .page-container {
             width: 210mm; /* A4 width */
-            min-height: 297mm; /* A4 height */
             margin: 2rem auto;
             background: white;
-            padding: 15mm; /* Page margins */
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             box-sizing: border-box;
         }
 
+        .print-page {
+            width: 210mm;
+            height: 296mm; /* A4 height */
+            padding: 10mm 15mm;
+            box-sizing: border-box;
+            page-break-after: always;
+            position: relative;
+            background: white;
+            overflow: hidden;
+        }
+
+        .print-page:last-child {
+            page-break-after: auto;
+        }
+
         .doc-header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .doc-title {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: 700;
-            margin: 0 0 10px 0;
+            margin: 0;
             text-transform: uppercase;
         }
 
         .print-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 14px;
+            font-size: 11pt; /* Adjusted for 40 rows */
         }
 
         .print-table th, .print-table td {
             border: 1px solid #000;
-            padding: 8px 6px;
+            padding: 2px 4px;
             text-align: left;
+            height: 22px; /* Fixed height to ensure 40 rows fit */
         }
 
         .print-table th {
-            background-color: #f3f4f6;
             font-weight: bold;
+            text-align: center;
+            height: 80px; /* Space for rotated text */
         }
 
-        .col-sira { width: 40px; text-align: center !important; }
-        .col-sinif { width: 60px; text-align: center !important; }
-        .col-okulno { width: 60px; text-align: center !important; }
-        .col-ad { width: auto; }
-        .col-blank { width: 80px; } /* Empty columns width */
+        .col-sira { width: 30px; text-align: center !important; }
+        .col-alan { width: 40px; text-align: center !important; }
+        .col-okulno { width: 50px; text-align: center !important; }
+        .col-ad { width: auto; font-weight: bold; }
+        .col-blank { width: 30px; }
+
+        .rotated-header {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            white-space: nowrap;
+        }
 
         /* Print Media Queries */
         @media print {
             body {
                 background: white;
+                margin: 0;
+                padding: 0;
             }
             .action-bar {
                 display: none !important;
@@ -116,7 +139,10 @@
                 padding: 0;
                 box-shadow: none;
                 width: 100%;
-                min-height: auto;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 0; /* Remove browser margins */
             }
         }
     </style>
@@ -167,9 +193,10 @@
             }
 
             const config = JSON.parse(configStr);
-            const classesToFetch = config.classes; // array of class names
-            const titleSuffix = config.titleSuffix;
-            const blankColumnsCount = config.blankColumns;
+            const classesToFetch = config.classes || [];
+            const titleSuffix = config.titleSuffix || '';
+            const blankColumnsCount = config.blankColumns || 1;
+            const mergeClasses = config.mergeClasses || false;
 
             const allDataStudents = DataManager.getStudents();
             if (!allDataStudents || allDataStudents.length === 0) {
@@ -184,85 +211,123 @@
                 classGroups[s.class].push(s);
             });
 
-            // Combine students
-            let allStudents = [];
-            classesToFetch.forEach(cls => {
-                if (classGroups[cls]) {
-                    classGroups[cls].forEach(s => {
-                        allStudents.push({
-                            className: cls,
-                            no: s.no,
-                            name: s.name,
-                            surname: s.surname || ''
-                        });
-                    });
-                }
-            });
+            const rowsPerPage = 40;
+            let pagesHtml = '';
 
-            // Sort by Class Name, then by School No
-            allStudents.sort((a, b) => {
-                if (a.className !== b.className) {
-                    return a.className.localeCompare(b.className);
-                }
-                const noA = parseInt(a.no) || 0;
-                const noB = parseInt(b.no) || 0;
-                return noA - noB;
-            });
-
-            // Generate Title
-            let classNamesText = classesToFetch.length > 3 
-                ? "KARMA SINIF" 
-                : classesToFetch.join(', ');
-            
-            let fullTitle = `${classNamesText} SINIFI ${titleSuffix}`.trim();
-
-            // Generate Table Header
+            // Generate Blank Headers
             let blankHeaders = '';
             for (let i = 0; i < blankColumnsCount; i++) {
                 blankHeaders += `<th class="col-blank"></th>`;
             }
 
-            // Generate Table Rows
-            let rowsHtml = '';
-            allStudents.forEach((s, index) => {
-                let blankCells = '';
-                for (let i = 0; i < blankColumnsCount; i++) {
-                    blankCells += `<td></td>`;
+            function generatePage(title, studentsSubset, startIndex, showAlan) {
+                let rowsHtml = '';
+                
+                // Add 40 rows exactly
+                for (let i = 0; i < rowsPerPage; i++) {
+                    const s = studentsSubset[i];
+                    let blankCells = '';
+                    for (let j = 0; j < blankColumnsCount; j++) {
+                        blankCells += `<td></td>`;
+                    }
+
+                    if (s) {
+                        const alanVal = s.alan || s.track || s.field || s.group || '';
+                        const alanTd = showAlan ? `<td class="col-alan">${alanVal}</td>` : '';
+                        
+                        rowsHtml += `
+                            <tr>
+                                <td class="col-sira">${startIndex + i}</td>
+                                ${alanTd}
+                                <td class="col-okulno">${s.no}</td>
+                                <td class="col-ad">${s.name} ${s.surname || ''}</td>
+                                ${blankCells}
+                            </tr>
+                        `;
+                    } else {
+                        // Empty row
+                        const alanTd = showAlan ? `<td class="col-alan"></td>` : '';
+                        rowsHtml += `
+                            <tr>
+                                <td class="col-sira">${startIndex + i}</td>
+                                ${alanTd}
+                                <td class="col-okulno"></td>
+                                <td class="col-ad"></td>
+                                ${blankCells}
+                            </tr>
+                        `;
+                    }
                 }
 
-                rowsHtml += `
-                    <tr>
-                        <td class="col-sira">${index + 1}</td>
-                        <td class="col-sinif">${s.className}</td>
-                        <td class="col-okulno">${s.no}</td>
-                        <td class="col-ad">${s.name} ${s.surname}</td>
-                        ${blankCells}
-                    </tr>
+                const alanTh = showAlan ? `<th class="col-alan"><div class="rotated-header">ALAN</div></th>` : '';
+
+                return `
+                    <div class="print-page">
+                        <div class="doc-header">
+                            <h1 class="doc-title">${title}</h1>
+                        </div>
+                        <table class="print-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-sira"><div class="rotated-header">SIRA</div></th>
+                                    ${alanTh}
+                                    <th class="col-okulno"><div class="rotated-header">NUMARA</div></th>
+                                    <th class="col-ad">ÖĞRENCİNİN ADI SOYADI</th>
+                                    ${blankHeaders}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rowsHtml}
+                            </tbody>
+                        </table>
+                    </div>
                 `;
-            });
+            }
 
-            const html = `
-                <div class="doc-header">
-                    <h1 class="doc-title">${fullTitle}</h1>
-                </div>
-                <table class="print-table">
-                    <thead>
-                        <tr>
-                            <th class="col-sira">Sıra</th>
-                            <th class="col-sinif">Sınıf</th>
-                            <th class="col-okulno">Okul No</th>
-                            <th class="col-ad">Ad Soyad</th>
-                            ${blankHeaders}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rowsHtml}
-                    </tbody>
-                </table>
-            `;
+            function processStudentList(title, studentList) {
+                // Check if any student has an alan
+                const hasAlan = studentList.some(s => s.alan || s.track || s.field || s.group);
+                
+                // Sort
+                studentList.sort((a, b) => {
+                    if (a.class !== b.class && mergeClasses) {
+                        return (a.class || '').localeCompare(b.class || '');
+                    }
+                    const noA = parseInt(a.no) || 0;
+                    const noB = parseInt(b.no) || 0;
+                    return noA - noB;
+                });
 
-            document.getElementById('pageContainer').innerHTML = html;
-            document.title = fullTitle;
+                let html = '';
+                for (let i = 0; i < studentList.length; i += rowsPerPage) {
+                    const subset = studentList.slice(i, i + rowsPerPage);
+                    html += generatePage(title, subset, i + 1, hasAlan);
+                }
+                if (studentList.length === 0) {
+                     html += generatePage(title, [], 1, false);
+                }
+                return html;
+            }
+
+            if (mergeClasses) {
+                let allStudents = [];
+                classesToFetch.forEach(cls => {
+                    if (classGroups[cls]) allStudents.push(...classGroups[cls]);
+                });
+                let classNamesText = classesToFetch.length > 3 ? "KARMA SINIF" : classesToFetch.join(', ') + " SINIFI";
+                let fullTitle = `${classNamesText} ${titleSuffix}`.trim();
+                pagesHtml = processStudentList(fullTitle, allStudents);
+                document.title = fullTitle;
+            } else {
+                classesToFetch.forEach(cls => {
+                    let students = classGroups[cls] ? [...classGroups[cls]] : [];
+                    let fullTitle = `${cls} SINIFI ${titleSuffix}`.trim();
+                    pagesHtml += processStudentList(fullTitle, students);
+                });
+                document.title = `${classesToFetch.join('_')} Liste`;
+            }
+
+            document.getElementById('pageContainer').innerHTML = pagesHtml;
         }
 
         function downloadPDF() {

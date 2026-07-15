@@ -190,6 +190,15 @@
             </div>
 
             <div class="form-group">
+                <label><i class="fa-solid fa-layer-group"></i> Liste Düzeni</label>
+                <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+                    <input type="checkbox" id="mergeClasses" class="class-checkbox">
+                    <span>Tümünü Tek Listede Birleştir (Karma Liste)</span>
+                </label>
+                <small style="color: var(--gray-500); margin-top: 5px; display: block;">İşaretlenmezse, her sınıf ayrı sayfalara (kağıtlara) yazdırılır.</small>
+            </div>
+
+            <div class="form-group">
                 <label><i class="fa-solid fa-table-columns"></i> Eklenecek Boş Sütun Sayısı</label>
                 <input type="number" id="blankColumns" class="form-select-custom" value="1" min="0" max="10">
                 <small style="color: var(--gray-500); margin-top: 5px; display: block;">Sıra, Sınıf, Okul No ve Ad Soyad sütunlarına ek olarak kaç tane boş sütun ekleneceğini belirleyin.</small>
@@ -332,7 +341,8 @@
             const config = {
                 classes: selectedClasses,
                 titleSuffix: titleSuffix,
-                blankColumns: blankColumns
+                blankColumns: blankColumns,
+                mergeClasses: document.getElementById('mergeClasses').checked
             };
 
             localStorage.setItem('listeciConfig', JSON.stringify(config));
