@@ -2530,6 +2530,31 @@
                     }
                 }
                 
+                const currentIsCurrent = statusInfo ? statusInfo.isCurrent : false;
+                if (window._wasCurrent === true && currentIsCurrent === false) {
+                    const hourSelect = document.getElementById('lessonHour');
+                    const classSelect = document.getElementById('classSelect');
+                    if (hourSelect && classSelect) {
+                        hourSelect.value = "";
+                        classSelect.value = "";
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 4000,
+                            timerProgressBar: true
+                        });
+                        Toast.fire({
+                            icon: 'info',
+                            title: `Ders süresi bittiği için liste kaldırıldı.`
+                        });
+                        if (typeof checkAndAutoDetectClass === 'function') {
+                            checkAndAutoDetectClass();
+                        }
+                    }
+                }
+                window._wasCurrent = currentIsCurrent;
+                
                 if (statusInfo) {
                     if (statusInfo.isCurrent) {
                         neonLessonStatusContainer.style.color = '#ff073a';
