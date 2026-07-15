@@ -12,6 +12,7 @@
     { "src": "/yoklama_ogretmen(\\.html)?$", "dest": "/yoklama_ogretmen.html" },
     { "src": "/yoklama_idareci(\\.html)?$", "dest": "/yoklama_idareci.html" },
     { "src": "/security_error(\\.html)?$", "dest": "/404.html" },
-    { "handle": "filesystem" }
+    { "handle": "filesystem" },
+    { "src": "^/([^./]+)$", "dest": "/$1.html" }
   ]
 }
