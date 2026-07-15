@@ -205,9 +205,18 @@
             </div>
 
             <div class="form-group">
-                <label><i class="fa-solid fa-table-columns"></i> Eklenecek Boş Sütun Sayısı</label>
-                <input type="number" id="blankColumns" class="form-select-custom" value="1" min="0" max="20">
-                <small style="color: var(--gray-500); margin-top: 5px; display: block;">Sıra, Sınıf, Okul No ve Ad Soyad sütunlarına ek olarak kaç tane boş sütun ekleneceğini belirleyin.</small>
+                <label><i class="fa-solid fa-table-columns"></i> Boş Sütun Düzeni</label>
+                <select id="columnPreset" class="form-select-custom" onchange="toggleCustomColumns()">
+                    <option value="16">Dar Sütun (16 Sütun)</option>
+                    <option value="8">Geniş Sütun (8 Sütun)</option>
+                    <option value="custom">Özel Sütun Sayısı Belirle...</option>
+                </select>
+                <small style="color: var(--gray-500); margin-top: 5px; display: block;">Öğrenci bilgilerinin yanına eklenecek boş tablo sütunlarının sayısını seçin.</small>
+            </div>
+
+            <div class="form-group" id="customColumnGroup" style="display: none;">
+                <label><i class="fa-solid fa-pen"></i> Özel Boş Sütun Sayısı</label>
+                <input type="number" id="blankColumns" class="form-select-custom" value="16" min="0" max="30">
             </div>
 
             <button class="btn-primary" onclick="generateList()">
@@ -277,6 +286,17 @@
                 showMainPanel();
             }
         });
+
+        function toggleCustomColumns() {
+            const preset = document.getElementById('columnPreset').value;
+            const customGroup = document.getElementById('customColumnGroup');
+            if (preset === 'custom') {
+                customGroup.style.display = 'block';
+            } else {
+                customGroup.style.display = 'none';
+                document.getElementById('blankColumns').value = preset;
+            }
+        }
 
         async function showMainPanel() {
             document.getElementById('loginPanel').style.display = 'none';
@@ -356,12 +376,16 @@
             }
 
             const titleSuffix = document.getElementById('titleSuffix').value.trim();
-            const blankColumns = parseInt(document.getElementById('blankColumns').value) || 0;
+            let blankCols = parseInt(document.getElementById('blankColumns').value) || 0;
+            const preset = document.getElementById('columnPreset').value;
+            if (preset !== 'custom') {
+                blankCols = parseInt(preset);
+            }
 
             const config = {
                 classes: selectedClasses,
                 titleSuffix: titleSuffix,
-                blankColumns: blankColumns,
+                blankColumns: blankCols,
                 mergeClasses: document.getElementById('mergeClasses').checked
             };
 
