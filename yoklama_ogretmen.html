@@ -2133,6 +2133,20 @@
             return num < 10 ? '0' + num : num;
         }
 
+        let currentStatSortCol = 'gelmedi';
+        let currentStatSortOrder = 'desc';
+        let currentStatsArr = [];
+
+        function handleStatSort(col) {
+            if (currentStatSortCol === col) {
+                currentStatSortOrder = currentStatSortOrder === 'desc' ? 'asc' : 'desc';
+            } else {
+                currentStatSortCol = col;
+                currentStatSortOrder = 'desc';
+            }
+            renderStatisticsTable();
+        }
+
         function loadStatistics() {
             const container = document.getElementById('statisticsContainer');
             container.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--gray-500);"><i class="fa-solid fa-spinner fa-spin"></i> Hesaplanıyor...</div>';
@@ -2222,36 +2236,52 @@
             }
             
             const statsArr = Object.values(statsMap);
-            
-            // Sort primarily by gelmedi, then gec
-            statsArr.sort((a, b) => {
-                if (b.gelmedi !== a.gelmedi) return b.gelmedi - a.gelmedi;
-                return b.gec - a.gec;
-            });
-            
-            if (statsArr.length === 0) {
+            currentStatsArr = statsArr;
+            renderStatisticsTable();
+        }
+
+        function renderStatisticsTable() {
+            const container = document.getElementById('statisticsContainer');
+            if (!currentStatsArr || currentStatsArr.length === 0) {
                 container.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--gray-500);">
                     <i class="fa-solid fa-check-circle" style="font-size:3rem; color:#10b981; margin-bottom:1rem; display:block;"></i>
                     Seçili aralıkta derse devamsızlık yapan veya geç kalan öğrenci bulunmuyor.
                 </div>`;
                 return;
             }
-            
+
+            currentStatsArr.sort((a, b) => {
+                let valA = a[currentStatSortCol];
+                let valB = b[currentStatSortCol];
+                if (typeof valA === 'string') {
+                    return currentStatSortOrder === 'desc' ? valB.localeCompare(valA) : valA.localeCompare(valB);
+                } else {
+                    return currentStatSortOrder === 'desc' ? valB - valA : valA - valB;
+                }
+            });
+
+            const getSortIcon = (col) => {
+                if (currentStatSortCol !== col) return '<i class="fa-solid fa-sort" style="color:var(--gray-300); margin-left:5px;"></i>';
+                return currentStatSortOrder === 'desc' 
+                    ? '<i class="fa-solid fa-sort-down" style="color:var(--primary); margin-left:5px;"></i>' 
+                    : '<i class="fa-solid fa-sort-up" style="color:var(--primary); margin-left:5px;"></i>';
+            };
+
             let html = `
             <div class="table-responsive">
                 <table class="student-table" style="width:100%; border-collapse:collapse;">
                     <thead>
                         <tr>
-                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:left; color:var(--gray-500);">Öğrenci</th>
-                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500);">Gelmedi</th>
-                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500);">Geç Kalma</th>
-                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500);">Diğer</th>
-                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500);">Nöbetçi</th>
+                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:left; color:var(--gray-500); cursor:pointer;" onclick="handleStatSort('name')">Öğrenci ${getSortIcon('name')}</th>
+                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500); cursor:pointer;" onclick="handleStatSort('gelmedi')">Gelmedi ${getSortIcon('gelmedi')}</th>
+                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500); cursor:pointer;" onclick="handleStatSort('gec')">Geç Kalma ${getSortIcon('gec')}</th>
+                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500); cursor:pointer;" onclick="handleStatSort('diger')">Diğer ${getSortIcon('diger')}</th>
+                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500); cursor:pointer;" onclick="handleStatSort('nobetci')">Nöbetçi ${getSortIcon('nobetci')}</th>
                         </tr>
                     </thead>
                     <tbody>`;
             
-            statsArr.forEach(s => {
+            currentStatsArr.forEach(s => {
                 html += `
                     <tr style="border-bottom:1px solid var(--gray-100); transition:background 0.2s;" onmouseover="this.style.background='#fafbfc'" onmouseout="this.style.background='white'">
                         <td style="padding:1rem;">
