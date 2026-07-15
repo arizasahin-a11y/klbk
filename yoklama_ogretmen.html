@@ -700,9 +700,14 @@
         <!-- TAB 2: Geçmiş Yoklamalarım -->
         <div id="tabGecmis" class="tab-content hidden">
             <div class="glass-panel" style="padding: 2rem;">
-                <h3 style="font-weight: 800; font-size: 1.25rem; margin-bottom: 1.5rem; color: var(--dark); display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-clock-rotate-left"></i> Aldığınız Yoklamalar (Son 14 Gün)
-                </h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="font-weight: 800; font-size: 1.25rem; margin: 0; color: var(--dark); display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Aldığınız Yoklamalar (Son 14 Gün)
+                    </h3>
+                    <button class="btn btn-secondary" style="background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600;" onclick="promptDeleteAllRecords()">
+                        <i class="fa-solid fa-trash-can"></i> Tüm Yoklamaları Sil
+                    </button>
+                </div>
                 
                 <div id="historyListContainer">
                     <!-- JS ile geçmiş doldurulacak -->
@@ -1979,14 +1984,27 @@
 
         function deletePastAttendance(date, hour, className) {
             Swal.fire({
-                title: 'Emin misiniz?',
-                text: `${date} tarihli ${hour}. ders ${className} sınıfı yoklaması kalıcı olarak silinecek!`,
+                title: 'Onay ve Şifre',
+                text: `${date} tarihli ${hour}. ders ${className} sınıfı yoklaması kalıcı olarak silinecek! Lütfen şifrenizi girin.`,
                 icon: 'warning',
+                input: 'password',
+                inputPlaceholder: 'Şifrenizi girin',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocorrect: 'off'
+                },
                 showCancelButton: true,
                 confirmButtonColor: '#ef4444',
                 cancelButtonColor: '#6b7280',
                 confirmButtonText: 'Evet, Sil',
-                cancelButtonText: 'İptal'
+                cancelButtonText: 'İptal',
+                preConfirm: (password) => {
+                    if (password !== '1234') {
+                        Swal.showValidationMessage('Hatalı şifre girdiniz!');
+                        return false;
+                    }
+                    return true;
+                }
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
@@ -2012,6 +2030,79 @@
                     } catch (e) {
                         console.error(e);
                         Swal.fire('Hata', 'Yoklama silinemedi.', 'error');
+                    }
+                }
+            });
+        }
+
+        function promptDeleteAllRecords() {
+            Swal.fire({
+                title: 'Tüm Yoklamaları Sil',
+                text: 'Son 14 gündeki tüm yoklama kayıtlarınız kalıcı olarak silinecek! Lütfen şifrenizi girin.',
+                icon: 'warning',
+                input: 'password',
+                inputPlaceholder: 'Şifrenizi girin',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocorrect: 'off'
+                },
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Hepsini Sil',
+                cancelButtonText: 'İptal',
+                preConfirm: (password) => {
+                    if (password !== '1234') {
+                        Swal.showValidationMessage('Hatalı şifre girdiniz!');
+                        return false;
+                    }
+                    return true;
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const dbData = DataManager._getData();
+                        if (dbData.attendance) {
+                            let deletedCount = 0;
+                            const minDateObj = getTRTime();
+                            minDateObj.setDate(getTRTime().getDate() - 14);
+                            const min_yyyy = minDateObj.getFullYear();
+                            const min_mm = String(minDateObj.getMonth() + 1).padStart(2, '0');
+                            const min_dd = String(minDateObj.getDate()).padStart(2, '0');
+                            const minDateStr = `${min_yyyy}-${min_mm}-${min_dd}`;
+
+                            for (let date in dbData.attendance) {
+                                if (date < minDateStr) continue;
+                                for (let hour in dbData.attendance[date]) {
+                                    for (let cls in dbData.attendance[date][hour]) {
+                                        const record = dbData.attendance[date][hour][cls];
+                                        if (record.teacher === activeTeacherUsername) {
+                                            delete dbData.attendance[date][hour][cls];
+                                            deletedCount++;
+                                        }
+                                    }
+                                    if (Object.keys(dbData.attendance[date][hour]).length === 0) delete dbData.attendance[date][hour];
+                                }
+                                if (Object.keys(dbData.attendance[date]).length === 0) delete dbData.attendance[date];
+                            }
+                            
+                            if (deletedCount > 0) {
+                                await DataManager._saveData(dbData);
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Silindi!',
+                                    text: `${deletedCount} adet yoklama kaydı başarıyla silindi.`,
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                });
+                                loadHistory();
+                            } else {
+                                Swal.fire('Bilgi', 'Silinecek size ait bir yoklama bulunamadı.', 'info');
+                            }
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        Swal.fire('Hata', 'Tüm yoklamalar silinirken bir hata oluştu.', 'error');
                     }
                 }
             });
