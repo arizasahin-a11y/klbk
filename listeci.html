@@ -642,8 +642,8 @@
             try {
                 await DataManager.initCloud();
                 window.schoolData = DataManager.getSchoolSettings();
-                if(window.schoolData && window.schoolData.schoolName) {
-                    localStorage.setItem('klbk_lastSchoolName', window.schoolData.schoolName);
+                if(window.schoolData && window.schoolData.name) {
+                    localStorage.setItem('klbk_lastSchoolName', window.schoolData.name);
                 }
             } catch (e) {
                 console.error("Data fetch error", e);
