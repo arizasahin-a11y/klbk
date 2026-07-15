@@ -177,6 +177,64 @@
             background: #f1f5f9;
         }
 
+    
+        /* Mobil Uyumluluk (Responsive) */
+        @media (max-width: 768px) {
+            .header, .premium-header {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+                padding: 1rem;
+            }
+            .header-title {
+                font-size: 1.1rem;
+                justify-content: center;
+                text-align: center;
+            }
+            .container, .oeyp-container {
+                margin: 1rem auto;
+                padding: 0 0.5rem;
+            }
+            .glass-panel {
+                padding: 1.5rem 1rem !important;
+            }
+            .form-control, .form-select-custom, .btn {
+                font-size: 1rem;
+                padding: 0.75rem;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .btn {
+                justify-content: center;
+                margin-top: 10px;
+            }
+            /* Tablo Tasmalarini Onle */
+            .historyContainer, #historyContainer, .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                width: 100%;
+                display: block;
+            }
+            table {
+                min-width: 600px;
+                width: 100%;
+            }
+            /* Yan Yana Olan Elementleri Alta Al */
+            .flex-row, .d-flex {
+                flex-direction: column !important;
+                align-items: stretch !important;
+            }
+            .stat-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            /* Düğme Grupları */
+            div[style*="display: flex"] {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+
     </style>
 </head>
 <body>
