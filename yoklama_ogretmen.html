@@ -1436,6 +1436,10 @@
 
             renderStudentsTable();
             updateLiveCounters();
+            
+            // Otomatik olarak yeni saati (ve varsa doldurulmamış önceki saati) veritabanına kaydet
+            // Bu sayede öğretmen sadece ders saatini değiştirse bile yoklama "GELDİ" varsayılanı ile kesin kaydedilmiş olur.
+            saveAttendance(true);
         }
 
         function renderStudentsTable() {
