@@ -196,30 +196,44 @@
             </div>
 
             <div class="form-group">
-                <label><i class="fa-solid fa-layer-group"></i> Liste Düzeni</label>
-                <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
-                    <input type="checkbox" id="mergeClasses" class="class-checkbox">
-                    <span>Tümünü Tek Listede Birleştir (Karma Liste)</span>
-                </label>
-                <small style="color: var(--gray-500); margin-top: 5px; display: block;">İşaretlenmezse, her sınıf ayrı sayfalara (kağıtlara) yazdırılır. Karma liste seçildiğinde "Sınıfı" sütunu otomatik eklenir.</small>
-            </div>
-
-            <div class="form-group">
-                <label><i class="fa-solid fa-file"></i> Boş Liste (Şablon) Seçenekleri</label>
-                <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
-                    <input type="checkbox" id="emptyList" class="class-checkbox" onchange="toggleEmptyListOptions()">
-                    <span>Boş Şablon Yazdır (Öğrenci isimleri olmadan sadece tablo)</span>
-                </label>
+                <label><i class="fa-solid fa-layer-group"></i> Liste Türü ve Düzeni</label>
                 
-                <div id="emptyListOptions" style="display: none; margin-top: 10px; padding-left: 20px; border-left: 2px solid var(--primary-light);">
-                    <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center; margin-bottom: 5px;">
+                <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+                    <input type="radio" name="listType" value="normal" checked onchange="toggleListOptions()">
+                    <span>Normal Liste (Öğrenciler isimleriyle yazdırılır)</span>
+                </label>
+                <div id="normalOptions" style="padding-left: 30px; margin-top: 5px;">
+                    <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center;">
+                        <input type="checkbox" id="mergeClasses" class="class-checkbox">
+                        <span>Tümünü Tek Listede Birleştir (Normal Karma Liste - Sınıfı sütunu otomatik eklenir)</span>
+                    </label>
+                </div>
+                
+                <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+                    <input type="radio" name="listType" value="empty_class" onchange="toggleListOptions()">
+                    <span>Boş Sınıf Listesi (Öğrenci isimleri olmadan, seçilen sınıfların boş tablosu)</span>
+                </label>
+                <div id="emptyClassOptions" style="display: none; margin-top: 10px; padding-left: 20px; border-left: 2px solid var(--primary-light);">
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-size: 0.9rem;">Boş Liste Başlığı</label>
+                        <input type="text" id="emptyClassTitle" class="form-select-custom" placeholder="Örn: Sınıf Listesi" value="Sınıf Listesi">
+                    </div>
+                    <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center;">
                         <input type="checkbox" id="showAlanInEmpty" class="class-checkbox">
                         <span>Alan Sütunu Görünsün mü?</span>
                     </label>
-                    <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center;">
-                        <input type="checkbox" id="hideNameInEmpty" class="class-checkbox">
-                        <span>Adı Soyadı Sütununu Gizle (Kulüp vb. listeler için)</span>
-                    </label>
+                </div>
+                
+                <label class="class-checkbox-label" style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+                    <input type="radio" name="listType" value="club_template" onchange="toggleListOptions()">
+                    <span>Kulüp / Toplama Şablonu (Satranç Kulübü vb. için ortak boş liste)</span>
+                </label>
+                <div id="clubTemplateOptions" style="display: none; margin-top: 10px; padding-left: 20px; border-left: 2px solid var(--primary-light);">
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-size: 0.9rem;">Şablon Başlığı</label>
+                        <input type="text" id="clubTemplateTitle" class="form-select-custom" placeholder="Örn: Satranç Kulübü Öğrenci Listesi" value="Kulüp Öğrenci Listesi">
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--gray-500); margin: 0;">Bu liste türünde Sıra, Sınıfı, Numara ve belirlediğiniz Boş Sütunlar yer alacaktır (Adı Soyadı sütunu gizlenir, seçilen sınıfların bir önemi yoktur, tek bir boş şablon çıkarılır).</p>
                 </div>
             </div>
 
@@ -317,14 +331,12 @@
             }
         }
 
-        function toggleEmptyListOptions() {
-            const emptyList = document.getElementById('emptyList').checked;
-            const optionsGroup = document.getElementById('emptyListOptions');
-            if (emptyList) {
-                optionsGroup.style.display = 'block';
-            } else {
-                optionsGroup.style.display = 'none';
-            }
+        function toggleListOptions() {
+            const listType = document.querySelector('input[name="listType"]:checked').value;
+            
+            document.getElementById('normalOptions').style.display = (listType === 'normal') ? 'block' : 'none';
+            document.getElementById('emptyClassOptions').style.display = (listType === 'empty_class') ? 'block' : 'none';
+            document.getElementById('clubTemplateOptions').style.display = (listType === 'club_template') ? 'block' : 'none';
         }
 
         async function showMainPanel() {
@@ -411,14 +423,17 @@
                 blankCols = parseInt(preset);
             }
 
+            const listType = document.querySelector('input[name="listType"]:checked').value;
+
             const config = {
                 classes: selectedClasses,
                 titleSuffix: titleSuffix,
                 blankColumns: blankCols,
-                mergeClasses: document.getElementById('mergeClasses').checked,
-                emptyList: document.getElementById('emptyList').checked,
+                listType: listType,
+                mergeClasses: listType === 'normal' ? document.getElementById('mergeClasses').checked : false,
+                emptyClassTitle: document.getElementById('emptyClassTitle').value.trim() || 'Sınıf Listesi',
                 showAlanInEmpty: document.getElementById('showAlanInEmpty').checked,
-                hideNameInEmpty: document.getElementById('hideNameInEmpty').checked
+                clubTemplateTitle: document.getElementById('clubTemplateTitle').value.trim() || 'Kulüp Öğrenci Listesi'
             };
 
             localStorage.setItem('listeciConfig', JSON.stringify(config));

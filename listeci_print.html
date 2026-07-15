@@ -219,10 +219,11 @@
             const classesToFetch = config.classes || [];
             const titleSuffix = config.titleSuffix || '';
             const blankColumnsCount = config.blankColumns || 1;
+            const listType = config.listType || 'normal';
             const mergeClasses = config.mergeClasses || false;
-            const emptyList = config.emptyList || false;
+            const emptyClassTitle = config.emptyClassTitle || 'Sınıf Listesi';
             const showAlanInEmpty = config.showAlanInEmpty || false;
-            const hideNameInEmpty = config.hideNameInEmpty || false;
+            const clubTemplateTitle = config.clubTemplateTitle || 'Kulüp Öğrenci Listesi';
 
             const allDataStudents = DataManager.getStudents();
             if (!allDataStudents || allDataStudents.length === 0) {
@@ -264,7 +265,9 @@
 
             function generatePage(title, studentsSubset, startIndex, showAlan) {
                 let rowsHtml = '';
-                const showSinif = mergeClasses; // Sınıfı column added if mergeClasses is true
+                const isClubTemplate = listType === 'club_template';
+                const isEmptyClass = listType === 'empty_class';
+                const showSinif = mergeClasses || isClubTemplate; // Sınıfı column added for mergeClasses or club template
                 
                 // Add 40 rows exactly
                 for (let i = 0; i < rowsPerPage; i++) {
@@ -274,12 +277,12 @@
                         blankCells += `<td class="col-blank"></td>`;
                     }
 
-                    if (s && !emptyList) {
+                    if (s && listType === 'normal') {
                         const alanVal = s.alan || s.track || s.field || s.group || '';
                         const alanTd = showAlan ? `<td class="col-alan">${alanVal}</td>` : '';
                         const sinifTd = showSinif ? `<td class="col-sinif">${s.class || ''}</td>` : '';
                         const formattedName = formatName(s.name, s.surname);
-                        const nameTd = hideNameInEmpty ? '' : `<td class="col-ad">${formattedName}</td>`;
+                        const nameTd = isClubTemplate ? '' : `<td class="col-ad">${formattedName}</td>`;
                         
                         rowsHtml += `
                             <tr>
@@ -295,7 +298,7 @@
                         // Empty row
                         const alanTd = showAlan ? `<td class="col-alan"></td>` : '';
                         const sinifTd = showSinif ? `<td class="col-sinif"></td>` : '';
-                        const nameTd = hideNameInEmpty ? '' : `<td class="col-ad"></td>`;
+                        const nameTd = isClubTemplate ? '' : `<td class="col-ad"></td>`;
                         rowsHtml += `
                             <tr>
                                 <td class="col-sira">${startIndex + i}</td>
@@ -311,7 +314,7 @@
 
                 const alanTh = showAlan ? `<th rowspan="2" class="col-alan"><div class="rotated-header">ALAN</div></th>` : '';
                 const sinifTh = showSinif ? `<th rowspan="2" class="col-sinif"><div class="rotated-header">SINIFI</div></th>` : '';
-                const nameTh = hideNameInEmpty ? '' : `<th rowspan="2" class="col-ad">ÖĞRENCİNİN ADI SOYADI</th>`;
+                const nameTh = isClubTemplate ? '' : `<th rowspan="2" class="col-ad">ÖĞRENCİNİN ADI SOYADI</th>`;
                 
                 let blankHeadersRow2 = '';
                 if (blankColumnsCount > 0) {
@@ -353,10 +356,12 @@
             }
 
             function processStudentList(title, studentList) {
-                // Check if any student has an alan
                 let hasAlan = false;
-                if (emptyList) {
+                if (listType === 'empty_class') {
                     hasAlan = showAlanInEmpty;
+                    studentList = []; // Force empty
+                } else if (listType === 'club_template') {
+                    hasAlan = false; // Club template doesn't need alan usually, but could add option later
                     studentList = []; // Force empty
                 } else {
                     hasAlan = studentList.some(s => s.alan || s.track || s.field || s.group);
@@ -383,7 +388,10 @@
                 return html;
             }
 
-            if (mergeClasses) {
+            if (listType === 'club_template') {
+                pagesHtml = processStudentList(clubTemplateTitle, []);
+                document.title = clubTemplateTitle;
+            } else if (mergeClasses) {
                 let allStudents = [];
                 classesToFetch.forEach(cls => {
                     if (classGroups[cls]) allStudents.push(...classGroups[cls]);
@@ -395,7 +403,12 @@
             } else {
                 classesToFetch.forEach(cls => {
                     let students = classGroups[cls] ? [...classGroups[cls]] : [];
-                    let fullTitle = `${cls} SINIFI ${titleSuffix}`.trim();
+                    let fullTitle = '';
+                    if (listType === 'empty_class') {
+                        fullTitle = `${cls} ${emptyClassTitle}`.trim();
+                    } else {
+                        fullTitle = `${cls} SINIFI ${titleSuffix}`.trim();
+                    }
                     pagesHtml += processStudentList(fullTitle, students);
                 });
                 document.title = `${classesToFetch.join('_')} Liste`;
@@ -410,8 +423,17 @@
             let filename = 'Liste.pdf';
             if (configStr) {
                 const config = JSON.parse(configStr);
-                let classNamesText = config.classes.length > 3 ? "KARMA" : config.classes.join('_');
-                filename = `${classNamesText}_${config.titleSuffix || 'Liste'}.pdf`.replace(/\s+/g, '_');
+                const listType = config.listType || 'normal';
+                
+                if (listType === 'club_template') {
+                    filename = `${config.clubTemplateTitle || 'Kulup_Listesi'}.pdf`.replace(/\s+/g, '_');
+                } else if (listType === 'empty_class') {
+                    let classNamesText = config.classes.length > 3 ? "KARMA" : config.classes.join('_');
+                    filename = `${classNamesText}_${config.emptyClassTitle || 'Sinif_Listesi'}.pdf`.replace(/\s+/g, '_');
+                } else {
+                    let classNamesText = config.classes.length > 3 ? "KARMA" : config.classes.join('_');
+                    filename = `${classNamesText}_${config.titleSuffix || 'Liste'}.pdf`.replace(/\s+/g, '_');
+                }
             }
 
             const opt = {
