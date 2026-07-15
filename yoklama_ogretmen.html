@@ -1493,7 +1493,7 @@
                             ${currentStatus === 'GEÇ' && gecTimeMap[s.no] !== undefined ? `
                                 <div class="late-time-ui" style="display:flex; align-items:center; justify-content:center; gap:6px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); border-radius:16px; padding:2px 6px; color:var(--gec-color); flex-shrink:0;">
                                     <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${s.no}', -1)" style="width:22px; height:22px; background:var(--gec-color); color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(245,158,11,0.3);">-</span>
-                                    <span class="late-time-text" style="font-size:0.85rem; font-weight:800; min-width:20px; text-align:center;">${gecTimeMap[s.no]}m</span>
+                                    <span class="late-time-text" onclick="event.preventDefault(); event.stopPropagation(); window.promptGecTime('${s.no}')" style="font-size:0.85rem; font-weight:800; min-width:20px; text-align:center; cursor:pointer; text-decoration:underline; text-decoration-style:dotted;" title="Süreyi manuel gir">${gecTimeMap[s.no]}m</span>
                                     <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${s.no}', 1)" style="width:22px; height:22px; background:var(--gec-color); color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(245,158,11,0.3);">+</span>
                                 </div>
                             ` : ''}
@@ -1733,7 +1733,7 @@
                             lateDiv.style.cssText = 'display:flex; align-items:center; justify-content:center; gap:6px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); border-radius:16px; padding:2px 6px; color:var(--gec-color); flex-shrink:0;';
                             lateDiv.innerHTML = `
                                 <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${studentNo}', -1)" style="width:22px; height:22px; background:var(--gec-color); color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(245,158,11,0.3);">-</span>
-                                <span class="late-time-text" style="font-size:0.85rem; font-weight:800; min-width:20px; text-align:center;">${gecTimeMap[studentNo]}m</span>
+                                <span class="late-time-text" onclick="event.preventDefault(); event.stopPropagation(); window.promptGecTime('${studentNo}')" style="font-size:0.85rem; font-weight:800; min-width:20px; text-align:center; cursor:pointer; text-decoration:underline; text-decoration-style:dotted;" title="Süreyi manuel gir">${gecTimeMap[studentNo]}m</span>
                                 <span onclick="event.preventDefault(); event.stopPropagation(); window.adjustGecTime('${studentNo}', 1)" style="width:22px; height:22px; background:var(--gec-color); color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(245,158,11,0.3);">+</span>
                             `;
                             topBar.appendChild(lateDiv);
@@ -1765,6 +1765,49 @@
                 }
             }
             saveAttendance(true);
+        };
+
+        window.promptGecTime = async function(studentNo) {
+            let current = gecTimeMap[studentNo] || 0;
+            const { value: newTimeStr } = await Swal.fire({
+                title: 'Geç Kalma Süresi',
+                input: 'number',
+                inputLabel: 'Dakika cinsinden süre:',
+                inputValue: current,
+                showCancelButton: true,
+                confirmButtonText: 'Kaydet',
+                cancelButtonText: 'İptal',
+                inputAttributes: {
+                    min: 0,
+                    step: 1
+                },
+                inputValidator: (value) => {
+                    if (value === '' || isNaN(value)) return 'Geçerli bir sayı giriniz!';
+                    if (parseInt(value) < 0) return 'Süre negatif olamaz!';
+                }
+            });
+
+            if (newTimeStr !== undefined) {
+                const newTime = parseInt(newTimeStr);
+                gecTimeMap[studentNo] = newTime;
+                
+                const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
+                if (row) {
+                    const lateText = row.querySelector('.late-time-text');
+                    if (lateText) lateText.textContent = `${newTime}m`;
+                } else {
+                    // Fallback to updating any existing element if student-row class isn't on tr
+                    const btn = document.querySelector(`button[onclick*="setStudentStatus('${studentNo}'"]`);
+                    if (btn) {
+                        const cellRow = btn.closest('tr');
+                        if (cellRow) {
+                            const lateText = cellRow.querySelector('.late-time-text');
+                            if (lateText) lateText.textContent = `${newTime}m`;
+                        }
+                    }
+                }
+                saveAttendance(true);
+            }
         };
 
         function setAllAttendance(status) {
