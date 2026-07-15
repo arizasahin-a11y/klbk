@@ -228,14 +228,13 @@
             const allDataStudents = DataManager.getStudents();
             if (!allDataStudents || allDataStudents.length === 0) {
                 document.getElementById('pageContainer').innerHTML = '<h3 style="color:red; text-align:center;">Veri Yüklenemedi! (Öğrenci Listesi Boş)</h3>';
-                return;
-            }
-
-            // Group students by class
+                   // Group students by class|alan key
             const classGroups = {};
             allDataStudents.forEach(s => {
-                if (!classGroups[s.class]) classGroups[s.class] = [];
-                classGroups[s.class].push(s);
+                const alan = s.alan || s.track || s.field || s.group || '';
+                const key = alan ? `${s.class}|${alan}` : `${s.class}|`;
+                if (!classGroups[key]) classGroups[key] = [];
+                classGroups[key].push(s);
             });
 
             const rowsPerPage = 40;
@@ -383,7 +382,7 @@
                     html += generatePage(title, subset, i + 1, hasAlan);
                 }
                 if (studentList.length === 0) {
-                     html += generatePage(title, [], 1, false);
+                     html += generatePage(title, [], 1, hasAlan);
                 }
                 return html;
             }
@@ -393,25 +392,36 @@
                 document.title = clubTemplateTitle;
             } else if (mergeClasses) {
                 let allStudents = [];
-                classesToFetch.forEach(cls => {
-                    if (classGroups[cls]) allStudents.push(...classGroups[cls]);
+                let displayNames = [];
+                classesToFetch.forEach(key => {
+                    if (classGroups[key]) {
+                        allStudents.push(...classGroups[key]);
+                        const [cls, alan] = key.split('|');
+                        displayNames.push(alan ? `${cls} ${alan}` : cls);
+                    }
                 });
-                let classNamesText = classesToFetch.length > 3 ? "KARMA SINIF" : classesToFetch.join(', ') + " SINIFI";
+                let classNamesText = displayNames.length > 3 ? "KARMA SINIF" : displayNames.join(', ') + " SINIFI";
                 let fullTitle = `${classNamesText} ${titleSuffix}`.trim();
                 pagesHtml = processStudentList(fullTitle, allStudents);
                 document.title = fullTitle;
             } else {
-                classesToFetch.forEach(cls => {
-                    let students = classGroups[cls] ? [...classGroups[cls]] : [];
+                classesToFetch.forEach(key => {
+                    let students = classGroups[key] ? [...classGroups[key]] : [];
+                    const parts = key.split('|');
+                    const cls = parts[0];
+                    const alan = parts.length > 1 ? parts[1] : '';
+                    const classNameWithAlan = alan ? `${cls} ${alan}` : cls;
+                    
                     let fullTitle = '';
                     if (listType === 'empty_class') {
-                        fullTitle = `${cls} ${emptyClassTitle}`.trim();
+                        fullTitle = `${classNameWithAlan} ${emptyClassTitle}`.trim();
                     } else {
-                        fullTitle = `${cls} SINIFI ${titleSuffix}`.trim();
+                        fullTitle = `${classNameWithAlan} SINIFI ${titleSuffix}`.trim();
                     }
                     pagesHtml += processStudentList(fullTitle, students);
                 });
-                document.title = `${classesToFetch.join('_')} Liste`;
+                let docTitleParts = classesToFetch.map(k => k.replace('|', '_'));
+                document.title = `${docTitleParts.join('_')} Liste`;
             }
 
             document.getElementById('pageContainer').innerHTML = pagesHtml;
@@ -428,10 +438,10 @@
                 if (listType === 'club_template') {
                     filename = `${config.clubTemplateTitle || 'Kulup_Listesi'}.pdf`.replace(/\s+/g, '_');
                 } else if (listType === 'empty_class') {
-                    let classNamesText = config.classes.length > 3 ? "KARMA" : config.classes.join('_');
+                    let classNamesText = config.classes.length > 3 ? "KARMA" : config.classes.map(k => k.replace('|', '_')).join('_');
                     filename = `${classNamesText}_${config.emptyClassTitle || 'Sinif_Listesi'}.pdf`.replace(/\s+/g, '_');
                 } else {
-                    let classNamesText = config.classes.length > 3 ? "KARMA" : config.classes.join('_');
+                    let classNamesText = config.classes.length > 3 ? "KARMA" : config.classes.map(k => k.replace('|', '_')).join('_');
                     filename = `${classNamesText}_${config.titleSuffix || 'Liste'}.pdf`.replace(/\s+/g, '_');
                 }
             }
