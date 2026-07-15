@@ -574,10 +574,6 @@
             filenameToSave = filenameToSave.replace(/\s+/g, '_') + '.xlsx';
             XLSX.writeFile(wb, filenameToSave);
         }
-
-        window.onload = function() {
-            generateContent();
-        };
     </script>
 </body>
 </html>
