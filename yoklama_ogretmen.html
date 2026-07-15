@@ -26,7 +26,7 @@
             --geldi-color: #10b981;
             --gelmedi-color: #ef4444;
             --gec-color: #f59e0b;
-            --rahatsiz-color: #3b82f6;
+            --diger-color: #3b82f6;
         }
 
         body {
@@ -325,11 +325,11 @@
             box-shadow: 0 2px 4px rgba(245, 158, 11, 0.1);
         }
 
-        .status-btn[data-status="RAHATSIZLANDI"]:hover,
-        .status-btn[data-status="RAHATSIZLANDI"].active {
+        .status-btn[data-status="DİĞER"]:hover,
+        .status-btn[data-status="DİĞER"].active {
             background-color: #eff6ff;
-            border-color: var(--rahatsiz-color);
-            color: var(--rahatsiz-color);
+            border-color: var(--diger-color);
+            color: var(--diger-color);
             box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
         }
 
@@ -344,7 +344,7 @@
         .stat-badge.geldi { background: #d1fae5; color: #065f46; }
         .stat-badge.gelmedi { background: #fee2e2; color: #991b1b; }
         .stat-badge.gec { background: #fef3c7; color: #92400e; }
-        .stat-badge.rahatsiz { background: #dbeafe; color: #1e40af; }
+        .stat-badge.diger { background: #dbeafe; color: #1e40af; }
 
         .stat-counter-bar {
             display: flex;
@@ -644,9 +644,9 @@
                         <div class="stat-counter-num" id="countGec">0</div>
                         <small style="font-weight: 700;">Geç</small>
                     </div>
-                    <div class="stat-counter-item" style="color: var(--rahatsiz-color);">
+                    <div class="stat-counter-item" style="color: var(--diger-color);">
                         <div class="stat-counter-num" id="countRahatsiz">0</div>
-                        <small style="font-weight: 700;">Rahatsız</small>
+                        <small style="font-weight: 700;">Diğer</small>
                     </div>
                 </div>
 
@@ -785,7 +785,7 @@
         let activeClassStudents = [];
         
         // Attendance records in memory for current selection
-        // studentNo -> status ('GELDİ', 'GELMEDİ', 'GEÇ', 'RAHATSIZLANDI')
+        // studentNo -> status ('GELDİ', 'GELMEDİ', 'GEÇ', 'DİĞER')
         let attendanceMap = {}; 
         let gecTimeMap = {};
 
@@ -1467,8 +1467,8 @@
                     <button type="button" class="status-btn ${currentStatus === 'GEÇ' ? 'active' : ''}" data-status="GEÇ" onclick="setStudentStatus('${s.no}', 'GEÇ')" title="Geç">
                         <i class="fa-solid fa-clock"></i>
                     </button>
-                    <button type="button" class="status-btn ${currentStatus === 'RAHATSIZLANDI' ? 'active' : ''}" data-status="RAHATSIZLANDI" onclick="setStudentStatus('${s.no}', 'RAHATSIZLANDI')" title="Rahatsız">
-                        <i class="fa-solid fa-moon" style="color: #ef4444;"></i>
+                    <button type="button" class="status-btn ${currentStatus === 'DİĞER' ? 'active' : ''}" data-status="DİĞER" onclick="setStudentStatus('${s.no}', 'DİĞER')" title="Diğer">
+                        <i class="fa-solid fa-certificate" style="color: #0284c7;"></i>
                     </button>
                     <button type="button" class="status-btn ${currentStatus === 'BOŞ' ? 'active' : ''}" data-status="BOŞ" onclick="setStudentStatus('${s.no}', 'BOŞ')" style="color:var(--dark); border-color:#e2e8f0; background:#f1f5f9;" title="Sıfırla">
                         <i class="fa-solid fa-trash"></i>
@@ -1720,19 +1720,19 @@
         }
 
         function updateLiveCounters() {
-            let geldi = 0, gelmedi = 0, gec = 0, rahatsiz = 0;
+            let geldi = 0, gelmedi = 0, gec = 0, diger = 0;
             
             Object.values(attendanceMap).forEach(v => {
                 if (v === 'GELDİ' || v === 'NÖBETÇİ') geldi++;
                 else if (v === 'GELMEDİ') gelmedi++;
                 else if (v === 'GEÇ') gec++;
-                else if (v === 'RAHATSIZLANDI') rahatsiz++;
+                else if (v === 'DİĞER') diger++;
             });
 
             document.getElementById('countGeldi').textContent = geldi;
             document.getElementById('countGelmedi').textContent = gelmedi;
             document.getElementById('countGec').textContent = gec;
-            document.getElementById('countRahatsiz').textContent = rahatsiz;
+            document.getElementById('countRahatsiz').textContent = diger;
         }
 
         function filterStudents() {
@@ -1909,11 +1909,11 @@
                         const record = attendance[date][hour][cls];
                         if (record.teacher === activeTeacherUsername) {
                             // Count statuses
-                            let gelmedi = 0, gec = 0, rahatsiz = 0;
+                            let gelmedi = 0, gec = 0, diger = 0;
                             Object.values(record.records || {}).forEach(v => {
                                 if (v === 'GELMEDİ') gelmedi++;
                                 else if (v === 'GEÇ') gec++;
-                                else if (v === 'RAHATSIZLANDI') rahatsiz++;
+                                else if (v === 'DİĞER') diger++;
                             });
 
                             historyList.push({
@@ -1922,7 +1922,7 @@
                                 class: cls,
                                 subject: record.subject,
                                 lastUpdated: record.lastUpdated,
-                                stats: { gelmedi, gec, rahatsiz }
+                                stats: { gelmedi, gec, diger }
                             });
                         }
                     }
@@ -1960,7 +1960,7 @@
                             <div style="display: flex; gap: 6px;">
                                 <span class="stat-badge gelmedi">Gelmedi: ${item.stats.gelmedi}</span>
                                 <span class="stat-badge gec">Geç: ${item.stats.gec}</span>
-                                <span class="stat-badge rahatsiz">Rahatsız: ${item.stats.rahatsiz}</span>
+                                <span class="stat-badge diger">Diğer: ${item.stats.diger}</span>
                             </div>
                             <div style="display: flex; gap: 8px;">
                                 <button class="btn btn-secondary btn-sm" onclick="editPastAttendance('${item.date}', '${item.hour}', '${item.class}')">
@@ -2103,7 +2103,7 @@
                                         gecFirstMins: 0,
                                         gecMid: 0,
                                         gecMidMins: 0,
-                                        rahatsiz: 0,
+                                        diger: 0,
                                         nobetci: 0
                                     };
                                 }
@@ -2122,7 +2122,7 @@
                                         statsMap[stuNo].gecMidMins += lateMins;
                                     }
                                 }
-                                if (status === 'RAHATSIZLANDI') statsMap[stuNo].rahatsiz++;
+                                if (status === 'DİĞER') statsMap[stuNo].diger++;
                                 if (status === 'NÖBETÇİ') statsMap[stuNo].nobetci++;
                             }
                         }
@@ -2154,7 +2154,7 @@
                             <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:left; color:var(--gray-500);">Öğrenci</th>
                             <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500);">Gelmedi</th>
                             <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500);">Geç Kalma</th>
-                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500);">Rahatsız</th>
+                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500);">Diğer</th>
                             <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500);">Nöbetçi</th>
                         </tr>
                     </thead>
@@ -2180,10 +2180,10 @@
                             </span>
                         </td>
                         <td style="padding:1rem; text-align:center;">
-                            <span class="stat-badge ${s.rahatsiz > 0 ? 'rahatsiz' : ''}" style="${s.rahatsiz === 0 ? 'background:#f1f5f9;color:#94a3b8;' : ''}">${s.rahatsiz} Kez</span>
+                            <span class="stat-badge ${s.diger > 0 ? 'diger' : ''}" style="${s.diger === 0 ? 'background:#f1f5f9;color:#94a3b8;' : ''}">${s.diger} Kez</span>
                         </td>
                         <td style="padding:1rem; text-align:center;">
-                            <span class="stat-badge ${s.nobetci > 0 ? 'rahatsiz' : ''}" style="${s.nobetci === 0 ? 'background:#f1f5f9;color:#94a3b8;' : 'background:#f3f4f6;color:#6b7280;'}">${s.nobetci} Kez</span>
+                            <span class="stat-badge ${s.nobetci > 0 ? 'diger' : ''}" style="${s.nobetci === 0 ? 'background:#f1f5f9;color:#94a3b8;' : 'background:#f3f4f6;color:#6b7280;'}">${s.nobetci} Kez</span>
                         </td>
                     </tr>`;
             });
