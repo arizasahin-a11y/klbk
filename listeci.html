@@ -417,17 +417,30 @@
                     document.getElementById('loginSchoolName').innerText = lastSchoolName;
                     document.getElementById('loginSchoolName').style.display = 'block';
                 } else {
-                    // Fallback
-                    const lastSchoolId = localStorage.getItem('klbk_last_school') || 'admin';
-                    fetch(`${firebaseDatabaseUrl}/app_store/klbk_data_${lastSchoolId}.json`)
+                    // Fallback: Fetch from klbk_users directly
+                    fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`)
                         .then(r => r.json())
-                        .then(data => {
-                            if (data && data.school && data.school.name) {
-                                document.getElementById('loginSchoolName').innerText = data.school.name;
-                                document.getElementById('loginSchoolName').style.display = 'block';
-                                localStorage.setItem('klbk_lastSchoolName', data.school.name);
-                            } else {
-                                document.getElementById('loginSchoolName').style.display = 'none';
+                        .then(users => {
+                            if (users) {
+                                let defaultSchool = "";
+                                const lastUser = localStorage.getItem('klbk_currentUser') || sessionStorage.getItem('klbk_currentUser');
+                                if (lastUser && users[lastUser] && users[lastUser].schoolName) {
+                                    defaultSchool = users[lastUser].schoolName;
+                                } else {
+                                    for (const key in users) {
+                                        if (users[key].schoolName) {
+                                            defaultSchool = users[key].schoolName;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (defaultSchool) {
+                                    document.getElementById('loginSchoolName').innerText = defaultSchool;
+                                    document.getElementById('loginSchoolName').style.display = 'block';
+                                    localStorage.setItem('klbk_lastSchoolName', defaultSchool);
+                                } else {
+                                    document.getElementById('loginSchoolName').style.display = 'none';
+                                }
                             }
                         }).catch(() => document.getElementById('loginSchoolName').style.display = 'none');
                 }
