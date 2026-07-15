@@ -376,8 +376,17 @@
                 
                 // Sort
                 studentList.sort((a, b) => {
-                    const clsCmp = (a.class || '').localeCompare(b.class || '');
-                    if (clsCmp !== 0 && (listType === 'karma_club')) return clsCmp;
+                    if (listType === 'karma_club') {
+                        const clsA = a.class || '';
+                        const clsB = b.class || '';
+                        const numACls = parseInt(clsA.match(/\d+/)) || 0;
+                        const numBCls = parseInt(clsB.match(/\d+/)) || 0;
+                        
+                        if (numACls !== numBCls) return numACls - numBCls;
+                        
+                        const clsCmp = clsA.localeCompare(clsB);
+                        if (clsCmp !== 0) return clsCmp;
+                    }
                     const noA = parseInt(a.no) || 0;
                     const noB = parseInt(b.no) || 0;
                     return noA - noB;

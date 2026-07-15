@@ -366,7 +366,12 @@
             allStudentsForModal = DataManager.getStudents();
             
             // Populate class filter
-            const classes = [...new Set(allStudentsForModal.map(s => s.class))].sort();
+            const classes = [...new Set(allStudentsForModal.map(s => s.class))].sort((a, b) => {
+                const numA = parseInt(a.match(/\d+/)) || 0;
+                const numB = parseInt(b.match(/\d+/)) || 0;
+                if (numA !== numB) return numA - numB;
+                return a.localeCompare(b);
+            });
             const select = document.getElementById('modalClassFilter');
             select.innerHTML = '<option value="">Tüm Sınıflar</option>' + classes.map(c => `<option value="${c}">${c}</option>`).join('');
             
@@ -394,8 +399,16 @@
             
             // Sort by class then no
             filtered.sort((a, b) => {
-                const clsCmp = (a.class || '').localeCompare(b.class || '');
+                const clsA = a.class || '';
+                const clsB = b.class || '';
+                const numACls = parseInt(clsA.match(/\d+/)) || 0;
+                const numBCls = parseInt(clsB.match(/\d+/)) || 0;
+                
+                if (numACls !== numBCls) return numACls - numBCls;
+                
+                const clsCmp = clsA.localeCompare(clsB);
                 if (clsCmp !== 0) return clsCmp;
+                
                 return (parseInt(a.no) || 0) - (parseInt(b.no) || 0);
             });
 
