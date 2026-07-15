@@ -14,6 +14,37 @@ document.addEventListener('DOMContentLoaded', () => {
     // Firebase Configuration
     const firebaseDatabaseUrl = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
 
+    // === Okul Adını Giriş Ekranında Göster ===
+    (function showLoginSchoolName() {
+        const el = document.getElementById('loginSchoolName');
+        if (!el) return;
+        const cached = localStorage.getItem('klbk_lastSchoolName');
+        if (cached) {
+            el.innerText = cached;
+            el.style.display = 'block';
+        } else {
+            fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`)
+                .then(r => r.json())
+                .then(users => {
+                    if (!users) return;
+                    let schoolName = '';
+                    const lastUser = localStorage.getItem('klbk_rememberedUser') || '';
+                    if (lastUser && users[lastUser] && users[lastUser].schoolName) {
+                        schoolName = users[lastUser].schoolName;
+                    } else {
+                        for (const key in users) {
+                            if (users[key].schoolName) { schoolName = users[key].schoolName; break; }
+                        }
+                    }
+                    if (schoolName) {
+                        el.innerText = schoolName;
+                        el.style.display = 'block';
+                        localStorage.setItem('klbk_lastSchoolName', schoolName);
+                    }
+                }).catch(e => console.warn('Okul adı alınamadı:', e));
+        }
+    })();
+
     // === SECURITY: Password Hashing with Web Crypto API ===
     async function hashPassword(password) {
         const encoder = new TextEncoder();
