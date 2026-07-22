@@ -151,6 +151,13 @@
             writing-mode: vertical-rl;
             transform: rotate(180deg);
             white-space: nowrap;
+            display: inline-block;
+            margin: 0 auto;
+        }
+
+        .print-table th:has(.rotated-header) {
+            text-align: center;
+            vertical-align: middle;
         }
 
         /* Print Media Queries */
