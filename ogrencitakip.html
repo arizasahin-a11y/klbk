@@ -2995,12 +2995,12 @@
     
     <!-- Olumlu Eylemler Modalı -->
     <div id="olumluModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center;">
-        <div class="glass-panel" style="background:white; padding:1.5rem; width:90%; max-width:450px; border-radius:12px; position:relative; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+        <div class="glass-panel" style="background:white; padding:1.5rem; width:90%; max-width:450px; border-radius:12px; position:relative; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
             <h3 style="margin-top:0; color:var(--geldi-color); border-bottom:2px solid #ecfdf5; padding-bottom:10px;"><i class="fa-solid fa-star"></i> Olumlu Eylemler</h3>
             <p id="olumluModalStudentName" style="font-weight:800; font-size:1.1rem; color:var(--dark); margin-bottom:0.5rem;"></p>
             <input type="hidden" id="olumluModalStudentNo" value="">
             
-            <div style="flex:1; overflow-y:auto; padding-right:5px;">
+            <div style="flex:1; overflow-y:auto; min-height:0; padding-right:5px;">
                 <div style="margin:1rem 0; display:flex; flex-direction:column; gap:12px; background:#f8fafc; padding:15px; border-radius:8px;">
                     <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
                         <input type="checkbox" class="olumlu-cb" value="Ders Başarısı" style="width:18px; height:18px; accent-color:var(--geldi-color);"> Ders Başarısı
@@ -3022,8 +3022,8 @@
                 </div>
             </div>
             
-            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
-                <button class="btn" style="background:#f1f5f9; color:var(--gray-600);" onclick="closeOlumluModal()">İptal</button>
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px; border-top:1px solid #eee; padding-top:15px; flex-shrink:0; background:white;">
+                <button class="btn" style="flex-shrink:0; background:#f1f5f9; color:var(--gray-600);" onclick="closeOlumluModal()">İptal</button>
                 <button class="btn" style="background:var(--geldi-color); color:white;" onclick="saveOlumluModal()"><i class="fa-solid fa-check"></i> Kaydet</button>
             </div>
         </div>
@@ -3031,12 +3031,12 @@
 
     <!-- Olumsuz Eylemler Modalı -->
     <div id="olumsuzModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center;">
-        <div class="glass-panel" style="background:white; padding:1.5rem; width:90%; max-width:450px; border-radius:12px; position:relative; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+        <div class="glass-panel" style="background:white; padding:1.5rem; width:90%; max-width:450px; border-radius:12px; position:relative; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
             <h3 style="margin-top:0; color:var(--gelmedi-color); border-bottom:2px solid #fef2f2; padding-bottom:10px;"><i class="fa-solid fa-triangle-exclamation"></i> Olumsuz Eylemler</h3>
             <p id="olumsuzModalStudentName" style="font-weight:800; font-size:1.1rem; color:var(--dark); margin-bottom:0.5rem;"></p>
             <input type="hidden" id="olumsuzModalStudentNo" value="">
             
-            <div style="flex:1; overflow-y:auto; padding-right:5px;">
+            <div style="flex:1; overflow-y:auto; min-height:0; padding-right:5px;">
                 <div style="margin:1rem 0; display:flex; flex-direction:column; gap:12px; background:#fef2f2; padding:15px; border-radius:8px;">
                     <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
                         <input type="checkbox" class="olumsuz-cb" value="Ders Araç Gereci Yok" style="width:18px; height:18px; accent-color:var(--gelmedi-color);"> Ders Araç Gereci Yok
@@ -3073,8 +3073,8 @@
                 </div>
             </div>
             
-            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
-                <button class="btn" style="background:#f1f5f9; color:var(--gray-600);" onclick="closeOlumsuzModal()">İptal</button>
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px; border-top:1px solid #eee; padding-top:15px; flex-shrink:0; background:white;">
+                <button class="btn" style="flex-shrink:0; background:#f1f5f9; color:var(--gray-600);" onclick="closeOlumsuzModal()">İptal</button>
                 <button class="btn" style="background:var(--gelmedi-color); color:white;" onclick="saveOlumsuzModal()"><i class="fa-solid fa-check"></i> Kaydet</button>
             </div>
         </div>
@@ -3257,12 +3257,12 @@
 
     <!-- Görevli Modalı -->
     <div id="gorevliModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center;">
-        <div class="glass-panel" style="background:white; padding:1.5rem; width:90%; max-width:450px; border-radius:12px; position:relative; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+        <div class="glass-panel" style="background:white; padding:1.5rem; width:90%; max-width:450px; border-radius:12px; position:relative; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
             <h3 style="margin-top:0; color:var(--gec-color); border-bottom:2px solid #fffbeb; padding-bottom:10px;"><i class="fa-solid fa-user-shield"></i> Görev Ata</h3>
             <p id="gorevliModalStudentName" style="font-weight:800; font-size:1.1rem; color:var(--dark); margin-bottom:0.5rem;"></p>
             <input type="hidden" id="gorevliModalStudentNo" value="">
             
-            <div style="flex:1; overflow-y:auto; padding-right:5px;">
+            <div style="flex:1; overflow-y:auto; min-height:0; padding-right:5px;">
                 <div style="margin:1rem 0; display:flex; flex-direction:column; gap:12px; background:#fffbeb; padding:15px; border-radius:8px;">
                     <div>
                         <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--dark); margin-bottom:4px;">Görevin Adı</label>
@@ -3287,8 +3287,8 @@
                 </div>
             </div>
             
-            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
-                <button class="btn" style="background:#f1f5f9; color:var(--gray-600);" onclick="closeGorevliModal()">İptal</button>
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px; border-top:1px solid #eee; padding-top:15px; flex-shrink:0; background:white;">
+                <button class="btn" style="flex-shrink:0; background:#f1f5f9; color:var(--gray-600);" onclick="closeGorevliModal()">İptal</button>
                 <button class="btn" style="background:var(--gec-color); color:white;" onclick="saveGorevliModal()"><i class="fa-solid fa-check"></i> Kaydet</button>
             </div>
         </div>
@@ -3296,12 +3296,12 @@
 
     <!-- Diğer Modalı -->
     <div id="digerModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center;">
-        <div class="glass-panel" style="background:white; padding:1.5rem; width:90%; max-width:450px; border-radius:12px; position:relative; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+        <div class="glass-panel" style="background:white; padding:1.5rem; width:90%; max-width:450px; border-radius:12px; position:relative; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
             <h3 style="margin-top:0; color:var(--diger-color); border-bottom:2px solid #eff6ff; padding-bottom:10px;"><i class="fa-solid fa-exclamation"></i> Diğer (Özel Durum)</h3>
             <p id="digerModalStudentName" style="font-weight:800; font-size:1.1rem; color:var(--dark); margin-bottom:0.5rem;"></p>
             <input type="hidden" id="digerModalStudentNo" value="">
             
-            <div style="flex:1; overflow-y:auto; padding-right:5px;">
+            <div style="flex:1; overflow-y:auto; min-height:0; padding-right:5px;">
                 <div style="margin:1rem 0; display:flex; flex-direction:column; gap:12px; background:#eff6ff; padding:15px; border-radius:8px;">
                     <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
                         <input type="checkbox" class="diger-cb" value="Hasta" style="width:18px; height:18px; accent-color:var(--diger-color);"> Hasta
@@ -3332,8 +3332,8 @@
                 </div>
             </div>
             
-            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
-                <button class="btn" style="background:#f1f5f9; color:var(--gray-600);" onclick="closeDigerModal()">İptal</button>
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px; border-top:1px solid #eee; padding-top:15px; flex-shrink:0; background:white;">
+                <button class="btn" style="flex-shrink:0; background:#f1f5f9; color:var(--gray-600);" onclick="closeDigerModal()">İptal</button>
                 <button class="btn" style="background:var(--diger-color); color:white;" onclick="saveDigerModal()"><i class="fa-solid fa-check"></i> Kaydet</button>
             </div>
         </div>
