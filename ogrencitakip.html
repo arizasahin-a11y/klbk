@@ -2074,11 +2074,6 @@
                 if(status !== 'OLUMSUZ') delete olumsuzDetailsMap[studentNo];
                 if(status !== 'GÖREVLİ') delete gorevliDetailsMap[studentNo];
                 if(status !== 'DİĞER') delete digerDetailsMap[studentNo];
-                delete gorevliDetailsMap[studentNo];
-                delete digerDetailsMap[studentNo];
-                delete olumsuzDetailsMap[studentNo];
-                delete gorevliDetailsMap[studentNo];
-                delete digerDetailsMap[studentNo];
             }
             
             const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
@@ -3177,14 +3172,14 @@
             document.querySelectorAll('.olumlu-cb:checked').forEach(cb => { selected.push(cb.value); });
 
             if (selected.length > 0) {
-                attendanceMap[studentNo] = 'OLUMLU';
                 olumluDetailsMap[studentNo] = selected;
+                closeOlumluModal();
+                setStudentStatus(studentNo, 'OLUMLU');
             } else {
-                attendanceMap[studentNo] = 'BOŞ';
                 delete olumluDetailsMap[studentNo];
+                closeOlumluModal();
+                setStudentStatus(studentNo, 'BOŞ');
             }
-            closeOlumluModal();
-            setStudentStatus(studentNo, attendanceMap[studentNo]);
         };
 
         // --- OLUMSUZ MODAL LOGIC ---
@@ -3469,14 +3464,14 @@
             document.querySelectorAll('.diger-cb:checked').forEach(cb => { selected.push(cb.value); });
 
             if (selected.length > 0) {
-                attendanceMap[studentNo] = 'DİĞER';
                 digerDetailsMap[studentNo] = selected;
+                closeDigerModal();
+                setStudentStatus(studentNo, 'DİĞER');
             } else {
-                attendanceMap[studentNo] = 'BOŞ';
                 delete digerDetailsMap[studentNo];
+                closeDigerModal();
+                setStudentStatus(studentNo, 'BOŞ');
             }
-            closeDigerModal();
-            setStudentStatus(studentNo, attendanceMap[studentNo]);
         };
     </script>
 
