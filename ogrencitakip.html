@@ -2598,7 +2598,7 @@
             return num < 10 ? '0' + num : num;
         }
 
-        let currentStatSortCol = 'gelmedi';
+        let currentStatSortCol = 'olumsuz';
         let currentStatSortOrder = 'desc';
         let currentStatsArr = [];
 
@@ -2658,7 +2658,8 @@
                             
                             for (const stuNo in recs) {
                                 const status = recs[stuNo];
-                                if (status === 'OLUMLU') continue;
+                                // Remove 'OLUMLU' skip to include it in stats!
+                                // if (status === 'OLUMLU') continue;
                                 
                                 if (!statsMap[stuNo]) {
                                     const stuObj = allStudents.find(s => s.no === stuNo) || {};
@@ -2666,18 +2667,19 @@
                                         no: stuNo,
                                         name: `${stuObj.name || ''} ${stuObj.surname || ''}`.trim() || 'Bilinmiyor',
                                         class: cls,
-                                        gelmedi: 0,
-                                        gec: 0,
-                                        gecMins: 0,
-                                        gecFirst: 0,
-                                        gecFirstMins: 0,
-                                        gecMid: 0,
-                                        gecMidMins: 0,
-                                        diger: 0,
-                                        nobetci: 0
+                                        olumlu: 0,
+                                        olumsuz: 0,
+                                        gorevli: 0,
+                                        gorevliMins: 0,
+                                        gorevliFirst: 0,
+                                        gorevliFirstMins: 0,
+                                        gorevliMid: 0,
+                                        gorevliMidMins: 0,
+                                        diger: 0
                                     };
                                 }
                                 
+                                if (status === 'OLUMLU') statsMap[stuNo].olumlu++;
                                 if (status === 'OLUMSUZ') statsMap[stuNo].olumsuz++;
                                 if (status === 'GÖREVLİ') {
                                     const lateMins = parseInt(gecT[stuNo] || 0);
@@ -2693,7 +2695,6 @@
                                     }
                                 }
                                 if (status === 'DİĞER') statsMap[stuNo].diger++;
-                                if (status === 'NÖBETÇİ') statsMap[stuNo].nobetci++;
                             }
                         }
                     }
@@ -2738,10 +2739,10 @@
                     <thead>
                         <tr>
                             <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:left; color:var(--gray-500); cursor:pointer;" onclick="handleStatSort('name')">Öğrenci ${getSortIcon('name')}</th>
-                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500); cursor:pointer;" onclick="handleStatSort('gelmedi')">Olumsuz ${getSortIcon('gelmedi')}</th>
-                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500); cursor:pointer;" onclick="handleStatSort('gec')">Görevli ${getSortIcon('gec')}</th>
+                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500); cursor:pointer;" onclick="handleStatSort('olumlu')">Olumlu ${getSortIcon('olumlu')}</th>
+                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500); cursor:pointer;" onclick="handleStatSort('olumsuz')">Olumsuz ${getSortIcon('olumsuz')}</th>
+                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500); cursor:pointer;" onclick="handleStatSort('gorevli')">Görevli ${getSortIcon('gorevli')}</th>
                             <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500); cursor:pointer;" onclick="handleStatSort('diger')">Diğer ${getSortIcon('diger')}</th>
-                            <th style="padding:1rem; border-bottom:2px solid var(--gray-200); text-align:center; color:var(--gray-500); cursor:pointer;" onclick="handleStatSort('nobetci')">Nöbetçi ${getSortIcon('nobetci')}</th>
                         </tr>
                     </thead>
                     <tbody>`;
@@ -2754,10 +2755,13 @@
                             <div style="font-size:0.8rem; color:var(--gray-500);">No: ${s.no} | Sınıf: ${s.class}</div>
                         </td>
                         <td style="padding:1rem; text-align:center;">
-                            <span class="stat-badge ${s.olumsuz > 0 ? 'gelmedi' : ''}" style="${s.olumsuz === 0 ? 'background:#f1f5f9;color:#94a3b8;' : ''}">${s.olumsuz} Kez</span>
+                            <span class="stat-badge ${s.olumlu > 0 ? 'olumlu' : ''}" style="${s.olumlu === 0 ? 'background:#f1f5f9;color:#94a3b8;' : 'background:#dcfce7;color:#166534;'}">${s.olumlu} Kez</span>
                         </td>
                         <td style="padding:1rem; text-align:center;">
-                            <span class="stat-badge ${s.gorevli > 0 ? 'gec' : ''}" 
+                            <span class="stat-badge ${s.olumsuz > 0 ? 'olumsuz' : ''}" style="${s.olumsuz === 0 ? 'background:#f1f5f9;color:#94a3b8;' : ''}">${s.olumsuz} Kez</span>
+                        </td>
+                        <td style="padding:1rem; text-align:center;">
+                            <span class="stat-badge ${s.gorevli > 0 ? 'gorevli' : ''}" 
                                   style="${s.gorevli === 0 ? 'background:#f1f5f9;color:#94a3b8;' : 'cursor:pointer; text-decoration:underline;'}"
                                   data-name="${s.name}"
                                   ${s.gorevli > 0 ? `onclick="showLateDetails(this.getAttribute('data-name'), ${s.gorevliFirst}, ${s.gorevliFirstMins}, ${s.gorevliMid}, ${s.gorevliMidMins})"` : ''}
@@ -2767,9 +2771,6 @@
                         </td>
                         <td style="padding:1rem; text-align:center;">
                             <span class="stat-badge ${s.diger > 0 ? 'diger' : ''}" style="${s.diger === 0 ? 'background:#f1f5f9;color:#94a3b8;' : ''}">${s.diger} Kez</span>
-                        </td>
-                        <td style="padding:1rem; text-align:center;">
-                            <span class="stat-badge ${s.nobetci > 0 ? 'diger' : ''}" style="${s.nobetci === 0 ? 'background:#f1f5f9;color:#94a3b8;' : 'background:#f3f4f6;color:#6b7280;'}">${s.nobetci} Kez</span>
                         </td>
                     </tr>`;
             });
