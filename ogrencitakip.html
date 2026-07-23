@@ -2121,12 +2121,33 @@
         function updateLiveCounters() {
             let olumlu = 0, olumsuz = 0, gorevli = 0, diger = 0;
             
-            Object.values(attendanceMap).forEach(v => {
-                if (v === 'OLUMLU' || v === 'NÖBETÇİ') olumlu++;
-                else if (v === 'OLUMSUZ') olumsuz++;
-                else if (v === 'GÖREVLİ') gorevli++;
-                else if (v === 'DİĞER') diger++;
-            });
+            for (let studentNo in attendanceMap) {
+                const v = attendanceMap[studentNo];
+                if (v === 'OLUMLU' || v === 'NÖBETÇİ') {
+                    if (olumluDetailsMap[studentNo] && olumluDetailsMap[studentNo].length > 0) {
+                        olumlu += olumluDetailsMap[studentNo].length;
+                    } else {
+                        olumlu++;
+                    }
+                }
+                else if (v === 'OLUMSUZ') {
+                    if (olumsuzDetailsMap[studentNo] && olumsuzDetailsMap[studentNo].length > 0) {
+                        olumsuz += olumsuzDetailsMap[studentNo].length;
+                    } else {
+                        olumsuz++;
+                    }
+                }
+                else if (v === 'GÖREVLİ') {
+                    gorevli++;
+                }
+                else if (v === 'DİĞER') {
+                    if (digerDetailsMap[studentNo] && digerDetailsMap[studentNo].length > 0) {
+                        diger += digerDetailsMap[studentNo].length;
+                    } else {
+                        diger++;
+                    }
+                }
+            }
 
             document.getElementById('countOlumlu').textContent = olumlu;
             document.getElementById('countOlumsuz').textContent = olumsuz;
