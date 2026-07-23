@@ -205,7 +205,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (currentPath.includes('enter.html')) {
                     // Do not auto-redirect away from enter.html (portal).
                     sessionStorage.removeItem('klbk_last_redirect');
-                    window.location.reload();
+                    const intended = sessionStorage.getItem('klbk_intended_url');
+                    if (intended && intended !== '/enter.html' && intended !== '/index.html') {
+                        sessionStorage.removeItem('klbk_intended_url');
+                        window.location.href = intended;
+                    } else {
+                        window.location.reload();
+                    }
                 } else {
                     let targetUrl = '/j2k5l0p8'; // Default (ogrenci)
                     if (role === 'ogretmen') {
@@ -463,15 +469,46 @@ document.addEventListener('DOMContentLoaded', () => {
                             window.location.reload();
                         } else if (currentPath.includes('enter.html')) {
                             // If they are logging in directly from enter.html portal, just reload to show portal UI
-                            window.location.reload();
+                            const intended = sessionStorage.getItem('klbk_intended_url');
+                            if (intended && intended !== '/enter.html' && intended !== '/index.html') {
+                                sessionStorage.removeItem('klbk_intended_url');
+                                window.location.href = intended;
+                            } else {
+                                window.location.reload();
+                            }
                         } else if (role === 'ogretmen') {
-                            window.location.href = '/h6t3y9w1';
+                            // Handle intended URL for other login points if applicable
+                            const intended = sessionStorage.getItem('klbk_intended_url');
+                            if (intended) {
+                                sessionStorage.removeItem('klbk_intended_url');
+                                window.location.href = intended;
+                            } else {
+                                window.location.href = '/h6t3y9w1';
+                            }
                         } else if (role === 'idareci') {
-                            window.location.href = '/yoklama_idareci.html';
+                            const intended = sessionStorage.getItem('klbk_intended_url');
+                            if (intended) {
+                                sessionStorage.removeItem('klbk_intended_url');
+                                window.location.href = intended;
+                            } else {
+                                window.location.href = '/yoklama_idareci.html';
+                            }
                         } else if (role === 'master' || role === 'admin' || role === 'dashboard') {
-                            window.location.href = '/r1p5s8q3';
+                            const intended = sessionStorage.getItem('klbk_intended_url');
+                            if (intended) {
+                                sessionStorage.removeItem('klbk_intended_url');
+                                window.location.href = intended;
+                            } else {
+                                window.location.href = '/r1p5s8q3';
+                            }
                         } else {
-                            window.location.href = '/j2k5l0p8';
+                            const intended = sessionStorage.getItem('klbk_intended_url');
+                            if (intended) {
+                                sessionStorage.removeItem('klbk_intended_url');
+                                window.location.href = intended;
+                            } else {
+                                window.location.href = '/j2k5l0p8';
+                            }
                         }
                     }, 1000);
                 } else {

@@ -20,7 +20,13 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Core DataManager -->
     <script src="js/core_data_v11_9_1.js"></script>
-
+    <!-- Auth Check -->
+    <script>
+        if (sessionStorage.getItem('klbk_isLoggedIn') !== 'true') {
+            sessionStorage.setItem('klbk_intended_url', window.location.pathname);
+            window.location.href = '/enter.html';
+        }
+    </script>
     <style>
         :root {
             --geldi-color: #10b981;

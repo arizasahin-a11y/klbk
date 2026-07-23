@@ -52,7 +52,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!isLoginPage) {
         const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn');
         if (!isLoggedIn) {
-            window.location.href = '/k9x7v2m4';
+            sessionStorage.setItem('klbk_intended_url', window.location.pathname);
+            window.location.href = '/enter.html';
             return;
         }
     }
