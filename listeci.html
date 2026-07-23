@@ -167,6 +167,77 @@
             box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
         }
 
+        /* Accordion Styles */
+        .accordion-item {
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+            overflow: visible;
+            transition: box-shadow 0.3s ease;
+            background: white;
+        }
+
+        .accordion-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .accordion-item.active {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .accordion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+            border-radius: var(--radius-md);
+        }
+
+        .accordion-header:hover {
+            background: rgba(0,0,0,0.02);
+        }
+
+        .accordion-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .accordion-header .accordion-icon {
+            transition: transform 0.35s ease;
+            color: var(--gray-500);
+            font-size: 0.9rem;
+        }
+
+        .accordion-item.active .accordion-header .accordion-icon {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.3s ease;
+            padding: 0 1.5rem;
+        }
+
+        .accordion-item.active .accordion-content {
+            max-height: 1000px;
+            padding: 0 1.5rem 1.5rem;
+            overflow: visible;
+        }
+
+        .accordion-desc {
+            font-size: 0.9rem;
+            color: var(--gray-500);
+            margin: 0 0 1rem 0;
+        }
+
         /* Mobile Responsiveness */
         @media (max-width: 600px) {
             .glass-panel {
@@ -178,6 +249,18 @@
             .btn-primary {
                 padding: 0.8rem 1rem;
                 font-size: 1rem;
+            }
+            .accordion-header {
+                padding: 1rem 1.25rem;
+            }
+            .accordion-header h3 {
+                font-size: 1rem;
+            }
+            .accordion-content {
+                padding: 0 1.25rem;
+            }
+            .accordion-item.active .accordion-content {
+                padding: 0 1.25rem 1.25rem;
             }
             #studentSelectorModal .glass-panel {
                 height: 100vh;
@@ -235,26 +318,6 @@
         </div>
 
         <div class="glass-panel">
-            <div class="form-group" style="position: relative;">
-                <label><i class="fa-solid fa-users"></i> Sınıfları Seçin (Birden fazla seçilebilir)</label>
-                <div class="custom-dropdown" id="classDropdownToggle" onclick="toggleClassDropdown()">
-                    <span id="classDropdownText">Sınıf Seçin...</span>
-                    <i class="fa-solid fa-chevron-down"></i>
-                </div>
-                
-                <div class="custom-dropdown-menu" id="classDropdownMenu" style="display: none;">
-                    <div style="padding: 10px; border-bottom: 1px solid var(--gray-200); display: flex; gap: 10px; background: #f8fafc; border-top-left-radius: var(--radius-md); border-top-right-radius: var(--radius-md);">
-                        <button class="btn" style="flex: 1; padding: 5px 10px; font-size: 0.8rem; background: var(--gray-200); border: none; border-radius: 4px; cursor: pointer;" onclick="selectAllClasses(); event.stopPropagation();">Tümünü Seç</button>
-                        <button class="btn" style="flex: 1; padding: 5px 10px; font-size: 0.8rem; background: var(--gray-200); border: none; border-radius: 4px; cursor: pointer;" onclick="deselectAllClasses(); event.stopPropagation();">Tümünü Kaldır</button>
-                    </div>
-                    <div class="classes-grid" id="classesContainer">
-                        <div style="grid-column: 1 / -1; text-align: center; color: var(--gray-500); padding: 1rem;">
-                            <i class="fa-solid fa-spinner fa-spin"></i> Sınıflar Yükleniyor...
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div class="form-group">
                 <label><i class="fa-solid fa-table-columns"></i> Sütun Düzeni</label>
                 <select id="columnPreset" class="form-select-custom" onchange="toggleCustomColumns()">
@@ -270,11 +333,35 @@
                 <input type="number" id="blankColumns" class="form-select-custom" value="16" min="0" max="30">
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-top: 2rem;">
-                <!-- Normal Liste Card -->
-                <div class="glass-panel" style="border-left: 4px solid var(--primary); padding: 1.5rem;">
-                    <h3 style="margin-top: 0; margin-bottom: 0.5rem;"><i class="fa-solid fa-list-ol"></i> Normal Sınıf Listeleri</h3>
-                    <p style="font-size: 0.9rem; color: var(--gray-500); margin-bottom: 1rem;">Yukarıdan seçtiğiniz sınıfların listelerini ayrı sayfalarda yazdırır.</p>
+            <!-- Accordion: Normal Sınıf Listeleri -->
+            <div class="accordion-item active" style="border-left: 4px solid var(--primary);">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3><i class="fa-solid fa-list-ol" style="color: var(--primary);"></i> Normal Sınıf Listeleri</h3>
+                    <i class="fa-solid fa-chevron-down accordion-icon"></i>
+                </div>
+                <div class="accordion-content">
+                    <p class="accordion-desc">Seçtiğiniz sınıfların listelerini ayrı sayfalarda yazdırır.</p>
+
+                    <div class="form-group" style="position: relative;">
+                        <label><i class="fa-solid fa-users"></i> Sınıfları Seçin (Birden fazla seçilebilir)</label>
+                        <div class="custom-dropdown" id="classDropdownToggle" onclick="toggleClassDropdown()">
+                            <span id="classDropdownText">Sınıf Seçin...</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+                        
+                        <div class="custom-dropdown-menu" id="classDropdownMenu" style="display: none;">
+                            <div style="padding: 10px; border-bottom: 1px solid var(--gray-200); display: flex; gap: 10px; background: #f8fafc; border-top-left-radius: var(--radius-md); border-top-right-radius: var(--radius-md);">
+                                <button class="btn" style="flex: 1; padding: 5px 10px; font-size: 0.8rem; background: var(--gray-200); border: none; border-radius: 4px; cursor: pointer;" onclick="selectAllClasses(); event.stopPropagation();">Tümünü Seç</button>
+                                <button class="btn" style="flex: 1; padding: 5px 10px; font-size: 0.8rem; background: var(--gray-200); border: none; border-radius: 4px; cursor: pointer;" onclick="deselectAllClasses(); event.stopPropagation();">Tümünü Kaldır</button>
+                            </div>
+                            <div class="classes-grid" id="classesContainer">
+                                <div style="grid-column: 1 / -1; text-align: center; color: var(--gray-500); padding: 1rem;">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> Sınıflar Yükleniyor...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div style="margin-bottom: 1rem;">
                         <label style="font-size: 0.9rem;">Başlık Eki (Opsiyonel)</label>
                         <input type="text" id="titleSuffix" class="form-select-custom" placeholder="Örn: FİZİK NOTLARI (Sınıf adının yanına eklenir)">
@@ -283,11 +370,16 @@
                         <i class="fa-solid fa-file-pdf"></i> Sınıf Listelerini Oluştur
                     </button>
                 </div>
+            </div>
 
-                <!-- Karma Liste Card -->
-                <div class="glass-panel" style="border-left: 4px solid #8b5cf6; padding: 1.5rem;">
-                    <h3 style="margin-top: 0; margin-bottom: 0.5rem;"><i class="fa-solid fa-users-viewfinder"></i> Karma Liste (Özel Seçim)</h3>
-                    <p style="font-size: 0.9rem; color: var(--gray-500); margin-bottom: 1rem;">Okuldaki herhangi bir sınıftan öğrencileri tek tek seçerek tek bir birleştirilmiş liste oluşturun.</p>
+            <!-- Accordion: Karma Liste -->
+            <div class="accordion-item" style="border-left: 4px solid #8b5cf6;">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3><i class="fa-solid fa-users-viewfinder" style="color: #8b5cf6;"></i> Karma Liste (Özel Seçim)</h3>
+                    <i class="fa-solid fa-chevron-down accordion-icon"></i>
+                </div>
+                <div class="accordion-content">
+                    <p class="accordion-desc">Okuldaki herhangi bir sınıftan öğrencileri tek tek seçerek tek bir birleştirilmiş liste oluşturun.</p>
                     <div style="margin-bottom: 1rem;">
                         <label style="font-size: 0.9rem;">Karma Liste Başlığı</label>
                         <input type="text" id="karmaClubTitle" class="form-select-custom" value="Karma Öğrenci Listesi">
@@ -299,11 +391,16 @@
                         <i class="fa-solid fa-file-pdf"></i> Karma Listeyi Oluştur
                     </button>
                 </div>
+            </div>
 
-                <!-- Boş Şablon Card -->
-                <div class="glass-panel" style="border-left: 4px solid #10b981; padding: 1.5rem;">
-                    <h3 style="margin-top: 0; margin-bottom: 0.5rem;"><i class="fa-solid fa-table"></i> Genel Boş Liste Şablonu</h3>
-                    <p style="font-size: 0.9rem; color: var(--gray-500); margin-bottom: 1rem;">İçinde öğrenci bilgisi bulunmayan, sadece Sıra No olan boş bir tablo çıkartır. (Sınıf seçimi gerektirmez)</p>
+            <!-- Accordion: Boş Şablon -->
+            <div class="accordion-item" style="border-left: 4px solid #10b981;">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3><i class="fa-solid fa-table" style="color: #10b981;"></i> Genel Boş Liste Şablonu</h3>
+                    <i class="fa-solid fa-chevron-down accordion-icon"></i>
+                </div>
+                <div class="accordion-content">
+                    <p class="accordion-desc">İçinde öğrenci bilgisi bulunmayan, sadece Sıra No olan boş bir tablo çıkartır. (Sınıf seçimi gerektirmez)</p>
                     <div style="margin-bottom: 1rem;">
                         <label style="font-size: 0.9rem;">Şablon Başlığı</label>
                         <input type="text" id="emptyTemplateTitle" class="form-select-custom" value="Boş Liste">
@@ -532,6 +629,21 @@
                 });
             }
         });
+
+        function toggleAccordion(headerEl) {
+            const item = headerEl.closest('.accordion-item');
+            const isActive = item.classList.contains('active');
+            
+            // Close all accordions
+            document.querySelectorAll('.accordion-item').forEach(ai => {
+                ai.classList.remove('active');
+            });
+            
+            // Open clicked one if it was closed
+            if (!isActive) {
+                item.classList.add('active');
+            }
+        }
 
         document.addEventListener('click', function(event) {
             const toggle = document.getElementById('classDropdownToggle');
