@@ -713,9 +713,9 @@
             display: none;
             z-index: 10;
         }
-        .action-badge.olumlu { background: var(--geldi-color); }
-        .action-badge.olumsuz { background: var(--gelmedi-color); }
-        .action-badge.gorevli { background: var(--gec-color); }
+        .action-badge.olumlu { background: var(--olumlu-color); }
+        .action-badge.olumsuz { background: var(--olumsuz-color); }
+        .action-badge.gorevli { background: var(--gorevli-color); }
         .action-badge.diger { background: var(--diger-color); }
         
         .status-btn { position: relative; overflow: visible !important; }
@@ -2996,27 +2996,27 @@
     <!-- Olumlu Eylemler Modalı -->
     <div id="olumluModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center;">
         <div class="glass-panel" style="background:white; padding:1.5rem; width:90%; max-width:450px; border-radius:12px; position:relative; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
-            <h3 style="margin-top:0; color:var(--geldi-color); border-bottom:2px solid #ecfdf5; padding-bottom:10px;"><i class="fa-solid fa-star"></i> Olumlu Eylemler</h3>
+            <h3 style="margin-top:0; color:var(--olumlu-color); border-bottom:2px solid #ecfdf5; padding-bottom:10px;"><i class="fa-solid fa-star"></i> Olumlu Eylemler</h3>
             <p id="olumluModalStudentName" style="font-weight:800; font-size:1.1rem; color:var(--dark); margin-bottom:0.5rem;"></p>
             <input type="hidden" id="olumluModalStudentNo" value="">
             
             <div style="flex:1; overflow-y:auto; min-height:0; padding-right:5px;">
                 <div style="margin:1rem 0; display:flex; flex-direction:column; gap:12px; background:#f8fafc; padding:15px; border-radius:8px;">
                     <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
-                        <input type="checkbox" class="olumlu-cb" value="Ders Başarısı" style="width:18px; height:18px; accent-color:var(--geldi-color);"> Ders Başarısı
+                        <input type="checkbox" class="olumlu-cb" value="Ders Başarısı" style="width:18px; height:18px; accent-color:var(--olumlu-color);"> Ders Başarısı
                     </label>
                     <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
-                        <input type="checkbox" class="olumlu-cb" value="Örnek Davranış" style="width:18px; height:18px; accent-color:var(--geldi-color);"> Örnek Davranış
+                        <input type="checkbox" class="olumlu-cb" value="Örnek Davranış" style="width:18px; height:18px; accent-color:var(--olumlu-color);"> Örnek Davranış
                     </label>
                     <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
-                        <input type="checkbox" class="olumlu-cb" value="Temsil" style="width:18px; height:18px; accent-color:var(--geldi-color);"> Temsil
+                        <input type="checkbox" class="olumlu-cb" value="Temsil" style="width:18px; height:18px; accent-color:var(--olumlu-color);"> Temsil
                     </label>
                 </div>
                 
                 <div style="margin-top:1.5rem; border-top:1px solid #e2e8f0; padding-top:1rem;">
                     <h4 style="margin-top:0; color:var(--gray-600); font-size:0.95rem; display:flex; justify-content:space-between;">
                         <span><i class="fa-solid fa-clock-rotate-left"></i> Geçmiş Eylemler</span>
-                        <span id="olumluModalHistoryCount" style="background:var(--geldi-color); color:white; padding:2px 8px; border-radius:12px; font-size:0.8rem;">0</span>
+                        <span id="olumluModalHistoryCount" style="background:var(--olumlu-color); color:white; padding:2px 8px; border-radius:12px; font-size:0.8rem;">0</span>
                     </h4>
                     <div id="olumluModalHistory" style="font-size:0.9rem;"></div>
                 </div>
@@ -3024,7 +3024,7 @@
             
             <div style="text-align:center; margin-top:15px; border-top:1px solid #eee; padding-top:15px; background:white; white-space:nowrap;">
                 <button class="btn" style="width:48%; display:inline-block; background:#f1f5f9; color:var(--gray-600); margin-right:2%;" onclick="closeOlumluModal()">İptal</button>
-                <button class="btn" style="width:48%; display:inline-block; background:var(--geldi-color); color:white;" onclick="saveOlumluModal()"><i class="fa-solid fa-check"></i> Kaydet</button>
+                <button class="btn" style="width:48%; display:inline-block; background:var(--olumlu-color); color:white;" onclick="saveOlumluModal()"><i class="fa-solid fa-check"></i> Kaydet</button>
             </div>
         </div>
     </div>
@@ -3032,42 +3032,42 @@
     <!-- Olumsuz Eylemler Modalı -->
     <div id="olumsuzModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center;">
         <div class="glass-panel" style="background:white; padding:1.5rem; width:90%; max-width:450px; border-radius:12px; position:relative; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
-            <h3 style="margin-top:0; color:var(--gelmedi-color); border-bottom:2px solid #fef2f2; padding-bottom:10px;"><i class="fa-solid fa-triangle-exclamation"></i> Olumsuz Eylemler</h3>
+            <h3 style="margin-top:0; color:var(--olumsuz-color); border-bottom:2px solid #fef2f2; padding-bottom:10px;"><i class="fa-solid fa-triangle-exclamation"></i> Olumsuz Eylemler</h3>
             <p id="olumsuzModalStudentName" style="font-weight:800; font-size:1.1rem; color:var(--dark); margin-bottom:0.5rem;"></p>
             <input type="hidden" id="olumsuzModalStudentNo" value="">
             
             <div style="flex:1; overflow-y:auto; min-height:0; padding-right:5px;">
                 <div style="margin:1rem 0; display:flex; flex-direction:column; gap:12px; background:#fef2f2; padding:15px; border-radius:8px;">
                     <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
-                        <input type="checkbox" class="olumsuz-cb" value="Ders Araç Gereci Yok" style="width:18px; height:18px; accent-color:var(--gelmedi-color);"> Ders Araç Gereci Yok
+                        <input type="checkbox" class="olumsuz-cb" value="Ders Araç Gereci Yok" style="width:18px; height:18px; accent-color:var(--olumsuz-color);"> Ders Araç Gereci Yok
                     </label>
                     <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
-                        <input type="checkbox" class="olumsuz-cb" value="Ödev yapmamış" style="width:18px; height:18px; accent-color:var(--gelmedi-color);"> Ödev yapmamış
+                        <input type="checkbox" class="olumsuz-cb" value="Ödev yapmamış" style="width:18px; height:18px; accent-color:var(--olumsuz-color);"> Ödev yapmamış
                     </label>
                     <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
-                        <input type="checkbox" class="olumsuz-cb" value="Uyudu" style="width:18px; height:18px; accent-color:var(--gelmedi-color);"> Uyudu
+                        <input type="checkbox" class="olumsuz-cb" value="Uyudu" style="width:18px; height:18px; accent-color:var(--olumsuz-color);"> Uyudu
                     </label>
                     <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
-                        <input type="checkbox" class="olumsuz-cb" value="Yemek/İçecek/Sakız" style="width:18px; height:18px; accent-color:var(--gelmedi-color);"> Yemek/İçecek/Sakız
+                        <input type="checkbox" class="olumsuz-cb" value="Yemek/İçecek/Sakız" style="width:18px; height:18px; accent-color:var(--olumsuz-color);"> Yemek/İçecek/Sakız
                     </label>
                     <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
-                        <input type="checkbox" class="olumsuz-cb" value="Geç geldi" style="width:18px; height:18px; accent-color:var(--gelmedi-color);"> Geç geldi
+                        <input type="checkbox" class="olumsuz-cb" value="Geç geldi" style="width:18px; height:18px; accent-color:var(--olumsuz-color);"> Geç geldi
                     </label>
                     <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
-                        <input type="checkbox" class="olumsuz-cb" value="Cep telefonu" style="width:18px; height:18px; accent-color:var(--gelmedi-color);"> Cep telefonu
+                        <input type="checkbox" class="olumsuz-cb" value="Cep telefonu" style="width:18px; height:18px; accent-color:var(--olumsuz-color);"> Cep telefonu
                     </label>
                     <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
-                        <input type="checkbox" class="olumsuz-cb" value="Başka şeyle İlgilendi" style="width:18px; height:18px; accent-color:var(--gelmedi-color);"> Başka şeyle İlgilendi
+                        <input type="checkbox" class="olumsuz-cb" value="Başka şeyle İlgilendi" style="width:18px; height:18px; accent-color:var(--olumsuz-color);"> Başka şeyle İlgilendi
                     </label>
                     <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
-                        <input type="checkbox" class="olumsuz-cb" value="Saygısız" style="width:18px; height:18px; accent-color:var(--gelmedi-color);"> Saygısız
+                        <input type="checkbox" class="olumsuz-cb" value="Saygısız" style="width:18px; height:18px; accent-color:var(--olumsuz-color);"> Saygısız
                     </label>
                 </div>
                 
                 <div style="margin-top:1.5rem; border-top:1px solid #e2e8f0; padding-top:1rem;">
                     <h4 style="margin-top:0; color:var(--gray-600); font-size:0.95rem; display:flex; justify-content:space-between;">
                         <span><i class="fa-solid fa-clock-rotate-left"></i> Geçmiş Eylemler</span>
-                        <span id="olumsuzModalHistoryCount" style="background:var(--gelmedi-color); color:white; padding:2px 8px; border-radius:12px; font-size:0.8rem;">0</span>
+                        <span id="olumsuzModalHistoryCount" style="background:var(--olumsuz-color); color:white; padding:2px 8px; border-radius:12px; font-size:0.8rem;">0</span>
                     </h4>
                     <div id="olumsuzModalHistory" style="font-size:0.9rem;"></div>
                 </div>
@@ -3075,7 +3075,7 @@
             
             <div style="text-align:center; margin-top:15px; border-top:1px solid #eee; padding-top:15px; background:white; white-space:nowrap;">
                 <button class="btn" style="width:48%; display:inline-block; background:#f1f5f9; color:var(--gray-600); margin-right:2%;" onclick="closeOlumsuzModal()">İptal</button>
-                <button class="btn" style="width:48%; display:inline-block; background:var(--gelmedi-color); color:white;" onclick="saveOlumsuzModal()"><i class="fa-solid fa-check"></i> Kaydet</button>
+                <button class="btn" style="width:48%; display:inline-block; background:var(--olumsuz-color); color:white;" onclick="saveOlumsuzModal()"><i class="fa-solid fa-check"></i> Kaydet</button>
             </div>
         </div>
     </div>
@@ -3258,7 +3258,7 @@
     <!-- Görevli Modalı -->
     <div id="gorevliModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center;">
         <div class="glass-panel" style="background:white; padding:1.5rem; width:90%; max-width:450px; border-radius:12px; position:relative; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
-            <h3 style="margin-top:0; color:var(--gec-color); border-bottom:2px solid #fffbeb; padding-bottom:10px;"><i class="fa-solid fa-user-shield"></i> Görev Ata</h3>
+            <h3 style="margin-top:0; color:var(--gorevli-color); border-bottom:2px solid #fffbeb; padding-bottom:10px;"><i class="fa-solid fa-user-shield"></i> Görev Ata</h3>
             <p id="gorevliModalStudentName" style="font-weight:800; font-size:1.1rem; color:var(--dark); margin-bottom:0.5rem;"></p>
             <input type="hidden" id="gorevliModalStudentNo" value="">
             
@@ -3281,7 +3281,7 @@
                 <div style="margin-top:1.5rem; border-top:1px solid #e2e8f0; padding-top:1rem;">
                     <h4 style="margin-top:0; color:var(--gray-600); font-size:0.95rem; display:flex; justify-content:space-between;">
                         <span><i class="fa-solid fa-clock-rotate-left"></i> Geçmiş Görevler</span>
-                        <span id="gorevliModalHistoryCount" style="background:var(--gec-color); color:white; padding:2px 8px; border-radius:12px; font-size:0.8rem;">0</span>
+                        <span id="gorevliModalHistoryCount" style="background:var(--gorevli-color); color:white; padding:2px 8px; border-radius:12px; font-size:0.8rem;">0</span>
                     </h4>
                     <div id="gorevliModalHistory" style="font-size:0.9rem;"></div>
                 </div>
@@ -3289,7 +3289,7 @@
             
             <div style="text-align:center; margin-top:15px; border-top:1px solid #eee; padding-top:15px; background:white; white-space:nowrap;">
                 <button class="btn" style="width:48%; display:inline-block; background:#f1f5f9; color:var(--gray-600); margin-right:2%;" onclick="closeGorevliModal()">İptal</button>
-                <button class="btn" style="width:48%; display:inline-block; background:var(--gec-color); color:white;" onclick="saveGorevliModal()"><i class="fa-solid fa-check"></i> Kaydet</button>
+                <button class="btn" style="width:48%; display:inline-block; background:var(--gorevli-color); color:white;" onclick="saveGorevliModal()"><i class="fa-solid fa-check"></i> Kaydet</button>
             </div>
         </div>
     </div>
@@ -3375,7 +3375,7 @@
                             if (details && details.ad) {
                                 historyHTML += `<div style="padding:8px 0; border-bottom:1px dashed #e2e8f0;">
                                     <div style="font-size:0.8rem; color:var(--gray-500); margin-bottom:4px;"><i class="fa-regular fa-calendar"></i> ${date} - ${hour}. Ders</div>
-                                    <div><span style="font-weight:bold; color:var(--gec-color);">${details.ad}</span> (Veriliş: ${details.verilis || '-'}, Teslim: ${details.teslim || '-'})</div></div>`;
+                                    <div><span style="font-weight:bold; color:var(--gorevli-color);">${details.ad}</span> (Veriliş: ${details.verilis || '-'}, Teslim: ${details.teslim || '-'})</div></div>`;
                             } else {
                                 historyHTML += `<div style="padding:8px 0; border-bottom:1px dashed #e2e8f0;">
                                     <div style="font-size:0.8rem; color:var(--gray-500); margin-bottom:4px;"><i class="fa-regular fa-calendar"></i> ${date} - ${hour}. Ders</div>
