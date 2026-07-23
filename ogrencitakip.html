@@ -3202,7 +3202,7 @@
             });
             if (!historyHTML) historyHTML = '<div style="color:var(--gray-400); text-align:center; padding:10px;">Henüz geçmiş kayıt yok.</div>';
             historyDiv.innerHTML = historyHTML;
-            historyCountSpan.innerHTML = `${totalActions} ` + (Object.keys(actionCounts).length > 0 ? `<span style="font-size:0.8rem; color:rgba(255,255,255,0.85); font-weight:normal; margin-left:8px;">(${Object.entries(actionCounts).map(([k,v]) => `${k}: ${v}`).join(', ')})</span>` : '');
+            historyCountSpan.innerHTML = `${totalActions} ` + (Object.keys(actionCounts).length > 0 ? `<span style="font-size:0.8rem; color:white; font-weight:normal; margin-left:8px;">(${Object.entries(actionCounts).map(([k,v]) => `${k}: ${v}`).join(', ')})</span>` : '');
 
             document.getElementById('olumluModal').style.display = 'flex';
         };
@@ -3272,7 +3272,7 @@
             });
             if (!historyHTML) historyHTML = '<div style="color:var(--gray-400); text-align:center; padding:10px;">Henüz geçmiş kayıt yok.</div>';
             historyDiv.innerHTML = historyHTML;
-            historyCountSpan.innerHTML = `${totalActions} ` + (Object.keys(actionCounts).length > 0 ? `<span style="font-size:0.8rem; color:rgba(255,255,255,0.85); font-weight:normal; margin-left:8px;">(${Object.entries(actionCounts).map(([k,v]) => `${k}: ${v}`).join(', ')})</span>` : '');
+            historyCountSpan.innerHTML = `${totalActions} ` + (Object.keys(actionCounts).length > 0 ? `<span style="font-size:0.8rem; color:white; font-weight:normal; margin-left:8px;">(${Object.entries(actionCounts).map(([k,v]) => `${k}: ${v}`).join(', ')})</span>` : '');
 
             document.getElementById('olumsuzModal').style.display = 'flex';
         };
@@ -3504,7 +3504,7 @@
             });
             if (!historyHTML) historyHTML = '<div style="color:var(--gray-400); text-align:center; padding:10px;">Henüz geçmiş kayıt yok.</div>';
             historyDiv.innerHTML = historyHTML;
-            historyCountSpan.innerHTML = `${totalActions} ` + (Object.keys(actionCounts).length > 0 ? `<span style="font-size:0.8rem; color:rgba(255,255,255,0.85); font-weight:normal; margin-left:8px;">(${Object.entries(actionCounts).map(([k,v]) => `${k}: ${v}`).join(', ')})</span>` : '');
+            historyCountSpan.innerHTML = `${totalActions} ` + (Object.keys(actionCounts).length > 0 ? `<span style="font-size:0.8rem; color:white; font-weight:normal; margin-left:8px;">(${Object.entries(actionCounts).map(([k,v]) => `${k}: ${v}`).join(', ')})</span>` : '');
 
             document.getElementById('digerModal').style.display = 'flex';
         };
