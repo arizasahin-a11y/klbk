@@ -2655,11 +2655,12 @@
                         if (record.teacher === activeTeacherUsername) {
                             const recs = record.records || {};
                             const gecT = record.gecTimes || {};
+                            const olumluDet = record.olumluDetails || {};
+                            const olumsuzDet = record.olumsuzDetails || {};
+                            const digerDet = record.digerDetails || {};
                             
                             for (const stuNo in recs) {
                                 const status = recs[stuNo];
-                                // Remove 'OLUMLU' skip to include it in stats!
-                                // if (status === 'OLUMLU') continue;
                                 
                                 if (!statsMap[stuNo]) {
                                     const stuObj = allStudents.find(s => s.no === stuNo) || {};
@@ -2679,8 +2680,14 @@
                                     };
                                 }
                                 
-                                if (status === 'OLUMLU') statsMap[stuNo].olumlu++;
-                                if (status === 'OLUMSUZ') statsMap[stuNo].olumsuz++;
+                                if (status === 'OLUMLU') {
+                                    const details = olumluDet[stuNo] || ['Olumlu'];
+                                    statsMap[stuNo].olumlu += details.length;
+                                }
+                                if (status === 'OLUMSUZ') {
+                                    const details = olumsuzDet[stuNo] || ['Olumsuz'];
+                                    statsMap[stuNo].olumsuz += details.length;
+                                }
                                 if (status === 'GÖREVLİ') {
                                     const lateMins = parseInt(gecT[stuNo] || 0);
                                     statsMap[stuNo].gorevli++;
@@ -2694,7 +2701,10 @@
                                         statsMap[stuNo].gorevliMidMins += lateMins;
                                     }
                                 }
-                                if (status === 'DİĞER') statsMap[stuNo].diger++;
+                                if (status === 'DİĞER') {
+                                    const details = digerDet[stuNo] || ['Diğer'];
+                                    statsMap[stuNo].diger += details.length;
+                                }
                             }
                         }
                     }
@@ -2755,10 +2765,10 @@
                             <div style="font-size:0.8rem; color:var(--gray-500);">No: ${s.no} | Sınıf: ${s.class}</div>
                         </td>
                         <td style="padding:1rem; text-align:center;">
-                            <span class="stat-badge ${s.olumlu > 0 ? 'olumlu' : ''}" style="${s.olumlu === 0 ? 'background:#f1f5f9;color:#94a3b8;' : 'background:#dcfce7;color:#166534;'}">${s.olumlu} Kez</span>
+                            <span class="stat-badge ${s.olumlu > 0 ? 'olumlu' : ''}" style="${s.olumlu === 0 ? 'background:#f1f5f9;color:#94a3b8;' : 'background:#dcfce7;color:#166534;'}">${s.olumlu} Puan</span>
                         </td>
                         <td style="padding:1rem; text-align:center;">
-                            <span class="stat-badge ${s.olumsuz > 0 ? 'olumsuz' : ''}" style="${s.olumsuz === 0 ? 'background:#f1f5f9;color:#94a3b8;' : ''}">${s.olumsuz} Kez</span>
+                            <span class="stat-badge ${s.olumsuz > 0 ? 'olumsuz' : ''}" style="${s.olumsuz === 0 ? 'background:#f1f5f9;color:#94a3b8;' : ''}">${s.olumsuz} Puan</span>
                         </td>
                         <td style="padding:1rem; text-align:center;">
                             <span class="stat-badge ${s.gorevli > 0 ? 'gorevli' : ''}" 
@@ -2770,7 +2780,7 @@
                             </span>
                         </td>
                         <td style="padding:1rem; text-align:center;">
-                            <span class="stat-badge ${s.diger > 0 ? 'diger' : ''}" style="${s.diger === 0 ? 'background:#f1f5f9;color:#94a3b8;' : ''}">${s.diger} Kez</span>
+                            <span class="stat-badge ${s.diger > 0 ? 'diger' : ''}" style="${s.diger === 0 ? 'background:#f1f5f9;color:#94a3b8;' : ''}">${s.diger} Puan</span>
                         </td>
                     </tr>`;
             });
