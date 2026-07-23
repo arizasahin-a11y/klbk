@@ -3008,6 +3008,7 @@
     <script>
         window.getStudentActionCounts = function(studentNo) {
             let counts = { OLUMLU: 0, OLUMSUZ: 0, GÖREVLİ: 0, DİĞER: 0 };
+            const dbData = DataManager._getData();
             const tracking = dbData.student_tracking || {};
             for (let date in tracking) {
                 for (let hour in tracking[date]) {
@@ -3054,6 +3055,7 @@
             const historyCountSpan = document.getElementById('olumluModalHistoryCount');
             historyDiv.innerHTML = '';
             
+            const dbData = DataManager._getData();
             const tracking = dbData.student_tracking || {};
             let historyHTML = '';
             let totalActions = 0;
