@@ -473,25 +473,61 @@
 
         /* Daily Schedule Panel */
         .daily-schedule {
-            padding: 1.5rem;
+            padding: 0;
             margin-bottom: 1.5rem;
+            overflow: hidden;
         }
 
-        .daily-schedule h3 {
+        .daily-schedule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .daily-schedule-header:hover {
+            background: rgba(0,0,0,0.02);
+        }
+
+        .daily-schedule-header h3 {
             font-weight: 800;
             font-size: 1.15rem;
-            margin-bottom: 1rem;
+            margin: 0;
             color: var(--dark);
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .daily-schedule h3 span {
+        .daily-schedule-header h3 span {
             font-size: 0.85rem;
             font-weight: 600;
             color: var(--gray-500);
-            margin-left: auto;
+        }
+
+        .daily-schedule-toggle {
+            color: var(--gray-500);
+            font-size: 0.9rem;
+            transition: transform 0.35s ease;
+        }
+
+        .daily-schedule.collapsed .daily-schedule-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .daily-schedule-body {
+            max-height: 2000px;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.3s ease;
+            padding: 0 1.5rem 1.5rem;
+        }
+
+        .daily-schedule.collapsed .daily-schedule-body {
+            max-height: 0;
+            padding: 0 1.5rem;
         }
 
         .daily-lessons-list {
@@ -751,11 +787,16 @@
         <!-- TAB 1: Yoklama Giriş Aracı -->
         <div id="tabYoklama" class="tab-content">
             
-            <!-- Günlük Ders Programı -->
+            <!-- Günlük Ders Programı (Akordeon) -->
             <div class="daily-schedule glass-panel" id="dailySchedulePanel" style="display: none;">
-                <h3><i class="fa-solid fa-calendar-day" style="color: var(--primary);"></i> Bugünkü Dersleriniz <span id="dailyScheduleDayName"></span></h3>
-                <div class="daily-lessons-list" id="dailyLessonsList">
-                    <div style="text-align: center; padding: 1rem; color: var(--gray-500);"><i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...</div>
+                <div class="daily-schedule-header" onclick="document.getElementById('dailySchedulePanel').classList.toggle('collapsed')">
+                    <h3><i class="fa-solid fa-calendar-day" style="color: var(--primary);"></i> Bugünkü Dersleriniz <span id="dailyScheduleDayName"></span></h3>
+                    <i class="fa-solid fa-chevron-down daily-schedule-toggle"></i>
+                </div>
+                <div class="daily-schedule-body">
+                    <div class="daily-lessons-list" id="dailyLessonsList">
+                        <div style="text-align: center; padding: 1rem; color: var(--gray-500);"><i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...</div>
+                    </div>
                 </div>
             </div>
 
