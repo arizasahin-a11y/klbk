@@ -74,16 +74,13 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.5);
             border-radius: 16px;
-            padding: 25px;
+            padding: 20px;
             text-decoration: none;
             color: var(--dark);
             box-shadow: 0 4px 15px rgba(0,0,0,0.03);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
             position: relative;
-            overflow: hidden;
+            cursor: pointer;
         }
         .link-card:hover {
             transform: translateY(-5px);
@@ -91,30 +88,65 @@
             border-color: rgba(59, 130, 246, 0.3);
         }
 
+        .link-card-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
         .link-icon {
-            width: 50px;
-            height: 50px;
+            width: 45px;
+            height: 45px;
             border-radius: 12px;
             background: #eff6ff;
             color: var(--primary);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            margin-bottom: 15px;
+            font-size: 1.3rem;
+            flex-shrink: 0;
         }
 
         .link-card h3 {
-            margin: 0 0 8px 0;
-            font-size: 1.2rem;
+            margin: 0;
+            font-size: 1.15rem;
             font-weight: 700;
+            flex: 1;
         }
 
         .link-card p {
-            margin: 0;
+            margin: 0 0 0 60px; /* Align text past the icon */
             color: var(--gray-500);
             font-size: 0.9rem;
-            line-height: 1.5;
+            line-height: 1.4;
+        }
+
+        /* Order buttons */
+        .order-btns {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .order-btn {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            color: var(--gray-500);
+            border-radius: 4px;
+            width: 28px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .order-btn:hover {
+            background: #e2e8f0;
+            color: var(--dark);
         }
 
         /* Admin UI */
@@ -373,29 +405,93 @@
             renderTeacherLinks(isAdmin);
         }
 
+        let activeTeacherLinks = [];
+
         function renderTeacherLinks(isAdmin) {
             const grid = document.getElementById('teacherLinksGrid');
             grid.innerHTML = '';
             
-            // For teachers, only show active links. Admins can see all active links to test them.
-            const visibleLinks = portalLinks.filter(l => l.active);
+            // For teachers, only show active links
+            activeTeacherLinks = portalLinks.filter(l => l.active);
 
-            if (visibleLinks.length === 0) {
+            // Apply custom order if saved
+            try {
+                const savedOrder = JSON.parse(localStorage.getItem('klbk_teacher_link_order') || '[]');
+                if (savedOrder && savedOrder.length > 0) {
+                    activeTeacherLinks.sort((a, b) => {
+                        const indexA = savedOrder.indexOf(a.id);
+                        const indexB = savedOrder.indexOf(b.id);
+                        if (indexA === -1 && indexB === -1) return 0;
+                        if (indexA === -1) return 1;
+                        if (indexB === -1) return -1;
+                        return indexA - indexB;
+                    });
+                }
+            } catch(e) {}
+
+            if (activeTeacherLinks.length === 0) {
                 grid.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:3rem; background:rgba(255,255,255,0.5); border-radius:16px; color:var(--gray-500);">Şu anda aktif bir sayfa bağlantısı bulunmuyor.</div>`;
                 return;
             }
 
-            visibleLinks.forEach(link => {
-                const a = document.createElement('a');
-                a.href = link.url;
-                a.className = 'link-card';
-                a.innerHTML = `
-                    <div class="link-icon"><i class="fa-solid ${link.icon || 'fa-link'}"></i></div>
-                    <h3>${link.title || 'Başlıksız'}</h3>
+            activeTeacherLinks.forEach((link, index) => {
+                const card = document.createElement('div');
+                card.className = 'link-card';
+                card.onclick = (e) => {
+                    // Butonlara tıklandıysa sayfaya gitme
+                    if (e.target.closest('.order-btn')) return;
+                    window.location.href = link.url;
+                };
+
+                let orderButtons = ``;
+                // Sadece birden fazla öge varsa butonları göster
+                if (activeTeacherLinks.length > 1) {
+                    orderButtons = `
+                        <div class="order-btns">
+                            <button class="order-btn" onclick="moveTeacherLinkUp(${index})" ${index === 0 ? 'disabled style="opacity:0.3;"' : ''}><i class="fa-solid fa-chevron-up"></i></button>
+                            <button class="order-btn" onclick="moveTeacherLinkDown(${index})" ${index === activeTeacherLinks.length - 1 ? 'disabled style="opacity:0.3;"' : ''}><i class="fa-solid fa-chevron-down"></i></button>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    ${orderButtons}
+                    <div class="link-card-header">
+                        <div class="link-icon"><i class="fa-solid ${link.icon || 'fa-link'}"></i></div>
+                        <h3>${link.title || 'Başlıksız'}</h3>
+                    </div>
                     <p>${link.desc || ''}</p>
                 `;
-                grid.appendChild(a);
+                grid.appendChild(card);
             });
+        }
+
+        window.moveTeacherLinkUp = function(index) {
+            if (index > 0) {
+                const temp = activeTeacherLinks[index];
+                activeTeacherLinks[index] = activeTeacherLinks[index - 1];
+                activeTeacherLinks[index - 1] = temp;
+                saveTeacherOrderAndRender();
+            }
+        };
+
+        window.moveTeacherLinkDown = function(index) {
+            if (index < activeTeacherLinks.length - 1) {
+                const temp = activeTeacherLinks[index];
+                activeTeacherLinks[index] = activeTeacherLinks[index + 1];
+                activeTeacherLinks[index + 1] = temp;
+                saveTeacherOrderAndRender();
+            }
+        };
+
+        function saveTeacherOrderAndRender() {
+            const orderIds = activeTeacherLinks.map(l => l.id);
+            localStorage.setItem('klbk_teacher_link_order', JSON.stringify(orderIds));
+            
+            // Check isAdmin global var or re-calculate
+            const role = (sessionStorage.getItem('klbk_role') || '').toLowerCase().trim();
+            const isAdmin = role === 'admin' || role === 'master' || role === 'idareci';
+            renderTeacherLinks(isAdmin);
         }
 
         function renderAdminLinks() {
