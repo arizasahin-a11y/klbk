@@ -331,22 +331,41 @@
                     const data = await res.json();
                     if (data && data.links) {
                         portalLinks = data.links;
-                    } else {
-                        // Default fallback
-                        portalLinks = [
-                            { id: Date.now().toString(), title: "Yoklama Ekranı", desc: "Sınıf yoklaması alın ve geçmiş yoklamaları yönetin.", url: "/h6t3y9w1", icon: "fa-clipboard-list", active: true },
-                            { id: (Date.now()+1).toString(), title: "Öğrenci Profilleri", desc: "Öğrencilerin okul içi davranışları ve istatistikleri.", url: "/j2k5l0p8", icon: "fa-users", active: true }
-                        ];
                     }
                 }
             } catch (err) {
                 console.error("Linkler alınamadı:", err);
-                if (portalLinks.length === 0) {
-                    portalLinks = [
-                        { id: Date.now().toString(), title: "Yoklama Ekranı", desc: "Yoklama alın", url: "/h6t3y9w1", icon: "fa-clipboard-list", active: true }
-                    ];
-                }
             }
+
+            // Tum mevcut HTML dosyalarini iceren sabit liste
+            const allHtmlFiles = [
+                { id: "html_404", title: "404 Sayfası", desc: "Sayfa bulunamadı hatası", url: "/404.html", icon: "fa-triangle-exclamation", active: false },
+                { id: "html_dashboard", title: "Dashboard", desc: "Ana Yönetim Paneli", url: "/dashboard.html", icon: "fa-chart-line", active: false },
+                { id: "html_enter", title: "Portal Giriş", desc: "Bu Sayfa", url: "/enter.html", icon: "fa-compass", active: false },
+                { id: "html_index", title: "Ana Giriş", desc: "Sistem Ana Giriş Sayfası", url: "/index.html", icon: "fa-right-to-bracket", active: false },
+                { id: "html_listeci", title: "Listeci", desc: "Liste okuma ve barkod işlemleri", url: "/listeci.html", icon: "fa-list-ol", active: false },
+                { id: "html_listeci_print", title: "Listeci Yazdır", desc: "Liste yazdırma ekranı", url: "/listeci_print.html", icon: "fa-print", active: false },
+                { id: "html_master", title: "Master Ayarlar", desc: "Sistem Master Kullanıcı Ayarları", url: "/master.html", icon: "fa-cogs", active: false },
+                { id: "html_oeovvb", title: "OEOVVB", desc: "Öğretmen Eylem Veritabanı", url: "/oeovvb.html", icon: "fa-database", active: false },
+                { id: "html_oeyp", title: "OEYP", desc: "Öğretmen Eylem Yönetim Paneli", url: "/oeyp.html", icon: "fa-tasks", active: false },
+                { id: "html_ogrenci", title: "Öğrenci Profilleri", desc: "Öğrencilerin okul içi profilleri (j2k5l0p8)", url: "/ogrenci.html", icon: "fa-user-graduate", active: false },
+                { id: "html_ogrencitakip", title: "Öğrenci Takip", desc: "Öğrenci Davranış Takip İstatistikleri", url: "/ogrencitakip.html", icon: "fa-chart-pie", active: false },
+                { id: "html_ogretmen", title: "Öğretmen Sayfası", desc: "Öğretmen Ana Sayfası", url: "/ogretmen.html", icon: "fa-chalkboard-user", active: false },
+                { id: "html_security_error", title: "Güvenlik Hatası", desc: "Yetki/Güvenlik Hatası Sayfası", url: "/security_error.html", icon: "fa-shield-halved", active: false },
+                { id: "html_yoklama_idareci", title: "Yoklama İdareci", desc: "İdareci Yoklama Yönetim Paneli", url: "/yoklama_idareci.html", icon: "fa-building-user", active: false },
+                { id: "html_yoklama_ogretmen", title: "Yoklama Ekranı", desc: "Öğretmen Yoklama Alma Sayfası (h6t3y9w1)", url: "/yoklama_ogretmen.html", icon: "fa-clipboard-list", active: false }
+            ];
+
+            // Veritabaninda kayitli olmayanlari listeye ekle
+            allHtmlFiles.forEach(hf => {
+                if (!portalLinks.find(pl => pl.url === hf.url)) {
+                    // İlk yuklemede yoklama vs aktif gelsin diye kucuk bir ayar
+                    if (hf.id === 'html_yoklama_ogretmen' || hf.id === 'html_ogrenci' || hf.id === 'html_ogrencitakip') {
+                        hf.active = true;
+                    }
+                    portalLinks.push(hf);
+                }
+            });
 
             if (isAdmin) {
                 renderAdminLinks();
@@ -388,10 +407,14 @@
                 return;
             }
 
-            portalLinks.forEach(link => {
+            portalLinks.forEach((link, index) => {
                 const row = document.createElement('div');
                 row.className = 'admin-link-row';
                 row.innerHTML = `
+                    <div style="display:flex; flex-direction:column; gap:2px; margin-right:10px;">
+                        <button class="btn btn-sm" style="padding:2px 6px; background:#f1f5f9; color:var(--dark); border:1px solid #e2e8f0; cursor:pointer;" onclick="moveLinkUp(${index})" ${index === 0 ? 'disabled style="opacity:0.5;"' : ''} title="Yukarı Taşı"><i class="fa-solid fa-chevron-up"></i></button>
+                        <button class="btn btn-sm" style="padding:2px 6px; background:#f1f5f9; color:var(--dark); border:1px solid #e2e8f0; cursor:pointer;" onclick="moveLinkDown(${index})" ${index === portalLinks.length - 1 ? 'disabled style="opacity:0.5;"' : ''} title="Aşağı Taşı"><i class="fa-solid fa-chevron-down"></i></button>
+                    </div>
                     <div style="display:flex; flex-direction:column; gap:5px; flex:1;">
                         <input type="text" placeholder="Başlık" value="${link.title || ''}" onchange="updateLinkData('${link.id}', 'title', this.value)" style="font-weight:bold;">
                         <input type="text" placeholder="Açıklama" value="${link.desc || ''}" onchange="updateLinkData('${link.id}', 'desc', this.value)" style="font-size:0.85rem;">
@@ -411,6 +434,24 @@
                 container.appendChild(row);
             });
         }
+
+        window.moveLinkUp = function(index) {
+            if (index > 0) {
+                const temp = portalLinks[index];
+                portalLinks[index] = portalLinks[index - 1];
+                portalLinks[index - 1] = temp;
+                renderAdminLinks();
+            }
+        };
+
+        window.moveLinkDown = function(index) {
+            if (index < portalLinks.length - 1) {
+                const temp = portalLinks[index];
+                portalLinks[index] = portalLinks[index + 1];
+                portalLinks[index + 1] = temp;
+                renderAdminLinks();
+            }
+        };
 
         window.updateLinkData = function(id, field, value) {
             const link = portalLinks.find(l => l.id === id);
