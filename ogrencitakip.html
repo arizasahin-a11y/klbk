@@ -2334,11 +2334,24 @@
                         if (record.teacher === activeTeacherUsername) {
                             // Count statuses
                             let olumlu = 0, olumsuz = 0, diger = 0;
-                            Object.values(record.records || {}).forEach(v => {
-                                if (v === 'OLUMLU' || v === 'NÖBETÇİ') olumlu++;
-                                else if (v === 'OLUMSUZ') olumsuz++;
-                                else if (v === 'DİĞER') diger++;
-                            });
+                            const recs = record.records || {};
+                            const olumluDet = record.olumluDetails || {};
+                            const olumsuzDet = record.olumsuzDetails || {};
+                            const digerDet = record.digerDetails || {};
+
+                            for (const stuNo in recs) {
+                                const v = recs[stuNo];
+                                if (v === 'OLUMLU' || v === 'NÖBETÇİ') {
+                                    const details = olumluDet[stuNo] || ['Olumlu'];
+                                    olumlu += details.length;
+                                } else if (v === 'OLUMSUZ') {
+                                    const details = olumsuzDet[stuNo] || ['Olumsuz'];
+                                    olumsuz += details.length;
+                                } else if (v === 'DİĞER') {
+                                    const details = digerDet[stuNo] || ['Diğer'];
+                                    diger += details.length;
+                                }
+                            }
 
                             historyList.push({
                                 date,
@@ -2420,9 +2433,9 @@
                             </div>
                             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-top: 10px;">
                                 <div style="display: flex; gap: 6px;">
-                                    <span class="stat-badge olumlu" style="background:#dcfce7; color:#166534; padding:2px 8px; border-radius:12px; font-size:0.8rem; font-weight:600;">Olumlu: ${item.stats.olumlu}</span>
-                                    <span class="stat-badge olumsuz">Olumsuz: ${item.stats.olumsuz}</span>
-                                    <span class="stat-badge diger">Diğer: ${item.stats.diger}</span>
+                                    <span class="stat-badge olumlu" style="background:#dcfce7; color:#166534; padding:2px 8px; border-radius:12px; font-size:0.8rem; font-weight:600;">Olumlu: ${item.stats.olumlu} Puan</span>
+                                    <span class="stat-badge olumsuz">Olumsuz: ${item.stats.olumsuz} Puan</span>
+                                    <span class="stat-badge diger">Diğer: ${item.stats.diger} Puan</span>
                                 </div>
                                 <div style="display: flex; gap: 8px;">
                                     <button class="btn btn-secondary btn-sm" onclick="editPastAttendance('${item.date}', '${item.hour}', '${item.class}')">
