@@ -3178,6 +3178,7 @@
             const tracking = dbData.student_tracking || {};
             let historyHTML = '';
             let totalActions = 0;
+            let actionCounts = {};
             
             const dates = Object.keys(tracking).sort((a,b) => new Date(b) - new Date(a));
             dates.forEach(date => {
@@ -3187,6 +3188,7 @@
                         if (lesson.records && lesson.records[studentNo] === 'OLUMLU') {
                             const details = (lesson.olumluDetails && lesson.olumluDetails[studentNo]) ? lesson.olumluDetails[studentNo] : ['Olumlu'];
                             totalActions += details.length;
+                            details.forEach(d => { actionCounts[d] = (actionCounts[d] || 0) + 1; });
                             const actionsStr = details.map(d => `<span style="background:#ecfdf5; color:#065f46; padding:2px 6px; border-radius:4px; margin-right:4px; font-weight:600; display:inline-block; margin-bottom:2px;">${d}</span>`).join('');
                             historyHTML += `<div style="padding:8px 0; border-bottom:1px dashed #e2e8f0;">
                                 <div style="font-size:0.8rem; color:var(--gray-500); margin-bottom:4px;"><i class="fa-regular fa-calendar"></i> ${date} - ${hour}. Ders</div>
@@ -3197,7 +3199,7 @@
             });
             if (!historyHTML) historyHTML = '<div style="color:var(--gray-400); text-align:center; padding:10px;">Henüz geçmiş kayıt yok.</div>';
             historyDiv.innerHTML = historyHTML;
-            historyCountSpan.textContent = totalActions;
+            historyCountSpan.innerHTML = `${totalActions} ` + (Object.keys(actionCounts).length > 0 ? `<span style="font-size:0.8rem; color:var(--gray-500); font-weight:normal; margin-left:8px;">(${Object.entries(actionCounts).map(([k,v]) => `${k}: ${v}`).join(', ')})</span>` : '');
 
             document.getElementById('olumluModal').style.display = 'flex';
         };
@@ -3243,6 +3245,7 @@
             const tracking = dbData.student_tracking || {};
             let historyHTML = '';
             let totalActions = 0;
+            let actionCounts = {};
             
             const dates = Object.keys(tracking).sort((a,b) => new Date(b) - new Date(a));
             dates.forEach(date => {
@@ -3252,6 +3255,7 @@
                         if (lesson.records && lesson.records[studentNo] === 'OLUMSUZ') {
                             const details = (lesson.olumsuzDetails && lesson.olumsuzDetails[studentNo]) ? lesson.olumsuzDetails[studentNo] : ['Olumsuz'];
                             totalActions += details.length;
+                            details.forEach(d => { actionCounts[d] = (actionCounts[d] || 0) + 1; });
                             const actionsStr = details.map(d => `<span style="background:#fef2f2; color:#991b1b; padding:2px 6px; border-radius:4px; margin-right:4px; font-weight:600; display:inline-block; margin-bottom:2px;">${d}</span>`).join('');
                             historyHTML += `<div style="padding:8px 0; border-bottom:1px dashed #e2e8f0;">
                                 <div style="font-size:0.8rem; color:var(--gray-500); margin-bottom:4px;"><i class="fa-regular fa-calendar"></i> ${date} - ${hour}. Ders</div>
@@ -3262,7 +3266,7 @@
             });
             if (!historyHTML) historyHTML = '<div style="color:var(--gray-400); text-align:center; padding:10px;">Henüz geçmiş kayıt yok.</div>';
             historyDiv.innerHTML = historyHTML;
-            historyCountSpan.textContent = totalActions;
+            historyCountSpan.innerHTML = `${totalActions} ` + (Object.keys(actionCounts).length > 0 ? `<span style="font-size:0.8rem; color:var(--gray-500); font-weight:normal; margin-left:8px;">(${Object.entries(actionCounts).map(([k,v]) => `${k}: ${v}`).join(', ')})</span>` : '');
 
             document.getElementById('olumsuzModal').style.display = 'flex';
         };
@@ -3470,6 +3474,7 @@
             const tracking = dbData.student_tracking || {};
             let historyHTML = '';
             let totalActions = 0;
+            let actionCounts = {};
             
             const dates = Object.keys(tracking).sort((a,b) => new Date(b) - new Date(a));
             dates.forEach(date => {
@@ -3479,6 +3484,7 @@
                         if (lesson.records && lesson.records[studentNo] === 'DİĞER') {
                             const details = (lesson.digerDetails && lesson.digerDetails[studentNo]) ? lesson.digerDetails[studentNo] : ['Diğer Durum'];
                             totalActions += details.length;
+                            details.forEach(d => { actionCounts[d] = (actionCounts[d] || 0) + 1; });
                             const actionsStr = details.map(d => `<span style="background:#eff6ff; color:#1d4ed8; padding:2px 6px; border-radius:4px; margin-right:4px; font-weight:600; display:inline-block; margin-bottom:2px;">${d}</span>`).join('');
                             historyHTML += `<div style="padding:8px 0; border-bottom:1px dashed #e2e8f0;">
                                 <div style="font-size:0.8rem; color:var(--gray-500); margin-bottom:4px;"><i class="fa-regular fa-calendar"></i> ${date} - ${hour}. Ders</div>
@@ -3489,7 +3495,7 @@
             });
             if (!historyHTML) historyHTML = '<div style="color:var(--gray-400); text-align:center; padding:10px;">Henüz geçmiş kayıt yok.</div>';
             historyDiv.innerHTML = historyHTML;
-            historyCountSpan.textContent = totalActions;
+            historyCountSpan.innerHTML = `${totalActions} ` + (Object.keys(actionCounts).length > 0 ? `<span style="font-size:0.8rem; color:var(--gray-500); font-weight:normal; margin-left:8px;">(${Object.entries(actionCounts).map(([k,v]) => `${k}: ${v}`).join(', ')})</span>` : '');
 
             document.getElementById('digerModal').style.display = 'flex';
         };
