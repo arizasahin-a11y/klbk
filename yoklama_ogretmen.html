@@ -470,6 +470,198 @@
                 margin: 1rem;
             }
         }
+
+        /* Daily Schedule Panel */
+        .daily-schedule {
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .daily-schedule h3 {
+            font-weight: 800;
+            font-size: 1.15rem;
+            margin-bottom: 1rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .daily-schedule h3 span {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            margin-left: auto;
+        }
+
+        .daily-lessons-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .lesson-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-radius: var(--radius-md);
+            border: 2px solid var(--gray-200);
+            background: white;
+            transition: all 0.3s ease;
+            gap: 12px;
+        }
+
+        .lesson-card.active {
+            border-color: var(--geldi-color);
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15);
+            cursor: pointer;
+            animation: pulse-active-card 2s infinite;
+        }
+
+        @keyframes pulse-active-card {
+            0% { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15); }
+            50% { box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3); }
+            100% { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15); }
+        }
+
+        .lesson-card.active:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25);
+        }
+
+        .lesson-card.waiting {
+            border-color: var(--gray-200);
+            background: #f8fafc;
+            opacity: 0.75;
+        }
+
+        .lesson-card-left {
+            flex-shrink: 0;
+            min-width: 80px;
+        }
+
+        .lesson-hour {
+            font-weight: 800;
+            font-size: 1rem;
+            color: var(--dark);
+        }
+
+        .lesson-time {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            font-weight: 600;
+        }
+
+        .lesson-card-center {
+            flex: 1;
+            text-align: center;
+        }
+
+        .lesson-class {
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+
+        .lesson-card.active .lesson-class {
+            color: #065f46;
+        }
+
+        .lesson-card-right {
+            flex-shrink: 0;
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+        }
+
+        .lesson-countdown {
+            font-family: 'Courier New', monospace;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--geldi-color);
+        }
+
+        .waiting-countdown {
+            color: var(--gray-500);
+            font-size: 0.95rem;
+        }
+
+        .btn-yoklama-al {
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            background: var(--geldi-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-family: var(--font-family);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-yoklama-al:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+
+        .daily-done-message {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--gray-500);
+            font-size: 0.95rem;
+        }
+
+        .daily-done-message i {
+            font-size: 2rem;
+            color: var(--geldi-color);
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .daily-no-class {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--gray-500);
+        }
+
+        .daily-no-class i {
+            font-size: 2rem;
+            color: var(--gray-400);
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .daily-schedule {
+                padding: 1rem;
+            }
+            .lesson-card {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+                gap: 8px;
+                padding: 1rem;
+            }
+            .lesson-card-left {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                min-width: auto;
+            }
+            .lesson-card-right {
+                align-items: center;
+                flex-direction: row;
+                justify-content: center;
+                gap: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -559,6 +751,14 @@
         <!-- TAB 1: Yoklama Giriş Aracı -->
         <div id="tabYoklama" class="tab-content">
             
+            <!-- Günlük Ders Programı -->
+            <div class="daily-schedule glass-panel" id="dailySchedulePanel" style="display: none;">
+                <h3><i class="fa-solid fa-calendar-day" style="color: var(--primary);"></i> Bugünkü Dersleriniz <span id="dailyScheduleDayName"></span></h3>
+                <div class="daily-lessons-list" id="dailyLessonsList">
+                    <div style="text-align: center; padding: 1rem; color: var(--gray-500);"><i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...</div>
+                </div>
+            </div>
+
             <!-- Control Panel Card -->
             <div class="control-panel glass-panel">
                 <h3 style="font-weight: 800; font-size: 1.15rem; margin-bottom: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 8px;">
@@ -1107,6 +1307,9 @@
                 // Auto detect class based on schedule
                 checkAndAutoDetectClass();
 
+                // Günlük ders programını render et
+                renderDailySchedule();
+
                 Swal.close();
             } catch (e) {
                 console.error("Initialization error:", e);
@@ -1337,6 +1540,146 @@
                 Swal.fire('Hata', 'Sabitleme kaydedilemedi.', 'error');
             }
         }
+
+        // =====================================================
+        // GÜNLÜK DERS PROGRAMI KARTI
+        // =====================================================
+        function renderDailySchedule() {
+            const panel = document.getElementById('dailySchedulePanel');
+            const container = document.getElementById('dailyLessonsList');
+            const dayNameEl = document.getElementById('dailyScheduleDayName');
+            
+            if (!panel || !container) return;
+            
+            if (!activeTeacherObject || !activeTeacherObject.schedule || !schoolData || !schoolData.lessonTimes) {
+                panel.style.display = 'none';
+                return;
+            }
+            
+            const now = getTRTime();
+            const dayMap = { 1: 'Pa', 2: 'Sa', 3: 'Ça', 4: 'Pe', 5: 'Cu', 6: 'Ct', 0: 'Pz' };
+            const dayFullNames = { 'Pa': 'Pazartesi', 'Sa': 'Salı', 'Ça': 'Çarşamba', 'Pe': 'Perşembe', 'Cu': 'Cuma', 'Ct': 'Cumartesi', 'Pz': 'Pazar' };
+            const dayKey = dayMap[now.getDay()];
+            const todaySchedule = activeTeacherObject.schedule[dayKey];
+            
+            if (dayNameEl) dayNameEl.textContent = dayFullNames[dayKey] || '';
+            
+            if (!todaySchedule) {
+                container.innerHTML = '<div class="daily-no-class"><i class="fa-solid fa-couch"></i> Bugün ders programınızda ders bulunmuyor.</div>';
+                panel.style.display = 'block';
+                return;
+            }
+            
+            const currentTotalSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+            
+            let lessons = [];
+            for (let hr = 1; hr <= 20; hr++) {
+                const cls = todaySchedule[String(hr)];
+                if (cls && cls !== '-') {
+                    const startStr = schoolData.lessonTimes[`${hr}_start`];
+                    const endStr = schoolData.lessonTimes[`${hr}_end`];
+                    if (startStr && endStr) {
+                        const [startH, startM] = startStr.split(':').map(Number);
+                        const [endH, endM] = endStr.split(':').map(Number);
+                        const startSecs = startH * 3600 + startM * 60;
+                        const endSecs = endH * 3600 + endM * 60;
+                        
+                        let status = 'waiting';
+                        if (currentTotalSeconds >= startSecs && currentTotalSeconds <= endSecs) {
+                            status = 'active';
+                        } else if (currentTotalSeconds > endSecs) {
+                            status = 'past';
+                        }
+                        
+                        lessons.push({ hour: hr, className: cls, startStr, endStr, startSecs, endSecs, status });
+                    }
+                }
+            }
+            
+            // Geçmiş dersleri filtrele
+            const visibleLessons = lessons.filter(l => l.status !== 'past');
+            
+            if (visibleLessons.length === 0 && lessons.length > 0) {
+                container.innerHTML = '<div class="daily-done-message"><i class="fa-solid fa-circle-check"></i> Bugünkü tüm dersleriniz tamamlandı.</div>';
+                panel.style.display = 'block';
+                return;
+            }
+            
+            if (visibleLessons.length === 0) {
+                container.innerHTML = '<div class="daily-no-class"><i class="fa-solid fa-couch"></i> Bugün ders programınızda ders bulunmuyor.</div>';
+                panel.style.display = 'block';
+                return;
+            }
+            
+            panel.style.display = 'block';
+            
+            let html = '';
+            visibleLessons.forEach(lesson => {
+                if (lesson.status === 'active') {
+                    let diff = lesson.endSecs - currentTotalSeconds;
+                    if (diff < 0) diff = 0;
+                    let mm = String(Math.floor(diff / 60)).padStart(2, '0');
+                    let ss = String(diff % 60).padStart(2, '0');
+                    
+                    html += `
+                        <div class="lesson-card active" onclick="selectLessonFromSchedule(${lesson.hour})">
+                            <div class="lesson-card-left">
+                                <div class="lesson-hour">${lesson.hour}. Ders</div>
+                                <div class="lesson-time">${lesson.startStr} - ${lesson.endStr}</div>
+                            </div>
+                            <div class="lesson-card-center">
+                                <div class="lesson-class">${lesson.className}</div>
+                            </div>
+                            <div class="lesson-card-right">
+                                <div class="lesson-countdown"><i class="fa-solid fa-hourglass-end"></i> ${mm}:${ss}</div>
+                                <button class="btn-yoklama-al"><i class="fa-solid fa-clipboard-list"></i> Yoklama Al</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    let diff = lesson.startSecs - currentTotalSeconds;
+                    if (diff < 0) diff = 0;
+                    let hh = Math.floor(diff / 3600);
+                    let mm = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                    let ss = String(diff % 60).padStart(2, '0');
+                    let countdownStr = hh > 0 ? `${hh}:${mm}:${ss}` : `${mm}:${ss}`;
+                    
+                    html += `
+                        <div class="lesson-card waiting">
+                            <div class="lesson-card-left">
+                                <div class="lesson-hour">${lesson.hour}. Ders</div>
+                                <div class="lesson-time">${lesson.startStr} - ${lesson.endStr}</div>
+                            </div>
+                            <div class="lesson-card-center">
+                                <div class="lesson-class">${lesson.className}</div>
+                            </div>
+                            <div class="lesson-card-right">
+                                <div class="lesson-countdown waiting-countdown"><i class="fa-solid fa-hourglass-half"></i> ${countdownStr}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function selectLessonFromSchedule(hourNum) {
+            const hourSelect = document.getElementById('lessonHour');
+            if (hourSelect) {
+                hourSelect.value = String(hourNum);
+            }
+            checkAndAutoDetectClass();
+            
+            // Yoklama listesine kaydır
+            setTimeout(() => {
+                const studentListContainer = document.getElementById('studentListContainer');
+                if (studentListContainer && !studentListContainer.classList.contains('hidden')) {
+                    studentListContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 300);
+        }
+        // =====================================================
 
         function loadStudentList() {
             const classVal = document.getElementById('classSelect').value;
@@ -2519,6 +2862,9 @@
             
             const neonCurrentTime = document.getElementById('neonCurrentTime');
             if(neonCurrentTime) neonCurrentTime.textContent = `${h}:${m}:${s}`;
+            
+            // Günlük ders programı kartını güncelle
+            if (typeof renderDailySchedule === 'function') renderDailySchedule();
             
             const neonLessonStatusContainer = document.getElementById('neonLessonStatusContainer');
             const neonLessonStatus = document.getElementById('neonLessonStatus');
