@@ -2075,6 +2075,22 @@
 
             updateLiveCounters();
             saveAttendance(true);
+            
+            // Rozetleri anlik guncelle
+            if (window.getStudentActionCounts) {
+                const c = window.getStudentActionCounts(studentNo);
+                const r = document.querySelector(`.student-row[data-no="${studentNo}"]`);
+                if (r) {
+                    const btnOlumlu = r.querySelector('.status-btn[data-status="OLUMLU"] .action-badge');
+                    if (btnOlumlu) { btnOlumlu.textContent = c.OLUMLU; btnOlumlu.style.display = c.OLUMLU > 0 ? 'block' : 'none'; }
+                    const btnOlumsuz = r.querySelector('.status-btn[data-status="OLUMSUZ"] .action-badge');
+                    if (btnOlumsuz) { btnOlumsuz.textContent = c.OLUMSUZ; btnOlumsuz.style.display = c.OLUMSUZ > 0 ? 'block' : 'none'; }
+                    const btnGorevli = r.querySelector('.status-btn[data-status="GÖREVLİ"] .action-badge');
+                    if (btnGorevli) { btnGorevli.textContent = c.GÖREVLİ; btnGorevli.style.display = c.GÖREVLİ > 0 ? 'block' : 'none'; }
+                    const btnDiger = r.querySelector('.status-btn[data-status="DİĞER"] .action-badge');
+                    if (btnDiger) { btnDiger.textContent = c.DİĞER; btnDiger.style.display = c.DİĞER > 0 ? 'block' : 'none'; }
+                }
+            }
         }
 
         function setAllAttendance(status) {
@@ -2084,6 +2100,22 @@
             renderStudentsTable();
             updateLiveCounters();
             saveAttendance(true);
+            
+            // Rozetleri anlik guncelle
+            if (window.getStudentActionCounts) {
+                const c = window.getStudentActionCounts(studentNo);
+                const r = document.querySelector(`.student-row[data-no="${studentNo}"]`);
+                if (r) {
+                    const btnOlumlu = r.querySelector('.status-btn[data-status="OLUMLU"] .action-badge');
+                    if (btnOlumlu) { btnOlumlu.textContent = c.OLUMLU; btnOlumlu.style.display = c.OLUMLU > 0 ? 'block' : 'none'; }
+                    const btnOlumsuz = r.querySelector('.status-btn[data-status="OLUMSUZ"] .action-badge');
+                    if (btnOlumsuz) { btnOlumsuz.textContent = c.OLUMSUZ; btnOlumsuz.style.display = c.OLUMSUZ > 0 ? 'block' : 'none'; }
+                    const btnGorevli = r.querySelector('.status-btn[data-status="GÖREVLİ"] .action-badge');
+                    if (btnGorevli) { btnGorevli.textContent = c.GÖREVLİ; btnGorevli.style.display = c.GÖREVLİ > 0 ? 'block' : 'none'; }
+                    const btnDiger = r.querySelector('.status-btn[data-status="DİĞER"] .action-badge');
+                    if (btnDiger) { btnDiger.textContent = c.DİĞER; btnDiger.style.display = c.DİĞER > 0 ? 'block' : 'none'; }
+                }
+            }
         }
 
         function updateLiveCounters() {
