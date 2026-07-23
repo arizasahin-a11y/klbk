@@ -2053,28 +2053,11 @@
                 return;
             }
 
-            if (attendanceMap[studentNo] === status) {
-                delete attendanceMap[studentNo];
-                delete olumluDetailsMap[studentNo];
-                delete olumsuzDetailsMap[studentNo];
-                delete gorevliDetailsMap[studentNo];
-                delete digerDetailsMap[studentNo];
-                
-                const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
-                if (row) {
-                    row.style.opacity = '1';
-                    const buttons = row.querySelectorAll('.status-btn');
-                    buttons.forEach(btn => btn.classList.remove('active'));
-                }
-                saveAttendance(true);
-                return;
-            } else {
-                attendanceMap[studentNo] = status;
-                if(status !== 'OLUMLU') delete olumluDetailsMap[studentNo];
-                if(status !== 'OLUMSUZ') delete olumsuzDetailsMap[studentNo];
-                if(status !== 'GÖREVLİ') delete gorevliDetailsMap[studentNo];
-                if(status !== 'DİĞER') delete digerDetailsMap[studentNo];
-            }
+            attendanceMap[studentNo] = status;
+            if(status !== 'OLUMLU') delete olumluDetailsMap[studentNo];
+            if(status !== 'OLUMSUZ') delete olumsuzDetailsMap[studentNo];
+            if(status !== 'GÖREVLİ') delete gorevliDetailsMap[studentNo];
+            if(status !== 'DİĞER') delete digerDetailsMap[studentNo];
             
             const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
             if (row) {
