@@ -1883,10 +1883,10 @@
 
                 const buttons = `
                     <button type="button" class="status-btn ${(currentStatus === 'GELDİ' || isNobetci) ? 'active' : ''}" data-status="GELDİ" onclick="setStudentStatus('${s.no}', 'GELDİ')" ondblclick="setStudentStatus('${s.no}', 'NÖBETÇİ')" oncontextmenu="event.preventDefault(); setStudentStatus('${s.no}', 'NÖBETÇİ');" title="Geldi (Çift Tıkla/Basılı Tut: Nöbetçi)">
-                        <i class="fa-solid fa-plus" style="color: ${isNobetci ? 'var(--dark)' : ''};"></i>
+                        <i class="fa-solid fa-check" style="color: ${isNobetci ? 'var(--dark)' : ''};"></i>
                     </button>
                     <button type="button" class="status-btn ${currentStatus === 'GELMEDİ' ? 'active' : ''}" data-status="GELMEDİ" onclick="setStudentStatus('${s.no}', 'GELMEDİ')" title="Gelmedi">
-                        <i class="fa-solid fa-minus"></i>
+                        <i class="fa-solid fa-xmark"></i>
                     </button>
                     <button type="button" class="status-btn ${currentStatus === 'GEÇ' ? 'active' : ''}" data-status="GEÇ" onclick="setStudentStatus('${s.no}', 'GEÇ')" oncontextmenu="event.preventDefault(); showLatePolicyMenu();" title="Geç (Sağ Tık: Ayarlar)">
                         <i class="fa-solid fa-clock"></i>
