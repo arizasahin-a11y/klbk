@@ -202,6 +202,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Do not auto-redirect away from yoklama_idareci if they are authorized for it.
                     // Instead, just clear the last_redirect to ensure normal behavior.
                     sessionStorage.removeItem('klbk_last_redirect');
+                } else if (currentPath.includes('enter.html')) {
+                    // Do not auto-redirect away from enter.html (portal).
+                    sessionStorage.removeItem('klbk_last_redirect');
+                    window.location.reload();
                 } else {
                     let targetUrl = '/j2k5l0p8'; // Default (ogrenci)
                     if (role === 'ogretmen') {
@@ -456,6 +460,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         if (currentPath.includes('yoklama_idareci') && (role === 'admin' || role === 'master' || role === 'idareci')) {
                             // If they are logging in directly from yoklama_idareci and have sufficient privileges, just reload
+                            window.location.reload();
+                        } else if (currentPath.includes('enter.html')) {
+                            // If they are logging in directly from enter.html portal, just reload to show portal UI
                             window.location.reload();
                         } else if (role === 'ogretmen') {
                             window.location.href = '/h6t3y9w1';
