@@ -1057,7 +1057,9 @@
         // studentNo -> status ('OLUMLU', 'OLUMSUZ', 'GÖREVLİ', 'DİĞER')
         let attendanceMap = {};
         let olumluDetailsMap = {};
-        let olumsuzDetailsMap = {}; 
+        let olumsuzDetailsMap = {};
+        let gorevliDetailsMap = {};
+        let digerDetailsMap = {}; 
         let gecTimeMap = {};
 
         // Firebase URL
@@ -1854,6 +1856,8 @@
             const lessonRecord = (dbData.student_tracking[dateVal] && dbData.student_tracking[dateVal][hourVal]) ? dbData.student_tracking[dateVal][hourVal][classVal] : undefined;
             if(lessonRecord && lessonRecord.olumluDetails) { olumluDetailsMap = lessonRecord.olumluDetails; }
             if(lessonRecord && lessonRecord.olumsuzDetails) { olumsuzDetailsMap = lessonRecord.olumsuzDetails; }
+            if(lessonRecord && lessonRecord.gorevliDetails) { gorevliDetailsMap = lessonRecord.gorevliDetails; }
+            if(lessonRecord && lessonRecord.digerDetails) { digerDetailsMap = lessonRecord.digerDetails; }
             if (lessonRecord) {
                 attendanceMap = lessonRecord.records || {};
                 
@@ -1913,11 +1917,11 @@
                         <i class="fa-solid fa-minus"></i>
                         <span class="action-badge olumsuz" style="${counts.OLUMSUZ > 0 ? 'display:block;' : ''}">${counts.OLUMSUZ}</span>
                     </button>
-                    <button type="button" class="status-btn ${currentStatus === 'GÖREVLİ' ? 'active' : ''}" data-status="GÖREVLİ" onclick="setStudentStatus('${s.no}', 'GÖREVLİ')"  title="Görevli">
+                    <button type="button" class="status-btn ${currentStatus === 'GÖREVLİ' ? 'active' : ''}" data-status="GÖREVLİ" onclick="openGorevliModal('${s.no}')"  title="Görevli">
                         <i class="fa-solid fa-user-shield"></i>
                         <span class="action-badge gorevli" style="${counts.GÖREVLİ > 0 ? 'display:block;' : ''}">${counts.GÖREVLİ}</span>
                     </button>
-                    <button type="button" class="status-btn ${currentStatus === 'DİĞER' ? 'active' : ''}" data-status="DİĞER" onclick="setStudentStatus('${s.no}', 'DİĞER')" title="Diğer">
+                    <button type="button" class="status-btn ${currentStatus === 'DİĞER' ? 'active' : ''}" data-status="DİĞER" onclick="openDigerModal('${s.no}')" title="Diğer">
                         <i class="fa-solid fa-exclamation"></i>
                         <span class="action-badge diger" style="${counts.DİĞER > 0 ? 'display:block;' : ''}">${counts.DİĞER}</span>
                     </button>
@@ -1979,6 +1983,8 @@
                 attendanceMap[studentNo] = 'BOŞ';
                             delete olumluDetailsMap[studentNo];
                 delete olumsuzDetailsMap[studentNo];
+                delete gorevliDetailsMap[studentNo];
+                delete digerDetailsMap[studentNo];
             }
             
             loadExistingAttendanceRecord();
@@ -2024,6 +2030,8 @@
                             attendanceMap[studentNo] = 'BOŞ';
                             delete olumluDetailsMap[studentNo];
                 delete olumsuzDetailsMap[studentNo];
+                delete gorevliDetailsMap[studentNo];
+                delete digerDetailsMap[studentNo];
                             
                             const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
                             if (row) {
@@ -2049,6 +2057,8 @@
                 delete attendanceMap[studentNo];
                 delete olumluDetailsMap[studentNo];
                 delete olumsuzDetailsMap[studentNo];
+                delete gorevliDetailsMap[studentNo];
+                delete digerDetailsMap[studentNo];
                 
                 const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
                 if (row) {
@@ -2062,7 +2072,13 @@
                 attendanceMap[studentNo] = status;
                 if(status !== 'OLUMLU') delete olumluDetailsMap[studentNo];
                 if(status !== 'OLUMSUZ') delete olumsuzDetailsMap[studentNo];
+                if(status !== 'GÖREVLİ') delete gorevliDetailsMap[studentNo];
+                if(status !== 'DİĞER') delete digerDetailsMap[studentNo];
+                delete gorevliDetailsMap[studentNo];
+                delete digerDetailsMap[studentNo];
                 delete olumsuzDetailsMap[studentNo];
+                delete gorevliDetailsMap[studentNo];
+                delete digerDetailsMap[studentNo];
             }
             
             const row = document.querySelector(`.student-row[data-no="${studentNo}"]`);
@@ -3008,7 +3024,7 @@
             
             <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
                 <button class="btn" style="background:#f1f5f9; color:var(--gray-600);" onclick="closeOlumluModal()">İptal</button>
-                <button class="btn" style="background:var(--geldi-color); color:white;" onclick="saveOlumluModal()"><i class="fa-solid fa-check"></i> Tamam</button>
+                <button class="btn" style="background:var(--geldi-color); color:white;" onclick="saveOlumluModal()"><i class="fa-solid fa-check"></i> Kaydet</button>
             </div>
         </div>
     </div>
@@ -3059,13 +3075,13 @@
             
             <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
                 <button class="btn" style="background:#f1f5f9; color:var(--gray-600);" onclick="closeOlumsuzModal()">İptal</button>
-                <button class="btn" style="background:var(--gelmedi-color); color:white;" onclick="saveOlumsuzModal()"><i class="fa-solid fa-check"></i> Tamam</button>
+                <button class="btn" style="background:var(--gelmedi-color); color:white;" onclick="saveOlumsuzModal()"><i class="fa-solid fa-check"></i> Kaydet</button>
             </div>
         </div>
     </div>
 
     <script>
-        window.getStudentActionCounts = function(studentNo) {
+                window.getStudentActionCounts = function(studentNo) {
             let counts = { OLUMLU: 0, OLUMSUZ: 0, GÖREVLİ: 0, DİĞER: 0 };
             const dbData = DataManager._getData();
             const tracking = dbData.student_tracking || {};
@@ -3086,6 +3102,15 @@
                                     counts.OLUMSUZ += lesson.olumsuzDetails[studentNo].length;
                                 } else {
                                     counts.OLUMSUZ += 1;
+                                }
+                            } else if (rec === 'GÖREVLİ') {
+                                // Just add 1 for gorevli per lesson
+                                counts.GÖREVLİ += 1;
+                            } else if (rec === 'DİĞER') {
+                                if (lesson.digerDetails && lesson.digerDetails[studentNo] && lesson.digerDetails[studentNo].length > 0) {
+                                    counts.DİĞER += lesson.digerDetails[studentNo].length;
+                                } else {
+                                    counts.DİĞER += 1;
                                 }
                             } else if (counts[rec] !== undefined) {
                                 counts[rec]++;
@@ -3222,9 +3247,237 @@
             } else {
                 attendanceMap[studentNo] = 'BOŞ';
                 delete olumsuzDetailsMap[studentNo];
+                delete gorevliDetailsMap[studentNo];
+                delete digerDetailsMap[studentNo];
             }
             closeOlumsuzModal();
             setStudentStatus(studentNo, attendanceMap[studentNo]);
         };
     </script>
+
+    <!-- Görevli Modalı -->
+    <div id="gorevliModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center;">
+        <div class="glass-panel" style="background:white; padding:1.5rem; width:90%; max-width:450px; border-radius:12px; position:relative; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+            <h3 style="margin-top:0; color:var(--gec-color); border-bottom:2px solid #fffbeb; padding-bottom:10px;"><i class="fa-solid fa-user-shield"></i> Görev Ata</h3>
+            <p id="gorevliModalStudentName" style="font-weight:800; font-size:1.1rem; color:var(--dark); margin-bottom:0.5rem;"></p>
+            <input type="hidden" id="gorevliModalStudentNo" value="">
+            
+            <div style="flex:1; overflow-y:auto; padding-right:5px;">
+                <div style="margin:1rem 0; display:flex; flex-direction:column; gap:12px; background:#fffbeb; padding:15px; border-radius:8px;">
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--dark); margin-bottom:4px;">Görevin Adı</label>
+                        <input type="text" id="gorevliAd" class="form-control" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px;" placeholder="Örn: Proje, Sunum, Pano vb.">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--dark); margin-bottom:4px;">Veriliş Tarihi</label>
+                        <input type="date" id="gorevliVerilis" class="form-control" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:var(--dark); margin-bottom:4px;">Teslim Tarihi</label>
+                        <input type="date" id="gorevliTeslim" class="form-control" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:6px;">
+                    </div>
+                </div>
+                
+                <div style="margin-top:1.5rem; border-top:1px solid #e2e8f0; padding-top:1rem;">
+                    <h4 style="margin-top:0; color:var(--gray-600); font-size:0.95rem; display:flex; justify-content:space-between;">
+                        <span><i class="fa-solid fa-clock-rotate-left"></i> Geçmiş Görevler</span>
+                        <span id="gorevliModalHistoryCount" style="background:var(--gec-color); color:white; padding:2px 8px; border-radius:12px; font-size:0.8rem;">0</span>
+                    </h4>
+                    <div id="gorevliModalHistory" style="font-size:0.9rem;"></div>
+                </div>
+            </div>
+            
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
+                <button class="btn" style="background:#f1f5f9; color:var(--gray-600);" onclick="closeGorevliModal()">İptal</button>
+                <button class="btn" style="background:var(--gec-color); color:white;" onclick="saveGorevliModal()"><i class="fa-solid fa-check"></i> Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Diğer Modalı -->
+    <div id="digerModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center;">
+        <div class="glass-panel" style="background:white; padding:1.5rem; width:90%; max-width:450px; border-radius:12px; position:relative; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+            <h3 style="margin-top:0; color:var(--diger-color); border-bottom:2px solid #eff6ff; padding-bottom:10px;"><i class="fa-solid fa-exclamation"></i> Diğer (Özel Durum)</h3>
+            <p id="digerModalStudentName" style="font-weight:800; font-size:1.1rem; color:var(--dark); margin-bottom:0.5rem;"></p>
+            <input type="hidden" id="digerModalStudentNo" value="">
+            
+            <div style="flex:1; overflow-y:auto; padding-right:5px;">
+                <div style="margin:1rem 0; display:flex; flex-direction:column; gap:12px; background:#eff6ff; padding:15px; border-radius:8px;">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
+                        <input type="checkbox" class="diger-cb" value="Hasta" style="width:18px; height:18px; accent-color:var(--diger-color);"> Hasta
+                    </label>
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
+                        <input type="checkbox" class="diger-cb" value="Psikolojik Durum" style="width:18px; height:18px; accent-color:var(--diger-color);"> Psikolojik Durum
+                    </label>
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
+                        <input type="checkbox" class="diger-cb" value="Anne Yok" style="width:18px; height:18px; accent-color:var(--diger-color);"> Anne Yok
+                    </label>
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
+                        <input type="checkbox" class="diger-cb" value="Baba Yok" style="width:18px; height:18px; accent-color:var(--diger-color);"> Baba Yok
+                    </label>
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
+                        <input type="checkbox" class="diger-cb" value="Anne Baba Ayrı" style="width:18px; height:18px; accent-color:var(--diger-color);"> Anne Baba Ayrı
+                    </label>
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600; color:var(--dark);">
+                        <input type="checkbox" class="diger-cb" value="Maddi Durumu Kötü" style="width:18px; height:18px; accent-color:var(--diger-color);"> Maddi Durumu Kötü
+                    </label>
+                </div>
+                
+                <div style="margin-top:1.5rem; border-top:1px solid #e2e8f0; padding-top:1rem;">
+                    <h4 style="margin-top:0; color:var(--gray-600); font-size:0.95rem; display:flex; justify-content:space-between;">
+                        <span><i class="fa-solid fa-clock-rotate-left"></i> Geçmiş Durumlar</span>
+                        <span id="digerModalHistoryCount" style="background:var(--diger-color); color:white; padding:2px 8px; border-radius:12px; font-size:0.8rem;">0</span>
+                    </h4>
+                    <div id="digerModalHistory" style="font-size:0.9rem;"></div>
+                </div>
+            </div>
+            
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
+                <button class="btn" style="background:#f1f5f9; color:var(--gray-600);" onclick="closeDigerModal()">İptal</button>
+                <button class="btn" style="background:var(--diger-color); color:white;" onclick="saveDigerModal()"><i class="fa-solid fa-check"></i> Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GÖREVLİ MODAL LOGIC ---
+        window.openGorevliModal = function(studentNo) {
+            const student = activeClassStudents.find(s => s.no == studentNo);
+            if(!student) return;
+            
+            document.getElementById('gorevliModalStudentName').textContent = studentNo + " - " + student.name + " " + (student.surname || '');
+            document.getElementById('gorevliModalStudentNo').value = studentNo;
+            
+            const currentDetails = gorevliDetailsMap[studentNo] || {};
+            document.getElementById('gorevliAd').value = currentDetails.ad || '';
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('gorevliVerilis').value = currentDetails.verilis || today;
+            document.getElementById('gorevliTeslim').value = currentDetails.teslim || '';
+
+            const historyDiv = document.getElementById('gorevliModalHistory');
+            const historyCountSpan = document.getElementById('gorevliModalHistoryCount');
+            historyDiv.innerHTML = '';
+            
+            const dbData = DataManager._getData();
+            const tracking = dbData.student_tracking || {};
+            let historyHTML = '';
+            let totalActions = 0;
+            
+            const dates = Object.keys(tracking).sort((a,b) => new Date(b) - new Date(a));
+            dates.forEach(date => {
+                for (let hour in tracking[date]) {
+                    for (let cls in tracking[date][hour]) {
+                        const lesson = tracking[date][hour][cls];
+                        if (lesson.records && lesson.records[studentNo] === 'GÖREVLİ') {
+                            const details = (lesson.gorevliDetails && lesson.gorevliDetails[studentNo]) ? lesson.gorevliDetails[studentNo] : null;
+                            totalActions++;
+                            if (details && details.ad) {
+                                historyHTML += `<div style="padding:8px 0; border-bottom:1px dashed #e2e8f0;">
+                                    <div style="font-size:0.8rem; color:var(--gray-500); margin-bottom:4px;"><i class="fa-regular fa-calendar"></i> ${date} - ${hour}. Ders</div>
+                                    <div><span style="font-weight:bold; color:var(--gec-color);">${details.ad}</span> (Veriliş: ${details.verilis || '-'}, Teslim: ${details.teslim || '-'})</div></div>`;
+                            } else {
+                                historyHTML += `<div style="padding:8px 0; border-bottom:1px dashed #e2e8f0;">
+                                    <div style="font-size:0.8rem; color:var(--gray-500); margin-bottom:4px;"><i class="fa-regular fa-calendar"></i> ${date} - ${hour}. Ders</div>
+                                    <div>Görevli (Detay Yok)</div></div>`;
+                            }
+                        }
+                    }
+                }
+            });
+            if (!historyHTML) historyHTML = '<div style="color:var(--gray-400); text-align:center; padding:10px;">Henüz geçmiş görev yok.</div>';
+            historyDiv.innerHTML = historyHTML;
+            historyCountSpan.textContent = totalActions;
+
+            document.getElementById('gorevliModal').style.display = 'flex';
+        };
+
+        window.closeGorevliModal = function() {
+            document.getElementById('gorevliModal').style.display = 'none';
+        };
+
+        window.saveGorevliModal = function() {
+            const studentNo = document.getElementById('gorevliModalStudentNo').value;
+            const ad = document.getElementById('gorevliAd').value.trim();
+            const verilis = document.getElementById('gorevliVerilis').value;
+            const teslim = document.getElementById('gorevliTeslim').value;
+
+            if (ad) {
+                attendanceMap[studentNo] = 'GÖREVLİ';
+                gorevliDetailsMap[studentNo] = { ad, verilis, teslim };
+            } else {
+                // If they don't provide a name, treat it as BOŞ
+                attendanceMap[studentNo] = 'BOŞ';
+                delete gorevliDetailsMap[studentNo];
+            }
+            closeGorevliModal();
+            setStudentStatus(studentNo, attendanceMap[studentNo]);
+        };
+
+        // --- DİĞER MODAL LOGIC ---
+        window.openDigerModal = function(studentNo) {
+            const student = activeClassStudents.find(s => s.no == studentNo);
+            if(!student) return;
+            
+            document.getElementById('digerModalStudentName').textContent = studentNo + " - " + student.name + " " + (student.surname || '');
+            document.getElementById('digerModalStudentNo').value = studentNo;
+            
+            const currentDetails = digerDetailsMap[studentNo] || [];
+            document.querySelectorAll('.diger-cb').forEach(cb => {
+                cb.checked = currentDetails.includes(cb.value);
+            });
+
+            const historyDiv = document.getElementById('digerModalHistory');
+            const historyCountSpan = document.getElementById('digerModalHistoryCount');
+            historyDiv.innerHTML = '';
+            
+            const dbData = DataManager._getData();
+            const tracking = dbData.student_tracking || {};
+            let historyHTML = '';
+            let totalActions = 0;
+            
+            const dates = Object.keys(tracking).sort((a,b) => new Date(b) - new Date(a));
+            dates.forEach(date => {
+                for (let hour in tracking[date]) {
+                    for (let cls in tracking[date][hour]) {
+                        const lesson = tracking[date][hour][cls];
+                        if (lesson.records && lesson.records[studentNo] === 'DİĞER') {
+                            const details = (lesson.digerDetails && lesson.digerDetails[studentNo]) ? lesson.digerDetails[studentNo] : ['Diğer Durum'];
+                            totalActions += details.length;
+                            const actionsStr = details.map(d => `<span style="background:#eff6ff; color:#1d4ed8; padding:2px 6px; border-radius:4px; margin-right:4px; font-weight:600; display:inline-block; margin-bottom:2px;">${d}</span>`).join('');
+                            historyHTML += `<div style="padding:8px 0; border-bottom:1px dashed #e2e8f0;">
+                                <div style="font-size:0.8rem; color:var(--gray-500); margin-bottom:4px;"><i class="fa-regular fa-calendar"></i> ${date} - ${hour}. Ders</div>
+                                <div>${actionsStr}</div></div>`;
+                        }
+                    }
+                }
+            });
+            if (!historyHTML) historyHTML = '<div style="color:var(--gray-400); text-align:center; padding:10px;">Henüz geçmiş kayıt yok.</div>';
+            historyDiv.innerHTML = historyHTML;
+            historyCountSpan.textContent = totalActions;
+
+            document.getElementById('digerModal').style.display = 'flex';
+        };
+
+        window.closeDigerModal = function() {
+            document.getElementById('digerModal').style.display = 'none';
+        };
+
+        window.saveDigerModal = function() {
+            const studentNo = document.getElementById('digerModalStudentNo').value;
+            const selected = [];
+            document.querySelectorAll('.diger-cb:checked').forEach(cb => { selected.push(cb.value); });
+
+            if (selected.length > 0) {
+                attendanceMap[studentNo] = 'DİĞER';
+                digerDetailsMap[studentNo] = selected;
+            } else {
+                attendanceMap[studentNo] = 'BOŞ';
+                delete digerDetailsMap[studentNo];
+            }
+            closeDigerModal();
+            setStudentStatus(studentNo, attendanceMap[studentNo]);
+        };
+    </script>
+
 </body>
