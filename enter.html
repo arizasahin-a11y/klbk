@@ -217,6 +217,31 @@
         input:checked + .toggle-slider:before {
             transform: translateX(20px);
         }
+
+        /* Responsive Adjustments for Mobile and Tablet */
+        @media (max-width: 768px) {
+            .portal-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+                padding: 15px;
+            }
+            .portal-container {
+                margin: 20px auto;
+                padding: 10px;
+            }
+            .links-grid {
+                grid-template-columns: 1fr; /* 1 column on mobile */
+            }
+            .admin-link-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .admin-link-row .toggle-switch-container {
+                align-self: flex-start;
+                margin-top: 5px;
+            }
+        }
     </style>
 </head>
 
