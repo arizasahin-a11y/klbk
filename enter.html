@@ -470,11 +470,11 @@
                 const card = document.createElement('div');
                 card.className = 'link-card';
                 
-                // Uçuk kırmızıdan mora giden renk hesabı (Hue 355'ten 270'e)
-                let hue = 355;
+                // Gökkuşağı mantığı: Kırmızıdan (0) başlayıp Mora (270) kadar tüm renkleri dolaş
+                let hue = 0;
                 if (totalLinks > 1) {
-                    const step = (355 - 270) / (totalLinks - 1);
-                    hue = 355 - (index * step);
+                    const step = 270 / (totalLinks - 1);
+                    hue = 0 + (index * step);
                 }
                 // Glassmorphism etkisini korumak için transparan (0.85) kullanıyoruz
                 card.style.background = `hsla(${hue}, 85%, 95%, 0.85)`;
