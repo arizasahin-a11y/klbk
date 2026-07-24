@@ -1854,11 +1854,8 @@
                 return true;
             });
 
-            // Sadece eğer konu bazlı filtreleme sıfır sonuç döndürmediyse (örneğin seçmeli ders ayrımı varsa) filtreyi uygula. 
-            // Aksi halde (Rehberlik, Beden vs. sisteme girilmemişse) tüm sınıfı göster.
-            if (subjectFiltered.length > 0) {
-                activeClassStudents = subjectFiltered;
-            }
+            // Filtreyi katı olarak uygula. O dersi alan öğrenci yoksa liste boş gelsin.
+            activeClassStudents = subjectFiltered;
             
             const sortVal = document.getElementById('sortSelect') ? document.getElementById('sortSelect').value : 'no';
             if (sortVal === 'name') {
