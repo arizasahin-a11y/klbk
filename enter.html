@@ -464,9 +464,21 @@
                 return;
             }
 
+            const totalLinks = activeTeacherLinks.length;
+
             activeTeacherLinks.forEach((link, index) => {
                 const card = document.createElement('div');
                 card.className = 'link-card';
+                
+                // Uçuk kırmızıdan mora giden renk hesabı (Hue 355'ten 270'e)
+                let hue = 355;
+                if (totalLinks > 1) {
+                    const step = (355 - 270) / (totalLinks - 1);
+                    hue = 355 - (index * step);
+                }
+                // Glassmorphism etkisini korumak için transparan (0.85) kullanıyoruz
+                card.style.background = `hsla(${hue}, 85%, 95%, 0.85)`;
+                
                 card.onclick = (e) => {
                     // Butonlara tıklandıysa sayfaya gitme
                     if (e.target.closest('.order-btn')) return;
