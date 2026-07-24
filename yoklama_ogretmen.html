@@ -1557,6 +1557,9 @@
                 return;
             }
 
+            const btn = document.getElementById('btnPinSubject');
+            const isCurrentlyPinned = btn.dataset.isPinned === 'true';
+
             const [y, m, dNum] = dateVal.split('-');
             const d = new Date(y, parseInt(m) - 1, dNum);
             const dayMap = { 1: 'Pa', 2: 'Sa', 3: 'Ça', 4: 'Pe', 5: 'Cu', 6: 'Ct', 0: 'Pz' };
@@ -1570,21 +1573,31 @@
                 dbData.subjectOverrides[activeTeacherUsername] = dbData.subjectOverrides[activeTeacherUsername] || {};
                 
                 const overrideKey = `${dayKey}_${hourVal}_${classVal}`;
-                dbData.subjectOverrides[activeTeacherUsername][overrideKey] = subjectVal;
+                let message = "";
+                
+                if (isCurrentlyPinned) {
+                    delete dbData.subjectOverrides[activeTeacherUsername][overrideKey];
+                    message = "Sabitleme kaldırıldı.";
+                } else {
+                    dbData.subjectOverrides[activeTeacherUsername][overrideKey] = subjectVal;
+                    let dayName = d.toLocaleDateString('tr-TR', { weekday: 'long' });
+                    message = `${dayName} ${hourVal}. ders ${classVal} sınıfı için "${subjectVal}" dersi varsayılan olarak kaydedildi.`;
+                }
 
                 await DataManager._saveData(dbData);
                 
-                let dayName = d.toLocaleDateString('tr-TR', { weekday: 'long' });
                 Swal.fire({
                     icon: 'success',
-                    title: 'Ders Sabitlendi',
-                    text: `${dayName} ${hourVal}. ders ${classVal} sınıfı için "${subjectVal}" dersi varsayılan olarak kaydedildi. Artık bu gün ve saatte hep bu ders seçili gelecek.`,
-                    timer: 3000,
+                    title: isCurrentlyPinned ? 'Sabitleme Kaldırıldı' : 'Ders Sabitlendi',
+                    text: message,
+                    timer: 2500,
                     showConfirmButton: false
                 });
+                
+                loadStudentList();
             } catch (e) {
                 console.error("Override save error:", e);
-                Swal.fire('Hata', 'Sabitleme kaydedilemedi.', 'error');
+                Swal.fire('Hata', 'İşlem kaydedilemedi.', 'error');
             }
         }
 
@@ -1770,9 +1783,43 @@
                 }
             }
 
-            // Sabitleme butonunun görünürlüğü
-            if (classVal && subjectVal) {
-                document.getElementById('btnPinSubject').style.display = 'block';
+            // Sabitleme butonunun görünürlüğü ve durumu
+            if (classVal && subjectVal && hourVal) {
+                const btn = document.getElementById('btnPinSubject');
+                btn.style.display = 'block';
+                
+                // Sabitlenmiş mi kontrol et
+                let isPinned = false;
+                const dateVal = document.getElementById('yoklamaDate').value;
+                if (dateVal) {
+                    const [y, m, dNum] = dateVal.split('-');
+                    const d = new Date(y, parseInt(m) - 1, dNum);
+                    const dayMap = { 1: 'Pa', 2: 'Sa', 3: 'Ça', 4: 'Pe', 5: 'Cu', 6: 'Ct', 0: 'Pz' };
+                    const dayKey = dayMap[d.getDay()];
+                    
+                    if (dayKey) {
+                        try {
+                            const dbData = DataManager._getData();
+                            const overrideKey = `${dayKey}_${hourVal}_${classVal}`;
+                            if (dbData && dbData.subjectOverrides && dbData.subjectOverrides[activeTeacherUsername] && dbData.subjectOverrides[activeTeacherUsername][overrideKey] === subjectVal) {
+                                isPinned = true;
+                            }
+                        } catch(e) {}
+                    }
+                }
+                
+                if (isPinned) {
+                    btn.style.border = '1px solid #f87171';
+                    btn.style.background = '#fef2f2';
+                    btn.style.color = '#dc2626';
+                    btn.title = 'Sabitlemeyi kaldır';
+                } else {
+                    btn.style.border = '1px solid #d1d5db';
+                    btn.style.background = '#f3f4f6';
+                    btn.style.color = '#9ca3af';
+                    btn.title = 'Bu gün ve saat için bu dersi sabitle';
+                }
+                btn.dataset.isPinned = isPinned;
             } else {
                 document.getElementById('btnPinSubject').style.display = 'none';
             }
