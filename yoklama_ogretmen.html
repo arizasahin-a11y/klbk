@@ -848,7 +848,7 @@
                     <div class="form-group">
                         <label><i class="fa-solid fa-book-open"></i> Ders</label>
                         <div style="display: flex; gap: 8px;">
-                            <select id="subjectSelect" class="form-select-custom" onchange="loadStudentList()" style="flex: 1;">
+                            <select id="subjectSelect" class="form-select-custom" onchange="loadStudentList(true)" style="flex: 1;">
                                 <option value="">-- Ders Seçin --</option>
                             </select>
                             <button id="btnPinSubject" class="btn btn-secondary" style="padding: 0 15px; border: 1px solid #f87171; background: #fef2f2; color: #dc2626; display: none;" onclick="saveSubjectOverride()" title="Bu gün ve saat için bu dersi sabitle">
@@ -1741,7 +1741,7 @@
         }
         // =====================================================
 
-        function loadStudentList() {
+        function loadStudentList(isSubjectChange = false) {
             const classVal = document.getElementById('classSelect').value;
             const subjectVal = document.getElementById('subjectSelect').value;
             const emptyState = document.getElementById('emptyState');
@@ -1835,11 +1835,11 @@
             emptyState.classList.add('hidden');
             studentListContainer.classList.remove('hidden');
 
-            // Filter students by class and subject
-            activeClassStudents = allStudents.filter(s => {
-                if (!s.class || s.class.trim() !== classVal.trim()) return false;
-                
-                // If student has a defined lessons array, they must be taking the selected subject
+            // Filter students by class
+            activeClassStudents = allStudents.filter(s => s.class && s.class.trim() === classVal.trim());
+            
+            // Filter by subject if applicable
+            let subjectFiltered = activeClassStudents.filter(s => {
                 if (subjectVal && s.dersler && Array.isArray(s.dersler) && s.dersler.length > 0) {
                     const cleanStr = str => (str || '').toString().toLocaleUpperCase('tr-TR').replace(/[^A-ZÇĞIİÖŞÜ0-9]/g, '');
                     const cleanSubject = cleanStr(subjectVal);
@@ -1849,11 +1849,16 @@
                         return cleanLesson.includes(cleanSubject) || cleanSubject.includes(cleanLesson);
                     });
                     
-                    if (!takesLesson) return false;
+                    return takesLesson;
                 }
-                
                 return true;
             });
+
+            // Sadece eğer konu bazlı filtreleme sıfır sonuç döndürmediyse (örneğin seçmeli ders ayrımı varsa) filtreyi uygula. 
+            // Aksi halde (Rehberlik, Beden vs. sisteme girilmemişse) tüm sınıfı göster.
+            if (subjectFiltered.length > 0) {
+                activeClassStudents = subjectFiltered;
+            }
             
             const sortVal = document.getElementById('sortSelect') ? document.getElementById('sortSelect').value : 'no';
             if (sortVal === 'name') {
@@ -1865,10 +1870,10 @@
             document.getElementById('totalStudentsDisplay').textContent = activeClassStudents.length;
 
             // Load existing attendance if any
-            loadExistingAttendanceRecord();
+            loadExistingAttendanceRecord(isSubjectChange);
         }
 
-        function loadExistingAttendanceRecord() {
+        function loadExistingAttendanceRecord(isSubjectChange = false) {
             const dateVal = document.getElementById('yoklamaDate').value;
             const hourVal = document.getElementById('lessonHour').value;
             const classVal = document.getElementById('classSelect').value;
@@ -1885,8 +1890,8 @@
                 attendanceMap = lessonRecord.records || {};
                 gecTimeMap = lessonRecord.gecTimes || {};
                 
-                // Pre-fill lesson subject if saved
-                if (lessonRecord.subject) {
+                // Pre-fill lesson subject if saved, BUT DO NOT overwrite if user is actively changing the subject dropdown
+                if (lessonRecord.subject && !isSubjectChange) {
                     document.getElementById('subjectSelect').value = lessonRecord.subject;
                 }
 
