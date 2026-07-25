@@ -149,6 +149,30 @@
             color: var(--dark);
         }
 
+        /* Copy Link Button */
+        .copy-btn {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
+            z-index: 5;
+        }
+        .copy-btn:hover {
+            background: #059669;
+            transform: scale(1.1);
+        }
+
         /* Admin UI */
         .admin-panel {
             background: rgba(255, 255, 255, 0.9);
@@ -481,7 +505,7 @@
                 
                 card.onclick = (e) => {
                     // Butonlara tıklandıysa sayfaya gitme
-                    if (e.target.closest('.order-btn')) return;
+                    if (e.target.closest('.order-btn') || e.target.closest('.copy-btn')) return;
                     window.location.href = link.url;
                 };
 
@@ -498,6 +522,7 @@
 
                 card.innerHTML = `
                     ${orderButtons}
+                    <button class="copy-btn" onclick="copyTeacherLink('${link.url}', this)" title="Bağlantıyı Kopyala/Paylaş"><i class="fa-regular fa-copy"></i></button>
                     <div class="link-card-header">
                         <div class="link-icon"><i class="fa-solid ${link.icon || 'fa-link'}"></i></div>
                         <h3>${link.title || 'Başlıksız'}</h3>
@@ -507,6 +532,35 @@
                 grid.appendChild(card);
             });
         }
+
+        window.copyTeacherLink = function(url, btnEl) {
+            const fullUrl = window.location.origin + (url.startsWith('/') ? '' : '/') + url;
+            navigator.clipboard.writeText(fullUrl).then(() => {
+                const icon = btnEl.querySelector('i');
+                const oldClass = icon.className;
+                icon.className = 'fa-solid fa-check';
+                btnEl.style.background = '#059669';
+                
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Bağlantı kopyalandı!',
+                        text: fullUrl,
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                }
+
+                setTimeout(() => {
+                    if (icon) icon.className = oldClass;
+                    if (btnEl) btnEl.style.background = '#10b981';
+                }, 2000);
+            }).catch(err => {
+                console.error("Kopyalama hatası:", err);
+            });
+        };
 
         window.moveTeacherLinkUp = function(index) {
             if (index > 0) {
