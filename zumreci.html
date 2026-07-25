@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Zümreci - Zümre Planlama ve Görüş İşleme Portalı</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="img/amblem.jpg">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- Base Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/core_data_v11_9_1.js"></script>
+
+    <style>
+        :root {
+            --primary: #0d9488;
+            --primary-hover: #0f766e;
+            --primary-light: #ccfbf1;
+            --secondary: #6366f1;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 100%);
+            min-height: 100vh;
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 0;
+            color: var(--dark);
+        }
+
+        .zumre-container {
+            max-width: 1100px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .premium-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: visible !important;
+            z-index: 100;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .tabs-header {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #cbd5e1;
+            padding-bottom: 8px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #64748b;
+            cursor: pointer;
+            border-radius: 12px 12px 0 0;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            background: rgba(13, 148, 136, 0.1);
+            color: var(--primary);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+        }
+
+        .section-card {
+            padding: 1.8rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #334155;
+            font-size: 0.95rem;
+        }
+
+        .form-select-custom, .form-control-custom {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: 'Outfit', sans-serif;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .form-select-custom:focus, .form-control-custom:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+        }
+
+        .btn-custom {
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary-custom {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+        }
+
+        .btn-primary-custom:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(13, 148, 136, 0.35);
+        }
+
+        .btn-secondary-custom {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .btn-secondary-custom:hover {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .btn-danger-custom {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger-custom:hover {
+            background: #dc2626;
+        }
+
+        .radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .radio-card {
+            flex: 1;
+            min-width: 180px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        .radio-card:hover {
+            border-color: var(--primary-light);
+            background: #f0fdfa;
+        }
+
+        .radio-card.selected {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            color: var(--primary-hover);
+        }
+
+        .radio-card input[type="radio"] {
+            margin: 0;
+            accent-color: var(--primary);
+            width: 18px;
+            height: 18px;
+        }
+
+        .participant-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .participant-table th, .participant-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .participant-table th {
+            background: #f8fafc;
+            font-weight: 700;
+            color: #475569;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .participant-table tr:hover {
+            background: #f1f5f9;
+        }
+
+        .badge-info {
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .modal-box {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN PANEL -->
+    <div id="loginPanel" style="display: flex; justify-content: center; align-items: center; min-height: 100vh;">
+        <div class="glass-panel" style="padding: 3rem; width: 100%; max-width: 420px; text-align: center;">
+            <i class="fa-solid fa-users-viewfinder" style="font-size: 3.5rem; color: var(--primary); margin-bottom: 1rem;"></i>
+            <h2 style="font-weight: 800; color: var(--dark); margin-bottom: 0.5rem; font-size: 1.8rem;">Zümreci Girişi</h2>
+            <p style="color: #64748b; margin-bottom: 2rem; font-size: 0.95rem;">Zümre Planlama ve Görüş İşleme Portalı</p>
+            
+            <div class="form-group" style="text-align: left;">
+                <label class="form-label">Kullanıcı Adı</label>
+                <input type="text" id="loginUsername" class="form-control-custom" placeholder="Kullanıcı adınızı girin">
+            </div>
+            <div class="form-group" style="text-align: left; margin-bottom: 2rem;">
+                <label class="form-label">Şifre</label>
+                <input type="password" id="loginPassword" class="form-control-custom" placeholder="Şifrenizi girin" onkeypress="if(event.key === 'Enter') handleLogin()">
+            </div>
+            
+            <button class="btn-custom btn-primary-custom" style="width: 100%;" onclick="handleLogin()">
+                <i class="fa-solid fa-right-to-bracket"></i> Giriş Yap
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN PORTAL CONTAINER -->
+    <div id="mainContainer" class="zumre-container" style="display: none;">
+        
+        <!-- Premium Header -->
+        <div class="premium-header glass-panel">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="background: rgba(13, 148, 136, 0.1); padding: 12px; border-radius: 12px; color: var(--primary);">
+                    <i class="fa-solid fa-users-between-lines fa-2x"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.65rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;"><i class="fa-solid fa-folder-tree" style="margin-right: 4px;"></i> ZÜMRE YÖNETİMİ (ZÜMRECİ)</div>
+                    <h1 style="font-size: 1.25rem; font-weight: 800; color: var(--dark); margin: 0;" id="welcomeTeacher">Hoş Geldiniz...</h1>
+                    <p style="font-size: 0.85rem; color: #64748b; margin: 2px 0 0 0;" id="welcomeSchool">...</p>
+                </div>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button class="btn-custom btn-secondary-custom" onclick="window.location.href='/enter.html'" title="Portal Ana Sayfa">
+                    <i class="fa-solid fa-house"></i>
+                </button>
+                <button class="btn-custom btn-danger-custom" onclick="logoutZumreci()">
+                    <i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap
+                </button>
+            </div>
+        </div>
+
+        <!-- TABS HEADER -->
+        <div class="tabs-header">
+            <button class="tab-btn active" id="tabBtnPlan" onclick="switchTab('plan')">
+                <i class="fa-solid fa-calendar-check"></i> Zümre Planı Sayfası
+            </button>
+            <button class="tab-btn" id="tabBtnGorus" onclick="switchTab('gorus')">
+                <i class="fa-solid fa-comments"></i> Zümre Görüş İşleme
+            </button>
+        </div>
+
+        <!-- TAB 1: ZÜMRE PLANI SAYFASI -->
+        <div id="tabContentPlan">
+            <!-- 1. Dönem ve Tür Seçimi -->
+            <div class="glass-panel section-card">
+                <h3 style="margin: 0 0 1.25rem 0; color: var(--dark); font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-layer-group" style="color: var(--primary);"></i> 1. Zümre Dönemi ve Türü Belirleme
+                </h3>
+
+                <div class="form-group">
+                    <label class="form-label">Zümre Dönemi Seçin</label>
+                    <div class="radio-group" id="donemRadioGroup">
+                        <label class="radio-card selected" onclick="selectRadioCard(this, 'donem')">
+                            <input type="radio" name="zumreDonem" value="Sene Başı" checked> Sene Başı Zümresi
+                        </label>
+                        <label class="radio-card" onclick="selectRadioCard(this, 'donem')">
+                            <input type="radio" name="zumreDonem" value="2. Dönem Başı"> 2. Dönem Başı Zümresi
+                        </label>
+                        <label class="radio-card" onclick="selectRadioCard(this, 'donem')">
+                            <input type="radio" name="zumreDonem" value="Sene Sonu"> Sene Sonu Zümresi
+                        </label>
+                        <label class="radio-card" onclick="selectRadioCard(this, 'donem')">
+                            <input type="radio" name="zumreDonem" value="Ek Zümre"> Ek Zümre Toplantısı
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 1.5rem; margin-bottom: 0;">
+                    <label class="form-label">Zümre Türü Seçin</label>
+                    <div class="radio-group" id="turRadioGroup">
+                        <label class="radio-card selected" onclick="selectRadioCard(this, 'tur'); handleTurChange('il');">
+                            <input type="radio" name="zumreTur" value="il" checked> İl Zümresi Toplantısı
+                        </label>
+                        <label class="radio-card" onclick="selectRadioCard(this, 'tur'); handleTurChange('ilce');">
+                            <input type="radio" name="zumreTur" value="ilce"> İlçe Zümresi Toplantısı
+                        </label>
+                        <label class="radio-card" onclick="selectRadioCard(this, 'tur'); handleTurChange('okul_baskan');">
+                            <input type="radio" name="zumreTur" value="okul_baskan"> Okul Zümre Başkanları Toplantısı
+                        </label>
+                        <label class="radio-card" onclick="selectRadioCard(this, 'tur'); handleTurChange('sok');">
+                            <input type="radio" name="zumreTur" value="sok"> ŞÖK (Şube Öğretmenler Kurulu)
+                        </label>
+                        <label class="radio-card" onclick="selectRadioCard(this, 'tur'); handleTurChange('brans');">
+                            <input type="radio" name="zumreTur" value="brans"> Branş Zümresi Toplantısı
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Dinamik Katılımcı ve Seçim Alanı -->
+            <div class="glass-panel section-card" id="dynamicSection">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0; color: var(--dark); font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-user-check" style="color: var(--primary);"></i> <span id="dynamicSectionTitle">2. Katılımcıları Belirleme (İl Zümresi)</span>
+                    </h3>
+                    <div id="dynamicButtonsContainer" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <!-- Buttons injected dynamically based on type -->
+                    </div>
+                </div>
+
+                <!-- Özel Seçim Kutuları (ŞÖK Sınıf Seçimi veya Branş Seçimi için) -->
+                <div id="specialSelectorContainer" style="display: none; background: #f8fafc; padding: 1.25rem; border-radius: 12px; margin-bottom: 1.25rem; border: 1px dashed #cbd5e1;">
+                    <!-- Content populated dynamically -->
+                </div>
+
+                <!-- Katılımcılar Listesi Tablosu -->
+                <div style="margin-top: 1rem;">
+                    <div style="font-weight: 700; color: #475569; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                        <span>Toplantıya Katılacak Öğretmen / Başkanlar Listesi (<span id="participantCount">0</span> Kişi)</span>
+                        <button class="btn-custom btn-secondary-custom" style="padding: 4px 10px; font-size: 0.8rem;" onclick="clearAllParticipants()"><i class="fa-solid fa-trash-can"></i> Listeyi Temizle</button>
+                    </div>
+                    
+                    <div style="overflow-x: auto;">
+                        <table class="participant-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">#</th>
+                                    <th>Adı Soyadı</th>
+                                    <th>Kurum / Okul / İlçe</th>
+                                    <th>Görevi / Branşı</th>
+                                    <th style="width: 80px; text-align: center;">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="participantsTableBody">
+                                <tr>
+                                    <td colspan="5" style="text-align: center; padding: 2rem; color: #94a3b8;">
+                                        Henüz katılımcı eklenmedi. Yukarıdaki butonları kullanarak listeyi oluşturun.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Toplantı Detayları (Tarih, Saat, Yer vs.) -->
+                <div style="margin-top: 2rem; border-top: 1px solid #e2e8f0; padding-top: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label"><i class="fa-solid fa-calendar-days"></i> Toplantı Tarihi</label>
+                        <input type="date" id="zumreTarih" class="form-control-custom">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label"><i class="fa-solid fa-clock"></i> Toplantı Saati</label>
+                        <input type="time" id="zumreSaat" class="form-control-custom" value="10:00">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label"><i class="fa-solid fa-location-dot"></i> Toplantı Yeri / Salonu</label>
+                        <input type="text" id="zumreYer" class="form-control-custom" placeholder="Örn: Öğretmenler Odası / Online">
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem; text-align: right;">
+                    <button class="btn-custom btn-primary-custom" style="padding: 1rem 2.5rem; font-size: 1.1rem;" onclick="saveZumrePlan()">
+                        <i class="fa-solid fa-floppy-disk"></i> Zümre Planını Kaydet ve Oluştur
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: ZÜMRE GÖRÜŞ İŞLEME SEKMESİ -->
+        <div id="tabContentGorus" style="display: none;">
+            <div class="glass-panel section-card" style="text-align: center; padding: 4rem 2rem;">
+                <i class="fa-solid fa-comments-dollar" style="font-size: 4rem; color: var(--secondary); margin-bottom: 1.5rem;"></i>
+                <h2 style="font-weight: 800; color: var(--dark); margin-bottom: 1rem;">Zümre Görüş ve Karar İşleme Ekranı</h2>
+                <p style="color: #64748b; max-width: 600px; margin: 0 auto 2rem auto; line-height: 1.6;">
+                    Planlanan zümre toplantılarına ait gündem maddeleri, alınan kararlar ve öğretmen görüşleri bu sekmeden işlenecektir. Birinci sekmeden oluşturulan zümre planları burada listelenir.
+                </p>
+                <div style="display: inline-block; background: #e0e7ff; color: #4338ca; padding: 10px 20px; border-radius: 12px; font-weight: 700;">
+                    <i class="fa-solid fa-circle-info"></i> Bu sekmenin detaylı işlevleri bir sonraki aşamada eklenecektir.
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL: METİN LİSTESİ YÜKLEME (İL / İLÇE İÇİN) -->
+    <div id="bulkUploadModal" class="modal-overlay">
+        <div class="modal-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                <h3 style="margin: 0; color: var(--dark); font-size: 1.25rem;" id="bulkModalTitle">Katılımcı Listesi Yükle</h3>
+                <button class="btn-custom btn-secondary-custom" style="padding: 6px 10px; border-radius: 50%;" onclick="closeBulkModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <p style="color: #64748b; font-size: 0.9rem; line-height: 1.5;" id="bulkModalDesc">
+                Lütfen her satıra bir kayıt gelecek şekilde aşağıdaki formatta yapıştırın:<br>
+                <strong style="color: var(--primary);">İlçe Adı: Öğretmenin Adı Soyadı</strong>
+            </p>
+
+            <textarea id="bulkTextArea" class="form-control-custom" style="height: 200px; font-family: monospace; font-size: 0.9rem;" placeholder="Örn:&#10;Çankaya: Ahmet Yılmaz&#10;Keçiören: Ayşe Demir&#10;Yenimahalle: Mehmet Kaya"></textarea>
+
+            <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn-custom btn-secondary-custom" onclick="closeBulkModal()">İptal</button>
+                <button class="btn-custom btn-primary-custom" onclick="processBulkUpload()"><i class="fa-solid fa-check"></i> Listeyi Çözümle ve Ekle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: VERİTABANINDAN ÖĞRETMEN / KATILIMCI SEÇME -->
+    <div id="selectTeacherModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 700px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                <h3 style="margin: 0; color: var(--dark); font-size: 1.25rem;" id="selectModalTitle">Toplantı Katılımcısı Seç</h3>
+                <button class="btn-custom btn-secondary-custom" style="padding: 6px 10px; border-radius: 50%;" onclick="closeSelectModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div style="margin-bottom: 1rem; display: flex; gap: 10px;">
+                <input type="text" id="teacherSearchInput" class="form-control-custom" placeholder="İsim veya branş ile ara..." onkeyup="filterSelectTeacherList()">
+                <button class="btn-custom btn-secondary-custom" onclick="selectAllModalTeachers(true)"><i class="fa-solid fa-check-double"></i> Tümünü Seç</button>
+                <button class="btn-custom btn-secondary-custom" onclick="selectAllModalTeachers(false)"><i class="fa-solid fa-xmark"></i> Temizle</button>
+            </div>
+            
+            <div id="selectTeacherListContainer" style="max-height: 350px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; background: #f8fafc;">
+                <div style="text-align: center; padding: 2rem; color: #94a3b8;">
+                    <i class="fa-solid fa-spinner fa-spin fa-2x"></i><br>Öğretmen listesi yükleniyor...
+                </div>
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn-custom btn-secondary-custom" onclick="closeSelectModal()">İptal</button>
+                <button class="btn-custom btn-primary-custom" onclick="addSelectedModalTeachers()"><i class="fa-solid fa-user-plus"></i> Seçilenleri Toplantıya Ekle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: TEK TEK MANÜEL KATILIMCI EKLEME -->
+    <div id="manualAddModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 500px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                <h3 style="margin: 0; color: var(--dark); font-size: 1.25rem;">Katılımcı Ekle</h3>
+                <button class="btn-custom btn-secondary-custom" style="padding: 6px 10px; border-radius: 50%;" onclick="closeManualModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Adı Soyadı</label>
+                <input type="text" id="manualName" class="form-control-custom" placeholder="Örn: Ahmet Yılmaz">
+            </div>
+            <div class="form-group">
+                <label class="form-label" id="manualKurumLabel">İlçe / Kurum / Okul Adı</label>
+                <input type="text" id="manualKurum" class="form-control-custom" placeholder="Örn: Çankaya veya Atatürk Anadolu Lisesi">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Görevi / Branşı</label>
+                <input type="text" id="manualGorev" class="form-control-custom" placeholder="Örn: İlçe Zümre Başkanı veya Matematik">
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn-custom btn-secondary-custom" onclick="closeManualModal()">İptal</button>
+                <button class="btn-custom btn-primary-custom" onclick="addManualParticipant()"><i class="fa-solid fa-plus"></i> Listeye Ekle</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const FIREBASE_DB_URL = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
+        let currentZumreTur = "il";
+        let participantsList = []; // Array of { id, name, kurum, gorev }
+        let schoolTeachersList = []; // Fetched teachers from database
+        let loadedBulkMode = "ilce"; // "ilce" or "okul"
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true';
+            if (isLoggedIn) {
+                showMainPortal();
+            } else {
+                document.getElementById('loginPanel').style.display = 'flex';
+                document.getElementById('mainContainer').style.display = 'none';
+            }
+            
+            // Default tarih olarak bugünü ayarla
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('zumreTarih').value = today;
+        });
+
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function handleLogin() {
+            const user = document.getElementById('loginUsername').value.trim();
+            const pass = document.getElementById('loginPassword').value;
+
+            if (!user || !pass) {
+                Swal.fire('Hata', 'Lütfen kullanıcı adı ve şifrenizi girin.', 'warning');
+                return;
+            }
+
+            Swal.fire({ title: 'Giriş Yapılıyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json`);
+                const users = await res.json();
+
+                if (users && users[user]) {
+                    const userObj = users[user];
+                    const passHash = await hashPassword(pass);
+
+                    if (userObj.password === pass || userObj.password === passHash) {
+                        sessionStorage.setItem('klbk_isLoggedIn', 'true');
+                        sessionStorage.setItem('klbk_currentUser', user);
+                        sessionStorage.setItem('klbk_role', userObj.role || 'ogretmen');
+                        sessionStorage.setItem('klbk_name', userObj.name || user);
+                        if (userObj.schoolName) {
+                            localStorage.setItem('klbk_lastSchoolName', userObj.schoolName);
+                        }
+
+                        Swal.close();
+                        showMainPortal();
+                    } else {
+                        Swal.fire('Hata', 'Şifre hatalı!', 'error');
+                    }
+                } else {
+                    Swal.fire('Hata', 'Kullanıcı bulunamadı!', 'error');
+                }
+            } catch (e) {
+                console.error("Giriş hatası:", e);
+                Swal.fire('Hata', 'Sunucu bağlantı hatası oluştu.', 'error');
+            }
+        }
+
+        function showMainPortal() {
+            document.getElementById('loginPanel').style.display = 'none';
+            document.getElementById('mainContainer').style.display = 'block';
+
+            const name = sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || 'Öğretmen';
+            const school = localStorage.getItem('klbk_lastSchoolName') || 'Okul Bilgisi Bulunamadı';
+            
+            document.getElementById('welcomeTeacher').innerText = `Hoş Geldiniz, ${name}`;
+            document.getElementById('welcomeSchool').innerText = school;
+
+            // Load teachers from DataManager or Firebase for selectors
+            fetchSchoolTeachers();
+            
+            // Initialize UI for default type
+            handleTurChange('il');
+        }
+
+        function logoutZumreci() {
+            Swal.fire({
+                title: 'Çıkış Yapılsın mı?',
+                text: 'Oturumunuz sonlandırılacaktır.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Evet, Çıkış Yap',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#ef4444'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    sessionStorage.removeItem('klbk_isLoggedIn');
+                    window.location.reload();
+                }
+            });
+        }
+
+        function switchTab(tab) {
+            if (tab === 'plan') {
+                document.getElementById('tabBtnPlan').classList.add('active');
+                document.getElementById('tabBtnGorus').classList.remove('active');
+                document.getElementById('tabContentPlan').style.display = 'block';
+                document.getElementById('tabContentGorus').style.display = 'none';
+            } else {
+                document.getElementById('tabBtnPlan').classList.remove('active');
+                document.getElementById('tabBtnGorus').classList.add('active');
+                document.getElementById('tabContentPlan').style.display = 'none';
+                document.getElementById('tabContentGorus').style.display = 'block';
+            }
+        }
+
+        function selectRadioCard(labelEl, groupType) {
+            const containerId = groupType === 'donem' ? 'donemRadioGroup' : 'turRadioGroup';
+            document.querySelectorAll(`#${containerId} .radio-card`).forEach(el => el.classList.remove('selected'));
+            labelEl.classList.add('selected');
+            const radio = labelEl.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+        }
+
+        async function fetchSchoolTeachers() {
+            try {
+                // Öncelik DataManager'de
+                if (typeof DataManager !== 'undefined' && DataManager.teachers && DataManager.teachers.length > 0) {
+                    schoolTeachersList = DataManager.teachers;
+                    return;
+                }
+
+                // Yoksa Firebase'den çek
+                const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json`);
+                const users = await res.json();
+                schoolTeachersList = [];
+                if (users) {
+                    const currentSchool = localStorage.getItem('klbk_lastSchoolName') || '';
+                    for (const [uname, data] of Object.entries(users)) {
+                        if (!currentSchool || data.schoolName === currentSchool || !data.schoolName) {
+                            schoolTeachersList.push({
+                                id: uname,
+                                name: data.name || uname,
+                                branch: data.branch || 'Genel / Branş Belirtilmemiş',
+                                school: data.schoolName || currentSchool || 'Okulumuz'
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Öğretmenler yüklenemedi:", e);
+            }
+        }
+
+        function handleTurChange(tur) {
+            currentZumreTur = tur;
+            const titleEl = document.getElementById('dynamicSectionTitle');
+            const btnsContainer = document.getElementById('dynamicButtonsContainer');
+            const specialContainer = document.getElementById('specialSelectorContainer');
+            
+            specialContainer.style.display = 'none';
+            specialContainer.innerHTML = '';
+            btnsContainer.innerHTML = '';
+
+            if (tur === 'il') {
+                titleEl.innerText = "2. Katılımcıları Belirleme (İl Zümresi - İlçe Zümre Başkanları)";
+                btnsContainer.innerHTML = `
+                    <button class="btn-custom btn-primary-custom" onclick="openBulkModal('ilce')">
+                        <i class="fa-solid fa-file-import"></i> Katılımcı Listesi Yükle
+                    </button>
+                    <button class="btn-custom btn-secondary-custom" onclick="openManualModal('ilce')">
+                        <i class="fa-solid fa-user-plus"></i> Başka Bir Katılımcı Ekle
+                    </button>
+                `;
+            } else if (tur === 'ilce') {
+                titleEl.innerText = "2. Katılımcıları Belirleme (İlçe Zümresi - Okul Zümre Başkanları)";
+                btnsContainer.innerHTML = `
+                    <button class="btn-custom btn-primary-custom" onclick="openBulkModal('okul')">
+                        <i class="fa-solid fa-file-import"></i> Okul Listesi Yükle
+                    </button>
+                    <button class="btn-custom btn-secondary-custom" onclick="openManualModal('okul')">
+                        <i class="fa-solid fa-user-plus"></i> Katılımcı Ekle
+                    </button>
+                `;
+            } else if (tur === 'okul_baskan') {
+                titleEl.innerText = "2. Katılımcıları Belirleme (Okul Zümre Başkanları Toplantısı)";
+                btnsContainer.innerHTML = `
+                    <button class="btn-custom btn-primary-custom" onclick="openSelectModal('okul_teachers')">
+                        <i class="fa-solid fa-users-viewfinder"></i> Katılımcı Seç (Okul Öğretmenleri)
+                    </button>
+                    <button class="btn-custom btn-secondary-custom" onclick="openManualModal('okul_teachers')">
+                        <i class="fa-solid fa-user-plus"></i> Manüel Katılımcı Ekle
+                    </button>
+                `;
+            } else if (tur === 'sok') {
+                titleEl.innerText = "2. Katılımcıları Belirleme (ŞÖK - Şube Öğretmenler Kurulu)";
+                btnsContainer.innerHTML = `
+                    <button class="btn-custom btn-secondary-custom" onclick="openSelectModal('sok_all')">
+                        <i class="fa-solid fa-user-plus"></i> Listeden Öğretmen Ekle/Çıkar
+                    </button>
+                `;
+                renderSokClassSelector();
+            } else if (tur === 'brans') {
+                titleEl.innerText = "2. Katılımcıları Belirleme (Branş Zümresi Toplantısı)";
+                btnsContainer.innerHTML = `
+                    <button class="btn-custom btn-secondary-custom" onclick="openSelectModal('brans_all')">
+                        <i class="fa-solid fa-user-plus"></i> Listeden Öğretmen Ekle/Çıkar
+                    </button>
+                `;
+                renderBransSelector();
+            }
+        }
+
+        // --- BULK MODAL (İL / İLÇE TOPLU YAPILANDIRMA) ---
+        function openBulkModal(mode) {
+            loadedBulkMode = mode;
+            const titleEl = document.getElementById('bulkModalTitle');
+            const descEl = document.getElementById('bulkModalDesc');
+            const txtArea = document.getElementById('bulkTextArea');
+            
+            txtArea.value = '';
+
+            if (mode === 'ilce') {
+                titleEl.innerText = "İlçe Zümre Başkanları Listesi Yükle";
+                descEl.innerHTML = `Lütfen her satıra bir kayıt gelecek şekilde aşağıdaki formatta yapıştırın:<br><strong style="color: var(--primary);">İlçe Adı: Öğretmenin Adı Soyadı</strong>`;
+                txtArea.placeholder = "Örn:\nÇankaya: Ahmet Yılmaz\nKeçiören: Ayşe Demir\nYenimahalle: Mehmet Kaya";
+            } else {
+                titleEl.innerText = "Okul Zümre Başkanları Listesi Yükle";
+                descEl.innerHTML = `Lütfen her satıra bir kayıt gelecek şekilde aşağıdaki formatta yapıştırın:<br><strong style="color: var(--primary);">Okul Adı: Okul Zümre Başkanının Adı Soyadı</strong>`;
+                txtArea.placeholder = "Örn:\nAtatürk Anadolu Lisesi: Ali Kaya\nCumhuriyet Fen Lisesi: Fatma Şahin\nGazi Anadolu Lisesi: Hakan Yıldız";
+            }
+
+            document.getElementById('bulkUploadModal').style.display = 'flex';
+        }
+
+        function closeBulkModal() {
+            document.getElementById('bulkUploadModal').style.display = 'none';
+        }
+
+        function processBulkUpload() {
+            const text = document.getElementById('bulkTextArea').value.trim();
+            if (!text) {
+                Swal.fire('Uyarı', 'Lütfen yapıştırılacak bir liste girin.', 'warning');
+                return;
+            }
+
+            const lines = text.split('\n');
+            let addedCount = 0;
+
+            lines.forEach((line) => {
+                const parts = line.split(':');
+                if (parts.length >= 2) {
+                    const kurum = parts[0].trim();
+                    const name = parts.slice(1).join(':').trim();
+                    if (name && kurum) {
+                        participantsList.push({
+                            id: 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                            name: name,
+                            kurum: kurum,
+                            gorev: loadedBulkMode === 'ilce' ? 'İlçe Zümre Başkanı' : 'Okul Zümre Başkanı'
+                        });
+                        addedCount++;
+                    }
+                }
+            });
+
+            closeBulkModal();
+            renderParticipantsTable();
+            Swal.fire('Başarılı', `${addedCount} katılımcı başarıyla çözümlendi ve listeye eklendi!`, 'success');
+        }
+
+        // --- SELECT MODAL (VERİTABANINDAN SEÇİM) ---
+        function openSelectModal(mode) {
+            document.getElementById('selectModalTitle').innerText = "Toplantı Katılımcısı Seç";
+            document.getElementById('teacherSearchInput').value = '';
+            const container = document.getElementById('selectTeacherListContainer');
+            
+            if (schoolTeachersList.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:2rem; color:#ef4444;">Veritabanında kayıtlı öğretmen bulunamadı. Lütfen önce öğretmen ekleyin veya manüel ekle butonunu kullanın.</div>`;
+            } else {
+                let html = `<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:10px;">`;
+                schoolTeachersList.forEach((t) => {
+                    const isAlreadyAdded = participantsList.some(p => p.name.toLowerCase() === t.name.toLowerCase());
+                    html += `
+                        <label style="display:flex; align-items:center; gap:10px; padding:10px; background:white; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer;">
+                            <input type="checkbox" class="modal-teacher-chk" value="${t.id}" data-name="${t.name}" data-branch="${t.branch}" data-school="${t.school}" ${isAlreadyAdded ? 'checked' : ''} style="width:18px; height:18px; accent-color:var(--primary);">
+                            <div>
+                                <div style="font-weight:700; color:var(--dark);">${t.name}</div>
+                                <div style="font-size:0.75rem; color:#64748b;">${t.branch} (${t.school})</div>
+                            </div>
+                        </label>
+                    `;
+                });
+                html += `</div>`;
+                container.innerHTML = html;
+            }
+
+            document.getElementById('selectTeacherModal').style.display = 'flex';
+        }
+
+        function closeSelectModal() {
+            document.getElementById('selectTeacherModal').style.display = 'none';
+        }
+
+        function filterSelectTeacherList() {
+            const query = document.getElementById('teacherSearchInput').value.toLowerCase().trim();
+            document.querySelectorAll('#selectTeacherListContainer label').forEach(lbl => {
+                const text = lbl.innerText.toLowerCase();
+                lbl.style.display = text.includes(query) ? 'flex' : 'none';
+            });
+        }
+
+        function selectAllModalTeachers(status) {
+            document.querySelectorAll('.modal-teacher-chk').forEach(chk => {
+                if (chk.closest('label').style.display !== 'none') {
+                    chk.checked = status;
+                }
+            });
+        }
+
+        function addSelectedModalTeachers() {
+            const checkedBoxes = document.querySelectorAll('.modal-teacher-chk:checked');
+            let addedCount = 0;
+
+            checkedBoxes.forEach(chk => {
+                const name = chk.getAttribute('data-name');
+                const branch = chk.getAttribute('data-branch');
+                const school = chk.getAttribute('data-school');
+
+                if (!participantsList.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                    participantsList.push({
+                        id: 't_' + chk.value + '_' + Date.now(),
+                        name: name,
+                        kurum: school || localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz',
+                        gorev: branch || 'Öğretmen'
+                    });
+                    addedCount++;
+                }
+            });
+
+            closeSelectModal();
+            renderParticipantsTable();
+            if (addedCount > 0) {
+                Swal.fire('Başarılı', `${addedCount} yeni katılımcı listeye eklendi!`, 'success');
+            } else {
+                Swal.fire('Bilgi', 'Seçilen katılımcılar zaten listede mevcut.', 'info');
+            }
+        }
+
+        // --- MANUAL ADD MODAL ---
+        function openManualModal(mode) {
+            document.getElementById('manualName').value = '';
+            document.getElementById('manualKurum').value = '';
+            document.getElementById('manualGorev').value = '';
+
+            const kurumLabel = document.getElementById('manualKurumLabel');
+            if (mode === 'ilce') {
+                kurumLabel.innerText = "Katılımcının İlçesi";
+                document.getElementById('manualGorev').value = "İlçe Zümre Başkanı";
+            } else if (mode === 'okul') {
+                kurumLabel.innerText = "Katılımcının Okulu";
+                document.getElementById('manualGorev').value = "Okul Zümre Başkanı";
+            } else {
+                kurumLabel.innerText = "Kurum / Okul Adı";
+                document.getElementById('manualKurum').value = localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz';
+            }
+
+            document.getElementById('manualAddModal').style.display = 'flex';
+        }
+
+        function closeManualModal() {
+            document.getElementById('manualAddModal').style.display = 'none';
+        }
+
+        function addManualParticipant() {
+            const name = document.getElementById('manualName').value.trim();
+            const kurum = document.getElementById('manualKurum').value.trim() || 'Belirtilmedi';
+            const gorev = document.getElementById('manualGorev').value.trim() || 'Katılımcı';
+
+            if (!name) {
+                Swal.fire('Uyarı', 'Lütfen katılımcı adı soyadı girin.', 'warning');
+                return;
+            }
+
+            participantsList.push({
+                id: 'm_' + Date.now(),
+                name: name,
+                kurum: kurum,
+                gorev: gorev
+            });
+
+            closeManualModal();
+            renderParticipantsTable();
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Katılımcı eklendi!', showConfirmButton: false, timer: 1500 });
+        }
+
+        // --- ŞÖK (SINIF SEÇİMİ VE OTOMATİK LİSTELEME) ---
+        function renderSokClassSelector() {
+            const container = document.getElementById('specialSelectorContainer');
+            container.style.display = 'block';
+            
+            // Generate standard classes or fetch from DataManager
+            let classes = ['9-A', '9-B', '9-C', '10-A', '10-B', '10-C', '11-A', '11-B', '11-C', '12-A', '12-B', '12-C'];
+            if (typeof DataManager !== 'undefined' && DataManager.classes && DataManager.classes.length > 0) {
+                classes = DataManager.classes.map(c => typeof c === 'string' ? c : (c.name || c.sube));
+            }
+
+            let html = `
+                <div style="font-weight: 700; color: var(--primary); margin-bottom: 10px; font-size: 1.05rem;">
+                    <i class="fa-solid fa-users-rectangle"></i> ŞÖK Toplantısı İçin Sınıf / Şube Seçimi
+                </div>
+                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px;">Bir şube seçtiğinizde, okuldaki öğretmenler bu şubenin kurulu için otomatik listelenir.</p>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <select id="sokClassSelect" class="form-select-custom" style="max-width: 300px;" onchange="handleSokClassSelect(this.value)">
+                        <option value="">-- Şube Seçin --</option>
+            `;
+            classes.forEach(c => {
+                html += `<option value="${c}">${c} Sınıfı ŞÖK Toplantısı</option>`;
+            });
+            html += `
+                    </select>
+                    <span id="sokStatusText" style="font-size: 0.9rem; font-weight: 600; color: var(--secondary);"></span>
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+
+        function handleSokClassSelect(className) {
+            if (!className) return;
+            const statusEl = document.getElementById('sokStatusText');
+            statusEl.innerText = `${className} Sınıfı öğretmenleri katılımcı olarak yüklendi!`;
+
+            // Otomatik olarak tüm okul öğretmenlerini ekle (veya şubeye girenleri filtrele)
+            let count = 0;
+            schoolTeachersList.forEach(t => {
+                if (!participantsList.some(p => p.name.toLowerCase() === t.name.toLowerCase())) {
+                    participantsList.push({
+                        id: 'sok_' + t.id + '_' + Date.now(),
+                        name: t.name,
+                        kurum: t.school || localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz',
+                        gorev: `${t.branch} (${className} Dersi)`
+                    });
+                    count++;
+                }
+            });
+
+            renderParticipantsTable();
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `${className} şubesi için ${count} öğretmen eklendi!`, showConfirmButton: false, timer: 2000 });
+        }
+
+        // --- BRANŞ ZÜMRESİ SEÇİMİ VE OTOMATİK LİSTELEME ---
+        function renderBransSelector() {
+            const container = document.getElementById('specialSelectorContainer');
+            container.style.display = 'block';
+
+            // Extract unique branches from schoolTeachersList or use defaults
+            let branches = new Set();
+            schoolTeachersList.forEach(t => {
+                if (t.branch) branches.add(t.branch);
+            });
+            if (branches.size === 0) {
+                ['Matematik', 'Türk Dili ve Edebiyatı', 'Fizik', 'Kimya', 'Biyoloji', 'Tarih', 'Coğrafya', 'İngilizce', 'Beden Eğitimi', 'Rehberlik'].forEach(b => branches.add(b));
+            }
+
+            let html = `
+                <div style="font-weight: 700; color: var(--primary); margin-bottom: 10px; font-size: 1.05rem;">
+                    <i class="fa-solid fa-graduation-cap"></i> Branş Zümresi Toplantısı İçin Branş Seçimi
+                </div>
+                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px;">Seçtiğiniz branştaki okulumuz öğretmenleri katılımcı listesine otomatik eklenecektir.</p>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <select id="bransSelect" class="form-select-custom" style="max-width: 300px;" onchange="handleBransSelect(this.value)">
+                        <option value="">-- Branş Seçin --</option>
+            `;
+            Array.from(branches).sort().forEach(b => {
+                html += `<option value="${b}">${b} Zümresi</option>`;
+            });
+            html += `
+                    </select>
+                    <span id="bransStatusText" style="font-size: 0.9rem; font-weight: 600; color: var(--secondary);"></span>
+                </div>
+            `;
+            container.innerHTML = html;
+        }
+
+        function handleBransSelect(branchName) {
+            if (!branchName) return;
+            const statusEl = document.getElementById('bransStatusText');
+            statusEl.innerText = `${branchName} zümresi öğretmenleri listelendi!`;
+
+            let count = 0;
+            schoolTeachersList.forEach(t => {
+                if (t.branch && t.branch.toLowerCase().includes(branchName.toLowerCase())) {
+                    if (!participantsList.some(p => p.name.toLowerCase() === t.name.toLowerCase())) {
+                        participantsList.push({
+                            id: 'brans_' + t.id + '_' + Date.now(),
+                            name: t.name,
+                            kurum: t.school || localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz',
+                            gorev: `${t.branch} Öğretmeni`
+                        });
+                        count++;
+                    }
+                }
+            });
+
+            renderParticipantsTable();
+            if (count > 0) {
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `${branchName} branşından ${count} öğretmen eklendi!`, showConfirmButton: false, timer: 2000 });
+            } else {
+                Swal.fire('Bilgi', `Okul listesinde ${branchName} branşına kayıtlı öğretmen bulunamadı. Butondan manüel veya listeden ekleyebilirsiniz.`, 'info');
+            }
+        }
+
+        // --- TABLE RENDER & REMOVE ---
+        function renderParticipantsTable() {
+            const tbody = document.getElementById('participantsTableBody');
+            document.getElementById('participantCount').innerText = participantsList.length;
+
+            if (participantsList.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 2rem; color: #94a3b8;">
+                            Henüz katılımcı eklenmedi. Yukarıdaki butonları kullanarak listeyi oluşturun.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = '';
+            participantsList.forEach((p, index) => {
+                html += `
+                    <tr>
+                        <td style="font-weight: 700; color: #64748b;">${index + 1}</td>
+                        <td style="font-weight: 700; color: var(--dark);"><i class="fa-regular fa-user" style="margin-right: 6px; color: var(--primary);"></i> ${p.name}</td>
+                        <td><span class="badge-info">${p.kurum}</span></td>
+                        <td style="font-weight: 600; color: #475569;">${p.gorev}</td>
+                        <td style="text-align: center;">
+                            <button class="btn-custom btn-danger-custom" style="padding: 5px 10px; border-radius: 6px; font-size: 0.8rem;" onclick="removeParticipant('${p.id}')" title="Kaldır">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function removeParticipant(id) {
+            participantsList = participantsList.filter(p => p.id !== id);
+            renderParticipantsTable();
+        }
+
+        function clearAllParticipants() {
+            if (participantsList.length === 0) return;
+            Swal.fire({
+                title: 'Liste Temizlensin mi?',
+                text: 'Eklenen tüm katılımcılar listeden kaldırılacaktır.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Evet, Temizle',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#ef4444'
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    participantsList = [];
+                    renderParticipantsTable();
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Liste temizlendi', showConfirmButton: false, timer: 1500 });
+                }
+            });
+        }
+
+        // --- SAVE PLAN ---
+        async function saveZumrePlan() {
+            const donemEl = document.querySelector('input[name="zumreDonem"]:checked');
+            const turEl = document.querySelector('input[name="zumreTur"]:checked');
+            const tarih = document.getElementById('zumreTarih').value;
+            const saat = document.getElementById('zumreSaat').value;
+            const yer = document.getElementById('zumreYer').value.trim() || 'Belirtilmedi';
+
+            if (!donemEl || !turEl) {
+                Swal.fire('Uyarı', 'Lütfen zümre dönemi ve türünü belirleyin.', 'warning');
+                return;
+            }
+            if (participantsList.length === 0) {
+                Swal.fire('Uyarı', 'Lütfen toplantıya katılacak en az 1 katılımcı ekleyin.', 'warning');
+                return;
+            }
+
+            const donemText = donemEl.value;
+            let turText = "";
+            if (turEl.value === 'il') turText = "İl Zümresi Toplantısı";
+            else if (turEl.value === 'ilce') turText = "İlçe Zümresi Toplantısı";
+            else if (turEl.value === 'okul_baskan') turText = "Okul Zümre Başkanları Toplantısı";
+            else if (turEl.value === 'sok') {
+                const sokClass = document.getElementById('sokClassSelect') ? document.getElementById('sokClassSelect').value : '';
+                turText = `ŞÖK Toplantısı ${sokClass ? '(' + sokClass + ' Şubesi)' : ''}`;
+            }
+            else if (turEl.value === 'brans') {
+                const brans = document.getElementById('bransSelect') ? document.getElementById('bransSelect').value : '';
+                turText = `Branş Zümresi Toplantısı ${brans ? '(' + brans + ')' : ''}`;
+            }
+
+            const plannerName = sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || 'Öğretmen';
+            const schoolName = localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz';
+
+            const newPlan = {
+                id: 'zumre_' + Date.now(),
+                donem: donemText,
+                tur: turText,
+                turCode: turEl.value,
+                tarih: tarih,
+                saat: saat,
+                yer: yer,
+                planner: plannerName,
+                school: schoolName,
+                createdAt: new Date().toISOString(),
+                participants: participantsList
+            };
+
+            Swal.fire({ title: 'Zümre Planı Kaydediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_zumre_plans/${newPlan.id}.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newPlan)
+                });
+
+                if (res.ok) {
+                    Swal.fire({
+                        title: 'Zümre Planı Oluşturuldu! 🎉',
+                        html: `<b>${donemText} - ${turText}</b> planı başarıyla kaydedildi.<br><br>Toplantıya toplam <b>${participantsList.length}</b> katılımcı tanımlandı.`,
+                        icon: 'success',
+                        confirmButtonText: 'Tamam',
+                        confirmButtonColor: 'var(--primary)'
+                    });
+                } else {
+                    throw new Error("Veritabanı kaydı başarısız");
+                }
+            } catch (e) {
+                console.error("Kaydetme hatası:", e);
+                Swal.fire('Hata', 'Zümre planı kaydedilirken bir sorun oluştu.', 'error');
+            }
+        }
+    </script>
+</body>
+</html>
