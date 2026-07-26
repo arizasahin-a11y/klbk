@@ -299,9 +299,15 @@
                 <input type="password" id="loginPassword" class="form-control-custom" placeholder="Şifrenizi girin" onkeypress="if(event.key === 'Enter') handleLogin()">
             </div>
             
-            <button class="btn-custom btn-primary-custom" style="width: 100%;" onclick="handleLogin()">
+            <button class="btn-custom btn-primary-custom" style="width: 100%; margin-bottom: 1.5rem;" onclick="handleLogin()">
                 <i class="fa-solid fa-right-to-bracket"></i> Giriş Yap
             </button>
+            <div style="padding-top: 1.25rem; border-top: 1px solid #e2e8f0; text-align: center;">
+                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 0.75rem;">Sisteme giriş yapmadan İl veya İlçe zümreleri için görüş bildirmek isterseniz:</p>
+                <button class="btn-custom btn-secondary-custom" style="width: 100%; border: 2px dashed var(--primary); color: var(--primary); font-weight: 700; background: #f0fdfa;" onclick="enterGuestGorusMode()">
+                    <i class="fa-solid fa-comments"></i> Giriş Yapmadan Zümre Görüşü İşle (İl / İlçe)
+                </button>
+            </div>
         </div>
     </div>
 
@@ -369,6 +375,7 @@
                         <select id="zumreTurSelect" class="form-select-custom" style="font-weight: 600; cursor: pointer; border: 2px solid #0d9488; background-color: #f0fdfa; color: #0f766e; padding: 0.9rem 1rem; border-radius: 12px; font-size: 1rem; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.1);" onchange="handleTurChange(this.value)">
                             <option value="il">İl Zümresi Toplantısı</option>
                             <option value="ilce">İlçe Zümresi Toplantısı</option>
+                            <option value="ogretmenler_kurulu">Öğretmenler Kurulu Toplantısı</option>
                             <option value="okul_baskan">Okul Zümre Başkanları Toplantısı</option>
                             <option value="sok">ŞÖK (Şube Öğretmenler Kurulu)</option>
                             <option value="brans">Branş Zümresi Toplantısı</option>
@@ -481,14 +488,41 @@
 
         <!-- TAB 2: ZÜMRE GÖRÜŞ İŞLEME SEKMESİ -->
         <div id="tabContentGorus" style="display: none;">
-            <div class="glass-panel section-card" style="text-align: center; padding: 4rem 2rem;">
-                <i class="fa-solid fa-comments-dollar" style="font-size: 4rem; color: var(--secondary); margin-bottom: 1.5rem;"></i>
-                <h2 style="font-weight: 800; color: var(--dark); margin-bottom: 1rem;">Zümre Görüş ve Karar İşleme Ekranı</h2>
-                <p style="color: #64748b; max-width: 600px; margin: 0 auto 2rem auto; line-height: 1.6;">
-                    Planlanan zümre toplantılarına ait gündem maddeleri, alınan kararlar ve öğretmen görüşleri bu sekmeden işlenecektir. Birinci sekmeden oluşturulan zümre planları burada listelenir.
-                </p>
-                <div style="display: inline-block; background: #e0e7ff; color: #4338ca; padding: 10px 20px; border-radius: 12px; font-weight: 700;">
-                    <i class="fa-solid fa-circle-info"></i> Bu sekmenin detaylı işlevleri bir sonraki aşamada eklenecektir.
+            <div class="glass-panel section-card">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0;">
+                    <div>
+                        <h2 style="font-weight: 800; color: var(--dark); margin: 0 0 4px 0; font-size: 1.4rem;">
+                            <i class="fa-solid fa-comments" style="color: var(--primary);"></i> Zümre Görüş ve Karar İşleme Ekranı
+                        </h2>
+                        <p style="color: #64748b; font-size: 0.9rem; margin: 0;">Süresi geçmemiş zümrelerinize ait gündem maddelerine görüş ve kararlarınızı işleyebilirsiniz.</p>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                        <!-- Branş Seçim Filtresi -->
+                        <div style="display: flex; align-items: center; gap: 8px; background: #f0fdfa; padding: 6px 14px; border: 2px solid #0d9488; border-radius: 12px;">
+                            <label style="font-size: 0.85rem; font-weight: 700; color: #0f766e; margin: 0;"><i class="fa-solid fa-filter"></i> Branşınız / Alan:</label>
+                            <select id="gorusBransFilter" class="form-select-custom" style="padding: 6px 12px; font-size: 0.9rem; border-radius: 8px; border: 1px solid #0d9488; font-weight: 700; color: #0f766e; background: white; cursor: pointer;" onchange="filterAndRenderGorusList()">
+                                <option value="all">Tüm Branşlar</option>
+                            </select>
+                        </div>
+                        <!-- Geçmiş Zümreler Toggle -->
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; color: #64748b; cursor: pointer; background: white; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 10px;">
+                            <input type="checkbox" id="showExpiredZumres" style="width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer;" onchange="filterAndRenderGorusList()">
+                            <span>Geçmiş Zümreleri de Göster</span>
+                        </label>
+                        <button class="btn-custom btn-secondary-custom" onclick="loadGorusZümreListesi(true)" title="Yenile">
+                            <i class="fa-solid fa-rotate"></i> Yenile
+                        </button>
+                    </div>
+                </div>
+
+                <div id="guestModeBanner" style="display: none; background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 8px; margin-bottom: 1.5rem; color: #92400e; font-size: 0.95rem; line-height: 1.5;">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-right: 6px;"></i> <b>Misafir / Giriş Yapılmayan Erişim:</b> Sisteme giriş yapmadığınız için lütfen yukarıdaki açılır listeden <b>Branşınızı</b> seçiniz. Seçiminizden sonra veritabanına işlenmiş o branşa ait <b>İl ve İlçe Zümreleri</b> aşağıda listelenecektir.
+                </div>
+
+                <div id="gorusZümreListContainer">
+                    <div style="text-align: center; padding: 3rem; color: #94a3b8;">
+                        <i class="fa-solid fa-spinner fa-spin fa-2x" style="margin-bottom: 10px;"></i><br>Zümre toplantıları yükleniyor...
+                    </div>
                 </div>
             </div>
         </div>
@@ -647,7 +681,7 @@
         ];
 
         const ZUMRE_GROUPS = [
-            { name: "Felsefe Grubu Dersleri Zümresi", courses: ["Felsefe", "Sosyoloji", "Psikoloji", "Mantık", "Demokrasi ve İnsan Hakları", "Düşünme Eğitimi"] },
+        { name: "Felsefe Grubu Dersleri Zümresi", courses: ["Felsefe", "Sosyoloji", "Psikoloji", "Mantık", "Demokrasi ve İnsan Hakları", "Düşünme Eğitimi"] },
             { name: "Fizik - Astronomi ve Uzay Bilimleri Zümresi", courses: ["Fizik", "Astronomi", "Astronomi ve Uzay Bilimleri"] },
             { name: "Tarih - T.C. İnkılap Tarihi ve Atatürkçülük Zümresi", courses: ["Tarih", "T.C. İnkılap Tarihi ve Atatürkçülük", "Çağdaş Türk ve Dünya Tarihi", "Türk Kültür ve Medeniyet Tarihi", "Ortak Türk Tarihi"] },
             { name: "Türk Dili ve Edebiyatı Zümresi", courses: ["Türk Dili ve Edebiyatı", "Dil ve Anlatım", "Türk Edebiyatı", "Osmanlı Türkçesi", "Yazarlık ve Yazma Becerileri", "Diksiyon"] },
@@ -659,10 +693,18 @@
             { name: "Beden Eğitimi ve Spor Zümresi", courses: ["Beden Eğitimi ve Spor", "Spor Eğitimi"] }
         ];
 
+        let allFetchedPlans = []; // Tab 2 için tüm çekilen zümreler
+
         document.addEventListener("DOMContentLoaded", () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const isGorusTab = urlParams.get('tab') === 'gorus' || window.location.hash === '#gorus' || urlParams.get('guest') === 'true';
             const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true';
+
             if (isLoggedIn) {
                 showMainPortal();
+                if (isGorusTab) switchTab('gorus');
+            } else if (isGorusTab) {
+                enterGuestGorusMode();
             } else {
                 document.getElementById('loginPanel').style.display = 'flex';
                 document.getElementById('mainContainer').style.display = 'none';
@@ -670,7 +712,8 @@
             
             // Default tarih olarak bugünü ayarla
             const today = new Date().toISOString().split('T')[0];
-            document.getElementById('zumreTarih').value = today;
+            const tarihEl = document.getElementById('zumreTarih');
+            if (tarihEl) tarihEl.value = today;
         });
 
         async function hashPassword(password) {
@@ -733,10 +776,8 @@
             document.getElementById('welcomeTeacher').innerText = `Hoş Geldiniz, ${name}`;
             document.getElementById('welcomeSchool').innerText = school;
 
-            // Load teachers from DataManager or Firebase for selectors
             await fetchSchoolTeachers();
             
-            // Initialize agenda pool
             const savedPool = localStorage.getItem('klbk_agenda_pool');
             if (savedPool) {
                 try { agendaPool = JSON.parse(savedPool); } catch(e) { agendaPool = [...DEFAULT_AGENDA_POOL]; }
@@ -745,7 +786,6 @@
             }
             renderActiveAgendaList();
 
-            // Initialize UI for default type and date rules
             setDefaultZumreSelections();
         }
 
@@ -766,8 +806,377 @@
             });
         }
 
+        function enterGuestGorusMode() {
+            sessionStorage.setItem('klbk_guestMode', 'true');
+            document.getElementById('loginPanel').style.display = 'none';
+            document.getElementById('mainContainer').style.display = 'block';
+            const wt = document.getElementById('welcomeTeacher');
+            const ws = document.getElementById('welcomeSchool');
+            if (wt) wt.innerText = "Misafir Öğretmen (Görüş İşleme)";
+            if (ws) ws.innerText = "Sisteme giriş yapılmadı";
+            switchTab('gorus');
+        }
+
+        async function loadGorusZümreListesi(forceReload = false) {
+            const container = document.getElementById('gorusZümreListContainer');
+            if (!container) return;
+
+            if (allFetchedPlans.length === 0 || forceReload) {
+                container.innerHTML = `<div style="text-align: center; padding: 3rem; color: #94a3b8;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="margin-bottom: 10px;"></i><br>Zümre toplantıları yükleniyor...</div>`;
+                try {
+                    const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_zumre_plans.json`);
+                    const data = await res.json();
+                    allFetchedPlans = [];
+                    if (data) {
+                        for (const [key, plan] of Object.entries(data)) {
+                            if (plan && typeof plan === 'object') {
+                                plan.id = plan.id || key;
+                                allFetchedPlans.push(plan);
+                            }
+                        }
+                    }
+                    allFetchedPlans.sort((a, b) => new Date(b.tarih || '1970-01-01') - new Date(a.tarih || '1970-01-01'));
+                } catch (e) {
+                    console.error("Zümre planları yüklenemedi:", e);
+                    container.innerHTML = `<div style="text-align: center; padding: 3rem; color: #ef4444;"><i class="fa-solid fa-triangle-exclamation fa-2x"></i><br>Veriler yüklenirken bir hata oluştu.</div>`;
+                    return;
+                }
+            }
+
+            populateGorusBransFilter();
+            filterAndRenderGorusList();
+        }
+
+        function populateGorusBransFilter() {
+            const filterEl = document.getElementById('gorusBransFilter');
+            if (!filterEl) return;
+
+            const currentVal = filterEl.value;
+            const bransSet = new Set();
+
+            if (typeof ZUMRE_GROUPS !== 'undefined') {
+                ZUMRE_GROUPS.forEach(g => {
+                    g.courses.forEach(c => bransSet.add(c));
+                });
+            }
+
+            allFetchedPlans.forEach(p => {
+                if (p.branch && p.branch !== 'Genel') bransSet.add(p.branch);
+                if (p.participants && Array.isArray(p.participants)) {
+                    p.participants.forEach(pt => {
+                        if (pt.gorev && !pt.gorev.includes('Müdür') && !pt.gorev.includes('İdareci') && !pt.gorev.includes('Öğretmenler')) {
+                            bransSet.add(pt.gorev);
+                        }
+                    });
+                }
+            });
+
+            const sortedBranches = Array.from(bransSet).sort((a,b) => a.localeCompare(b, 'tr'));
+            let html = `<option value="all">Tüm Branşlar / Genel</option>`;
+            sortedBranches.forEach(b => {
+                html += `<option value="${b}">${b}</option>`;
+            });
+
+            filterEl.innerHTML = html;
+
+            const isGuest = sessionStorage.getItem('klbk_guestMode') === 'true';
+            if (!isGuest && currentVal === 'all') {
+                const myName = sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || '';
+                const myTeacherObj = schoolTeachersList.find(t => t.name.toLowerCase() === myName.toLowerCase() || t.id.toLowerCase() === myName.toLowerCase());
+                if (myTeacherObj && myTeacherObj.branchList && myTeacherObj.branchList.length > 0) {
+                    const match = sortedBranches.find(b => myTeacherObj.branchList.some(mb => mb.toLowerCase() === b.toLowerCase()));
+                    if (match) filterEl.value = match;
+                }
+            } else if (currentVal && Array.from(filterEl.options).some(o => o.value === currentVal)) {
+                filterEl.value = currentVal;
+            }
+        }
+
+        function filterAndRenderGorusList() {
+            const container = document.getElementById('gorusZümreListContainer');
+            const filterEl = document.getElementById('gorusBransFilter');
+            const showExpired = document.getElementById('showExpiredZumres') ? document.getElementById('showExpiredZumres').checked : false;
+            const isGuest = sessionStorage.getItem('klbk_guestMode') === 'true';
+            const selectedBranch = filterEl ? filterEl.value : 'all';
+
+            const banner = document.getElementById('guestModeBanner');
+            if (banner) banner.style.display = isGuest ? 'block' : 'none';
+
+            if (isGuest && selectedBranch === 'all') {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 4rem 2rem; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 16px; color: #64748b;">
+                        <i class="fa-solid fa-hand-pointer fa-3x" style="color: var(--primary); margin-bottom: 1rem;"></i>
+                        <h3 style="font-weight: 800; color: #1e293b; margin-bottom: 8px;">Lütfen Branşınızı Seçiniz</h3>
+                        <p style="max-width: 500px; margin: 0 auto; font-size: 0.95rem;">
+                            Sisteme misafir girişi yaptığınız için, görüş ve karar bildirmek istediğiniz <b>Branşı / Alanı</b> yukarıdaki açılır listeden seçmelisiniz. Seçiminizden sonra o branşa ait <b>İl ve İlçe Zümreleri</b> listelenecektir.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            const todayStr = new Date().toISOString().split('T')[0];
+            const myName = sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || '';
+
+            const filtered = allFetchedPlans.filter(plan => {
+                if (!showExpired && plan.tarih && plan.tarih < todayStr) {
+                    return false;
+                }
+
+                if (isGuest) {
+                    const isIlveyaIlce = plan.turCode === 'il' || plan.turCode === 'ilce' || (plan.tur||'').toLowerCase().includes('il ') || (plan.tur||'').toLowerCase().includes('ilçe');
+                    if (!isIlveyaIlce) return false;
+
+                    const bMatch = (plan.branch||'').toLowerCase().includes(selectedBranch.toLowerCase()) || 
+                                   (plan.tur||'').toLowerCase().includes(selectedBranch.toLowerCase()) || 
+                                   (plan.participants||[]).some(p => (p.gorev||'').toLowerCase().includes(selectedBranch.toLowerCase()));
+                    return bMatch;
+                }
+
+                let nameMatch = false;
+                if (myName) {
+                    nameMatch = (plan.participants||[]).some(p => p.name.toLowerCase().includes(myName.toLowerCase()) || myName.toLowerCase().includes(p.name.toLowerCase()));
+                }
+
+                let branchMatch = true;
+                if (selectedBranch !== 'all') {
+                    branchMatch = (plan.branch||'').toLowerCase().includes(selectedBranch.toLowerCase()) || 
+                                  (plan.tur||'').toLowerCase().includes(selectedBranch.toLowerCase()) || 
+                                  (plan.participants||[]).some(p => (p.gorev||'').toLowerCase().includes(selectedBranch.toLowerCase()));
+                } else if (!nameMatch && myName) {
+                    const myObj = schoolTeachersList.find(t => t.name.toLowerCase() === myName.toLowerCase() || t.id.toLowerCase() === myName.toLowerCase());
+                    if (myObj && myObj.branchList) {
+                        branchMatch = myObj.branchList.some(mb => 
+                            (plan.branch||'').toLowerCase().includes(mb.toLowerCase()) || 
+                            (plan.tur||'').toLowerCase().includes(mb.toLowerCase()) || 
+                            (plan.participants||[]).some(p => (p.gorev||'').toLowerCase().includes(mb.toLowerCase()))
+                        );
+                    }
+                }
+
+                return nameMatch || branchMatch;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 4rem 2rem; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 16px; color: #64748b;">
+                        <i class="fa-solid fa-folder-open fa-3x" style="color: #94a3b8; margin-bottom: 1rem;"></i>
+                        <h3 style="font-weight: 700; color: #475569; margin-bottom: 8px;">Kriterlere Uygun Zümre Toplantısı Bulunamadı</h3>
+                        <p style="max-width: 500px; margin: 0 auto; font-size: 0.9rem;">
+                            Seçilen branşa veya süresi geçmemiş (aktif/gelecek) tarihlere ait bir toplantı kaydı mevcut değil. Geçmiş toplantıları görmek için <b>"Geçmiş Zümreleri de Göster"</b> kutucuğunu işaretleyebilirsiniz.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `<div style="display: flex; flex-direction: column; gap: 14px;">`;
+            filtered.forEach(plan => {
+                const pCount = (plan.participants || []).length;
+                const aCount = (plan.agendaItems || []).length;
+                const isExpired = plan.tarih && plan.tarih < todayStr;
+                const branchDisplay = plan.branch && plan.branch !== 'Genel' ? plan.branch : (plan.participants && plan.participants[0] ? plan.participants[0].gorev : 'Genel Zümre');
+
+                html += `
+                    <div class="accordion-card" style="border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); transition: all 0.2s;">
+                        <div onclick="toggleGorusAccordion('${plan.id}')" style="padding: 16px 20px; background: ${isExpired ? '#f1f5f9' : '#f8fafc'}; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;" class="gorus-acc-header" id="header_${plan.id}">
+                            <div style="display: flex; align-items: center; gap: 14px; flex: 1;">
+                                <div style="width: 44px; height: 44px; border-radius: 12px; background: ${isExpired ? '#e2e8f0' : 'rgba(13, 148, 136, 0.15)'}; color: ${isExpired ? '#64748b' : 'var(--primary)'}; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;">
+                                    <i class="fa-solid ${plan.turCode === 'il' || plan.turCode === 'ilce' ? 'fa-building-columns' : 'fa-users-between-lines'}"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size: 1.05rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                        <span>${plan.donem} - ${plan.tur}</span>
+                                        <span style="font-size: 0.75rem; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 6px; font-weight: 700;">${branchDisplay}</span>
+                                        ${isExpired ? '<span style="font-size: 0.7rem; background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 6px; font-weight: 700;">Süresi Geçmiş</span>' : '<span style="font-size: 0.7rem; background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 6px; font-weight: 700;">Aktif Toplantı</span>'}
+                                    </div>
+                                    <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 12px;">
+                                        <span><i class="fa-solid fa-calendar-day" style="color: var(--primary);"></i> Tarih: <b>${plan.tarih || 'Belirtilmedi'}</b></span>
+                                        <span><i class="fa-solid fa-clock" style="color: var(--primary);"></i> Saat: <b>${plan.saat || '10:00'}</b></span>
+                                        <span><i class="fa-solid fa-location-dot" style="color: var(--primary);"></i> Yer: <b>${plan.yer || 'Belirtilmedi'}</b></span>
+                                        <span><i class="fa-solid fa-school" style="color: var(--primary);"></i> Kurum: <b>${plan.school || 'Okulumuz'}</b></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span class="badge-info" style="background: #f1f5f9; color: #475569; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                    <i class="fa-solid fa-users"></i> ${pCount} Katılımcı
+                                </span>
+                                <span class="badge-info" style="background: #ccfbf1; color: #0f766e; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                    <i class="fa-solid fa-clipboard-list"></i> ${aCount} Gündem
+                                </span>
+                                <div style="width: 32px; height: 32px; border-radius: 50%; background: white; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; transition: transform 0.3s;" id="icon_${plan.id}">
+                                    <i class="fa-solid fa-chevron-down" style="color: #64748b; font-size: 0.85rem;"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="body_${plan.id}" style="display: none; padding: 24px; border-top: 1px solid #e2e8f0; background: #ffffff;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #f1f5f9;">
+                                <h4 style="margin: 0; font-size: 1.1rem; color: #1e293b; font-weight: 800;">
+                                    <i class="fa-solid fa-list-check" style="color: var(--primary); margin-right: 8px;"></i> Gündem Maddeleri ve Görüş / Karar Girişi
+                                </h4>
+                                <span style="font-size: 0.8rem; color: #64748b;">Her gündem maddesinin altındaki alandan görüş veya alınan kararı işleyebilirsiniz.</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 16px;">
+                                ${renderPlanAgendaItems(plan)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        function toggleGorusAccordion(planId) {
+            const bodyEl = document.getElementById(`body_${planId}`);
+            const iconEl = document.getElementById(`icon_${planId}`);
+            const headerEl = document.getElementById(`header_${planId}`);
+
+            if (!bodyEl) return;
+
+            if (bodyEl.style.display === 'none') {
+                bodyEl.style.display = 'block';
+                if (iconEl) iconEl.style.transform = 'rotate(180deg)';
+                if (headerEl) headerEl.style.background = '#e0f2fe';
+            } else {
+                bodyEl.style.display = 'none';
+                if (iconEl) iconEl.style.transform = 'rotate(0deg)';
+                if (headerEl) headerEl.style.background = '#f8fafc';
+            }
+        }
+
+        function renderPlanAgendaItems(plan) {
+            const items = plan.agendaItems || [];
+            if (items.length === 0) {
+                return `<div style="text-align: center; padding: 2rem; color: #94a3b8; background: #f8fafc; border-radius: 10px;">Bu zümre planına gündem maddesi eklenmemiş.</div>`;
+            }
+
+            let html = '';
+            items.forEach((item, idx) => {
+                const opinionsList = plan.opinions && plan.opinions[idx] ? plan.opinions[idx] : [];
+                
+                let opHtml = '';
+                if (opinionsList.length > 0) {
+                    opHtml += `<div style="display: flex; flex-direction: column; gap: 8px; margin: 12px 0; padding: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">`;
+                    opinionsList.forEach((op, opIdx) => {
+                        opHtml += `
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding-bottom: 8px; border-bottom: ${opIdx < opinionsList.length - 1 ? '1px dashed #e2e8f0' : 'none'};">
+                                <div>
+                                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px;">
+                                        <i class="fa-solid fa-user-check"></i> ${op.author || 'Öğretmen'}
+                                        <span style="color: #94a3b8; font-weight: 500;">(${op.time || ''})</span>
+                                    </div>
+                                    <div style="font-size: 0.9rem; color: #334155; margin-top: 4px; line-height: 1.4;">${op.text}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    opHtml += `</div>`;
+                } else {
+                    opHtml = `<div style="font-size: 0.85rem; color: #94a3b8; font-style: italic; margin: 8px 0 12px 0;">Henüz bu madde için görüş veya karar girilmedi.</div>`;
+                }
+
+                html += `
+                    <div style="padding: 16px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px;">
+                        <div style="font-weight: 800; color: #1e293b; font-size: 0.95rem; display: flex; align-items: flex-start; gap: 10px;">
+                            <span style="background: var(--primary); color: white; width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; font-weight: 700;">${idx + 1}</span>
+                            <span style="margin-top: 2px;">${item}</span>
+                        </div>
+                        <div style="padding-left: 36px;">
+                            ${opHtml}
+                            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                                <input type="text" id="op_input_${plan.id}_${idx}" class="form-control-custom" style="padding: 10px 14px; font-size: 0.9rem; background: white;" placeholder="Bu madde ile ilgili görüşünüzü veya alınan kararı buraya yazın..." onkeypress="if(event.key === 'Enter') submitAgendaOpinion('${plan.id}', ${idx})">
+                                <button class="btn-custom btn-primary-custom" style="padding: 10px 20px; font-size: 0.85rem; flex-shrink: 0; font-weight: 700;" onclick="submitAgendaOpinion('${plan.id}', ${idx})">
+                                    <i class="fa-solid fa-paper-plane"></i> Görüşü İşle
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            return html;
+        }
+
+        async function submitAgendaOpinion(planId, agendaIdx) {
+            const inputEl = document.getElementById(`op_input_${planId}_${agendaIdx}`);
+            if (!inputEl) return;
+
+            const text = inputEl.value.trim();
+            if (!text) {
+                Swal.fire('Uyarı', 'Lütfen eklemek istediğiniz görüş veya karar metnimini yazın.', 'warning');
+                return;
+            }
+
+            const plan = allFetchedPlans.find(p => p.id === planId);
+            if (!plan) {
+                Swal.fire('Hata', 'Zümre planı bulunamadı.', 'error');
+                return;
+            }
+
+            plan.opinions = plan.opinions || {};
+            plan.opinions[agendaIdx] = plan.opinions[agendaIdx] || [];
+
+            const filterEl = document.getElementById('gorusBransFilter');
+            const authorName = sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || ("Misafir Öğretmen (" + (filterEl && filterEl.value !== 'all' ? filterEl.value : 'Genel') + ")");
+
+            const newOp = {
+                author: authorName,
+                text: text,
+                time: new Date().toLocaleString('tr-TR')
+            };
+
+            plan.opinions[agendaIdx].push(newOp);
+
+            Swal.fire({ title: 'Görüş İşleniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_zumre_plans/${planId}/opinions.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(plan.opinions)
+                });
+
+                if (res.ok) {
+                    inputEl.value = '';
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Görüş başarıyla işlendi!',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                    filterAndRenderGorusList();
+                } else {
+                    throw new Error("Veritabanı güncelleme hatası");
+                }
+            } catch (e) {
+                console.error("Görüş ekleme hatası:", e);
+                Swal.fire('Hata', 'Görüş işlenirken bir ağ veya sunucu hatası oluştu.', 'error');
+            }
+        }
+
         function switchTab(tab) {
+            const isGuest = sessionStorage.getItem('klbk_guestMode') === 'true';
             if (tab === 'plan') {
+                if (isGuest) {
+                    Swal.fire({
+                        title: 'Oturum Açmanız Gerekiyor',
+                        text: 'Yeni bir Zümre Planı oluşturmak için sisteme üye girişi yapmalısınız.',
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Giriş Yap / Üye Ol',
+                        cancelButtonText: 'İptal'
+                    }).then((res) => {
+                        if (res.isConfirmed) {
+                            sessionStorage.removeItem('klbk_guestMode');
+                            window.location.href = window.location.pathname;
+                        }
+                    });
+                    return;
+                }
                 document.getElementById('tabBtnPlan').classList.add('active');
                 document.getElementById('tabBtnGorus').classList.remove('active');
                 document.getElementById('tabContentPlan').style.display = 'block';
@@ -888,6 +1297,22 @@
                     </button>
                     <button class="btn-custom btn-secondary-custom" onclick="openManualModal('okul')">
                         <i class="fa-solid fa-user-plus"></i> Katılımcı Ekle
+                    </button>
+                `;
+            } else if (tur === 'ogretmenler_kurulu') {
+                titleEl.innerText = "2. Katılımcıları Belirleme (Öğretmenler Kurulu Toplantısı)";
+                btnsContainer.innerHTML = `
+                    <button class="btn-custom btn-primary-custom" onclick="openSelectModal('idareci')">
+                        <i class="fa-solid fa-user-shield"></i> İdareci Ekle
+                    </button>
+                    <button class="btn-custom btn-secondary-custom" onclick="openSelectModal('okul_teachers')">
+                        <i class="fa-solid fa-users-viewfinder"></i> Okul Öğretmenleri Ekle/Çıkar
+                    </button>
+                    <button class="btn-custom btn-secondary-custom" onclick="openBulkModal('okul')">
+                        <i class="fa-solid fa-file-import"></i> Okul Listesi Yükle
+                    </button>
+                    <button class="btn-custom btn-secondary-custom" onclick="openManualModal('okul_teachers')">
+                        <i class="fa-solid fa-user-plus"></i> Manüel Katılımcı Ekle
                     </button>
                 `;
             } else if (tur === 'okul_baskan') {
@@ -1638,6 +2063,7 @@
             let turText = "";
             if (turEl.value === 'il') turText = "İl Zümresi Toplantısı";
             else if (turEl.value === 'ilce') turText = "İlçe Zümresi Toplantısı";
+            else if (turEl.value === 'ogretmenler_kurulu') turText = "Öğretmenler Kurulu Toplantısı";
             else if (turEl.value === 'okul_baskan') turText = "Okul Zümre Başkanları Toplantısı";
             else if (turEl.value === 'sok') {
                 const sokClass = document.getElementById('sokClassSelect') ? document.getElementById('sokClassSelect').value : '';
