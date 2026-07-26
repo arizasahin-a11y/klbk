@@ -1042,9 +1042,14 @@
                     formattedTitle = `${cleanBranch !== 'Genel' ? cleanBranch + ' ' : ''}${plan.tur || 'Zümre Toplantısı'} (${plan.donem || ''})`;
                 }
 
-                html += `
+                        const isOpen = window.openGorusAccordions && window.openGorusAccordions.has(plan.id);
+                        const displayStyle = isOpen ? 'block' : 'none';
+                        const rotateStyle = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+                        const headerBg = isOpen ? '#e0f2fe' : (isExpired ? '#f1f5f9' : '#f8fafc');
+
+                        html += `
                     <div class="accordion-card" style="border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); transition: all 0.2s;">
-                        <div onclick="toggleGorusAccordion('${plan.id}')" style="padding: 16px 20px; background: ${isExpired ? '#f1f5f9' : '#f8fafc'}; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;" class="gorus-acc-header" id="header_${plan.id}">
+                        <div onclick="toggleGorusAccordion('${plan.id}')" style="padding: 16px 20px; background: ${headerBg}; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;" class="gorus-acc-header" id="header_${plan.id}">
                             <div style="display: flex; align-items: center; gap: 14px; flex: 1;">
                                 <div style="width: 44px; height: 44px; border-radius: 12px; background: ${isExpired ? '#e2e8f0' : 'rgba(13, 148, 136, 0.15)'}; color: ${isExpired ? '#64748b' : 'var(--primary)'}; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;">
                                     <i class="fa-solid ${plan.turCode === 'il' || plan.turCode === 'ilce' ? 'fa-building-columns' : 'fa-users-between-lines'}"></i>
@@ -1075,13 +1080,13 @@
                                 <span class="badge-info" style="background: #ccfbf1; color: #0f766e; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
                                     <i class="fa-solid fa-clipboard-list"></i> ${aCount} Gündem
                                 </span>
-                                <div style="width: 32px; height: 32px; border-radius: 50%; background: white; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; transition: transform 0.3s;" id="icon_${plan.id}">
+                                <div style="width: 32px; height: 32px; border-radius: 50%; background: white; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; transition: transform 0.3s; transform: ${rotateStyle};" id="icon_${plan.id}">
                                     <i class="fa-solid fa-chevron-down" style="color: #64748b; font-size: 0.85rem;"></i>
                                 </div>
                             </div>
                         </div>
 
-                        <div id="body_${plan.id}" style="display: none; padding: 24px; border-top: 1px solid #e2e8f0; background: #ffffff;">
+                        <div id="body_${plan.id}" style="display: ${displayStyle}; padding: 24px; border-top: 1px solid #e2e8f0; background: #ffffff;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #f1f5f9;">
                                 <h4 style="margin: 0; font-size: 1.1rem; color: #1e293b; font-weight: 800;">
                                     <i class="fa-solid fa-list-check" style="color: var(--primary); margin-right: 8px;"></i> Gündem Maddeleri ve Görüş / Karar Girişi
@@ -1096,10 +1101,13 @@
                 `;
             });
             html += `</div>`;
+            const currentScrollY = window.scrollY;
             container.innerHTML = html;
+            window.scrollTo(0, currentScrollY);
         }
 
         function toggleGorusAccordion(planId) {
+            window.openGorusAccordions = window.openGorusAccordions || new Set();
             const bodyEl = document.getElementById(`body_${planId}`);
             const iconEl = document.getElementById(`icon_${planId}`);
             const headerEl = document.getElementById(`header_${planId}`);
@@ -1110,10 +1118,12 @@
                 bodyEl.style.display = 'block';
                 if (iconEl) iconEl.style.transform = 'rotate(180deg)';
                 if (headerEl) headerEl.style.background = '#e0f2fe';
+                window.openGorusAccordions.add(planId);
             } else {
                 bodyEl.style.display = 'none';
                 if (iconEl) iconEl.style.transform = 'rotate(0deg)';
                 if (headerEl) headerEl.style.background = '#f8fafc';
+                window.openGorusAccordions.delete(planId);
             }
         }
 
@@ -1131,14 +1141,30 @@
                 if (opinionsList.length > 0) {
                     opHtml += `<div style="display: flex; flex-direction: column; gap: 8px; margin: 12px 0; padding: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">`;
                     opinionsList.forEach((op, opIdx) => {
+                        const isDec = !op.author || op.author === "" || op.author === "Karar";
+                        const authorBadge = isDec 
+                            ? `<div style="font-size: 0.8rem; font-weight: 800; color: #0d9488; display: flex; align-items: center; gap: 6px;">
+                                   <i class="fa-solid fa-gavel"></i> <span style="background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 6px;">Alınan Karar</span>
+                                   <span style="color: #94a3b8; font-weight: 500; font-size: 0.75rem;">(${op.time || ''})</span>
+                               </div>`
+                            : `<div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px;">
+                                   <i class="fa-solid fa-user-check"></i> ${op.author}
+                                   <span style="color: #94a3b8; font-weight: 500;">(${op.time || ''})</span>
+                               </div>`;
+
                         opHtml += `
                             <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding-bottom: 8px; border-bottom: ${opIdx < opinionsList.length - 1 ? '1px dashed #e2e8f0' : 'none'};">
-                                <div>
-                                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px;">
-                                        <i class="fa-solid fa-user-check"></i> ${op.author || 'Öğretmen'}
-                                        <span style="color: #94a3b8; font-weight: 500;">(${op.time || ''})</span>
-                                    </div>
+                                <div style="flex: 1;">
+                                    ${authorBadge}
                                     <div style="font-size: 0.9rem; color: #334155; margin-top: 4px; line-height: 1.4;">${op.text}</div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                                    <button class="btn-custom" style="background: #f1f5f9; color: #0369a1; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; border: 1px solid #cbd5e1; cursor: pointer;" onclick="editAgendaOpinion('${plan.id}', ${idx}, ${opIdx})" title="Görüşü Düzenle">
+                                        <i class="fa-solid fa-pen"></i> Düzenle
+                                    </button>
+                                    <button class="btn-custom" style="background: #fee2e2; color: #b91c1c; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; border: 1px solid #fecaca; cursor: pointer;" onclick="deleteAgendaOpinion('${plan.id}', ${idx}, ${opIdx})" title="Görüşü Sil">
+                                        <i class="fa-solid fa-trash"></i> Sil
+                                    </button>
                                 </div>
                             </div>
                         `;
@@ -1156,11 +1182,15 @@
                         </div>
                         <div style="padding-left: 36px;">
                             ${opHtml}
-                            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                                <input type="text" id="op_input_${plan.id}_${idx}" class="form-control-custom" style="padding: 10px 14px; font-size: 0.9rem; background: white;" placeholder="Bu madde ile ilgili görüşünüzü veya alınan kararı buraya yazın..." onkeypress="if(event.key === 'Enter') submitAgendaOpinion('${plan.id}', ${idx})">
-                                <button class="btn-custom btn-primary-custom" style="padding: 10px 20px; font-size: 0.85rem; flex-shrink: 0; font-weight: 700;" onclick="submitAgendaOpinion('${plan.id}', ${idx})">
+                            <div style="display: flex; gap: 10px; margin-top: 10px; align-items: center;">
+                                <input type="text" id="op_input_${plan.id}_${idx}" class="form-control-custom" style="padding: 10px 14px; font-size: 0.9rem; background: white;" placeholder="Görüş / Karar metninizi yazın... (Karar için butona sağ tıklayın / uzun basın)" onkeypress="if(event.key === 'Enter') submitAgendaOpinion('${plan.id}', ${idx}, false)">
+                                <button class="btn-custom btn-primary-custom" style="padding: 10px 20px; font-size: 0.85rem; flex-shrink: 0; font-weight: 700; user-select: none; -webkit-user-select: none;" onclick="if(window.gorusTouchHandled) { window.gorusTouchHandled = false; return; } submitAgendaOpinion('${plan.id}', ${idx}, false)" oncontextmenu="event.preventDefault(); submitAgendaOpinion('${plan.id}', ${idx}, true); return false;" ontouchstart="startGorusTouchTimer(event, '${plan.id}', ${idx})" ontouchend="cancelGorusTouchTimer(event)" ontouchmove="cancelGorusTouchTimer(event)" title="Normal Görüş: Sol Tıkla / Dokun &#10;Ortak Karar (Kullanıcısız): Sağ Tıkla / Uzun Bas">
                                     <i class="fa-solid fa-paper-plane"></i> Görüşü İşle
                                 </button>
+                            </div>
+                            <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px; display: flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i>
+                                <span><b>İpucu:</b> Kendi adınızla görüş eklemek için normal tıklayın; kullanıcı adı olmadan <b>"Karar:"</b> olarak eklemek için <b>PC'de sağ tıklayın</b> veya <b>telefonda uzun basılı tutun</b>.</span>
                             </div>
                         </div>
                     </div>
@@ -1169,11 +1199,31 @@
             return html;
         }
 
-        async function submitAgendaOpinion(planId, agendaIdx) {
+        let gorusTouchTimer = null;
+        let gorusTouchHandled = false;
+
+        function startGorusTouchTimer(event, planId, agendaIdx) {
+            gorusTouchHandled = false;
+            if (gorusTouchTimer) clearTimeout(gorusTouchTimer);
+            gorusTouchTimer = setTimeout(() => {
+                gorusTouchHandled = true;
+                if (navigator.vibrate) navigator.vibrate(50);
+                submitAgendaOpinion(planId, agendaIdx, true);
+            }, 600);
+        }
+
+        function cancelGorusTouchTimer(event) {
+            if (gorusTouchTimer) {
+                clearTimeout(gorusTouchTimer);
+                gorusTouchTimer = null;
+            }
+        }
+
+        async function submitAgendaOpinion(planId, agendaIdx, isDecision = false) {
             const inputEl = document.getElementById(`op_input_${planId}_${agendaIdx}`);
             if (!inputEl) return;
 
-            const text = inputEl.value.trim();
+            let text = inputEl.value.trim();
             if (!text) {
                 Swal.fire('Uyarı', 'Lütfen eklemek istediğiniz görüş veya karar metnimini yazın.', 'warning');
                 return;
@@ -1188,8 +1238,14 @@
             plan.opinions = plan.opinions || {};
             plan.opinions[agendaIdx] = plan.opinions[agendaIdx] || [];
 
+            if (isDecision) {
+                if (!text.toLowerCase().startsWith("karar:")) {
+                    text = "Karar: " + text;
+                }
+            }
+
             const filterEl = document.getElementById('gorusBransFilter');
-            const authorName = sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || ("Misafir Öğretmen (" + (filterEl && filterEl.value !== 'all' ? filterEl.value : 'Genel') + ")");
+            const authorName = isDecision ? "" : (sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || ("Misafir Öğretmen (" + (filterEl && filterEl.value !== 'all' ? filterEl.value : 'Genel') + ")"));
 
             const newOp = {
                 author: authorName,
@@ -1199,7 +1255,7 @@
 
             plan.opinions[agendaIdx].push(newOp);
 
-            Swal.fire({ title: 'Görüş İşleniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            Swal.fire({ title: isDecision ? 'Ortak Karar İşleniyor...' : 'Görüş İşleniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
             try {
                 const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_zumre_plans/${planId}/opinions.json`, {
@@ -1214,7 +1270,7 @@
                         toast: true,
                         position: 'top-end',
                         icon: 'success',
-                        title: 'Görüş başarıyla işlendi!',
+                        title: isDecision ? 'Karar başarıyla işlendi!' : 'Görüş başarıyla işlendi!',
                         showConfirmButton: false,
                         timer: 1500
                     });
@@ -1233,6 +1289,120 @@
                     html: e.message && e.message.includes("Firebase Yetki Hatası") ? e.message : 'Görüş işlenirken bir ağ veya sunucu hatası oluştu.<br><br><small style="color:#ef4444;">' + (e.message || '') + '</small>', 
                     icon: 'error'
                 });
+            }
+        }
+
+        async function editAgendaOpinion(planId, agendaIdx, opIdx) {
+            const plan = allFetchedPlans.find(p => p.id === planId);
+            if (!plan || !plan.opinions || !plan.opinions[agendaIdx] || !plan.opinions[agendaIdx][opIdx]) {
+                Swal.fire('Hata', 'Görüş kaydı bulunamadı.', 'error');
+                return;
+            }
+
+            const currentOp = plan.opinions[agendaIdx][opIdx];
+            const isDec = !currentOp.author || currentOp.author === "" || currentOp.author === "Karar";
+
+            const { value: newText } = await Swal.fire({
+                title: isDec ? 'Kararı Düzenle' : 'Görüşü Düzenle',
+                input: 'textarea',
+                inputLabel: isDec ? 'Ortak Alınan Karar Metni:' : `${currentOp.author} tarafından yazılan görüş:`,
+                inputValue: currentOp.text || '',
+                inputAttributes: {
+                    'aria-label': 'Görüş veya karar metni',
+                    'style': 'min-height: 120px; font-size: 0.95rem;'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Güncelle ve Kaydet',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: 'var(--primary)',
+                inputValidator: (value) => {
+                    if (!value || !value.trim()) {
+                        return 'Lütfen bir metin yazın!';
+                    }
+                }
+            });
+
+            if (newText && newText.trim() !== currentOp.text) {
+                currentOp.text = newText.trim();
+                currentOp.time = new Date().toLocaleString('tr-TR') + ' (Düzenlendi)';
+
+                Swal.fire({ title: 'Güncelleniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                try {
+                    const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_zumre_plans/${planId}/opinions.json`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(plan.opinions)
+                    });
+
+                    if (res.ok) {
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'success',
+                            title: 'Görüş güncellendi!',
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+                        filterAndRenderGorusList();
+                    } else {
+                        throw new Error("Güncelleme başarısız: " + res.status);
+                    }
+                } catch (e) {
+                    console.error("Görüş düzenleme hatası:", e);
+                    Swal.fire('Hata', 'Görüş güncellenirken bir sorun oluştu: ' + (e.message || ''), 'error');
+                }
+            }
+        }
+
+        async function deleteAgendaOpinion(planId, agendaIdx, opIdx) {
+            const plan = allFetchedPlans.find(p => p.id === planId);
+            if (!plan || !plan.opinions || !plan.opinions[agendaIdx] || !plan.opinions[agendaIdx][opIdx]) {
+                return;
+            }
+
+            const res = await Swal.fire({
+                title: 'Görüş Silinecek?',
+                text: 'Bu görüş/karar kaydını silmek istediğinize emin misiniz?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#ef4444'
+            });
+
+            if (!res.isConfirmed) return;
+
+            plan.opinions[agendaIdx].splice(opIdx, 1);
+            if (plan.opinions[agendaIdx].length === 0) {
+                delete plan.opinions[agendaIdx];
+            }
+
+            Swal.fire({ title: 'Siliniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const delRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_zumre_plans/${planId}/opinions.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(plan.opinions || {})
+                });
+
+                if (delRes.ok) {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Görüş silindi!',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                    filterAndRenderGorusList();
+                } else {
+                    throw new Error("Silme başarısız: " + delRes.status);
+                }
+            } catch (e) {
+                console.error("Görüş silme hatası:", e);
+                Swal.fire('Hata', 'Görüş silinirken bir sorun oluştu: ' + (e.message || ''), 'error');
             }
         }
 
