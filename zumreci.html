@@ -514,7 +514,7 @@
                         </div>
                         <!-- Geçmiş Zümreler Toggle -->
                         <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; color: #64748b; cursor: pointer; background: white; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 10px;">
-                            <input type="checkbox" id="showExpiredZumres" style="width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer;" onchange="filterAndRenderGorusList()">
+                            <input type="checkbox" id="showExpiredZumres" checked style="width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer;" onchange="filterAndRenderGorusList()">
                             <span>Geçmiş Zümreleri de Göster</span>
                         </label>
                         <button class="btn-custom btn-secondary-custom" onclick="loadGorusZümreListesi(true)" title="Yenile">
@@ -897,7 +897,7 @@
         function filterAndRenderGorusList() {
             const container = document.getElementById('gorusZümreListContainer');
             const filterEl = document.getElementById('gorusBransFilter');
-            const showExpired = document.getElementById('showExpiredZumres') ? document.getElementById('showExpiredZumres').checked : false;
+            const showExpired = document.getElementById('showExpiredZumres') ? document.getElementById('showExpiredZumres').checked : true;
             const isGuest = sessionStorage.getItem('klbk_guestMode') === 'true';
             const selectedBranch = filterEl ? filterEl.value : 'all';
 
