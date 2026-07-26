@@ -812,7 +812,10 @@
             try {
                 // Öncelik DataManager'de
                 if (typeof DataManager !== 'undefined' && DataManager.teachers && DataManager.teachers.length > 0) {
-                    schoolTeachersList = DataManager.teachers;
+                    schoolTeachersList = DataManager.teachers.map(t => ({
+                        ...t,
+                        role: t.role || t.unvan || t.gorev || (t.branch && t.branch.toLowerCase().includes('müdür') ? 'mudur' : 'ogretmen')
+                    }));
                     return;
                 }
 
@@ -846,7 +849,8 @@
                                 name: data.name || uname,
                                 branch: bStr,
                                 branchList: bArray,
-                                school: data.schoolName || currentSchool || 'Okulumuz'
+                                school: data.schoolName || currentSchool || 'Okulumuz',
+                                role: data.role || data.unvan || data.gorev || (bStr.toLowerCase().includes('müdür') || bStr.toLowerCase().includes('idareci') || uname.toLowerCase().startsWith('admin') ? 'idareci' : 'ogretmen')
                             });
                         }
                     }
@@ -1008,9 +1012,20 @@
                     const r = (t.role || '').toLowerCase();
                     const b = (t.branch || '').toLowerCase();
                     const n = (t.name || '').toLowerCase();
-                    return r === 'idareci' || r === 'admin' || r === 'mudur' || r === 'mudur_basyardimcisi' || r === 'mudur_yardimcisi' || b.includes('idareci') || b.includes('müdür') || n.includes('müdür');
+                    const uid = (t.id || '').toLowerCase();
+                    return r === 'idareci' || r === 'admin' || r === 'mudur' || r === 'mudur_basyardimcisi' || r === 'mudur_yardimcisi' || b.includes('idareci') || b.includes('müdür') || n.includes('müdür') || uid.startsWith('admin') || uid.startsWith('mudur');
                 });
-                listToRender = idareciler;
+                if (idareciler.length > 0) {
+                    listToRender = idareciler;
+                } else {
+                    Swal.fire({
+                        title: 'İdareci Kaydı Bulunamadı',
+                        text: 'Okulunuzda rolü idareci olarak tanımlanmış personel bulunamadı. Tüm okul listesi açıldı, listeden idarecinizi seçebilir veya manüel ekleme butonunu kullanabilirsiniz.',
+                        icon: 'info',
+                        confirmButtonText: 'Anladım'
+                    });
+                    listToRender = schoolTeachersList;
+                }
             }
 
             if (listToRender.length === 0) {
