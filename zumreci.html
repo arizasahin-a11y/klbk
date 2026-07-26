@@ -855,6 +855,16 @@
             filterAndRenderGorusList();
         }
 
+        function normalizeTr(str) {
+            if (!str) return '';
+            return str.toString()
+                .replace(/I/g, 'i').replace(/İ/g, 'i').replace(/ı/g, 'i')
+                .replace(/Ö/g, 'o').replace(/ö/g, 'o').replace(/ğ/g, 'g').replace(/Ğ/g, 'g')
+                .replace(/ü/g, 'u').replace(/Ü/g, 'u').replace(/ş/g, 's').replace(/Ş/g, 's')
+                .replace(/ç/g, 'c').replace(/Ç/g, 'c').replace(//g, '')
+                .toLowerCase().trim();
+        }
+
         function populateGorusBransFilter() {
             const filterEl = document.getElementById('gorusBransFilter');
             if (!filterEl) return;
@@ -864,16 +874,24 @@
 
             if (typeof ZUMRE_GROUPS !== 'undefined') {
                 ZUMRE_GROUPS.forEach(g => {
-                    g.courses.forEach(c => bransSet.add(c));
+                    if (g && g.courses && Array.isArray(g.courses)) {
+                        g.courses.forEach(c => {
+                            if (c && c !== 'Genel') bransSet.add(c.trim());
+                        });
+                    }
                 });
             }
 
             allFetchedPlans.forEach(p => {
-                if (p.branch && p.branch !== 'Genel') bransSet.add(p.branch);
-                if (p.participants && Array.isArray(p.participants)) {
+                if (p && p.branch && p.branch !== 'Genel' && p.branch !== 'Belirtilmedi') {
+                    let b = p.branch.replace(/Öğretmeni|Öğretmenleri|Zümresi|Toplantısı/gi, '').trim();
+                    if (b) bransSet.add(b);
+                }
+                if (p && p.participants && Array.isArray(p.participants)) {
                     p.participants.forEach(pt => {
-                        if (pt.gorev && !pt.gorev.includes('Müdür') && !pt.gorev.includes('İdareci') && !pt.gorev.includes('Öğretmenler')) {
-                            bransSet.add(pt.gorev);
+                        if (pt && pt.gorev && !pt.gorev.includes('Müdür') && !pt.gorev.includes('İdareci') && !pt.gorev.includes('Öğretmenler')) {
+                            let b = pt.gorev.replace(/Öğretmeni|Öğretmenleri|Zümresi|Toplantısı/gi, '').trim();
+                            if (b) bransSet.add(b);
                         }
                     });
                 }
@@ -905,8 +923,8 @@
             if (banner) banner.style.display = isGuest ? 'block' : 'none';
 
             const todayStr = new Date().toISOString().split('T')[0];
-            const myName = (sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || '').toLowerCase();
-            const isAdminOrIdareci = myName.startsWith('admin') || myName.includes('müdür') || sessionStorage.getItem('klbk_role') === 'admin';
+            const myNameNorm = normalizeTr(sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || '');
+            const isAdminOrIdareci = myNameNorm.startsWith('admin') || myNameNorm.includes('mudur') || sessionStorage.getItem('klbk_role') === 'admin';
 
             const filtered = allFetchedPlans.filter(plan => {
                 if (!showExpired && plan.tarih && plan.tarih < todayStr) {
@@ -917,12 +935,12 @@
                     return true;
                 }
 
-                const sBranch = selectedBranch.toLowerCase();
-                const bMatch = (plan.branch && plan.branch.toLowerCase().includes(sBranch)) || 
-                               (plan.tur && plan.tur.toLowerCase().includes(sBranch)) || 
-                               (plan.participants && Array.isArray(plan.participants) && plan.participants.some(p => p && p.gorev && p.gorev.toLowerCase().includes(sBranch)));
+                const sBranch = normalizeTr(selectedBranch);
+                const bMatch = normalizeTr(plan.branch).includes(sBranch) || 
+                               normalizeTr(plan.tur).includes(sBranch) || 
+                               (plan.participants && Array.isArray(plan.participants) && plan.participants.some(p => p && normalizeTr(p.gorev).includes(sBranch)));
 
-                const nameMatch = myName && ((plan.planner && plan.planner.toLowerCase() === myName) || (plan.participants && Array.isArray(plan.participants) && plan.participants.some(p => p && p.name && (p.name.toLowerCase().includes(myName) || myName.includes(p.name.toLowerCase())))));
+                const nameMatch = myNameNorm && (normalizeTr(plan.planner) === myNameNorm || (plan.participants && Array.isArray(plan.participants) && plan.participants.some(p => p && (normalizeTr(p.name).includes(myNameNorm) || myNameNorm.includes(normalizeTr(p.name))))));
 
                 return bMatch || nameMatch;
             });
