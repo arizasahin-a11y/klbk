@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const role = (data.klbk_role || '').toLowerCase().trim();
                 const currentPath = window.location.pathname;
 
-                if (currentPath.includes('yoklama_idareci') && (role === 'admin' || role === 'master' || role === 'idareci')) {
+                if (currentPath.includes('yoklama_idareci') && (role === 'admin' || role === 'master' || role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi')) {
                     // Do not auto-redirect away from yoklama_idareci if they are authorized for it.
                     // Instead, just clear the last_redirect to ensure normal behavior.
                     sessionStorage.removeItem('klbk_last_redirect');
@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     let targetUrl = '/j2k5l0p8'; // Default (ogrenci)
                     if (role === 'ogretmen') {
                         targetUrl = '/h6t3y9w1';
-                    } else if (role === 'idareci') {
+                    } else if (role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi') {
                         targetUrl = '/yoklama_idareci.html';
                     } else if (role === 'master' || role === 'admin' || role === 'dashboard') {
                         targetUrl = '/r1p5s8q3';
@@ -464,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         const currentPath = window.location.pathname;
 
-                        if (currentPath.includes('yoklama_idareci') && (role === 'admin' || role === 'master' || role === 'idareci')) {
+                        if (currentPath.includes('yoklama_idareci') && (role === 'admin' || role === 'master' || role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi')) {
                             // If they are logging in directly from yoklama_idareci and have sufficient privileges, just reload
                             window.location.reload();
                         } else if (currentPath.includes('enter.html')) {
@@ -485,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             } else {
                                 window.location.href = '/h6t3y9w1';
                             }
-                        } else if (role === 'idareci') {
+                        } else if (role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi') {
                             const intended = sessionStorage.getItem('klbk_intended_url');
                             if (intended) {
                                 sessionStorage.removeItem('klbk_intended_url');

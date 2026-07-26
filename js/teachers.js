@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // "admin yeşil idareci kırmısı yazılsın"
             let nameColor = '#5a2c91'; // Normal: Mor-mavi
             if (role === 'admin' || role === 'master' || uname === 'admin') nameColor = '#198754'; // Bootstrap Yeşil
-            else if (role === 'idareci') nameColor = '#dc3545'; // Bootstrap Kırmızı
+            else if (role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi') nameColor = '#dc3545'; // Bootstrap Kırmızı
             const scheduleHtml = buildScheduleHtml(user.schedule);
             
             // Highlight source card
@@ -257,10 +257,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="teacher-col teacher-col-role">
                         <select class="form-control" style="height: 48px; border-radius: 8px; border: 1px solid var(--gray-300); font-size: 0.85rem; background: rgba(255,255,255,0.8); border-left: 3px solid var(--secondary-light);" onclick="event.stopPropagation()" onchange="window.updateTeacherData('${uname}', 'role', this.value)">
                             <option value="ogretmen" ${role === 'ogretmen' ? 'selected' : ''}>Öğretmen</option>
-                            <option value="idareci" ${role === 'idareci' ? 'selected' : ''}>İdareci</option>
+                            <option value="mudur" ${role === 'mudur' ? 'selected' : ''}>Müdür</option>
+                            <option value="mudur_basyardimcisi" ${role === 'mudur_basyardimcisi' ? 'selected' : ''}>Müdür Başyardımcısı</option>
+                            <option value="mudur_yardimcisi" ${role === 'mudur_yardimcisi' ? 'selected' : ''}>Müdür Yardımcısı</option>
+                            <option value="idareci" ${role === 'idareci' ? 'selected' : ''}>İdareci (Genel)</option>
                             <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
                         </select>
-                        <small style="font-size: 0.65rem; color: var(--gray-500); text-align: center; margin-top: 4px;">Yetki</small>
+                        <small style="font-size: 0.65rem; color: var(--gray-500); text-align: center; margin-top: 4px;">Yetki / Görev</small>
                     </div>
 
                     <!-- İşlemler -->
@@ -305,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const heading = document.getElementById(`teacherName-${uname}`);
             if (heading) {
                 if (newValue === 'admin' || newValue === 'master') heading.style.color = '#198754';
-                else if (newValue === 'idareci') heading.style.color = '#dc3545';
+                else if (newValue === 'idareci' || newValue === 'mudur' || newValue === 'mudur_basyardimcisi' || newValue === 'mudur_yardimcisi') heading.style.color = '#dc3545';
                 else heading.style.color = '#5a2c91';
             }
         }

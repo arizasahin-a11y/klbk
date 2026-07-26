@@ -1448,7 +1448,7 @@ const DataManager = {
                     assignments[normalizedRoom].origMatches.push(assignedClassAtThisHour);
                 }
 
-                if (t.role === 'idareci' || t.role === 'admin' || t.role === 'master') {
+                if (t.role === 'idareci' || t.role === 'mudur' || t.role === 'mudur_basyardimcisi' || t.role === 'mudur_yardimcisi' || t.role === 'admin' || t.role === 'master') {
                     assignments[normalizedRoom].idareciler.push({ uname, name: this.formatTeacherName(t.name), role: t.role });
                 } else {
                     assignments[normalizedRoom].ogretmenler.push({ uname, name: this.formatTeacherName(t.name), role: t.role });
@@ -1480,7 +1480,7 @@ const DataManager = {
                     });
                 }
 
-                const isIdareci = t.role === 'idareci' || t.role === 'admin' || t.role === 'master';
+                const isIdareci = t.role === 'idareci' || t.role === 'mudur' || t.role === 'mudur_basyardimcisi' || t.role === 'mudur_yardimcisi' || t.role === 'admin' || t.role === 'master';
                 
                 // Gelişmiş Yedek Gözetmen Uygunluk Algoritması:
                 // Sadece dersi başlamış veya dersi sınav saatinde de olanlar, artı dersi biteli 1 saat olmuş olanlar yedek gözetmen olabilir.

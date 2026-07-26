@@ -886,7 +886,7 @@
                     const r = (t.role || '').toLowerCase();
                     const b = (t.branch || '').toLowerCase();
                     const n = (t.name || '').toLowerCase();
-                    return r === 'idareci' || r === 'admin' || r === 'mudur' || r === 'mudur_yardimcisi' || b.includes('idareci') || b.includes('müdür') || n.includes('müdür');
+                    return r === 'idareci' || r === 'admin' || r === 'mudur' || r === 'mudur_basyardimcisi' || r === 'mudur_yardimcisi' || b.includes('idareci') || b.includes('müdür') || n.includes('müdür');
                 });
                 if (idareciler.length > 0) {
                     listToRender = [...idareciler, ...schoolTeachersList.filter(x => !idareciler.includes(x))];
@@ -899,7 +899,7 @@
                 let html = `<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:10px;">`;
                 listToRender.forEach((t) => {
                     const isAlreadyAdded = participantsList.some(p => p.name.toLowerCase() === t.name.toLowerCase());
-                    const isIdareciRole = (t.role === 'idareci' || t.role === 'admin' || (t.branch||'').toLowerCase().includes('idareci') || (t.branch||'').toLowerCase().includes('müdür'));
+                    const isIdareciRole = (t.role === 'idareci' || t.role === 'admin' || t.role === 'mudur' || t.role === 'mudur_basyardimcisi' || t.role === 'mudur_yardimcisi' || (t.branch||'').toLowerCase().includes('idareci') || (t.branch||'').toLowerCase().includes('müdür'));
                     html += `
                         <label style="display:flex; align-items:center; gap:10px; padding:10px; background:white; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer; ${isIdareciRole ? 'border-left: 4px solid var(--primary); background: #f0fdfa;' : ''}">
                             <input type="checkbox" class="modal-teacher-chk" value="${t.id}" data-name="${t.name}" data-branch="${t.branch}" data-school="${t.school}" data-role="${t.role||'ogretmen'}" ${isAlreadyAdded ? 'checked' : ''} style="width:18px; height:18px; accent-color:var(--primary);">
@@ -951,7 +951,10 @@
 
                 if (!participantsList.some(p => p.name.toLowerCase() === name.toLowerCase())) {
                     let gorevText = branch || 'Öğretmen';
-                    if (currentSelectModalMode === 'idareci' || role === 'idareci' || role === 'admin' || (branch||'').toLowerCase().includes('idareci') || (branch||'').toLowerCase().includes('müdür')) {
+                    if (role === 'mudur') gorevText = 'Zümre Sorumlu İdarecisi (Okul Müdürü)';
+                    else if (role === 'mudur_basyardimcisi') gorevText = 'Zümre Sorumlu İdarecisi (Müdür Başyardımcısı)';
+                    else if (role === 'mudur_yardimcisi') gorevText = 'Zümre Sorumlu İdarecisi (Müdür Yardımcısı)';
+                    else if (currentSelectModalMode === 'idareci' || role === 'idareci' || role === 'admin' || (branch||'').toLowerCase().includes('idareci') || (branch||'').toLowerCase().includes('müdür')) {
                         gorevText = 'Zümre Sorumlu İdarecisi (Müdür / Müdür Yrd.)';
                     }
 
