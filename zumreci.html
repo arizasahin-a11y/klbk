@@ -1138,17 +1138,27 @@
                 const opinionsList = plan.opinions && plan.opinions[idx] ? plan.opinions[idx] : [];
                 
                 let opHtml = '';
-                if (opinionsList.length > 0) {
-                    opHtml += `<div style="display: flex; flex-direction: column; gap: 8px; margin: 12px 0; padding: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">`;
+                const hasOpinion = opinionsList.length > 0;
+                const boxBg = hasOpinion ? '#f0fdf4' : '#f8fafc';
+                const boxBorder = hasOpinion ? '1px solid #86efac' : '1px solid #cbd5e1';
+                const badgeBg = hasOpinion ? '#16a34a' : 'var(--primary)';
+                const titleColor = hasOpinion ? '#14532d' : '#1e293b';
+
+                if (hasOpinion) {
+                    opHtml += `<div style="display: flex; flex-direction: column; gap: 8px; margin: 12px 0; padding: 12px; background: #ffffff; border: 1px solid #bbf7d0; border-radius: 8px;">`;
                     opinionsList.forEach((op, opIdx) => {
                         const isDec = !op.author || op.author === "" || op.author === "Karar";
+                        const styleBadge = op.style === 'konusma' 
+                            ? `<span style="background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; margin-left: 4px;" title="Konuşma Tarzında Görüş">💬 Konuşma Tarzı</span>` 
+                            : (op.style === 'anlatim' ? `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; margin-left: 4px;" title="Anlatım Tarzında Görüş">📝 Anlatım</span>` : '');
+
                         const authorBadge = isDec 
-                            ? `<div style="font-size: 0.8rem; font-weight: 800; color: #0d9488; display: flex; align-items: center; gap: 6px;">
+                            ? `<div style="font-size: 0.8rem; font-weight: 800; color: #0d9488; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                                    <i class="fa-solid fa-gavel"></i> <span style="background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 6px;">Alınan Karar</span>
                                    <span style="color: #94a3b8; font-weight: 500; font-size: 0.75rem;">(${op.time || ''})</span>
                                </div>`
-                            : `<div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px;">
-                                   <i class="fa-solid fa-user-check"></i> ${op.author}
+                            : `<div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                   <i class="fa-solid fa-user-check"></i> ${op.author} ${styleBadge}
                                    <span style="color: #94a3b8; font-weight: 500;">(${op.time || ''})</span>
                                </div>`;
 
@@ -1175,15 +1185,20 @@
                 }
 
                 html += `
-                    <div style="padding: 16px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px;">
-                        <div style="font-weight: 800; color: #1e293b; font-size: 0.95rem; display: flex; align-items: flex-start; gap: 10px;">
-                            <span style="background: var(--primary); color: white; width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; font-weight: 700;">${idx + 1}</span>
+                    <div style="padding: 16px; background: ${boxBg}; border: ${boxBorder}; border-radius: 12px; transition: all 0.3s;">
+                        <div style="font-weight: 800; color: ${titleColor}; font-size: 0.95rem; display: flex; align-items: flex-start; gap: 10px;">
+                            <span style="background: ${badgeBg}; color: white; width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; font-weight: 700;">${hasOpinion ? '<i class="fa-solid fa-check"></i>' : (idx + 1)}</span>
                             <span style="margin-top: 2px;">${item}</span>
+                            ${hasOpinion ? '<span style="margin-left: auto; background: #dcfce7; color: #15803d; font-size: 0.7rem; padding: 2px 8px; border-radius: 6px; font-weight: 700; flex-shrink: 0;"><i class="fa-solid fa-circle-check"></i> İşlendi</span>' : ''}
                         </div>
                         <div style="padding-left: 36px;">
                             ${opHtml}
-                            <div style="display: flex; gap: 10px; margin-top: 10px; align-items: center;">
-                                <input type="text" id="op_input_${plan.id}_${idx}" class="form-control-custom" style="padding: 10px 14px; font-size: 0.9rem; background: white;" placeholder="Görüş / Karar metninizi yazın... (Karar için butona sağ tıklayın / uzun basın)" onkeypress="if(event.key === 'Enter') submitAgendaOpinion('${plan.id}', ${idx}, false)">
+                            <div style="display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap;">
+                                <input type="text" id="op_input_${plan.id}_${idx}" class="form-control-custom" style="padding: 10px 14px; font-size: 0.9rem; background: white; flex: 1; min-width: 250px;" placeholder="Görüş / Karar metninizi yazın... (Karar için butona sağ tıklayın / uzun basın)" onkeypress="if(event.key === 'Enter') submitAgendaOpinion('${plan.id}', ${idx}, false)">
+                                <select id="op_style_${plan.id}_${idx}" class="form-control-custom" style="padding: 10px 10px; font-size: 0.85rem; width: auto; background: #f8fafc; font-weight: 600; border-color: #cbd5e1; flex-shrink: 0; color: #334155; cursor: pointer;" title="Görüş Yazım Tarzı">
+                                    <option value="anlatim" selected>📝 Anlatım Şeklinde (Varsayılan)</option>
+                                    <option value="konusma">💬 Konuşma Şeklinde</option>
+                                </select>
                                 <button class="btn-custom btn-primary-custom" style="padding: 10px 20px; font-size: 0.85rem; flex-shrink: 0; font-weight: 700; user-select: none; -webkit-user-select: none;" onclick="if(window.gorusTouchHandled) { window.gorusTouchHandled = false; return; } submitAgendaOpinion('${plan.id}', ${idx}, false)" oncontextmenu="event.preventDefault(); submitAgendaOpinion('${plan.id}', ${idx}, true); return false;" ontouchstart="startGorusTouchTimer(event, '${plan.id}', ${idx})" ontouchend="cancelGorusTouchTimer(event)" ontouchmove="cancelGorusTouchTimer(event)" title="Normal Görüş: Sol Tıkla / Dokun &#10;Ortak Karar (Kullanıcısız): Sağ Tıkla / Uzun Bas">
                                     <i class="fa-solid fa-paper-plane"></i> Görüşü İşle
                                 </button>
@@ -1238,6 +1253,9 @@
             plan.opinions = plan.opinions || {};
             plan.opinions[agendaIdx] = plan.opinions[agendaIdx] || [];
 
+            const styleEl = document.getElementById(`op_style_${planId}_${agendaIdx}`);
+            const selectedStyle = styleEl ? styleEl.value : 'anlatim';
+
             if (isDecision) {
                 if (!text.toLowerCase().startsWith("karar:")) {
                     text = "Karar: " + text;
@@ -1250,7 +1268,8 @@
             const newOp = {
                 author: authorName,
                 text: text,
-                time: new Date().toLocaleString('tr-TR')
+                time: new Date().toLocaleString('tr-TR'),
+                style: isDecision ? 'karar' : selectedStyle
             };
 
             plan.opinions[agendaIdx].push(newOp);
