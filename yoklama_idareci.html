@@ -935,32 +935,58 @@
                 const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
                 const users = await res.json();
 
-                if (users && users[user]) {
-                    const userObj = users[user];
-                    const passHash = await hashPassword(pass);
-                    
-                    if (userObj.password === pass || userObj.password === passHash) {
-                        if (userObj.role !== 'admin' && userObj.role !== 'master' && userObj.role !== 'idareci' && userObj.role !== 'dashboard') {
-                            Swal.fire('Erişim Reddedildi', 'Bu panele sadece idareciler ve yöneticiler girebilir.', 'error');
+                if (users) {
+                    let userObj = null;
+                    let matchedUsername = user;
+
+                    // 1. Doğrudan eşleşme
+                    if (users[user]) {
+                        userObj = users[user];
+                        matchedUsername = user;
+                    } else {
+                        // 2. Büyük/küçük harf bağımsız kullanıcı adı, e-posta veya ad soyad eşleşmesi
+                        const userNorm = typeof normalizeTr === 'function' ? normalizeTr(user) : user.toLowerCase().trim();
+                        for (const [uname, data] of Object.entries(users)) {
+                            if (!data || typeof data !== 'object') continue;
+                            const unameNorm = typeof normalizeTr === 'function' ? normalizeTr(uname) : uname.toLowerCase().trim();
+                            const emailNorm = (data.email || '').toLowerCase().trim();
+                            const nameNorm = typeof normalizeTr === 'function' ? normalizeTr(data.name || '') : (data.name || '').toLowerCase().trim();
+
+                            if (unameNorm === userNorm || uname.toLowerCase() === user.toLowerCase() || (emailNorm && emailNorm === user.toLowerCase()) || (nameNorm && nameNorm === userNorm)) {
+                                userObj = data;
+                                matchedUsername = uname;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (userObj && 'password' in userObj) {
+                        const passHash = await hashPassword(pass);
+                        
+                        if (userObj.password === pass || userObj.password === passHash) {
+                            if (userObj.role !== 'admin' && userObj.role !== 'master' && userObj.role !== 'idareci' && userObj.role !== 'dashboard') {
+                                Swal.fire('Erişim Reddedildi', 'Bu panele sadece idareciler ve yöneticiler girebilir.', 'error');
+                                return;
+                            }
+                            sessionStorage.setItem('klbk_isLoggedIn', 'true');
+                            sessionStorage.setItem('klbk_currentUser', matchedUsername);
+                            sessionStorage.setItem('klbk_role', userObj.role);
+                            sessionStorage.setItem('klbk_name', userObj.name || matchedUsername);
+                            sessionStorage.setItem('klbk_storeKey', userObj.storeKey || ('klbk_data_' + matchedUsername));
+                            if(userObj.schoolName) {
+                                sessionStorage.setItem('klbk_schoolName', userObj.schoolName);
+                                localStorage.setItem('klbk_lastSchoolName', userObj.schoolName);
+                            }
+                            
+                            window.location.reload();
+                            return;
+                        } else {
+                            Swal.fire('Hata', 'Şifre hatalı!', 'error');
                             return;
                         }
-                        sessionStorage.setItem('klbk_isLoggedIn', 'true');
-                        sessionStorage.setItem('klbk_currentUser', user);
-                        sessionStorage.setItem('klbk_role', userObj.role);
-                        sessionStorage.setItem('klbk_name', userObj.name || user);
-                        sessionStorage.setItem('klbk_storeKey', userObj.storeKey || ('klbk_data_' + user));
-                        if(userObj.schoolName) {
-                            sessionStorage.setItem('klbk_schoolName', userObj.schoolName);
-                            localStorage.setItem('klbk_lastSchoolName', userObj.schoolName);
-                        }
-                        
-                        window.location.reload();
-                    } else {
-                        Swal.fire('Hata', 'Şifre hatalı!', 'error');
                     }
-                } else {
-                    Swal.fire('Hata', 'Kullanıcı bulunamadı!', 'error');
                 }
+                Swal.fire('Hata', 'Kullanıcı bulunamadı!', 'error');
             } catch (e) {
                 console.error("Giriş hatası:", e);
                 Swal.fire('Hata', 'Bağlantı hatası oluştu.', 'error');
