@@ -1196,8 +1196,8 @@
                             <div style="display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap;">
                                 <input type="text" id="op_input_${plan.id}_${idx}" class="form-control-custom" style="padding: 10px 14px; font-size: 0.9rem; background: white; flex: 1; min-width: 250px;" placeholder="Görüş / Karar metninizi yazın... (Karar için butona sağ tıklayın / uzun basın)" onkeypress="if(event.key === 'Enter') submitAgendaOpinion('${plan.id}', ${idx}, false)">
                                 <select id="op_style_${plan.id}_${idx}" class="form-control-custom" style="padding: 10px 10px; font-size: 0.85rem; width: auto; background: #f8fafc; font-weight: 600; border-color: #cbd5e1; flex-shrink: 0; color: #334155; cursor: pointer;" title="Görüş Yazım Tarzı">
-                                    <option value="anlatim" selected>📝 Anlatım Şeklinde (Varsayılan)</option>
-                                    <option value="konusma">💬 Konuşma Şeklinde</option>
+                                    <option value="konusma" selected>💬 Konuşma Şeklinde (Varsayılan)</option>
+                                    <option value="anlatim">📝 Anlatım Şeklinde</option>
                                 </select>
                                 <button class="btn-custom btn-primary-custom" style="padding: 10px 20px; font-size: 0.85rem; flex-shrink: 0; font-weight: 700; user-select: none; -webkit-user-select: none;" onclick="if(window.gorusTouchHandled) { window.gorusTouchHandled = false; return; } submitAgendaOpinion('${plan.id}', ${idx}, false)" oncontextmenu="event.preventDefault(); submitAgendaOpinion('${plan.id}', ${idx}, true); return false;" ontouchstart="startGorusTouchTimer(event, '${plan.id}', ${idx})" ontouchend="cancelGorusTouchTimer(event)" ontouchmove="cancelGorusTouchTimer(event)" title="Normal Görüş: Sol Tıkla / Dokun &#10;Ortak Karar (Kullanıcısız): Sağ Tıkla / Uzun Bas">
                                     <i class="fa-solid fa-paper-plane"></i> Görüşü İşle
@@ -1254,7 +1254,7 @@
             plan.opinions[agendaIdx] = plan.opinions[agendaIdx] || [];
 
             const styleEl = document.getElementById(`op_style_${planId}_${agendaIdx}`);
-            const selectedStyle = styleEl ? styleEl.value : 'anlatim';
+            const selectedStyle = styleEl ? styleEl.value : 'konusma';
 
             if (isDecision) {
                 if (!text.toLowerCase().startsWith("karar:")) {
