@@ -1193,19 +1193,14 @@
                         </div>
                         <div style="padding-left: 36px;">
                             ${opHtml}
-                            <div style="display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap;">
-                                <input type="text" id="op_input_${plan.id}_${idx}" class="form-control-custom" style="padding: 10px 14px; font-size: 0.9rem; background: white; flex: 1; min-width: 250px;" placeholder="Görüş / Karar metninizi yazın... (Karar için butona sağ tıklayın / uzun basın)" onkeypress="if(event.key === 'Enter') submitAgendaOpinion('${plan.id}', ${idx}, false)">
-                                <select id="op_style_${plan.id}_${idx}" class="form-control-custom" style="padding: 10px 10px; font-size: 0.85rem; width: auto; background: #f8fafc; font-weight: 600; border-color: #cbd5e1; flex-shrink: 0; color: #334155; cursor: pointer;" title="Görüş Yazım Tarzı">
-                                    <option value="konusma" selected>💬 Konuşma Şeklinde (Varsayılan)</option>
-                                    <option value="anlatim">📝 Anlatım Şeklinde</option>
-                                </select>
-                                <button class="btn-custom btn-primary-custom" style="padding: 10px 20px; font-size: 0.85rem; flex-shrink: 0; font-weight: 700; user-select: none; -webkit-user-select: none;" onclick="if(window.gorusTouchHandled) { window.gorusTouchHandled = false; return; } submitAgendaOpinion('${plan.id}', ${idx}, false)" oncontextmenu="event.preventDefault(); submitAgendaOpinion('${plan.id}', ${idx}, true); return false;" ontouchstart="startGorusTouchTimer(event, '${plan.id}', ${idx})" ontouchend="cancelGorusTouchTimer(event)" ontouchmove="cancelGorusTouchTimer(event)" title="Normal Görüş: Sol Tıkla / Dokun &#10;Ortak Karar (Kullanıcısız): Sağ Tıkla / Uzun Bas">
-                                    <i class="fa-solid fa-paper-plane"></i> Görüşü İşle
+                            <div style="margin-top: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                                <button class="btn-custom btn-primary-custom" style="padding: 10px 20px; font-size: 0.85rem; font-weight: 700; user-select: none; -webkit-user-select: none;" onclick="if(window.gorusTouchHandled) { window.gorusTouchHandled = false; return; } openAddOpinionModal('${plan.id}', ${idx}, false)" oncontextmenu="event.preventDefault(); openAddOpinionModal('${plan.id}', ${idx}, true); return false;" ontouchstart="startGorusTouchTimer(event, '${plan.id}', ${idx})" ontouchend="cancelGorusTouchTimer(event)" ontouchmove="cancelGorusTouchTimer(event)" title="Normal Görüş: Sol Tıkla / Dokun &#10;Ortak Karar (Kullanıcısız): Sağ Tıkla / Uzun Bas">
+                                    <i class="fa-solid fa-plus-circle"></i> Görüş / Karar Ekle
                                 </button>
-                            </div>
-                            <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px; display: flex; align-items: center; gap: 6px;">
-                                <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i>
-                                <span><b>İpucu:</b> Kendi adınızla görüş eklemek için normal tıklayın; kullanıcı adı olmadan <b>"Karar:"</b> olarak eklemek için <b>PC'de sağ tıklayın</b> veya <b>telefonda uzun basılı tutun</b>.</span>
+                                <div style="font-size: 0.75rem; color: #64748b; display: flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i>
+                                    <span><b>İpucu:</b> Kendi adınızla görüş eklemek için normal tıklayın; <b>"Karar:"</b> olarak eklemek için <b>PC'de sağ tıklayın</b> veya <b>telefonda uzun basılı tutun</b>.</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1223,7 +1218,7 @@
             gorusTouchTimer = setTimeout(() => {
                 gorusTouchHandled = true;
                 if (navigator.vibrate) navigator.vibrate(50);
-                submitAgendaOpinion(planId, agendaIdx, true);
+                openAddOpinionModal(planId, agendaIdx, true);
             }, 600);
         }
 
@@ -1234,15 +1229,68 @@
             }
         }
 
-        async function submitAgendaOpinion(planId, agendaIdx, isDecision = false) {
-            const inputEl = document.getElementById(`op_input_${planId}_${agendaIdx}`);
-            if (!inputEl) return;
-
-            let text = inputEl.value.trim();
-            if (!text) {
-                Swal.fire('Uyarı', 'Lütfen eklemek istediğiniz görüş veya karar metnimini yazın.', 'warning');
+        async function openAddOpinionModal(planId, agendaIdx, isDecision = false) {
+            const plan = allFetchedPlans.find(p => p.id === planId);
+            if (!plan) {
+                Swal.fire('Hata', 'Zümre planı bulunamadı.', 'error');
                 return;
             }
+
+            const modalHtml = isDecision ? `
+                <div style="text-align: left; display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: 700; color: #0f766e; margin-bottom: 6px;"><i class="fa-solid fa-gavel"></i> Alınan Ortak Karar:</label>
+                        <textarea id="swal_op_text" class="swal2-textarea" style="margin: 0; width: 100%; height: 120px; font-size: 0.95rem; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box;" placeholder="Ortak alınan kararı buraya yazın..."></textarea>
+                    </div>
+                </div>
+            ` : `
+                <div style="text-align: left; display: flex; flex-direction: column; gap: 14px; margin-top: 10px;">
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: 700; color: #334155; margin-bottom: 6px;"><i class="fa-solid fa-sliders"></i> Görüş Biçimi:</label>
+                        <select id="swal_op_style" class="form-control-custom" style="width: 100%; padding: 10px; font-size: 0.9rem; font-weight: 600; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; color: #334155; cursor: pointer;">
+                            <option value="konusma" selected>💬 Konuşma Şeklinde (Varsayılan)</option>
+                            <option value="anlatim">📝 Anlatım Şeklinde</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: 700; color: #334155; margin-bottom: 6px;"><i class="fa-solid fa-pen-to-square"></i> Görüşünüz:</label>
+                        <textarea id="swal_op_text" class="swal2-textarea" style="margin: 0; width: 100%; height: 120px; font-size: 0.95rem; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box;" placeholder="Bu gündem maddesi hakkındaki görüşünüzü yazın..."></textarea>
+                    </div>
+                </div>
+            `;
+
+            const res = await Swal.fire({
+                title: isDecision ? 'Ortak Karar Ekle' : 'Görüş Ekle',
+                html: modalHtml,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-floppy-disk"></i> Kaydet',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: 'var(--primary)',
+                didOpen: () => {
+                    const textEl = document.getElementById('swal_op_text');
+                    if (textEl) textEl.focus();
+                },
+                preConfirm: () => {
+                    const textEl = document.getElementById('swal_op_text');
+                    const styleEl = document.getElementById('swal_op_style');
+                    const text = textEl ? textEl.value.trim() : '';
+                    const style = styleEl ? styleEl.value : 'konusma';
+
+                    if (!text) {
+                        Swal.showValidationMessage('Lütfen görüş / karar metnini yazın!');
+                        return false;
+                    }
+                    return { text, style };
+                }
+            });
+
+            if (res.isConfirmed && res.value) {
+                await submitAgendaOpinion(planId, agendaIdx, isDecision, res.value.text, res.value.style);
+            }
+        }
+
+        async function submitAgendaOpinion(planId, agendaIdx, isDecision = false, text = '', selectedStyle = 'konusma') {
+            if (!text) return;
 
             const plan = allFetchedPlans.find(p => p.id === planId);
             if (!plan) {
@@ -1252,9 +1300,6 @@
 
             plan.opinions = plan.opinions || {};
             plan.opinions[agendaIdx] = plan.opinions[agendaIdx] || [];
-
-            const styleEl = document.getElementById(`op_style_${planId}_${agendaIdx}`);
-            const selectedStyle = styleEl ? styleEl.value : 'konusma';
 
             if (isDecision) {
                 if (!text.toLowerCase().startsWith("karar:")) {
@@ -1284,7 +1329,6 @@
                 });
 
                 if (res.ok) {
-                    inputEl.value = '';
                     Swal.fire({
                         toast: true,
                         position: 'top-end',
