@@ -610,7 +610,7 @@
             }
         }
 
-        function showMainPortal() {
+        async function showMainPortal() {
             document.getElementById('loginPanel').style.display = 'none';
             document.getElementById('mainContainer').style.display = 'block';
 
@@ -621,7 +621,7 @@
             document.getElementById('welcomeSchool').innerText = school;
 
             // Load teachers from DataManager or Firebase for selectors
-            fetchSchoolTeachers();
+            await fetchSchoolTeachers();
             
             // Initialize UI for default type and date rules
             setDefaultZumreSelections();
@@ -699,13 +699,31 @@
                 const users = await res.json();
                 schoolTeachersList = [];
                 if (users) {
-                    const currentSchool = localStorage.getItem('klbk_lastSchoolName') || '';
+                    let currentSchool = localStorage.getItem('klbk_lastSchoolName') || '';
+                    const currentUser = sessionStorage.getItem('klbk_currentUser');
+                    if (currentUser && users[currentUser] && users[currentUser].schoolName) {
+                        currentSchool = users[currentUser].schoolName;
+                        localStorage.setItem('klbk_lastSchoolName', currentSchool);
+                    }
+
                     for (const [uname, data] of Object.entries(users)) {
                         if (!currentSchool || data.schoolName === currentSchool || !data.schoolName) {
+                            let bArray = [];
+                            if (Array.isArray(data.branch)) {
+                                bArray = data.branch;
+                            } else if (typeof data.branch === 'string') {
+                                bArray = data.branch.split(',').map(b => b.trim());
+                            } else {
+                                bArray = ['Genel / Branş Belirtilmemiş'];
+                            }
+
+                            const bStr = bArray.join(', ');
+
                             schoolTeachersList.push({
                                 id: uname,
                                 name: data.name || uname,
-                                branch: data.branch || 'Genel / Branş Belirtilmemiş',
+                                branch: bStr,
+                                branchList: bArray,
                                 school: data.schoolName || currentSchool || 'Okulumuz'
                             });
                         }
@@ -1017,14 +1035,28 @@
             const container = document.getElementById('specialSelectorContainer');
             container.style.display = 'block';
 
-            // Extract unique branches from schoolTeachersList or use defaults
             let branches = new Set();
             schoolTeachersList.forEach(t => {
-                if (t.branch) branches.add(t.branch);
+                if (t.branchList && Array.isArray(t.branchList)) {
+                    t.branchList.forEach(b => {
+                        if (b && typeof b === 'string' && b.trim()) branches.add(b.trim());
+                    });
+                } else if (typeof t.branch === 'string') {
+                    t.branch.split(',').forEach(b => {
+                        if (b && b.trim()) branches.add(b.trim());
+                    });
+                }
             });
-            if (branches.size === 0) {
-                ['Matematik', 'Türk Dili ve Edebiyatı', 'Fizik', 'Kimya', 'Biyoloji', 'Tarih', 'Coğrafya', 'İngilizce', 'Beden Eğitimi', 'Rehberlik'].forEach(b => branches.add(b));
-            }
+
+            const masterBranches = [
+                'Türk Dili ve Edebiyatı', 'Matematik', 'Fizik', 'Kimya', 'Biyoloji', 
+                'Tarih', 'Coğrafya', 'İngilizce', 'Almanca', 'Felsefe', 
+                'Din Kültürü ve Ahlak Bilgisi', 'Beden Eğitimi ve Spor', 'Beden Eğitimi',
+                'Müzik', 'Görsel Sanatlar', 'Rehberlik', 'Bilişim Teknolojileri', 
+                'Sosyal Bilgiler', 'Fen Bilimleri', 'Türkçe', 'T.C. İnkılap Tarihi ve Atatürkçülük',
+                'Sosyoloji', 'Psikoloji', 'Sağlık Bilgisi ve Trafik Kültürü', 'Görsel Sanatlar / Resim'
+            ];
+            masterBranches.forEach(b => branches.add(b));
 
             let html = `
                 <div style="font-weight: 700; color: var(--primary); margin-bottom: 10px; font-size: 1.05rem;">
@@ -1032,10 +1064,10 @@
                 </div>
                 <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px;">Seçtiğiniz branştaki okulumuz öğretmenleri katılımcı listesine otomatik eklenecektir.</p>
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                    <select id="bransSelect" class="form-select-custom" style="max-width: 300px;" onchange="handleBransSelect(this.value)">
+                    <select id="bransSelect" class="form-select-custom" style="max-width: 320px; font-weight: 600; border: 2px solid var(--primary);" onchange="handleBransSelect(this.value)">
                         <option value="">-- Branş Seçin --</option>
             `;
-            Array.from(branches).sort().forEach(b => {
+            Array.from(branches).sort((a,b) => a.localeCompare(b, 'tr')).forEach(b => {
                 html += `<option value="${b}">${b} Zümresi</option>`;
             });
             html += `
@@ -1052,8 +1084,22 @@
             statusEl.innerText = `${branchName} zümresi öğretmenleri listelendi!`;
 
             let count = 0;
+            const searchLower = branchName.toLowerCase().trim();
+
             schoolTeachersList.forEach(t => {
-                if (t.branch && t.branch.toLowerCase().includes(branchName.toLowerCase())) {
+                let isMatch = false;
+
+                if (t.branchList && Array.isArray(t.branchList)) {
+                    isMatch = t.branchList.some(b => {
+                        const bLower = String(b).toLowerCase().trim();
+                        return bLower === searchLower || bLower.includes(searchLower) || searchLower.includes(bLower);
+                    });
+                } else if (typeof t.branch === 'string') {
+                    const bLower = t.branch.toLowerCase().trim();
+                    isMatch = bLower === searchLower || bLower.includes(searchLower) || searchLower.includes(bLower);
+                }
+
+                if (isMatch) {
                     if (!participantsList.some(p => p.name.toLowerCase() === t.name.toLowerCase())) {
                         participantsList.push({
                             id: 'brans_' + t.id + '_' + Date.now(),
