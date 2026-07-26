@@ -933,28 +933,17 @@
                     return bMatch;
                 }
 
-                let nameMatch = false;
-                if (myName) {
-                    nameMatch = (plan.participants||[]).some(p => p.name.toLowerCase().includes(myName.toLowerCase()) || myName.toLowerCase().includes(p.name.toLowerCase()));
+                if (selectedBranch === 'all') {
+                    return true;
                 }
 
-                let branchMatch = true;
-                if (selectedBranch !== 'all') {
-                    branchMatch = (plan.branch||'').toLowerCase().includes(selectedBranch.toLowerCase()) || 
-                                  (plan.tur||'').toLowerCase().includes(selectedBranch.toLowerCase()) || 
-                                  (plan.participants||[]).some(p => (p.gorev||'').toLowerCase().includes(selectedBranch.toLowerCase()));
-                } else if (!nameMatch && myName) {
-                    const myObj = schoolTeachersList.find(t => t.name.toLowerCase() === myName.toLowerCase() || t.id.toLowerCase() === myName.toLowerCase());
-                    if (myObj && myObj.branchList) {
-                        branchMatch = myObj.branchList.some(mb => 
-                            (plan.branch||'').toLowerCase().includes(mb.toLowerCase()) || 
-                            (plan.tur||'').toLowerCase().includes(mb.toLowerCase()) || 
-                            (plan.participants||[]).some(p => (p.gorev||'').toLowerCase().includes(mb.toLowerCase()))
-                        );
-                    }
-                }
+                const bMatch = (plan.branch||'').toLowerCase().includes(selectedBranch.toLowerCase()) || 
+                               (plan.tur||'').toLowerCase().includes(selectedBranch.toLowerCase()) || 
+                               (plan.participants||[]).some(p => (p.gorev||'').toLowerCase().includes(selectedBranch.toLowerCase()));
 
-                return nameMatch || branchMatch;
+                const nameMatch = myName && ((plan.planner && plan.planner.toLowerCase() === myName.toLowerCase()) || (plan.participants||[]).some(p => p.name.toLowerCase().includes(myName.toLowerCase()) || myName.toLowerCase().includes(p.name.toLowerCase())));
+
+                return bMatch || nameMatch;
             });
 
             if (filtered.length === 0) {
@@ -1194,6 +1183,7 @@
                 document.getElementById('tabBtnGorus').classList.add('active');
                 document.getElementById('tabContentPlan').style.display = 'none';
                 document.getElementById('tabContentGorus').style.display = 'block';
+                loadGorusZümreListesi(true);
             }
         }
 
@@ -2086,11 +2076,29 @@
             const plannerName = sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || 'Öğretmen';
             const schoolName = localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz';
 
+            let branchName = "Genel";
+            if (turEl.value === 'brans') {
+                const bransVal = document.getElementById('bransSelect') ? document.getElementById('bransSelect').value : '';
+                branchName = bransVal.startsWith('group___') ? bransVal.replace('group___', '') : bransVal;
+            } else if (turEl.value === 'il' || turEl.value === 'ilce') {
+                const bransVal = document.getElementById('bransSelect') ? document.getElementById('bransSelect').value : '';
+                if (bransVal) {
+                    branchName = bransVal.startsWith('group___') ? bransVal.replace('group___', '') : bransVal;
+                } else if (participantsList.length > 0 && participantsList[0].gorev) {
+                    branchName = participantsList[0].gorev.replace('Öğretmeni', '').replace('Öğretmen', '').trim();
+                }
+            } else if (turEl.value === 'ogretmenler_kurulu') {
+                branchName = "Öğretmenler Kurulu";
+            } else {
+                branchName = turText;
+            }
+
             const newPlan = {
                 id: 'zumre_' + Date.now(),
                 donem: donemText,
                 tur: turText,
                 turCode: turEl.value,
+                branch: branchName,
                 tarih: tarih,
                 saat: saat,
                 yer: yer,
@@ -2111,9 +2119,13 @@
                 });
 
                 if (res.ok) {
+                    allFetchedPlans.push(newPlan);
+                    allFetchedPlans.sort((a, b) => new Date(b.tarih || '1970-01-01') - new Date(a.tarih || '1970-01-01'));
+                    if (typeof filterAndRenderGorusList === 'function') filterAndRenderGorusList();
+
                     Swal.fire({
                         title: 'Zümre Planı Oluşturuldu! 🎉',
-                        html: `<b>${donemText} - ${turText}</b> planı başarıyla kaydedildi.<br><br>Toplantıya toplam <b>${participantsList.length}</b> katılımcı ve <b>${activeAgendaList.length}</b> gündem maddesi tanımlandı.`,
+                        html: `<b>${donemText} - ${turText}</b> planı başarıyla kaydedildi.<br><br>Toplantıya toplam <b>${participantsList.length}</b> katılımcı ve <b>${activeAgendaList.length}</b> gündem maddesi tanımlandı.<br><br><small style="color:var(--primary);">💡 Yukarıdaki <b>"2. Zümre Görüş İşleme"</b> sekmesinden toplantıyı görebilir ve görüş/karar işleyebilirsiniz.</small>`,
                         icon: 'success',
                         confirmButtonText: 'Tamam',
                         confirmButtonColor: 'var(--primary)'
