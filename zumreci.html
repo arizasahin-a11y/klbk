@@ -823,6 +823,9 @@
             }
             renderActiveAgendaList();
 
+            if (typeof loadGorusZümreListesi === 'function') {
+                loadGorusZümreListesi(true);
+            }
             setDefaultZumreSelections();
         }
 
@@ -862,9 +865,10 @@
                 container.innerHTML = `<div style="text-align: center; padding: 3rem; color: #94a3b8;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="margin-bottom: 10px;"></i><br>Zümre toplantıları yükleniyor...</div>`;
                 try {
                     const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_zumre_plans.json?_t=${Date.now()}`, { cache: 'no-store' });
+                    if (!res.ok) throw new Error("Veritabanı bağlantı hatası: HTTP " + res.status);
                     const data = await res.json();
                     allFetchedPlans = [];
-                    if (data) {
+                    if (data && typeof data === 'object') {
                         for (const [key, plan] of Object.entries(data)) {
                             if (plan && typeof plan === 'object') {
                                 plan.id = plan.id || key;
@@ -873,9 +877,10 @@
                         }
                     }
                     allFetchedPlans.sort((a, b) => new Date(b.tarih || '1970-01-01') - new Date(a.tarih || '1970-01-01'));
+                    console.log("🔥 Firebase'den başarıyla çekilen toplam zümre sayısı:", allFetchedPlans.length);
                 } catch (e) {
                     console.error("Zümre planları yüklenemedi:", e);
-                    container.innerHTML = `<div style="text-align: center; padding: 3rem; color: #ef4444;"><i class="fa-solid fa-triangle-exclamation fa-2x"></i><br>Veriler yüklenirken bir hata oluştu.</div>`;
+                    container.innerHTML = `<div style="text-align: center; padding: 3rem; color: #ef4444;"><i class="fa-solid fa-triangle-exclamation fa-2x"></i><br>Veriler veritabanından alınamadı.<br><small style="color:#64748b;">${e.message || ''}</small></div>`;
                     return;
                 }
             }
@@ -969,7 +974,17 @@
                                normalizeTr(plan.tur).includes(sBranch) || 
                                (plan.participants && Array.isArray(plan.participants) && plan.participants.some(p => p && normalizeTr(p.gorev).includes(sBranch)));
 
-                const nameMatch = myNameNorm && (normalizeTr(plan.planner) === myNameNorm || (plan.participants && Array.isArray(plan.participants) && plan.participants.some(p => p && (normalizeTr(p.name).includes(myNameNorm) || myNameNorm.includes(normalizeTr(p.name))))));
+                const nameMatch = myNameNorm && (
+                    normalizeTr(plan.planner).includes(myNameNorm) || myNameNorm.includes(normalizeTr(plan.planner)) ||
+                    (plan.participants && Array.isArray(plan.participants) && plan.participants.some(p => {
+                        if (!p) return false;
+                        const pName = normalizeTr(p.name || '');
+                        if (!pName) return false;
+                        if (pName.includes(myNameNorm) || myNameNorm.includes(pName)) return true;
+                        const parts = myNameNorm.split(' ');
+                        return parts.some(w => w.length > 2 && pName.includes(w));
+                    }))
+                );
 
                 return bMatch || nameMatch;
             });
