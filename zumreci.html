@@ -767,7 +767,10 @@
             } else if (tur === 'okul_baskan') {
                 titleEl.innerText = "2. Katılımcıları Belirleme (Okul Zümre Başkanları Toplantısı)";
                 btnsContainer.innerHTML = `
-                    <button class="btn-custom btn-primary-custom" onclick="openSelectModal('okul_teachers')">
+                    <button class="btn-custom btn-primary-custom" onclick="openSelectModal('idareci')">
+                        <i class="fa-solid fa-user-shield"></i> İdareci Ekle
+                    </button>
+                    <button class="btn-custom btn-secondary-custom" onclick="openSelectModal('okul_teachers')">
                         <i class="fa-solid fa-users-viewfinder"></i> Katılımcı Seç (Okul Öğretmenleri)
                     </button>
                     <button class="btn-custom btn-secondary-custom" onclick="openManualModal('okul_teachers')">
@@ -777,16 +780,28 @@
             } else if (tur === 'sok') {
                 titleEl.innerText = "2. Katılımcıları Belirleme (ŞÖK - Şube Öğretmenler Kurulu)";
                 btnsContainer.innerHTML = `
+                    <button class="btn-custom btn-primary-custom" onclick="openSelectModal('idareci')">
+                        <i class="fa-solid fa-user-shield"></i> İdareci Ekle
+                    </button>
                     <button class="btn-custom btn-secondary-custom" onclick="openSelectModal('sok_all')">
                         <i class="fa-solid fa-user-plus"></i> Listeden Öğretmen Ekle/Çıkar
+                    </button>
+                    <button class="btn-custom btn-secondary-custom" onclick="openManualModal('sok')">
+                        <i class="fa-solid fa-user-pen"></i> Manüel Katılımcı Ekle
                     </button>
                 `;
                 renderSokClassSelector();
             } else if (tur === 'brans') {
                 titleEl.innerText = "2. Katılımcıları Belirleme (Branş Zümresi Toplantısı)";
                 btnsContainer.innerHTML = `
+                    <button class="btn-custom btn-primary-custom" onclick="openSelectModal('idareci')">
+                        <i class="fa-solid fa-user-shield"></i> İdareci Ekle
+                    </button>
                     <button class="btn-custom btn-secondary-custom" onclick="openSelectModal('brans_all')">
                         <i class="fa-solid fa-user-plus"></i> Listeden Öğretmen Ekle/Çıkar
+                    </button>
+                    <button class="btn-custom btn-secondary-custom" onclick="openManualModal('brans')">
+                        <i class="fa-solid fa-user-pen"></i> Manüel Katılımcı Ekle
                     </button>
                 `;
                 renderBransSelector();
@@ -851,23 +866,47 @@
             Swal.fire('Başarılı', `${addedCount} katılımcı başarıyla çözümlendi ve listeye eklendi!`, 'success');
         }
 
-        // --- SELECT MODAL (VERİTABANINDAN SEÇİM) ---
+        let currentSelectModalMode = 'normal';
+
         function openSelectModal(mode) {
-            document.getElementById('selectModalTitle').innerText = "Toplantı Katılımcısı Seç";
+            currentSelectModalMode = mode;
+            const titleEl = document.getElementById('selectModalTitle');
+            if (mode === 'idareci') {
+                titleEl.innerText = "Toplantıya İdareci (Müdür / Müdür Yardımcısı) Seç";
+            } else {
+                titleEl.innerText = "Toplantı Katılımcısı Seç";
+            }
+
             document.getElementById('teacherSearchInput').value = '';
             const container = document.getElementById('selectTeacherListContainer');
             
-            if (schoolTeachersList.length === 0) {
-                container.innerHTML = `<div style="text-align:center; padding:2rem; color:#ef4444;">Veritabanında kayıtlı öğretmen bulunamadı. Lütfen önce öğretmen ekleyin veya manüel ekle butonunu kullanın.</div>`;
+            let listToRender = schoolTeachersList;
+            if (mode === 'idareci') {
+                const idareciler = schoolTeachersList.filter(t => {
+                    const r = (t.role || '').toLowerCase();
+                    const b = (t.branch || '').toLowerCase();
+                    const n = (t.name || '').toLowerCase();
+                    return r === 'idareci' || r === 'admin' || r === 'mudur' || r === 'mudur_yardimcisi' || b.includes('idareci') || b.includes('müdür') || n.includes('müdür');
+                });
+                if (idareciler.length > 0) {
+                    listToRender = [...idareciler, ...schoolTeachersList.filter(x => !idareciler.includes(x))];
+                }
+            }
+
+            if (listToRender.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:2rem; color:#ef4444;">Veritabanında kayıtlı personel bulunamadı. Lütfen manüel ekle butonunu kullanın.</div>`;
             } else {
                 let html = `<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:10px;">`;
-                schoolTeachersList.forEach((t) => {
+                listToRender.forEach((t) => {
                     const isAlreadyAdded = participantsList.some(p => p.name.toLowerCase() === t.name.toLowerCase());
+                    const isIdareciRole = (t.role === 'idareci' || t.role === 'admin' || (t.branch||'').toLowerCase().includes('idareci') || (t.branch||'').toLowerCase().includes('müdür'));
                     html += `
-                        <label style="display:flex; align-items:center; gap:10px; padding:10px; background:white; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer;">
-                            <input type="checkbox" class="modal-teacher-chk" value="${t.id}" data-name="${t.name}" data-branch="${t.branch}" data-school="${t.school}" ${isAlreadyAdded ? 'checked' : ''} style="width:18px; height:18px; accent-color:var(--primary);">
+                        <label style="display:flex; align-items:center; gap:10px; padding:10px; background:white; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer; ${isIdareciRole ? 'border-left: 4px solid var(--primary); background: #f0fdfa;' : ''}">
+                            <input type="checkbox" class="modal-teacher-chk" value="${t.id}" data-name="${t.name}" data-branch="${t.branch}" data-school="${t.school}" data-role="${t.role||'ogretmen'}" ${isAlreadyAdded ? 'checked' : ''} style="width:18px; height:18px; accent-color:var(--primary);">
                             <div>
-                                <div style="font-weight:700; color:var(--dark);">${t.name}</div>
+                                <div style="font-weight:700; color:var(--dark); display:flex; align-items:center; gap:6px;">
+                                    ${t.name} ${isIdareciRole ? '<span style="font-size:0.7rem; background:var(--primary); color:white; padding:1px 6px; border-radius:6px;">İdareci</span>' : ''}
+                                </div>
                                 <div style="font-size:0.75rem; color:#64748b;">${t.branch} (${t.school})</div>
                             </div>
                         </label>
@@ -908,13 +947,19 @@
                 const name = chk.getAttribute('data-name');
                 const branch = chk.getAttribute('data-branch');
                 const school = chk.getAttribute('data-school');
+                const role = chk.getAttribute('data-role');
 
                 if (!participantsList.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                    let gorevText = branch || 'Öğretmen';
+                    if (currentSelectModalMode === 'idareci' || role === 'idareci' || role === 'admin' || (branch||'').toLowerCase().includes('idareci') || (branch||'').toLowerCase().includes('müdür')) {
+                        gorevText = 'Zümre Sorumlu İdarecisi (Müdür / Müdür Yrd.)';
+                    }
+
                     participantsList.push({
                         id: 't_' + chk.value + '_' + Date.now(),
                         name: name,
                         kurum: school || localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz',
-                        gorev: branch || 'Öğretmen'
+                        gorev: gorevText
                     });
                     addedCount++;
                 }
@@ -1039,33 +1084,40 @@
             schoolTeachersList.forEach(t => {
                 if (t.branchList && Array.isArray(t.branchList)) {
                     t.branchList.forEach(b => {
-                        if (b && typeof b === 'string' && b.trim()) branches.add(b.trim());
+                        const cleanB = (b || '').toString().trim();
+                        if (cleanB && cleanB !== 'None' && cleanB !== 'null' && cleanB.toLowerCase() !== 'genel' && !cleanB.toLowerCase().includes('belirtilmemiş')) {
+                            branches.add(cleanB);
+                        }
                     });
                 } else if (typeof t.branch === 'string') {
                     t.branch.split(',').forEach(b => {
-                        if (b && b.trim()) branches.add(b.trim());
+                        const cleanB = (b || '').toString().trim();
+                        if (cleanB && cleanB !== 'None' && cleanB !== 'null' && cleanB.toLowerCase() !== 'genel' && !cleanB.toLowerCase().includes('belirtilmemiş')) {
+                            branches.add(cleanB);
+                        }
                     });
                 }
             });
 
-            const masterBranches = [
-                'Türk Dili ve Edebiyatı', 'Matematik', 'Fizik', 'Kimya', 'Biyoloji', 
-                'Tarih', 'Coğrafya', 'İngilizce', 'Almanca', 'Felsefe', 
-                'Din Kültürü ve Ahlak Bilgisi', 'Beden Eğitimi ve Spor', 'Beden Eğitimi',
-                'Müzik', 'Görsel Sanatlar', 'Rehberlik', 'Bilişim Teknolojileri', 
-                'Sosyal Bilgiler', 'Fen Bilimleri', 'Türkçe', 'T.C. İnkılap Tarihi ve Atatürkçülük',
-                'Sosyoloji', 'Psikoloji', 'Sağlık Bilgisi ve Trafik Kültürü', 'Görsel Sanatlar / Resim'
-            ];
-            masterBranches.forEach(b => branches.add(b));
+            // Eğer okulda henüz hiç branş kaydı yoksa varsayılan temel branşları göster
+            if (branches.size === 0) {
+                const defaultBranches = [
+                    'Türk Dili ve Edebiyatı', 'Matematik', 'Fizik', 'Kimya', 'Biyoloji', 
+                    'Tarih', 'Coğrafya', 'İngilizce', 'Almanca', 'Felsefe', 
+                    'Din Kültürü ve Ahlak Bilgisi', 'Beden Eğitimi ve Spor',
+                    'Müzik', 'Görsel Sanatlar', 'Rehberlik', 'Bilişim Teknolojileri'
+                ];
+                defaultBranches.forEach(b => branches.add(b));
+            }
 
             let html = `
                 <div style="font-weight: 700; color: var(--primary); margin-bottom: 10px; font-size: 1.05rem;">
                     <i class="fa-solid fa-graduation-cap"></i> Branş Zümresi Toplantısı İçin Branş Seçimi
                 </div>
-                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px;">Seçtiğiniz branştaki okulumuz öğretmenleri katılımcı listesine otomatik eklenecektir.</p>
+                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px;">Okulumuzda mevcut olan derslerin zümreleri aşağıda listelenmiştir. Seçtiğinizde ilgili öğretmenler otomatik eklenir.</p>
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                     <select id="bransSelect" class="form-select-custom" style="max-width: 320px; font-weight: 600; border: 2px solid var(--primary);" onchange="handleBransSelect(this.value)">
-                        <option value="">-- Branş Seçin --</option>
+                        <option value="">-- Okulunuzdaki Ders / Branş Seçin --</option>
             `;
             Array.from(branches).sort((a,b) => a.localeCompare(b, 'tr')).forEach(b => {
                 html += `<option value="${b}">${b} Zümresi</option>`;
