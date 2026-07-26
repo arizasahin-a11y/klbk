@@ -339,16 +339,16 @@
 
         <!-- TABS HEADER -->
         <div class="tabs-header">
-            <button class="tab-btn active" id="tabBtnPlan" onclick="switchTab('plan')">
+            <button class="tab-btn" id="tabBtnPlan" onclick="switchTab('plan')">
                 <i class="fa-solid fa-calendar-check"></i> Zümre Planı Sayfası
             </button>
-            <button class="tab-btn" id="tabBtnGorus" onclick="switchTab('gorus')">
+            <button class="tab-btn active" id="tabBtnGorus" onclick="switchTab('gorus')">
                 <i class="fa-solid fa-comments"></i> Zümre Görüş İşleme
             </button>
         </div>
 
         <!-- TAB 1: ZÜMRE PLANI SAYFASI -->
-        <div id="tabContentPlan">
+        <div id="tabContentPlan" style="display: none;">
             <!-- 1. Dönem ve Tür Seçimi -->
             <div class="glass-panel section-card">
                 <h3 style="margin: 0 0 1.25rem 0; color: var(--dark); font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
@@ -499,7 +499,7 @@
         </div> <!-- CLOSING tabContentPlan -->
 
         <!-- TAB 2: ZÜMRE GÖRÜŞ İŞLEME SEKMESİ -->
-        <div id="tabContentGorus" style="display: none;">
+        <div id="tabContentGorus" style="display: block;">
             <div class="glass-panel section-card">
                 <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0;">
                     <div>
@@ -715,7 +715,11 @@
 
             if (isLoggedIn) {
                 showMainPortal();
-                if (isGorusTab) switchTab('gorus');
+                if (urlParams.get('tab') === 'plan' || window.location.hash === '#plan') {
+                    switchTab('plan');
+                } else {
+                    switchTab('gorus');
+                }
             } else if (isGorusTab) {
                 enterGuestGorusMode();
             } else {
@@ -1087,15 +1091,14 @@
                         </div>
 
                         <div id="body_${plan.id}" style="display: ${displayStyle}; padding: 24px; border-top: 1px solid #e2e8f0; background: #ffffff;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 2px solid #f1f5f9; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #f1f5f9; flex-wrap: wrap; gap: 10px;">
                                 <h4 style="margin: 0; font-size: 1.1rem; color: #1e293b; font-weight: 800;">
                                     <i class="fa-solid fa-list-check" style="color: var(--primary); margin-right: 8px;"></i> Gündem Maddeleri ve Görüş / Karar Girişi
                                 </h4>
-                                <span style="font-size: 0.8rem; color: #64748b;">Her gündem maddesinin sağındaki butondan görüş veya karar ekleyebilirsiniz.</span>
-                            </div>
-                            <div style="margin-bottom: 18px; padding: 12px 16px; background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 10px; display: flex; align-items: center; gap: 12px; font-size: 0.82rem; color: #0f766e;">
-                                <i class="fa-solid fa-circle-info" style="color: #0d9488; font-size: 1.2rem; flex-shrink: 0;"></i>
-                                <div><b>İpucu:</b> Kendi adınızla görüş eklemek için <b>Görüş / Karar Ekle</b> butonuna <b>normal tıklayın / dokunun</b>; kullanıcı adı olmadan ortak alınan kararı (önünde <b>"Karar:"</b> ibaresiyle) eklemek için ise butona <b>PC'de sağ tıklayın</b> veya <b>telefonda uzun basılı tutun</b>.</div>
+                                <div style="font-size: 0.82rem; color: #64748b; display: flex; align-items: center; gap: 8px;">
+                                    <span>Her gündem maddesinin sağındaki butondan görüş veya karar ekleyebilirsiniz.</span>
+                                    <span onclick="showGorusIpucuModal()" style="cursor: pointer; color: #f97316; font-size: 1.25rem; display: inline-flex; align-items: center; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'" title="İpucu Göster"><i class="fa-solid fa-circle-question"></i></span>
+                                </div>
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 16px;">
                                 ${renderPlanAgendaItems(plan)}
@@ -1227,6 +1230,27 @@
                 clearTimeout(gorusTouchTimer);
                 gorusTouchTimer = null;
             }
+        }
+
+        function showGorusIpucuModal() {
+            Swal.fire({
+                title: 'Görüş ve Karar Ekleme İpucu 💡',
+                html: `
+                    <div style="text-align: left; font-size: 0.95rem; color: #334155; line-height: 1.6;">
+                        <div style="margin-bottom: 14px; padding: 12px; background: #f8fafc; border-left: 4px solid var(--primary); border-radius: 6px;">
+                            <b style="color: var(--primary); font-size: 1rem;"><i class="fa-solid fa-user-check"></i> Normal Görüş Ekleme:</b><br>
+                            Kendi adınızla (kullanıcı adıyla) görüş işlemek için ilgili gündem maddesindeki <b>Görüş / Karar Ekle</b> butonuna <b>normal tıklayın / dokunun</b>.
+                        </div>
+                        <div style="padding: 12px; background: #fff7ed; border-left: 4px solid #f97316; border-radius: 6px;">
+                            <b style="color: #c2410c; font-size: 1rem;"><i class="fa-solid fa-gavel"></i> Ortak Karar Ekleme:</b><br>
+                            Kullanıcı adı görünmeden doğrudan alınan ortak kararı (önünde otomatik <b>"Karar:"</b> ibaresiyle) eklemek için ise butona <b>PC'de sağ tıklayın</b> veya <b>telefonda uzun basılı tutun</b>.
+                        </div>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'Anladım',
+                confirmButtonColor: 'var(--primary)'
+            });
         }
 
         async function openAddOpinionModal(planId, agendaIdx, isDecision = false) {
@@ -1499,6 +1523,7 @@
                 document.getElementById('tabContentGorus').style.display = 'block';
                 loadGorusZümreListesi(true);
             }
+            window.scrollTo(0, 0);
         }
 
         function setDefaultZumreSelections() {
@@ -2575,6 +2600,8 @@
             }
             const cancelBtn = document.getElementById('cancelEditBtn');
             if (cancelBtn) cancelBtn.style.display = 'inline-flex';
+
+            window.scrollTo(0, 0);
 
             Swal.fire({
                 title: 'Düzenleme Modu 📝',
