@@ -1178,7 +1178,7 @@
                                 const endsWithDedi = /dedi\.?$/i.test(cleanText);
                                 displayText = `<span style="font-weight: 600; color: #0f766e;">${op.author}</span>, ${quotedText}${endsWithDedi ? '' : ' dedi.'}`;
                             } else if (op.style === 'anlatim') {
-                                const endsWithVerb = /(söyledi|belirtti|ifade etti|vurguladı|dile getirdi|kaydetti|aktardı|savundu|önerdi)\.?$/i.test(cleanText);
+                                const endsWithVerb = /(dedi|söyledi|belirtti|ifade etti|ekledi|vurguladı|dile getirdi|kaydetti|aktardı|savundu|önerdi)\.?$/i.test(cleanText);
                                 const formattedText = cleanText.endsWith('.') ? cleanText.slice(0, -1) : cleanText;
                                 displayText = `<span style="font-weight: 600; color: #475569;">${op.author}</span>, ${formattedText}${endsWithVerb ? '.' : ' söyledi.'}`;
                             }
@@ -1263,7 +1263,7 @@
                         <div style="padding: 12px; background: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 6px;">
                             <b style="color: #15803d; font-size: 1rem;"><i class="fa-solid fa-sliders"></i> Görüş Biçimi (Tutanağa Yansıma):</b><br>
                             • <b>Konuşma Şeklinde:</b> Tutanağa <i>Ali "Ayşe topu attı" dedi.</i> biçiminde,<br>
-                            • <b>Anlatım Şeklinde:</b> Tutanağa <i>Ali, Ayşe'nin topu attığını söyledi.</i> biçiminde aktarılır.
+                            • <b>Anlatım Şeklinde:</b> Tutanağa <i>Ali, Ayşe'nin topu attığını söyledi / belirtti / ifade etti / ekledi / vurguladı / dedi...</i> biçiminde aktarılır.
                         </div>
                     </div>
                 `,
