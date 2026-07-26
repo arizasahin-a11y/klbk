@@ -747,27 +747,56 @@
                 const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json`);
                 const users = await res.json();
 
-                if (users && users[user]) {
-                    const userObj = users[user];
-                    const passHash = await hashPassword(pass);
+                if (users) {
+                    let userObj = null;
+                    let matchedUsername = user;
 
-                    if (userObj.password === pass || userObj.password === passHash) {
-                        sessionStorage.setItem('klbk_isLoggedIn', 'true');
-                        sessionStorage.setItem('klbk_currentUser', user);
-                        sessionStorage.setItem('klbk_role', userObj.role || 'ogretmen');
-                        sessionStorage.setItem('klbk_name', userObj.name || user);
-                        if (userObj.schoolName) {
-                            localStorage.setItem('klbk_lastSchoolName', userObj.schoolName);
-                        }
-
-                        Swal.close();
-                        showMainPortal();
+                    // 1. Doğrudan eşleşme
+                    if (users[user]) {
+                        userObj = users[user];
+                        matchedUsername = user;
                     } else {
-                        Swal.fire('Hata', 'Şifre hatalı!', 'error');
+                        // 2. Büyük/küçük harf bağımsız kullanıcı adı, e-posta veya ad soyad eşleşmesi
+                        const userNorm = typeof normalizeTr === 'function' ? normalizeTr(user) : user.toLowerCase().trim();
+                        for (const [uname, data] of Object.entries(users)) {
+                            if (!data || typeof data !== 'object') continue;
+                            const unameNorm = typeof normalizeTr === 'function' ? normalizeTr(uname) : uname.toLowerCase().trim();
+                            const emailNorm = (data.email || '').toLowerCase().trim();
+                            const nameNorm = typeof normalizeTr === 'function' ? normalizeTr(data.name || '') : (data.name || '').toLowerCase().trim();
+
+                            if (unameNorm === userNorm || uname.toLowerCase() === user.toLowerCase() || (emailNorm && emailNorm === user.toLowerCase()) || (nameNorm && nameNorm === userNorm)) {
+                                userObj = data;
+                                matchedUsername = uname;
+                                break;
+                            }
+                        }
                     }
-                } else {
-                    Swal.fire('Hata', 'Kullanıcı bulunamadı!', 'error');
+
+                    if (userObj && 'password' in userObj) {
+                        const passHash = await hashPassword(pass);
+
+                        if (userObj.password === pass || userObj.password === passHash) {
+                            sessionStorage.setItem('klbk_isLoggedIn', 'true');
+                            sessionStorage.setItem('klbk_currentUser', matchedUsername);
+                            sessionStorage.setItem('klbk_role', userObj.role || 'ogretmen');
+                            sessionStorage.setItem('klbk_name', userObj.name || matchedUsername);
+                            if (userObj.schoolName) {
+                                localStorage.setItem('klbk_lastSchoolName', userObj.schoolName);
+                            }
+
+                            Swal.close();
+                            await showMainPortal();
+                            const urlParams = new URLSearchParams(window.location.search);
+                            const isGorusTab = urlParams.get('tab') === 'gorus' || window.location.hash === '#gorus' || urlParams.get('guest') === 'true';
+                            if (isGorusTab) switchTab('gorus');
+                            return;
+                        } else {
+                            Swal.fire('Hata', 'Şifre hatalı!', 'error');
+                            return;
+                        }
+                    }
                 }
+                Swal.fire('Hata', 'Kullanıcı bulunamadı!', 'error');
             } catch (e) {
                 console.error("Giriş hatası:", e);
                 Swal.fire('Hata', 'Sunucu bağlantı hatası oluştu.', 'error');
