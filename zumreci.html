@@ -442,6 +442,9 @@
                             <button class="btn-custom btn-secondary-custom" onclick="openSelectAgendaModal()">
                                 <i class="fa-solid fa-check-double"></i> Gündem Maddesi Seç (Havuzdan)
                             </button>
+                            <button class="btn-custom" style="background: var(--secondary); color: white;" onclick="openSelectTemplateModal()">
+                                <i class="fa-solid fa-layer-group"></i> Şablondan Gündem Seç
+                            </button>
                         </div>
                     </div>
                     <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px;">Toplantıda görüşülecek gündem maddelerini havuza kaydedebilir, havuzdan seçebilir ve listedeki yerlerini (sırasını) yukarı/aşağı değiştirebilirsiniz.</p>
@@ -455,6 +458,11 @@
                         <div style="text-align: center; padding: 2rem; color: #94a3b8; border: 1px dashed #cbd5e1; border-radius: 10px; background: #f8fafc;">
                             Henüz gündem maddesi seçilmedi. Yukarıdaki "Gündem Maddesi Seç" butonunu kullanarak maddeleri ekleyin.
                         </div>
+                    </div>
+                    <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
+                        <button class="btn-custom" style="background: #0284c7; color: white; padding: 8px 16px; font-size: 0.85rem;" onclick="saveAgendaAsTemplate()">
+                            <i class="fa-solid fa-bookmark"></i> Gündemi Şablon Olarak Kaydet
+                        </button>
                     </div>
                 </div>
 
@@ -824,7 +832,7 @@
             if (allFetchedPlans.length === 0 || forceReload) {
                 container.innerHTML = `<div style="text-align: center; padding: 3rem; color: #94a3b8;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="margin-bottom: 10px;"></i><br>Zümre toplantıları yükleniyor...</div>`;
                 try {
-                    const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_zumre_plans.json`);
+                    const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_zumre_plans.json?_t=${Date.now()}`, { cache: 'no-store' });
                     const data = await res.json();
                     allFetchedPlans = [];
                     if (data) {
@@ -924,9 +932,7 @@
                 }
 
                 if (isGuest) {
-                    const isIlveyaIlce = plan.turCode === 'il' || plan.turCode === 'ilce' || (plan.tur||'').toLowerCase().includes('il ') || (plan.tur||'').toLowerCase().includes('ilçe');
-                    if (!isIlveyaIlce) return false;
-
+                    if (selectedBranch === 'all') return false; // Guest must select a branch first
                     const bMatch = (plan.branch||'').toLowerCase().includes(selectedBranch.toLowerCase()) || 
                                    (plan.tur||'').toLowerCase().includes(selectedBranch.toLowerCase()) || 
                                    (plan.participants||[]).some(p => (p.gorev||'').toLowerCase().includes(selectedBranch.toLowerCase()));
@@ -2025,6 +2031,187 @@
                     activeAgendaList = [];
                     renderActiveAgendaList();
                     Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Gündem listesi temizlendi', showConfirmButton: false, timer: 1500 });
+                }
+            });
+        }
+
+        async function saveAgendaAsTemplate() {
+            if (activeAgendaList.length === 0) {
+                Swal.fire('Uyarı', 'Şablon olarak kaydetmek için önce toplantı gündem listesine madde eklemelisiniz.', 'warning');
+                return;
+            }
+
+            const { value: templateName } = await Swal.fire({
+                title: 'Şablon Adı Giriniz',
+                input: 'text',
+                inputLabel: 'Bu gündem şablonu tüm öğretmenler tarafından görünebilecektir.',
+                inputPlaceholder: 'Örn: Fizik 1. Dönem Sene Başı Gündemi',
+                showCancelButton: true,
+                confirmButtonText: 'Kaydet',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: 'var(--primary)',
+                inputValidator: (value) => {
+                    if (!value || !value.trim()) {
+                        return 'Lütfen bir şablon adı yazınız!';
+                    }
+                }
+            });
+
+            if (!templateName) return;
+
+            const turEl = document.getElementById('zumreTurSelect');
+            let branchName = "Genel";
+            if (turEl && turEl.value === 'brans') {
+                const bransVal = document.getElementById('bransSelect') ? document.getElementById('bransSelect').value : '';
+                branchName = bransVal.startsWith('group___') ? bransVal.replace('group___', '') : bransVal;
+            } else if (turEl && (turEl.value === 'il' || turEl.value === 'ilce')) {
+                const bransVal = document.getElementById('bransSelect') ? document.getElementById('bransSelect').value : '';
+                if (bransVal) branchName = bransVal.startsWith('group___') ? bransVal.replace('group___', '') : bransVal;
+            }
+
+            const creatorName = sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || 'Öğretmen';
+
+            const newTpl = {
+                id: 'tpl_' + Date.now(),
+                name: templateName.trim(),
+                branch: branchName || 'Genel',
+                creator: creatorName,
+                createdAt: new Date().toISOString(),
+                items: [...activeAgendaList]
+            };
+
+            Swal.fire({ title: 'Şablon Kaydediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_agenda_templates/${newTpl.id}.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newTpl)
+                });
+
+                if (res.ok) {
+                    Swal.fire({
+                        title: 'Şablon Kaydedildi! 🎉',
+                        text: `"${newTpl.name}" şablonu veritabanına eklendi ve tüm öğretmenlerin kullanımına açıldı.`,
+                        icon: 'success',
+                        confirmButtonText: 'Tamam',
+                        confirmButtonColor: 'var(--primary)'
+                    });
+                } else {
+                    const errText = await res.text();
+                    if (res.status === 401 || res.status === 403 || (errText && errText.toLowerCase().includes('permission'))) {
+                        throw new Error("Firebase Yetki Hatası: 'klbk_agenda_templates' tablosuna yazma izni verilmemiş.");
+                    }
+                    throw new Error("Veritabanı kaydı başarısız: " + (errText || res.status));
+                }
+            } catch (e) {
+                console.error("Şablon kaydetme hatası:", e);
+                Swal.fire({
+                    title: e.message && e.message.includes("Firebase Yetki Hatası") ? 'Firebase Yetki Hatası 🔒' : 'Hata', 
+                    html: e.message && e.message.includes("Firebase Yetki Hatası") ? `${e.message}<br><br>Lütfen Firebase Console -> Rules ekranına<br><code>"klbk_agenda_templates": { ".read": true, ".write": true }</code><br>kuralını ekleyin.` : 'Şablon kaydedilirken bir sorun oluştu.<br><br><small>' + (e.message || '') + '</small>', 
+                    icon: 'error'
+                });
+            }
+        }
+
+        async function openSelectTemplateModal() {
+            Swal.fire({ title: 'Şablonlar Yükleniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_agenda_templates.json?_t=${Date.now()}`, { cache: 'no-store' });
+                const data = await res.json();
+                Swal.close();
+
+                let templates = [];
+                if (data) {
+                    for (const [key, tpl] of Object.entries(data)) {
+                        if (tpl && typeof tpl === 'object') {
+                            tpl.id = tpl.id || key;
+                            templates.push(tpl);
+                        }
+                    }
+                }
+
+                templates.sort((a, b) => new Date(b.createdAt || '1970-01-01') - new Date(a.createdAt || '1970-01-01'));
+
+                if (templates.length === 0) {
+                    Swal.fire('Bilgi', 'Veritabanında henüz kayıtlı bir gündem şablonu bulunmuyor. Gündem listesinin altındaki "Gündemi Şablon Olarak Kaydet" butonu ile şablon oluşturabilirsiniz.', 'info');
+                    return;
+                }
+
+                let html = `<div style="max-height: 400px; overflow-y: auto; text-align: left; display: flex; flex-direction: column; gap: 10px; padding: 5px;">`;
+                templates.forEach(tpl => {
+                    const itemCount = (tpl.items || []).length;
+                    html += `
+                        <div style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px; background: #f8fafc; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                            <div>
+                                <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">${tpl.name || 'İsimsiz Şablon'}</div>
+                                <div style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">
+                                    <span style="background:#e0f2fe; color:#0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${tpl.branch || 'Genel'}</span>
+                                    • Ekleyen: ${tpl.creator || 'Öğretmen'} • <b>${itemCount} Madde</b>
+                                </div>
+                            </div>
+                            <button class="btn-custom" style="background: var(--primary); color: white; padding: 8px 14px; font-size: 0.85rem; flex-shrink: 0;" onclick="applyAgendaTemplate('${tpl.id}')">
+                                <i class="fa-solid fa-check"></i> Bu Şablonu Seç
+                            </button>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+
+                window._loadedAgendaTemplates = templates;
+
+                Swal.fire({
+                    title: 'Şablondan Gündem Seç',
+                    html: html,
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                    width: '650px'
+                });
+            } catch (e) {
+                console.error("Şablonlar yüklenemedi:", e);
+                Swal.fire('Hata', 'Şablonlar yüklenirken bir sorun oluştu.', 'error');
+            }
+        }
+
+        function applyAgendaTemplate(tplId) {
+            const templates = window._loadedAgendaTemplates || [];
+            const tpl = templates.find(t => t.id === tplId);
+            if (!tpl || !tpl.items || tpl.items.length === 0) {
+                Swal.fire('Hata', 'Şablon içeriği boş veya bulunamadı.', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Şablon Uygulansın mı?',
+                html: `<b>"${tpl.name}"</b> şablonundaki <b>${tpl.items.length}</b> madde toplantı gündeminize eklenecek.<br><br>Mevcut gündem listeniz ne olsun?`,
+                icon: 'question',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Mevcut Gündemin Üstüne Ekle',
+                denyButtonText: 'Mevcut Gündemi Temizle ve Ekle',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: 'var(--primary)',
+                denyButtonColor: '#e11d48'
+            }).then((res) => {
+                if (res.isConfirmed || res.isDenied) {
+                    if (res.isDenied) {
+                        activeAgendaList = [];
+                    }
+                    let added = 0;
+                    tpl.items.forEach(item => {
+                        if (!activeAgendaList.includes(item)) {
+                            activeAgendaList.push(item);
+                            added++;
+                        }
+                    });
+                    renderActiveAgendaList();
+                    Swal.fire({
+                        title: 'Başarılı',
+                        text: `${added} madde gündem listesine eklendi!`,
+                        icon: 'success',
+                        confirmButtonColor: 'var(--primary)'
+                    });
                 }
             });
         }
