@@ -486,8 +486,11 @@
                     </div>
                 </div>
 
-                <div style="margin-top: 2rem; text-align: right;">
-                    <button class="btn-custom btn-primary-custom" style="padding: 1rem 2.5rem; font-size: 1.1rem;" onclick="saveZumrePlan()">
+                <div style="margin-top: 2rem; text-align: right; display: flex; justify-content: flex-end; gap: 12px; align-items: center;">
+                    <button id="cancelEditBtn" class="btn-custom btn-secondary-custom" style="display: none; padding: 1rem 1.5rem; font-size: 1.1rem;" onclick="cancelEditZumrePlan()">
+                        <i class="fa-solid fa-xmark"></i> Düzenlemeyi İptal Et
+                    </button>
+                    <button id="saveZumreBtn" class="btn-custom btn-primary-custom" style="padding: 1rem 2.5rem; font-size: 1.1rem;" onclick="saveZumrePlan()">
                         <i class="fa-solid fa-floppy-disk"></i> Zümre Planını Kaydet ve Oluştur
                     </button>
                 </div>
@@ -507,7 +510,7 @@
                     </div>
                     <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
                         <!-- Branş Seçim Filtresi -->
-                        <div style="display: flex; align-items: center; gap: 8px; background: #f0fdfa; padding: 6px 14px; border: 2px solid #0d9488; border-radius: 12px;">
+                        <div id="gorusBransFilterContainer" style="display: flex; align-items: center; gap: 8px; background: #f0fdfa; padding: 6px 14px; border: 2px solid #0d9488; border-radius: 12px;">
                             <label style="font-size: 0.85rem; font-weight: 700; color: #0f766e; margin: 0;"><i class="fa-solid fa-filter"></i> Branşınız / Alan:</label>
                             <select id="gorusBransFilter" class="form-select-custom" style="padding: 6px 12px; font-size: 0.9rem; border-radius: 8px; border: 1px solid #0d9488; font-weight: 700; color: #0f766e; background: white; cursor: pointer;" onchange="filterAndRenderGorusList()">
                                 <option value="all">Tüm Branşlar</option>
@@ -671,6 +674,9 @@
         let loadedBulkMode = "ilce"; // "ilce" or "okul"
         let activeAgendaList = []; // Array of selected agenda strings
         let agendaPool = []; // Saved pool in localStorage
+        let editingPlanId = null;
+        let editingPlanOpinions = null;
+        let editingPlanCreatedAt = null;
 
         const DEFAULT_AGENDA_POOL = [
             "1. Açılış ve yoklama",
@@ -955,6 +961,9 @@
             const banner = document.getElementById('guestModeBanner');
             if (banner) banner.style.display = isGuest ? 'block' : 'none';
 
+            const filterContainer = document.getElementById('gorusBransFilterContainer');
+            if (filterContainer) filterContainer.style.display = isGuest ? 'flex' : 'none';
+
             const todayStr = new Date().toISOString().split('T')[0];
             const myNameNorm = normalizeTr(sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || '');
             const isAdminOrIdareci = myNameNorm.startsWith('admin') || myNameNorm.includes('mudur') || sessionStorage.getItem('klbk_role') === 'admin';
@@ -1018,6 +1027,20 @@
                 const aCount = (plan.agendaItems || []).length;
                 const isExpired = plan.tarih && plan.tarih < todayStr;
                 const branchDisplay = plan.branch && plan.branch !== 'Genel' ? plan.branch : (plan.participants && plan.participants[0] ? plan.participants[0].gorev : 'Genel Zümre');
+                let cleanBranch = branchDisplay ? branchDisplay.replace(/Zümresi|Toplantısı/gi, '').trim() : 'Genel';
+                if (!cleanBranch || cleanBranch === 'Genel') cleanBranch = 'Genel';
+                let formattedTitle = '';
+                if (plan.turCode === 'brans' || (plan.tur && plan.tur.includes('Branş'))) {
+                    formattedTitle = `${cleanBranch} Zümresi ${plan.donem} Toplantısı`;
+                } else if (plan.turCode === 'il' || (plan.tur && plan.tur.includes('İl Zümresi'))) {
+                    formattedTitle = `${cleanBranch} İl Zümresi ${plan.donem} Toplantısı`;
+                } else if (plan.turCode === 'ilce' || (plan.tur && plan.tur.includes('İlçe Zümresi'))) {
+                    formattedTitle = `${cleanBranch} İlçe Zümresi ${plan.donem} Toplantısı`;
+                } else if (plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖK'))) {
+                    formattedTitle = `${cleanBranch !== 'Genel' ? cleanBranch + ' ' : ''}ŞÖK ${plan.donem} Toplantısı`;
+                } else {
+                    formattedTitle = `${cleanBranch !== 'Genel' ? cleanBranch + ' ' : ''}${plan.tur || 'Zümre Toplantısı'} (${plan.donem || ''})`;
+                }
 
                 html += `
                     <div class="accordion-card" style="border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); transition: all 0.2s;">
@@ -1028,9 +1051,14 @@
                                 </div>
                                 <div>
                                     <div style="font-size: 1.05rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                        <span>${plan.donem} - ${plan.tur}</span>
-                                        <span style="font-size: 0.75rem; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 6px; font-weight: 700;">${branchDisplay}</span>
+                                        <span>${formattedTitle}</span>
                                         ${isExpired ? '<span style="font-size: 0.7rem; background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 6px; font-weight: 700;">Süresi Geçmiş</span>' : '<span style="font-size: 0.7rem; background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 6px; font-weight: 700;">Aktif Toplantı</span>'}
+                                        <button class="btn-custom" style="background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #bae6fd; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); editZumrePlan('${plan.id}')" title="Toplantıyı Düzenle">
+                                            <i class="fa-solid fa-pen-to-square"></i> Düzenle
+                                        </button>
+                                        <button class="btn-custom" style="background: #fee2e2; color: #b91c1c; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #fecaca; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); deleteZumrePlan('${plan.id}')" title="Toplantıyı Sil">
+                                            <i class="fa-solid fa-trash-can"></i> Sil
+                                        </button>
                                     </div>
                                     <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 12px;">
                                         <span><i class="fa-solid fa-calendar-day" style="color: var(--primary);"></i> Tarih: <b>${plan.tarih || 'Belirtilmedi'}</b></span>
@@ -2263,6 +2291,118 @@
             });
         }
 
+        // --- EDIT & DELETE ZUMRE PLAN ---
+        function editZumrePlan(planId) {
+            const plan = allFetchedPlans.find(p => p.id === planId);
+            if (!plan) return;
+
+            editingPlanId = plan.id;
+            editingPlanOpinions = plan.opinions || null;
+            editingPlanCreatedAt = plan.createdAt || null;
+
+            switchTab('plan');
+
+            const donemEl = document.getElementById('zumreDonemSelect');
+            if (donemEl && plan.donem) donemEl.value = plan.donem;
+
+            const turEl = document.getElementById('zumreTurSelect');
+            if (turEl && plan.turCode) {
+                turEl.value = plan.turCode;
+                handleTurChange(plan.turCode);
+                if (plan.turCode === 'brans' && plan.branch) {
+                    setTimeout(() => {
+                        const bransEl = document.getElementById('bransSelect');
+                        if (bransEl && Array.from(bransEl.options).some(o => o.value === plan.branch)) {
+                            bransEl.value = plan.branch;
+                        }
+                    }, 100);
+                }
+            }
+
+            if (document.getElementById('zumreTarih')) document.getElementById('zumreTarih').value = plan.tarih || '';
+            if (document.getElementById('zumreSaat')) document.getElementById('zumreSaat').value = plan.saat || '10:00';
+            if (document.getElementById('zumreYer')) document.getElementById('zumreYer').value = plan.yer || '';
+
+            if (plan.participants && Array.isArray(plan.participants)) {
+                participantsList = JSON.parse(JSON.stringify(plan.participants));
+                if (typeof renderParticipantsTable === 'function') renderParticipantsTable();
+            }
+
+            if (plan.agendaItems && Array.isArray(plan.agendaItems)) {
+                activeAgendaList = JSON.parse(JSON.stringify(plan.agendaItems));
+                if (typeof renderActiveAgendaList === 'function') renderActiveAgendaList();
+            }
+
+            const saveBtn = document.getElementById('saveZumreBtn');
+            if (saveBtn) {
+                saveBtn.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Değişiklikleri Kaydet (Güncelle)`;
+                saveBtn.classList.remove('btn-primary-custom');
+                saveBtn.style.background = '#0d9488';
+                saveBtn.style.color = 'white';
+            }
+            const cancelBtn = document.getElementById('cancelEditBtn');
+            if (cancelBtn) cancelBtn.style.display = 'inline-flex';
+
+            Swal.fire({
+                title: 'Düzenleme Modu 📝',
+                html: `<b>${plan.donem} - ${plan.tur}</b> toplantısı düzenleme için 1. sekmeye yüklendi.<br><br>Değişikliklerinizi yaptıktan sonra sayfa altındaki <b>"Değişiklikleri Kaydet"</b> butonuna basarak güncelleyebilirsiniz.`,
+                icon: 'info',
+                confirmButtonText: 'Anladım',
+                confirmButtonColor: 'var(--primary)'
+            });
+        }
+
+        function cancelEditZumrePlan() {
+            editingPlanId = null;
+            editingPlanOpinions = null;
+            editingPlanCreatedAt = null;
+            const saveBtn = document.getElementById('saveZumreBtn');
+            if (saveBtn) {
+                saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Zümre Planını Kaydet ve Oluştur`;
+                saveBtn.style.background = '';
+                saveBtn.classList.add('btn-primary-custom');
+            }
+            const cancelBtn = document.getElementById('cancelEditBtn');
+            if (cancelBtn) cancelBtn.style.display = 'none';
+
+            switchTab('gorus');
+        }
+
+        async function deleteZumrePlan(planId) {
+            const plan = allFetchedPlans.find(p => p.id === planId);
+            if (!plan) return;
+
+            const res = await Swal.fire({
+                title: 'Toplantı Silinecek?',
+                html: `<b>${plan.donem} - ${plan.tur}</b> toplantı kaydını silmek istediğinize emin misiniz?<br><br><small style="color:#ef4444;">Bu işlem geri alınamaz ve işlenmiş tüm görüşler/kararlar silinir.</small>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Evet, Kalıcı Olarak Sil',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#ef4444'
+            });
+
+            if (!res.isConfirmed) return;
+
+            Swal.fire({ title: 'Siliniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            try {
+                const delRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_zumre_plans/${planId}.json`, {
+                    method: 'DELETE'
+                });
+
+                if (delRes.ok) {
+                    allFetchedPlans = allFetchedPlans.filter(p => p.id !== planId);
+                    if (typeof filterAndRenderGorusList === 'function') filterAndRenderGorusList();
+                    Swal.fire('Silindi!', 'Zümre toplantı kaydı başarıyla silindi.', 'success');
+                } else {
+                    throw new Error("Silme işlemi başarısız: " + delRes.status);
+                }
+            } catch (e) {
+                console.error("Silme hatası:", e);
+                Swal.fire('Hata', 'Zümre silinirken bir sorun oluştu: ' + (e.message || ''), 'error');
+            }
+        }
+
         // --- SAVE PLAN ---
         async function saveZumrePlan() {
             const donemEl = document.getElementById('zumreDonemSelect');
@@ -2328,7 +2468,7 @@
             }
 
             const newPlan = {
-                id: 'zumre_' + Date.now(),
+                id: editingPlanId || ('zumre_' + Date.now()),
                 donem: donemText,
                 tur: turText,
                 turCode: turEl.value,
@@ -2338,10 +2478,13 @@
                 yer: yer,
                 planner: plannerName,
                 school: schoolName,
-                createdAt: new Date().toISOString(),
+                createdAt: editingPlanCreatedAt || new Date().toISOString(),
                 participants: participantsList,
                 agendaItems: activeAgendaList
             };
+            if (editingPlanOpinions) {
+                newPlan.opinions = editingPlanOpinions;
+            }
 
             Swal.fire({ title: 'Zümre Planı Kaydediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
@@ -2353,13 +2496,29 @@
                 });
 
                 if (res.ok) {
+                    const wasEditing = !!editingPlanId;
+                    if (wasEditing) {
+                        allFetchedPlans = allFetchedPlans.filter(p => p.id !== newPlan.id);
+                    }
                     allFetchedPlans.push(newPlan);
                     allFetchedPlans.sort((a, b) => new Date(b.tarih || '1970-01-01') - new Date(a.tarih || '1970-01-01'));
                     if (typeof filterAndRenderGorusList === 'function') filterAndRenderGorusList();
 
+                    editingPlanId = null;
+                    editingPlanOpinions = null;
+                    editingPlanCreatedAt = null;
+                    const saveBtn = document.getElementById('saveZumreBtn');
+                    if (saveBtn) {
+                        saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Zümre Planını Kaydet ve Oluştur`;
+                        saveBtn.style.background = '';
+                        saveBtn.classList.add('btn-primary-custom');
+                    }
+                    const cancelBtn = document.getElementById('cancelEditBtn');
+                    if (cancelBtn) cancelBtn.style.display = 'none';
+
                     Swal.fire({
-                        title: 'Zümre Planı Oluşturuldu! 🎉',
-                        html: `<b>${donemText} - ${turText}</b> planı başarıyla kaydedildi.<br><br>Toplantıya toplam <b>${participantsList.length}</b> katılımcı ve <b>${activeAgendaList.length}</b> gündem maddesi tanımlandı.<br><br><small style="color:var(--primary);">💡 Yukarıdaki <b>"2. Zümre Görüş İşleme"</b> sekmesinden toplantıyı görebilir ve görüş/karar işleyebilirsiniz.</small>`,
+                        title: wasEditing ? 'Zümre Planı Güncellendi! 🎉' : 'Zümre Planı Oluşturuldu! 🎉',
+                        html: `<b>${donemText} - ${turText}</b> planı başarıyla ${wasEditing ? 'güncellendi' : 'kaydedildi'}.<br><br>Toplantıya toplam <b>${participantsList.length}</b> katılımcı ve <b>${activeAgendaList.length}</b> gündem maddesi tanımlandı.<br><br><small style="color:var(--primary);">💡 Yukarıdaki <b>"2. Zümre Görüş İşleme"</b> sekmesinden toplantıyı görebilir ve görüş/karar işleyebilirsiniz.</small>`,
                         icon: 'success',
                         confirmButtonText: 'Tamam',
                         confirmButtonColor: 'var(--primary)'
