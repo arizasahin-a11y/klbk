@@ -1150,11 +1150,19 @@
                     });
                     filterAndRenderGorusList();
                 } else {
-                    throw new Error("Veritabanı güncelleme hatası");
+                    const errText = await res.text();
+                    if (res.status === 401 || res.status === 403 || (errText && errText.toLowerCase().includes('permission'))) {
+                        throw new Error("Firebase Yetki Hatası: Veritabanı güvenlik kurallarında 'klbk_zumre_plans' tablosuna yazma izni (write) verilmemiş.<br><br>Lütfen Firebase Console -> Realtime Database -> Rules ekranından izni ekleyin.");
+                    }
+                    throw new Error("Veritabanı güncelleme hatası: " + (errText || res.status));
                 }
             } catch (e) {
                 console.error("Görüş ekleme hatası:", e);
-                Swal.fire('Hata', 'Görüş işlenirken bir ağ veya sunucu hatası oluştu.', 'error');
+                Swal.fire({
+                    title: e.message && e.message.includes("Firebase Yetki Hatası") ? 'Firebase Yetki Hatası 🔒' : 'Hata', 
+                    html: e.message && e.message.includes("Firebase Yetki Hatası") ? e.message : 'Görüş işlenirken bir ağ veya sunucu hatası oluştu.<br><br><small style="color:#ef4444;">' + (e.message || '') + '</small>', 
+                    icon: 'error'
+                });
             }
         }
 
@@ -2111,11 +2119,19 @@
                         confirmButtonColor: 'var(--primary)'
                     });
                 } else {
-                    throw new Error("Veritabanı kaydı başarısız");
+                    const errText = await res.text();
+                    if (res.status === 401 || res.status === 403 || (errText && errText.toLowerCase().includes('permission'))) {
+                        throw new Error("Firebase Yetki Hatası: Veritabanı güvenlik kurallarında (Security Rules) 'klbk_zumre_plans' tablosuna yazma izni verilmemiş.<br><br>Lütfen <b>Firebase Console -> Realtime Database -> Rules</b> sekmesine giderek kurallar listesine<br><code>\"klbk_zumre_plans\": { \".read\": true, \".write\": true }</code><br>tanımını ekleyin.");
+                    }
+                    throw new Error("Veritabanı kaydı başarısız: " + (errText || res.status));
                 }
             } catch (e) {
                 console.error("Kaydetme hatası:", e);
-                Swal.fire('Hata', 'Zümre planı kaydedilirken bir sorun oluştu.', 'error');
+                Swal.fire({
+                    title: e.message && e.message.includes("Firebase Yetki Hatası") ? 'Firebase Yetki Hatası 🔒' : 'Hata', 
+                    html: e.message && e.message.includes("Firebase Yetki Hatası") ? e.message : 'Zümre planı kaydedilirken bir sorun oluştu.<br><br><small style="color:#ef4444;">' + (e.message || '') + '</small>', 
+                    icon: 'error'
+                });
             }
         }
     </script>

@@ -20,6 +20,11 @@
         ".write": true
       },
       
+      "klbk_zumre_plans": {
+        ".read": true,
+        ".write": true
+      },
+      
       "$storeKey": {
         ".write": "!data.exists() || (newData.child('_sessionToken').exists() && root.child('app_store/active_sessions/' + newData.child('_sessionToken').val()).exists() && root.child('app_store/active_sessions/' + newData.child('_sessionToken').val() + '/storeKey').val() == $storeKey && root.child('app_store/active_sessions/' + newData.child('_sessionToken').val() + '/expiresAt').val() > now)"
       }
