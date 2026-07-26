@@ -887,16 +887,10 @@
 
             filterEl.innerHTML = html;
 
-            const isGuest = sessionStorage.getItem('klbk_guestMode') === 'true';
-            if (!isGuest && currentVal === 'all') {
-                const myName = sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || '';
-                const myTeacherObj = schoolTeachersList.find(t => t.name.toLowerCase() === myName.toLowerCase() || t.id.toLowerCase() === myName.toLowerCase());
-                if (myTeacherObj && myTeacherObj.branchList && myTeacherObj.branchList.length > 0) {
-                    const match = sortedBranches.find(b => myTeacherObj.branchList.some(mb => mb.toLowerCase() === b.toLowerCase()));
-                    if (match) filterEl.value = match;
-                }
-            } else if (currentVal && Array.from(filterEl.options).some(o => o.value === currentVal)) {
+            if (currentVal && Array.from(filterEl.options).some(o => o.value === currentVal)) {
                 filterEl.value = currentVal;
+            } else {
+                filterEl.value = 'all'; // Default olarak her zaman "Tüm Branşlar / Genel" seçili kalsın ki toplantılar kaybolmasın!
             }
         }
 
@@ -910,44 +904,25 @@
             const banner = document.getElementById('guestModeBanner');
             if (banner) banner.style.display = isGuest ? 'block' : 'none';
 
-            if (isGuest && selectedBranch === 'all') {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 4rem 2rem; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 16px; color: #64748b;">
-                        <i class="fa-solid fa-hand-pointer fa-3x" style="color: var(--primary); margin-bottom: 1rem;"></i>
-                        <h3 style="font-weight: 800; color: #1e293b; margin-bottom: 8px;">Lütfen Branşınızı Seçiniz</h3>
-                        <p style="max-width: 500px; margin: 0 auto; font-size: 0.95rem;">
-                            Sisteme misafir girişi yaptığınız için, görüş ve karar bildirmek istediğiniz <b>Branşı / Alanı</b> yukarıdaki açılır listeden seçmelisiniz. Seçiminizden sonra o branşa ait <b>İl ve İlçe Zümreleri</b> listelenecektir.
-                        </p>
-                    </div>
-                `;
-                return;
-            }
-
             const todayStr = new Date().toISOString().split('T')[0];
-            const myName = sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || '';
+            const myName = (sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || '').toLowerCase();
+            const isAdminOrIdareci = myName.startsWith('admin') || myName.includes('müdür') || sessionStorage.getItem('klbk_role') === 'admin';
 
             const filtered = allFetchedPlans.filter(plan => {
                 if (!showExpired && plan.tarih && plan.tarih < todayStr) {
                     return false;
                 }
 
-                if (isGuest) {
-                    if (selectedBranch === 'all') return false; // Guest must select a branch first
-                    const bMatch = (plan.branch||'').toLowerCase().includes(selectedBranch.toLowerCase()) || 
-                                   (plan.tur||'').toLowerCase().includes(selectedBranch.toLowerCase()) || 
-                                   (plan.participants||[]).some(p => (p.gorev||'').toLowerCase().includes(selectedBranch.toLowerCase()));
-                    return bMatch;
-                }
-
-                if (selectedBranch === 'all') {
+                if (selectedBranch === 'all' || isAdminOrIdareci) {
                     return true;
                 }
 
-                const bMatch = (plan.branch||'').toLowerCase().includes(selectedBranch.toLowerCase()) || 
-                               (plan.tur||'').toLowerCase().includes(selectedBranch.toLowerCase()) || 
-                               (plan.participants||[]).some(p => (p.gorev||'').toLowerCase().includes(selectedBranch.toLowerCase()));
+                const sBranch = selectedBranch.toLowerCase();
+                const bMatch = (plan.branch && plan.branch.toLowerCase().includes(sBranch)) || 
+                               (plan.tur && plan.tur.toLowerCase().includes(sBranch)) || 
+                               (plan.participants && Array.isArray(plan.participants) && plan.participants.some(p => p && p.gorev && p.gorev.toLowerCase().includes(sBranch)));
 
-                const nameMatch = myName && ((plan.planner && plan.planner.toLowerCase() === myName.toLowerCase()) || (plan.participants||[]).some(p => p.name.toLowerCase().includes(myName.toLowerCase()) || myName.toLowerCase().includes(p.name.toLowerCase())));
+                const nameMatch = myName && ((plan.planner && plan.planner.toLowerCase() === myName) || (plan.participants && Array.isArray(plan.participants) && plan.participants.some(p => p && p.name && (p.name.toLowerCase().includes(myName) || myName.includes(p.name.toLowerCase())))));
 
                 return bMatch || nameMatch;
             });
