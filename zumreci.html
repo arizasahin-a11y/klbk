@@ -1169,11 +1169,26 @@
                                    <span style="color: #94a3b8; font-weight: 500;">(${op.time || ''})</span>
                                </div>`;
 
+                        let displayText = op.text || '';
+                        if (!isDec && op.author && op.author !== "Karar") {
+                            const cleanText = displayText.trim();
+                            if (op.style === 'konusma') {
+                                const hasQuotes = cleanText.startsWith('"') && cleanText.endsWith('"');
+                                const quotedText = hasQuotes ? cleanText : `"${cleanText}"`;
+                                const endsWithDedi = /dedi\.?$/i.test(cleanText);
+                                displayText = `<span style="font-weight: 600; color: #0f766e;">${op.author}</span>, ${quotedText}${endsWithDedi ? '' : ' dedi.'}`;
+                            } else if (op.style === 'anlatim') {
+                                const endsWithVerb = /(söyledi|belirtti|ifade etti|vurguladı|dile getirdi|kaydetti|aktardı|savundu|önerdi)\.?$/i.test(cleanText);
+                                const formattedText = cleanText.endsWith('.') ? cleanText.slice(0, -1) : cleanText;
+                                displayText = `<span style="font-weight: 600; color: #475569;">${op.author}</span>, ${formattedText}${endsWithVerb ? '.' : ' söyledi.'}`;
+                            }
+                        }
+
                         opHtml += `
                             <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding-bottom: 8px; border-bottom: ${opIdx < opinionsList.length - 1 ? '1px dashed #e2e8f0' : 'none'};">
                                 <div style="flex: 1;">
                                     ${authorBadge}
-                                    <div style="font-size: 0.9rem; color: #334155; margin-top: 4px; line-height: 1.4;">${op.text}</div>
+                                    <div style="font-size: 0.9rem; color: #334155; margin-top: 6px; line-height: 1.5;">${displayText}</div>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
                                     <button class="btn-custom" style="background: #f1f5f9; color: #0369a1; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; border: 1px solid #cbd5e1; cursor: pointer;" onclick="editAgendaOpinion('${plan.id}', ${idx}, ${opIdx})" title="Görüşü Düzenle">
