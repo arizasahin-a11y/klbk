@@ -12,7 +12,8 @@
       },
       
       "klbk_users": {
-        ".write": false
+        ".read": true,
+        ".write": true
       },
       
       "klbk_activity_log": {
