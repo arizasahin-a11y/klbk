@@ -1087,11 +1087,15 @@
                         </div>
 
                         <div id="body_${plan.id}" style="display: ${displayStyle}; padding: 24px; border-top: 1px solid #e2e8f0; background: #ffffff;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #f1f5f9;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 2px solid #f1f5f9; flex-wrap: wrap; gap: 10px;">
                                 <h4 style="margin: 0; font-size: 1.1rem; color: #1e293b; font-weight: 800;">
                                     <i class="fa-solid fa-list-check" style="color: var(--primary); margin-right: 8px;"></i> Gündem Maddeleri ve Görüş / Karar Girişi
                                 </h4>
-                                <span style="font-size: 0.8rem; color: #64748b;">Her gündem maddesinin altındaki alandan görüş veya alınan kararı işleyebilirsiniz.</span>
+                                <span style="font-size: 0.8rem; color: #64748b;">Her gündem maddesinin sağındaki butondan görüş veya karar ekleyebilirsiniz.</span>
+                            </div>
+                            <div style="margin-bottom: 18px; padding: 12px 16px; background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 10px; display: flex; align-items: center; gap: 12px; font-size: 0.82rem; color: #0f766e;">
+                                <i class="fa-solid fa-circle-info" style="color: #0d9488; font-size: 1.2rem; flex-shrink: 0;"></i>
+                                <div><b>İpucu:</b> Kendi adınızla görüş eklemek için <b>Görüş / Karar Ekle</b> butonuna <b>normal tıklayın / dokunun</b>; kullanıcı adı olmadan ortak alınan kararı (önünde <b>"Karar:"</b> ibaresiyle) eklemek için ise butona <b>PC'de sağ tıklayın</b> veya <b>telefonda uzun basılı tutun</b>.</div>
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 16px;">
                                 ${renderPlanAgendaItems(plan)}
@@ -1186,23 +1190,19 @@
 
                 html += `
                     <div style="padding: 16px; background: ${boxBg}; border: ${boxBorder}; border-radius: 12px; transition: all 0.3s;">
-                        <div style="font-weight: 800; color: ${titleColor}; font-size: 0.95rem; display: flex; align-items: flex-start; gap: 10px;">
-                            <span style="background: ${badgeBg}; color: white; width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; font-weight: 700;">${hasOpinion ? '<i class="fa-solid fa-check"></i>' : (idx + 1)}</span>
-                            <span style="margin-top: 2px;">${item}</span>
-                            ${hasOpinion ? '<span style="margin-left: auto; background: #dcfce7; color: #15803d; font-size: 0.7rem; padding: 2px 8px; border-radius: 6px; font-weight: 700; flex-shrink: 0;"><i class="fa-solid fa-circle-check"></i> İşlendi</span>' : ''}
-                        </div>
-                        <div style="padding-left: 36px;">
-                            ${opHtml}
-                            <div style="margin-top: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-                                <button class="btn-custom btn-primary-custom" style="padding: 10px 20px; font-size: 0.85rem; font-weight: 700; user-select: none; -webkit-user-select: none;" onclick="if(window.gorusTouchHandled) { window.gorusTouchHandled = false; return; } openAddOpinionModal('${plan.id}', ${idx}, false)" oncontextmenu="event.preventDefault(); openAddOpinionModal('${plan.id}', ${idx}, true); return false;" ontouchstart="startGorusTouchTimer(event, '${plan.id}', ${idx})" ontouchend="cancelGorusTouchTimer(event)" ontouchmove="cancelGorusTouchTimer(event)" title="Normal Görüş: Sol Tıkla / Dokun &#10;Ortak Karar (Kullanıcısız): Sağ Tıkla / Uzun Bas">
+                        <div style="font-weight: 800; color: ${titleColor}; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 220px;">
+                                <span style="background: ${badgeBg}; color: white; width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; font-weight: 700;">${hasOpinion ? '<i class="fa-solid fa-check"></i>' : (idx + 1)}</span>
+                                <span style="margin-top: 2px;">${item}</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                                ${hasOpinion ? '<span style="background: #dcfce7; color: #15803d; font-size: 0.7rem; padding: 4px 8px; border-radius: 6px; font-weight: 700;"><i class="fa-solid fa-circle-check"></i> İşlendi</span>' : ''}
+                                <button class="btn-custom btn-primary-custom" style="padding: 6px 14px; font-size: 0.8rem; font-weight: 700; user-select: none; -webkit-user-select: none; border-radius: 8px; box-shadow: 0 2px 4px rgba(13,148,136,0.15);" onclick="if(window.gorusTouchHandled) { window.gorusTouchHandled = false; return; } openAddOpinionModal('${plan.id}', ${idx}, false)" oncontextmenu="event.preventDefault(); openAddOpinionModal('${plan.id}', ${idx}, true); return false;" ontouchstart="startGorusTouchTimer(event, '${plan.id}', ${idx})" ontouchend="cancelGorusTouchTimer(event)" ontouchmove="cancelGorusTouchTimer(event)" title="Normal Görüş: Sol Tıkla / Dokun &#10;Ortak Karar (Kullanıcısız): Sağ Tıkla / Uzun Bas">
                                     <i class="fa-solid fa-plus-circle"></i> Görüş / Karar Ekle
                                 </button>
-                                <div style="font-size: 0.75rem; color: #64748b; display: flex; align-items: center; gap: 6px;">
-                                    <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i>
-                                    <span><b>İpucu:</b> Kendi adınızla görüş eklemek için normal tıklayın; <b>"Karar:"</b> olarak eklemek için <b>PC'de sağ tıklayın</b> veya <b>telefonda uzun basılı tutun</b>.</span>
-                                </div>
                             </div>
                         </div>
+                        ${opHtml ? `<div style="padding-left: 36px; margin-top: 8px;">${opHtml}</div>` : ''}
                     </div>
                 `;
             });
