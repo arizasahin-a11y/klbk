@@ -349,42 +349,30 @@
                     <i class="fa-solid fa-layer-group" style="color: var(--primary);"></i> 1. Zümre Dönemi ve Türü Belirleme
                 </h3>
 
-                <div class="form-group">
-                    <label class="form-label">Zümre Dönemi Seçin</label>
-                    <div class="radio-group" id="donemRadioGroup">
-                        <label class="radio-card selected" onclick="selectRadioCard(this, 'donem')">
-                            <input type="radio" name="zumreDonem" value="Sene Başı" checked> Sene Başı Zümresi
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" for="zumreDonemSelect">
+                            <i class="fa-solid fa-calendar-days" style="color: var(--primary); margin-right: 6px;"></i>Zümre Dönemi Seçin
                         </label>
-                        <label class="radio-card" onclick="selectRadioCard(this, 'donem')">
-                            <input type="radio" name="zumreDonem" value="2. Dönem Başı"> 2. Dönem Başı Zümresi
-                        </label>
-                        <label class="radio-card" onclick="selectRadioCard(this, 'donem')">
-                            <input type="radio" name="zumreDonem" value="Sene Sonu"> Sene Sonu Zümresi
-                        </label>
-                        <label class="radio-card" onclick="selectRadioCard(this, 'donem')">
-                            <input type="radio" name="zumreDonem" value="Ek Zümre"> Ek Zümre Toplantısı
-                        </label>
+                        <select id="zumreDonemSelect" class="form-select-custom" style="font-weight: 600; cursor: pointer; border: 2px solid #0d9488; background-color: #f0fdfa; color: #0f766e; padding: 0.9rem 1rem; border-radius: 12px; font-size: 1rem; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.1);">
+                            <option value="Sene Başı">Sene Başı Zümresi</option>
+                            <option value="2. Dönem Başı">2. Dönem Başı Zümresi</option>
+                            <option value="Sene Sonu">Sene Sonu Zümresi</option>
+                            <option value="Ek Zümre">Ek Zümre Toplantısı</option>
+                        </select>
                     </div>
-                </div>
 
-                <div class="form-group" style="margin-top: 1.5rem; margin-bottom: 0;">
-                    <label class="form-label">Zümre Türü Seçin</label>
-                    <div class="radio-group" id="turRadioGroup">
-                        <label class="radio-card selected" onclick="selectRadioCard(this, 'tur'); handleTurChange('il');">
-                            <input type="radio" name="zumreTur" value="il" checked> İl Zümresi Toplantısı
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" for="zumreTurSelect">
+                            <i class="fa-solid fa-users-gear" style="color: var(--primary); margin-right: 6px;"></i>Zümre Türü Seçin
                         </label>
-                        <label class="radio-card" onclick="selectRadioCard(this, 'tur'); handleTurChange('ilce');">
-                            <input type="radio" name="zumreTur" value="ilce"> İlçe Zümresi Toplantısı
-                        </label>
-                        <label class="radio-card" onclick="selectRadioCard(this, 'tur'); handleTurChange('okul_baskan');">
-                            <input type="radio" name="zumreTur" value="okul_baskan"> Okul Zümre Başkanları Toplantısı
-                        </label>
-                        <label class="radio-card" onclick="selectRadioCard(this, 'tur'); handleTurChange('sok');">
-                            <input type="radio" name="zumreTur" value="sok"> ŞÖK (Şube Öğretmenler Kurulu)
-                        </label>
-                        <label class="radio-card" onclick="selectRadioCard(this, 'tur'); handleTurChange('brans');">
-                            <input type="radio" name="zumreTur" value="brans"> Branş Zümresi Toplantısı
-                        </label>
+                        <select id="zumreTurSelect" class="form-select-custom" style="font-weight: 600; cursor: pointer; border: 2px solid #0d9488; background-color: #f0fdfa; color: #0f766e; padding: 0.9rem 1rem; border-radius: 12px; font-size: 1rem; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.1);" onchange="handleTurChange(this.value)">
+                            <option value="il">İl Zümresi Toplantısı</option>
+                            <option value="ilce">İlçe Zümresi Toplantısı</option>
+                            <option value="okul_baskan">Okul Zümre Başkanları Toplantısı</option>
+                            <option value="sok">ŞÖK (Şube Öğretmenler Kurulu)</option>
+                            <option value="brans">Branş Zümresi Toplantısı</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -553,7 +541,7 @@
 
     <script>
         const FIREBASE_DB_URL = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
-        let currentZumreTur = "il";
+        let currentZumreTur = "brans";
         let participantsList = []; // Array of { id, name, kurum, gorev }
         let schoolTeachersList = []; // Fetched teachers from database
         let loadedBulkMode = "ilce"; // "ilce" or "okul"
@@ -635,8 +623,8 @@
             // Load teachers from DataManager or Firebase for selectors
             fetchSchoolTeachers();
             
-            // Initialize UI for default type
-            handleTurChange('il');
+            // Initialize UI for default type and date rules
+            setDefaultZumreSelections();
         }
 
         function logoutZumreci() {
@@ -670,12 +658,32 @@
             }
         }
 
-        function selectRadioCard(labelEl, groupType) {
-            const containerId = groupType === 'donem' ? 'donemRadioGroup' : 'turRadioGroup';
-            document.querySelectorAll(`#${containerId} .radio-card`).forEach(el => el.classList.remove('selected'));
-            labelEl.classList.add('selected');
-            const radio = labelEl.querySelector('input[type="radio"]');
-            if (radio) radio.checked = true;
+        function setDefaultZumreSelections() {
+            const donemSelect = document.getElementById('zumreDonemSelect');
+            const turSelect = document.getElementById('zumreTurSelect');
+            if (!donemSelect || !turSelect) return;
+
+            const now = new Date();
+            const month = now.getMonth() + 1; // 1 ile 12 arası
+
+            let defaultDonem = "Sene Başı";
+            if (month === 7 || month === 8 || month === 9) {
+                defaultDonem = "Sene Başı";
+            } else if (month === 10 || month === 11 || month === 12 || month === 1) {
+                defaultDonem = "Ek Zümre";
+            } else if (month === 2) {
+                defaultDonem = "2. Dönem Başı";
+            } else if (month >= 3 && month <= 5) {
+                defaultDonem = "Ek Zümre";
+            } else if (month === 6) {
+                defaultDonem = "Sene Sonu";
+            } else {
+                defaultDonem = "Sene Başı";
+            }
+
+            donemSelect.value = defaultDonem;
+            turSelect.value = "brans";
+            handleTurChange("brans");
         }
 
         async function fetchSchoolTeachers() {
@@ -1127,8 +1135,8 @@
 
         // --- SAVE PLAN ---
         async function saveZumrePlan() {
-            const donemEl = document.querySelector('input[name="zumreDonem"]:checked');
-            const turEl = document.querySelector('input[name="zumreTur"]:checked');
+            const donemEl = document.getElementById('zumreDonemSelect');
+            const turEl = document.getElementById('zumreTurSelect');
             const tarih = document.getElementById('zumreTarih').value;
             const saat = document.getElementById('zumreSaat').value;
             const yer = document.getElementById('zumreYer').value.trim() || 'Belirtilmedi';
