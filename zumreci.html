@@ -960,6 +960,15 @@
             const myNameNorm = normalizeTr(sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || '');
             const isAdminOrIdareci = myNameNorm.startsWith('admin') || myNameNorm.includes('mudur') || sessionStorage.getItem('klbk_role') === 'admin';
 
+            console.log("🔍 [Zümre Görüş Filtresi] Çalıştırıldı:", {
+                toplamHavuz: allFetchedPlans.length,
+                seciliBrans: selectedBranch,
+                suresiGecenleriGoster: showExpired,
+                misafirModu: isGuest,
+                kullanici: myNameNorm || 'Belirtilmedi (Misafir)',
+                adminVeyaIdareciMi: isAdminOrIdareci
+            });
+
             const filtered = allFetchedPlans.filter(plan => {
                 if (!showExpired && plan.tarih && plan.tarih < todayStr) {
                     return false;
@@ -988,6 +997,8 @@
 
                 return bMatch || nameMatch;
             });
+
+            console.log(`🎯 [Zümre Görüş Filtresi] Toplam ${allFetchedPlans.length} kayıttan ${filtered.length} tanesi gösterilecek.`);
 
             if (filtered.length === 0) {
                 container.innerHTML = `
