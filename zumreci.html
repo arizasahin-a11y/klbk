@@ -422,12 +422,45 @@
                     </div>
                 </div>
 
-                <!-- Toplantı Detayları (Tarih, Saat, Yer vs.) -->
-                <div style="margin-top: 2rem; border-top: 1px solid #e2e8f0; padding-top: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
-                    <div class="form-group" style="margin: 0;">
-                        <label class="form-label"><i class="fa-solid fa-calendar-days"></i> Toplantı Tarihi</label>
-                        <input type="date" id="zumreTarih" class="form-control-custom">
+                <!-- 3. Gündem Maddelerinin Belirlenmesi -->
+                <div style="margin-top: 2rem; border-top: 1px solid #e2e8f0; padding-top: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
+                        <h3 style="margin: 0; color: var(--dark); font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-list-check" style="color: var(--primary);"></i> 3. Gündem Maddelerinin Belirlenmesi
+                        </h3>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn-custom btn-primary-custom" onclick="openAgendaPoolModal()">
+                                <i class="fa-solid fa-folder-plus"></i> Gündem Maddesi Ekle (Havuza Yükle)
+                            </button>
+                            <button class="btn-custom btn-secondary-custom" onclick="openSelectAgendaModal()">
+                                <i class="fa-solid fa-check-double"></i> Gündem Maddesi Seç (Havuzdan)
+                            </button>
+                        </div>
                     </div>
+                    <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px;">Toplantıda görüşülecek gündem maddelerini havuza kaydedebilir, havuzdan seçebilir ve listedeki yerlerini (sırasını) yukarı/aşağı değiştirebilirsiniz.</p>
+
+                    <div style="font-weight: 700; color: #475569; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>Toplantı Gündem Listesi (<span id="agendaCount">0</span> Madde)</span>
+                        <button class="btn-custom btn-secondary-custom" style="padding: 4px 10px; font-size: 0.8rem;" onclick="clearAllAgendas()"><i class="fa-solid fa-trash-can"></i> Gündemi Temizle</button>
+                    </div>
+                    
+                    <div id="activeAgendaList" style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="text-align: center; padding: 2rem; color: #94a3b8; border: 1px dashed #cbd5e1; border-radius: 10px; background: #f8fafc;">
+                            Henüz gündem maddesi seçilmedi. Yukarıdaki "Gündem Maddesi Seç" butonunu kullanarak maddeleri ekleyin.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Toplantı Detayları (Tarih, Saat, Yer vs.) -->
+                <div style="margin-top: 2rem; border-top: 1px solid #e2e8f0; padding-top: 1.5rem;">
+                    <h3 style="margin: 0 0 1rem 0; color: var(--dark); font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-clock-rotate-left" style="color: var(--primary);"></i> 4. Toplantı Detayları ve Kayıt
+                    </h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label"><i class="fa-solid fa-calendar-days"></i> Toplantı Tarihi</label>
+                            <input type="date" id="zumreTarih" class="form-control-custom">
+                        </div>
                     <div class="form-group" style="margin: 0;">
                         <label class="form-label"><i class="fa-solid fa-clock"></i> Toplantı Saati</label>
                         <input type="time" id="zumreSaat" class="form-control-custom" value="10:00">
@@ -539,12 +572,92 @@
         </div>
     </div>
 
+    <!-- MODAL: GÜNDEM MADDESİ HAVUZU YÜKLEME / DÜZENLEME -->
+    <div id="agendaPoolModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 650px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                <div>
+                    <h3 style="margin: 0; color: var(--dark); font-size: 1.25rem;"><i class="fa-solid fa-folder-plus" style="color: var(--primary); margin-right: 8px;"></i>Gündem Maddesi Havuzu</h3>
+                    <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #64748b;">Her satıra bir gündem maddesi gelecek şekilde yazın veya yapıştırın.</p>
+                </div>
+                <button class="btn-custom btn-secondary-custom" style="padding: 6px 10px; border-radius: 50%;" onclick="closeAgendaPoolModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="form-group">
+                <textarea id="agendaPoolTextArea" class="form-control-custom" rows="10" style="font-family: inherit; font-size: 0.9rem; line-height: 1.5; padding: 12px;" placeholder="Örn:&#10;1. Açılış ve yoklama&#10;2. Zümre başkanı, başkan yardımcısı ve yazmanın seçilmesi&#10;3. Bir önceki zümre kararlarının gözden geçirilmesi&#10;4. Atatürkçülük ve İnkılap Tarihi konularının derslerde işlenişi&#10;5. Yıllık planların ve ders dağılımlarının yapılması&#10;6. Ölçme ve değerlendirme esaslarının (ortak sınavlar) belirlenmesi&#10;7. Dilek ve temenniler, kapanış"></textarea>
+            </div>
+
+            <div style="margin-top: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <span style="font-size: 0.8rem; color: var(--primary); font-weight: 600;"><i class="fa-solid fa-circle-info"></i> Kaydedildiğinde havuzunuz otomatik güncellenir.</span>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-custom btn-secondary-custom" onclick="closeAgendaPoolModal()">İptal</button>
+                    <button class="btn-custom btn-primary-custom" onclick="saveAgendaPool()"><i class="fa-solid fa-floppy-disk"></i> Havuza Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: HAVUZDAN GÜNDEM MADDESİ SEÇME VE SIRALAMA -->
+    <div id="selectAgendaModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 700px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                <div>
+                    <h3 style="margin: 0; color: var(--dark); font-size: 1.25rem;"><i class="fa-solid fa-check-double" style="color: var(--primary); margin-right: 8px;"></i>Havuzdan Gündem Maddeleri Seç</h3>
+                    <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #64748b;">Toplantıya eklemek istediklerinizi işaretleyin. Ok tuşlarıyla sırasını değiştirebilirsiniz.</p>
+                </div>
+                <button class="btn-custom btn-secondary-custom" style="padding: 6px 10px; border-radius: 50%;" onclick="closeSelectAgendaModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div id="selectAgendaListContainer" style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; background: #f8fafc; display: flex; flex-direction: column; gap: 8px;">
+                <!-- Dynamically populated from pool -->
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <button class="btn-custom btn-secondary-custom" style="font-size: 0.8rem; padding: 6px 12px;" onclick="selectAllPoolAgendas(true)">Tümünü Seç</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-custom btn-secondary-custom" onclick="closeSelectAgendaModal()">İptal</button>
+                    <button class="btn-custom btn-primary-custom" onclick="addSelectedAgendas()"><i class="fa-solid fa-plus"></i> Seçilenleri Zümre Gündemine Ekle</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const FIREBASE_DB_URL = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
         let currentZumreTur = "brans";
         let participantsList = []; // Array of { id, name, kurum, gorev }
         let schoolTeachersList = []; // Fetched teachers from database
         let loadedBulkMode = "ilce"; // "ilce" or "okul"
+        let activeAgendaList = []; // Array of selected agenda strings
+        let agendaPool = []; // Saved pool in localStorage
+
+        const DEFAULT_AGENDA_POOL = [
+            "1. Açılış ve yoklama",
+            "2. Zümre başkanı, başkan yardımcısı ve yazmanın seçilmesi",
+            "3. Bir önceki zümre toplantısı kararlarının gözden geçirilmesi ve değerlendirilmesi",
+            "4. 1739 sayılı Milli Eğitim Temel Kanunu, Ortaöğretim Kurumları Yönetmeliği ve ilgili mevzuatın incelenmesi",
+            "5. Atatürkçülük ve T.C. İnkılap Tarihi konularının ders dağılım chart'ına uygun olarak yıllık ve günlük planlara yansıtılması",
+            "6. Ders programlarının, yıllık ve günlük planların müfredata (Türkiye Yüzyılı Maarif Modeli / MEB Öğretim Programları) uygun olarak esaslarının belirlenmesi",
+            "7. Ortak sınavların, ölçme ve değerlendirme esaslarının, proje ve performans puanlama ölçütlerinin belirlenmesi",
+            "8. Derslerde kullanılacak eğitim araç-gereçleri, laboratuvar, bilişim teknolojileri ve EBA/ÖBA kullanım esaslarının görüşülmesi",
+            "9. Diğer zümre öğretmenleri, rehberlik servisi ve okul idaresi ile yapılacak iş birliği esaslarının belirlenmesi",
+            "10. Öğrenci başarısının artırılması, destekleme ve yetiştirme kursları (DYK) ile yarışma/olimpiyat çalışmalarının planlanması",
+            "11. İş sağlığı ve güvenliği (İSG) tedbirlerinin ders ve laboratuvar ortamlarında uygulanması",
+            "12. Dilek ve temenniler, kapanış"
+        ];
+
+        const ZUMRE_GROUPS = [
+            { name: "Felsefe Grubu Dersleri Zümresi", courses: ["Felsefe", "Sosyoloji", "Psikoloji", "Mantık", "Demokrasi ve İnsan Hakları", "Düşünme Eğitimi"] },
+            { name: "Fizik - Astronomi ve Uzay Bilimleri Zümresi", courses: ["Fizik", "Astronomi", "Astronomi ve Uzay Bilimleri"] },
+            { name: "Tarih - T.C. İnkılap Tarihi ve Atatürkçülük Zümresi", courses: ["Tarih", "T.C. İnkılap Tarihi ve Atatürkçülük", "Çağdaş Türk ve Dünya Tarihi", "Türk Kültür ve Medeniyet Tarihi", "Ortak Türk Tarihi"] },
+            { name: "Türk Dili ve Edebiyatı Zümresi", courses: ["Türk Dili ve Edebiyatı", "Dil ve Anlatım", "Türk Edebiyatı", "Osmanlı Türkçesi", "Yazarlık ve Yazma Becerileri", "Diksiyon"] },
+            { name: "Din Kültürü ve Ahlak Bilgisi Zümresi", courses: ["Din Kültürü ve Ahlak Bilgisi", "Temel Dini Bilgiler", "Kur'an-ı Kerim", "Peygamberimizin Hayatı", "Siyer", "İslam Kültür ve Medeniyeti"] },
+            { name: "Biyoloji - Sağlık Bilgisi ve Trafik Kültürü Zümresi", courses: ["Biyoloji", "Sağlık Bilgisi ve Trafik Kültürü", "Çevre Bilimi"] },
+            { name: "Yabancı Diller (İngilizce - Almanca) Zümresi", courses: ["İngilizce", "Almanca", "Fransızca", "Yabancı Dil", "Mesleki Yabancı Dil"] },
+            { name: "Görsel Sanatlar - Müzik Zümresi", courses: ["Görsel Sanatlar", "Müzik", "Sanat Tarihi", "Resim", "Çalgı Toplulukları"] },
+            { name: "Bilişim Teknolojileri ve Yazılım Zümresi", courses: ["Bilişim Teknolojileri", "Bilişim Teknolojileri ve Yazılım", "Bilgisayar Bilimi", "Yapay Zeka", "Robotik Kodlama"] },
+            { name: "Beden Eğitimi ve Spor Zümresi", courses: ["Beden Eğitimi ve Spor", "Spor Eğitimi"] }
+        ];
 
         document.addEventListener("DOMContentLoaded", () => {
             const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true';
@@ -623,6 +736,15 @@
             // Load teachers from DataManager or Firebase for selectors
             await fetchSchoolTeachers();
             
+            // Initialize agenda pool
+            const savedPool = localStorage.getItem('klbk_agenda_pool');
+            if (savedPool) {
+                try { agendaPool = JSON.parse(savedPool); } catch(e) { agendaPool = [...DEFAULT_AGENDA_POOL]; }
+            } else {
+                agendaPool = [...DEFAULT_AGENDA_POOL];
+            }
+            renderActiveAgendaList();
+
             // Initialize UI for default type and date rules
             setDefaultZumreSelections();
         }
@@ -888,9 +1010,7 @@
                     const n = (t.name || '').toLowerCase();
                     return r === 'idareci' || r === 'admin' || r === 'mudur' || r === 'mudur_basyardimcisi' || r === 'mudur_yardimcisi' || b.includes('idareci') || b.includes('müdür') || n.includes('müdür');
                 });
-                if (idareciler.length > 0) {
-                    listToRender = [...idareciler, ...schoolTeachersList.filter(x => !idareciler.includes(x))];
-                }
+                listToRender = idareciler;
             }
 
             if (listToRender.length === 0) {
@@ -1083,27 +1203,45 @@
             const container = document.getElementById('specialSelectorContainer');
             container.style.display = 'block';
 
+            const role = (sessionStorage.getItem('klbk_role') || '').toLowerCase();
+            const isPrivileged = (role === 'admin' || role === 'master' || role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi');
+            
+            let myBranches = [];
+            if (!isPrivileged) {
+                const myUname = sessionStorage.getItem('klbk_currentUser');
+                const myName = sessionStorage.getItem('klbk_name');
+                const me = schoolTeachersList.find(t => t.id === myUname || (t.name && myName && t.name.toLowerCase() === myName.toLowerCase()));
+                if (me && me.branchList && Array.isArray(me.branchList)) {
+                    myBranches = me.branchList.map(b => String(b).trim().toLowerCase());
+                } else if (me && me.branch) {
+                    myBranches = me.branch.split(',').map(b => b.trim().toLowerCase());
+                }
+            }
+
             let branches = new Set();
             schoolTeachersList.forEach(t => {
                 if (t.branchList && Array.isArray(t.branchList)) {
                     t.branchList.forEach(b => {
                         const cleanB = (b || '').toString().trim();
                         if (cleanB && cleanB !== 'None' && cleanB !== 'null' && cleanB.toLowerCase() !== 'genel' && !cleanB.toLowerCase().includes('belirtilmemiş')) {
-                            branches.add(cleanB);
+                            if (isPrivileged || myBranches.length === 0 || myBranches.some(mb => cleanB.toLowerCase().includes(mb) || mb.includes(cleanB.toLowerCase()))) {
+                                branches.add(cleanB);
+                            }
                         }
                     });
                 } else if (typeof t.branch === 'string') {
                     t.branch.split(',').forEach(b => {
                         const cleanB = (b || '').toString().trim();
                         if (cleanB && cleanB !== 'None' && cleanB !== 'null' && cleanB.toLowerCase() !== 'genel' && !cleanB.toLowerCase().includes('belirtilmemiş')) {
-                            branches.add(cleanB);
+                            if (isPrivileged || myBranches.length === 0 || myBranches.some(mb => cleanB.toLowerCase().includes(mb) || mb.includes(cleanB.toLowerCase()))) {
+                                branches.add(cleanB);
+                            }
                         }
                     });
                 }
             });
 
-            // Eğer okulda henüz hiç branş kaydı yoksa varsayılan temel branşları göster
-            if (branches.size === 0) {
+            if (branches.size === 0 && (isPrivileged || myBranches.length === 0)) {
                 const defaultBranches = [
                     'Türk Dili ve Edebiyatı', 'Matematik', 'Fizik', 'Kimya', 'Biyoloji', 
                     'Tarih', 'Coğrafya', 'İngilizce', 'Almanca', 'Felsefe', 
@@ -1113,18 +1251,36 @@
                 defaultBranches.forEach(b => branches.add(b));
             }
 
+            // Filter ZUMRE_GROUPS based on privileges
+            const applicableGroups = ZUMRE_GROUPS.filter(g => {
+                if (isPrivileged || myBranches.length === 0) return true;
+                return g.courses.some(c => myBranches.some(mb => c.toLowerCase().includes(mb) || mb.includes(c.toLowerCase())));
+            });
+
             let html = `
                 <div style="font-weight: 700; color: var(--primary); margin-bottom: 10px; font-size: 1.05rem;">
-                    <i class="fa-solid fa-graduation-cap"></i> Branş Zümresi Toplantısı İçin Branş Seçimi
+                    <i class="fa-solid fa-graduation-cap"></i> Branş Zümresi Toplantısı İçin Branş / Zümre Grubu Seçimi
                 </div>
-                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px;">Okulumuzda mevcut olan derslerin zümreleri aşağıda listelenmiştir. Seçtiğinizde ilgili öğretmenler otomatik eklenir.</p>
+                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px;">Tek bir branşı veya ortak alan derslerini kapsayan Zümre Gruplarını seçerek tüm ilgili öğretmenleri tek seferde ekleyebilirsiniz.</p>
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                    <select id="bransSelect" class="form-select-custom" style="max-width: 320px; font-weight: 600; border: 2px solid var(--primary);" onchange="handleBransSelect(this.value)">
-                        <option value="">-- Okulunuzdaki Ders / Branş Seçin --</option>
+                    <select id="bransSelect" class="form-select-custom" style="max-width: 380px; font-weight: 600; border: 2px solid var(--primary);" onchange="handleBransSelect(this.value)">
+                        <option value="">-- Okulunuzdaki Zümre / Branş Seçin --</option>
             `;
+            
+            if (applicableGroups.length > 0) {
+                html += `<optgroup label="✨ Ortak Alan / Birleştirilmiş Ders Zümreleri">`;
+                applicableGroups.forEach(g => {
+                    html += `<option value="group___${g.name}">${g.name}</option>`;
+                });
+                html += `</optgroup>`;
+            }
+
+            html += `<optgroup label="📌 Tekil Branşlar ${!isPrivileged && myBranches.length > 0 ? '(Sadece Kendi Branşınız)' : ''}">`;
             Array.from(branches).sort((a,b) => a.localeCompare(b, 'tr')).forEach(b => {
                 html += `<option value="${b}">${b} Zümresi</option>`;
             });
+            html += `</optgroup>`;
+
             html += `
                     </select>
                     <span id="bransStatusText" style="font-size: 0.9rem; font-weight: 600; color: var(--secondary);"></span>
@@ -1133,25 +1289,39 @@
             container.innerHTML = html;
         }
 
-        function handleBransSelect(branchName) {
-            if (!branchName) return;
+        function handleBransSelect(val) {
+            if (!val) return;
             const statusEl = document.getElementById('bransStatusText');
-            statusEl.innerText = `${branchName} zümresi öğretmenleri listelendi!`;
-
+            
             let count = 0;
-            const searchLower = branchName.toLowerCase().trim();
+            let displayTitle = val;
+            let searchCourses = [];
+
+            if (val.startsWith('group___')) {
+                const groupName = val.replace('group___', '');
+                displayTitle = groupName;
+                const grp = ZUMRE_GROUPS.find(g => g.name === groupName);
+                if (grp) {
+                    searchCourses = grp.courses.map(c => c.toLowerCase().trim());
+                }
+            } else {
+                searchCourses = [val.toLowerCase().trim()];
+            }
+
+            statusEl.innerText = `${displayTitle} öğretmenleri listelendi!`;
 
             schoolTeachersList.forEach(t => {
                 let isMatch = false;
+                
+                const checkMatch = (branchStr) => {
+                    const bLower = String(branchStr || '').toLowerCase().trim();
+                    return searchCourses.some(sc => bLower === sc || bLower.includes(sc) || sc.includes(bLower));
+                };
 
                 if (t.branchList && Array.isArray(t.branchList)) {
-                    isMatch = t.branchList.some(b => {
-                        const bLower = String(b).toLowerCase().trim();
-                        return bLower === searchLower || bLower.includes(searchLower) || searchLower.includes(bLower);
-                    });
+                    isMatch = t.branchList.some(b => checkMatch(b));
                 } else if (typeof t.branch === 'string') {
-                    const bLower = t.branch.toLowerCase().trim();
-                    isMatch = bLower === searchLower || bLower.includes(searchLower) || searchLower.includes(bLower);
+                    isMatch = t.branch.split(',').some(b => checkMatch(b));
                 }
 
                 if (isMatch) {
@@ -1169,9 +1339,9 @@
 
             renderParticipantsTable();
             if (count > 0) {
-                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `${branchName} branşından ${count} öğretmen eklendi!`, showConfirmButton: false, timer: 2000 });
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `${displayTitle} için ${count} öğretmen eklendi!`, showConfirmButton: false, timer: 2000 });
             } else {
-                Swal.fire('Bilgi', `Okul listesinde ${branchName} branşına kayıtlı öğretmen bulunamadı. Butondan manüel veya listeden ekleyebilirsiniz.`, 'info');
+                Swal.fire('Bilgi', `Okul listesinde bu seçime uygun öğretmen bulunamadı. Butondan manüel veya listeden ekleyebilirsiniz.`, 'info');
             }
         }
 
@@ -1234,6 +1404,193 @@
             });
         }
 
+        // --- GÜNDEM MADDELERİ HAVUZ VE SEÇİM İŞLEMLERİ ---
+        function openAgendaPoolModal() {
+            const txtArea = document.getElementById('agendaPoolTextArea');
+            txtArea.value = agendaPool.join('\n');
+            document.getElementById('agendaPoolModal').style.display = 'flex';
+        }
+
+        function closeAgendaPoolModal() {
+            document.getElementById('agendaPoolModal').style.display = 'none';
+        }
+
+        function saveAgendaPool() {
+            const text = document.getElementById('agendaPoolTextArea').value.trim();
+            if (!text) {
+                Swal.fire('Uyarı', 'Gündem havuzu boş bırakılamaz.', 'warning');
+                return;
+            }
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            agendaPool = lines;
+            localStorage.setItem('klbk_agenda_pool', JSON.stringify(agendaPool));
+            closeAgendaPoolModal();
+            Swal.fire('Başarılı', `${agendaPool.length} gündem maddesi havuza kaydedildi!`, 'success');
+        }
+
+        function openSelectAgendaModal() {
+            renderSelectAgendaList();
+            document.getElementById('selectAgendaModal').style.display = 'flex';
+        }
+
+        function closeSelectAgendaModal() {
+            document.getElementById('selectAgendaModal').style.display = 'none';
+        }
+
+        function renderSelectAgendaList() {
+            const container = document.getElementById('selectAgendaListContainer');
+            if (!agendaPool || agendaPool.length === 0) {
+                container.innerHTML = `<div style="text-align: center; padding: 2rem; color: #94a3b8;">Havuzda gündem maddesi bulunmuyor. Önce havuza madde yükleyin.</div>`;
+                return;
+            }
+
+            let html = '';
+            agendaPool.forEach((item, idx) => {
+                const isAlreadyActive = activeAgendaList.includes(item);
+                html += `
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; margin: 0; font-size: 0.9rem; font-weight: 600; color: #334155;">
+                            <input type="checkbox" class="agenda-pool-chk" value="${idx}" ${isAlreadyActive ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary);">
+                            <span>${item}</span>
+                        </label>
+                        <div style="display: flex; gap: 4px;">
+                            <button class="btn-custom btn-secondary-custom" style="padding: 4px 8px; font-size: 0.75rem;" onclick="movePoolItemUp(${idx})" title="Yukarı Taşı"><i class="fa-solid fa-arrow-up"></i></button>
+                            <button class="btn-custom btn-secondary-custom" style="padding: 4px 8px; font-size: 0.75rem;" onclick="movePoolItemDown(${idx})" title="Aşağı Taşı"><i class="fa-solid fa-arrow-down"></i></button>
+                            <button class="btn-custom btn-danger-custom" style="padding: 4px 8px; font-size: 0.75rem;" onclick="deletePoolItem(${idx})" title="Havuzdan Sil"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function selectAllPoolAgendas(state) {
+            const chks = document.querySelectorAll('.agenda-pool-chk');
+            chks.forEach(c => c.checked = state);
+        }
+
+        function movePoolItemUp(idx) {
+            if (idx <= 0) return;
+            const temp = agendaPool[idx];
+            agendaPool[idx] = agendaPool[idx - 1];
+            agendaPool[idx - 1] = temp;
+            localStorage.setItem('klbk_agenda_pool', JSON.stringify(agendaPool));
+            renderSelectAgendaList();
+        }
+
+        function movePoolItemDown(idx) {
+            if (idx >= agendaPool.length - 1) return;
+            const temp = agendaPool[idx];
+            agendaPool[idx] = agendaPool[idx + 1];
+            agendaPool[idx + 1] = temp;
+            localStorage.setItem('klbk_agenda_pool', JSON.stringify(agendaPool));
+            renderSelectAgendaList();
+        }
+
+        function deletePoolItem(idx) {
+            agendaPool.splice(idx, 1);
+            localStorage.setItem('klbk_agenda_pool', JSON.stringify(agendaPool));
+            renderSelectAgendaList();
+        }
+
+        function addSelectedAgendas() {
+            const chks = document.querySelectorAll('.agenda-pool-chk:checked');
+            if (chks.length === 0) {
+                Swal.fire('Uyarı', 'Lütfen en az bir gündem maddesi seçin.', 'warning');
+                return;
+            }
+
+            let added = 0;
+            chks.forEach(chk => {
+                const idx = parseInt(chk.value);
+                const item = agendaPool[idx];
+                if (item && !activeAgendaList.includes(item)) {
+                    activeAgendaList.push(item);
+                    added++;
+                }
+            });
+
+            closeSelectAgendaModal();
+            renderActiveAgendaList();
+            if (added > 0) {
+                Swal.fire('Başarılı', `${added} yeni gündem maddesi toplantı gündemine eklendi!`, 'success');
+            } else {
+                Swal.fire('Bilgi', 'Seçilen maddeler zaten toplantı gündeminizde mevcut.', 'info');
+            }
+        }
+
+        function renderActiveAgendaList() {
+            const container = document.getElementById('activeAgendaList');
+            document.getElementById('agendaCount').innerText = activeAgendaList.length;
+
+            if (activeAgendaList.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #94a3b8; border: 1px dashed #cbd5e1; border-radius: 10px; background: #f8fafc;">
+                        Henüz gündem maddesi seçilmedi. Yukarıdaki "Gündem Maddesi Seç" butonunu kullanarak maddeleri ekleyin.
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            activeAgendaList.forEach((item, idx) => {
+                html += `
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: var(--primary); color: #fff; border-radius: 50%; font-size: 0.8rem; font-weight: 700;">${idx + 1}</span>
+                            <span style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">${item}</span>
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="btn-custom btn-secondary-custom" style="padding: 6px 10px; font-size: 0.8rem;" onclick="moveActiveAgendaUp(${idx})" title="Yukarı Taşı"><i class="fa-solid fa-arrow-up"></i></button>
+                            <button class="btn-custom btn-secondary-custom" style="padding: 6px 10px; font-size: 0.8rem;" onclick="moveActiveAgendaDown(${idx})" title="Aşağı Taşı"><i class="fa-solid fa-arrow-down"></i></button>
+                            <button class="btn-custom btn-danger-custom" style="padding: 6px 10px; font-size: 0.8rem;" onclick="removeActiveAgenda(${idx})" title="Gündemden Çıkar"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function moveActiveAgendaUp(idx) {
+            if (idx <= 0) return;
+            const temp = activeAgendaList[idx];
+            activeAgendaList[idx] = activeAgendaList[idx - 1];
+            activeAgendaList[idx - 1] = temp;
+            renderActiveAgendaList();
+        }
+
+        function moveActiveAgendaDown(idx) {
+            if (idx >= activeAgendaList.length - 1) return;
+            const temp = activeAgendaList[idx];
+            activeAgendaList[idx] = activeAgendaList[idx + 1];
+            activeAgendaList[idx + 1] = temp;
+            renderActiveAgendaList();
+        }
+
+        function removeActiveAgenda(idx) {
+            activeAgendaList.splice(idx, 1);
+            renderActiveAgendaList();
+        }
+
+        function clearAllAgendas() {
+            if (activeAgendaList.length === 0) return;
+            Swal.fire({
+                title: 'Gündem Temizlensin mi?',
+                text: 'Toplantı gündemindeki tüm maddeler kaldırılacaktır.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Evet, Temizle',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#ef4444'
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    activeAgendaList = [];
+                    renderActiveAgendaList();
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Gündem listesi temizlendi', showConfirmButton: false, timer: 1500 });
+                }
+            });
+        }
+
         // --- SAVE PLAN ---
         async function saveZumrePlan() {
             const donemEl = document.getElementById('zumreDonemSelect');
@@ -1250,6 +1607,17 @@
                 Swal.fire('Uyarı', 'Lütfen toplantıya katılacak en az 1 katılımcı ekleyin.', 'warning');
                 return;
             }
+            if (activeAgendaList.length === 0) {
+                const confirmNoAgenda = await Swal.fire({
+                    title: 'Gündem Maddesi Seçilmedi',
+                    text: 'Toplantı gündemine hiçbir madde eklemediniz. Yine de devam etmek istiyor musunuz?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, Devam Et',
+                    cancelButtonText: 'İptal'
+                });
+                if (!confirmNoAgenda.isConfirmed) return;
+            }
 
             const donemText = donemEl.value;
             let turText = "";
@@ -1262,7 +1630,8 @@
             }
             else if (turEl.value === 'brans') {
                 const brans = document.getElementById('bransSelect') ? document.getElementById('bransSelect').value : '';
-                turText = `Branş Zümresi Toplantısı ${brans ? '(' + brans + ')' : ''}`;
+                const grpClean = brans.startsWith('group___') ? brans.replace('group___', '') : brans;
+                turText = `Branş Zümresi Toplantısı ${grpClean ? '(' + grpClean + ')' : ''}`;
             }
 
             const plannerName = sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || 'Öğretmen';
@@ -1279,7 +1648,8 @@
                 planner: plannerName,
                 school: schoolName,
                 createdAt: new Date().toISOString(),
-                participants: participantsList
+                participants: participantsList,
+                agendaItems: activeAgendaList
             };
 
             Swal.fire({ title: 'Zümre Planı Kaydediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -1294,7 +1664,7 @@
                 if (res.ok) {
                     Swal.fire({
                         title: 'Zümre Planı Oluşturuldu! 🎉',
-                        html: `<b>${donemText} - ${turText}</b> planı başarıyla kaydedildi.<br><br>Toplantıya toplam <b>${participantsList.length}</b> katılımcı tanımlandı.`,
+                        html: `<b>${donemText} - ${turText}</b> planı başarıyla kaydedildi.<br><br>Toplantıya toplam <b>${participantsList.length}</b> katılımcı ve <b>${activeAgendaList.length}</b> gündem maddesi tanımlandı.`,
                         icon: 'success',
                         confirmButtonText: 'Tamam',
                         confirmButtonColor: 'var(--primary)'
