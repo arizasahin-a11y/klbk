@@ -1154,6 +1154,7 @@
                 if (hasOpinion) {
                     opHtml += `<div style="display: flex; flex-direction: column; gap: 8px; margin: 12px 0; padding: 12px; background: #ffffff; border: 1px solid #bbf7d0; border-radius: 8px;">`;
                     opinionsList.forEach((op, opIdx) => {
+                        const isDec = !op.author || op.author === "" || op.author === "Karar";
                         const authorBadge = isDec 
                             ? `<div style="font-size: 0.8rem; font-weight: 800; color: #0d9488; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                                    <i class="fa-solid fa-gavel"></i> <span style="background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 6px;">Alınan Karar</span>
