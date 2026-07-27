@@ -1646,7 +1646,9 @@
                 if (typeof DataManager !== 'undefined' && DataManager.teachers && DataManager.teachers.length > 0) {
                     schoolTeachersList = DataManager.teachers.map(t => ({
                         ...t,
-                        role: t.role || t.unvan || t.gorev || (t.branch && t.branch.toLowerCase().includes('müdür') ? 'mudur' : 'ogretmen')
+                        role: t.role || t.unvan || t.gorev || (t.branch && t.branch.toLowerCase().includes('müdür') ? 'mudur' : 'ogretmen'),
+                        schedule: t.schedule || null,
+                        classes: t.classes || t.subeler || t.siniflar || null
                     }));
                     return;
                 }
@@ -1682,7 +1684,9 @@
                                 branch: bStr,
                                 branchList: bArray,
                                 school: data.schoolName || currentSchool || 'Okulumuz',
-                                role: data.role || data.unvan || data.gorev || (bStr.toLowerCase().includes('müdür') || bStr.toLowerCase().includes('idareci') || uname.toLowerCase().startsWith('admin') ? 'idareci' : 'ogretmen')
+                                role: data.role || data.unvan || data.gorev || (bStr.toLowerCase().includes('müdür') || bStr.toLowerCase().includes('idareci') || uname.toLowerCase().startsWith('admin') ? 'idareci' : 'ogretmen'),
+                                schedule: data.schedule || null,
+                                classes: data.classes || data.subeler || data.siniflar || null
                             });
                         }
                     }
@@ -1765,6 +1769,15 @@
                     </button>
                 `;
                 renderSokClassSelector();
+                
+                const m = new Date().getMonth();
+                const isFirstTerm = (m >= 8 || m === 0);
+                const donemStr = isFirstTerm ? "1. Dönem" : "2. Dönem";
+                const konuEl = document.getElementById('toplantiKonusuInput');
+                if (konuEl && !konuEl.value.includes('ŞÖK')) {
+                    const sokClass = document.getElementById('sokClassSelect') ? document.getElementById('sokClassSelect').value : '';
+                    konuEl.value = `${donemStr} ${sokClass ? sokClass + ' Şubesi ' : ''}ŞÖK (Şube Öğretmenler Kurulu) Toplantısı`;
+                }
             } else if (tur === 'brans') {
                 titleEl.innerText = "2. Katılımcıları Belirleme (Branş Zümresi Toplantısı)";
                 btnsContainer.innerHTML = `
@@ -2041,24 +2054,80 @@
         function handleSokClassSelect(className) {
             if (!className) return;
             const statusEl = document.getElementById('sokStatusText');
-            statusEl.innerText = `${className} Sınıfı öğretmenleri katılımcı olarak yüklendi!`;
+            statusEl.innerText = `${className} Şubesi öğretmenleri katılımcı olarak kontrol ediliyor...`;
 
-            // Otomatik olarak tüm okul öğretmenlerini ekle (veya şubeye girenleri filtrele)
+            // Başlığı seçilen şubeye ve döneme göre güncelle
+            const m = new Date().getMonth();
+            const isFirstTerm = (m >= 8 || m === 0);
+            const donemStr = isFirstTerm ? "1. Dönem" : "2. Dönem";
+            const konuEl = document.getElementById('toplantiKonusuInput');
+            if (konuEl && currentZumreTur === 'sok') {
+                konuEl.value = `${donemStr} ${className} Şubesi ŞÖK (Şube Öğretmenler Kurulu) Toplantısı`;
+            }
+
             let count = 0;
+            const normTarget = String(className).replace(/[\/\-\s]/g, '').toUpperCase();
+
             schoolTeachersList.forEach(t => {
-                if (!participantsList.some(p => p.name.toLowerCase() === t.name.toLowerCase())) {
-                    participantsList.push({
-                        id: 'sok_' + t.id + '_' + Date.now(),
-                        name: t.name,
-                        kurum: t.school || localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz',
-                        gorev: `${t.branch} (${className} Dersi)`
-                    });
-                    count++;
+                let isMatch = false;
+
+                // 1. Sınıf / Şube listesinden kontrol (classes/subeler)
+                const classArray = t.classes || t.subeler || t.siniflar || [];
+                if (Array.isArray(classArray)) {
+                    if (classArray.some(c => String(c).replace(/[\/\-\s]/g, '').toUpperCase() === normTarget)) {
+                        isMatch = true;
+                    }
+                }
+
+                // 2. Ders Programı (schedule) alanından kontrol
+                if (!isMatch && t.schedule && typeof t.schedule === 'object') {
+                    for (const day in t.schedule) {
+                        const dayObj = t.schedule[day];
+                        if (dayObj && typeof dayObj === 'object') {
+                            for (const hour in dayObj) {
+                                const cls = dayObj[hour];
+                                if (cls && String(cls).replace(/[\/\-\s]/g, '').toUpperCase() === normTarget) {
+                                    isMatch = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (isMatch) break;
+                    }
+                }
+
+                // İdareci ve Rehberlik servisi öğretmenlerini otomatik eklemeden hariç tut (kullanıcı sonradan ekler)
+                const r = (t.role || '').toLowerCase();
+                const b = (t.branch || '').toLowerCase();
+                const isIdareciOrRehberlik = r === 'idareci' || r === 'admin' || r === 'mudur' || r === 'mudur_basyardimcisi' || r === 'mudur_yardimcisi' || b.includes('idareci') || b.includes('müdür') || b.includes('rehberlik');
+
+                if (isMatch && !isIdareciOrRehberlik) {
+                    if (!participantsList.some(p => p.name.toLowerCase() === t.name.toLowerCase())) {
+                        participantsList.push({
+                            id: 'sok_' + t.id + '_' + Date.now(),
+                            name: t.name,
+                            kurum: t.school || localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz',
+                            gorev: `${t.branch} (${className} Dersi Öğretmeni)`
+                        });
+                        count++;
+                    }
                 }
             });
 
             renderParticipantsTable();
-            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `${className} şubesi için ${count} öğretmen eklendi!`, showConfirmButton: false, timer: 2000 });
+            if (count > 0) {
+                statusEl.innerText = `${className} Şubesine dersi olan ${count} öğretmen listeye eklendi!`;
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `${className} şubesi için ${count} ders öğretmeni eklendi!`, showConfirmButton: false, timer: 3000 });
+            } else {
+                statusEl.innerText = `${className} Şubesine dersi olan personel programda saptanamadı.`;
+                Swal.fire({
+                    title: 'Bilgi',
+                    html: `<b>${className}</b> şubesine doğrudan dersi olan öğretmen kaydı (ders programı) tespit edilemedi.<br><br>Yukarıdaki <b>"Listeden Öğretmen Ekle/Çıkar"</b>, <b>"İdareci Ekle"</b> veya <b>"Manüel Katılımcı Ekle"</b> butonlarını kullanarak kurul üyelerini belirleyebilirsiniz.`,
+                    icon: 'info',
+                    confirmButtonColor: '#0d9488',
+                    confirmButtonText: 'Anladım'
+                });
+            }
         }
 
         // --- BRANŞ ZÜMRESİ SEÇİMİ VE OTOMATİK LİSTELEME ---
@@ -2374,7 +2443,7 @@
             renderSelectAgendaList();
         }
 
-        function addSelectedAgendas() {
+        async function addSelectedAgendas() {
             const chks = document.querySelectorAll('.agenda-pool-chk:checked');
             if (chks.length === 0) {
                 Swal.fire('Uyarı', 'Lütfen en az bir gündem maddesi seçin.', 'warning');
@@ -2382,16 +2451,87 @@
             }
 
             let added = 0;
-            chks.forEach(chk => {
-                const idx = parseInt(chk.value);
-                const item = agendaPool[idx];
-                if (item && !activeAgendaList.includes(item)) {
-                    activeAgendaList.push(item);
-                    added++;
-                }
-            });
 
-            closeSelectAgendaModal();
+            if (currentZumreTur === 'sok') {
+                closeSelectAgendaModal();
+                let classes = ['9-A', '9-B', '9-C', '10-A', '10-B', '10-C', '11-A', '11-B', '11-C', '12-A', '12-B', '12-C'];
+                if (typeof DataManager !== 'undefined' && DataManager.classes && DataManager.classes.length > 0) {
+                    classes = DataManager.classes.map(c => typeof c === 'string' ? c : (c.name || c.sube));
+                }
+                const activeSokClass = document.getElementById('sokClassSelect') ? document.getElementById('sokClassSelect').value : '';
+
+                let classesHtml = `
+                    <div style="text-align:left; margin-bottom: 12px; font-size: 0.9rem; color:#475569;">
+                        Seçtiğiniz <b>${chks.length} gündem maddesinin</b> hangi sınıf / şubeler için ekleneceğini işaretleyin:
+                    </div>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; max-height: 260px; overflow-y: auto; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; text-align: left;">
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:700; color:var(--primary); grid-column: 1/-1; border-bottom: 1px dashed #cbd5e1; padding-bottom: 6px;">
+                            <input type="checkbox" class="sok-agenda-class-chk" value="GENEL" ${!activeSokClass ? 'checked' : ''} style="width:16px; height:16px; accent-color:var(--primary);">
+                            <span>Genel / Sınıf Belirtmeden</span>
+                        </label>
+                `;
+                classes.forEach(c => {
+                    const isChecked = (activeSokClass && activeSokClass === c) ? 'checked' : '';
+                    classesHtml += `
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9rem; font-weight:600; color:#1e293b; background:white; padding:6px 8px; border:1px solid #e2e8f0; border-radius:6px;">
+                            <input type="checkbox" class="sok-agenda-class-chk" value="${c}" ${isChecked} style="width:16px; height:16px; accent-color:var(--primary);">
+                            <span>${c} Şubesi</span>
+                        </label>
+                    `;
+                });
+                classesHtml += `</div>`;
+
+                const res = await Swal.fire({
+                    title: '<i class="fa-solid fa-users-rectangle" style="color:#0d9488;"></i> ŞÖK Gündemi İçin Şube Seçimi',
+                    html: classesHtml,
+                    showCancelButton: true,
+                    confirmButtonColor: '#0d9488',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: '<i class="fa-solid fa-plus"></i> Seçilen Şubelerle Gündeme Ekle',
+                    cancelButtonText: 'İptal',
+                    didOpen: () => {
+                        const swalContainer = document.querySelector('.swal2-container');
+                        if (swalContainer) swalContainer.style.zIndex = '100000';
+                    }
+                });
+
+                if (!res.isConfirmed) {
+                    openSelectAgendaModal();
+                    return;
+                }
+
+                const selectedClasses = Array.from(document.querySelectorAll('.sok-agenda-class-chk:checked')).map(el => el.value);
+                if (selectedClasses.length === 0) {
+                    Swal.fire('Uyarı', 'Lütfen en az bir şube veya Genel seçeneğini işaretleyin.', 'warning');
+                    openSelectAgendaModal();
+                    return;
+                }
+
+                chks.forEach(chk => {
+                    const idx = parseInt(chk.value);
+                    const item = agendaPool[idx];
+                    if (item) {
+                        selectedClasses.forEach(cls => {
+                            const finalItem = (cls === 'GENEL') ? item : `[ ${cls} Şubesi ] - ${item}`;
+                            if (!activeAgendaList.includes(finalItem)) {
+                                activeAgendaList.push(finalItem);
+                                added++;
+                            }
+                        });
+                    }
+                });
+            } else {
+                chks.forEach(chk => {
+                    const idx = parseInt(chk.value);
+                    const item = agendaPool[idx];
+                    if (item && !activeAgendaList.includes(item)) {
+                        activeAgendaList.push(item);
+                        added++;
+                    }
+                });
+                closeSelectAgendaModal();
+            }
+
             renderActiveAgendaList();
             if (added > 0) {
                 Swal.fire('Başarılı', `${added} yeni gündem maddesi toplantı gündemine eklendi!`, 'success');
