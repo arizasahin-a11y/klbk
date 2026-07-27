@@ -395,6 +395,14 @@
                     </div>
                 </div>
 
+                <!-- Toplantı Konusu Kutusu -->
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label class="form-label" for="toplantiKonusuInput" style="font-weight: 700; color: var(--dark); display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-heading" style="color: var(--primary);"></i> Toplantı Konusu <span style="font-size: 0.8rem; font-weight: 500; color: #64748b;">(Tutanak Çıktısında Başlık ve Konu Alanına Yazılır)</span>
+                    </label>
+                    <input type="text" id="toplantiKonusuInput" class="form-control-custom" style="width: 100%; font-weight: 600; border: 2px solid #cbd5e1; padding: 0.75rem 1rem; border-radius: 10px;" placeholder="Toplantının Konusunu Giriniz (Örn: 2025-2026 Eğitim ve Öğretim Yılı Fizik Zümresi Sene Başı Toplantısı)">
+                </div>
+
                 <!-- Özel Seçim Kutuları (ŞÖK Sınıf Seçimi veya Branş Seçimi için) -->
                 <div id="specialSelectorContainer" style="display: none; background: #f8fafc; padding: 1.25rem; border-radius: 12px; margin-bottom: 1.25rem; border: 1px dashed #cbd5e1;">
                     <!-- Content populated dynamically -->
@@ -1062,12 +1070,6 @@
                                     <div style="font-size: 1.05rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                         <span>${formattedTitle}</span>
                                         ${isExpired ? '<span style="font-size: 0.7rem; background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 6px; font-weight: 700;">Süresi Geçmiş</span>' : '<span style="font-size: 0.7rem; background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 6px; font-weight: 700;">Aktif Toplantı</span>'}
-                                        <button class="btn-custom" style="background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #bae6fd; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); editZumrePlan('${plan.id}')" title="Toplantıyı Düzenle">
-                                            <i class="fa-solid fa-pen-to-square"></i> Düzenle
-                                        </button>
-                                        <button class="btn-custom" style="background: #fee2e2; color: #b91c1c; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #fecaca; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); deleteZumrePlan('${plan.id}')" title="Toplantıyı Sil">
-                                            <i class="fa-solid fa-trash-can"></i> Sil
-                                        </button>
                                     </div>
                                     <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 12px;">
                                         <span><i class="fa-solid fa-calendar-day" style="color: var(--primary);"></i> Tarih: <b>${plan.tarih || 'Belirtilmedi'}</b></span>
@@ -1077,7 +1079,16 @@
                                     </div>
                                 </div>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <button class="btn-custom" style="background: #e0f2fe; color: #0369a1; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #bae6fd; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); editZumrePlan('${plan.id}')" title="Toplantıyı Düzenle">
+                                    <i class="fa-solid fa-pen-to-square"></i> Düzenle
+                                </button>
+                                <button class="btn-custom" style="background: #f0fdf4; color: #15803d; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #bbf7d0; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); printZumrePlan('${plan.id}')" title="Toplantı Tutanağını Yazdır / PDF Al">
+                                    <i class="fa-solid fa-print"></i> Yazdır
+                                </button>
+                                <button class="btn-custom" style="background: #fee2e2; color: #b91c1c; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #fecaca; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); deleteZumrePlan('${plan.id}')" title="Toplantıyı Sil">
+                                    <i class="fa-solid fa-trash-can"></i> Sil
+                                </button>
                                 <span class="badge-info" style="background: #f1f5f9; color: #475569; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
                                     <i class="fa-solid fa-users"></i> ${pCount} Katılımcı
                                 </span>
@@ -1153,7 +1164,16 @@
 
                 if (hasOpinion) {
                     opHtml += `<div style="display: flex; flex-direction: column; gap: 8px; margin: 12px 0; padding: 12px; background: #ffffff; border: 1px solid #bbf7d0; border-radius: 8px;">`;
-                    opinionsList.forEach((op, opIdx) => {
+                    const sortedOpinions = opinionsList.map((op, origIdx) => ({op, origIdx})).sort((a, b) => {
+                        const aIsDec = !a.op.author || a.op.author === "" || a.op.author === "Karar";
+                        const bIsDec = !b.op.author || b.op.author === "" || b.op.author === "Karar";
+                        if (aIsDec && !bIsDec) return 1;
+                        if (!aIsDec && bIsDec) return -1;
+                        return 0;
+                    });
+                    sortedOpinions.forEach((item, sIdx) => {
+                        const op = item.op;
+                        const opIdx = item.origIdx;
                         const isDec = !op.author || op.author === "" || op.author === "Karar";
                         const authorBadge = isDec 
                             ? `<div style="font-size: 0.8rem; font-weight: 800; color: #0d9488; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
@@ -1179,7 +1199,7 @@
                         }
 
                         opHtml += `
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding-bottom: 8px; border-bottom: ${opIdx < opinionsList.length - 1 ? '1px dashed #e2e8f0' : 'none'};">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding-bottom: 8px; border-bottom: ${sIdx < sortedOpinions.length - 1 ? '1px dashed #e2e8f0' : 'none'};">
                                 <div style="flex: 1;">
                                     ${authorBadge}
                                     <div style="font-size: 0.9rem; color: #334155; margin-top: 6px; line-height: 1.5;">${displayText}</div>
@@ -2594,6 +2614,7 @@
             if (document.getElementById('zumreTarih')) document.getElementById('zumreTarih').value = plan.tarih || '';
             if (document.getElementById('zumreSaat')) document.getElementById('zumreSaat').value = plan.saat || '10:00';
             if (document.getElementById('zumreYer')) document.getElementById('zumreYer').value = plan.yer || '';
+            if (document.getElementById('toplantiKonusuInput')) document.getElementById('toplantiKonusuInput').value = plan.konu || '';
 
             if (plan.participants && Array.isArray(plan.participants)) {
                 participantsList = JSON.parse(JSON.stringify(plan.participants));
@@ -2630,6 +2651,7 @@
             editingPlanId = null;
             editingPlanOpinions = null;
             editingPlanCreatedAt = null;
+            if (document.getElementById('toplantiKonusuInput')) document.getElementById('toplantiKonusuInput').value = '';
             const saveBtn = document.getElementById('saveZumreBtn');
             if (saveBtn) {
                 saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Zümre Planını Kaydet ve Oluştur`;
@@ -2675,6 +2697,348 @@
                 console.error("Silme hatası:", e);
                 Swal.fire('Hata', 'Zümre silinirken bir sorun oluştu: ' + (e.message || ''), 'error');
             }
+        }
+
+        // --- PRINT ZUMRE PLAN ---
+        async function printZumrePlan(planId) {
+            const plan = allFetchedPlans.find(p => p.id === planId);
+            if (!plan) {
+                Swal.fire('Hata', 'Yazdırmak istediğiniz zümre toplantısı bulunamadı.', 'error');
+                return;
+            }
+
+            let totalOpinionsCount = 0;
+            if (plan.opinions && typeof plan.opinions === 'object') {
+                Object.values(plan.opinions).forEach(list => {
+                    if (Array.isArray(list)) totalOpinionsCount += list.length;
+                });
+            }
+
+            if (totalOpinionsCount === 0) {
+                const res = await Swal.fire({
+                    title: 'Görüş veya Karar Girilmemiş!',
+                    text: 'O toplantıdaki gündem maddeleriyle ilgili hiçbir karar ve görüş yazılmamış. Yine de boş şablon/tutanak olarak yazdırmak istiyor musunuz?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, Yine de Yazdır',
+                    cancelButtonText: 'İptal',
+                    confirmButtonColor: '#10b981',
+                    cancelButtonColor: '#64748b'
+                });
+                if (!res.isConfirmed) return;
+            }
+
+            const schoolName = (plan.school || localStorage.getItem('klbk_lastSchoolName') || 'İSTANBUL ATATÜRK ANADOLU LİSESİ').toUpperCase();
+            const donemName = (plan.donem || '2025-2026 EĞİTİM VE ÖĞRETİM YILI').toUpperCase();
+            let branchClean = plan.branch ? plan.branch.trim() : '';
+            if (branchClean.toLowerCase() === 'genel' || !branchClean) branchClean = '';
+            const branchUpper = branchClean ? branchClean.toUpperCase() + ' BRANŞI ' : '';
+            let turClean = plan.tur ? plan.tur.replace(/toplantısı/gi, '').trim() : 'Zümre';
+            const docTitle = `${donemName} ${branchUpper}${turClean.toUpperCase()} TOPLANTI TUTANAĞI`;
+
+            const meetDate = plan.tarih ? formatDateTR(plan.tarih) : (new Date().toLocaleDateString('tr-TR'));
+
+            const participants = Array.isArray(plan.participants) ? plan.participants : [];
+            let managerObj = null;
+            let baskanObj = null;
+
+            managerObj = participants.find(p => p.gorev && (/müdür|yönetici|idareci/i.test(p.gorev)));
+            if (!managerObj) {
+                managerObj = { name: 'Okul Müdürü / Toplantı Yöneticisi', gorev: 'Toplantı Yöneticisi' };
+            }
+
+            baskanObj = participants.find(p => p !== managerObj && p.gorev && (/başkan/i.test(p.gorev)));
+            if (!baskanObj && participants.length > 0) {
+                baskanObj = participants.find(p => p !== managerObj) || participants[0];
+            }
+            if (!baskanObj) {
+                baskanObj = { name: plan.planner || 'Zümre Başkanı', gorev: 'Zümre Başkanı' };
+            }
+
+            const teachers = participants.filter(p => p !== managerObj && p !== baskanObj && p.name !== managerObj.name && p.name !== baskanObj.name);
+
+            const teacherRows = [];
+            for (let i = 0; i < teachers.length; i += 3) {
+                teacherRows.push([
+                    teachers[i] || null,
+                    teachers[i+1] || null,
+                    teachers[i+2] || null
+                ]);
+            }
+            if (teacherRows.length === 0) {
+                teacherRows.push([null, null, null]);
+            }
+
+            let teacherRowsHtml = '';
+            teacherRows.forEach(row => {
+                teacherRowsHtml += '<tr>';
+                row.forEach(cell => {
+                    if (cell) {
+                        const subInfo = cell.kurum || cell.okul || cell.gorev || 'Öğretmen';
+                        teacherRowsHtml += `
+                            <td style="width: 33.33%; padding: 14px 10px; text-align: center; vertical-align: middle;">
+                                <div style="font-weight: bold; font-size: 11pt; margin-bottom: 4px; color: #000;">${cell.name}</div>
+                                <div style="font-size: 9.5pt; color: #333;">${subInfo}</div>
+                            </td>`;
+                    } else {
+                        teacherRowsHtml += `<td style="width: 33.33%; padding: 14px 10px;">&nbsp;</td>`;
+                    }
+                });
+                teacherRowsHtml += '</tr>';
+            });
+
+            const agendaList = Array.isArray(plan.agendaItems) ? plan.agendaItems : [];
+            let agendaListHtml = '<ol style="margin: 0; padding-left: 20px; line-height: 1.8;">';
+            agendaList.forEach(item => {
+                agendaListHtml += `<li style="margin-bottom: 4px;">${item}</li>`;
+            });
+            agendaListHtml += '</ol>';
+
+            let goruslerHtml = '';
+            agendaList.forEach((item, idx) => {
+                const opList = plan.opinions && plan.opinions[idx] ? plan.opinions[idx] : [];
+                const sortedOps = opList.map(op => ({op})).sort((a, b) => {
+                    const aIsDec = !a.op.author || a.op.author === "" || a.op.author === "Karar";
+                    const bIsDec = !b.op.author || b.op.author === "" || b.op.author === "Karar";
+                    if (aIsDec && !bIsDec) return 1;
+                    if (!aIsDec && bIsDec) return -1;
+                    return 0;
+                });
+
+                goruslerHtml += `
+                    <div style="margin-top: 18px; padding-top: 12px; border-top: 1px solid #cbd5e1; page-break-inside: avoid;">
+                        <div style="font-size: 11pt; font-weight: bold; color: #0284c7; text-decoration: underline; margin-bottom: 8px;">
+                            ${idx + 1}. ${item}
+                        </div>
+                        <div style="padding-left: 10px;">`;
+
+                if (sortedOps.length === 0) {
+                    goruslerHtml += `<div style="font-style: italic; color: #64748b; font-size: 10pt;">Bu madde ile ilgili görüş veya karar girilmemiştir.</div>`;
+                } else {
+                    sortedOps.forEach(({op}) => {
+                        const isDec = !op.author || op.author === "" || op.author === "Karar";
+                        let text = op.text || '';
+                        if (isDec) {
+                            text = text.replace(/^Karar:\s*/i, '');
+                            goruslerHtml += `
+                                <div style="margin-top: 6px; padding: 6px 10px; background: #f0fdf4; border-left: 3px solid #10b981; font-weight: bold; color: #065f46; font-size: 10.5pt;">
+                                    <b>KARAR:</b> ${text}
+                                </div>`;
+                        } else {
+                            if (op.style === 'konusma') {
+                                const clean = text.trim();
+                                const hasQ = clean.startsWith('"') && clean.endsWith('"');
+                                const qText = hasQ ? clean : \`"\${clean}"\`;
+                                const endsDedi = /dedi\.?$/i.test(clean);
+                                text = \`\${qText}\${endsDedi ? '' : ' dedi.'}\`;
+                            } else if (op.style === 'anlatim') {
+                                const clean = text.trim();
+                                const endsVerb = /(dedi|söyledi|belirtti|ifade etti|ekledi|vurguladı|dile getirdi|kaydetti|aktardı|savundu|önerdi)\.?$/i.test(clean);
+                                text = \`\${clean}\${endsVerb ? '' : ' söyledi.'}\`;
+                            }
+                            goruslerHtml += `
+                                <div style="margin-top: 6px; line-height: 1.6; font-size: 10.5pt; color: #1e293b;">
+                                    <b>${op.author}:</b> ${text}
+                                </div>`;
+                        }
+                    });
+                }
+                goruslerHtml += `</div></div>`;
+            });
+
+            const printWin = window.open('', '_blank');
+            if (!printWin) {
+                Swal.fire('Uyarı', 'Açılır pencere engelleyicisi (Pop-up blocker) nedeniyle yazdırma sayfası açılamadı. Lütfen izin verin.', 'warning');
+                return;
+            }
+
+            const htmlContent = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>${docTitle}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 15mm 15mm 15mm 15mm;
+        }
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #000;
+            margin: 0;
+            padding: 20px;
+            background: #f1f5f9;
+        }
+        .a4-page {
+            max-width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20mm 15mm;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+        @media print {
+            body { background: #fff; padding: 0; }
+            .a4-page { box-shadow: none; padding: 0; max-width: 100%; width: 100%; margin: 0; }
+            .no-print { display: none !important; }
+        }
+        .btn-print-bar {
+            max-width: 210mm;
+            margin: 0 auto 20px auto;
+            padding: 12px 20px;
+            background: #1e293b;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-family: sans-serif;
+        }
+        .btn-custom {
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-family: sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .btn-print { background: #10b981; color: white; }
+        .btn-print:hover { background: #059669; }
+        .btn-pdf { background: #3b82f6; color: white; }
+        .btn-pdf:hover { background: #2563eb; }
+        .btn-close { background: #475569; color: white; }
+        .btn-close:hover { background: #334155; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            page-break-inside: auto;
+        }
+        tr { page-break-inside: avoid; page-break-after: auto; }
+        th, td {
+            border: 1px solid #000;
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #334155 !important;
+            color: #ffffff !important;
+            font-weight: bold;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .header-title {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .header-title h1 { font-size: 15pt; font-weight: bold; margin: 0 0 6px 0; text-transform: uppercase; }
+        .header-title h2 { font-size: 13pt; font-weight: bold; margin: 0 0 6px 0; }
+        .header-title h3 { font-size: 13pt; font-weight: bold; margin: 0; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="btn-print-bar no-print">
+        <div style="color: white; font-size: 15px; font-weight: bold;">
+            🖨️ Zümre Toplantı Tutanağı (A4 Baskı ve PDF Kaydetme Önizlemesi)
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-custom btn-print" onclick="window.print()">🖨️ Yazdır</button>
+            <button class="btn-custom btn-pdf" onclick="window.print()" title="Yazdırma penceresinde Hedef kısmından 'PDF olarak kaydet' seçin">📄 PDF Olarak Kaydet</button>
+            <button class="btn-custom btn-close" onclick="window.close()">✖ Kapat</button>
+        </div>
+    </div>
+    <div class="a4-page">
+        <!-- HEADER TITLE -->
+        <div class="header-title">
+            <h1>${schoolName}</h1>
+            <h2>${donemName}</h2>
+            <h3>${docTitle}</h3>
+        </div>
+
+        <!-- TABLO 1: Katılımcı ve İmza Tablosu -->
+        <table>
+            <tbody>
+                <tr>
+                    <td colspan="3" style="padding: 12px; font-weight: bold; background: #f8fafc;">
+                        <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
+                            <span>Zümre: ${branchClean || 'Genel'}</span>
+                            <span>Toplantı No.: 1</span>
+                            <span>Toplantı Tarihi: ${meetDate}</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="3" style="background-color: #475569; height: 16px; padding: 0;"></td>
+                </tr>
+                <tr>
+                    <td style="width: 50%; padding: 16px 12px; text-align: center; vertical-align: middle;">
+                        <div style="font-weight: bold; font-size: 11.5pt; margin-bottom: 4px;">${managerObj.name}</div>
+                        <div style="font-size: 10pt; color: #333;">${managerObj.gorev || 'Toplantı Yöneticisi'}</div>
+                    </td>
+                    <td colspan="2" style="width: 50%; padding: 16px 12px; text-align: center; vertical-align: middle;">
+                        <div style="font-weight: bold; font-size: 11.5pt; margin-bottom: 4px;">${baskanObj.name}</div>
+                        <div style="font-size: 10pt; color: #333;">${baskanObj.gorev || 'Zümre Başkanı'}</div>
+                    </td>
+                </tr>
+                ${teacherRowsHtml}
+            </tbody>
+        </table>
+
+        <!-- YÖNETİCİ ADI VE İMZASI ALANI -->
+        <div style="margin: 30px 0 40px 0; text-align: right; padding-right: 40px; page-break-inside: avoid;">
+            <div style="font-size: 11pt; margin-bottom: 6px;">${meetDate}</div>
+            <div style="font-size: 12pt; font-weight: bold; margin-bottom: 35px;">UYGUNDUR</div>
+            <div style="font-size: 12pt; font-weight: bold; text-decoration: underline;">${managerObj.name}</div>
+            <div style="font-size: 11pt; color: #333;">${managerObj.gorev || 'Okul Müdürü'}</div>
+        </div>
+
+        <!-- TABLO 2: Toplantının Konusu, Gündemi ve Görüşülmesi -->
+        <table>
+            <tbody>
+                <tr>
+                    <th style="font-size: 12pt; padding: 12px;">Toplantı Konusu</th>
+                </tr>
+                <tr>
+                    <td style="padding: 16px 14px; font-weight: bold; font-size: 11pt;">
+                        ${plan.konu || docTitle}
+                    </td>
+                </tr>
+                <tr>
+                    <th style="font-size: 12pt; padding: 12px;">Toplantı Gündemi</th>
+                </tr>
+                <tr>
+                    <td style="padding: 16px 14px;">
+                        ${agendaListHtml}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 16px 14px; background: #f8fafc; font-weight: 800; font-size: 11.5pt; letter-spacing: 0.5px;">
+                        GÜNDEM MADDELERİNİN GÖRÜŞÜLMESİ:
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 16px 14px;">
+                        ${goruslerHtml}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>\`;
+
+            printWin.document.open();
+            printWin.document.write(htmlContent);
+            printWin.document.close();
         }
 
         // --- SAVE PLAN ---
@@ -2747,6 +3111,7 @@
                 tur: turText,
                 turCode: turEl.value,
                 branch: branchName,
+                konu: document.getElementById('toplantiKonusuInput') ? document.getElementById('toplantiKonusuInput').value.trim() : '',
                 tarih: tarih,
                 saat: saat,
                 yer: yer,
@@ -2781,6 +3146,7 @@
                     editingPlanId = null;
                     editingPlanOpinions = null;
                     editingPlanCreatedAt = null;
+                    if (document.getElementById('toplantiKonusuInput')) document.getElementById('toplantiKonusuInput').value = '';
                     const saveBtn = document.getElementById('saveZumreBtn');
                     if (saveBtn) {
                         saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Zümre Planını Kaydet ve Oluştur`;
