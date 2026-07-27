@@ -704,7 +704,7 @@
 
             <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; align-items: center; gap: 10px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
                 <button class="btn-custom btn-secondary-custom" onclick="closeBatchPrintModal()">İptal / Kapat</button>
-                <button class="btn-custom btn-primary-custom" style="background: #10b981; border-color: #059669; box-shadow: 0 2px 4px rgba(16,185,129,0.2);" onclick="confirmAndExecuteBatchPrint()"><i class="fa-solid fa-print"></i> Seçilenleri Yazdır / PDF Al (<span id="batchPrintSelectedCount">0</span>)</button>
+                <button class="btn-custom btn-primary-custom" style="background: #10b981; border-color: #059669; box-shadow: 0 2px 4px rgba(16,185,129,0.2);" onclick="confirmAndExecuteBatchPrint()"><i class="fa-solid fa-print"></i> Seçilenleri Yazdır / PDF</button>
             </div>
         </div>
     </div>
@@ -3087,7 +3087,15 @@
         async function confirmAndExecuteBatchPrint() {
             const checkedBoxes = Array.from(document.querySelectorAll('.batch-print-chk:checked'));
             if (checkedBoxes.length === 0) {
-                Swal.fire('Uyarı', 'Lütfen yazdırmak için en az 1 zümre toplantısı seçin!', 'warning');
+                Swal.fire({
+                    title: 'Uyarı',
+                    text: 'Lütfen yazdırmak için en az 1 zümre toplantısı seçin!',
+                    icon: 'warning',
+                    didOpen: () => {
+                        const swalContainer = document.querySelector('.swal2-container');
+                        if (swalContainer) swalContainer.style.zIndex = '100000';
+                    }
+                });
                 return;
             }
 
@@ -3095,6 +3103,7 @@
             const hasEmptyAgendas = checkedBoxes.some(b => parseInt(b.getAttribute('data-empty') || '0') > 0);
 
             if (hasEmptyAgendas) {
+                closeBatchPrintModal();
                 const res = await Swal.fire({
                     title: 'Eksik Görüş / Karar Uyarısı! ⚠️',
                     html: `Seçtiğiniz bazı zümre tutanaklarında veya içerisindeki bazı gündem maddlerinde <b>henüz hiçbir görüş veya karar işlenmemiş</b> (boş maddeler bulunuyor).<br><br>Yine de bu toplantıları <b>mevcut durumlarıyla (eksik maddelerle)</b> yazdırmak istiyor musunuz?`,
@@ -3103,12 +3112,20 @@
                     confirmButtonColor: '#10b981',
                     cancelButtonColor: '#64748b',
                     confirmButtonText: '<i class="fa-solid fa-print"></i> Evet, Bu Haliyle Yazdır',
-                    cancelButtonText: 'İptal Et'
+                    cancelButtonText: 'İptal Et',
+                    didOpen: () => {
+                        const swalContainer = document.querySelector('.swal2-container');
+                        if (swalContainer) swalContainer.style.zIndex = '100000';
+                    }
                 });
-                if (!res.isConfirmed) return;
+                if (!res.isConfirmed) {
+                    openBatchPrintModal();
+                    return;
+                }
+            } else {
+                closeBatchPrintModal();
             }
 
-            closeBatchPrintModal();
             executeBatchPrint(selectedIds);
         }
 
