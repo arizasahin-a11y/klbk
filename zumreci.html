@@ -532,6 +532,9 @@
                         <button class="btn-custom btn-secondary-custom" onclick="loadGorusZümreListesi(true)" title="Yenile">
                             <i class="fa-solid fa-rotate"></i> Yenile
                         </button>
+                        <button class="btn-custom btn-primary-custom" onclick="openBatchPrintModal()" style="background: #10b981; border-color: #059669; box-shadow: 0 2px 4px rgba(16,185,129,0.2);" title="Toplu Tutanak Yazdır / PDF Al">
+                            <i class="fa-solid fa-print"></i> Toplu Yazdır
+                        </button>
                     </div>
                 </div>
 
@@ -670,6 +673,38 @@
                     <button class="btn-custom btn-secondary-custom" onclick="closeSelectAgendaModal()">İptal</button>
                     <button class="btn-custom btn-primary-custom" onclick="addSelectedAgendas()"><i class="fa-solid fa-plus"></i> Seçilenleri Zümre Gündemine Ekle</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BATCH PRINT MODAL -->
+    <div id="batchPrintModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 800px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+                <div>
+                    <h3 style="font-weight: 800; color: var(--dark); margin: 0; font-size: 1.3rem;"><i class="fa-solid fa-print" style="color: var(--primary);"></i> Toplu Zümre Tutanak Yazdırma ve Seçim Ekranı</h3>
+                    <p style="color: #64748b; font-size: 0.85rem; margin: 4px 0 0 0;">Yazdırmak istediğiniz zümre tutanaklarını aşağıdan seçebilirsiniz. Görüş/karar işlenmemiş maddesi olanlar sarı uyarı etiketi ile belirtilir.</p>
+                </div>
+                <button class="btn-custom btn-secondary-custom" style="padding: 6px 10px; border-radius: 50%;" onclick="closeBatchPrintModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                <div style="font-size: 0.85rem; font-weight: 700; color: #475569;">
+                    <i class="fa-solid fa-list-check"></i> Listelenen Zümreler (<span id="batchPrintTotalCount">0</span> adet)
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-custom btn-secondary-custom" style="font-size: 0.75rem; padding: 4px 10px;" onclick="selectAllBatchPrint(true)"><i class="fa-solid fa-check-double"></i> Tümünü Seç</button>
+                    <button class="btn-custom btn-secondary-custom" style="font-size: 0.75rem; padding: 4px 10px;" onclick="selectAllBatchPrint(false)"><i class="fa-solid fa-square-xmark"></i> Seçimi Temizle</button>
+                </div>
+            </div>
+
+            <div id="batchPrintListContainer" style="max-height: 450px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; background: #f8fafc; display: flex; flex-direction: column; gap: 10px;">
+                <!-- Dynamically populated -->
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; align-items: center; gap: 10px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+                <button class="btn-custom btn-secondary-custom" onclick="closeBatchPrintModal()">İptal / Kapat</button>
+                <button class="btn-custom btn-primary-custom" style="background: #10b981; border-color: #059669; box-shadow: 0 2px 4px rgba(16,185,129,0.2);" onclick="confirmAndExecuteBatchPrint()"><i class="fa-solid fa-print"></i> Seçilenleri Yazdır / PDF Al (<span id="batchPrintSelectedCount">0</span>)</button>
             </div>
         </div>
     </div>
@@ -1033,6 +1068,7 @@
             });
 
             console.log(`🎯 [Zümre Görüş Filtresi] Toplam ${allFetchedPlans.length} kayıttan ${filtered.length} tanesi gösterilecek.`);
+            window.lastFilteredZumrePlans = filtered;
 
             if (filtered.length === 0) {
                 container.innerHTML = `
@@ -2713,7 +2749,6 @@
                 cancelButtonText: 'İptal',
                 confirmButtonColor: '#ef4444'
             });
-
             if (!res.isConfirmed) return;
 
             Swal.fire({ title: 'Siliniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -2764,6 +2799,19 @@
                 if (!res.isConfirmed) return;
             }
 
+            const { pageHtml, docTitle } = buildSingleZumrePageData(plan);
+            const printWin = window.open('', '_blank');
+            if (!printWin) {
+                Swal.fire('Uyarı', 'Açılır pencere engelleyicisi (Pop-up blocker) nedeniyle yazdırma sayfası açılamadı. Lütfen izin verin.', 'warning');
+                return;
+            }
+            const htmlContent = buildPrintDocumentHtml(docTitle, pageHtml);
+            printWin.document.open();
+            printWin.document.write(htmlContent);
+            printWin.document.close();
+        }
+
+        function buildSingleZumrePageData(plan) {
             const schoolName = (plan.school || localStorage.getItem('klbk_lastSchoolName') || 'İSTANBUL ATATÜRK ANADOLU LİSESİ').toUpperCase();
             const donemName = (plan.donem || '2025-2026 EĞİTİM VE ÖĞRETİM YILI').toUpperCase();
             let branchClean = plan.branch ? plan.branch.trim() : '';
@@ -2780,53 +2828,22 @@
 
             const midPart = branchUpper ? `${branchUpper} ${turClean.toUpperCase()}` : turClean.toUpperCase();
             const cleanedMid = midPart.replace(/\bBRANŞI?\b\s+\bBRANŞ\b/gi, 'BRANŞ').replace(/\s+/g, ' ').trim();
-
             const docTitle = `${donemName} ${cleanedMid} TOPLANTI TUTANAĞI`;
-
             const meetDate = plan.tarih ? (plan.tarih.includes('-') ? plan.tarih.split('-').reverse().join('.') : plan.tarih) : (new Date().toLocaleDateString('tr-TR'));
 
             const participants = Array.isArray(plan.participants) ? plan.participants : [];
-            let managerObj = null;
-            let baskanObj = null;
-
-            managerObj = participants.find(p => p.gorev && (/müdür|yönetici|idareci/i.test(p.gorev)));
-            if (!managerObj) {
-                managerObj = { name: 'Okul Müdürü / Toplantı Yöneticisi', gorev: 'Toplantı Yöneticisi' };
-            }
-
-            baskanObj = participants.find(p => p.isBaskan) || participants.find(p => p !== managerObj && p.gorev && (/başkan/i.test(p.gorev)));
-            if (!baskanObj && participants.length > 0) {
-                baskanObj = participants.find(p => p !== managerObj) || participants[0];
-            }
-            if (!baskanObj) {
-                baskanObj = { name: plan.planner || 'Zümre Başkanı', gorev: 'Zümre Başkanı' };
-            }
-
+            let managerObj = participants.find(p => p.gorev && (/müdür|yönetici|idareci/i.test(p.gorev))) || { name: 'Okul Müdürü / Toplantı Yöneticisi', gorev: 'Toplantı Yöneticisi' };
+            let baskanObj = participants.find(p => p.isBaskan) || participants.find(p => p !== managerObj && p.gorev && (/başkan/i.test(p.gorev))) || participants.find(p => p !== managerObj) || participants[0] || { name: plan.planner || 'Zümre Başkanı', gorev: 'Zümre Başkanı' };
             const teachers = participants.filter(p => p !== managerObj && p !== baskanObj && p.name !== managerObj.name && p.name !== baskanObj.name);
 
             const teacherRows = [];
-            for (let i = 0; i < teachers.length; i += 3) {
-                teacherRows.push([
-                    teachers[i] || null,
-                    teachers[i+1] || null,
-                    teachers[i+2] || null
-                ]);
-            }
-            if (teacherRows.length === 0) {
-                teacherRows.push([null, null, null]);
-            }
+            for (let i = 0; i < teachers.length; i += 3) teacherRows.push([teachers[i] || null, teachers[i+1] || null, teachers[i+2] || null]);
+            if (teacherRows.length === 0) teacherRows.push([null, null, null]);
 
             const isMultiSchool = (plan.turCode === 'il' || plan.turCode === 'ilce' || plan.turCode === 'okul_zb' || /il|ilçe|okul zümre başkanları/i.test(plan.tur || ''));
             const baskanTitle = branchClean ? branchClean + ' Zümre Başkanı' : 'Zümre Başkanı';
             let managerTitle = managerObj.gorev || 'Sorumlu Müdür Yardımcısı';
-            if (/toplantı yöneticisi/i.test(managerTitle) || /idareci/i.test(managerTitle) || /müdür yrd/i.test(managerTitle)) {
-                if (/başyardımcı/i.test(managerTitle)) managerTitle = 'Sorumlu Müdür Başyardımcısı';
-                else if (/müdür yardımcısı/i.test(managerTitle) || /müdür yrd/i.test(managerTitle) || /idareci/i.test(managerTitle) || /toplantı yöneticisi/i.test(managerTitle)) managerTitle = 'Sorumlu Müdür Yardımcısı';
-                else if (/okul müdürü/i.test(managerTitle) && !/yardımcı/i.test(managerTitle)) managerTitle = 'Okul Müdürü';
-            }
-            if (managerObj.name && /hakan cora/i.test(managerObj.name)) {
-                managerTitle = 'Sorumlu Müdür Yardımcısı';
-            }
+            if (/toplantı yöneticisi/i.test(managerTitle) || /idareci/i.test(managerTitle) || /müdür yrd/i.test(managerTitle)) managerTitle = 'Sorumlu Müdür Yardımcısı';
 
             let okulMuduruName = '';
             try {
@@ -2870,17 +2887,8 @@
                 teacherRowsHtml += '<tr>';
                 row.forEach(cell => {
                     if (cell) {
-                        let subInfo = '';
-                        if (isMultiSchool) {
-                            subInfo = cell.kurum || cell.okul || cell.gorev || 'Öğretmen';
-                        } else {
-                            subInfo = branchClean ? branchClean + ' Öğretmeni' : (cell.gorev || 'Öğretmen');
-                        }
-                        teacherRowsHtml += `
-                            <td colspan="2" style="width: 33.33%; padding: 14px 10px; text-align: center; vertical-align: middle;">
-                                <div style="font-weight: bold; font-size: 11pt; margin-bottom: 4px; color: #000;">${cell.name}</div>
-                                <div style="font-size: 9.5pt; color: #333;">${subInfo}</div>
-                            </td>`;
+                        let subInfo = isMultiSchool ? (cell.kurum || cell.okul || cell.gorev || 'Öğretmen') : (branchClean ? branchClean + ' Öğretmeni' : (cell.gorev || 'Öğretmen'));
+                        teacherRowsHtml += `<td colspan="2" style="width: 33.33%; padding: 14px 10px; text-align: center;"><div style="font-weight: bold; font-size: 11pt; margin-bottom: 4px;">${cell.name}</div><div style="font-size: 9.5pt;">${subInfo}</div></td>`;
                     } else {
                         teacherRowsHtml += `<td colspan="2" style="width: 33.33%; padding: 14px 10px;">&nbsp;</td>`;
                     }
@@ -2889,59 +2897,18 @@
             });
 
             const agendaList = Array.isArray(plan.agendaItems) ? plan.agendaItems : [];
-            let agendaListHtml = '<ol style="margin: 0; padding-left: 20px; line-height: 1.8;">';
-            agendaList.forEach(item => {
-                agendaListHtml += `<li style="margin-bottom: 4px;">${item}</li>`;
-            });
-            agendaListHtml += '</ol>';
+            let agendaListHtml = '<ol style="margin: 0; padding-left: 20px; line-height: 1.8;">' + agendaList.map(item => `<li style="margin-bottom: 4px;">${item}</li>`).join('') + '</ol>';
 
             let goruslerHtml = '';
             agendaList.forEach((item, idx) => {
-                const opList = plan.opinions && plan.opinions[idx] ? plan.opinions[idx] : [];
-                const sortedOps = opList.map(op => ({op})).sort((a, b) => {
-                    const aIsDec = !a.op.author || a.op.author === "" || a.op.author === "Karar";
-                    const bIsDec = !b.op.author || b.op.author === "" || b.op.author === "Karar";
-                    if (aIsDec && !bIsDec) return 1;
-                    if (!aIsDec && bIsDec) return -1;
-                    return 0;
-                });
-
-                goruslerHtml += `
-                    <div style="margin-top: 18px; padding-top: 12px; border-top: 1px solid #cbd5e1; page-break-inside: avoid;">
-                        <div style="font-size: 11pt; font-weight: bold; color: #0284c7; text-decoration: underline; margin-bottom: 8px;">
-                            ${idx + 1}. ${item}
-                        </div>
-                        <div style="padding-left: 10px;">`;
-
-                if (sortedOps.length === 0) {
-                    goruslerHtml += `<div style="font-style: italic; color: #64748b; font-size: 10pt;">Bu madde ile ilgili görüş veya karar girilmemiştir.</div>`;
-                } else {
-                    sortedOps.forEach(({op}) => {
+                const opList = (plan.opinions && plan.opinions[idx]) ? plan.opinions[idx] : [];
+                goruslerHtml += `<div style="margin-top: 18px; padding-top: 12px; border-top: 1px solid #cbd5e1; page-break-inside: avoid;"><div style="font-size: 11pt; font-weight: bold; color: #0284c7; margin-bottom: 8px;">${idx + 1}. ${item}</div><div style="padding-left: 10px;">`;
+                if (opList.length === 0) goruslerHtml += `<div style="font-style: italic; color: #64748b; font-size: 10pt;">Bu madde ile ilgili görüş veya karar girilmemiştir.</div>`;
+                else {
+                    opList.forEach(op => {
                         const isDec = !op.author || op.author === "" || op.author === "Karar";
-                        let text = op.text || '';
-                        if (isDec) {
-                            text = text.replace(/^Karar:\s*/i, '');
-                            goruslerHtml += `
-                                <div style="margin-top: 6px; padding: 6px 10px; background: #f8fafc; border-left: 3px solid #000000; font-weight: 800; color: #000000; font-size: 11pt;">
-                                    <b style="color: #000000;">KARAR:</b> ${text}
-                                </div>`;
-                        } else {
-                            if (op.style === 'konusma') {
-                                const clean = text.trim();
-                                const hasQ = clean.startsWith('"') && clean.endsWith('"');
-                                const qText = hasQ ? clean : ('"' + clean + '"');
-                                const endsDedi = /dedi\.?$/i.test(clean);
-                                text = qText + (endsDedi ? '' : ' dedi.');
-                            } else if (op.style === 'anlatim') {
-                                const clean = text.trim();
-                                const endsVerb = /(dedi|söyledi|belirtti|ifade etti|ekledi|vurguladı|dile getirdi|kaydetti|aktardı|savundu|önerdi)\.?$/i.test(clean);
-                                text = clean + (endsVerb ? '' : ' söyledi.');
-                            }
-                            goruslerHtml += `
-                                <div style="margin-top: 6px; line-height: 1.6; font-size: 10.5pt; color: #1e293b;">
-                                    <b>${op.author}:</b> ${text}
-                                </div>`;
-                        }
+                        const text = (op.text || '').replace(/^Karar:\s*/i, '');
+                        goruslerHtml += isDec ? `<div style="margin-top: 6px; padding: 6px 10px; background: #f8fafc; border-left: 3px solid #000; font-weight: 800; font-size: 11pt;"><b style="color: #000;">KARAR:</b> ${text}</div>` : `<div style="margin-top: 6px; font-size: 10.5pt; color: #1e293b;"><b>${op.author}:</b> ${op.text}</div>`;
                     });
                 }
                 goruslerHtml += `</div></div>`;
@@ -2949,122 +2916,75 @@
 
             let ozetKararlarHtml = '';
             let kararSayac = 0;
-            agendaList.forEach((item, idx) => {
-                const opList = plan.opinions && plan.opinions[idx] ? plan.opinions[idx] : [];
-                const decList = opList.filter(op => !op.author || op.author === "" || op.author === "Karar" || op.style === 'karar' || /^karar:/i.test(op.text || ''));
-                
-                if (decList.length > 0) {
-                    decList.forEach(op => {
-                        kararSayac++;
-                        let text = op.text || '';
-                        text = text.replace(/^Karar:\s*/i, '').trim();
-                        ozetKararlarHtml += `<div style="margin-bottom: 6px; line-height: 1.5; font-size: 11pt; font-weight: 800; color: #000000;"><b style="color: #000000;">${kararSayac}.</b> ${text}</div>`;
-                    });
-                }
+            agendaList.forEach((_, idx) => {
+                const opList = (plan.opinions && plan.opinions[idx]) ? plan.opinions[idx] : [];
+                opList.filter(op => !op.author || op.author === "" || op.author === "Karar").forEach(op => {
+                    kararSayac++;
+                    ozetKararlarHtml += `<div style="margin-bottom: 6px; line-height: 1.5; font-size: 11pt; font-weight: 800; color: #000;"><b style="color: #000;">${kararSayac}.</b> ${(op.text || '').replace(/^Karar:\s*/i, '')}</div>`;
+                });
             });
-            if (kararSayac === 0) {
-                ozetKararlarHtml = '<div style="color: #64748b; font-style: italic;">Toplantıda alınan karar kaydı bulunmamaktadır.</div>';
-            }
 
-            const printWin = window.open('', '_blank');
-            if (!printWin) {
-                Swal.fire('Uyarı', 'Açılır pencere engelleyicisi (Pop-up blocker) nedeniyle yazdırma sayfası açılamadı. Lütfen izin verin.', 'warning');
-                return;
-            }
+            const pageHtml = `<div class="a4-page">
+        <div class="header-title"><h1>${schoolName}</h1><h3>${docTitle}</h3></div>
+        <table><tbody>
+            <tr><td colspan="6" style="padding: 12px; font-weight: bold; background: #f8fafc;"><div style="display: flex; justify-content: space-between;"><span>${branchClean ? branchClean + ' Zümresi' : 'Genel Zümre'}</span><span>1. Toplantı</span><span>${meetDate}</span></div></td></tr>
+            <tr><td colspan="6" style="background-color: #475569; height: 16px; padding: 0;"></td></tr>
+            <tr>
+                <td colspan="3" style="width: 50%; padding: 16px 12px; text-align: center;"><div style="font-weight: bold;">${managerObj.name}</div><div>${managerTitle}</div></td>
+                <td colspan="3" style="width: 50%; padding: 16px 12px; text-align: center;"><div style="font-weight: bold;">${baskanObj.name}</div><div>${baskanTitle}</div></td>
+            </tr>
+            ${teacherRowsHtml}
+        </tbody></table>
+        <div style="margin: 40px auto; text-align: center; width: 100%; page-break-inside: avoid;"><div>${meetDate}</div><div style="font-weight: bold; margin-bottom: 40px;">UYGUNDUR</div><div style="font-weight: bold; text-decoration: underline;">${okulMuduruName}</div><div>Okul Müdürü</div></div>
+        <table style="page-break-before: always; break-before: page; margin-top: 0;"><tbody>
+            <tr><th style="padding: 12px;">Toplantı Konusu</th></tr>
+            <tr><td style="padding: 16px; font-weight: bold;">${plan.konu || docTitle}</td></tr>
+            <tr><th style="padding: 12px;">Toplantı Gündemi</th></tr>
+            <tr><td style="padding: 16px;">${agendaListHtml}</td></tr>
+            <tr><td style="padding: 16px; background: #f8fafc; font-weight: 800;">GÜNDEM MADDELERİNİN GÖRÜŞÜLMESİ:</td></tr>
+            <tr><td style="padding: 16px;">${goruslerHtml}</td></tr>
+        </tbody></table>
+        <table style="margin-top: 30px; page-break-inside: avoid;"><tbody>
+            <tr><th style="padding: 12px;">Toplantı Özeti</th></tr>
+            <tr><td style="padding: 16px;">${ozetKararlarHtml || '<div style="color: #64748b; font-style: italic;">Toplantıda alınan karar kaydı bulunmamaktadır.</div>'}</td></tr>
+        </tbody></table>
+    </div>`;
 
-            const htmlContent = `<!DOCTYPE html>
+            return { pageHtml, docTitle };
+        }
+
+        function buildPrintDocumentHtml(docTitle, bodyContent) {
+            return `<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <title>${docTitle}</title>
     <style>
-        @page {
-            size: A4 portrait;
-            margin: 15mm 15mm 15mm 15mm;
-        }
-        body {
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 11pt;
-            line-height: 1.5;
-            color: #000;
-            margin: 0;
-            padding: 20px;
-            background: #f1f5f9;
-        }
-        .a4-page {
-            max-width: 210mm;
-            min-height: 297mm;
-            margin: 0 auto;
-            background: #fff;
-            padding: 20mm 15mm;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            box-sizing: border-box;
-        }
+        @page { size: A4 portrait; margin: 15mm; }
+        body { font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.5; color: #000; margin: 0; padding: 20px; background: #f1f5f9; }
+        .a4-page { max-width: 210mm; min-height: 297mm; margin: 0 auto 40px auto; background: #fff; padding: 20mm 15mm; box-shadow: 0 4px 15px rgba(0,0,0,0.1); box-sizing: border-box; page-break-after: always; break-after: page; }
+        .a4-page:last-of-type { margin-bottom: 0; page-break-after: auto; break-after: auto; }
+        .header-title { text-align: center; margin-bottom: 25px; }
+        .header-title h1 { font-size: 15pt; font-weight: bold; margin: 0 0 6px 0; text-transform: uppercase; }
+        .header-title h3 { font-size: 13pt; font-weight: bold; margin: 0; text-decoration: underline; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 25px; page-break-inside: auto; table-layout: fixed; }
+        tr { page-break-inside: avoid; page-break-after: auto; }
+        th, td { border: 1px solid #000; padding: 10px 12px; text-align: left; vertical-align: top; word-wrap: break-word; }
+        th { background-color: #334155 !important; color: #ffffff !important; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         @media print {
             body { background: #fff; padding: 0; }
-            .a4-page { box-shadow: none; padding: 0; max-width: 100%; width: 100%; margin: 0; }
+            .a4-page { box-shadow: none; padding: 0; max-width: 100%; width: 100%; margin: 0; page-break-after: always; break-after: page; }
+            .a4-page:last-of-type { page-break-after: auto; break-after: auto; }
             .no-print { display: none !important; }
         }
-        .btn-print-bar {
-            max-width: 210mm;
-            margin: 0 auto 20px auto;
-            padding: 12px 20px;
-            background: #1e293b;
-            border-radius: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            font-family: sans-serif;
-        }
-        .btn-custom {
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-family: sans-serif;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            border: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-        }
+        .btn-print-bar { max-width: 210mm; margin: 0 auto 20px auto; padding: 12px 20px; background: #1e293b; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: sans-serif; }
+        .btn-custom { padding: 10px 18px; border-radius: 8px; font-family: sans-serif; font-size: 14px; font-weight: bold; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; }
         .btn-print { background: #10b981; color: white; }
         .btn-print:hover { background: #059669; }
         .btn-pdf { background: #3b82f6; color: white; }
         .btn-pdf:hover { background: #2563eb; }
         .btn-close { background: #475569; color: white; }
         .btn-close:hover { background: #334155; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 25px;
-            page-break-inside: auto;
-            table-layout: fixed;
-        }
-        tr { page-break-inside: avoid; page-break-after: auto; }
-        th, td {
-            border: 1px solid #000;
-            padding: 10px 12px;
-            text-align: left;
-            vertical-align: top;
-            word-wrap: break-word;
-        }
-        th {
-            background-color: #334155 !important;
-            color: #ffffff !important;
-            font-weight: bold;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-        .header-title {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-        .header-title h1 { font-size: 15pt; font-weight: bold; margin: 0 0 6px 0; text-transform: uppercase; }
-        .header-title h2 { font-size: 13pt; font-weight: bold; margin: 0 0 6px 0; }
-        .header-title h3 { font-size: 13pt; font-weight: bold; margin: 0; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -3078,100 +2998,141 @@
             <button class="btn-custom btn-close" onclick="window.close()">✖ Kapat</button>
         </div>
     </div>
-    <div class="a4-page">
-        <div class="header-title">
-            <h1>${schoolName}</h1>
-            <h3>${docTitle}</h3>
-        </div>
-
-        <table>
-            <tbody>
-                <tr>
-                    <td colspan="6" style="padding: 12px; font-weight: bold; background: #f8fafc;">
-                        <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
-                            <span>${branchClean ? branchClean + ' Zümresi' : 'Genel Zümre'}</span>
-                            <span>1. Toplantı</span>
-                            <span>${meetDate}</span>
-                        </div>
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="6" style="background-color: #475569; height: 16px; padding: 0;"></td>
-                </tr>
-                <tr>
-                    <td colspan="3" style="width: 50%; padding: 16px 12px; text-align: center; vertical-align: middle;">
-                        <div style="font-weight: bold; font-size: 11.5pt; margin-bottom: 4px;">${managerObj.name}</div>
-                        <div style="font-size: 10pt; color: #333;">${managerTitle}</div>
-                    </td>
-                    <td colspan="3" style="width: 50%; padding: 16px 12px; text-align: center; vertical-align: middle;">
-                        <div style="font-weight: bold; font-size: 11.5pt; margin-bottom: 4px;">${baskanObj.name}</div>
-                        <div style="font-size: 10pt; color: #333;">${baskanTitle}</div>
-                    </td>
-                </tr>
-                ${teacherRowsHtml}
-            </tbody>
-        </table>
-
-        <!-- YÖNETİCİ ADI VE İMZASI ALANI (SAYFADA ORTALANMIŞ) -->
-        <div style="margin: 40px auto; text-align: center; width: 100%; page-break-inside: avoid;">
-            <div style="font-size: 11pt; margin-bottom: 8px;">${meetDate}</div>
-            <div style="font-size: 12pt; font-weight: bold; margin-bottom: 40px;">UYGUNDUR</div>
-            <div style="font-size: 12pt; font-weight: bold; text-decoration: underline;">${okulMuduruName}</div>
-            <div style="font-size: 11pt; color: #333;">Okul Müdürü</div>
-        </div>
-
-        <!-- TABLO 2: Toplantının Konusu, Gündemi ve Görüşülmesi -->
-        <table style="page-break-before: always; break-before: page; margin-top: 0;">
-            <tbody>
-                <tr>
-                    <th style="font-size: 12pt; padding: 12px;">Toplantı Konusu</th>
-                </tr>
-                <tr>
-                    <td style="padding: 16px 14px; font-weight: bold; font-size: 11pt;">
-                        ${plan.konu || docTitle}
-                    </td>
-                </tr>
-                <tr>
-                    <th style="font-size: 12pt; padding: 12px;">Toplantı Gündemi</th>
-                </tr>
-                <tr>
-                    <td style="padding: 16px 14px;">
-                        ${agendaListHtml}
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding: 16px 14px; background: #f8fafc; font-weight: 800; font-size: 11.5pt; letter-spacing: 0.5px;">
-                        GÜNDEM MADDELERİNİN GÖRÜŞÜLMESİ:
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding: 16px 14px;">
-                        ${goruslerHtml}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-
-        <!-- TABLO 3: Toplantı Özeti (Alınan Kararlar) -->
-        <table style="margin-top: 30px; page-break-inside: avoid;">
-            <tbody>
-                <tr>
-                    <th style="font-size: 12pt; padding: 12px; background-color: #334155 !important; color: white !important; text-align: left;">Toplantı Özeti</th>
-                </tr>
-                <tr>
-                    <td style="padding: 16px 14px; background: white;">
-                        <div style="font-size: 11pt; font-weight: bold; margin-bottom: 14px; color: #000;">
-                            Toplantıda Alınan Kararlar:
-                        </div>
-                        ${ozetKararlarHtml}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    ${bodyContent}
 </body>
 </html>`;
+        }
 
+        function openBatchPrintModal() {
+            const modal = document.getElementById('batchPrintModal');
+            const container = document.getElementById('batchPrintListContainer');
+            if (!modal || !container) return;
+
+            const plansToList = (window.lastFilteredZumrePlans && window.lastFilteredZumrePlans.length > 0) ? window.lastFilteredZumrePlans : allFetchedPlans;
+            if (!plansToList || plansToList.length === 0) {
+                Swal.fire('Uyarı', 'Listede yazdırılabilecek herhangi bir zümre toplantısı bulunmuyor.', 'warning');
+                return;
+            }
+
+            document.getElementById('batchPrintTotalCount').innerText = plansToList.length;
+            let html = '';
+            plansToList.forEach(plan => {
+                const pCount = (plan.participants || []).length;
+                const agendaCount = (plan.agendaItems || []).length;
+                
+                let emptyAgendaCount = 0;
+                if (agendaCount > 0) {
+                    for (let idx = 0; idx < agendaCount; idx++) {
+                        const opList = (plan.opinions && plan.opinions[idx]) ? plan.opinions[idx] : [];
+                        if (!Array.isArray(opList) || opList.length === 0) {
+                            emptyAgendaCount++;
+                        }
+                    }
+                } else {
+                    emptyAgendaCount = 1;
+                }
+
+                const badgeHtml = emptyAgendaCount > 0
+                    ? `<span style="background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;"><i class="fa-solid fa-triangle-exclamation"></i> ${emptyAgendaCount} Gündem Maddesi Boş (Görüş/Karar Yok)</span>`
+                    : `<span style="background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;"><i class="fa-solid fa-check-circle"></i> Tamamlandı (Tümü İşlenmiş)</span>`;
+
+                const branchDisplay = plan.branch && plan.branch !== 'Genel' ? plan.branch : (plan.participants && plan.participants[0] ? plan.participants[0].gorev : 'Genel Zümre');
+                let cleanBranch = branchDisplay ? branchDisplay.replace(/Zümresi|Toplantısı/gi, '').trim() : 'Genel';
+                if (!cleanBranch || cleanBranch === 'Genel') cleanBranch = 'Genel';
+                let formattedTitle = `${cleanBranch !== 'Genel' ? cleanBranch + ' ' : ''}${plan.tur || 'Zümre Toplantısı'} (${plan.donem || ''})`;
+                if (plan.turCode === 'brans' || (plan.tur && plan.tur.includes('Branş'))) {
+                    formattedTitle = `${cleanBranch} Zümresi ${plan.donem} Toplantısı`;
+                }
+
+                html += `
+                    <label class="batch-print-item" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; background: white; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#0d9488'; this.style.background='#f0fdfa';" onmouseout="const chk=this.querySelector('input'); if(!chk.checked){ this.style.borderColor='#e2e8f0'; this.style.background='white'; } else { this.style.borderColor='#0d9488'; }">
+                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                            <input type="checkbox" class="batch-print-chk" value="${plan.id}" data-empty="${emptyAgendaCount}" checked style="width: 18px; height: 18px; accent-color: #10b981; cursor: pointer;" onchange="updateBatchPrintSelectedCount()">
+                            <div>
+                                <div style="font-weight: 800; color: #1e293b; font-size: 0.95rem;">${formattedTitle}</div>
+                                <div style="font-size: 0.8rem; color: #64748b; margin-top: 3px;">
+                                    <i class="fa-solid fa-calendar-day" style="color: var(--primary);"></i> ${plan.tarih || 'Belirtilmedi'} &nbsp;|&nbsp; 
+                                    <i class="fa-solid fa-users" style="color: var(--primary);"></i> ${pCount} Katılımcı &nbsp;|&nbsp;
+                                    <i class="fa-solid fa-list-check" style="color: var(--primary);"></i> ${agendaCount} Gündem
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            ${badgeHtml}
+                        </div>
+                    </label>
+                `;
+            });
+
+            container.innerHTML = html;
+            modal.style.display = 'flex';
+            updateBatchPrintSelectedCount();
+        }
+
+        function closeBatchPrintModal() {
+            const modal = document.getElementById('batchPrintModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function selectAllBatchPrint(select) {
+            const chks = document.querySelectorAll('.batch-print-chk');
+            chks.forEach(chk => chk.checked = select);
+            updateBatchPrintSelectedCount();
+        }
+
+        function updateBatchPrintSelectedCount() {
+            const chks = document.querySelectorAll('.batch-print-chk:checked');
+            const cntEl = document.getElementById('batchPrintSelectedCount');
+            if (cntEl) cntEl.innerText = chks.length;
+        }
+
+        async function confirmAndExecuteBatchPrint() {
+            const checkedBoxes = Array.from(document.querySelectorAll('.batch-print-chk:checked'));
+            if (checkedBoxes.length === 0) {
+                Swal.fire('Uyarı', 'Lütfen yazdırmak için en az 1 zümre toplantısı seçin!', 'warning');
+                return;
+            }
+
+            const selectedIds = checkedBoxes.map(b => b.value);
+            const hasEmptyAgendas = checkedBoxes.some(b => parseInt(b.getAttribute('data-empty') || '0') > 0);
+
+            if (hasEmptyAgendas) {
+                const res = await Swal.fire({
+                    title: 'Eksik Görüş / Karar Uyarısı! ⚠️',
+                    html: `Seçtiğiniz bazı zümre tutanaklarında veya içerisindeki bazı gündem maddlerinde <b>henüz hiçbir görüş veya karar işlenmemiş</b> (boş maddeler bulunuyor).<br><br>Yine de bu toplantıları <b>mevcut durumlarıyla (eksik maddelerle)</b> yazdırmak istiyor musunuz?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#10b981',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: '<i class="fa-solid fa-print"></i> Evet, Bu Haliyle Yazdır',
+                    cancelButtonText: 'İptal Et'
+                });
+                if (!res.isConfirmed) return;
+            }
+
+            closeBatchPrintModal();
+            executeBatchPrint(selectedIds);
+        }
+
+        function executeBatchPrint(selectedIds) {
+            if (!selectedIds || selectedIds.length === 0) return;
+            let combinedHtml = '';
+            let firstTitle = 'Toplu Zümre Tutanakları';
+            selectedIds.forEach((id, idx) => {
+                const plan = allFetchedPlans.find(p => p.id === id);
+                if (plan) {
+                    const { pageHtml, docTitle } = buildSingleZumrePageData(plan);
+                    if (idx === 0) firstTitle = docTitle + (selectedIds.length > 1 ? ' ve Diğerleri' : '');
+                    combinedHtml += pageHtml + '\n\n';
+                }
+            });
+
+            const printWin = window.open('', '_blank');
+            if (!printWin) {
+                Swal.fire('Uyarı', 'Açılır pencere engelleyicisi (Pop-up blocker) nedeniyle yazdırma sayfası açılamadı. Lütfen izin verin.', 'warning');
+                return;
+            }
+            const htmlContent = buildPrintDocumentHtml(firstTitle, combinedHtml);
             printWin.document.open();
             printWin.document.write(htmlContent);
             printWin.document.close();
