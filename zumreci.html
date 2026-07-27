@@ -1054,6 +1054,41 @@
             }
         }
 
+        function getSokDonemStr(plan) {
+            if (plan && plan.donem && (plan.donem === '1. Dönem' || plan.donem === '2. Dönem')) {
+                return plan.donem;
+            }
+            if (plan && plan.konu) {
+                if (/1\.\s*dönem/i.test(plan.konu)) return '1. Dönem';
+                if (/2\.\s*dönem/i.test(plan.konu)) return '2. Dönem';
+            }
+            let month = new Date().getMonth() + 1; // 1 ile 12 arası
+            if (plan && plan.tarih && plan.tarih.includes('-')) {
+                const parts = plan.tarih.split('-');
+                const m = parseInt(parts[1], 10);
+                if (!isNaN(m) && m >= 1 && m <= 12) month = m;
+            }
+            // Eylül (9) ile Ocak (1) arası 1. Dönem; Şubat (2) ile Ağustos (8) arası 2. Dönem
+            return (month >= 9 || month === 1) ? '1. Dönem' : '2. Dönem';
+        }
+
+        function formatSokTitle(plan, isForTutanak = false) {
+            const donemStr = getSokDonemStr(plan);
+            const combinedStr = `${plan.branch || ''} ${plan.konu || ''} ${plan.tur || ''}`;
+            let clsName = '';
+            const match = combinedStr.match(/(\d+)\s*([\/\-\.\s]?)\s*([A-ZĞÜŞİÖÇ]{1,3})\b/i);
+            if (match && !/^(ŞUB|SIN|DÖN|TOP|ZÜM|YIL|KUR|GEN)/i.test(match[3])) {
+                clsName = match[1] + (match[2] === '-' || match[2] === '/' ? match[2] : '') + match[3].toUpperCase();
+            }
+            if (!clsName && plan.branch && !plan.branch.toLowerCase().includes('genel')) {
+                clsName = plan.branch.replace(/ŞÖK|Toplantısı|Zümresi|Şubesi|Sınıfı|\(|\)/gi, '').trim();
+            }
+            if (isForTutanak) {
+                return `${clsName ? clsName + ' ' : ''}${donemStr.toUpperCase()} ŞÖK TOPLANTI TUTANAĞI`;
+            }
+            return `${clsName ? clsName + ' ' : ''}${donemStr} ŞÖK Toplantısı`;
+        }
+
         function filterAndRenderGorusList() {
             const container = document.getElementById('gorusZümreListContainer');
             const filterEl = document.getElementById('gorusBransFilter');
@@ -1240,7 +1275,7 @@
                 } else if (plan.turCode === 'ilce' || (plan.tur && plan.tur.includes('İlçe Zümresi'))) {
                     formattedTitle = `${cleanBranch} İlçe Zümresi ${plan.donem} Toplantısı`;
                 } else if (plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ'))) {
-                    formattedTitle = `${plan.donem} ${cleanBranch !== 'Genel' ? cleanBranch + ' ' : ''}ŞÖK Toplantısı`;
+                    formattedTitle = typeof formatSokTitle === 'function' ? formatSokTitle(plan, false) : `${plan.donem} ${cleanBranch !== 'Genel' ? cleanBranch + ' ' : ''}ŞÖK Toplantısı`;
                 } else {
                     formattedTitle = `${cleanBranch} ${plan.tur || 'Toplantısı'}`;
                 }
@@ -1857,6 +1892,34 @@
             specialContainer.innerHTML = '';
             btnsContainer.innerHTML = '';
 
+            const donemSelect = document.getElementById('zumreDonemSelect');
+            if (donemSelect) {
+                if (tur === 'sok') {
+                    if (!donemSelect.querySelector('option[value="1. Dönem"]')) {
+                        donemSelect.innerHTML = `
+                            <option value="1. Dönem">1. Dönem ŞÖK Toplantısı</option>
+                            <option value="2. Dönem">2. Dönem ŞÖK Toplantısı</option>
+                        `;
+                        const m = new Date().getMonth();
+                        donemSelect.value = (m >= 8 || m === 0) ? "1. Dönem" : "2. Dönem";
+                    }
+                } else {
+                    if (!donemSelect.querySelector('option[value="Sene Başı"]')) {
+                        donemSelect.innerHTML = `
+                            <option value="Sene Başı">Sene Başı Zümresi</option>
+                            <option value="2. Dönem Başı">2. Dönem Başı Zümresi</option>
+                            <option value="Sene Sonu">Sene Sonu Zümresi</option>
+                            <option value="Ek Zümre">Ek Zümre Toplantısı</option>
+                        `;
+                        const m = new Date().getMonth() + 1;
+                        if (m === 7 || m === 8 || m === 9) donemSelect.value = "Sene Başı";
+                        else if (m === 2) donemSelect.value = "2. Dönem Başı";
+                        else if (m === 6) donemSelect.value = "Sene Sonu";
+                        else donemSelect.value = "Ek Zümre";
+                    }
+                }
+            }
+
             if (tur === 'il') {
                 titleEl.innerText = "2. Katılımcıları Belirleme (İl Zümresi - İlçe Zümre Başkanları)";
                 btnsContainer.innerHTML = `
@@ -1927,13 +1990,14 @@
                     setTimeout(() => { promptSokClassesSelection(); }, 150);
                 }
                 
+                const donemSelect = document.getElementById('zumreDonemSelect');
                 const m = new Date().getMonth();
                 const isFirstTerm = (m >= 8 || m === 0);
-                const donemStr = isFirstTerm ? "1. Dönem" : "2. Dönem";
+                const donemStr = (donemSelect && donemSelect.value) ? donemSelect.value : (isFirstTerm ? "1. Dönem" : "2. Dönem");
                 const konuEl = document.getElementById('toplantiKonusuInput');
-                if (konuEl && !konuEl.value.includes('ŞÖK')) {
+                if (konuEl && (!konuEl.value || konuEl.value.includes('ŞÖK') || konuEl.value.includes('Sene Başı'))) {
                     const sokClass = document.getElementById('sokClassSelect') ? document.getElementById('sokClassSelect').value : '';
-                    konuEl.value = `${donemStr} ${sokClass ? sokClass + ' Şubesi ' : ''}ŞÖK (Şube Öğretmenler Kurulu) Toplantısı`;
+                    konuEl.value = `${sokClass ? sokClass + ' ' : ''}${donemStr} ŞÖK Toplantısı`;
                 }
             } else if (tur === 'brans') {
                 titleEl.innerText = "2. Katılımcıları Belirleme (Branş Zümresi Toplantısı)";
@@ -2282,12 +2346,13 @@
             if (statusEl) statusEl.innerText = `${className} Şubesi öğretmenleri veritabanından kontrol ediliyor...`;
 
             // Başlığı seçilen şubeye ve döneme göre güncelle
+            const donemSelect = document.getElementById('zumreDonemSelect');
             const m = new Date().getMonth();
             const isFirstTerm = (m >= 8 || m === 0);
-            const donemStr = isFirstTerm ? "1. Dönem" : "2. Dönem";
+            const donemStr = (donemSelect && donemSelect.value) ? donemSelect.value : (isFirstTerm ? "1. Dönem" : "2. Dönem");
             const konuEl = document.getElementById('toplantiKonusuInput');
             if (konuEl && currentZumreTur === 'sok') {
-                konuEl.value = `${donemStr} ${className} Şubesi ŞÖK (Şube Öğretmenler Kurulu) Toplantısı`;
+                konuEl.value = `${className ? className + ' ' : ''}${donemStr} ŞÖK Toplantısı`;
             }
 
             // Katılımcıları önce temizle ki SADECE o sınıfa dersi olanlar kalsın
@@ -3275,7 +3340,11 @@
 
             const midPart = branchUpper ? `${branchUpper} ${turClean.toUpperCase()}` : turClean.toUpperCase();
             const cleanedMid = midPart.replace(/\bBRANŞI?\b\s+\bBRANŞ\b/gi, 'BRANŞ').replace(/\s+/g, ' ').trim();
-            const docTitle = `${donemName} ${cleanedMid} TOPLANTI TUTANAĞI`;
+            let docTitle = `${donemName} ${cleanedMid} TOPLANTI TUTANAĞI`;
+            const isSok = plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ')) || (plan.konu && plan.konu.includes('ŞÖ'));
+            if (isSok && typeof formatSokTitle === 'function') {
+                docTitle = formatSokTitle(plan, true);
+            }
             const meetDate = plan.tarih ? (plan.tarih.includes('-') ? plan.tarih.split('-').reverse().join('.') : plan.tarih) : (new Date().toLocaleDateString('tr-TR'));
 
             const participants = Array.isArray(plan.participants) ? plan.participants : [];
@@ -3288,7 +3357,7 @@
             if (teacherRows.length === 0) teacherRows.push([null, null, null]);
 
             const isMultiSchool = (plan.turCode === 'il' || plan.turCode === 'ilce' || plan.turCode === 'okul_zb' || /il|ilçe|okul zümre başkanları/i.test(plan.tur || ''));
-            const baskanTitle = branchClean ? branchClean + ' Zümre Başkanı' : 'Zümre Başkanı';
+            const baskanTitle = isSok && typeof formatSokTitle === 'function' ? (formatSokTitle(plan, false).replace(/\s*1\.\s*Dönem|\s*2\.\s*Dönem|\s*Toplantısı/gi, '').trim() + ' Başkanı') : (branchClean ? branchClean + ' Zümre Başkanı' : 'Zümre Başkanı');
             let managerTitle = managerObj.gorev || 'Sorumlu Müdür Yardımcısı';
             if (/toplantı yöneticisi/i.test(managerTitle) || /idareci/i.test(managerTitle) || /müdür yrd/i.test(managerTitle)) managerTitle = 'Sorumlu Müdür Yardımcısı';
 
@@ -3371,10 +3440,14 @@
                 });
             });
 
+            const headerLeftText = isSok && typeof formatSokTitle === 'function' ? formatSokTitle(plan, false) : (branchClean ? branchClean + ' Zümresi' : 'Genel Zümre');
+            const meetingNoText = isSok && typeof getSokDonemStr === 'function' ? (getSokDonemStr(plan) + ' Toplantısı') : '1. Toplantı';
+            const konuDisplay = isSok && typeof formatSokTitle === 'function' ? formatSokTitle(plan, false) : (plan.konu || docTitle);
+
             const pageHtml = `<div class="a4-page">
         <div class="header-title"><h1>${schoolName}</h1><h3>${docTitle}</h3></div>
         <table><tbody>
-            <tr><td colspan="6" style="padding: 12px; font-weight: bold; background: #f8fafc;"><div style="display: flex; justify-content: space-between;"><span>${branchClean ? branchClean + ' Zümresi' : 'Genel Zümre'}</span><span>1. Toplantı</span><span>${meetDate}</span></div></td></tr>
+            <tr><td colspan="6" style="padding: 12px; font-weight: bold; background: #f8fafc;"><div style="display: flex; justify-content: space-between;"><span>${headerLeftText}</span><span>${meetingNoText}</span><span>${meetDate}</span></div></td></tr>
             <tr><td colspan="6" style="background-color: #475569; height: 16px; padding: 0;"></td></tr>
             <tr>
                 <td colspan="3" style="width: 50%; padding: 16px 12px; text-align: center;"><div style="font-weight: bold;">${managerObj.name}</div><div>${managerTitle}</div></td>
@@ -3385,7 +3458,7 @@
         <div style="margin: 40px auto; text-align: center; width: 100%; page-break-inside: avoid;"><div>${meetDate}</div><div style="font-weight: bold; margin-bottom: 40px;">UYGUNDUR</div><div style="font-weight: bold; text-decoration: underline;">${okulMuduruName}</div><div>Okul Müdürü</div></div>
         <table style="page-break-before: always; break-before: page; margin-top: 0;"><tbody>
             <tr><th style="padding: 12px;">Toplantı Konusu</th></tr>
-            <tr><td style="padding: 16px; font-weight: bold;">${plan.konu || docTitle}</td></tr>
+            <tr><td style="padding: 16px; font-weight: bold;">${konuDisplay}</td></tr>
             <tr><th style="padding: 12px;">Toplantı Gündemi</th></tr>
             <tr><td style="padding: 16px;">${agendaListHtml}</td></tr>
             <tr><td style="padding: 16px; background: #f8fafc; font-weight: 800;">GÜNDEM MADDELERİNİN GÖRÜŞÜLMESİ:</td></tr>
@@ -3489,6 +3562,8 @@
                 let formattedTitle = `${cleanBranch !== 'Genel' ? cleanBranch + ' ' : ''}${plan.tur || 'Zümre Toplantısı'} (${plan.donem || ''})`;
                 if (plan.turCode === 'brans' || (plan.tur && plan.tur.includes('Branş'))) {
                     formattedTitle = `${cleanBranch} Zümresi ${plan.donem} Toplantısı`;
+                } else if (plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ'))) {
+                    formattedTitle = typeof formatSokTitle === 'function' ? formatSokTitle(plan, false) : formattedTitle;
                 }
 
                 html += `
@@ -3753,13 +3828,14 @@
                         return true;
                     });
 
-                    const turText = `ŞÖK Toplantısı (${cls} Şubesi)`;
-                    const branchName = `${cls} Şubesi ŞÖK`;
-                    const konuText = `${donemEl.value} ${cls} Şubesi ŞÖK (Şube Öğretmenler Kurulu) Toplantısı`;
+                    const donemVal = (donemEl && (donemEl.value === '1. Dönem' || donemEl.value === '2. Dönem')) ? donemEl.value : ((new Date().getMonth() + 1 >= 9 || new Date().getMonth() + 1 === 1) ? '1. Dönem' : '2. Dönem');
+                    const turText = `${cls} Şubesi ŞÖK Toplantısı`;
+                    const branchName = `${cls} ŞÖK`;
+                    const konuText = `${cls} ${donemVal} ŞÖK Toplantısı`;
 
                     const planObj = {
                         id: (editingPlanId && selectedClassesToSave.length === 1) ? editingPlanId : ('zumre_' + Date.now() + '_' + idx + '_' + Math.floor(Math.random()*1000)),
-                        donem: donemEl.value,
+                        donem: donemVal,
                         tur: turText,
                         turCode: 'sok',
                         branch: branchName,
