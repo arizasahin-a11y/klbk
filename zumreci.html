@@ -279,6 +279,100 @@
             overflow-y: auto;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
         }
+
+        /* Mobil ve Tablet Uyumluluğu (Responsive Design) */
+        @media (max-width: 1024px) {
+            .zumre-container {
+                margin: 1rem auto;
+                padding: 0 0.75rem;
+            }
+            .premium-header {
+                padding: 1rem 1.25rem;
+            }
+            .section-card {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .premium-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            .premium-header > div:first-child {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px !important;
+            }
+            .tabs-header {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .tab-btn {
+                border-radius: 12px;
+                justify-content: center;
+                width: 100%;
+                padding: 0.75rem 1rem;
+            }
+            .section-card {
+                padding: 1.25rem;
+            }
+            .form-select-custom, .form-control-custom, .btn-custom {
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .radio-group {
+                flex-direction: column;
+            }
+            .radio-card {
+                min-width: 100%;
+            }
+            .participant-table, table {
+                width: 100%;
+            }
+            div[style*="overflow-x: auto"], div[style*="overflow-y: auto"], .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                width: 100%;
+                display: block;
+            }
+            .modal-box {
+                padding: 1.25rem;
+                width: 95%;
+                max-height: 90vh;
+            }
+            div[style*="justify-content: space-between"] {
+                flex-direction: column;
+                align-items: stretch !important;
+                gap: 12px !important;
+            }
+            div[style*="justify-content: flex-end"] {
+                justify-content: center !important;
+                width: 100%;
+            }
+            #gorusBransFilterContainer, #gorusSokClassFilterContainer {
+                width: 100%;
+                box-sizing: border-box;
+                justify-content: space-between;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .premium-header h1 {
+                font-size: 1.25rem !important;
+            }
+            .section-card {
+                padding: 1rem;
+            }
+            .btn-custom {
+                padding: 0.75rem 1rem;
+                font-size: 0.9rem;
+            }
+            .tab-btn {
+                font-size: 0.9rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -3816,6 +3910,20 @@
         .btn-pdf:hover { background: #2563eb; }
         .btn-close { background: #475569; color: white; }
         .btn-close:hover { background: #334155; }
+        @media screen and (max-width: 1024px) {
+            body { padding: 10px; }
+            .a4-page { max-width: 100%; min-height: auto; padding: 15mm 10mm; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow-x: auto; }
+            .btn-print-bar { flex-direction: column; gap: 12px; text-align: center; padding: 15px; }
+            .btn-print-bar > div:last-child { display: flex; flex-wrap: wrap; justify-content: center; width: 100%; gap: 8px; }
+            .btn-custom { width: 100%; justify-content: center; }
+        }
+        @media screen and (max-width: 768px) {
+            .a4-page { padding: 10mm 5mm; overflow-x: auto; -webkit-overflow-scrolling: touch; display: block; width: 100%; box-sizing: border-box; }
+            table { word-break: break-word; width: 100%; min-width: 500px; }
+            th, td { padding: 6px 8px; font-size: 9.5pt; }
+            .header-title h1 { font-size: 13pt; }
+            .header-title h3 { font-size: 11pt; }
+        }
     </style>
 </head>
 <body>
