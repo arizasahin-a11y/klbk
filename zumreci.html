@@ -1069,7 +1069,9 @@
 
             const todayStr = new Date().toISOString().split('T')[0];
             const myNameNorm = normalizeTr(sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || '');
-            const isAdminOrIdareci = myNameNorm.startsWith('admin') || myNameNorm.includes('mudur') || sessionStorage.getItem('klbk_role') === 'admin';
+            const userRole = sessionStorage.getItem('klbk_role') || '';
+            const isAdminOrIdareci = myNameNorm.startsWith('admin') || myNameNorm.includes('mudur') || userRole === 'admin' || userRole === 'idareci' || userRole === 'master';
+            const myId = (sessionStorage.getItem('klbk_currentUser') || '').toString().trim();
 
             console.log("🔍 [Zümre Görüş Filtresi] Çalıştırıldı:", {
                 toplamHavuz: allFetchedPlans.length,
@@ -1099,19 +1101,49 @@
                     if (!titleMatch && !agendaMatch && !partMatch) return false;
                 }
 
-                if (!isAdminOrIdareci && (plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ')))) {
+                if (isAdminOrIdareci || isGuest) {
+                    if (selectedBranch === 'all') {
+                        return true;
+                    }
+                    const sBranch = normalizeTr(selectedBranch);
+                    const bMatch = normalizeTr(plan.branch).includes(sBranch) || 
+                                   normalizeTr(plan.tur).includes(sBranch) || 
+                                   (plan.participants && Array.isArray(plan.participants) && plan.participants.some(p => p && normalizeTr(p.gorev).includes(sBranch)));
+                    return bMatch;
+                }
+
+                // Öğretmen için sadece kendisinin katılımcı olduğu (veya planner olduğu / dersine girdiği ŞÖK) zümreleri göster
+                let isParticipant = false;
+
+                if (plan.participants && Array.isArray(plan.participants)) {
+                    isParticipant = plan.participants.some(p => {
+                        if (!p) return false;
+                        if (myId && p.id && p.id.toString().trim() === myId) return true;
+                        const pName = normalizeTr(p.name || '');
+                        if (!pName || !myNameNorm) return false;
+                        if (pName === myNameNorm || pName.includes(myNameNorm) || myNameNorm.includes(pName)) return true;
+                        const parts = myNameNorm.split(' ').filter(w => w.length > 2);
+                        if (parts.length >= 2) {
+                            return parts.every(w => pName.includes(w));
+                        } else if (parts.length === 1) {
+                            return pName.includes(parts[0]);
+                        }
+                        return false;
+                    });
+                }
+
+                if (!isParticipant) {
+                    if ((myId && plan.plannerId && plan.plannerId.toString().trim() === myId) ||
+                        (myNameNorm && plan.planner && (normalizeTr(plan.planner).includes(myNameNorm) || myNameNorm.includes(normalizeTr(plan.planner))))) {
+                        isParticipant = true;
+                    }
+                }
+
+                if (!isParticipant && (plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ')))) {
                     const cleanCls = str => (str || '').toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
                     const sokClassNameMatch = (plan.konu || plan.tur || plan.branch || '').match(/(\d+[\/\-][A-ZĞÜŞİÖÇ\d]+)/i);
                     const targetClass = sokClassNameMatch && sokClassNameMatch[1] ? cleanCls(sokClassNameMatch[1]) : '';
-                    
-                    let teachesThisClass = false;
-                    if (plan.participants && Array.isArray(plan.participants)) {
-                        teachesThisClass = plan.participants.some(p => {
-                            if (!p || !p.name) return false;
-                            return normalizeTr(p.name).includes(myNameNorm) || myNameNorm.includes(normalizeTr(p.name));
-                        });
-                    }
-                    if (!teachesThisClass && targetClass && typeof schoolTeachersList !== 'undefined' && Array.isArray(schoolTeachersList)) {
+                    if (targetClass && typeof schoolTeachersList !== 'undefined' && Array.isArray(schoolTeachersList)) {
                         const me = schoolTeachersList.find(t => t.id === sessionStorage.getItem('klbk_currentUser') || (t.name && myNameNorm && normalizeTr(t.name) === myNameNorm));
                         if (me) {
                             const chkVal = (val, target) => {
@@ -1124,37 +1156,21 @@
                                 return false;
                             };
                             if (chkVal(me.classes, targetClass) || chkVal(me.schedule, targetClass) || (me.rawObj && chkVal(me.rawObj, targetClass))) {
-                                teachesThisClass = true;
+                                isParticipant = true;
                             }
                         }
                     }
-                    if (!teachesThisClass && !normalizeTr(plan.planner || '').includes(myNameNorm)) {
-                        return false;
-                    }
                 }
 
-                if (selectedBranch === 'all' || isAdminOrIdareci) {
-                    return true;
+                if (selectedBranch !== 'all') {
+                    const sBranch = normalizeTr(selectedBranch);
+                    const bMatch = normalizeTr(plan.branch).includes(sBranch) || 
+                                   normalizeTr(plan.tur).includes(sBranch) || 
+                                   (plan.participants && Array.isArray(plan.participants) && plan.participants.some(p => p && normalizeTr(p.gorev).includes(sBranch)));
+                    return isParticipant && bMatch;
                 }
 
-                const sBranch = normalizeTr(selectedBranch);
-                const bMatch = normalizeTr(plan.branch).includes(sBranch) || 
-                               normalizeTr(plan.tur).includes(sBranch) || 
-                               (plan.participants && Array.isArray(plan.participants) && plan.participants.some(p => p && normalizeTr(p.gorev).includes(sBranch)));
-
-                const nameMatch = myNameNorm && (
-                    normalizeTr(plan.planner).includes(myNameNorm) || myNameNorm.includes(normalizeTr(plan.planner)) ||
-                    (plan.participants && Array.isArray(plan.participants) && plan.participants.some(p => {
-                        if (!p) return false;
-                        const pName = normalizeTr(p.name || '');
-                        if (!pName) return false;
-                        if (pName.includes(myNameNorm) || myNameNorm.includes(pName)) return true;
-                        const parts = myNameNorm.split(' ');
-                        return parts.some(w => w.length > 2 && pName.includes(w));
-                    }))
-                );
-
-                return bMatch || nameMatch;
+                return isParticipant;
             });
 
             console.log(`🎯 [Zümre Görüş Filtresi] Toplam ${allFetchedPlans.length} kayıttan ${filtered.length} tanesi gösterilecek.`);
