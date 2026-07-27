@@ -2842,13 +2842,13 @@
                             if (op.style === 'konusma') {
                                 const clean = text.trim();
                                 const hasQ = clean.startsWith('"') && clean.endsWith('"');
-                                const qText = hasQ ? clean : \`"\${clean}"\`;
+                                const qText = hasQ ? clean : ('"' + clean + '"');
                                 const endsDedi = /dedi\.?$/i.test(clean);
-                                text = \`\${qText}\${endsDedi ? '' : ' dedi.'}\`;
+                                text = qText + (endsDedi ? '' : ' dedi.');
                             } else if (op.style === 'anlatim') {
                                 const clean = text.trim();
                                 const endsVerb = /(dedi|söyledi|belirtti|ifade etti|ekledi|vurguladı|dile getirdi|kaydetti|aktardı|savundu|önerdi)\.?$/i.test(clean);
-                                text = \`\${clean}\${endsVerb ? '' : ' söyledi.'}\`;
+                                text = clean + (endsVerb ? '' : ' söyledi.');
                             }
                             goruslerHtml += `
                                 <div style="margin-top: 6px; line-height: 1.6; font-size: 10.5pt; color: #1e293b;">
@@ -3048,7 +3048,7 @@
         </table>
     </div>
 </body>
-</html>\`;
+</html>`;
 
             printWin.document.open();
             printWin.document.write(htmlContent);
