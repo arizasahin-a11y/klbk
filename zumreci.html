@@ -1168,11 +1168,11 @@
                 const agendas = Array.isArray(p.agendaItems) ? p.agendaItems : [];
                 const matchedIdx = agendas.findIndex(item => cleanAgendaItemText(item).toLowerCase().trim() === sourceAgendaClean);
                 if (matchedIdx !== -1) {
-                    const branchClean = typeof formatSokTitle === 'function' ? formatSokTitle(p, false).replace(/\s*1\.\s*Dönem|\s*2\.\s*Dönem|\s*Toplantısı/gi, '').trim() : (p.branch || p.tur || 'Sınıf');
+                    const branchClean = typeof formatSokTitle === 'function' ? formatSokTitle(p, false).replace(/\s*1\.\s*Dönem|\s*2\.\s*Dönem|\s*Toplantısı|\s*ŞÖK/gi, '').trim() : (p.branch || p.tur || 'Sınıf').replace(/ŞÖK|Toplantısı/gi, '').trim();
                     matchingPlans.push({
                         plan: p,
                         agendaIdx: matchedIdx,
-                        className: branchClean
+                        className: branchClean || 'Sınıf'
                     });
                 }
             });
