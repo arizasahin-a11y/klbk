@@ -3585,6 +3585,7 @@
                 let bc = (branchClean || '').replace(/Öğretmeni|Öğretmenleri|Öğretmen|Zümresi|Toplantısı/gi, '').trim();
                 if (!bc && cell.branch) bc = cell.branch.replace(/Öğretmeni|Öğretmenleri|Öğretmen|Zümresi|Toplantısı/gi, '').trim();
                 if (!bc && cell.gorev) bc = cell.gorev.replace(/Öğretmeni|Öğretmenleri|Öğretmen|Zümresi|Toplantısı|Başkanı/gi, '').trim();
+                if (bc && /[,;]/.test(bc)) bc = bc.split(/[,;]/)[0].trim();
                 return bc ? bc + ' Zümre Başkanı' : (cell.gorev || 'Zümre Başkanı');
             }
 
@@ -3623,6 +3624,12 @@
             }
             if (!cleanBranch) {
                 cleanBranch = 'Öğretmen';
+            }
+            if (cleanBranch && /[,;]/.test(cleanBranch)) {
+                cleanBranch = cleanBranch.split(/[,;]/)[0].trim();
+            }
+            if (cleanBranch && !/öğretmen/i.test(cleanBranch) && !/başkan/i.test(cleanBranch) && !/müdür/i.test(cleanBranch) && !/idareci/i.test(cleanBranch) && !/yönetici/i.test(cleanBranch)) {
+                cleanBranch = cleanBranch + ' Öğretmeni';
             }
             return cleanBranch;
         }
