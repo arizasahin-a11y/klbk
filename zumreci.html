@@ -521,7 +521,14 @@
                         <div id="gorusBransFilterContainer" style="display: flex; align-items: center; gap: 8px; background: #f0fdfa; padding: 6px 14px; border: 2px solid #0d9488; border-radius: 12px;">
                             <label style="font-size: 0.85rem; font-weight: 700; color: #0f766e; margin: 0;"><i class="fa-solid fa-filter"></i> Branşınız / Alan:</label>
                             <select id="gorusBransFilter" class="form-select-custom" style="padding: 6px 12px; font-size: 0.9rem; border-radius: 8px; border: 1px solid #0d9488; font-weight: 700; color: #0f766e; background: white; cursor: pointer;" onchange="filterAndRenderGorusList()">
-                                <option value="all">Tüm Branşlar</option>
+                                <option value="all">Tüm Branşlar / Genel</option>
+                            </select>
+                        </div>
+                        <!-- ŞÖK Sınıf/Şube Filtresi -->
+                        <div id="gorusSokClassFilterContainer" style="display: flex; align-items: center; gap: 8px; background: #eff6ff; padding: 6px 14px; border: 2px solid #3b82f6; border-radius: 12px;">
+                            <label style="font-size: 0.85rem; font-weight: 700; color: #1d4ed8; margin: 0;"><i class="fa-solid fa-users-rectangle"></i> ŞÖK Sınıfı:</label>
+                            <select id="gorusSokClassFilter" class="form-select-custom" style="padding: 6px 12px; font-size: 0.9rem; border-radius: 8px; border: 1px solid #3b82f6; font-weight: 700; color: #1d4ed8; background: white; cursor: pointer;" onchange="filterAndRenderGorusList()">
+                                <option value="all">Tüm Sınıflar</option>
                             </select>
                         </div>
                         <!-- Geçmiş Zümreler Toggle -->
@@ -801,7 +808,7 @@
             Swal.fire({ title: 'Giriş Yapılıyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
             try {
-                const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json`);
+                const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json?_t=${Date.now()}`, { cache: 'no-store' });
                 const users = await res.json();
 
                 if (users) {
@@ -967,48 +974,83 @@
 
         function populateGorusBransFilter() {
             const filterEl = document.getElementById('gorusBransFilter');
-            if (!filterEl) return;
+            const sokFilterEl = document.getElementById('gorusSokClassFilter');
+            
+            if (filterEl) {
+                const currentVal = filterEl.value;
+                const bransSet = new Set();
 
-            const currentVal = filterEl.value;
-            const bransSet = new Set();
-
-            if (typeof ZUMRE_GROUPS !== 'undefined') {
-                ZUMRE_GROUPS.forEach(g => {
-                    if (g && g.courses && Array.isArray(g.courses)) {
-                        g.courses.forEach(c => {
-                            if (c && c !== 'Genel') bransSet.add(c.trim());
-                        });
-                    }
-                });
-            }
-
-            allFetchedPlans.forEach(p => {
-                if (p && p.branch && p.branch !== 'Genel' && p.branch !== 'Belirtilmedi') {
-                    let b = p.branch.replace(/Öğretmeni|Öğretmenleri|Zümresi|Toplantısı/gi, '').trim();
-                    if (b) bransSet.add(b);
-                }
-                if (p && p.participants && Array.isArray(p.participants)) {
-                    p.participants.forEach(pt => {
-                        if (pt && pt.gorev && !pt.gorev.includes('Müdür') && !pt.gorev.includes('İdareci') && !pt.gorev.includes('Öğretmenler')) {
-                            let b = pt.gorev.replace(/Öğretmeni|Öğretmenleri|Zümresi|Toplantısı/gi, '').trim();
-                            if (b) bransSet.add(b);
+                if (typeof ZUMRE_GROUPS !== 'undefined') {
+                    ZUMRE_GROUPS.forEach(g => {
+                        if (g && g.courses && Array.isArray(g.courses)) {
+                            g.courses.forEach(c => {
+                                if (c && c !== 'Genel') bransSet.add(c.trim());
+                            });
                         }
                     });
                 }
-            });
 
-            const sortedBranches = Array.from(bransSet).sort((a,b) => a.localeCompare(b, 'tr'));
-            let html = `<option value="all">Tüm Branşlar / Genel</option>`;
-            sortedBranches.forEach(b => {
-                html += `<option value="${b}">${b}</option>`;
-            });
+                allFetchedPlans.forEach(p => {
+                    if (p && p.branch && p.branch !== 'Genel' && p.branch !== 'Belirtilmedi') {
+                        let b = p.branch.replace(/Öğretmeni|Öğretmenleri|Zümresi|Toplantısı/gi, '').trim();
+                        if (b) bransSet.add(b);
+                    }
+                    if (p && p.participants && Array.isArray(p.participants)) {
+                        p.participants.forEach(pt => {
+                            if (pt && pt.gorev && !pt.gorev.includes('Müdür') && !pt.gorev.includes('İdareci') && !pt.gorev.includes('Öğretmenler')) {
+                                let b = pt.gorev.replace(/Öğretmeni|Öğretmenleri|Zümresi|Toplantısı/gi, '').trim();
+                                if (b) bransSet.add(b);
+                            }
+                        });
+                    }
+                });
 
-            filterEl.innerHTML = html;
+                const sortedBranches = Array.from(bransSet).sort((a,b) => a.localeCompare(b, 'tr'));
+                let html = `<option value="all">Tüm Branşlar / Genel</option>`;
+                sortedBranches.forEach(b => {
+                    html += `<option value="${b}">${b}</option>`;
+                });
 
-            if (currentVal && Array.from(filterEl.options).some(o => o.value === currentVal)) {
-                filterEl.value = currentVal;
-            } else {
-                filterEl.value = 'all'; // Default olarak her zaman "Tüm Branşlar / Genel" seçili kalsın ki toplantılar kaybolmasın!
+                filterEl.innerHTML = html;
+                if (currentVal && Array.from(filterEl.options).some(o => o.value === currentVal)) {
+                    filterEl.value = currentVal;
+                } else {
+                    filterEl.value = 'all'; // Default olarak her zaman "Tüm Branşlar / Genel" seçili kalsın!
+                }
+            }
+
+            if (sokFilterEl) {
+                const currentSokVal = sokFilterEl.value;
+                const classSet = new Set(['9-A', '9-B', '9-C', '10-A', '10-B', '10-C', '11-A', '11-B', '11-C', '12-A', '12-B', '12-C']);
+                if (typeof DataManager !== 'undefined' && DataManager.classes && DataManager.classes.length > 0) {
+                    DataManager.classes.forEach(c => {
+                        const name = typeof c === 'string' ? c : (c.name || c.sube);
+                        if (name) classSet.add(name);
+                    });
+                }
+                allFetchedPlans.forEach(p => {
+                    if (p && (p.turCode === 'sok' || (p.tur && p.tur.includes('ŞÖ')))) {
+                        const match = (p.konu || p.tur || '').match(/(\d+[\/\-][A-ZĞÜŞİÖÇ\d]+)/i);
+                        if (match && match[1]) classSet.add(match[1].toUpperCase());
+                        if (Array.isArray(p.agendaItems)) {
+                            p.agendaItems.forEach(item => {
+                                const im = (typeof item === 'string' ? item : (item.title || '')).match(/^\[\s*([^\]]+?)\s*(?:Şubesi|Sınıfı)?\s*\]/i);
+                                if (im && im[1] && im[1] !== 'GENEL') classSet.add(im[1].trim().toUpperCase());
+                            });
+                        }
+                    }
+                });
+                const sortedClasses = Array.from(classSet).sort((a,b) => a.localeCompare(b, 'tr', { numeric: true }));
+                let htmlSok = `<option value="all">Tüm Sınıflar</option>`;
+                sortedClasses.forEach(c => {
+                    htmlSok += `<option value="${c}">${c} Şubesi</option>`;
+                });
+                sokFilterEl.innerHTML = htmlSok;
+                if (currentSokVal && Array.from(sokFilterEl.options).some(o => o.value === currentSokVal)) {
+                    sokFilterEl.value = currentSokVal;
+                } else {
+                    sokFilterEl.value = 'all';
+                }
             }
         }
 
@@ -1038,9 +1080,23 @@
                 adminVeyaIdareciMi: isAdminOrIdareci
             });
 
+            const sokClassEl = document.getElementById('gorusSokClassFilter');
+            const selectedSokClass = sokClassEl ? sokClassEl.value : 'all';
+
             const filtered = allFetchedPlans.filter(plan => {
                 if (!showExpired && plan.tarih && plan.tarih < todayStr) {
                     return false;
+                }
+
+                if (selectedSokClass !== 'all') {
+                    const normSok = normalizeTr(selectedSokClass);
+                    const titleMatch = normalizeTr(plan.konu).includes(normSok) || normalizeTr(plan.tur).includes(normSok) || normalizeTr(plan.branch).includes(normSok);
+                    const agendaMatch = plan.agendaItems && Array.isArray(plan.agendaItems) && plan.agendaItems.some(item => {
+                        const str = typeof item === 'string' ? item : (item.title || '');
+                        return normalizeTr(str).includes(normSok);
+                    });
+                    const partMatch = plan.participants && Array.isArray(plan.participants) && plan.participants.some(p => p && normalizeTr(p.gorev || '').includes(normSok));
+                    if (!titleMatch && !agendaMatch && !partMatch) return false;
                 }
 
                 if (selectedBranch === 'all' || isAdminOrIdareci) {
@@ -1085,8 +1141,25 @@
 
             let html = `<div style="display: flex; flex-direction: column; gap: 14px;">`;
             filtered.forEach(plan => {
-                const pCount = (plan.participants || []).length;
-                const aCount = (plan.agendaItems || []).length;
+                let activeParticipants = plan.participants || [];
+                let activeAgendas = plan.agendaItems || [];
+                if (selectedSokClass !== 'all' && (plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ')))) {
+                    const normS = normalizeTr(selectedSokClass);
+                    const filteredParts = activeParticipants.filter(p => p && (normalizeTr(p.gorev || '').includes(normS) || normalizeTr(p.name || '').includes(normS)));
+                    if (filteredParts.length > 0) activeParticipants = filteredParts;
+
+                    const filteredAgendas = activeAgendas.filter(item => {
+                        const str = typeof item === 'string' ? item : (item.title || '');
+                        const match = str.match(/^\[\s*([^\]]+?)\s*(?:Şubesi|Sınıfı)?\s*\]/i);
+                        if (match && match[1]) {
+                            return normalizeTr(match[1]).includes(normS) || normS.includes(normalizeTr(match[1]));
+                        }
+                        return true;
+                    });
+                    if (filteredAgendas.length > 0) activeAgendas = filteredAgendas;
+                }
+                const pCount = activeParticipants.length;
+                const aCount = activeAgendas.length;
                 const isExpired = plan.tarih && plan.tarih < todayStr;
                 const branchDisplay = plan.branch && plan.branch !== 'Genel' ? plan.branch : (plan.participants && plan.participants[0] ? plan.participants[0].gorev : 'Genel Zümre');
                 let cleanBranch = branchDisplay ? branchDisplay.replace(/Zümresi|Toplantısı/gi, '').trim() : 'Genel';
@@ -1098,61 +1171,55 @@
                     formattedTitle = `${cleanBranch} İl Zümresi ${plan.donem} Toplantısı`;
                 } else if (plan.turCode === 'ilce' || (plan.tur && plan.tur.includes('İlçe Zümresi'))) {
                     formattedTitle = `${cleanBranch} İlçe Zümresi ${plan.donem} Toplantısı`;
-                } else if (plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖK'))) {
-                    formattedTitle = `${cleanBranch !== 'Genel' ? cleanBranch + ' ' : ''}ŞÖK ${plan.donem} Toplantısı`;
+                } else if (plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ'))) {
+                    formattedTitle = `${plan.donem} ${cleanBranch !== 'Genel' ? cleanBranch + ' ' : ''}ŞÖK Toplantısı`;
                 } else {
-                    formattedTitle = `${cleanBranch !== 'Genel' ? cleanBranch + ' ' : ''}${plan.tur || 'Zümre Toplantısı'} (${plan.donem || ''})`;
+                    formattedTitle = `${cleanBranch} ${plan.tur || 'Toplantısı'}`;
                 }
 
-                        const isOpen = window.openGorusAccordions && window.openGorusAccordions.has(plan.id);
-                        const displayStyle = isOpen ? 'block' : 'none';
-                        const rotateStyle = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-                        const headerBg = isOpen ? '#e0f2fe' : (isExpired ? '#f1f5f9' : '#f8fafc');
+                const isExpanded = window.openGorusAccordions && window.openGorusAccordions.has(plan.id);
+                const displayStyle = isExpanded ? 'block' : 'none';
+                const iconRotate = isExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+                const headerBg = isExpanded ? '#e0f2fe' : '#f8fafc';
 
-                        html += `
-                    <div class="accordion-card" style="border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); transition: all 0.2s;">
-                        <div onclick="toggleGorusAccordion('${plan.id}')" style="padding: 16px 20px; background: ${headerBg}; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; flex-wrap: wrap;" class="gorus-acc-header" id="header_${plan.id}">
-                            <div style="display: flex; align-items: flex-start; gap: 14px; flex: 1 1 350px; min-width: 280px;">
-                                <div style="width: 44px; height: 44px; border-radius: 12px; background: ${isExpired ? '#e2e8f0' : 'rgba(13, 148, 136, 0.15)'}; color: ${isExpired ? '#64748b' : 'var(--primary)'}; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; margin-top: 2px;">
-                                    <i class="fa-solid ${plan.turCode === 'il' || plan.turCode === 'ilce' ? 'fa-building-columns' : 'fa-users-between-lines'}"></i>
+                html += `
+                    <div class="card-custom" style="padding: 0; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: all 0.2s; border-radius: 12px; background: white;">
+                        <div id="header_${plan.id}" onclick="toggleGorusAccordion('${plan.id}')" style="padding: 16px 20px; background: ${headerBg}; cursor: pointer; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid #e2e8f0; transition: background 0.2s;">
+                            <div style="display: flex; align-items: center; gap: 12px; flex: 1 1 300px;">
+                                <div style="width: 40px; height: 40px; border-radius: 10px; background: ${isExpired ? '#f1f5f9' : '#f0fdf4'}; color: ${isExpired ? '#64748b' : '#16a34a'}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; border: 1px solid ${isExpired ? '#e2e8f0' : '#bbf7d0'};">
+                                    <i class="fa-solid ${plan.turCode === 'sok' ? 'fa-users-rectangle' : 'fa-users'}"></i>
                                 </div>
-                                <div style="flex: 1;">
-                                    <div style="font-size: 1.05rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                        <span>${formattedTitle}</span>
-                                        ${isExpired ? '<span style="font-size: 0.7rem; background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 6px; font-weight: 700;">Süresi Geçmiş</span>' : '<span style="font-size: 0.7rem; background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 6px; font-weight: 700;">Aktif Toplantı</span>'}
-                                    </div>
-                                    <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
-                                        <span><i class="fa-solid fa-calendar-day" style="color: var(--primary);"></i> Tarih: <b>${plan.tarih || 'Belirtilmedi'}</b></span>
-                                        <span><i class="fa-solid fa-clock" style="color: var(--primary);"></i> Saat: <b>${plan.saat || '10:00'}</b></span>
-                                        <span><i class="fa-solid fa-location-dot" style="color: var(--primary);"></i> Yer: <b>${plan.yer || 'Belirtilmedi'}</b></span>
-                                        <span><i class="fa-solid fa-file-lines" style="color: var(--primary);"></i> Konu: <b>${plan.konu || formattedTitle}</b></span>
-                                    </div>
-                                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
-                                        <span class="badge-info" style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 16px; font-size: 0.78rem; font-weight: 700;">
-                                            <i class="fa-solid fa-users" style="margin-right: 4px;"></i> ${pCount} Katılımcı
-                                        </span>
-                                        <span class="badge-info" style="background: #ccfbf1; color: #0f766e; padding: 4px 10px; border-radius: 16px; font-size: 0.78rem; font-weight: 700;">
-                                            <i class="fa-solid fa-clipboard-list" style="margin-right: 4px;"></i> ${aCount} Gündem
-                                        </span>
+                                <div>
+                                    <h3 style="margin: 0 0 4px 0; font-size: 1.1rem; color: #0f172a; font-weight: 800; line-height: 1.3;">
+                                        ${formattedTitle}
+                                    </h3>
+                                    <div style="font-size: 0.85rem; color: #64748b; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+                                        <span><i class="fa-regular fa-calendar" style="margin-right: 4px; color: var(--primary);"></i> <b>Tarih:</b> ${plan.tarih || 'Belirtilmedi'}</span>
+                                        <span><i class="fa-regular fa-clock" style="margin-right: 4px; color: var(--primary);"></i> <b>Saat:</b> ${plan.saat || 'Belirtilmedi'}</span>
+                                        <span><i class="fa-solid fa-location-dot" style="margin-right: 4px; color: var(--primary);"></i> <b>Yer:</b> ${plan.yer || 'Belirtilmedi'}</span>
                                     </div>
                                 </div>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex: 0 0 auto;">
-                                <button class="btn-custom" style="background: #e0f2fe; color: #0369a1; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; border: 1px solid #bae6fd; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); editZumrePlan('${plan.id}')" title="Toplantıyı Düzenle">
-                                    <i class="fa-solid fa-pen-to-square"></i> Düzenle
-                                </button>
-                                <button class="btn-custom" style="background: #f0fdf4; color: #15803d; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; border: 1px solid #bbf7d0; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); printZumrePlan('${plan.id}')" title="Toplantı Tutanağını Yazdır / PDF Al">
+                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                <div style="text-align: right; font-size: 0.85rem; font-weight: 700; color: #334155; background: #ffffff; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                                    <i class="fa-solid fa-users" style="margin-right: 4px;"></i> ${pCount} Katılımcı
+                                    <span style="color: #cbd5e1; margin: 0 6px;">|</span>
+                                    <i class="fa-solid fa-list-check" style="margin-right: 4px;"></i> ${aCount} Gündem
+                                </div>
+                                <button class="btn-custom btn-secondary-custom" onclick="event.stopPropagation(); printZumrePlan('${plan.id}')" style="padding: 6px 12px; font-size: 0.85rem; border-color: #38bdf8; color: #0284c7; background: #e0f2fe;" title="Bu Tutanak İçin Çıktı / PDF Al">
                                     <i class="fa-solid fa-print"></i> Yazdır
                                 </button>
-                                <button class="btn-custom" style="background: #fee2e2; color: #b91c1c; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; border: 1px solid #fecaca; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); deleteZumrePlan('${plan.id}')" title="Toplantıyı Sil">
+                                <button class="btn-custom btn-secondary-custom" onclick="event.stopPropagation(); editZumrePlan('${plan.id}')" style="padding: 6px 12px; font-size: 0.85rem; border-color: #f59e0b; color: #d97706; background: #fef3c7;" title="Bu Zümre Toplantısını ve Bilgilerini Düzenle">
+                                    <i class="fa-solid fa-pen-to-square"></i> Düzenle
+                                </button>
+                                <button class="btn-custom btn-secondary-custom" onclick="event.stopPropagation(); deleteZumrePlan('${plan.id}')" style="padding: 6px 12px; font-size: 0.85rem; border-color: #ef4444; color: #ef4444; background: #fef2f2;" title="Bu Toplantıyı Sil">
                                     <i class="fa-solid fa-trash-can"></i> Sil
                                 </button>
-                                <div style="width: 32px; height: 32px; border-radius: 50%; background: white; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; transition: transform 0.3s; transform: ${rotateStyle}; margin-left: 4px;" id="icon_${plan.id}">
-                                    <i class="fa-solid fa-chevron-down" style="color: #64748b; font-size: 0.85rem;"></i>
+                                <div id="icon_${plan.id}" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 1.1rem; transition: transform 0.2s; transform: ${iconRotate};">
+                                    <i class="fa-solid fa-chevron-down"></i>
                                 </div>
                             </div>
                         </div>
-
                         <div id="body_${plan.id}" style="display: ${displayStyle}; padding: 24px; border-top: 1px solid #e2e8f0; background: #ffffff;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #f1f5f9; flex-wrap: wrap; gap: 10px;">
                                 <h4 style="margin: 0; font-size: 1.1rem; color: #1e293b; font-weight: 800;">
@@ -1164,7 +1231,7 @@
                                 </div>
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 16px;">
-                                ${renderPlanAgendaItems(plan)}
+                                ${renderPlanAgendaItems(plan, selectedSokClass)}
                             </div>
                         </div>
                     </div>
@@ -1197,14 +1264,30 @@
             }
         }
 
-        function renderPlanAgendaItems(plan) {
+        function renderPlanAgendaItems(plan, filterClass = 'all') {
             const items = plan.agendaItems || [];
             if (items.length === 0) {
                 return `<div style="text-align: center; padding: 2rem; color: #94a3b8; background: #f8fafc; border-radius: 10px;">Bu zümre planına gündem maddesi eklenmemiş.</div>`;
             }
 
+            const cleanClassStr = str => (str || '').toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
+            const normFilter = filterClass !== 'all' ? cleanClassStr(filterClass) : null;
+
             let html = '';
+            let visibleCount = 0;
             items.forEach((item, idx) => {
+                const itemStr = typeof item === 'string' ? item : (item.title || '');
+                if (normFilter && (plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ')))) {
+                    const match = itemStr.match(/^\[\s*([^\]]+?)\s*(?:Şubesi|Sınıfı)?\s*\]/i);
+                    if (match && match[1]) {
+                        const tagClass = cleanClassStr(match[1]);
+                        if (tagClass !== 'GENEL' && tagClass !== normFilter && !normFilter.includes(tagClass) && !tagClass.includes(normFilter)) {
+                            return; // Bu sınıfa ait olmayan gündem maddesini atla!
+                        }
+                    }
+                }
+                visibleCount++;
+
                 const opinionsList = plan.opinions && plan.opinions[idx] ? plan.opinions[idx] : [];
                 
                 let opHtml = '';
@@ -1654,7 +1737,7 @@
                 }
 
                 // Yoksa Firebase'den çek
-                const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json`);
+                const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json?_t=${Date.now()}`, { cache: 'no-store' });
                 const users = await res.json();
                 schoolTeachersList = [];
                 if (users) {
@@ -1696,7 +1779,7 @@
             }
         }
 
-        function handleTurChange(tur) {
+        function handleTurChange(tur, isEditing = false) {
             currentZumreTur = tur;
             const titleEl = document.getElementById('dynamicSectionTitle');
             const btnsContainer = document.getElementById('dynamicButtonsContainer');
@@ -1768,7 +1851,13 @@
                         <i class="fa-solid fa-user-pen"></i> Manüel Katılımcı Ekle
                     </button>
                 `;
+                participantsList = []; // ŞÖK seçildiğinde önceki branş katılımcılarını temizle!
+                renderParticipantsTable();
                 renderSokClassSelector();
+                
+                if (!isEditing) {
+                    setTimeout(() => { promptSokClassesSelection(); }, 150);
+                }
                 
                 const m = new Date().getMonth();
                 const isFirstTerm = (m >= 8 || m === 0);
@@ -2021,7 +2110,7 @@
         }
 
         // --- ŞÖK (SINIF SEÇİMİ VE OTOMATİK LİSTELEME) ---
-        function renderSokClassSelector() {
+        function renderSokClassSelector(autoSelectFirst = false) {
             const container = document.getElementById('specialSelectorContainer');
             container.style.display = 'block';
             
@@ -2030,10 +2119,18 @@
             if (typeof DataManager !== 'undefined' && DataManager.classes && DataManager.classes.length > 0) {
                 classes = DataManager.classes.map(c => typeof c === 'string' ? c : (c.name || c.sube));
             }
+            if (window.selectedSokClassesList && window.selectedSokClassesList.length > 0) {
+                classes = window.selectedSokClassesList;
+            }
 
             let html = `
-                <div style="font-weight: 700; color: var(--primary); margin-bottom: 10px; font-size: 1.05rem;">
-                    <i class="fa-solid fa-users-rectangle"></i> ŞÖK Toplantısı İçin Sınıf / Şube Seçimi
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 10px; gap: 10px;">
+                    <div style="font-weight: 700; color: var(--primary); font-size: 1.05rem;">
+                        <i class="fa-solid fa-users-rectangle"></i> ŞÖK Toplantısı İçin Sınıf / Şube Seçimi
+                    </div>
+                    <button class="btn-custom btn-secondary-custom" style="padding: 4px 12px; font-size: 0.8rem; background: #e0f2fe; color: #0284c7; border-color: #38bdf8;" onclick="promptSokClassesSelection()" title="ŞÖK Yapılacak Şube Listesini Değiştir">
+                        <i class="fa-solid fa-gear"></i> Şube Listesini Düzenle (${classes.length} Şube)
+                    </button>
                 </div>
                 <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px;">Bir şube seçtiğinizde, okuldaki öğretmenler bu şubenin kurulu için otomatik listelenir.</p>
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -2049,12 +2146,72 @@
                 </div>
             `;
             container.innerHTML = html;
+
+            if (autoSelectFirst && classes.length > 0) {
+                const selEl = document.getElementById('sokClassSelect');
+                if (selEl) {
+                    selEl.value = classes[0];
+                    handleSokClassSelect(classes[0]);
+                }
+            }
         }
 
-        function handleSokClassSelect(className) {
+        function promptSokClassesSelection() {
+            let classes = ['9-A', '9-B', '9-C', '10-A', '10-B', '10-C', '11-A', '11-B', '11-C', '12-A', '12-B', '12-C'];
+            if (typeof DataManager !== 'undefined' && DataManager.classes && DataManager.classes.length > 0) {
+                classes = DataManager.classes.map(c => typeof c === 'string' ? c : (c.name || c.sube));
+            }
+
+            let html = `
+                <div style="text-align: left; margin-bottom: 12px; font-size: 0.9rem; color: #475569; line-height: 1.4;">
+                    Lütfen Şube Öğretmenler Kurulu (ŞÖK) planı yapacağınız sınıfları / şubeleri aşağıdan seçiniz:
+                </div>
+                <div style="display: flex; gap: 8px; margin-bottom: 10px; justify-content: flex-start;">
+                    <button type="button" class="btn-custom btn-secondary-custom" style="padding: 4px 10px; font-size: 0.8rem; background: #f1f5f9; border: 1px solid #cbd5e1;" onclick="document.querySelectorAll('.sok-modal-class-chk').forEach(c=>c.checked=true)"><i class="fa-solid fa-check-double"></i> Tümünü Seç</button>
+                    <button type="button" class="btn-custom btn-secondary-custom" style="padding: 4px 10px; font-size: 0.8rem; background: #f1f5f9; border: 1px solid #cbd5e1;" onclick="document.querySelectorAll('.sok-modal-class-chk').forEach(c=>c.checked=false)"><i class="fa-solid fa-eraser"></i> Temizle</button>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; max-height: 280px; overflow-y: auto; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; text-align: left;">
+            `;
+            classes.forEach(c => {
+                const isChk = (window.selectedSokClassesList && window.selectedSokClassesList.includes(c)) ? 'checked' : '';
+                html += `
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #1e293b; background: white; padding: 6px 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                        <input type="checkbox" class="sok-modal-class-chk" value="${c}" ${isChk} style="width: 16px; height: 16px; accent-color: var(--primary);">
+                        <span>${c}</span>
+                    </label>
+                `;
+            });
+            html += `</div>`;
+
+            Swal.fire({
+                title: 'Hangi sınıflar için ŞÖK planı yapacaksınız?',
+                html: html,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-check"></i> Seçilen Sınıfları Listele',
+                cancelButtonText: 'Tümünü Listele',
+                confirmButtonColor: '#0d9488',
+                width: '600px',
+                preConfirm: () => {
+                    const chks = document.querySelectorAll('.sok-modal-class-chk:checked');
+                    return Array.from(chks).map(chk => chk.value);
+                }
+            }).then((res) => {
+                if (res.isConfirmed && res.value && res.value.length > 0) {
+                    window.selectedSokClassesList = res.value;
+                    renderSokClassSelector(true);
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `${res.value.length} şube listelendi`, showConfirmButton: false, timer: 2000 });
+                } else if (res.dismiss === Swal.DismissReason.cancel || (!res.isConfirmed && (!res.value || res.value.length === 0))) {
+                    window.selectedSokClassesList = null;
+                    renderSokClassSelector(false);
+                }
+            });
+        }
+
+        async function handleSokClassSelect(className) {
             if (!className) return;
             const statusEl = document.getElementById('sokStatusText');
-            statusEl.innerText = `${className} Şubesi öğretmenleri katılımcı olarak kontrol ediliyor...`;
+            if (statusEl) statusEl.innerText = `${className} Şubesi öğretmenleri veritabanından kontrol ediliyor...`;
 
             // Başlığı seçilen şubeye ve döneme göre güncelle
             const m = new Date().getMonth();
@@ -2065,35 +2222,74 @@
                 konuEl.value = `${donemStr} ${className} Şubesi ŞÖK (Şube Öğretmenler Kurulu) Toplantısı`;
             }
 
+            // Katılımcıları önce temizle ki SADECE o sınıfa dersi olanlar kalsın
+            participantsList = [];
+
+            // Veritabanından (Firebase klbk_users.json) en güncel kullanıcı/öğretmen listesini çekelim
+            try {
+                if (typeof FIREBASE_DB_URL !== 'undefined' && FIREBASE_DB_URL) {
+                    const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json?_t=${Date.now()}`, { cache: 'no-store' });
+                    if (res.ok) {
+                        const users = await res.json();
+                        if (users && typeof users === 'object') {
+                            let currentSchool = localStorage.getItem('klbk_lastSchoolName') || '';
+                            const currentUser = sessionStorage.getItem('klbk_currentUser');
+                            if (currentUser && users[currentUser] && users[currentUser].schoolName) {
+                                currentSchool = users[currentUser].schoolName;
+                            }
+                            schoolTeachersList = [];
+                            for (const [uname, data] of Object.entries(users)) {
+                                if (!currentSchool || data.schoolName === currentSchool || !data.schoolName) {
+                                    let bArray = Array.isArray(data.branch) ? data.branch : (typeof data.branch === 'string' ? data.branch.split(',').map(b => b.trim()) : ['Genel']);
+                                    const bStr = bArray.join(', ');
+                                    schoolTeachersList.push({
+                                        id: uname,
+                                        name: data.name || uname,
+                                        branch: bStr,
+                                        branchList: bArray,
+                                        school: data.schoolName || currentSchool || 'Okulumuz',
+                                        role: data.role || data.unvan || data.gorev || (bStr.toLowerCase().includes('müdür') || bStr.toLowerCase().includes('idareci') || uname.toLowerCase().startsWith('admin') ? 'idareci' : 'ogretmen'),
+                                        schedule: data.schedule || null,
+                                        classes: data.classes || data.subeler || data.siniflar || data.assignedClasses || data.courses || data.dersler || null,
+                                        rawObj: data
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch(e) {
+                console.warn("Veritabanı kontrol edilemedi, mevcut önbellek listesi kullanılıyor:", e);
+            }
+
             let count = 0;
-            const normTarget = String(className).replace(/[\/\-\s]/g, '').toUpperCase();
+            const cleanClassStr = str => (str || '').toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
+            const normTarget = cleanClassStr(className);
+
+            function checkValueForClass(val, target) {
+                if (!val) return false;
+                if (typeof val === 'string' || typeof val === 'number') {
+                    const cVal = cleanClassStr(val);
+                    if (!cVal) return false;
+                    if (cVal === target || cVal.startsWith(target) || (target.length >= 2 && cVal.includes(target))) {
+                        return true;
+                    }
+                } else if (Array.isArray(val)) {
+                    return val.some(v => checkValueForClass(v, target));
+                } else if (typeof val === 'object') {
+                    for (const k in val) {
+                        if (checkValueForClass(val[k], target)) return true;
+                    }
+                }
+                return false;
+            }
 
             schoolTeachersList.forEach(t => {
                 let isMatch = false;
 
-                // 1. Sınıf / Şube listesinden kontrol (classes/subeler)
-                const classArray = t.classes || t.subeler || t.siniflar || [];
-                if (Array.isArray(classArray)) {
-                    if (classArray.some(c => String(c).replace(/[\/\-\s]/g, '').toUpperCase() === normTarget)) {
-                        isMatch = true;
-                    }
-                }
-
-                // 2. Ders Programı (schedule) alanından kontrol
-                if (!isMatch && t.schedule && typeof t.schedule === 'object') {
-                    for (const day in t.schedule) {
-                        const dayObj = t.schedule[day];
-                        if (dayObj && typeof dayObj === 'object') {
-                            for (const hour in dayObj) {
-                                const cls = dayObj[hour];
-                                if (cls && String(cls).replace(/[\/\-\s]/g, '').toUpperCase() === normTarget) {
-                                    isMatch = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if (isMatch) break;
-                    }
+                // 1. Öğretmenin veritabanındaki tüm sınıf, şube, ders, atanan sınıflar ve ders programı alanlarını kontrol et
+                if (checkValueForClass(t.classes, normTarget) || checkValueForClass(t.schedule, normTarget) || (t.rawObj && checkValueForClass(t.rawObj, normTarget))) {
+                    isMatch = true;
                 }
 
                 // İdareci ve Rehberlik servisi öğretmenlerini otomatik eklemeden hariç tut (kullanıcı sonradan ekler)
@@ -2114,19 +2310,23 @@
                 }
             });
 
+            if (typeof renderActiveAgendaList === 'function') renderActiveAgendaList();
+
             renderParticipantsTable();
-            if (count > 0) {
-                statusEl.innerText = `${className} Şubesine dersi olan ${count} öğretmen listeye eklendi!`;
-                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `${className} şubesi için ${count} ders öğretmeni eklendi!`, showConfirmButton: false, timer: 3000 });
-            } else {
-                statusEl.innerText = `${className} Şubesine dersi olan personel programda saptanamadı.`;
-                Swal.fire({
-                    title: 'Bilgi',
-                    html: `<b>${className}</b> şubesine doğrudan dersi olan öğretmen kaydı (ders programı) tespit edilemedi.<br><br>Yukarıdaki <b>"Listeden Öğretmen Ekle/Çıkar"</b>, <b>"İdareci Ekle"</b> veya <b>"Manüel Katılımcı Ekle"</b> butonlarını kullanarak kurul üyelerini belirleyebilirsiniz.`,
-                    icon: 'info',
-                    confirmButtonColor: '#0d9488',
-                    confirmButtonText: 'Anladım'
-                });
+            if (statusEl) {
+                if (count > 0) {
+                    statusEl.innerText = `${className} Şubesine dersi olan ${count} öğretmen listeye eklendi!`;
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `${className} şubesi için ${count} ders öğretmeni eklendi!`, showConfirmButton: false, timer: 3000 });
+                } else {
+                    statusEl.innerText = `${className} Şubesine dersi olan personel programda saptanamadı.`;
+                    Swal.fire({
+                        title: 'Bilgi',
+                        html: `<b>${className}</b> şubesine doğrudan dersi olan öğretmen kaydı (ders programı) tespit edilemedi.<br><br>Yukarıdaki <b>"Listeden Öğretmen Ekle/Çıkar"</b>, <b>"İdareci Ekle"</b> veya <b>"Manüel Katılımcı Ekle"</b> butonlarını kullanarak kurul üyelerini belirleyebilirsiniz.`,
+                        icon: 'info',
+                        confirmButtonColor: '#0d9488',
+                        confirmButtonText: 'Anladım'
+                    });
+                }
             }
         }
 
@@ -2459,6 +2659,9 @@
                     classes = DataManager.classes.map(c => typeof c === 'string' ? c : (c.name || c.sube));
                 }
                 const activeSokClass = document.getElementById('sokClassSelect') ? document.getElementById('sokClassSelect').value : '';
+                if (activeSokClass) {
+                    classes = [activeSokClass]; // Sadece o sınıfa ait işlenebilmesi için filtrele!
+                }
 
                 let classesHtml = `
                     <div style="text-align:left; margin-bottom: 12px; font-size: 0.9rem; color:#475569;">
@@ -2542,23 +2745,47 @@
 
         function renderActiveAgendaList() {
             const container = document.getElementById('activeAgendaList');
-            document.getElementById('agendaCount').innerText = activeAgendaList.length;
+            if (!container) return;
 
-            if (activeAgendaList.length === 0) {
+            const cleanClassStr = str => (str || '').toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
+            const activeSokClass = (typeof currentZumreTur !== 'undefined' && currentZumreTur === 'sok' && document.getElementById('sokClassSelect')) ? document.getElementById('sokClassSelect').value : '';
+            const normActive = activeSokClass ? cleanClassStr(activeSokClass) : null;
+
+            let visibleItems = [];
+            activeAgendaList.forEach((item, idx) => {
+                if (normActive) {
+                    const itemStr = typeof item === 'string' ? item : (item.title || '');
+                    const match = itemStr.match(/^\[\s*([^\]]+?)\s*(?:Şubesi|Sınıfı)?\s*\]/i);
+                    if (match && match[1]) {
+                        const tagClass = cleanClassStr(match[1]);
+                        if (tagClass !== 'GENEL' && tagClass !== normActive && !normActive.includes(tagClass) && !tagClass.includes(normActive)) {
+                            return; // Bu sınıfa ait olmayan maddeleri atla!
+                        }
+                    }
+                }
+                visibleItems.push({ item, idx });
+            });
+
+            const countEl = document.getElementById('agendaCount');
+            if (countEl) countEl.innerText = visibleItems.length;
+
+            if (visibleItems.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: 2rem; color: #94a3b8; border: 1px dashed #cbd5e1; border-radius: 10px; background: #f8fafc;">
-                        Henüz gündem maddesi seçilmedi. Yukarıdaki "Gündem Maddesi Seç" butonunu kullanarak maddeleri ekleyin.
+                        ${normActive ? `${activeSokClass} şubesi için henüz gündem maddesi seçilmedi/eklenmedi.` : 'Henüz gündem maddesi seçilmedi. Yukarıdaki "Gündem Maddesi Seç" butonunu kullanarak maddeleri ekleyin.'}
                     </div>
                 `;
                 return;
             }
 
             let html = '';
-            activeAgendaList.forEach((item, idx) => {
+            visibleItems.forEach((obj, dispIdx) => {
+                const item = obj.item;
+                const idx = obj.idx;
                 html += `
                     <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); gap: 12px;">
                         <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: var(--primary); color: #fff; border-radius: 50%; font-size: 0.8rem; font-weight: 700;">${idx + 1}</span>
+                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: var(--primary); color: #fff; border-radius: 50%; font-size: 0.8rem; font-weight: 700;">${dispIdx + 1}</span>
                             <span style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">${item}</span>
                         </div>
                         <div style="display: flex; gap: 6px;">
@@ -2810,7 +3037,7 @@
             const turEl = document.getElementById('zumreTurSelect');
             if (turEl && plan.turCode) {
                 turEl.value = plan.turCode;
-                handleTurChange(plan.turCode);
+                handleTurChange(plan.turCode, true);
                 if (plan.turCode === 'brans' && plan.branch) {
                     setTimeout(() => {
                         const bransEl = document.getElementById('bransSelect');
@@ -3357,6 +3584,26 @@
                 branchName = turText;
             }
 
+            let finalAgendas = [...activeAgendaList];
+            if (turEl.value === 'sok') {
+                const sokClass = document.getElementById('sokClassSelect') ? document.getElementById('sokClassSelect').value : '';
+                if (sokClass) {
+                    const cleanClassStr = str => (str || '').toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
+                    const normTarget = cleanClassStr(sokClass);
+                    finalAgendas = finalAgendas.filter(item => {
+                        const itemStr = typeof item === 'string' ? item : (item.title || '');
+                        const match = itemStr.match(/^\[\s*([^\]]+?)\s*(?:Şubesi|Sınıfı)?\s*\]/i);
+                        if (match && match[1]) {
+                            const tagClass = cleanClassStr(match[1]);
+                            if (tagClass !== 'GENEL' && tagClass !== normTarget && !normTarget.includes(tagClass) && !tagClass.includes(normTarget)) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+                }
+            }
+
             const newPlan = {
                 id: editingPlanId || ('zumre_' + Date.now()),
                 donem: donemText,
@@ -3371,7 +3618,7 @@
                 school: schoolName,
                 createdAt: editingPlanCreatedAt || new Date().toISOString(),
                 participants: participantsList,
-                agendaItems: activeAgendaList
+                agendaItems: finalAgendas
             };
             if (editingPlanOpinions) {
                 newPlan.opinions = editingPlanOpinions;
