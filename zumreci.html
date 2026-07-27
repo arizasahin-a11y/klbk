@@ -742,11 +742,16 @@
         });
 
         async function hashPassword(password) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(password);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            try {
+                if (!window.crypto || !window.crypto.subtle) return password;
+                const encoder = new TextEncoder();
+                const data = encoder.encode(password);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            } catch (e) {
+                return password;
+            }
         }
 
         async function handleLogin() {
@@ -790,9 +795,15 @@
                     }
 
                     if (userObj && 'password' in userObj) {
-                        const passHash = await hashPassword(pass);
+                        let passMatch = (userObj.password === pass);
+                        if (!passMatch) {
+                            try {
+                                const passHash = await hashPassword(pass);
+                                if (userObj.password === passHash) passMatch = true;
+                            } catch (e) { }
+                        }
 
-                        if (userObj.password === pass || userObj.password === passHash) {
+                        if (passMatch) {
                             sessionStorage.setItem('klbk_isLoggedIn', 'true');
                             sessionStorage.setItem('klbk_currentUser', matchedUsername);
                             sessionStorage.setItem('klbk_role', userObj.role || 'ogretmen');
@@ -804,8 +815,11 @@
                             Swal.close();
                             await showMainPortal();
                             const urlParams = new URLSearchParams(window.location.search);
-                            const isGorusTab = urlParams.get('tab') === 'gorus' || window.location.hash === '#gorus' || urlParams.get('guest') === 'true';
-                            if (isGorusTab) switchTab('gorus');
+                            if (urlParams.get('tab') === 'plan' || window.location.hash === '#plan') {
+                                switchTab('plan');
+                            } else {
+                                switchTab('gorus');
+                            }
                             return;
                         } else {
                             Swal.fire('Hata', 'Şifre hatalı!', 'error');
@@ -830,7 +844,7 @@
             document.getElementById('welcomeTeacher').innerText = `Hoş Geldiniz, ${name}`;
             document.getElementById('welcomeSchool').innerText = school;
 
-            await fetchSchoolTeachers();
+            fetchSchoolTeachers();
             
             const savedPool = localStorage.getItem('klbk_agenda_pool');
             if (savedPool) {
