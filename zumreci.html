@@ -1089,6 +1089,175 @@
             return `${clsName ? clsName + ' ' : ''}${donemStr} ŞÖK Toplantısı`;
         }
 
+        function cleanAgendaItemText(item) {
+            if (!item) return '';
+            const str = typeof item === 'string' ? item : (item.title || '');
+            return str.replace(/^\[\s*([^\]]+?)\s*(?:Şubesi|Sınıfı)?\s*\]\s*-\s*/i, '')
+                      .replace(/^\[\s*([^\]]+?)\s*(?:Şubesi|Sınıfı)?\s*\]\s*/i, '')
+                      .trim();
+        }
+
+        function canTeacherSeeSokPlan(plan) {
+            const isSok = plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ')) || (plan.konu && plan.konu.includes('ŞÖ'));
+            if (!isSok) return false;
+
+            const userRole = sessionStorage.getItem('klbk_role') || '';
+            const myNameNorm = normalizeTr(sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || '');
+            const isAdminOrIdareci = myNameNorm.startsWith('admin') || myNameNorm.includes('mudur') || userRole === 'admin' || userRole === 'idareci' || userRole === 'master' || userRole === 'mudur';
+            if (isAdminOrIdareci) return true;
+
+            const myId = sessionStorage.getItem('klbk_userId') ? sessionStorage.getItem('klbk_userId').toString().trim() : (sessionStorage.getItem('klbk_currentUser') || '').toString().trim();
+            const isPlanner = (myId && plan.plannerId && plan.plannerId.toString().trim() === myId) ||
+                              (myNameNorm && plan.planner && (normalizeTr(plan.planner).includes(myNameNorm) || myNameNorm.includes(normalizeTr(plan.planner))));
+
+            let canSeeSok = false;
+            const cleanCls = str => (str || '').toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
+            const sokClassNameMatch = (plan.konu || plan.tur || plan.branch || '').match(/(\d+)\s*[\/\-\.\s]?\s*([A-ZĞÜŞİÖÇ\d]+)/i);
+            const targetClass = sokClassNameMatch && sokClassNameMatch[1] ? cleanCls(sokClassNameMatch[1] + (sokClassNameMatch[2] || '')) : cleanCls(plan.branch || '');
+
+            if (targetClass && typeof schoolTeachersList !== 'undefined' && Array.isArray(schoolTeachersList)) {
+                const me = schoolTeachersList.find(t => (myId && t.id && t.id.toString().trim() === myId) || (t.name && myNameNorm && normalizeTr(t.name) === myNameNorm));
+                if (me) {
+                    const chkVal = (val, target) => {
+                        if (!val) return false;
+                        if (typeof val === 'string' || typeof val === 'number') {
+                            const cVal = cleanCls(val);
+                            if (!cVal) return false;
+                            return cVal === target || cVal.startsWith(target) || cVal.endsWith(target) || (target.length >= 2 && cVal.includes(target));
+                        } else if (Array.isArray(val)) return val.some(v => chkVal(v, target));
+                        else if (typeof val === 'object') {
+                            for (const k in val) if (chkVal(val[k], target)) return true;
+                        }
+                        return false;
+                    };
+                    let teachesThisClass = chkVal(me.classes, targetClass) || chkVal(me.schedule, targetClass);
+                    if (!teachesThisClass && me.rawObj) {
+                        const classKeys = ['classes', 'subeler', 'siniflar', 'assignedClasses', 'courses', 'dersler', 'schedule', 'dersProgrami', 'program', 'sube', 'sinif', 'class', 'rehberlikSiniF', 'sinifRehberlik'];
+                        for (const key of classKeys) {
+                            if (me.rawObj[key] && chkVal(me.rawObj[key], targetClass)) {
+                                teachesThisClass = true;
+                                break;
+                            }
+                        }
+                    }
+                    canSeeSok = teachesThisClass;
+                }
+            }
+            return canSeeSok || isPlanner;
+        }
+
+        async function promptSyncOpinionToOtherSoks(sourcePlanId, agendaIdx, newOpObj) {
+            const sourcePlan = allFetchedPlans.find(p => p.id === sourcePlanId);
+            if (!sourcePlan || !sourcePlan.agendaItems || !sourcePlan.agendaItems[agendaIdx]) return;
+
+            const isSok = sourcePlan.turCode === 'sok' || (sourcePlan.tur && sourcePlan.tur.includes('ŞÖ')) || (sourcePlan.konu && sourcePlan.konu.includes('ŞÖ'));
+            if (!isSok) return;
+
+            const sourceAgendaClean = cleanAgendaItemText(sourcePlan.agendaItems[agendaIdx]).toLowerCase().trim();
+            if (!sourceAgendaClean) return;
+
+            const matchingPlans = [];
+            allFetchedPlans.forEach(p => {
+                if (p.id === sourcePlanId) return;
+                const pIsSok = p.turCode === 'sok' || (p.tur && p.tur.includes('ŞÖ')) || (p.konu && p.konu.includes('ŞÖ'));
+                if (!pIsSok) return;
+
+                const canSee = canTeacherSeeSokPlan(p);
+                if (!canSee) return;
+
+                const agendas = Array.isArray(p.agendaItems) ? p.agendaItems : [];
+                const matchedIdx = agendas.findIndex(item => cleanAgendaItemText(item).toLowerCase().trim() === sourceAgendaClean);
+                if (matchedIdx !== -1) {
+                    const branchClean = typeof formatSokTitle === 'function' ? formatSokTitle(p, false).replace(/\s*1\.\s*Dönem|\s*2\.\s*Dönem|\s*Toplantısı/gi, '').trim() : (p.branch || p.tur || 'Sınıf');
+                    matchingPlans.push({
+                        plan: p,
+                        agendaIdx: matchedIdx,
+                        className: branchClean
+                    });
+                }
+            });
+
+            if (matchingPlans.length === 0) return;
+
+            let listHtml = `<div style="text-align: left; max-height: 250px; overflow-y: auto; margin: 15px 0; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; background: #f8fafc;">`;
+            matchingPlans.forEach((item, i) => {
+                listHtml += `
+                    <label style="display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: ${i < matchingPlans.length - 1 ? '1px solid #e2e8f0' : 'none'}; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='transparent'">
+                        <input type="checkbox" class="sync-sok-chk" value="${item.plan.id}" data-idx="${item.agendaIdx}" checked style="width: 18px; height: 18px; accent-color: #10b981; cursor: pointer;">
+                        <span style="font-weight: 700; color: #1e293b; font-size: 0.95rem;"><i class="fa-solid fa-users-viewfinder" style="color: #0d9488;"></i> ${item.className} ŞÖK Toplantısı</span>
+                    </label>
+                `;
+            });
+            listHtml += `</div>
+            <div style="font-size: 0.85rem; color: #64748b; text-align: left; line-height: 1.4;">
+                💡 <b>İpucu:</b> Seçtiğiniz diğer sınıfların ŞÖK toplantılarındaki aynı gündem maddesine de bu görüş işlenecektir.
+            </div>`;
+
+            const res = await Swal.fire({
+                title: 'Diğer ŞÖK Sınıflarına da Ekle? 🚀',
+                html: `Yazdığınız görüş, dersine girdiğiniz diğer sınıfların ŞÖK toplantılarında da aynı gündem maddesinde mevcut.<br>${listHtml}`,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-check-double"></i> Seçilenlere de Ekle',
+                cancelButtonText: 'Hayır, Sadece Bu Sınıfta Kalsın',
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#64748b',
+                preConfirm: () => {
+                    return Array.from(document.querySelectorAll('.sync-sok-chk:checked')).map(el => ({
+                        planId: el.value,
+                        agendaIdx: parseInt(el.getAttribute('data-idx'))
+                    }));
+                }
+            });
+
+            if (res.isConfirmed && res.value && res.value.length > 0) {
+                Swal.fire({ title: 'Diğer sınıflara işleniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                let syncCount = 0;
+                for (const target of res.value) {
+                    const tPlan = allFetchedPlans.find(p => p.id === target.planId);
+                    if (tPlan) {
+                        tPlan.opinions = tPlan.opinions || {};
+                        tPlan.opinions[target.agendaIdx] = tPlan.opinions[target.agendaIdx] || [];
+                        
+                        const opList = tPlan.opinions[target.agendaIdx];
+                        const existsAuthorIdx = opList.findIndex(o => o && o.author === newOpObj.author);
+                        if (existsAuthorIdx !== -1) {
+                            if (opList[existsAuthorIdx].text === newOpObj.text) continue;
+                            opList[existsAuthorIdx].text = newOpObj.text;
+                            opList[existsAuthorIdx].style = newOpObj.style;
+                            opList[existsAuthorIdx].time = new Date().toLocaleString('tr-TR') + ' (Düzenlendi)';
+                        } else {
+                            opList.push({
+                                ...newOpObj,
+                                time: new Date().toLocaleString('tr-TR')
+                            });
+                        }
+
+                        try {
+                            const putRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_zumre_plans/${tPlan.id}/opinions.json`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(tPlan.opinions)
+                            });
+                            if (putRes.ok) syncCount++;
+                        } catch (e) {
+                            console.error("Sync opinion error:", e);
+                        }
+                    }
+                }
+                if (syncCount > 0) {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: `${syncCount} sınıfın ŞÖK toplantısına daha eklendi! 🎉`,
+                        showConfirmButton: false,
+                        timer: 2500
+                    });
+                    filterAndRenderGorusList();
+                }
+            }
+        }
+
         function filterAndRenderGorusList() {
             const container = document.getElementById('gorusZümreListContainer');
             const filterEl = document.getElementById('gorusBransFilter');
@@ -1153,40 +1322,7 @@
                                   (myNameNorm && plan.planner && (normalizeTr(plan.planner).includes(myNameNorm) || myNameNorm.includes(normalizeTr(plan.planner))));
 
                 if (isSok) {
-                    let canSeeSok = false;
-                    const cleanCls = str => (str || '').toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
-                    const sokClassNameMatch = (plan.konu || plan.tur || plan.branch || '').match(/(\d+)\s*[\/\-\.\s]?\s*([A-ZĞÜŞİÖÇ\d]+)/i);
-                    const targetClass = sokClassNameMatch && sokClassNameMatch[1] ? cleanCls(sokClassNameMatch[1] + (sokClassNameMatch[2] || '')) : cleanCls(plan.branch || '');
-                    
-                    if (targetClass && typeof schoolTeachersList !== 'undefined' && Array.isArray(schoolTeachersList)) {
-                        const me = schoolTeachersList.find(t => (myId && t.id && t.id.toString().trim() === myId) || (t.name && myNameNorm && normalizeTr(t.name) === myNameNorm));
-                        if (me) {
-                            const chkVal = (val, target) => {
-                                if (!val) return false;
-                                if (typeof val === 'string' || typeof val === 'number') {
-                                    const cVal = cleanCls(val);
-                                    if (!cVal) return false;
-                                    return cVal === target || cVal.startsWith(target) || cVal.endsWith(target) || (target.length >= 2 && cVal.includes(target));
-                                } else if (Array.isArray(val)) return val.some(v => chkVal(v, target));
-                                else if (typeof val === 'object') {
-                                    for (const k in val) if (chkVal(val[k], target)) return true;
-                                }
-                                return false;
-                            };
-                            let teachesThisClass = chkVal(me.classes, targetClass) || chkVal(me.schedule, targetClass);
-                            if (!teachesThisClass && me.rawObj) {
-                                const classKeys = ['classes', 'subeler', 'siniflar', 'assignedClasses', 'courses', 'dersler', 'schedule', 'dersProgrami', 'program', 'sube', 'sinif', 'class', 'rehberlikSiniF', 'sinifRehberlik'];
-                                for (const key of classKeys) {
-                                    if (me.rawObj[key] && chkVal(me.rawObj[key], targetClass)) {
-                                        teachesThisClass = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            canSeeSok = teachesThisClass;
-                        }
-                    }
-                    if (!canSeeSok) return false;
+                    if (!canTeacherSeeSokPlan(plan)) return false;
                     if (selectedBranch !== 'all') {
                         const sBranch = normalizeTr(selectedBranch);
                         return normalizeTr(plan.branch).includes(sBranch) || 
@@ -1463,7 +1599,7 @@
                         <div style="font-weight: 800; color: ${titleColor}; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
                             <div style="display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 220px;">
                                 <span style="background: ${badgeBg}; color: white; width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; font-weight: 700;">${hasOpinion ? '<i class="fa-solid fa-check"></i>' : (idx + 1)}</span>
-                                <span style="margin-top: 2px;">${item}</span>
+                                <span style="margin-top: 2px;">${cleanAgendaItemText(item)}</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
                                 ${hasOpinion ? '<span style="background: #dcfce7; color: #15803d; font-size: 0.7rem; padding: 4px 8px; border-radius: 6px; font-weight: 700;"><i class="fa-solid fa-circle-check"></i> İşlendi</span>' : ''}
@@ -1634,6 +1770,11 @@
                         timer: 1500
                     });
                     filterAndRenderGorusList();
+                    if (typeof promptSyncOpinionToOtherSoks === 'function') {
+                        setTimeout(() => {
+                            promptSyncOpinionToOtherSoks(planId, agendaIdx, newOp);
+                        }, 400);
+                    }
                 } else {
                     const errText = await res.text();
                     if (res.status === 401 || res.status === 403 || (errText && errText.toLowerCase().includes('permission'))) {
@@ -1704,6 +1845,11 @@
                             timer: 1500
                         });
                         filterAndRenderGorusList();
+                        if (typeof promptSyncOpinionToOtherSoks === 'function') {
+                            setTimeout(() => {
+                                promptSyncOpinionToOtherSoks(planId, agendaIdx, { ...currentOp });
+                            }, 400);
+                        }
                     } else {
                         throw new Error("Güncelleme başarısız: " + res.status);
                     }
@@ -2861,13 +3007,11 @@
                     const idx = parseInt(chk.value);
                     const item = agendaPool[idx];
                     if (item) {
-                        selectedClasses.forEach(cls => {
-                            const finalItem = (cls === 'GENEL') ? item : `[ ${cls} Şubesi ] - ${item}`;
-                            if (!activeAgendaList.includes(finalItem)) {
-                                activeAgendaList.push(finalItem);
-                                added++;
-                            }
-                        });
+                        const cleanItem = cleanAgendaItemText(item);
+                        if (!activeAgendaList.includes(cleanItem)) {
+                            activeAgendaList.push(cleanItem);
+                            added++;
+                        }
                     }
                 });
             } else {
@@ -2933,7 +3077,7 @@
                     <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); gap: 12px;">
                         <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
                             <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: var(--primary); color: #fff; border-radius: 50%; font-size: 0.8rem; font-weight: 700;">${dispIdx + 1}</span>
-                            <span style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">${item}</span>
+                            <span style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">${cleanAgendaItemText(item)}</span>
                         </div>
                         <div style="display: flex; gap: 6px;">
                             <button class="btn-custom btn-secondary-custom" style="padding: 6px 10px; font-size: 0.8rem;" onclick="moveActiveAgendaUp(${idx})" title="Yukarı Taşı"><i class="fa-solid fa-arrow-up"></i></button>
@@ -3413,12 +3557,12 @@
             });
 
             const agendaList = Array.isArray(plan.agendaItems) ? plan.agendaItems : [];
-            let agendaListHtml = '<ol style="margin: 0; padding-left: 20px; line-height: 1.8;">' + agendaList.map(item => `<li style="margin-bottom: 4px;">${item}</li>`).join('') + '</ol>';
+            let agendaListHtml = '<ol style="margin: 0; padding-left: 20px; line-height: 1.8;">' + agendaList.map(item => `<li style="margin-bottom: 4px;">${cleanAgendaItemText(item)}</li>`).join('') + '</ol>';
 
             let goruslerHtml = '';
             agendaList.forEach((item, idx) => {
                 const opList = (plan.opinions && plan.opinions[idx]) ? plan.opinions[idx] : [];
-                goruslerHtml += `<div style="margin-top: 18px; padding-top: 12px; border-top: 1px solid #cbd5e1; page-break-inside: avoid;"><div style="font-size: 11pt; font-weight: bold; color: #0284c7; margin-bottom: 8px;">${idx + 1}. ${item}</div><div style="padding-left: 10px;">`;
+                goruslerHtml += `<div style="margin-top: 18px; padding-top: 12px; border-top: 1px solid #cbd5e1; page-break-inside: avoid;"><div style="font-size: 11pt; font-weight: bold; color: #0284c7; margin-bottom: 8px;">${idx + 1}. ${cleanAgendaItemText(item)}</div><div style="padding-left: 10px;">`;
                 if (opList.length === 0) goruslerHtml += `<div style="font-style: italic; color: #64748b; font-size: 10pt;">Bu madde ile ilgili görüş veya karar girilmemiştir.</div>`;
                 else {
                     opList.forEach(op => {
@@ -3826,7 +3970,7 @@
                             }
                         }
                         return true;
-                    });
+                    }).map(item => cleanAgendaItemText(item));
 
                     const donemVal = (donemEl && (donemEl.value === '1. Dönem' || donemEl.value === '2. Dönem')) ? donemEl.value : ((new Date().getMonth() + 1 >= 9 || new Date().getMonth() + 1 === 1) ? '1. Dönem' : '2. Dönem');
                     const turText = `${cls} Şubesi ŞÖK Toplantısı`;
@@ -3955,7 +4099,7 @@
                 school: schoolName,
                 createdAt: editingPlanCreatedAt || new Date().toISOString(),
                 participants: participantsList,
-                agendaItems: finalAgendas
+                agendaItems: finalAgendas.map(item => cleanAgendaItemText(item))
             };
             if (editingPlanOpinions) {
                 newPlan.opinions = editingPlanOpinions;
