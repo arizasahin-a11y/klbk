@@ -2807,7 +2807,7 @@
 
             const isMultiSchool = (plan.turCode === 'il' || plan.turCode === 'ilce' || plan.turCode === 'okul_zb' || /il|ilçe|okul zümre başkanları/i.test(plan.tur || ''));
             const baskanTitle = branchClean ? branchClean + ' Zümre Başkanı' : 'Zümre Başkanı';
-            const managerTitle = managerObj.gorev || 'Okul Müdürü / Toplantı Yöneticisi';
+            const managerTitle = (managerObj.gorev && !/toplantı yöneticisi/i.test(managerObj.gorev)) ? managerObj.gorev : 'Okul Müdürü';
 
             let teacherRowsHtml = '';
             teacherRows.forEach(row => {
@@ -2890,6 +2890,33 @@
                 }
                 goruslerHtml += `</div></div>`;
             });
+
+            let ozetKararlarHtml = '';
+            let kararSayac = 0;
+            agendaList.forEach((item, idx) => {
+                const opList = plan.opinions && plan.opinions[idx] ? plan.opinions[idx] : [];
+                const decList = opList.filter(op => !op.author || op.author === "" || op.author === "Karar" || op.style === 'karar' || /^karar:/i.test(op.text || ''));
+                
+                if (decList.length > 0) {
+                    decList.forEach(op => {
+                        kararSayac++;
+                        let text = op.text || '';
+                        text = text.replace(/^Karar:\s*/i, '').trim();
+                        ozetKararlarHtml += `<div style="margin-bottom: 6px; line-height: 1.5; font-size: 10.5pt; color: #000;"><b style="color: #000;">${kararSayac}.</b> ${text}</div>`;
+                    });
+                } else if (opList.length > 0) {
+                    kararSayac++;
+                    let text = opList[opList.length - 1].text || '';
+                    text = text.replace(/^Karar:\s*/i, '').trim();
+                    ozetKararlarHtml += `<div style="margin-bottom: 6px; line-height: 1.5; font-size: 10.5pt; color: #000;"><b style="color: #000;">${kararSayac}.</b> ${text}</div>`;
+                } else {
+                    kararSayac++;
+                    ozetKararlarHtml += `<div style="margin-bottom: 6px; line-height: 1.5; font-size: 10.5pt; color: #000;"><b style="color: #000;">${kararSayac}.</b> "${item}" konusu görüşülerek oy birliği ile karar altına alınmıştır.</div>`;
+                }
+            });
+            if (kararSayac === 0) {
+                ozetKararlarHtml = '<div style="color: #64748b; font-style: italic;">Toplantıya ait karar kaydı bulunmamaktadır.</div>';
+            }
 
             const printWin = window.open('', '_blank');
             if (!printWin) {
@@ -3043,7 +3070,7 @@
             <div style="font-size: 11pt; margin-bottom: 8px;">${meetDate}</div>
             <div style="font-size: 12pt; font-weight: bold; margin-bottom: 40px;">UYGUNDUR</div>
             <div style="font-size: 12pt; font-weight: bold; text-decoration: underline;">${managerObj.name}</div>
-            <div style="font-size: 11pt; color: #333;">${managerTitle}</div>
+            <div style="font-size: 11pt; color: #333;">Okul Müdürü</div>
         </div>
 
         <!-- TABLO 2: Toplantının Konusu, Gündemi ve Görüşülmesi -->
@@ -3073,6 +3100,23 @@
                 <tr>
                     <td style="padding: 16px 14px;">
                         ${goruslerHtml}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABLO 3: Toplantı Özeti (Alınan Kararlar) -->
+        <table style="margin-top: 30px; page-break-inside: avoid;">
+            <tbody>
+                <tr>
+                    <th style="font-size: 12pt; padding: 12px; background-color: #334155 !important; color: white !important; text-align: left;">Toplantı Özeti</th>
+                </tr>
+                <tr>
+                    <td style="padding: 16px 14px; background: white;">
+                        <div style="font-size: 11pt; font-weight: bold; margin-bottom: 14px; color: #000;">
+                            Gündem maddelerinde alınan kararlar özetlenecektir:
+                        </div>
+                        ${ozetKararlarHtml}
                     </td>
                 </tr>
             </tbody>
