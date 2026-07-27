@@ -2817,6 +2817,43 @@
                 managerTitle = 'Sorumlu Müdür Yardımcısı';
             }
 
+            let okulMuduruName = '';
+            try {
+                if (typeof DataManager !== 'undefined' && DataManager.getSchoolSettings) {
+                    const sc = DataManager.getSchoolSettings() || {};
+                    if (sc.managerName && sc.managerName.trim()) okulMuduruName = sc.managerName.trim();
+                }
+            } catch (e) { }
+            if (!okulMuduruName && typeof schoolTeachersList !== 'undefined' && Array.isArray(schoolTeachersList)) {
+                const mudurObj = schoolTeachersList.find(t => {
+                    const r = (t.role || t.unvan || t.gorev || t.branch || '').toLowerCase();
+                    return r === 'mudur' || r === 'okul müdürü' || (r.includes('müdür') && !r.includes('yardımcı') && !r.includes('yrd') && !r.includes('başyardımcı'));
+                });
+                if (mudurObj && mudurObj.name) okulMuduruName = mudurObj.name;
+            }
+            if (!okulMuduruName && typeof DataManager !== 'undefined' && Array.isArray(DataManager.teachers)) {
+                const mudurObj = DataManager.teachers.find(t => {
+                    const r = (t.role || t.unvan || t.gorev || t.branch || '').toLowerCase();
+                    return r === 'mudur' || r === 'okul müdürü' || (r.includes('müdür') && !r.includes('yardımcı') && !r.includes('yrd') && !r.includes('başyardımcı'));
+                });
+                if (mudurObj && mudurObj.name) okulMuduruName = mudurObj.name;
+            }
+            if (!okulMuduruName && typeof participants !== 'undefined' && Array.isArray(participants)) {
+                const mudurObj = participants.find(p => {
+                    const r = (p.gorev || p.unvan || '').toLowerCase();
+                    return r === 'okul müdürü' || (r.includes('müdür') && !r.includes('yardımcı') && !r.includes('yrd') && !r.includes('başyardımcı'));
+                });
+                if (mudurObj && mudurObj.name) okulMuduruName = mudurObj.name;
+            }
+            if (!okulMuduruName) {
+                const mr = (managerObj.gorev || '').toLowerCase();
+                if (mr === 'okul müdürü' || (mr.includes('müdür') && !mr.includes('yardımcı') && !mr.includes('yrd') && !mr.includes('başyardımcı'))) {
+                    okulMuduruName = managerObj.name;
+                } else {
+                    okulMuduruName = 'Okul Müdürü';
+                }
+            }
+
             let teacherRowsHtml = '';
             teacherRows.forEach(row => {
                 teacherRowsHtml += '<tr>';
@@ -3069,12 +3106,12 @@
         <div style="margin: 40px auto; text-align: center; width: 100%; page-break-inside: avoid;">
             <div style="font-size: 11pt; margin-bottom: 8px;">${meetDate}</div>
             <div style="font-size: 12pt; font-weight: bold; margin-bottom: 40px;">UYGUNDUR</div>
-            <div style="font-size: 12pt; font-weight: bold; text-decoration: underline;">${managerObj.name}</div>
-            <div style="font-size: 11pt; color: #333;">${managerTitle}</div>
+            <div style="font-size: 12pt; font-weight: bold; text-decoration: underline;">${okulMuduruName}</div>
+            <div style="font-size: 11pt; color: #333;">Okul Müdürü</div>
         </div>
 
         <!-- TABLO 2: Toplantının Konusu, Gündemi ve Görüşülmesi -->
-        <table>
+        <table style="page-break-before: always; break-before: page; margin-top: 0;">
             <tbody>
                 <tr>
                     <th style="font-size: 12pt; padding: 12px;">Toplantı Konusu</th>
