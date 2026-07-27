@@ -1220,7 +1220,7 @@
                             <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding-bottom: 8px; border-bottom: ${sIdx < sortedOpinions.length - 1 ? '1px dashed #e2e8f0' : 'none'};">
                                 <div style="flex: 1;">
                                     ${authorBadge}
-                                    <div style="font-size: 0.9rem; color: #334155; margin-top: 6px; line-height: 1.5;">${displayText}</div>
+                                    <div style="font-size: 0.9rem; color: ${isDec ? '#000000' : '#334155'}; font-weight: ${isDec ? '800' : 'normal'}; margin-top: 6px; line-height: 1.5;">${displayText}</div>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
                                     <button class="btn-custom" style="background: #f1f5f9; color: #0369a1; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; border: 1px solid #cbd5e1; cursor: pointer;" onclick="editAgendaOpinion('${plan.id}', ${idx}, ${opIdx})" title="Görüşü Düzenle">
@@ -2911,8 +2911,8 @@
                         if (isDec) {
                             text = text.replace(/^Karar:\s*/i, '');
                             goruslerHtml += `
-                                <div style="margin-top: 6px; padding: 6px 10px; background: #f0fdf4; border-left: 3px solid #10b981; font-weight: bold; color: #065f46; font-size: 10.5pt;">
-                                    <b>KARAR:</b> ${text}
+                                <div style="margin-top: 6px; padding: 6px 10px; background: #f8fafc; border-left: 3px solid #000000; font-weight: 800; color: #000000; font-size: 11pt;">
+                                    <b style="color: #000000;">KARAR:</b> ${text}
                                 </div>`;
                         } else {
                             if (op.style === 'konusma') {
@@ -2947,7 +2947,7 @@
                         kararSayac++;
                         let text = op.text || '';
                         text = text.replace(/^Karar:\s*/i, '').trim();
-                        ozetKararlarHtml += `<div style="margin-bottom: 6px; line-height: 1.5; font-size: 10.5pt; color: #000;"><b style="color: #000;">${kararSayac}.</b> ${text}</div>`;
+                        ozetKararlarHtml += `<div style="margin-bottom: 6px; line-height: 1.5; font-size: 11pt; font-weight: 800; color: #000000;"><b style="color: #000000;">${kararSayac}.</b> ${text}</div>`;
                     });
                 }
             });
