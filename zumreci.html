@@ -1089,11 +1089,17 @@
                                         <span><i class="fa-solid fa-calendar-day" style="color: var(--primary);"></i> Tarih: <b>${plan.tarih || 'Belirtilmedi'}</b></span>
                                         <span><i class="fa-solid fa-clock" style="color: var(--primary);"></i> Saat: <b>${plan.saat || '10:00'}</b></span>
                                         <span><i class="fa-solid fa-location-dot" style="color: var(--primary);"></i> Yer: <b>${plan.yer || 'Belirtilmedi'}</b></span>
-                                        <span><i class="fa-solid fa-school" style="color: var(--primary);"></i> Kurum: <b>${plan.school || 'Okulumuz'}</b></span>
+                                        <span><i class="fa-solid fa-file-lines" style="color: var(--primary);"></i> Konu: <b>${plan.konu || formattedTitle}</b></span>
                                     </div>
                                 </div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span class="badge-info" style="background: #f1f5f9; color: #475569; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                    <i class="fa-solid fa-users"></i> ${pCount} Katılımcı
+                                </span>
+                                <span class="badge-info" style="background: #ccfbf1; color: #0f766e; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                    <i class="fa-solid fa-clipboard-list"></i> ${aCount} Gündem
+                                </span>
                                 <button class="btn-custom" style="background: #e0f2fe; color: #0369a1; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #bae6fd; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); editZumrePlan('${plan.id}')" title="Toplantıyı Düzenle">
                                     <i class="fa-solid fa-pen-to-square"></i> Düzenle
                                 </button>
@@ -1103,12 +1109,6 @@
                                 <button class="btn-custom" style="background: #fee2e2; color: #b91c1c; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #fecaca; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); deleteZumrePlan('${plan.id}')" title="Toplantıyı Sil">
                                     <i class="fa-solid fa-trash-can"></i> Sil
                                 </button>
-                                <span class="badge-info" style="background: #f1f5f9; color: #475569; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
-                                    <i class="fa-solid fa-users"></i> ${pCount} Katılımcı
-                                </span>
-                                <span class="badge-info" style="background: #ccfbf1; color: #0f766e; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
-                                    <i class="fa-solid fa-clipboard-list"></i> ${aCount} Gündem
-                                </span>
                                 <div style="width: 32px; height: 32px; border-radius: 50%; background: white; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; transition: transform 0.3s; transform: ${rotateStyle};" id="icon_${plan.id}">
                                     <i class="fa-solid fa-chevron-down" style="color: #64748b; font-size: 0.85rem;"></i>
                                 </div>
