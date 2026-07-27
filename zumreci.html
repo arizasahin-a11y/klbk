@@ -2904,18 +2904,10 @@
                         text = text.replace(/^Karar:\s*/i, '').trim();
                         ozetKararlarHtml += `<div style="margin-bottom: 6px; line-height: 1.5; font-size: 10.5pt; color: #000;"><b style="color: #000;">${kararSayac}.</b> ${text}</div>`;
                     });
-                } else if (opList.length > 0) {
-                    kararSayac++;
-                    let text = opList[opList.length - 1].text || '';
-                    text = text.replace(/^Karar:\s*/i, '').trim();
-                    ozetKararlarHtml += `<div style="margin-bottom: 6px; line-height: 1.5; font-size: 10.5pt; color: #000;"><b style="color: #000;">${kararSayac}.</b> ${text}</div>`;
-                } else {
-                    kararSayac++;
-                    ozetKararlarHtml += `<div style="margin-bottom: 6px; line-height: 1.5; font-size: 10.5pt; color: #000;"><b style="color: #000;">${kararSayac}.</b> "${item}" konusu görüşülerek oy birliği ile karar altına alınmıştır.</div>`;
                 }
             });
             if (kararSayac === 0) {
-                ozetKararlarHtml = '<div style="color: #64748b; font-style: italic;">Toplantıya ait karar kaydı bulunmamaktadır.</div>';
+                ozetKararlarHtml = '<div style="color: #64748b; font-style: italic;">Toplantıda alınan karar kaydı bulunmamaktadır.</div>';
             }
 
             const printWin = window.open('', '_blank');
@@ -3114,7 +3106,7 @@
                 <tr>
                     <td style="padding: 16px 14px; background: white;">
                         <div style="font-size: 11pt; font-weight: bold; margin-bottom: 14px; color: #000;">
-                            Gündem maddelerinde alınan kararlar özetlenecektir:
+                            Toplantıda Alınan Kararlar:
                         </div>
                         ${ozetKararlarHtml}
                     </td>
