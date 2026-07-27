@@ -1112,10 +1112,60 @@
                     return bMatch;
                 }
 
-                // Öğretmen için sadece kendisinin katılımcı olduğu (veya planner olduğu / dersine girdiği ŞÖK) zümreleri göster
-                let isParticipant = false;
+                // Öğretmen için: ŞÖK toplantılarında kesinlikle öğretmenin o sınıfa dersi olup olmadığı kontrol edilir
+                const isSok = plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ')) || (plan.konu && plan.konu.includes('ŞÖ'));
+                const isPlanner = (myId && plan.plannerId && plan.plannerId.toString().trim() === myId) ||
+                                  (myNameNorm && plan.planner && (normalizeTr(plan.planner).includes(myNameNorm) || myNameNorm.includes(normalizeTr(plan.planner))));
 
-                if (plan.participants && Array.isArray(plan.participants)) {
+                if (isSok) {
+                    let canSeeSok = isPlanner;
+                    if (!canSeeSok) {
+                        const cleanCls = str => (str || '').toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
+                        const sokClassNameMatch = (plan.konu || plan.tur || plan.branch || '').match(/(\d+)\s*[\/\-\.\s]?\s*([A-ZĞÜŞİÖÇ\d]+)/i);
+                        const targetClass = sokClassNameMatch && sokClassNameMatch[1] ? cleanCls(sokClassNameMatch[1] + (sokClassNameMatch[2] || '')) : cleanCls(plan.branch || '');
+                        
+                        if (targetClass && typeof schoolTeachersList !== 'undefined' && Array.isArray(schoolTeachersList)) {
+                            const me = schoolTeachersList.find(t => (myId && t.id && t.id.toString().trim() === myId) || (t.name && myNameNorm && normalizeTr(t.name) === myNameNorm));
+                            if (me) {
+                                const chkVal = (val, target) => {
+                                    if (!val) return false;
+                                    if (typeof val === 'string' || typeof val === 'number') {
+                                        const cVal = cleanCls(val);
+                                        if (!cVal) return false;
+                                        return cVal === target || cVal.startsWith(target) || cVal.endsWith(target) || (target.length >= 2 && cVal.includes(target));
+                                    } else if (Array.isArray(val)) return val.some(v => chkVal(v, target));
+                                    else if (typeof val === 'object') {
+                                        for (const k in val) if (chkVal(val[k], target)) return true;
+                                    }
+                                    return false;
+                                };
+                                let teachesThisClass = chkVal(me.classes, targetClass) || chkVal(me.schedule, targetClass);
+                                if (!teachesThisClass && me.rawObj) {
+                                    const classKeys = ['classes', 'subeler', 'siniflar', 'assignedClasses', 'courses', 'dersler', 'schedule', 'dersProgrami', 'program', 'sube', 'sinif', 'class', 'rehberlikSiniF', 'sinifRehberlik'];
+                                    for (const key of classKeys) {
+                                        if (me.rawObj[key] && chkVal(me.rawObj[key], targetClass)) {
+                                            teachesThisClass = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                canSeeSok = teachesThisClass;
+                            }
+                        }
+                    }
+                    if (!canSeeSok) return false;
+                    if (selectedBranch !== 'all') {
+                        const sBranch = normalizeTr(selectedBranch);
+                        return normalizeTr(plan.branch).includes(sBranch) || 
+                               normalizeTr(plan.tur).includes(sBranch) || 
+                               (plan.participants && Array.isArray(plan.participants) && plan.participants.some(p => p && normalizeTr(p.gorev).includes(sBranch)));
+                    }
+                    return true;
+                }
+
+                let isParticipant = isPlanner;
+
+                if (!isParticipant && plan.participants && Array.isArray(plan.participants)) {
                     isParticipant = plan.participants.some(p => {
                         if (!p) return false;
                         if (myId && p.id && p.id.toString().trim() === myId) return true;
@@ -1130,36 +1180,6 @@
                         }
                         return false;
                     });
-                }
-
-                if (!isParticipant) {
-                    if ((myId && plan.plannerId && plan.plannerId.toString().trim() === myId) ||
-                        (myNameNorm && plan.planner && (normalizeTr(plan.planner).includes(myNameNorm) || myNameNorm.includes(normalizeTr(plan.planner))))) {
-                        isParticipant = true;
-                    }
-                }
-
-                if (!isParticipant && (plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ')))) {
-                    const cleanCls = str => (str || '').toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
-                    const sokClassNameMatch = (plan.konu || plan.tur || plan.branch || '').match(/(\d+[\/\-][A-ZĞÜŞİÖÇ\d]+)/i);
-                    const targetClass = sokClassNameMatch && sokClassNameMatch[1] ? cleanCls(sokClassNameMatch[1]) : '';
-                    if (targetClass && typeof schoolTeachersList !== 'undefined' && Array.isArray(schoolTeachersList)) {
-                        const me = schoolTeachersList.find(t => t.id === sessionStorage.getItem('klbk_currentUser') || (t.name && myNameNorm && normalizeTr(t.name) === myNameNorm));
-                        if (me) {
-                            const chkVal = (val, target) => {
-                                if (!val) return false;
-                                if (typeof val === 'string' || typeof val === 'number') {
-                                    const cVal = cleanCls(val);
-                                    return cVal === target || cVal.startsWith(target) || (target.length >= 2 && cVal.includes(target));
-                                } else if (Array.isArray(val)) return val.some(v => chkVal(v, target));
-                                else if (typeof val === 'object') { for (const k in val) if (chkVal(val[k], target)) return true; }
-                                return false;
-                            };
-                            if (chkVal(me.classes, targetClass) || chkVal(me.schedule, targetClass) || (me.rawObj && chkVal(me.rawObj, targetClass))) {
-                                isParticipant = true;
-                            }
-                        }
-                    }
                 }
 
                 if (selectedBranch !== 'all') {
@@ -2338,7 +2358,17 @@
                 let isMatch = false;
 
                 // 1. Öğretmenin veritabanındaki tüm sınıf, şube, ders, atanan sınıflar ve ders programı alanlarını kontrol et
-                if (checkValueForClass(t.classes, normTarget) || checkValueForClass(t.schedule, normTarget) || (t.rawObj && checkValueForClass(t.rawObj, normTarget))) {
+                let rawMatch = false;
+                if (t.rawObj) {
+                    const classKeys = ['classes', 'subeler', 'siniflar', 'assignedClasses', 'courses', 'dersler', 'schedule', 'dersProgrami', 'program', 'sube', 'sinif', 'class', 'rehberlikSiniF', 'sinifRehberlik'];
+                    for (const key of classKeys) {
+                        if (t.rawObj[key] && checkValueForClass(t.rawObj[key], normTarget)) {
+                            rawMatch = true;
+                            break;
+                        }
+                    }
+                }
+                if (checkValueForClass(t.classes, normTarget) || checkValueForClass(t.schedule, normTarget) || rawMatch) {
                     isMatch = true;
                 }
 
@@ -3686,7 +3716,17 @@
                     });
                     if (typeof schoolTeachersList !== 'undefined' && Array.isArray(schoolTeachersList)) {
                         schoolTeachersList.forEach(t => {
-                            if (checkValForCls(t.classes, normCls) || checkValForCls(t.schedule, normCls) || (t.rawObj && checkValForCls(t.rawObj, normCls))) {
+                            let rawClsMatch = false;
+                            if (t.rawObj) {
+                                const classKeys = ['classes', 'subeler', 'siniflar', 'assignedClasses', 'courses', 'dersler', 'schedule', 'dersProgrami', 'program', 'sube', 'sinif', 'class', 'rehberlikSiniF', 'sinifRehberlik'];
+                                for (const key of classKeys) {
+                                    if (t.rawObj[key] && checkValForCls(t.rawObj[key], normCls)) {
+                                        rawClsMatch = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (checkValForCls(t.classes, normCls) || checkValForCls(t.schedule, normCls) || rawClsMatch) {
                                 const r = (t.role || '').toLowerCase();
                                 const b = (t.branch || '').toLowerCase();
                                 const isIdareciOrReh = r === 'idareci' || r === 'admin' || r === 'mudur' || r === 'mudur_basyardimcisi' || r === 'mudur_yardimcisi' || b.includes('idareci') || b.includes('müdür') || b.includes('rehberlik');
