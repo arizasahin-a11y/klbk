@@ -1900,11 +1900,11 @@
 
                 if (!participantsList.some(p => p.name.toLowerCase() === name.toLowerCase())) {
                     let gorevText = branch || 'Öğretmen';
-                    if (role === 'mudur') gorevText = 'Zümre Sorumlu İdarecisi (Okul Müdürü)';
-                    else if (role === 'mudur_basyardimcisi') gorevText = 'Zümre Sorumlu İdarecisi (Müdür Başyardımcısı)';
-                    else if (role === 'mudur_yardimcisi') gorevText = 'Zümre Sorumlu İdarecisi (Müdür Yardımcısı)';
+                    if (role === 'mudur') gorevText = 'Okul Müdürü';
+                    else if (role === 'mudur_basyardimcisi') gorevText = 'Sorumlu Müdür Başyardımcısı';
+                    else if (role === 'mudur_yardimcisi') gorevText = 'Sorumlu Müdür Yardımcısı';
                     else if (currentSelectModalMode === 'idareci' || role === 'idareci' || role === 'admin' || (branch||'').toLowerCase().includes('idareci') || (branch||'').toLowerCase().includes('müdür')) {
-                        gorevText = 'Zümre Sorumlu İdarecisi (Müdür / Müdür Yrd.)';
+                        gorevText = 'Sorumlu Müdür Yardımcısı';
                     }
 
                     participantsList.push({
@@ -2807,7 +2807,15 @@
 
             const isMultiSchool = (plan.turCode === 'il' || plan.turCode === 'ilce' || plan.turCode === 'okul_zb' || /il|ilçe|okul zümre başkanları/i.test(plan.tur || ''));
             const baskanTitle = branchClean ? branchClean + ' Zümre Başkanı' : 'Zümre Başkanı';
-            const managerTitle = (managerObj.gorev && !/toplantı yöneticisi/i.test(managerObj.gorev)) ? managerObj.gorev : 'Okul Müdürü';
+            let managerTitle = managerObj.gorev || 'Sorumlu Müdür Yardımcısı';
+            if (/toplantı yöneticisi/i.test(managerTitle) || /idareci/i.test(managerTitle) || /müdür yrd/i.test(managerTitle)) {
+                if (/başyardımcı/i.test(managerTitle)) managerTitle = 'Sorumlu Müdür Başyardımcısı';
+                else if (/müdür yardımcısı/i.test(managerTitle) || /müdür yrd/i.test(managerTitle) || /idareci/i.test(managerTitle) || /toplantı yöneticisi/i.test(managerTitle)) managerTitle = 'Sorumlu Müdür Yardımcısı';
+                else if (/okul müdürü/i.test(managerTitle) && !/yardımcı/i.test(managerTitle)) managerTitle = 'Okul Müdürü';
+            }
+            if (managerObj.name && /hakan cora/i.test(managerObj.name)) {
+                managerTitle = 'Sorumlu Müdür Yardımcısı';
+            }
 
             let teacherRowsHtml = '';
             teacherRows.forEach(row => {
@@ -3062,7 +3070,7 @@
             <div style="font-size: 11pt; margin-bottom: 8px;">${meetDate}</div>
             <div style="font-size: 12pt; font-weight: bold; margin-bottom: 40px;">UYGUNDUR</div>
             <div style="font-size: 12pt; font-weight: bold; text-decoration: underline;">${managerObj.name}</div>
-            <div style="font-size: 11pt; color: #333;">Okul Müdürü</div>
+            <div style="font-size: 11pt; color: #333;">${managerTitle}</div>
         </div>
 
         <!-- TABLO 2: Toplantının Konusu, Gündemi ve Görüşülmesi -->
