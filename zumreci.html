@@ -2768,9 +2768,20 @@
             const donemName = (plan.donem || '2025-2026 EĞİTİM VE ÖĞRETİM YILI').toUpperCase();
             let branchClean = plan.branch ? plan.branch.trim() : '';
             if (branchClean.toLowerCase() === 'genel' || !branchClean) branchClean = '';
-            const branchUpper = branchClean ? branchClean.toUpperCase() + ' BRANŞI ' : '';
-            let turClean = plan.tur ? plan.tur.replace(/toplantısı/gi, '').trim() : 'Zümre';
-            const docTitle = `${donemName} ${branchUpper}${turClean.toUpperCase()} TOPLANTI TUTANAĞI`;
+            const branchUpper = branchClean ? branchClean.toUpperCase() : '';
+
+            let turClean = plan.tur ? plan.tur.replace(/\([^)]*\)/g, '').replace(/toplantısı/gi, '').replace(/branşı/gi, '').trim() : 'Zümre';
+            if (branchUpper && turClean.toUpperCase().startsWith(branchUpper)) {
+                turClean = turClean.slice(branchUpper.length).trim();
+            }
+            if (branchUpper && turClean.toUpperCase().startsWith('BRANŞ') && !turClean.toUpperCase().startsWith('BRANŞ ZÜMRESİ')) {
+                turClean = turClean.replace(/^branş[ıi]?\s*/i, '').trim();
+            }
+
+            const midPart = branchUpper ? `${branchUpper} ${turClean.toUpperCase()}` : turClean.toUpperCase();
+            const cleanedMid = midPart.replace(/\bBRANŞI?\b\s+\bBRANŞ\b/gi, 'BRANŞ').replace(/\s+/g, ' ').trim();
+
+            const docTitle = `${donemName} ${cleanedMid} TOPLANTI TUTANAĞI`;
 
             const meetDate = plan.tarih ? (plan.tarih.includes('-') ? plan.tarih.split('-').reverse().join('.') : plan.tarih) : (new Date().toLocaleDateString('tr-TR'));
 
@@ -3070,7 +3081,6 @@
     <div class="a4-page">
         <div class="header-title">
             <h1>${schoolName}</h1>
-            <h2>${donemName}</h2>
             <h3>${docTitle}</h3>
         </div>
 
