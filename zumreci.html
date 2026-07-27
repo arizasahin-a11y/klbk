@@ -1093,24 +1093,28 @@
                                     </div>
                                 </div>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                <span class="badge-info" style="background: #f1f5f9; color: #475569; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
-                                    <i class="fa-solid fa-users"></i> ${pCount} Katılımcı
-                                </span>
-                                <span class="badge-info" style="background: #ccfbf1; color: #0f766e; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
-                                    <i class="fa-solid fa-clipboard-list"></i> ${aCount} Gündem
-                                </span>
-                                <button class="btn-custom" style="background: #e0f2fe; color: #0369a1; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #bae6fd; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); editZumrePlan('${plan.id}')" title="Toplantıyı Düzenle">
-                                    <i class="fa-solid fa-pen-to-square"></i> Düzenle
-                                </button>
-                                <button class="btn-custom" style="background: #f0fdf4; color: #15803d; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #bbf7d0; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); printZumrePlan('${plan.id}')" title="Toplantı Tutanağını Yazdır / PDF Al">
-                                    <i class="fa-solid fa-print"></i> Yazdır
-                                </button>
-                                <button class="btn-custom" style="background: #fee2e2; color: #b91c1c; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #fecaca; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); deleteZumrePlan('${plan.id}')" title="Toplantıyı Sil">
-                                    <i class="fa-solid fa-trash-can"></i> Sil
-                                </button>
-                                <div style="width: 32px; height: 32px; border-radius: 50%; background: white; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; transition: transform 0.3s; transform: ${rotateStyle};" id="icon_${plan.id}">
-                                    <i class="fa-solid fa-chevron-down" style="color: #64748b; font-size: 0.85rem;"></i>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+                                    <button class="btn-custom" style="background: #e0f2fe; color: #0369a1; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #bae6fd; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); editZumrePlan('${plan.id}')" title="Toplantıyı Düzenle">
+                                        <i class="fa-solid fa-pen-to-square"></i> Düzenle
+                                    </button>
+                                    <button class="btn-custom" style="background: #f0fdf4; color: #15803d; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #bbf7d0; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); printZumrePlan('${plan.id}')" title="Toplantı Tutanağını Yazdır / PDF Al">
+                                        <i class="fa-solid fa-print"></i> Yazdır
+                                    </button>
+                                    <button class="btn-custom" style="background: #fee2e2; color: #b91c1c; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; border: 1px solid #fecaca; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onclick="event.stopPropagation(); deleteZumrePlan('${plan.id}')" title="Toplantıyı Sil">
+                                        <i class="fa-solid fa-trash-can"></i> Sil
+                                    </button>
+                                    <div style="width: 32px; height: 32px; border-radius: 50%; background: white; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; transition: transform 0.3s; transform: ${rotateStyle};" id="icon_${plan.id}">
+                                        <i class="fa-solid fa-chevron-down" style="color: #64748b; font-size: 0.85rem;"></i>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; padding-right: 40px;">
+                                    <span class="badge-info" style="background: #f1f5f9; color: #475569; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                        <i class="fa-solid fa-users"></i> ${pCount} Katılımcı
+                                    </span>
+                                    <span class="badge-info" style="background: #ccfbf1; color: #0f766e; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                        <i class="fa-solid fa-clipboard-list"></i> ${aCount} Gündem
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -2750,7 +2754,7 @@
             let turClean = plan.tur ? plan.tur.replace(/toplantısı/gi, '').trim() : 'Zümre';
             const docTitle = `${donemName} ${branchUpper}${turClean.toUpperCase()} TOPLANTI TUTANAĞI`;
 
-            const meetDate = plan.tarih ? formatDateTR(plan.tarih) : (new Date().toLocaleDateString('tr-TR'));
+            const meetDate = plan.tarih ? (plan.tarih.includes('-') ? plan.tarih.split('-').reverse().join('.') : plan.tarih) : (new Date().toLocaleDateString('tr-TR'));
 
             const participants = Array.isArray(plan.participants) ? plan.participants : [];
             let managerObj = null;
