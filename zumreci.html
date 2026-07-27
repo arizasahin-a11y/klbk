@@ -1099,6 +1099,40 @@
                     if (!titleMatch && !agendaMatch && !partMatch) return false;
                 }
 
+                if (!isAdminOrIdareci && (plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ')))) {
+                    const cleanCls = str => (str || '').toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
+                    const sokClassNameMatch = (plan.konu || plan.tur || plan.branch || '').match(/(\d+[\/\-][A-ZĞÜŞİÖÇ\d]+)/i);
+                    const targetClass = sokClassNameMatch && sokClassNameMatch[1] ? cleanCls(sokClassNameMatch[1]) : '';
+                    
+                    let teachesThisClass = false;
+                    if (plan.participants && Array.isArray(plan.participants)) {
+                        teachesThisClass = plan.participants.some(p => {
+                            if (!p || !p.name) return false;
+                            return normalizeTr(p.name).includes(myNameNorm) || myNameNorm.includes(normalizeTr(p.name));
+                        });
+                    }
+                    if (!teachesThisClass && targetClass && typeof schoolTeachersList !== 'undefined' && Array.isArray(schoolTeachersList)) {
+                        const me = schoolTeachersList.find(t => t.id === sessionStorage.getItem('klbk_currentUser') || (t.name && myNameNorm && normalizeTr(t.name) === myNameNorm));
+                        if (me) {
+                            const chkVal = (val, target) => {
+                                if (!val) return false;
+                                if (typeof val === 'string' || typeof val === 'number') {
+                                    const cVal = cleanCls(val);
+                                    return cVal === target || cVal.startsWith(target) || (target.length >= 2 && cVal.includes(target));
+                                } else if (Array.isArray(val)) return val.some(v => chkVal(v, target));
+                                else if (typeof val === 'object') { for (const k in val) if (chkVal(val[k], target)) return true; }
+                                return false;
+                            };
+                            if (chkVal(me.classes, targetClass) || chkVal(me.schedule, targetClass) || (me.rawObj && chkVal(me.rawObj, targetClass))) {
+                                teachesThisClass = true;
+                            }
+                        }
+                    }
+                    if (!teachesThisClass && !normalizeTr(plan.planner || '').includes(myNameNorm)) {
+                        return false;
+                    }
+                }
+
                 if (selectedBranch === 'all' || isAdminOrIdareci) {
                     return true;
                 }
@@ -3553,15 +3587,184 @@
             }
 
             const donemText = donemEl.value;
+            if (turEl.value === 'sok') {
+                let classes = ['9-A', '9-B', '9-C', '10-A', '10-B', '10-C', '11-A', '11-B', '11-C', '12-A', '12-B', '12-C'];
+                if (typeof DataManager !== 'undefined' && DataManager.classes && DataManager.classes.length > 0) {
+                    classes = DataManager.classes.map(c => typeof c === 'string' ? c : (c.name || c.sube));
+                }
+                if (window.selectedSokClassesList && window.selectedSokClassesList.length > 0) {
+                    classes = window.selectedSokClassesList;
+                }
+                const activeSokClass = document.getElementById('sokClassSelect') ? document.getElementById('sokClassSelect').value : '';
+
+                let html = `
+                    <div style="text-align: left; margin-bottom: 12px; font-size: 0.9rem; color: #475569; line-height: 1.4;">
+                        Lütfen bu ŞÖK toplantısını kaydetmek istediğiniz sınıfları / şubeleri seçiniz. Seçilen her şube için ayrı ayrı ŞÖK Zümre Planı oluşturulacaktır:
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-bottom: 10px; justify-content: flex-start;">
+                        <button type="button" class="btn-custom btn-secondary-custom" style="padding: 4px 10px; font-size: 0.8rem; background: #f1f5f9; border: 1px solid #cbd5e1;" onclick="document.querySelectorAll('.sok-save-class-chk').forEach(c=>c.checked=true)"><i class="fa-solid fa-check-double"></i> Tümünü Seç</button>
+                        <button type="button" class="btn-custom btn-secondary-custom" style="padding: 4px 10px; font-size: 0.8rem; background: #f1f5f9; border: 1px solid #cbd5e1;" onclick="document.querySelectorAll('.sok-save-class-chk').forEach(c=>c.checked=false)"><i class="fa-solid fa-eraser"></i> Temizle</button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; max-height: 280px; overflow-y: auto; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; text-align: left;">
+                `;
+                classes.forEach(c => {
+                    const isChk = (activeSokClass === c || (window.selectedSokClassesList && window.selectedSokClassesList.includes(c))) ? 'checked' : '';
+                    html += `
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #1e293b; background: white; padding: 6px 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                            <input type="checkbox" class="sok-save-class-chk" value="${c}" ${isChk} style="width: 16px; height: 16px; accent-color: var(--primary);">
+                            <span>${c}</span>
+                        </label>
+                    `;
+                });
+                html += `</div>`;
+
+                const selRes = await Swal.fire({
+                    title: '<i class="fa-solid fa-floppy-disk" style="color:#0d9488;"></i> Hangi Sınıflar İçin ŞÖK Kaydedilsin?',
+                    html: html,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fa-solid fa-check"></i> Seçilen Sınıfları Kaydet',
+                    cancelButtonText: 'İptal',
+                    confirmButtonColor: '#0d9488'
+                });
+
+                if (!selRes.isConfirmed) return;
+
+                const selectedClassesToSave = Array.from(document.querySelectorAll('.sok-save-class-chk:checked')).map(cb => cb.value);
+                if (selectedClassesToSave.length === 0) {
+                    Swal.fire('Uyarı', 'Hiçbir sınıf seçmediniz, kaydetme işlemi iptal edildi.', 'warning');
+                    return;
+                }
+
+                Swal.fire({ title: `${selectedClassesToSave.length} Sınıf İçin ŞÖK Kaydediliyor...`, allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                const plannerName = sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || 'Öğretmen';
+                const schoolName = localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz';
+                const cleanClassStr = str => (str || '').toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
+
+                function checkValForCls(val, target) {
+                    if (!val) return false;
+                    if (typeof val === 'string' || typeof val === 'number') {
+                        const cVal = cleanClassStr(val);
+                        if (!cVal) return false;
+                        if (cVal === target || cVal.startsWith(target) || (target.length >= 2 && cVal.includes(target))) return true;
+                    } else if (Array.isArray(val)) {
+                        return val.some(v => checkValForCls(v, target));
+                    } else if (typeof val === 'object') {
+                        for (const k in val) { if (checkValForCls(val[k], target)) return true; }
+                    }
+                    return false;
+                }
+
+                let savedCount = 0;
+                for (let idx = 0; idx < selectedClassesToSave.length; idx++) {
+                    const cls = selectedClassesToSave[idx];
+                    const normCls = cleanClassStr(cls);
+
+                    let clsParticipants = [];
+                    participantsList.forEach(p => {
+                        const r = (p.role || p.gorev || '').toLowerCase();
+                        if (r.includes('idareci') || r.includes('müdür') || r.includes('rehberlik') || r.includes('başkan') || r.includes('genel')) {
+                            clsParticipants.push({ ...p, id: 'sok_' + (p.id || Date.now()) + '_' + idx });
+                        }
+                    });
+                    if (typeof schoolTeachersList !== 'undefined' && Array.isArray(schoolTeachersList)) {
+                        schoolTeachersList.forEach(t => {
+                            if (checkValForCls(t.classes, normCls) || checkValForCls(t.schedule, normCls) || (t.rawObj && checkValForCls(t.rawObj, normCls))) {
+                                const r = (t.role || '').toLowerCase();
+                                const b = (t.branch || '').toLowerCase();
+                                const isIdareciOrReh = r === 'idareci' || r === 'admin' || r === 'mudur' || r === 'mudur_basyardimcisi' || r === 'mudur_yardimcisi' || b.includes('idareci') || b.includes('müdür') || b.includes('rehberlik');
+                                if (!isIdareciOrReh && !clsParticipants.some(cp => cp.name && t.name && cp.name.toLowerCase() === t.name.toLowerCase())) {
+                                    clsParticipants.push({
+                                        id: 'sok_' + t.id + '_' + Date.now() + '_' + idx,
+                                        name: t.name,
+                                        kurum: t.school || schoolName,
+                                        gorev: `${t.branch} (${cls} Dersi Öğretmeni)`
+                                    });
+                                }
+                            }
+                        });
+                    }
+                    if (clsParticipants.length === 0) clsParticipants = [...participantsList];
+
+                    const clsAgendas = activeAgendaList.filter(item => {
+                        const itemStr = typeof item === 'string' ? item : (item.title || '');
+                        const match = itemStr.match(/^\[\s*([^\]]+?)\s*(?:Şubesi|Sınıfı)?\s*\]/i);
+                        if (match && match[1]) {
+                            const tagClass = cleanClassStr(match[1]);
+                            if (tagClass !== 'GENEL' && tagClass !== normCls && !normCls.includes(tagClass) && !tagClass.includes(normCls)) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+
+                    const turText = `ŞÖK Toplantısı (${cls} Şubesi)`;
+                    const branchName = `${cls} Şubesi ŞÖK`;
+                    const konuText = `${donemEl.value} ${cls} Şubesi ŞÖK (Şube Öğretmenler Kurulu) Toplantısı`;
+
+                    const planObj = {
+                        id: (editingPlanId && selectedClassesToSave.length === 1) ? editingPlanId : ('zumre_' + Date.now() + '_' + idx + '_' + Math.floor(Math.random()*1000)),
+                        donem: donemEl.value,
+                        tur: turText,
+                        turCode: 'sok',
+                        branch: branchName,
+                        konu: konuText,
+                        tarih: tarih,
+                        saat: saat,
+                        yer: yer,
+                        planner: plannerName,
+                        school: schoolName,
+                        createdAt: new Date().toISOString(),
+                        participants: clsParticipants,
+                        agendaItems: clsAgendas
+                    };
+
+                    try {
+                        const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_zumre_plans/${planObj.id}.json`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(planObj)
+                        });
+                        if (res.ok) {
+                            allFetchedPlans = allFetchedPlans.filter(p => p.id !== planObj.id);
+                            allFetchedPlans.push(planObj);
+                            savedCount++;
+                        }
+                    } catch(err) { console.error("Sınıf planı kaydedilemedi:", err); }
+                }
+
+                allFetchedPlans.sort((a, b) => new Date(b.tarih || '1970-01-01') - new Date(a.tarih || '1970-01-01'));
+                if (typeof filterAndRenderGorusList === 'function') filterAndRenderGorusList();
+
+                editingPlanId = null;
+                editingPlanOpinions = null;
+                editingPlanCreatedAt = null;
+                if (document.getElementById('toplantiKonusuInput')) document.getElementById('toplantiKonusuInput').value = '';
+                const saveBtn = document.getElementById('saveZumreBtn');
+                if (saveBtn) {
+                    saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Zümre Planını Kaydet ve Oluştur`;
+                    saveBtn.style.background = '';
+                    saveBtn.classList.add('btn-primary-custom');
+                }
+                const cancelBtn = document.getElementById('cancelEditBtn');
+                if (cancelBtn) cancelBtn.style.display = 'none';
+
+                Swal.fire({
+                    title: 'ŞÖK Planları Oluşturuldu! 🎉',
+                    html: `Seçilen <b>${savedCount} farklı sınıf/şube</b> için bağımsız ŞÖK Zümre Planları veritabanına kaydedildi.<br><br><small style="color:var(--primary);">💡 2. Zümre Görüş İşleme sekmesinden her bir sınıfın toplantısını ayrı ayrı görebilirsiniz.</small>`,
+                    icon: 'success',
+                    confirmButtonText: 'Tamam',
+                    confirmButtonColor: 'var(--primary)'
+                });
+                return;
+            }
+
             let turText = "";
             if (turEl.value === 'il') turText = "İl Zümresi Toplantısı";
             else if (turEl.value === 'ilce') turText = "İlçe Zümresi Toplantısı";
             else if (turEl.value === 'ogretmenler_kurulu') turText = "Öğretmenler Kurulu Toplantısı";
             else if (turEl.value === 'okul_baskan') turText = "Okul Zümre Başkanları Toplantısı";
-            else if (turEl.value === 'sok') {
-                const sokClass = document.getElementById('sokClassSelect') ? document.getElementById('sokClassSelect').value : '';
-                turText = `ŞÖK Toplantısı ${sokClass ? '(' + sokClass + ' Şubesi)' : ''}`;
-            }
             else if (turEl.value === 'brans') {
                 const brans = document.getElementById('bransSelect') ? document.getElementById('bransSelect').value : '';
                 const grpClean = brans.startsWith('group___') ? brans.replace('group___', '') : brans;
