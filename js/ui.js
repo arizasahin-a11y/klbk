@@ -1252,6 +1252,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let assignDeviceInterval = null;
     window.assignDeviceToClass = async function(className) {
+        if (assignDeviceInterval) clearInterval(assignDeviceInterval);
+        const storeKey = DataManager._getStorageKey();
+        const waitToken = Math.random().toString(36).substring(2, 10);
+        
+        // Önceki kalıntıları temizlemek ve güvenli bir bekleme durumuna geçmek için Firebase'e token yazıyoruz
+        try {
+            const putRes = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json`, {
+                method: 'PUT',
+                body: JSON.stringify({ status: 'waiting', token: waitToken })
+            });
+            if (!putRes.ok) throw new Error("Firebase erişilemedi");
+        } catch (e) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'error',
+                title: 'Bağlantı hatası! İnternetinizi kontrol edin.',
+                showConfirmButton: false,
+                timer: 3000
+            });
+            return;
+        }
+
         Swal.fire({
             title: 'Cihaz Bekleniyor...',
             html: `Lütfen tabletten/telefondan <b>00000</b> öğrenci numarasıyla Öğrenci Sistemine giriş yapın.<br><br>Sistem cihazı otomatik algılayacaktır.<br><br><div class="spinner-border text-primary" role="status"></div>`,
@@ -1263,31 +1286,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (assignDeviceInterval) clearInterval(assignDeviceInterval);
         });
 
-        if (assignDeviceInterval) clearInterval(assignDeviceInterval);
-        const storeKey = DataManager._getStorageKey();
-        
-        // Önceki atama kaydının zaman damgasını al (saat farkı sorununu aşmak için)
-        let oldTimestamp = 0;
-        try {
-            const oldRes = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json?t=${Date.now()}`);
-            const oldData = await oldRes.json();
-            if (oldData && oldData.timestamp) oldTimestamp = oldData.timestamp;
-        } catch (e) {}
-        
-        // Önceki atama kaydını temizlemeyi dene
-        try {
-            await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json`, {
-                method: 'DELETE'
-            });
-        } catch (e) {}
-
         assignDeviceInterval = setInterval(async () => {
             try {
                 const res = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json?t=${Date.now()}`, { cache: 'no-store' });
                 const data = await res.json();
                 
-                // Eski stuck verileri engellemek için sadece YENİ BİR SİNYAL gelip gelmediğine bakıyoruz (saat farkına takılmadan)
-                if (data && data.deviceId && data.timestamp && data.timestamp !== oldTimestamp) {
+                // Eğer data.deviceId varsa VE bizim token silinmişse (tablet PUT yaparak üzerine yazmışsa), bu %100 taze bir eşleşmedir!
+                if (data && data.deviceId && data.token !== waitToken) {
                     clearInterval(assignDeviceInterval);
                     Swal.close();
                     
