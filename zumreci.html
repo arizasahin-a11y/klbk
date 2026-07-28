@@ -1201,8 +1201,7 @@
             if (isAdminOrIdareci) return true;
 
             const myId = sessionStorage.getItem('klbk_userId') ? sessionStorage.getItem('klbk_userId').toString().trim() : (sessionStorage.getItem('klbk_currentUser') || '').toString().trim();
-            const isPlanner = (myId && plan.plannerId && plan.plannerId.toString().trim() === myId) ||
-                              (myNameNorm && plan.planner && (normalizeTr(plan.planner).includes(myNameNorm) || myNameNorm.includes(normalizeTr(plan.planner))));
+            const isPlanner = (myId && plan.plannerId && plan.plannerId.toString().trim() === myId);
             if (isPlanner) return true;
 
             if (plan.participants && Array.isArray(plan.participants)) {
@@ -1393,9 +1392,7 @@
 
                 // Öğretmen için: ŞÖK toplantılarında kesinlikle öğretmenin o sınıfa dersi olup olmadığı kontrol edilir
                 const isSok = plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ')) || (plan.konu && plan.konu.includes('ŞÖ'));
-                const plannerNameNorm = normalizeTr(plan.planner || '');
-                const isPlanner = (myId && plan.plannerId && plan.plannerId.toString().trim() === myId) ||
-                                  (myNameNorm && plannerNameNorm && (plannerNameNorm === myNameNorm || plannerNameNorm.includes(myNameNorm)));
+                const isPlanner = (myId && plan.plannerId && plan.plannerId.toString().trim() === myId);
 
                 if (isSok) {
                     if (!canTeacherSeeSokPlan(plan)) return false;
@@ -4366,6 +4363,7 @@
                 saat: saat,
                 yer: yer,
                 planner: plannerName,
+                plannerId: sessionStorage.getItem('klbk_currentUser') || '',
                 school: schoolName,
                 createdAt: editingPlanCreatedAt || new Date().toISOString(),
                 participants: participantsList,
