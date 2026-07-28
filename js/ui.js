@@ -1265,29 +1265,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (assignDeviceInterval) clearInterval(assignDeviceInterval);
         const storeKey = DataManager._getStorageKey();
+        const startTime = Date.now(); // Sadece bu andan sonraki sinyalleri kabul edeceğiz
         
-        // Önceki atama kaydını tamamen sil ve bitmesini bekle
+        // Önceki atama kaydını tamamen silmeyi dene (başarısız olsa bile timestamp bizi kurtaracak)
         try {
             await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json`, {
-                method: 'PUT',
-                body: JSON.stringify(null)
+                method: 'DELETE'
             });
         } catch (e) {}
 
         assignDeviceInterval = setInterval(async () => {
             try {
-                const res = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json?t=${Date.now()}`);
+                const res = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json?t=${Date.now()}`, { cache: 'no-store' });
                 const data = await res.json();
-                if (data && data.deviceId) {
+                
+                // Eski stuck verileri engellemek için timestamp kontrolü
+                if (data && data.deviceId && data.timestamp && data.timestamp >= startTime) {
                     clearInterval(assignDeviceInterval);
                     Swal.close();
                     
                     DataManager.saveClassDeviceMapping(className, data.deviceId);
                     
                     fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json`, {
-                        method: 'PUT',
-                        body: JSON.stringify(null)
-                    });
+                        method: 'DELETE'
+                    }).catch(e => {});
                     
                     Swal.fire({
                         toast: true,
