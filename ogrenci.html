@@ -757,6 +757,35 @@
                 const no = noInput.value.trim();
                 if (!no) return;
                 
+                // --- Cihaz Eşleştirme Modu (00000) ---
+                if (no === '00000') {
+                    let devId = localStorage.getItem('klbk_device_id');
+                    if (!devId) {
+                        devId = 'CHZ-' + Math.floor(1000 + Math.random() * 9000);
+                        localStorage.setItem('klbk_device_id', devId);
+                    }
+                    
+                    const storeKey = window.DataManager ? window.DataManager._getStorageKey() : localStorage.getItem('klbk_lastSchoolName') ? btoa(localStorage.getItem('klbk_lastSchoolName')) : null;
+                    if (storeKey) {
+                        fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json`, {
+                            method: 'PUT',
+                            body: JSON.stringify({ deviceId: devId, timestamp: Date.now() })
+                        }).then(() => {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Cihaz Sinyali Gönderildi!',
+                                text: `Bu cihazın kodu: ${devId}. Lütfen yönetici panelindeki işlemi kontrol edin.`,
+                                timer: 4000,
+                                showConfirmButton: false
+                            });
+                            noInput.value = '';
+                        }).catch(e => console.error(e));
+                    } else {
+                        alert('Hata: Okul bağlantısı bulunamadı, lütfen geçerli bir öğrenci ile bir kez giriş yapın.');
+                    }
+                    return; // Normal öğrenci girişini atla
+                }
+                
                 const students = DataManager.getStudents();
                 if (!students || (Array.isArray(students) && students.length === 0)) {
                     if (!isAutoLogin) alert('Öğrenci verileri yüklenemedi. Lütfen internetinizi kontrol edip sayfayı yenileyin.');
@@ -779,24 +808,6 @@
 
             // Save session
             localStorage.setItem('klbk_student_session', no);
-            
-            // Cihaz kimliği yoksa oluştur
-            let devId = localStorage.getItem('klbk_device_id');
-            if (!devId) {
-                devId = 'CHZ-' + Math.floor(1000 + Math.random() * 9000); // Örn: CHZ-8492
-                localStorage.setItem('klbk_device_id', devId);
-            }
-            
-            // Eğer giriş yapan kişi cihaz eşleştirme numarasıysa (00000), Firebase'e ping at
-            if (no === '00000') {
-                const storeKey = window.DataManager ? window.DataManager._getStorageKey() : localStorage.getItem('klbk_lastSchoolName') ? btoa(localStorage.getItem('klbk_lastSchoolName')) : null;
-                if (storeKey) {
-                    fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json`, {
-                        method: 'PUT',
-                        body: JSON.stringify({ deviceId: devId, timestamp: Date.now() })
-                    }).catch(e => console.error(e));
-                }
-            }
 
             document.getElementById('studentNameDisplay').textContent = currentStudent.name;
             document.getElementById('studentClassDisplay').textContent = currentStudent.class + (currentStudent.alan ? ` / ${currentStudent.alan}` : '');
