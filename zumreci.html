@@ -520,7 +520,7 @@
                                 <tr>
                                     <th style="width: 50px;">#</th>
                                     <th>Adı Soyadı</th>
-                                    <th>Kurum / Okul / İlçe</th>
+                                    <th id="thKurumOkul">Kurum / Okul / İlçe</th>
                                     <th>Görevi / Branşı</th>
                                     <th style="width: 80px; text-align: center;">İşlem</th>
                                 </tr>
@@ -2780,6 +2780,15 @@
 
             if (typeof renderActiveAgendaList === 'function') renderActiveAgendaList();
 
+            if (!participantsList.some(p => (p.gorev || '').toLowerCase().includes('rehberlik') || (p.role || '').toLowerCase().includes('rehberlik'))) {
+                participantsList.push({
+                    id: 'auto_rehberlik_' + Date.now(),
+                    name: '.......................',
+                    kurum: localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz',
+                    gorev: 'Okul Rehberlik Öğrt.'
+                });
+            }
+
             renderParticipantsTable();
             if (statusEl) {
                 if (count > 0) {
@@ -2930,7 +2939,7 @@
                             id: 'brans_' + t.id + '_' + Date.now(),
                             name: t.name,
                             kurum: t.school || localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz',
-                            gorev: `${t.branch} Öğretmeni`
+                            gorev: t.branch || 'Öğretmen'
                         });
                         count++;
                     }
@@ -2950,10 +2959,15 @@
             const tbody = document.getElementById('participantsTableBody');
             document.getElementById('participantCount').innerText = participantsList.length;
 
+            const isIlOrIlce = (currentZumreTur === 'il' || currentZumreTur === 'ilce');
+            const thKurum = document.getElementById('thKurumOkul');
+            if (thKurum) thKurum.style.display = isIlOrIlce ? '' : 'none';
+
             if (participantsList.length === 0) {
+                const colspanVal = isIlOrIlce ? "5" : "4";
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="5" style="text-align: center; padding: 2rem; color: #94a3b8;">
+                        <td colspan="${colspanVal}" style="text-align: center; padding: 2rem; color: #94a3b8;">
                             Henüz katılımcı eklenmedi. Yukarıdaki butonları kullanarak listeyi oluşturun.
                         </td>
                     </tr>
@@ -2965,11 +2979,14 @@
             participantsList.forEach((p, index) => {
                 const isBaskanCell = p.isBaskan || /başkan/i.test(p.gorev || '');
                 const crownHtml = isBaskanCell ? ' <i class="fa-solid fa-crown" style="color: #eab308; margin-left: 6px; font-size: 1.1rem;" title="Zümre Başkanı"></i>' : '';
+                
+                const kurumTd = isIlOrIlce ? `<td><span class="badge-info">${p.kurum || ''}</span></td>` : '';
+
                 html += `
                     <tr oncontextmenu="event.preventDefault(); setZumreBaskani('${p.id}')" style="cursor: context-menu;" title="Zümre başkanı olarak belirlemek için sağ tıklayın">
                         <td style="font-weight: 700; color: #64748b;">${index + 1}</td>
                         <td style="font-weight: 700; color: var(--dark);"><i class="fa-regular fa-user" style="margin-right: 6px; color: var(--primary);"></i> ${p.name}${crownHtml}</td>
-                        <td><span class="badge-info">${p.kurum || ''}</span></td>
+                        ${kurumTd}
                         <td style="font-weight: 600; color: ${isBaskanCell ? '#059669' : '#475569'};">
                             ${(p.gorev || '').split(',').map(b => `<span style="cursor: pointer; padding: 2px 4px; border-radius: 4px; transition: background 0.2s;" oncontextmenu="event.stopPropagation(); event.preventDefault(); window.removeBranchFromParticipant('${p.id}', '${b.trim().replace(/'/g, "\\'")}')" onclick="event.stopPropagation(); window.editParticipantGorev('${p.id}')" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='transparent'" title="Sol tık: Branşı Düzenle | Sağ tık: Bu Branşı Sil">${b.trim()}</span>`).join(', ')}
                         </td>
