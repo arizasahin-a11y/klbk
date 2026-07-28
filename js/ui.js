@@ -1265,9 +1265,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (assignDeviceInterval) clearInterval(assignDeviceInterval);
         const storeKey = DataManager._getStorageKey();
-        const startTime = Date.now(); // Sadece bu andan sonraki sinyalleri kabul edeceğiz
         
-        // Önceki atama kaydını tamamen silmeyi dene (başarısız olsa bile timestamp bizi kurtaracak)
+        // Önceki atama kaydının zaman damgasını al (saat farkı sorununu aşmak için)
+        let oldTimestamp = 0;
+        try {
+            const oldRes = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json?t=${Date.now()}`);
+            const oldData = await oldRes.json();
+            if (oldData && oldData.timestamp) oldTimestamp = oldData.timestamp;
+        } catch (e) {}
+        
+        // Önceki atama kaydını temizlemeyi dene
         try {
             await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json`, {
                 method: 'DELETE'
@@ -1279,8 +1286,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const res = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json?t=${Date.now()}`, { cache: 'no-store' });
                 const data = await res.json();
                 
-                // Eski stuck verileri engellemek için timestamp kontrolü
-                if (data && data.deviceId && data.timestamp && data.timestamp >= startTime) {
+                // Eski stuck verileri engellemek için sadece YENİ BİR SİNYAL gelip gelmediğine bakıyoruz (saat farkına takılmadan)
+                if (data && data.deviceId && data.timestamp && data.timestamp !== oldTimestamp) {
                     clearInterval(assignDeviceInterval);
                     Swal.close();
                     
