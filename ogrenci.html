@@ -767,7 +767,8 @@
                     
                     const storeKey = window.DataManager ? window.DataManager._getStorageKey() : localStorage.getItem('klbk_lastSchoolName') ? btoa(localStorage.getItem('klbk_lastSchoolName')) : null;
                     if (storeKey) {
-                        fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json`, {
+                        const encodedKey = encodeURIComponent(storeKey);
+                        fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${encodedKey}.json`, {
                             method: 'PUT',
                             body: JSON.stringify({ deviceId: devId, timestamp: Date.now() })
                         }).then(() => {

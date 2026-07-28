@@ -1254,11 +1254,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.assignDeviceToClass = async function(className) {
         if (assignDeviceInterval) clearInterval(assignDeviceInterval);
         const storeKey = DataManager._getStorageKey();
+        const encodedKey = encodeURIComponent(storeKey);
         const waitToken = Math.random().toString(36).substring(2, 10);
         
         // Önceki kalıntıları temizlemek ve güvenli bir bekleme durumuna geçmek için Firebase'e token yazıyoruz
         try {
-            const putRes = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json`, {
+            const putRes = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${encodedKey}.json`, {
                 method: 'PUT',
                 body: JSON.stringify({ status: 'waiting', token: waitToken })
             });
@@ -1288,7 +1289,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         assignDeviceInterval = setInterval(async () => {
             try {
-                const res = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json?t=${Date.now()}`, { cache: 'no-store' });
+                const res = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${encodedKey}.json?t=${Date.now()}`, { cache: 'no-store' });
                 const data = await res.json();
                 
                 // Eğer data.deviceId varsa VE bizim token silinmişse (tablet PUT yaparak üzerine yazmışsa), bu %100 taze bir eşleşmedir!
@@ -1298,7 +1299,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     DataManager.saveClassDeviceMapping(className, data.deviceId);
                     
-                    fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json`, {
+                    fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${encodedKey}.json`, {
                         method: 'DELETE'
                     }).catch(e => {});
                     
