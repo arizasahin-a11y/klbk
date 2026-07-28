@@ -4330,6 +4330,15 @@
                     }
                     if (clsParticipants.length === 0) clsParticipants = [...participantsList];
 
+                    if (!clsParticipants.some(p => (p.gorev || '').toLowerCase().includes('rehberlik') || (p.role || '').toLowerCase().includes('rehberlik'))) {
+                        clsParticipants.push({
+                            id: 'auto_rehberlik_' + Date.now() + '_' + idx,
+                            name: '.......................',
+                            kurum: schoolName,
+                            gorev: 'Okul Rehberlik Öğrt.'
+                        });
+                    }
+
                     const clsAgendas = activeAgendaList.filter(item => {
                         const itemStr = typeof item === 'string' ? item : (item.title || '');
                         const match = itemStr.match(/^\[\s*([^\]]+?)\s*(?:Şubesi|Sınıfı)?\s*\]/i);
@@ -4455,6 +4464,16 @@
                 }
             }
 
+            let finalZumreParticipants = [...participantsList];
+            if (!finalZumreParticipants.some(p => (p.gorev || '').toLowerCase().includes('rehberlik') || (p.role || '').toLowerCase().includes('rehberlik'))) {
+                finalZumreParticipants.push({
+                    id: 'auto_rehberlik_' + Date.now(),
+                    name: '.......................',
+                    kurum: schoolName,
+                    gorev: 'Okul Rehberlik Öğrt.'
+                });
+            }
+
             const newPlan = {
                 id: editingPlanId || ('zumre_' + Date.now()),
                 donem: donemText,
@@ -4469,7 +4488,7 @@
                 plannerId: sessionStorage.getItem('klbk_currentUser') || '',
                 school: schoolName,
                 createdAt: editingPlanCreatedAt || new Date().toISOString(),
-                participants: participantsList,
+                participants: finalZumreParticipants,
                 agendaItems: finalAgendas.map(item => cleanAgendaItemText(item))
             };
             if (editingPlanOpinions) {
