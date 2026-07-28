@@ -2264,10 +2264,10 @@
                     Object.values(plan.opinions).forEach(agendaOpinions => {
                         if (Array.isArray(agendaOpinions)) {
                             agendaOpinions.forEach(op => {
-                                if (op && op.name && !op.name.includes(".............")) {
-                                    const normName = normalizeTr(op.name);
+                                if (op && op.author && !op.author.includes(".............")) {
+                                    const normName = normalizeTr(op.author);
                                     if (!statsMap.has(normName)) {
-                                        statsMap.set(normName, { name: op.name, gorev: 'Katılımcı', count: 0 });
+                                        statsMap.set(normName, { name: op.author, gorev: 'Katılımcı', count: 0 });
                                     }
                                     statsMap.get(normName).count += 1;
                                 }
