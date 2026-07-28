@@ -1304,6 +1304,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 2000);
     };
 
+    window.editDeviceMapping = async function(className) {
+        const currentId = DataManager.getSanitizedClassDeviceMapping(className) || '';
+        const { value: newId } = await Swal.fire({
+            title: 'Cihaz Kodu Değiştir',
+            input: 'text',
+            inputLabel: `'${className}' sınıfına ait cihazın kodunu manuel olarak değiştirebilir veya başka bir cihazın koduyla eşleştirebilirsiniz.`,
+            inputValue: currentId,
+            showCancelButton: true,
+            confirmButtonText: 'Kaydet',
+            cancelButtonText: 'İptal',
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'Bağlantıyı kaldırmak için silmek yerine İptal edebilir veya Cihaz Ata butonuyla yeni cihaz bekleyebilirsiniz.';
+                }
+            }
+        });
+
+        if (newId && newId !== currentId) {
+            DataManager.saveClassDeviceMapping(className, newId.trim().toUpperCase());
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'Cihaz kodu güncellendi!',
+                showConfirmButton: false,
+                timer: 1500
+            });
+            updateClassesList();
+        }
+    };
+
     function updateClassesList() {
         const students = DataManager.getStudents();
         const container = document.getElementById('classesGridContainer');
@@ -1361,7 +1392,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="accordion-header-left" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                             <h2 style="color:var(--primary); font-size:1.5rem; margin:0; display:flex; align-items:center; gap:10px;">
                                 ${cls} Sınıfı
-                                ${DataManager.getSanitizedClassDeviceMapping(cls) ? `<span style="font-size: 0.9rem; background: var(--gray-100); color: var(--primary); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--gray-300); box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);"><i class="fa-solid fa-mobile-screen-button"></i> Cihaz: ${DataManager.getSanitizedClassDeviceMapping(cls)}</span>` : ''}
                             </h2>
                             <button class="btn btn-danger btn-sm" style="padding:0.4rem 0.85rem; font-size:0.95rem; font-weight:600; border-radius: 8px;" onclick="event.stopPropagation(); window.deleteClassCompletely('${cls}')">
                                 <i class="fa-solid fa-trash"></i> Sınıfı Sil
@@ -1379,6 +1409,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <option value="">Derslik Atayın</option>
                                 ${classrooms.filter(room => room.name === assignedRoom || !assignedRoomNames.includes(room.name)).map(room => `<option value="${room.name}" ${assignedRoom === room.name ? 'selected' : ''}>${room.name}</option>`).join('')}
                             </select>
+                            ${DataManager.getSanitizedClassDeviceMapping(cls) ? `<span onclick="event.stopPropagation(); window.editDeviceMapping('${cls}')" style="cursor: pointer; font-size: 0.9rem; background: var(--gray-100); color: var(--primary); padding: 5px 12px; border-radius: 6px; border: 1px solid var(--gray-300); box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s;" title="Değiştirmek için tıklayın"><i class="fa-solid fa-mobile-screen-button"></i> Cihaz: ${DataManager.getSanitizedClassDeviceMapping(cls)}</span>` : ''}
                         </div>
                         <span style="background:var(--secondary); color:#fff; padding:0.25rem 0.75rem; border-radius:1rem; font-size:0.9rem;">
                             <i class="fa-solid fa-users"></i> ${count} Öğrenci
