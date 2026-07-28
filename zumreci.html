@@ -2771,7 +2771,7 @@
                             id: 'sok_' + t.id + '_' + Date.now(),
                             name: t.name,
                             kurum: t.school || localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz',
-                            gorev: `${t.branch} (${className} Dersi Öğretmeni)`
+                            gorev: t.branch || 'Öğretmen'
                         });
                         count++;
                     }
@@ -2970,7 +2970,9 @@
                         <td style="font-weight: 700; color: #64748b;">${index + 1}</td>
                         <td style="font-weight: 700; color: var(--dark);"><i class="fa-regular fa-user" style="margin-right: 6px; color: var(--primary);"></i> ${p.name}${crownHtml}</td>
                         <td><span class="badge-info">${p.kurum || ''}</span></td>
-                        <td style="font-weight: 600; color: ${isBaskanCell ? '#059669' : '#475569'};">${p.gorev || ''}</td>
+                        <td style="font-weight: 600; color: ${isBaskanCell ? '#059669' : '#475569'};">
+                            ${(p.gorev || '').split(',').map(b => `<span style="cursor: pointer; padding: 2px 4px; border-radius: 4px; transition: background 0.2s;" oncontextmenu="event.stopPropagation(); event.preventDefault(); window.removeBranchFromParticipant('${p.id}', '${b.trim().replace(/'/g, "\\'")}')" onclick="event.stopPropagation(); window.editParticipantGorev('${p.id}')" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='transparent'" title="Sol tık: Branşı Düzenle | Sağ tık: Bu Branşı Sil">${b.trim()}</span>`).join(', ')}
+                        </td>
                         <td style="text-align: center;">
                             <button class="btn-custom btn-danger-custom" style="padding: 5px 10px; border-radius: 6px; font-size: 0.8rem;" onclick="removeParticipant('${p.id}')" title="Kaldır">
                                 <i class="fa-solid fa-trash-can"></i>
@@ -3002,6 +3004,33 @@
             participantsList = participantsList.filter(p => p.id !== id);
             renderParticipantsTable();
         }
+
+        window.removeBranchFromParticipant = function(id, branchToRemove) {
+            const p = participantsList.find(x => x.id === id);
+            if (p && p.gorev) {
+                let branches = p.gorev.split(',').map(s => s.trim()).filter(s => s);
+                branches = branches.filter(b => b !== branchToRemove);
+                p.gorev = branches.join(', ');
+                renderParticipantsTable();
+            }
+        };
+
+        window.editParticipantGorev = async function(id) {
+            const p = participantsList.find(x => x.id === id);
+            if (!p) return;
+            const { value: newGorev } = await Swal.fire({
+                title: 'Görevi / Branşı Düzenle',
+                input: 'text',
+                inputValue: p.gorev,
+                showCancelButton: true,
+                confirmButtonText: 'Kaydet',
+                cancelButtonText: 'İptal'
+            });
+            if (newGorev !== undefined) {
+                p.gorev = newGorev.trim();
+                renderParticipantsTable();
+            }
+        };
 
         function clearAllParticipants() {
             if (participantsList.length === 0) return;
@@ -4322,7 +4351,7 @@
                                         id: 'sok_' + t.id + '_' + Date.now() + '_' + idx,
                                         name: t.name,
                                         kurum: t.school || schoolName,
-                                        gorev: `${t.branch} (${cls} Dersi Öğretmeni)`
+                                        gorev: t.branch || 'Öğretmen'
                                     });
                                 }
                             }
