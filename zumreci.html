@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="css/style.css">
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script src="js/core_data_v11_9_1.js"></script>
 
     <style>
@@ -382,6 +383,7 @@
         <div class="glass-panel" style="padding: 3rem; width: 100%; max-width: 420px; text-align: center;">
             <i class="fa-solid fa-users-viewfinder" style="font-size: 3.5rem; color: var(--primary); margin-bottom: 1rem;"></i>
             <h2 style="font-weight: 800; color: var(--dark); margin-bottom: 0.5rem; font-size: 1.8rem;">Zümreci Girişi</h2>
+            <h3 id="loginSchoolName" style="color: var(--primary); font-weight: 700; margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem; display: none;"></h3>
             <p style="color: #64748b; margin-bottom: 2rem; font-size: 0.95rem;">Zümre Planlama ve Görüş İşleme Portalı</p>
             
             <div class="form-group" style="text-align: left;">
@@ -391,6 +393,9 @@
             <div class="form-group" style="text-align: left; margin-bottom: 2rem;">
                 <label class="form-label">Şifre</label>
                 <input type="password" id="loginPassword" class="form-control-custom" placeholder="Şifrenizi girin" onkeypress="if(event.key === 'Enter') handleLogin()">
+                <div style="text-align: right; margin-top: 8px;">
+                    <a href="#" id="forgotPasswordLink" style="color: var(--primary); font-size: 0.85rem; text-decoration: none; font-weight: 600;">Şifremi Unuttum</a>
+                </div>
             </div>
             
             <button class="btn-custom btn-primary-custom" style="width: 100%; margin-bottom: 1.5rem;" onclick="handleLogin()">
@@ -869,8 +874,106 @@
             } else {
                 document.getElementById('loginPanel').style.display = 'flex';
                 document.getElementById('mainContainer').style.display = 'none';
+                
+                const lastSchoolName = localStorage.getItem('klbk_lastSchoolName');
+                if (lastSchoolName) {
+                    const snEl = document.getElementById('loginSchoolName');
+                    if (snEl) {
+                        snEl.innerText = lastSchoolName;
+                        snEl.style.display = 'block';
+                    }
+                } else {
+                    fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json`)
+                        .then(r => r.json())
+                        .then(users => {
+                            if (users) {
+                                let defaultSchool = "";
+                                const lastUser = localStorage.getItem('klbk_currentUser') || sessionStorage.getItem('klbk_currentUser');
+                                if (lastUser && users[lastUser] && users[lastUser].schoolName) {
+                                    defaultSchool = users[lastUser].schoolName;
+                                } else {
+                                    for (const key in users) {
+                                        if (users[key].schoolName) {
+                                            defaultSchool = users[key].schoolName;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (defaultSchool) {
+                                    const snEl = document.getElementById('loginSchoolName');
+                                    if (snEl) {
+                                        snEl.innerText = defaultSchool;
+                                        snEl.style.display = 'block';
+                                    }
+                                    localStorage.setItem('klbk_lastSchoolName', defaultSchool);
+                                }
+                            }
+                        }).catch(() => {});
+                }
             }
             
+            const forgotLink = document.getElementById('forgotPasswordLink');
+            if (forgotLink) {
+                if (window.emailjs) emailjs.init("0gioGMhJGYrohmvyz");
+                forgotLink.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const { value: emailAddress } = await Swal.fire({
+                        title: 'Şifremi Unuttum',
+                        text: 'Sisteme kayıtlı e-posta adresinizi giriniz:',
+                        input: 'email',
+                        inputPlaceholder: 'E-posta adresiniz',
+                        showCancelButton: true,
+                        confirmButtonText: 'Gönder',
+                        cancelButtonText: 'İptal',
+                        confirmButtonColor: 'var(--primary)',
+                        inputValidator: (value) => {
+                            if (!value) return 'Lütfen bir e-posta adresi girin!';
+                        }
+                    });
+
+                    if (emailAddress) {
+                        Swal.fire({
+                            title: 'Lütfen Bekleyin',
+                            text: 'Bilgileriniz kontrol ediliyor...',
+                            allowOutsideClick: false,
+                            didOpen: () => { Swal.showLoading(); }
+                        });
+
+                        try {
+                            const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json`);
+                            const usersDb = await res.json();
+                            let foundUser = null;
+
+                            if (usersDb) {
+                                for (const [uname, data] of Object.entries(usersDb)) {
+                                    if (data.email && data.email.toLowerCase() === emailAddress.toLowerCase()) {
+                                        foundUser = { username: uname, ...data };
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (foundUser) {
+                                const templateParams = {
+                                    to_email: emailAddress,
+                                    email: emailAddress,
+                                    user_email: emailAddress,
+                                    username: foundUser.username,
+                                    password: foundUser.password,
+                                    school_name: foundUser.schoolName || 'Kelebek Sistemi'
+                                };
+                                await emailjs.send('service_14h7fuk', 'template_z2u54s4', templateParams);
+                                Swal.fire('Başarılı', 'Şifreniz kayıtlı e-posta adresinize gönderildi.', 'success');
+                            } else {
+                                Swal.fire('Bulunamadı', 'Bu e-posta adresiyle kayıtlı bir kullanıcı bulunamadı.', 'error');
+                            }
+                        } catch (err) {
+                            Swal.fire('Hata', 'Bağlantı hatası oluştu.', 'error');
+                        }
+                    }
+                });
+            }
+
             // Default tarih olarak bugünü ayarla
             const today = new Date().toISOString().split('T')[0];
             const tarihEl = document.getElementById('zumreTarih');
