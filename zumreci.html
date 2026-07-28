@@ -2316,7 +2316,10 @@
 
                 let formattedGorev = (s.gorev || '').split(',').map(g => {
                     let text = g.replace(/\s*\([^)]*\)/g, '').trim();
-                    if (text && !text.toLowerCase().includes('öğretmen') && !text.toLowerCase().includes('müdür') && !text.toLowerCase().includes('idareci')) {
+                    if (text.toLowerCase().includes('idareci') || text.toLowerCase().includes('müdür')) {
+                        return text.replace(/ Öğretmeni/gi, '').replace(/ Öğretmen/gi, '').trim();
+                    }
+                    if (text && !text.toLowerCase().includes('öğretmen')) {
                         return text + ' Öğretmeni';
                     }
                     return text || 'Öğretmen';
