@@ -1810,9 +1810,9 @@
             const lowerUrl = url.toLowerCase();
 
             // YouTube detection
-            const ytMatch = url.match(/(?:youtube.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu.be/)([^"&?/ ]{11})/i);
+            const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/i);
             // Vimeo detection
-            const vimeoMatch = url.match(/(?:vimeo.com/|player.vimeo.com/video/)([0-9]+)/i);
+            const vimeoMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/i);
 
             if (ytMatch) {
                 const videoId = ytMatch[1];
@@ -1869,10 +1869,10 @@
             let fileId = '';
             if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
                 isGoogleDrive = true;
-                const parts = url.match(//d/([a-zA-Z0-9_-]+)/) || 
+                const parts = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || 
                               url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || 
-                              url.match(//file/d/([a-zA-Z0-9_-]+)/) ||
-                              url.match(//open?id=([a-zA-Z0-9_-]+)/);
+                              url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+                              url.match(/\/open\?id=([a-zA-Z0-9_-]+)/);
                 if (parts) {
                     fileId = parts[1];
                 }
@@ -2038,10 +2038,10 @@
             // Guess MIME type synchronously to display player instantly
             const guessMimeType = (u) => {
                 const lower = u.toLowerCase();
-                if (lower.match(/.(mp4|m4v|webm)$/) || lower.includes('video') || lower.includes('mp4')) return 'video/mp4';
-                if (lower.match(/.(mp3|mpeg|wav|ogg|m4a)$/) || lower.includes('audio') || lower.includes('ses') || lower.includes('sound') || lower.includes('mp3')) return 'audio/mpeg';
-                if (lower.match(/.(jpg|jpeg|png|gif|webp)$/) || lower.includes('gorsel') || lower.includes('resim')) return 'image/jpeg';
-                if (lower.match(/.pdf$/) || lower.includes('pdf')) return 'application/pdf';
+                if (lower.match(/\.(mp4|m4v|webm)$/) || lower.includes('video') || lower.includes('mp4')) return 'video/mp4';
+                if (lower.match(/\.(mp3|mpeg|wav|ogg|m4a)$/) || lower.includes('audio') || lower.includes('ses') || lower.includes('sound') || lower.includes('mp3')) return 'audio/mpeg';
+                if (lower.match(/\.(jpg|jpeg|png|gif|webp)$/) || lower.includes('gorsel') || lower.includes('resim')) return 'image/jpeg';
+                if (lower.match(/\.pdf$/) || lower.includes('pdf')) return 'application/pdf';
                 if (u.includes('drive.google.com') || u.includes('docs.google.com')) return 'audio/mpeg'; // Default to audio for Google Drive
                 return 'audio/mpeg'; // Safe default for listening exam application links
             };
