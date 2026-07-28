@@ -348,6 +348,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    window.promptNewPassword = async function(uname) {
+        if (!teachersDb[uname]) return;
+        
+        const { value: newPass } = await Swal.fire({
+            title: 'Yeni Şifre Belirle',
+            input: 'text',
+            inputLabel: `'${teachersDb[uname].name || uname}' için yeni şifreyi yazın (Açık metin olarak kaydedilecektir):`,
+            inputPlaceholder: 'Örn: 123456',
+            showCancelButton: true,
+            confirmButtonColor: 'var(--primary)',
+            confirmButtonText: 'Kaydet',
+            cancelButtonText: 'İptal',
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'Şifre boş olamaz!';
+                }
+            }
+        });
+
+        if (newPass) {
+            teachersDb[uname].password = newPass;
+            try {
+                await saveUsersToCloud(teachersDb);
+                Swal.fire('Başarılı', 'Şifre düz metin olarak güncellendi.', 'success');
+                renderTeachersGrid();
+            } catch (e) {
+                Swal.fire('Hata', 'Şifre güncellenemedi.', 'error');
+            }
+        }
+    };
     // Toggle Schedule Visibility (Accordion)
     window.toggleTeacherSchedule = function(uname) {
         const el = document.getElementById('schedule-' + uname);
