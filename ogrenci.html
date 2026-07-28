@@ -840,12 +840,15 @@
 
             let roomSeatCounter = 1;
             const seatToNum = {};
+            const safeDisabledSeats = roomData.disabledSeats || [];
+            const safeSeats = roomData.seats || {};
+            
             for (let g = 1; g <= roomData.groups; g++) {
                 const conf = roomData.groupConfigs ? roomData.groupConfigs[g - 1] : { rows: roomData.rows || 1, cols: roomData.cols || 1 };
                 for (let r = 1; r <= conf.rows; r++) {
                     for (let c = 1; c <= conf.cols; c++) {
                         const sid = \`G\${g}-S\${r}-C\${c}\`;
-                        if (!(roomData.disabledSeats && roomData.disabledSeats.includes(sid))) {
+                        if (!safeDisabledSeats.includes(sid)) {
                             seatToNum[sid] = roomSeatCounter++;
                         }
                     }
@@ -860,8 +863,8 @@
                 for (let r = cf.rows; r >= 1; r--) {
                     for (let c = 1; c <= cf.cols; c++) {
                         const sid = \`G\${g}-S\${r}-C\${c}\`;
-                        const disabled = (roomData.disabledSeats || []).includes(sid);
-                        const std = roomData.seats[sid];
+                        const disabled = safeDisabledSeats.includes(sid);
+                        const std = safeSeats[sid];
                         const num = seatToNum[sid] || '-';
 
                         if (disabled) {
