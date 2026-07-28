@@ -2253,7 +2253,7 @@
                         if (p.name.includes(".............")) return; // ignore dots
                         const normName = normalizeTr(p.name);
                         if (!statsMap.has(normName)) {
-                            statsMap.set(normName, { name: p.name, gorev: p.gorev || 'Öğretmen', count: 0 });
+                            statsMap.set(normName, { name: p.name, gorev: p.gorev || 'Öğretmen', count: 0, ctxBranch: plan.branch });
                         } else {
                             const ext = statsMap.get(normName);
                             if (ext.gorev === 'Katılımcı' && p.gorev) ext.gorev = p.gorev;
@@ -2336,9 +2336,15 @@
                     return text || 'Öğretmen';
                 }).join(', ');
 
+                if ((formattedGorev === 'Öğretmen' || formattedGorev === '' || formattedGorev === 'Katılımcı Öğretmeni' || formattedGorev === 'Katılımcı') && s.ctxBranch) {
+                    formattedGorev = s.ctxBranch + ' Öğretmeni';
+                }
+
                 if (isZumreBaskani) {
-                    if (formattedGorev) {
+                    if (formattedGorev && formattedGorev !== 'Öğretmen' && formattedGorev !== 'Katılımcı Öğretmeni') {
                         formattedGorev += ' - Zümre Başkanı';
+                    } else if (s.ctxBranch) {
+                        formattedGorev = s.ctxBranch + ' Öğretmeni - Zümre Başkanı';
                     } else {
                         formattedGorev = 'Zümre Başkanı';
                     }
