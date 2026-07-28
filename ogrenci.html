@@ -844,7 +844,7 @@
             const safeSeats = roomData.seats || {};
             
             for (let g = 1; g <= roomData.groups; g++) {
-                const conf = roomData.groupConfigs ? roomData.groupConfigs[g - 1] : { rows: roomData.rows || 1, cols: roomData.cols || 1 };
+                const conf = (roomData.groupConfigs && roomData.groupConfigs[g - 1]) ? roomData.groupConfigs[g - 1] : { rows: roomData.rows || 1, cols: roomData.cols || 1 };
                 for (let r = 1; r <= conf.rows; r++) {
                     for (let c = 1; c <= conf.cols; c++) {
                         const sid = \`G\${g}-S\${r}-C\${c}\`;
@@ -857,7 +857,7 @@
 
             let groupsHtml = '<div class="groups-row">';
             for (let g = 1; g <= roomData.groups; g++) {
-                const cf = roomData.groupConfigs ? roomData.groupConfigs[g - 1] : { rows: roomData.rows || 1, cols: roomData.cols || 1 };
+                const cf = (roomData.groupConfigs && roomData.groupConfigs[g - 1]) ? roomData.groupConfigs[g - 1] : { rows: roomData.rows || 1, cols: roomData.cols || 1 };
                 groupsHtml += \`<div class="desk-group" style="grid-template-columns:repeat(\${cf.cols}, 1fr)">\`;
 
                 for (let r = cf.rows; r >= 1; r--) {
@@ -941,31 +941,41 @@
             try {
                 const noInput = document.getElementById('studentNo');
                 const no = noInput.value.trim();
-                if (!no) return;
+                const studentNo = noInput.value.trim();
+                if (!studentNo) return;
                 
                 // --- Cihaz Eşleştirme Modu (00000) ---
-                if (no === '00000') {
-                    let devId = localStorage.getItem('klbk_device_id');
-                    if (!devId) {
-                        devId = 'CHZ-' + Math.floor(1000 + Math.random() * 9000);
-                        localStorage.setItem('klbk_device_id', devId);
-                    }
-                    
-                    // Global 00000 eşleştirme kanalına cihazın sinyalini yazıyoruz.
-                    // Böylece tabletin okulu henüz bilinmese bile idareye ulaşabilecek.
-                    fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users/device_assign_00000.json`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ deviceId: devId, timestamp: Date.now() })
+                if (studentNo === '00000') {
+                    const devId = localStorage.getItem('klbk_device_id') || ('CHZ-' + Math.floor(1000 + Math.random() * 9000));
+                    localStorage.setItem('klbk_device_id', devId);
+
+                    // Check for auto-reload if mapped
+                    const checkMapping = async () => {
+                        const storeKey = encodeURIComponent(DataManager._getStorageKey());
+                        const res = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/${storeKey}/classDeviceMappings.json`);
+                        if(res.ok) {
+                            const mappings = await res.json() || {};
+                            if(Object.values(mappings).includes(devId)) location.reload();
+                        }
+                    };
+
+                    let beaconInterval = setInterval(async () => {
+                        fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users/device_assign_00000.json`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ deviceId: devId, timestamp: Date.now() })
+                        }).catch(e => console.error("Beacon error", e));
+                        await checkMapping();
+                    }, 2000);
+
+                    Swal.fire({
+                        title: 'Cihaz Eşleştirme',
+                        html: `Sinyal gönderiliyor... <br><br>Cihaz Kodunuz: <b style="color:var(--primary); font-size:1.2rem;">${devId}</b><br><br>Bu kodu yönetici panelinden 'Cihaz Ata' diyerek eşleştirin.<br><br><div class="spinner-border text-primary" role="status"></div>`,
+                        allowOutsideClick: false,
+                        showConfirmButton: true,
+                        confirmButtonText: 'İptal',
+                        confirmButtonColor: 'var(--danger)'
                     }).then(() => {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Cihaz Sinyali Gönderildi!',
-                            text: `Bu cihazın kodu: ${devId}. Lütfen yönetici panelindeki işlemi kontrol edin.`,
-                            timer: 4000,
-                            showConfirmButton: false
-                        });
-                        noInput.value = '';
                     }).catch(e => {
                         console.error(e);
                         alert('Bağlantı hatası: Sinyal gönderilemedi.');
