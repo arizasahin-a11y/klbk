@@ -1251,7 +1251,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     let assignDeviceInterval = null;
-    window.assignDeviceToClass = function(className) {
+    window.assignDeviceToClass = async function(className) {
         Swal.fire({
             title: 'Cihaz Bekleniyor...',
             html: `Lütfen tabletten/telefondan <b>00000</b> öğrenci numarasıyla Öğrenci Sistemine giriş yapın.<br><br>Sistem cihazı otomatik algılayacaktır.<br><br><div class="spinner-border text-primary" role="status"></div>`,
@@ -1266,10 +1266,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (assignDeviceInterval) clearInterval(assignDeviceInterval);
         const storeKey = DataManager._getStorageKey();
         
-        fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json`, {
-            method: 'PUT',
-            body: JSON.stringify(null)
-        });
+        // Önceki atama kaydını tamamen sil ve bitmesini bekle
+        try {
+            await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assign_${storeKey}.json`, {
+                method: 'PUT',
+                body: JSON.stringify(null)
+            });
+        } catch (e) {}
 
         assignDeviceInterval = setInterval(async () => {
             try {
@@ -1355,8 +1358,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             html += `
                 <div class="accordion-item glass-panel" style="border-radius:10px; overflow:hidden;">
                     <div class="accordion-header" style="padding:1.5rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="this.nextElementSibling.classList.toggle('hidden');">
-                        <div class="accordion-header-left">
-                            <h2 style="color:var(--primary); font-size:1.5rem; margin:0;">${cls} Sınıfı</h2>
+                        <div class="accordion-header-left" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                            <h2 style="color:var(--primary); font-size:1.5rem; margin:0; display:flex; align-items:center; gap:10px;">
+                                ${cls} Sınıfı
+                                ${DataManager.getSanitizedClassDeviceMapping(cls) ? `<span style="font-size: 0.9rem; background: var(--gray-100); color: var(--primary); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--gray-300); box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);"><i class="fa-solid fa-mobile-screen-button"></i> Cihaz: ${DataManager.getSanitizedClassDeviceMapping(cls)}</span>` : ''}
+                            </h2>
                             <button class="btn btn-danger btn-sm" style="padding:0.4rem 0.85rem; font-size:0.95rem; font-weight:600; border-radius: 8px;" onclick="event.stopPropagation(); window.deleteClassCompletely('${cls}')">
                                 <i class="fa-solid fa-trash"></i> Sınıfı Sil
                             </button>
@@ -1369,8 +1375,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <button class="btn btn-secondary btn-sm" style="padding:0.4rem 0.85rem; font-size:0.95rem; font-weight:600; border-radius: 8px; background-color: var(--primary); color: white; border:none;" onclick="event.stopPropagation(); window.assignDeviceToClass('${cls}')">
                                 <i class="fa-solid fa-tablet-screen-button"></i> Cihaz Ata
                             </button>
-                            <span id="device-code-${cls}" style="font-size: 0.85rem; color: var(--gray-600); margin-left: 10px; font-weight: bold;">${DataManager.getSanitizedClassDeviceMapping(cls) || ''}</span>
-                            <select class="form-control" style="width: auto; display: inline-block; padding: 0.4rem 0.85rem; font-size: 0.95rem; font-weight: 600; border: 1px solid #e2e8f0; border-radius: 8px; background-color: white; color: var(--primary); cursor: pointer; transition: all 0.2s; margin-left: 10px;" onchange="window.assignRoomToClass('${cls}', this.value)" onclick="event.stopPropagation();">
+                            <select class="form-control" style="width: auto; display: inline-block; padding: 0.4rem 0.85rem; font-size: 0.95rem; font-weight: 600; border: 1px solid #e2e8f0; border-radius: 8px; background-color: white; color: var(--primary); cursor: pointer; transition: all 0.2s;" onchange="window.assignRoomToClass('${cls}', this.value)" onclick="event.stopPropagation();">
                                 <option value="">Derslik Atayın</option>
                                 ${classrooms.filter(room => room.name === assignedRoom || !assignedRoomNames.includes(room.name)).map(room => `<option value="${room.name}" ${assignedRoom === room.name ? 'selected' : ''}>${room.name}</option>`).join('')}
                             </select>
