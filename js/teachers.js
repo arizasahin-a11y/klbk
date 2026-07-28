@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 ${name}
                             </h3>
                             <p style="font-size: 0.75rem; color: var(--gray-500); margin: 2px 0 0 0;">(@${uname})</p>
-                            <p style="font-size: 0.75rem; color: var(--primary); margin: 2px 0 0 0; font-weight: 700;" title="Kullanıcının sisteme giriş şifresi">Şifre: ${passStr}</p>
+                            <p style="font-size: 0.75rem; color: var(--primary); margin: 2px 0 0 0; font-weight: 700; cursor: pointer;" title="Şifreyi değiştirmek için tıklayın" onclick="event.stopPropagation(); window.promptNewPassword('${uname}')">Şifre: ${passStr} <i class="fa-solid fa-pen" style="font-size: 0.65rem; margin-left: 4px; opacity: 0.7;"></i></p>
                         </div>
                     </div>
 
