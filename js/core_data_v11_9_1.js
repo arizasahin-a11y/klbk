@@ -504,6 +504,31 @@ const DataManager = {
         return this._getData().classRoomMappings || {};
     },
 
+    getClassDeviceMappings: function () {
+        return this._getData().classDeviceMappings || {};
+    },
+
+    getSanitizedClassDeviceMapping: function (className) {
+        const mappings = this.getClassDeviceMappings();
+        const safeKey = this.sanitizeFirebaseKey(className);
+        if (mappings[safeKey]) return mappings[safeKey];
+        if (mappings[className]) return mappings[className];
+        return null;
+    },
+
+    saveClassDeviceMapping: function (className, deviceId) {
+        let data = this._getData();
+        if (!data.classDeviceMappings) data.classDeviceMappings = {};
+        const safeKey = this.sanitizeFirebaseKey(className);
+        if (deviceId) {
+            data.classDeviceMappings[safeKey] = deviceId;
+        } else {
+            delete data.classDeviceMappings[safeKey];
+        }
+        this._saveData(data); // locally
+        this.forceSaveToCloud();
+    },
+
     getSanitizedClassRoomMapping: function (className) {
         const mappings = this.getClassRoomMappings();
         const safeKey = this.sanitizeFirebaseKey(className);
