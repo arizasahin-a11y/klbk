@@ -1458,14 +1458,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Accordion Header
             html += `
                 <div class="accordion-item glass-panel" style="border-radius:10px; overflow:hidden;">
-                    <div class="accordion-header" style="padding:1.5rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="this.nextElementSibling.classList.toggle('hidden');">
-                        <div class="accordion-header-left" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <div class="accordion-header" style="padding:1.5rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer; flex-wrap:wrap; gap:15px;" onclick="this.nextElementSibling.classList.toggle('hidden');">
+                        <div style="display:flex; align-items:center; gap:15px; flex-shrink: 0;">
                             <h2 style="color:var(--primary); font-size:1.5rem; margin:0; display:flex; align-items:center; gap:10px;">
                                 ${cls} Sınıfı
                             </h2>
-                            <button class="btn btn-danger btn-sm" style="padding:0.4rem 0.85rem; font-size:0.95rem; font-weight:600; border-radius: 8px;" onclick="event.stopPropagation(); window.deleteClassCompletely('${cls}')">
-                                <i class="fa-solid fa-trash"></i> Sınıfı Sil
-                            </button>
+                            <span style="background:var(--secondary); color:#fff; padding:0.25rem 0.75rem; border-radius:1rem; font-size:0.9rem; white-space:nowrap;">
+                                <i class="fa-solid fa-users"></i> ${count} Öğrenci
+                            </span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; flex:1;">
                             <button class="btn btn-secondary btn-sm" style="padding:0.4rem 0.85rem; font-size:0.95rem; font-weight:600; border-radius: 8px;" onclick="event.stopPropagation(); window.assignSubjectsToClass('${cls}')">
                                 <i class="fa-solid fa-book"></i> Ders Tanımla
                             </button>
@@ -1479,11 +1481,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <option value="">Derslik Atayın</option>
                                 ${classrooms.filter(room => room.name === assignedRoom || !assignedRoomNames.includes(room.name)).map(room => `<option value="${room.name}" ${assignedRoom === room.name ? 'selected' : ''}>${room.name}</option>`).join('')}
                             </select>
-                            ${DataManager.getSanitizedClassDeviceMapping(cls) ? `<span onclick="event.stopPropagation(); window.editDeviceMapping('${cls}')" oncontextmenu="window.selectDeviceForSwap('${cls}', event)" ontouchstart="window.deviceTouchTimer = setTimeout(() => window.selectDeviceForSwap('${cls}', null), 800)" ontouchend="clearTimeout(window.deviceTouchTimer)" ontouchmove="clearTimeout(window.deviceTouchTimer)" style="cursor: pointer; font-size: 0.9rem; background: var(--gray-100); color: var(--primary); padding: 5px 12px; border-radius: 6px; border: 1px solid var(--gray-300); box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s;" title="Değiştirmek için tıklayın, takas için sağ tıklayın veya basılı tutun"><i class="fa-solid fa-mobile-screen-button"></i> Cihaz: ${DataManager.getSanitizedClassDeviceMapping(cls)}</span>` : ''}
+                            ${DataManager.getSanitizedClassDeviceMapping(cls) ? `<span onclick="event.stopPropagation(); window.editDeviceMapping('${cls}')" oncontextmenu="window.selectDeviceForSwap('${cls}', event)" ontouchstart="window.deviceTouchTimer = setTimeout(() => window.selectDeviceForSwap('${cls}', null), 800)" ontouchend="clearTimeout(window.deviceTouchTimer)" ontouchmove="clearTimeout(window.deviceTouchTimer)" style="cursor: pointer; font-size: 0.9rem; background: var(--gray-100); color: var(--primary); padding: 5px 12px; border-radius: 6px; border: 1px solid var(--gray-300); box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s; white-space:nowrap;" title="Değiştirmek için tıklayın, takas için sağ tıklayın veya basılı tutun"><i class="fa-solid fa-mobile-screen-button"></i> Cihaz: ${DataManager.getSanitizedClassDeviceMapping(cls)}</span>` : ''}
+                            <button class="btn btn-danger btn-sm" style="padding:0.4rem; font-size:1.1rem; border-radius: 8px; display:flex; align-items:center; justify-content:center; width:36px; height:36px;" onclick="event.stopPropagation(); window.deleteClassCompletely('${cls}')" title="Sınıfı Sil">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
                         </div>
-                        <span style="background:var(--secondary); color:#fff; padding:0.25rem 0.75rem; border-radius:1rem; font-size:0.9rem;">
-                            <i class="fa-solid fa-users"></i> ${count} Öğrenci
-                        </span>
                     </div>
                     
                     <div class="accordion-body hidden" style="background:var(--glass-bg); padding:1.5rem; border-top:1px solid rgba(255,255,255,0.1);">

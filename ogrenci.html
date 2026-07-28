@@ -746,6 +746,37 @@
                     break;
                 }
             }
+            
+            // Start polling for instant device mapping updates
+            if (!window._deviceMapPollerStarted) {
+                window._deviceMapPollerStarted = true;
+                window._currentAssignedClass = assignedClass;
+                
+                setInterval(async () => {
+                    const currentDev = localStorage.getItem('klbk_device_id');
+                    if(!currentDev) return;
+                    try {
+                        const storeKey = encodeURIComponent(DataManager._getStorageKey());
+                        const res = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/${storeKey}/classDeviceMappings.json?t=` + Date.now());
+                        if(res.ok) {
+                            const newMappings = await res.json() || {};
+                            let newAssigned = null;
+                            for (let cls in newMappings) {
+                                if (newMappings[cls] === currentDev) {
+                                    newAssigned = cls;
+                                    break;
+                                }
+                            }
+                            
+                            // If mapping changed, reload the page to apply cleanly
+                            if (window._currentAssignedClass !== newAssigned) {
+                                location.reload();
+                            }
+                        }
+                    } catch(e) {}
+                }, 3000);
+            }
+
             if (!assignedClass) return false;
             
             const roomMappings = DataManager.getClassRoomMappings() || {};
