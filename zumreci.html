@@ -2205,11 +2205,27 @@
             if (filterSelect) {
                 const currentVal = filterSelect.value;
                 let html = '<option value="all">Tüm Zümreler (Genel Toplam)</option>';
+                
+                const myNameNorm = normalizeTr(sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || '');
+                const userRole = sessionStorage.getItem('klbk_role') || '';
+                const isPrivileged = userRole === 'admin' || userRole === 'master' || userRole === 'idareci' || userRole === 'mudur' || userRole === 'mudur_basyardimcisi' || userRole === 'mudur_yardimcisi';
+
                 allFetchedPlans.forEach(plan => {
-                    let title = plan.sinifSubeGrup || plan.branch || 'Adsız Zümre';
-                    if (plan.tur === 'sok') title += ' ŞÖK';
-                    if (plan.tarih) title += ` (${plan.tarih})`;
-                    html += `<option value="${plan.id}">${title}</option>`;
+                    let isParticipant = false;
+                    if (isPrivileged) {
+                        isParticipant = true;
+                    } else if (plan.participants && Array.isArray(plan.participants)) {
+                        isParticipant = plan.participants.some(p => p && p.name && normalizeTr(p.name) === myNameNorm);
+                    } else if (plan.plannerName && normalizeTr(plan.plannerName) === myNameNorm) {
+                        isParticipant = true;
+                    }
+
+                    if (isParticipant) {
+                        let title = plan.sinifSubeGrup || plan.branch || 'Adsız Zümre';
+                        if (plan.tur === 'sok') title += ' ŞÖK';
+                        if (plan.tarih) title += ` (${plan.tarih})`;
+                        html += `<option value="${plan.id}">${title}</option>`;
+                    }
                 });
                 filterSelect.innerHTML = html;
                 if (Array.from(filterSelect.options).some(o => o.value === currentVal)) {
