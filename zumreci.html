@@ -2781,12 +2781,31 @@
             if (typeof renderActiveAgendaList === 'function') renderActiveAgendaList();
 
             if (!participantsList.some(p => (p.gorev || '').toLowerCase().includes('rehberlik') || (p.role || '').toLowerCase().includes('rehberlik'))) {
-                participantsList.push({
-                    id: 'auto_rehberlik_' + Date.now(),
-                    name: '.......................',
-                    kurum: localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz',
-                    gorev: 'Okul Rehberlik Öğrt.'
+                const rehberlikOgretmenleri = schoolTeachersList.filter(t => {
+                    const r = (t.role || '').toLowerCase();
+                    const b = (t.branch || '').toLowerCase();
+                    return r.includes('rehberlik') || b.includes('rehberlik');
                 });
+                
+                if (rehberlikOgretmenleri.length > 0) {
+                    rehberlikOgretmenleri.forEach(ro => {
+                        if (!participantsList.some(p => p.name.toLowerCase() === ro.name.toLowerCase())) {
+                            participantsList.push({
+                                id: 'auto_rehberlik_' + ro.id + '_' + Date.now(),
+                                name: ro.name,
+                                kurum: ro.school || localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz',
+                                gorev: 'Okul Rehberlik Öğrt.'
+                            });
+                        }
+                    });
+                } else {
+                    participantsList.push({
+                        id: 'auto_rehberlik_' + Date.now(),
+                        name: '.......................',
+                        kurum: localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz',
+                        gorev: 'Okul Rehberlik Öğrt.'
+                    });
+                }
             }
 
             renderParticipantsTable();
@@ -2985,7 +3004,7 @@
                 html += `
                     <tr oncontextmenu="event.preventDefault(); setZumreBaskani('${p.id}')" style="cursor: context-menu;" title="Zümre başkanı olarak belirlemek için sağ tıklayın">
                         <td style="font-weight: 700; color: #64748b;">${index + 1}</td>
-                        <td style="font-weight: 700; color: var(--dark);"><i class="fa-regular fa-user" style="margin-right: 6px; color: var(--primary);"></i> ${p.name}${crownHtml}</td>
+                        <td style="font-weight: 700; color: var(--dark); cursor: pointer;" onclick="window.editParticipantName('${p.id}')" title="İsmi düzenlemek için tıklayın"><i class="fa-regular fa-user" style="margin-right: 6px; color: var(--primary);"></i> ${p.name}${crownHtml}</td>
                         ${kurumTd}
                         <td style="font-weight: 600; color: ${isBaskanCell ? '#059669' : '#475569'};">
                             ${(p.gorev || '').split(',').map(b => `<span style="cursor: pointer; padding: 2px 4px; border-radius: 4px; transition: background 0.2s;" oncontextmenu="event.stopPropagation(); event.preventDefault(); window.removeBranchFromParticipant('${p.id}', '${b.trim().replace(/'/g, "\\'")}')" onclick="event.stopPropagation(); window.editParticipantGorev('${p.id}')" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='transparent'" title="Sol tık: Branşı Düzenle | Sağ tık: Bu Branşı Sil">${b.trim()}</span>`).join(', ')}
@@ -3045,6 +3064,23 @@
             });
             if (newGorev !== undefined) {
                 p.gorev = newGorev.trim();
+                renderParticipantsTable();
+            }
+        };
+
+        window.editParticipantName = async function(id) {
+            const p = participantsList.find(x => x.id === id);
+            if (!p) return;
+            const { value: newName } = await Swal.fire({
+                title: 'Adı Soyadı Düzenle',
+                input: 'text',
+                inputValue: p.name === '.......................' ? '' : p.name,
+                showCancelButton: true,
+                confirmButtonText: 'Kaydet',
+                cancelButtonText: 'İptal'
+            });
+            if (newName && newName.trim()) {
+                p.name = newName.trim();
                 renderParticipantsTable();
             }
         };
@@ -4377,12 +4413,31 @@
                     if (clsParticipants.length === 0) clsParticipants = [...participantsList];
 
                     if (!clsParticipants.some(p => (p.gorev || '').toLowerCase().includes('rehberlik') || (p.role || '').toLowerCase().includes('rehberlik'))) {
-                        clsParticipants.push({
-                            id: 'auto_rehberlik_' + Date.now() + '_' + idx,
-                            name: '.......................',
-                            kurum: schoolName,
-                            gorev: 'Okul Rehberlik Öğrt.'
+                        const rehberlikOgretmenleri = (typeof schoolTeachersList !== 'undefined' ? schoolTeachersList : []).filter(t => {
+                            const r = (t.role || '').toLowerCase();
+                            const b = (t.branch || '').toLowerCase();
+                            return r.includes('rehberlik') || b.includes('rehberlik');
                         });
+                        
+                        if (rehberlikOgretmenleri.length > 0) {
+                            rehberlikOgretmenleri.forEach(ro => {
+                                if (!clsParticipants.some(p => p.name.toLowerCase() === ro.name.toLowerCase())) {
+                                    clsParticipants.push({
+                                        id: 'auto_rehberlik_' + ro.id + '_' + Date.now() + '_' + idx,
+                                        name: ro.name,
+                                        kurum: ro.school || schoolName,
+                                        gorev: 'Okul Rehberlik Öğrt.'
+                                    });
+                                }
+                            });
+                        } else {
+                            clsParticipants.push({
+                                id: 'auto_rehberlik_' + Date.now() + '_' + idx,
+                                name: '.......................',
+                                kurum: schoolName,
+                                gorev: 'Okul Rehberlik Öğrt.'
+                            });
+                        }
                     }
 
                     const clsAgendas = activeAgendaList.filter(item => {
