@@ -3828,8 +3828,22 @@
                 else {
                     opList.forEach(op => {
                         const isDec = !op.author || op.author === "" || op.author === "Karar";
-                        const text = (op.text || '').replace(/^Karar:\s*/i, '');
-                        goruslerHtml += isDec ? `<div style="margin-top: 6px; padding: 6px 10px; background: #f8fafc; border-left: 3px solid #000; font-weight: 800; font-size: 11pt;"><b style="color: #000;">KARAR:</b> ${text}</div>` : `<div style="margin-top: 6px; font-size: 10.5pt; color: #1e293b;"><b>${op.author}:</b> ${op.text}</div>`;
+                        let displayText = op.text || '';
+                        if (!isDec && op.author && op.author !== "Karar") {
+                            const cleanText = displayText.trim();
+                            if (op.style === 'konusma') {
+                                const hasQuotes = cleanText.startsWith('"') && cleanText.endsWith('"');
+                                const quotedText = hasQuotes ? cleanText : `"${cleanText}"`;
+                                const endsWithDedi = /dedi\.?$/i.test(cleanText);
+                                displayText = `${quotedText}${endsWithDedi ? '' : ' dedi.'}`;
+                            } else if (op.style === 'anlatim') {
+                                const endsWithVerb = /(dedi|söyledi|belirtti|ifade etti|ekledi|vurguladı|dile getirdi|kaydetti|aktardı|savundu|önerdi)\.?$/i.test(cleanText);
+                                const formattedText = cleanText.endsWith('.') ? cleanText.slice(0, -1) : cleanText;
+                                displayText = `${formattedText}${endsWithVerb ? '.' : ' söyledi.'}`;
+                            }
+                        }
+                        const text = isDec ? displayText.replace(/^Karar:\s*/i, '') : displayText;
+                        goruslerHtml += isDec ? `<div style="margin-top: 6px; padding: 6px 10px; background: #f8fafc; border-left: 3px solid #000; font-weight: 800; font-size: 11pt;"><b style="color: #000;">KARAR:</b> ${text}</div>` : `<div style="margin-top: 6px; font-size: 10.5pt; color: #1e293b;"><b>${op.author}:</b> ${text}</div>`;
                     });
                 }
                 goruslerHtml += `</div></div>`;
