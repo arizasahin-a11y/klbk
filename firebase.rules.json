@@ -20,6 +20,11 @@
         ".write": true
       },
       
+      "device_assigns": {
+        ".read": true,
+        ".write": true
+      },
+      
       "klbk_zumre_plans": {
         ".read": true,
         ".write": true
