@@ -689,7 +689,7 @@
                                 <th style="padding: 12px 16px; text-align: left; font-weight: 700; color: #475569; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0; width: 60px;">#</th>
                                 <th style="padding: 12px 16px; text-align: left; font-weight: 700; color: #475569; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0;">Öğretmen Adı Soyadı</th>
                                 <th style="padding: 12px 16px; text-align: left; font-weight: 700; color: #475569; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0;">Branş / Görev</th>
-                                <th style="padding: 12px 16px; text-align: center; font-weight: 700; color: #475569; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0; width: 150px;">Görüş Sayısı</th>
+                                <th style="padding: 12px 16px; text-align: center; font-weight: 700; color: #475569; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0; width: 150px; cursor: pointer; user-select: none;" onclick="toggleIstatistikSort()">Görüş Sayısı <i class="fa-solid fa-sort"></i></th>
                             </tr>
                         </thead>
                         <tbody id="istatistikTableBody">
@@ -870,6 +870,7 @@
         let editingPlanId = null;
         let editingPlanOpinions = null;
         let editingPlanCreatedAt = null;
+        let istatistikSortOrder = 'asc';
 
         const DEFAULT_AGENDA_POOL = [
             "1. Açılış ve yoklama",
@@ -2284,7 +2285,9 @@
             }
 
             statsArray.sort((a, b) => {
-                if (a.count !== b.count) return a.count - b.count;
+                if (a.count !== b.count) {
+                    return istatistikSortOrder === 'asc' ? a.count - b.count : b.count - a.count;
+                }
                 return a.name.localeCompare(b.name, 'tr');
             });
 
@@ -2311,11 +2314,19 @@
                     countBadgeStyle = 'background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; font-weight: 700;';
                 }
 
+                let formattedGorev = (s.gorev || '').split(',').map(g => {
+                    let text = g.replace(/\s*\([^)]*\)/g, '').trim();
+                    if (text && !text.toLowerCase().includes('öğretmen') && !text.toLowerCase().includes('müdür')) {
+                        return text + ' Öğretmeni';
+                    }
+                    return text || 'Öğretmen';
+                }).join(', ');
+
                 html += `
                     <tr style="${rowStyle} transition: background 0.2s;">
                         <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #64748b;">${index + 1}</td>
                         <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: var(--dark);">${iconHtml}${s.name}</td>
-                        <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #475569; font-size: 0.9rem;">${(s.gorev || '').split(',').join(', ')}</td>
+                        <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #475569; font-size: 0.9rem;">${formattedGorev}</td>
                         <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; text-align: center;">
                             <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; min-width: 40px; ${countBadgeStyle}">${s.count}</span>
                         </td>
@@ -2324,6 +2335,11 @@
             });
 
             tbody.innerHTML = html;
+        }
+
+        function toggleIstatistikSort() {
+            istatistikSortOrder = istatistikSortOrder === 'asc' ? 'desc' : 'asc';
+            renderIstatistikTable();
         }
 
         function setDefaultZumreSelections() {
