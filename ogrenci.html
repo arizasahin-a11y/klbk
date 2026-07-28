@@ -734,7 +734,158 @@
             }
         }
 
+        function checkClassroomDisplay() {
+            const devId = localStorage.getItem('klbk_device_id');
+            if (!devId) return false;
+            
+            const mappings = DataManager.getClassDeviceMappings() || {};
+            let assignedClass = null;
+            for (let cls in mappings) {
+                if (mappings[cls] === devId) {
+                    assignedClass = cls;
+                    break;
+                }
+            }
+            if (!assignedClass) return false;
+            
+            const roomMappings = DataManager.getClassRoomMappings() || {};
+            const safeClass = DataManager.sanitizeFirebaseKey(assignedClass);
+            let roomName = roomMappings[safeClass] || roomMappings[assignedClass];
+            if (!roomName) {
+                for(let key in roomMappings) {
+                    if (key === safeClass || key === assignedClass) {
+                        roomName = roomMappings[key];
+                        break;
+                    }
+                }
+            }
+            if (!roomName) return false;
+            
+            const exams = DataManager.getExams() || [];
+            const roomData = exams.find(e => e.name === roomName);
+            if (!roomData) return false;
+            
+            renderClassroomDisplay(roomData, assignedClass);
+            return true;
+        }
+
+        function renderClassroomDisplay(roomData, assignedClass) {
+            let overlay = document.getElementById('fullScreenPlanOverlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'fullScreenPlanOverlay';
+                overlay.style.position = 'fixed';
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.width = '100vw';
+                overlay.style.height = '100vh';
+                overlay.style.backgroundColor = '#f8fafc';
+                overlay.style.zIndex = '9999';
+                overlay.style.display = 'flex';
+                overlay.style.flexDirection = 'column';
+                overlay.style.overflow = 'hidden';
+                document.body.appendChild(overlay);
+            }
+
+            const resultsView = document.getElementById('resultsView');
+            if (resultsView) resultsView.classList.add('hidden');
+            const loginView = document.getElementById('loginView');
+            if (loginView) loginView.classList.add('hidden');
+            document.body.classList.remove('login-body');
+
+            let html = `
+                <div style="background: var(--dark); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <div>
+                            <h2 style="margin: 0; font-weight: 800; font-size: 1.25rem;">${roomData.name} Dersliği Oturma Planı</h2>
+                            <div style="font-size: 0.85rem; color: var(--gray-400);">Bu ekran ${assignedClass} sınıfına ait cihazdan yansıtılmaktadır.</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="fullScreenSchemaContainer" style="flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; background: #f0f2f5;">
+            `;
+
+            let roomSeatCounter = 1;
+            const seatToNum = {};
+            for (let g = 1; g <= roomData.groups; g++) {
+                const conf = roomData.groupConfigs ? roomData.groupConfigs[g - 1] : { rows: roomData.rows || 1, cols: roomData.cols || 1 };
+                for (let r = 1; r <= conf.rows; r++) {
+                    for (let c = 1; c <= conf.cols; c++) {
+                        const sid = \`G\${g}-S\${r}-C\${c}\`;
+                        if (!(roomData.disabledSeats && roomData.disabledSeats.includes(sid))) {
+                            seatToNum[sid] = roomSeatCounter++;
+                        }
+                    }
+                }
+            }
+
+            let groupsHtml = '<div class="groups-row">';
+            for (let g = 1; g <= roomData.groups; g++) {
+                const cf = roomData.groupConfigs ? roomData.groupConfigs[g - 1] : { rows: roomData.rows || 1, cols: roomData.cols || 1 };
+                groupsHtml += \`<div class="desk-group" style="grid-template-columns:repeat(\${cf.cols}, 1fr)">\`;
+
+                for (let r = cf.rows; r >= 1; r--) {
+                    for (let c = 1; c <= cf.cols; c++) {
+                        const sid = \`G\${g}-S\${r}-C\${c}\`;
+                        const disabled = (roomData.disabledSeats || []).includes(sid);
+                        const std = roomData.seats[sid];
+                        const num = seatToNum[sid] || '-';
+
+                        if (disabled) {
+                            groupsHtml += \`<div class="desk" style="opacity:0.2; border: 1px dashed var(--gray-300);"></div>\`;
+                        } else if (std) {
+                            let deskBg = (std.class === assignedClass) ? '#ecfdf5' : 'white';
+                            groupsHtml += \`
+                                <div class="desk" style="background: \${deskBg}; width: 180px; height: 130px; border: 2px solid var(--gray-300);">
+                                    <div style="font-size:0.85rem; color:var(--gray-500); font-weight:700;">\${std.class} / \${std.no}</div>
+                                    <div style="font-size:0.95rem; font-weight:900; color:var(--dark); margin:8px 0; line-height:1.2; word-break: break-word;">\${std.name}</div>
+                                    <div style="font-size:0.8rem; color:var(--gray-400); font-weight:600;">\${std._matchedSubject || '-'}</div>
+                                    <div class="desk-num" style="width: 32px; height: 32px; font-size: 1.1rem; bottom: -5px;">\${num}</div>
+                                </div>\`;
+                        } else {
+                            groupsHtml += \`<div class="desk empty" style="width: 180px; height: 130px;"><div class="desk-num" style="width: 32px; height: 32px; font-size: 1.1rem; bottom: -5px;">\${num}</div><div style="font-size:0.75rem; color:var(--danger); font-weight:700; margin-top:15px;">BOŞ</div></div>\`;
+                        }
+                    }
+                }
+                groupsHtml += \`</div>\`;
+            }
+            groupsHtml += '</div>';
+
+            const isTeacherRight = (roomData.teacherDeskPos || 'right') === 'right';
+
+            let frontAreaHtml = \`
+                <div class="front-area" style="margin-top: 50px;">
+                    \${!isTeacherRight ? '<div class="teacher-desk" style="width: 120px; height: 80px; font-size: 0.85rem;">ÖĞRETMEN<br>MASASI</div><div class="board" style="height: 50px; font-size: 1.1rem;">YAZI TAHTASI</div><div style="width:120px;"></div>' : '<div style="width:120px;"></div><div class="board" style="height: 50px; font-size: 1.1rem;">YAZI TAHTASI</div><div class="teacher-desk" style="width: 120px; height: 80px; font-size: 0.85rem;">ÖĞRETMEN<br>MASASI</div>'}
+                </div>
+            \`;
+
+            html += \`
+                <div class="classroom-walls" id="fsWalls" style="transform-origin: center;">
+                    \${groupsHtml}
+                    \${frontAreaHtml}
+                </div>
+            </div>
+            \`;
+
+            overlay.innerHTML = html;
+            overlay.style.display = 'flex';
+
+            if (typeof scaleFullScreenPlan === 'function') {
+                setTimeout(scaleFullScreenPlan, 100);
+                window.addEventListener('resize', scaleFullScreenPlan);
+            }
+
+            // Çift tıklayarak öğrenci girişine dönülebilir
+            overlay.ondblclick = function() {
+                overlay.style.display = 'none';
+                if (loginView) loginView.classList.remove('hidden');
+                document.body.classList.add('login-body');
+            };
+        }
+
         function checkPersistentSession() {
+            if (checkClassroomDisplay()) return;
             const savedNo = localStorage.getItem('klbk_student_session');
             if (savedNo) {
                 document.getElementById('studentNo').value = savedNo;
