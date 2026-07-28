@@ -2314,8 +2314,18 @@
                     countBadgeStyle = 'background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; font-weight: 700;';
                 }
 
-                let formattedGorev = (s.gorev || '').split(',').map(g => {
-                    let text = g.replace(/\s*\([^)]*\)/g, '').trim();
+                let gorevList = (s.gorev || '').split(',').map(g => g.replace(/\s*\([^)]*\)/g, '').trim());
+                let isZumreBaskani = false;
+
+                gorevList = gorevList.filter(g => {
+                    if (normalizeTr(g).includes('zumre baskani')) {
+                        isZumreBaskani = true;
+                        return false;
+                    }
+                    return true;
+                });
+
+                let formattedGorev = gorevList.map(text => {
                     let normText = normalizeTr(text);
                     if (normText.includes('idareci') || normText.includes('mudur')) {
                         return text.replace(/ Öğretmeni/g, '').replace(/ öğretmeni/g, '').replace(/ Öğretmen/g, '').replace(/ öğretmen/g, '').trim();
@@ -2325,6 +2335,14 @@
                     }
                     return text || 'Öğretmen';
                 }).join(', ');
+
+                if (isZumreBaskani) {
+                    if (formattedGorev) {
+                        formattedGorev += ' - Zümre Başkanı';
+                    } else {
+                        formattedGorev = 'Zümre Başkanı';
+                    }
+                }
 
                 html += `
                     <tr style="${rowStyle} transition: background 0.2s;">
