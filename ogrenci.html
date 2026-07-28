@@ -750,7 +750,11 @@
             // Start polling for instant device mapping updates
             if (!window._deviceMapPollerStarted) {
                 window._deviceMapPollerStarted = true;
-                window._currentAssignedClass = assignedClass;
+                
+                // Track ALL classes assigned to this device to prevent infinite reload on multi-assignment
+                window._currentAssignedClasses = Object.keys(mappings)
+                    .filter(k => mappings[k] === devId)
+                    .sort().join(',');
                 
                 setInterval(async () => {
                     const currentDev = localStorage.getItem('klbk_device_id');
@@ -760,16 +764,13 @@
                         const res = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/${storeKey}/classDeviceMappings.json?t=` + Date.now());
                         if(res.ok) {
                             const newMappings = await res.json() || {};
-                            let newAssigned = null;
-                            for (let cls in newMappings) {
-                                if (newMappings[cls] === currentDev) {
-                                    newAssigned = cls;
-                                    break;
-                                }
-                            }
+                            
+                            const newAssignedClasses = Object.keys(newMappings)
+                                .filter(k => newMappings[k] === currentDev)
+                                .sort().join(',');
                             
                             // If mapping changed, reload the page to apply cleanly
-                            if (window._currentAssignedClass !== newAssigned) {
+                            if (window._currentAssignedClasses !== newAssignedClasses) {
                                 location.reload();
                             }
                         }
