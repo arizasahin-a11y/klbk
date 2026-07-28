@@ -1321,34 +1321,87 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 2000);
     };
 
+    window.selectedClassForSwap = null;
+    
+    window.selectDeviceForSwap = function(className, e) {
+        if(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        window.selectedClassForSwap = className;
+        Swal.fire({
+            toast: true,
+            position: 'top',
+            icon: 'info',
+            title: `'${className}' sınıfı cihaz takası için seçildi. Şimdi takas etmek istediğiniz diğer sınıfın cihaz koduna tıklayın.`,
+            showConfirmButton: false,
+            timer: 4000
+        });
+    };
+
     window.editDeviceMapping = async function(className) {
+        if (window.selectedClassForSwap && window.selectedClassForSwap !== className) {
+            const class1 = window.selectedClassForSwap;
+            const class2 = className;
+            window.selectedClassForSwap = null;
+            
+            const id1 = DataManager.getSanitizedClassDeviceMapping(class1) || '';
+            const id2 = DataManager.getSanitizedClassDeviceMapping(class2) || '';
+            
+            DataManager.saveClassDeviceMapping(class1, id2);
+            DataManager.saveClassDeviceMapping(class2, id1);
+            
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'Cihaz kodları başarıyla takas edildi!',
+                showConfirmButton: false,
+                timer: 2000
+            });
+            updateClassesList();
+            return;
+        }
+        window.selectedClassForSwap = null;
+        
         const currentId = DataManager.getSanitizedClassDeviceMapping(className) || '';
-        const { value: newId } = await Swal.fire({
+        const result = await Swal.fire({
             title: 'Cihaz Kodu Değiştir',
             input: 'text',
             inputLabel: `'${className}' sınıfına ait cihazın kodunu manuel olarak değiştirebilir veya başka bir cihazın koduyla eşleştirebilirsiniz.`,
             inputValue: currentId,
             showCancelButton: true,
+            showDenyButton: true,
             confirmButtonText: 'Kaydet',
-            cancelButtonText: 'İptal',
-            inputValidator: (value) => {
-                if (!value) {
-                    return 'Bağlantıyı kaldırmak için silmek yerine İptal edebilir veya Cihaz Ata butonuyla yeni cihaz bekleyebilirsiniz.';
-                }
-            }
+            denyButtonText: 'Sil',
+            cancelButtonText: 'İptal'
         });
 
-        if (newId && newId !== currentId) {
-            DataManager.saveClassDeviceMapping(className, newId.trim().toUpperCase());
+        if (result.isDenied) {
+            DataManager.saveClassDeviceMapping(className, '');
             Swal.fire({
                 toast: true,
                 position: 'top-end',
                 icon: 'success',
-                title: 'Cihaz kodu güncellendi!',
+                title: 'Cihaz kodu silindi!',
                 showConfirmButton: false,
                 timer: 1500
             });
             updateClassesList();
+        } else if (result.isConfirmed && result.value !== undefined) {
+            const newId = result.value;
+            if (newId !== currentId) {
+                DataManager.saveClassDeviceMapping(className, newId.trim().toUpperCase());
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Cihaz kodu güncellendi!',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+                updateClassesList();
+            }
         }
     };
 
@@ -1426,7 +1479,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <option value="">Derslik Atayın</option>
                                 ${classrooms.filter(room => room.name === assignedRoom || !assignedRoomNames.includes(room.name)).map(room => `<option value="${room.name}" ${assignedRoom === room.name ? 'selected' : ''}>${room.name}</option>`).join('')}
                             </select>
-                            ${DataManager.getSanitizedClassDeviceMapping(cls) ? `<span onclick="event.stopPropagation(); window.editDeviceMapping('${cls}')" style="cursor: pointer; font-size: 0.9rem; background: var(--gray-100); color: var(--primary); padding: 5px 12px; border-radius: 6px; border: 1px solid var(--gray-300); box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s;" title="Değiştirmek için tıklayın"><i class="fa-solid fa-mobile-screen-button"></i> Cihaz: ${DataManager.getSanitizedClassDeviceMapping(cls)}</span>` : ''}
+                            ${DataManager.getSanitizedClassDeviceMapping(cls) ? `<span onclick="event.stopPropagation(); window.editDeviceMapping('${cls}')" oncontextmenu="window.selectDeviceForSwap('${cls}', event)" ontouchstart="window.deviceTouchTimer = setTimeout(() => window.selectDeviceForSwap('${cls}', null), 800)" ontouchend="clearTimeout(window.deviceTouchTimer)" ontouchmove="clearTimeout(window.deviceTouchTimer)" style="cursor: pointer; font-size: 0.9rem; background: var(--gray-100); color: var(--primary); padding: 5px 12px; border-radius: 6px; border: 1px solid var(--gray-300); box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s;" title="Değiştirmek için tıklayın, takas için sağ tıklayın veya basılı tutun"><i class="fa-solid fa-mobile-screen-button"></i> Cihaz: ${DataManager.getSanitizedClassDeviceMapping(cls)}</span>` : ''}
                         </div>
                         <span style="background:var(--secondary); color:#fff; padding:0.25rem 0.75rem; border-radius:1rem; font-size:0.9rem;">
                             <i class="fa-solid fa-users"></i> ${count} Öğrenci
