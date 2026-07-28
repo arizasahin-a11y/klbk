@@ -1458,31 +1458,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Accordion Header
             html += `
                 <div class="accordion-item glass-panel" style="border-radius:10px; overflow:hidden;">
-                    <div class="accordion-header" style="padding:1.5rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer; flex-wrap:wrap; gap:15px;" onclick="this.nextElementSibling.classList.toggle('hidden');">
-                        <div style="display:flex; align-items:center; gap:15px; flex-shrink: 0;">
-                            <h2 style="color:var(--primary); font-size:1.5rem; margin:0; display:flex; align-items:center; gap:10px;">
+                    <div class="accordion-header" style="padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer; flex-wrap:wrap; gap:10px;" onclick="this.nextElementSibling.classList.toggle('hidden');">
+                        <div style="display:flex; align-items:center; gap:10px; flex-shrink: 0;">
+                            <h2 style="color:var(--primary); font-size:1.3rem; margin:0;">
                                 ${cls} Sınıfı
                             </h2>
-                            <span style="background:var(--secondary); color:#fff; padding:0.25rem 0.75rem; border-radius:1rem; font-size:0.9rem; white-space:nowrap;">
-                                <i class="fa-solid fa-users"></i> ${count} Öğrenci
+                            <span style="background:var(--secondary); color:#fff; padding:0.2rem 0.6rem; border-radius:1rem; font-size:0.8rem; white-space:nowrap;">
+                                <i class="fa-solid fa-users"></i> ${count}
                             </span>
                         </div>
-                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; flex:1;">
-                            <button class="btn btn-secondary btn-sm" style="padding:0.4rem 0.85rem; font-size:0.95rem; font-weight:600; border-radius: 8px;" onclick="event.stopPropagation(); window.assignSubjectsToClass('${cls}')">
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; flex:1;">
+                            <button class="btn btn-secondary btn-sm" style="padding:0.4rem 0.75rem; font-size:0.9rem; font-weight:600; border-radius: 8px;" onclick="event.stopPropagation(); window.assignSubjectsToClass('${cls}')">
                                 <i class="fa-solid fa-book"></i> Ders Tanımla
                             </button>
-                            <button class="btn btn-secondary btn-sm" style="padding:0.4rem 0.85rem; font-size:0.95rem; font-weight:600; border-radius: 8px;" onclick="event.stopPropagation(); window.assignFieldToClass('${cls}')">
+                            <button class="btn btn-secondary btn-sm" style="padding:0.4rem 0.75rem; font-size:0.9rem; font-weight:600; border-radius: 8px;" onclick="event.stopPropagation(); window.assignFieldToClass('${cls}')">
                                 <i class="fa-solid fa-layer-group"></i> Alan Tanımla
                             </button>
-                            <button class="btn btn-secondary btn-sm" style="padding:0.4rem 0.85rem; font-size:0.95rem; font-weight:600; border-radius: 8px; background-color: var(--primary); color: white; border:none;" onclick="event.stopPropagation(); window.assignDeviceToClass('${cls}')">
+                            <button class="btn btn-secondary btn-sm" style="padding:0.4rem 0.75rem; font-size:0.9rem; font-weight:600; border-radius: 8px; background-color: var(--primary); color: white; border:none;" onclick="event.stopPropagation(); window.assignDeviceToClass('${cls}')">
                                 <i class="fa-solid fa-tablet-screen-button"></i> Cihaz Ata
                             </button>
-                            <select class="form-control" style="width: auto; display: inline-block; padding: 0.4rem 0.85rem; font-size: 0.95rem; font-weight: 600; border: 1px solid #e2e8f0; border-radius: 8px; background-color: white; color: var(--primary); cursor: pointer; transition: all 0.2s;" onchange="window.assignRoomToClass('${cls}', this.value)" onclick="event.stopPropagation();">
+                            <select class="form-control" style="width: auto; display: inline-block; padding: 0.4rem 0.75rem; font-size: 0.9rem; font-weight: 600; border: 1px solid #e2e8f0; border-radius: 8px; background-color: white; color: var(--primary); cursor: pointer; transition: all 0.2s;" onchange="window.assignRoomToClass('${cls}', this.value)" onclick="event.stopPropagation();">
                                 <option value="">Derslik Atayın</option>
                                 ${classrooms.filter(room => room.name === assignedRoom || !assignedRoomNames.includes(room.name)).map(room => `<option value="${room.name}" ${assignedRoom === room.name ? 'selected' : ''}>${room.name}</option>`).join('')}
                             </select>
-                            ${DataManager.getSanitizedClassDeviceMapping(cls) ? `<span onclick="event.stopPropagation(); window.editDeviceMapping('${cls}')" oncontextmenu="window.selectDeviceForSwap('${cls}', event)" ontouchstart="window.deviceTouchTimer = setTimeout(() => window.selectDeviceForSwap('${cls}', null), 800)" ontouchend="clearTimeout(window.deviceTouchTimer)" ontouchmove="clearTimeout(window.deviceTouchTimer)" style="cursor: pointer; font-size: 0.9rem; background: var(--gray-100); color: var(--primary); padding: 5px 12px; border-radius: 6px; border: 1px solid var(--gray-300); box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s; white-space:nowrap;" title="Değiştirmek için tıklayın, takas için sağ tıklayın veya basılı tutun"><i class="fa-solid fa-mobile-screen-button"></i> Cihaz: ${DataManager.getSanitizedClassDeviceMapping(cls)}</span>` : `<span style="display:inline-block; width:135px;"></span>`}
-                            <button class="btn btn-danger btn-sm" style="padding:0.4rem; font-size:1.1rem; border-radius: 8px; display:flex; align-items:center; justify-content:center; width:36px; height:36px;" onclick="event.stopPropagation(); window.deleteClassCompletely('${cls}')" title="Sınıfı Sil">
+                            ${DataManager.getSanitizedClassDeviceMapping(cls) ? `<span onclick="event.stopPropagation(); window.editDeviceMapping('${cls}')" oncontextmenu="window.selectDeviceForSwap('${cls}', event)" ontouchstart="window.deviceTouchTimer = setTimeout(() => window.selectDeviceForSwap('${cls}', null), 800)" ontouchend="clearTimeout(window.deviceTouchTimer)" ontouchmove="clearTimeout(window.deviceTouchTimer)" style="cursor: pointer; font-size: 0.85rem; background: var(--gray-100); color: var(--primary); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--gray-300); box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s; white-space:nowrap;" title="Değiştirmek için tıklayın, takas için sağ tıklayın veya basılı tutun"><i class="fa-solid fa-mobile-screen-button"></i> ${DataManager.getSanitizedClassDeviceMapping(cls)}</span>` : `<span style="display:inline-block; width:135px;"></span>`}
+                            <button class="btn btn-danger btn-sm" style="padding:0.4rem; font-size:1rem; border-radius: 8px; display:flex; align-items:center; justify-content:center; width:34px; height:34px; margin-left:4px;" onclick="event.stopPropagation(); window.deleteClassCompletely('${cls}')" title="Sınıfı Sil">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         </div>
