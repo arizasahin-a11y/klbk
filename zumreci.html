@@ -374,6 +374,12 @@
                 font-size: 0.9rem;
             }
         }
+
+        @keyframes smilePop {
+            0%   { transform: scale(0.3); opacity: 0; }
+            70%  { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -2310,8 +2316,17 @@
                     rowStyle = 'background: #f0fdf4;';
                     countBadgeStyle = 'background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; font-weight: 800; font-size: 1rem;';
                     iconHtml = '<i class="fa-solid fa-crown" style="color: #fbbf24; margin-right: 6px;" title="En Çok Görüş Yazan (Lider)"></i>';
+                    // Lider için de güleryüz ekle (en büyük)
+                    const smileSize = Math.min(1.0 + (s.count / highestCount) * 1.2, 2.2);
+                    iconHtml += `<span title="${s.count} görüş yazdı" style="font-size: ${smileSize.toFixed(2)}em; line-height: 1; vertical-align: middle; margin-right: 6px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15)); display: inline-block; animation: smilePop 0.4s ease;">😄</span>`;
                 } else if (s.count > 0) {
                     countBadgeStyle = 'background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; font-weight: 700;';
+                    // Görüş sayısına göre büyüyen güleryüz: min 0.85em → max 1.8em
+                    const smileSize = highestCount > 0
+                        ? Math.min(0.85 + (s.count / highestCount) * 1.15, 2.0)
+                        : 0.85;
+                    const smileEmoji = s.count >= highestCount * 0.75 ? '😁' : s.count >= highestCount * 0.4 ? '😊' : '🙂';
+                    iconHtml = `<span title="${s.count} görüş yazdı" style="font-size: ${smileSize.toFixed(2)}em; line-height: 1; vertical-align: middle; margin-right: 6px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1)); display: inline-block; transition: transform 0.2s;">${smileEmoji}</span>`;
                 }
 
                 let gorevList = (s.gorev || '').split(',').map(g => g.replace(/\s*\([^)]*\)/g, '').trim());
