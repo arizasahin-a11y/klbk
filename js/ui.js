@@ -1255,13 +1255,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (assignDeviceInterval) clearInterval(assignDeviceInterval);
         
         // Firebase Rules güncellemesine gerek kalmadan çalışması için halihazırda yazma yetkisi olan klbk_users klasörünü kullanıyoruz
-        const pairingChannel = '00000';
+        const pairingChannel = 'device_assign_00000';
         const waitToken = Math.random().toString(36).substring(2, 10);
         
         // Önceki kalıntıları temizlemek ve güvenli bir bekleme durumuna geçmek için Firebase'e token yazıyoruz
         try {
-            const putRes = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assigns/${pairingChannel}.json`, {
+            const putRes = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users/${pairingChannel}.json`, {
                 method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'waiting', token: waitToken })
             });
             if (!putRes.ok) throw new Error("Firebase HTTP " + putRes.status);
@@ -1291,7 +1292,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         assignDeviceInterval = setInterval(async () => {
             try {
-                const res = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assigns/${pairingChannel}.json?t=${Date.now()}`, { cache: 'no-store' });
+                const res = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users/${pairingChannel}.json?t=${Date.now()}`, { cache: 'no-store' });
                 const data = await res.json();
                 
                 // Eğer data.deviceId varsa VE bizim token silinmişse (tablet PUT yaparak üzerine yazmışsa), bu %100 taze bir eşleşmedir!
@@ -1301,7 +1302,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     DataManager.saveClassDeviceMapping(className, data.deviceId);
                     
-                    fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assigns/${pairingChannel}.json`, {
+                    fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users/${pairingChannel}.json`, {
                         method: 'DELETE'
                     }).catch(e => {});
                     

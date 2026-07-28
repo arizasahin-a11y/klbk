@@ -767,8 +767,9 @@
                     
                     // Global 00000 eşleştirme kanalına cihazın sinyalini yazıyoruz.
                     // Böylece tabletin okulu henüz bilinmese bile idareye ulaşabilecek.
-                    fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assigns/00000.json`, {
+                    fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users/device_assign_00000.json`, {
                         method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ deviceId: devId, timestamp: Date.now() })
                     }).then(() => {
                         Swal.fire({
