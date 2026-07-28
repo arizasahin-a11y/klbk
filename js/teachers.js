@@ -216,6 +216,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 branchOptions += `<option value="${s}" ${selected}>${s}</option>`;
             });
 
+            let passStr = user.password || '---';
+            if (passStr.length === 64 && /^[0-9a-f]{64}$/i.test(passStr)) {
+                passStr = '********';
+            }
+
             html += `
             <div class="stat-card glass-panel" style="display: flex; flex-direction: column; cursor: pointer; transition: all 0.2s ease; padding: 10px 15px; margin-bottom: 10px; ${cardStyle}" ${clickEvent} ${contextEvent}>
                 
@@ -231,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 ${name}
                             </h3>
                             <p style="font-size: 0.75rem; color: var(--gray-500); margin: 2px 0 0 0;">(@${uname})</p>
-                            <p style="font-size: 0.75rem; color: var(--primary); margin: 2px 0 0 0; font-weight: 700;">Şifre: ${user.password || '---'}</p>
+                            <p style="font-size: 0.75rem; color: var(--primary); margin: 2px 0 0 0; font-weight: 700;" title="Kullanıcının sisteme giriş şifresi">Şifre: ${passStr}</p>
                         </div>
                     </div>
 
