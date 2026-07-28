@@ -765,25 +765,25 @@
                         localStorage.setItem('klbk_device_id', devId);
                     }
                     
-                    const storeKey = window.DataManager ? window.DataManager._getStorageKey() : localStorage.getItem('klbk_lastSchoolName') ? btoa(localStorage.getItem('klbk_lastSchoolName')) : null;
-                    if (storeKey) {
-                        const encodedKey = encodeURIComponent(storeKey);
-                        fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assigns/${encodedKey}.json`, {
-                            method: 'PUT',
-                            body: JSON.stringify({ deviceId: devId, timestamp: Date.now() })
-                        }).then(() => {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Cihaz Sinyali Gönderildi!',
-                                text: `Bu cihazın kodu: ${devId}. Lütfen yönetici panelindeki işlemi kontrol edin.`,
-                                timer: 4000,
-                                showConfirmButton: false
-                            });
-                            noInput.value = '';
-                        }).catch(e => console.error(e));
-                    } else {
-                        alert('Hata: Okul bağlantısı bulunamadı, lütfen geçerli bir öğrenci ile bir kez giriş yapın.');
-                    }
+                    // Global 00000 eşleştirme kanalına cihazın sinyalini yazıyoruz.
+                    // Böylece tabletin okulu henüz bilinmese bile idareye ulaşabilecek.
+                    fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/device_assigns/00000.json`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ deviceId: devId, timestamp: Date.now() })
+                    }).then(() => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Cihaz Sinyali Gönderildi!',
+                            text: `Bu cihazın kodu: ${devId}. Lütfen yönetici panelindeki işlemi kontrol edin.`,
+                            timer: 4000,
+                            showConfirmButton: false
+                        });
+                        noInput.value = '';
+                    }).catch(e => {
+                        console.error(e);
+                        alert('Bağlantı hatası: Sinyal gönderilemedi.');
+                    });
+                    
                     return; // Normal öğrenci girişini atla
                 }
                 
