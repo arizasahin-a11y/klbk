@@ -4464,16 +4464,6 @@
                 }
             }
 
-            let finalZumreParticipants = [...participantsList];
-            if (!finalZumreParticipants.some(p => (p.gorev || '').toLowerCase().includes('rehberlik') || (p.role || '').toLowerCase().includes('rehberlik'))) {
-                finalZumreParticipants.push({
-                    id: 'auto_rehberlik_' + Date.now(),
-                    name: '.......................',
-                    kurum: schoolName,
-                    gorev: 'Okul Rehberlik Öğrt.'
-                });
-            }
-
             const newPlan = {
                 id: editingPlanId || ('zumre_' + Date.now()),
                 donem: donemText,
@@ -4488,7 +4478,7 @@
                 plannerId: sessionStorage.getItem('klbk_currentUser') || '',
                 school: schoolName,
                 createdAt: editingPlanCreatedAt || new Date().toISOString(),
-                participants: finalZumreParticipants,
+                participants: participantsList,
                 agendaItems: finalAgendas.map(item => cleanAgendaItemText(item))
             };
             if (editingPlanOpinions) {
