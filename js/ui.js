@@ -1329,11 +1329,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             e.stopPropagation();
         }
         window.selectedClassForSwap = className;
+        // Highlight the selected badge
+        document.querySelectorAll('.device-badge-selected').forEach(el => el.classList.remove('device-badge-selected'));
+        const badge = document.querySelector(`[data-device-class="${CSS.escape(className)}"]`);
+        if (badge) badge.classList.add('device-badge-selected');
         Swal.fire({
             toast: true,
             position: 'top',
             icon: 'info',
-            title: `'${className}' sınıfı cihaz takası için seçildi. Şimdi takas etmek istediğiniz diğer sınıfın cihaz koduna tıklayın.`,
+            title: `'${className}' seçildi. Takas için başka bir sınıfın cihaz alanına tıklayın.`,
             showConfirmButton: false,
             timer: 4000
         });
@@ -1344,18 +1348,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             const class1 = window.selectedClassForSwap;
             const class2 = className;
             window.selectedClassForSwap = null;
+
+            // Remove visual selection highlight from all spans
+            document.querySelectorAll('.device-badge-selected').forEach(el => el.classList.remove('device-badge-selected'));
             
             const id1 = DataManager.getSanitizedClassDeviceMapping(class1) || '';
             const id2 = DataManager.getSanitizedClassDeviceMapping(class2) || '';
             
-            DataManager.saveClassDeviceMapping(class1, id2);
-            DataManager.saveClassDeviceMapping(class2, id1);
+            if (id1) DataManager.saveClassDeviceMapping(class1, id2);
+            else DataManager.saveClassDeviceMapping(class1, '');
+            if (id2) DataManager.saveClassDeviceMapping(class2, id1);
+            else DataManager.saveClassDeviceMapping(class2, '');
             
             Swal.fire({
                 toast: true,
                 position: 'top-end',
                 icon: 'success',
-                title: 'Cihaz kodları başarıyla takas edildi!',
+                title: `Takas edildi: ${class1} ↔ ${class2}`,
                 showConfirmButton: false,
                 timer: 2000
             });
@@ -1363,6 +1372,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         window.selectedClassForSwap = null;
+        document.querySelectorAll('.device-badge-selected').forEach(el => el.classList.remove('device-badge-selected'));
         
         const currentId = DataManager.getSanitizedClassDeviceMapping(className) || '';
         const result = await Swal.fire({
@@ -1404,6 +1414,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     };
+
+    // --- Real-time device mapping polling (every 3 seconds) ---
+    (function startDeviceMappingPoller() {
+        let lastDeviceState = JSON.stringify(DataManager.getClassDeviceMappings() || {});
+        setInterval(async () => {
+            try {
+                const key = DataManager._getStorageKey();
+                const encodedKey = encodeURIComponent(key);
+                const res = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/${encodedKey}/classDeviceMappings.json?t=${Date.now()}`);
+                if (res.ok) {
+                    const remote = await res.json() || {};
+                    const remoteStr = JSON.stringify(remote);
+                    if (remoteStr !== lastDeviceState) {
+                        lastDeviceState = remoteStr;
+                        // Merge into local memory without overwriting everything
+                        const localData = DataManager._getData();
+                        localData.classDeviceMappings = remote;
+                        DataManager._memoryData = localData;
+                        localStorage.setItem(DataManager._getStorageKey(), JSON.stringify(localData));
+                        updateClassesList();
+                        console.log('Device mappings updated from cloud.');
+                    }
+                }
+            } catch(e) { /* silent */ }
+        }, 3000);
+    })();
 
     function updateClassesList() {
         const students = DataManager.getStudents();
@@ -1481,7 +1517,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <option value="">Derslik Atayın</option>
                                 ${classrooms.filter(room => room.name === assignedRoom || !assignedRoomNames.includes(room.name)).map(room => `<option value="${room.name}" ${assignedRoom === room.name ? 'selected' : ''}>${room.name}</option>`).join('')}
                             </select>
-                            ${DataManager.getSanitizedClassDeviceMapping(cls) ? `<span onclick="event.stopPropagation(); window.editDeviceMapping('${cls}')" oncontextmenu="window.selectDeviceForSwap('${cls}', event)" ontouchstart="window.deviceTouchTimer = setTimeout(() => window.selectDeviceForSwap('${cls}', null), 800)" ontouchend="clearTimeout(window.deviceTouchTimer)" ontouchmove="clearTimeout(window.deviceTouchTimer)" style="cursor: pointer; font-size: 0.85rem; background: var(--gray-100); color: var(--primary); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--gray-300); box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s; white-space:nowrap;" title="Değiştirmek için tıklayın, takas için sağ tıklayın veya basılı tutun"><i class="fa-solid fa-mobile-screen-button"></i> ${DataManager.getSanitizedClassDeviceMapping(cls)}</span>` : `<span style="display:inline-block; width:135px;"></span>`}
+                            <span data-device-class="${cls}" onclick="event.stopPropagation(); window.editDeviceMapping('${cls}')" oncontextmenu="window.selectDeviceForSwap('${cls}', event)" ontouchstart="window.deviceTouchTimer = setTimeout(() => window.selectDeviceForSwap('${cls}', null), 800)" ontouchend="clearTimeout(window.deviceTouchTimer)" ontouchmove="clearTimeout(window.deviceTouchTimer)" style="cursor: pointer; display:inline-flex; align-items:center; min-width:130px; height:34px; padding: 0 10px; border-radius: 6px; border: 1px solid ${DataManager.getSanitizedClassDeviceMapping(cls) ? 'var(--gray-300)' : 'var(--gray-200)'}; background: ${DataManager.getSanitizedClassDeviceMapping(cls) ? 'var(--gray-100)' : 'transparent'}; font-size: 0.85rem; color: var(--primary); white-space:nowrap; transition: all 0.2s; box-sizing:border-box;" title="${DataManager.getSanitizedClassDeviceMapping(cls) ? 'Değiştirmek için tıklayın, takas için sağ tıklayın veya basılı tutun' : 'Cihaz atamak için tıklayın veya sağ tık ile takas yapın'}">${DataManager.getSanitizedClassDeviceMapping(cls) ? '<i class="fa-solid fa-mobile-screen-button" style="margin-right:5px;"></i>' + DataManager.getSanitizedClassDeviceMapping(cls) : ''}</span>
                             <button class="btn btn-danger btn-sm" style="padding:0.4rem; font-size:1rem; border-radius: 8px; display:flex; align-items:center; justify-content:center; width:34px; height:34px; margin-left:4px;" onclick="event.stopPropagation(); window.deleteClassCompletely('${cls}')" title="Sınıfı Sil">
                                 <i class="fa-solid fa-trash"></i>
                             </button>

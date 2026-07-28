@@ -596,3 +596,16 @@ ul {
 .hidden {
     display: none !important;
 }
+
+/* Device badge swap selection highlight */
+.device-badge-selected {
+    outline: 2px solid var(--warning) !important;
+    background: rgba(245, 158, 11, 0.1) !important;
+    color: var(--warning) !important;
+    animation: pulse-badge 1s infinite;
+}
+
+@keyframes pulse-badge {
+    0%, 100% { outline-color: var(--warning); }
+    50% { outline-color: transparent; }
+}
