@@ -416,7 +416,13 @@
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.links) {
-                        portalLinks = data.links;
+                        if (Array.isArray(data.links)) {
+                            portalLinks = data.links;
+                        } else if (typeof data.links === 'object') {
+                            portalLinks = Object.values(data.links);
+                        } else {
+                            portalLinks = [];
+                        }
                     }
                 }
             } catch (err) {
