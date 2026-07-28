@@ -847,7 +847,7 @@
                 const conf = (roomData.groupConfigs && roomData.groupConfigs[g - 1]) ? roomData.groupConfigs[g - 1] : { rows: roomData.rows || 1, cols: roomData.cols || 1 };
                 for (let r = 1; r <= conf.rows; r++) {
                     for (let c = 1; c <= conf.cols; c++) {
-                        const sid = \`G\${g}-S\${r}-C\${c}\`;
+                        const sid = `G${g}-S${r}-C${c}`;
                         if (!safeDisabledSeats.includes(sid)) {
                             seatToNum[sid] = roomSeatCounter++;
                         }
@@ -858,50 +858,50 @@
             let groupsHtml = '<div class="groups-row">';
             for (let g = 1; g <= roomData.groups; g++) {
                 const cf = (roomData.groupConfigs && roomData.groupConfigs[g - 1]) ? roomData.groupConfigs[g - 1] : { rows: roomData.rows || 1, cols: roomData.cols || 1 };
-                groupsHtml += \`<div class="desk-group" style="grid-template-columns:repeat(\${cf.cols}, 1fr)">\`;
+                groupsHtml += `<div class="desk-group" style="grid-template-columns:repeat(${cf.cols}, 1fr)">`;
 
                 for (let r = cf.rows; r >= 1; r--) {
                     for (let c = 1; c <= cf.cols; c++) {
-                        const sid = \`G\${g}-S\${r}-C\${c}\`;
+                        const sid = `G${g}-S${r}-C${c}`;
                         const disabled = safeDisabledSeats.includes(sid);
                         const std = safeSeats[sid];
                         const num = seatToNum[sid] || '-';
 
                         if (disabled) {
-                            groupsHtml += \`<div class="desk" style="opacity:0.2; border: 1px dashed var(--gray-300);"></div>\`;
+                            groupsHtml += `<div class="desk" style="opacity:0.2; border: 1px dashed var(--gray-300);"></div>`;
                         } else if (std) {
                             let deskBg = (std.class === assignedClass) ? '#ecfdf5' : 'white';
-                            groupsHtml += \`
-                                <div class="desk" style="background: \${deskBg}; width: 180px; height: 130px; border: 2px solid var(--gray-300);">
-                                    <div style="font-size:0.85rem; color:var(--gray-500); font-weight:700;">\${std.class} / \${std.no}</div>
-                                    <div style="font-size:0.95rem; font-weight:900; color:var(--dark); margin:8px 0; line-height:1.2; word-break: break-word;">\${std.name}</div>
-                                    <div style="font-size:0.8rem; color:var(--gray-400); font-weight:600;">\${std._matchedSubject || '-'}</div>
-                                    <div class="desk-num" style="width: 32px; height: 32px; font-size: 1.1rem; bottom: -5px;">\${num}</div>
-                                </div>\`;
+                            groupsHtml += `
+                                <div class="desk" style="background: ${deskBg}; width: 180px; height: 130px; border: 2px solid var(--gray-300);">
+                                    <div style="font-size:0.85rem; color:var(--gray-500); font-weight:700;">${std.class} / ${std.no}</div>
+                                    <div style="font-size:0.95rem; font-weight:900; color:var(--dark); margin:8px 0; line-height:1.2; word-break: break-word;">${std.name}</div>
+                                    <div style="font-size:0.8rem; color:var(--gray-400); font-weight:600;">${std._matchedSubject || '-'}</div>
+                                    <div class="desk-num" style="width: 32px; height: 32px; font-size: 1.1rem; bottom: -5px;">${num}</div>
+                                </div>`;
                         } else {
-                            groupsHtml += \`<div class="desk empty" style="width: 180px; height: 130px;"><div class="desk-num" style="width: 32px; height: 32px; font-size: 1.1rem; bottom: -5px;">\${num}</div><div style="font-size:0.75rem; color:var(--danger); font-weight:700; margin-top:15px;">BOŞ</div></div>\`;
+                            groupsHtml += `<div class="desk empty" style="width: 180px; height: 130px;"><div class="desk-num" style="width: 32px; height: 32px; font-size: 1.1rem; bottom: -5px;">${num}</div><div style="font-size:0.75rem; color:var(--danger); font-weight:700; margin-top:15px;">BOŞ</div></div>`;
                         }
                     }
                 }
-                groupsHtml += \`</div>\`;
+                groupsHtml += `</div>`;
             }
             groupsHtml += '</div>';
 
             const isTeacherRight = (roomData.teacherDeskPos || 'right') === 'right';
 
-            let frontAreaHtml = \`
+            let frontAreaHtml = `
                 <div class="front-area" style="margin-top: 50px;">
-                    \${!isTeacherRight ? '<div class="teacher-desk" style="width: 120px; height: 80px; font-size: 0.85rem;">ÖĞRETMEN<br>MASASI</div><div class="board" style="height: 50px; font-size: 1.1rem;">YAZI TAHTASI</div><div style="width:120px;"></div>' : '<div style="width:120px;"></div><div class="board" style="height: 50px; font-size: 1.1rem;">YAZI TAHTASI</div><div class="teacher-desk" style="width: 120px; height: 80px; font-size: 0.85rem;">ÖĞRETMEN<br>MASASI</div>'}
+                    ${!isTeacherRight ? '<div class="teacher-desk" style="width: 120px; height: 80px; font-size: 0.85rem;">ÖĞRETMEN<br>MASASI</div><div class="board" style="height: 50px; font-size: 1.1rem;">YAZI TAHTASI</div><div style="width:120px;"></div>' : '<div style="width:120px;"></div><div class="board" style="height: 50px; font-size: 1.1rem;">YAZI TAHTASI</div><div class="teacher-desk" style="width: 120px; height: 80px; font-size: 0.85rem;">ÖĞRETMEN<br>MASASI</div>'}
                 </div>
-            \`;
+            `;
 
-            html += \`
+            html += `
                 <div class="classroom-walls" id="fsWalls" style="transform-origin: center;">
-                    \${groupsHtml}
-                    \${frontAreaHtml}
+                    ${groupsHtml}
+                    ${frontAreaHtml}
                 </div>
             </div>
-            \`;
+            `;
 
             overlay.innerHTML = html;
             overlay.style.display = 'flex';
@@ -1810,9 +1810,9 @@
             const lowerUrl = url.toLowerCase();
 
             // YouTube detection
-            const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/i);
+            const ytMatch = url.match(/(?:youtube.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu.be/)([^"&?/ ]{11})/i);
             // Vimeo detection
-            const vimeoMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/i);
+            const vimeoMatch = url.match(/(?:vimeo.com/|player.vimeo.com/video/)([0-9]+)/i);
 
             if (ytMatch) {
                 const videoId = ytMatch[1];
@@ -1869,10 +1869,10 @@
             let fileId = '';
             if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
                 isGoogleDrive = true;
-                const parts = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || 
+                const parts = url.match(//d/([a-zA-Z0-9_-]+)/) || 
                               url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || 
-                              url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
-                              url.match(/\/open\?id=([a-zA-Z0-9_-]+)/);
+                              url.match(//file/d/([a-zA-Z0-9_-]+)/) ||
+                              url.match(//open?id=([a-zA-Z0-9_-]+)/);
                 if (parts) {
                     fileId = parts[1];
                 }
@@ -2038,10 +2038,10 @@
             // Guess MIME type synchronously to display player instantly
             const guessMimeType = (u) => {
                 const lower = u.toLowerCase();
-                if (lower.match(/\.(mp4|m4v|webm)$/) || lower.includes('video') || lower.includes('mp4')) return 'video/mp4';
-                if (lower.match(/\.(mp3|mpeg|wav|ogg|m4a)$/) || lower.includes('audio') || lower.includes('ses') || lower.includes('sound') || lower.includes('mp3')) return 'audio/mpeg';
-                if (lower.match(/\.(jpg|jpeg|png|gif|webp)$/) || lower.includes('gorsel') || lower.includes('resim')) return 'image/jpeg';
-                if (lower.match(/\.pdf$/) || lower.includes('pdf')) return 'application/pdf';
+                if (lower.match(/.(mp4|m4v|webm)$/) || lower.includes('video') || lower.includes('mp4')) return 'video/mp4';
+                if (lower.match(/.(mp3|mpeg|wav|ogg|m4a)$/) || lower.includes('audio') || lower.includes('ses') || lower.includes('sound') || lower.includes('mp3')) return 'audio/mpeg';
+                if (lower.match(/.(jpg|jpeg|png|gif|webp)$/) || lower.includes('gorsel') || lower.includes('resim')) return 'image/jpeg';
+                if (lower.match(/.pdf$/) || lower.includes('pdf')) return 'application/pdf';
                 if (u.includes('drive.google.com') || u.includes('docs.google.com')) return 'audio/mpeg'; // Default to audio for Google Drive
                 return 'audio/mpeg'; // Safe default for listening exam application links
             };
@@ -2312,7 +2312,7 @@
             win.style.zIndex = 10000 + activeMessages.size;
 
             win.innerHTML = `
-                <div class="window-header" onmousedown="startDragging(event, '${subject.replace(/'/g, "\\'")}')">
+                <div class="window-header" onmousedown="startDragging(event, '${subject.replace(/'/g, "'")}')">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <i class="fa-solid fa-bell fa-shake" style="color:var(--danger)"></i>
                         <span style="font-weight:900; font-size:0.8rem; color:var(--danger); text-transform:uppercase;">${subject}</span>
