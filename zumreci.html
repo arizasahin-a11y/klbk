@@ -444,6 +444,9 @@
             <button class="tab-btn active" id="tabBtnGorus" onclick="switchTab('gorus')">
                 <i class="fa-solid fa-comments"></i> Zümre Görüş İşleme
             </button>
+            <button class="tab-btn" id="tabBtnIstatistik" onclick="switchTab('istatistik')">
+                <i class="fa-solid fa-chart-column"></i> İstatistik
+            </button>
         </div>
 
         <!-- TAB 1: ZÜMRE PLANI SAYFASI -->
@@ -652,6 +655,47 @@
                     <div style="text-align: center; padding: 3rem; color: #94a3b8;">
                         <i class="fa-solid fa-spinner fa-spin fa-2x" style="margin-bottom: 10px;"></i><br>Zümre toplantıları yükleniyor...
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: İSTATİSTİK SAYFASI -->
+        <div id="tabContentIstatistik" style="display: none;">
+            <div class="glass-panel section-card">
+                <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0;">
+                    <div style="flex: 1 1 320px; min-width: 280px; margin-right: auto;">
+                        <h2 style="font-weight: 800; color: var(--dark); margin: 0 0 6px 0; font-size: 1.4rem;">
+                            <i class="fa-solid fa-chart-column" style="color: var(--primary);"></i> Görüş İstatistikleri Liderlik Tablosu
+                        </h2>
+                        <p style="color: #64748b; font-size: 0.9rem; margin: 0; line-height: 1.4;">Zümre toplantılarına katılan öğretmenlerin kaç farklı gündem maddesine görüş yazdığını takip edin.</p>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; flex: 0 0 auto;">
+                        <div style="display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 6px 14px; border: 2px solid #cbd5e1; border-radius: 12px;">
+                            <label style="font-size: 0.85rem; font-weight: 700; color: #475569; margin: 0;"><i class="fa-solid fa-filter"></i> Zümre Seçimi:</label>
+                            <select id="istatistikPlanFilter" class="form-select-custom" style="padding: 6px 12px; font-size: 0.9rem; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700; color: #475569; background: white; cursor: pointer; max-width: 250px;" onchange="renderIstatistikTable()">
+                                <option value="all">Tüm Zümreler (Genel)</option>
+                            </select>
+                        </div>
+                        <button class="btn-custom btn-secondary-custom" onclick="loadIstatistik(true)" title="Verileri Yenile">
+                            <i class="fa-solid fa-rotate"></i> Yenile
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="istatistikTableContainer" style="overflow-x: auto;">
+                    <table class="styled-table" style="width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+                        <thead>
+                            <tr style="background: #f1f5f9;">
+                                <th style="padding: 12px 16px; text-align: left; font-weight: 700; color: #475569; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0; width: 60px;">#</th>
+                                <th style="padding: 12px 16px; text-align: left; font-weight: 700; color: #475569; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0;">Öğretmen Adı Soyadı</th>
+                                <th style="padding: 12px 16px; text-align: left; font-weight: 700; color: #475569; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0;">Branş / Görev</th>
+                                <th style="padding: 12px 16px; text-align: center; font-weight: 700; color: #475569; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0; width: 150px;">Görüş Sayısı</th>
+                            </tr>
+                        </thead>
+                        <tbody id="istatistikTableBody">
+                            <tr><td colspan="4" style="text-align: center; padding: 2rem; color: #94a3b8;"><i class="fa-solid fa-spinner fa-spin"></i> Veriler yükleniyor...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -2087,6 +2131,17 @@
 
         function switchTab(tab) {
             const isGuest = sessionStorage.getItem('klbk_guestMode') === 'true';
+            
+            document.getElementById('tabBtnPlan').classList.remove('active');
+            document.getElementById('tabBtnGorus').classList.remove('active');
+            const tabBtnIstatistik = document.getElementById('tabBtnIstatistik');
+            if(tabBtnIstatistik) tabBtnIstatistik.classList.remove('active');
+            
+            document.getElementById('tabContentPlan').style.display = 'none';
+            document.getElementById('tabContentGorus').style.display = 'none';
+            const tabContentIstatistik = document.getElementById('tabContentIstatistik');
+            if(tabContentIstatistik) tabContentIstatistik.style.display = 'none';
+
             if (tab === 'plan') {
                 if (isGuest) {
                     Swal.fire({
@@ -2105,17 +2160,154 @@
                     return;
                 }
                 document.getElementById('tabBtnPlan').classList.add('active');
-                document.getElementById('tabBtnGorus').classList.remove('active');
                 document.getElementById('tabContentPlan').style.display = 'block';
-                document.getElementById('tabContentGorus').style.display = 'none';
-            } else {
-                document.getElementById('tabBtnPlan').classList.remove('active');
+            } else if (tab === 'gorus') {
                 document.getElementById('tabBtnGorus').classList.add('active');
-                document.getElementById('tabContentPlan').style.display = 'none';
                 document.getElementById('tabContentGorus').style.display = 'block';
                 loadGorusZümreListesi(true);
+            } else if (tab === 'istatistik') {
+                if(tabBtnIstatistik) tabBtnIstatistik.classList.add('active');
+                if(tabContentIstatistik) tabContentIstatistik.style.display = 'block';
+                loadIstatistik();
             }
             window.scrollTo(0, 0);
+        }
+
+        async function loadIstatistik(forceReload = false) {
+            const tbody = document.getElementById('istatistikTableBody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 3rem; color: #94a3b8;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><br><br>İstatistikler hesaplanıyor...</td></tr>`;
+            
+            if (allFetchedPlans.length === 0 || forceReload) {
+                try {
+                    const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_zumre_plans.json?_t=${Date.now()}`, { cache: 'no-store' });
+                    if (!res.ok) throw new Error("Veritabanı bağlantı hatası");
+                    const data = await res.json();
+                    allFetchedPlans = [];
+                    if (data && typeof data === 'object') {
+                        for (const [key, plan] of Object.entries(data)) {
+                            if (plan && typeof plan === 'object') {
+                                plan.id = plan.id || key;
+                                allFetchedPlans.push(plan);
+                            }
+                        }
+                    }
+                    allFetchedPlans.sort((a, b) => new Date(b.tarih || '1970-01-01') - new Date(a.tarih || '1970-01-01'));
+                } catch (e) {
+                    console.error("Zümre planları yüklenemedi:", e);
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 2rem; color: #ef4444;"><i class="fa-solid fa-triangle-exclamation fa-2x"></i><br>Veriler alınamadı.</td></tr>`;
+                    return;
+                }
+            }
+
+            const filterSelect = document.getElementById('istatistikPlanFilter');
+            if (filterSelect) {
+                const currentVal = filterSelect.value;
+                let html = '<option value="all">Tüm Zümreler (Genel Toplam)</option>';
+                allFetchedPlans.forEach(plan => {
+                    let title = plan.sinifSubeGrup || plan.branch || 'Adsız Zümre';
+                    if (plan.tur === 'sok') title += ' ŞÖK';
+                    if (plan.tarih) title += ` (${plan.tarih})`;
+                    html += `<option value="${plan.id}">${title}</option>`;
+                });
+                filterSelect.innerHTML = html;
+                if (Array.from(filterSelect.options).some(o => o.value === currentVal)) {
+                    filterSelect.value = currentVal;
+                }
+            }
+
+            renderIstatistikTable();
+        }
+
+        function renderIstatistikTable() {
+            const filterVal = document.getElementById('istatistikPlanFilter') ? document.getElementById('istatistikPlanFilter').value : 'all';
+            const tbody = document.getElementById('istatistikTableBody');
+            if (!tbody) return;
+
+            const statsMap = new Map();
+            
+            const plansToProcess = filterVal === 'all' ? allFetchedPlans : allFetchedPlans.filter(p => p.id === filterVal);
+
+            plansToProcess.forEach(plan => {
+                if (plan.participants && Array.isArray(plan.participants)) {
+                    plan.participants.forEach(p => {
+                        if (!p.name) return;
+                        if (p.name.includes(".............")) return; // ignore dots
+                        const normName = normalizeTr(p.name);
+                        if (!statsMap.has(normName)) {
+                            statsMap.set(normName, { name: p.name, gorev: p.gorev || 'Öğretmen', count: 0 });
+                        } else {
+                            const ext = statsMap.get(normName);
+                            if (ext.gorev === 'Katılımcı' && p.gorev) ext.gorev = p.gorev;
+                        }
+                    });
+                }
+
+                if (plan.opinions && typeof plan.opinions === 'object') {
+                    Object.values(plan.opinions).forEach(agendaOpinions => {
+                        if (Array.isArray(agendaOpinions)) {
+                            agendaOpinions.forEach(op => {
+                                if (op && op.name && !op.name.includes(".............")) {
+                                    const normName = normalizeTr(op.name);
+                                    if (!statsMap.has(normName)) {
+                                        statsMap.set(normName, { name: op.name, gorev: 'Katılımcı', count: 0 });
+                                    }
+                                    statsMap.get(normName).count += 1;
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+
+            const statsArray = Array.from(statsMap.values());
+            if (statsArray.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 2rem; color: #64748b;">Bu zümre(ler) için henüz katılımcı veya görüş bulunmuyor.</td></tr>`;
+                return;
+            }
+
+            statsArray.sort((a, b) => {
+                if (a.count !== b.count) return a.count - b.count;
+                return a.name.localeCompare(b.name, 'tr');
+            });
+
+            let highestCount = 0;
+            statsArray.forEach(s => {
+                if (s.count > highestCount) highestCount = s.count;
+            });
+
+            let html = '';
+            statsArray.forEach((s, index) => {
+                let rowStyle = '';
+                let iconHtml = '';
+                let countBadgeStyle = 'background: #f1f5f9; color: #475569;';
+
+                if (s.count === 0) {
+                    rowStyle = 'background: #fff1f2;';
+                    countBadgeStyle = 'background: #ffe4e6; color: #e11d48; border: 1px solid #fecdd3; font-weight: 800;';
+                    iconHtml = '<i class="fa-solid fa-face-frown-open" style="color: #e11d48; margin-right: 6px;" title="Hiç görüş yazmamış"></i>';
+                } else if (highestCount > 0 && s.count === highestCount) {
+                    rowStyle = 'background: #f0fdf4;';
+                    countBadgeStyle = 'background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; font-weight: 800; font-size: 1rem;';
+                    iconHtml = '<i class="fa-solid fa-crown" style="color: #fbbf24; margin-right: 6px;" title="En Çok Görüş Yazan (Lider)"></i>';
+                } else if (s.count > 0) {
+                    countBadgeStyle = 'background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; font-weight: 700;';
+                }
+
+                html += \`
+                    <tr style="\${rowStyle} transition: background 0.2s;">
+                        <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #64748b;">\${index + 1}</td>
+                        <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: var(--dark);">\${iconHtml}\${s.name}</td>
+                        <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #475569; font-size: 0.9rem;">\${(s.gorev || '').split(',').join(', ')}</td>
+                        <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; text-align: center;">
+                            <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; min-width: 40px; \${countBadgeStyle}">\${s.count}</span>
+                        </td>
+                    </tr>
+                \`;
+            });
+
+            tbody.innerHTML = html;
         }
 
         function setDefaultZumreSelections() {
