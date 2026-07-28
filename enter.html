@@ -628,7 +628,7 @@
                             <span class="toggle-slider"></span>
                         </label>
                         <div style="display:flex; gap:5px; margin-top:4px;">
-                            <a href="${link.url || '#'}" class="btn btn-sm" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; padding:4px 8px; text-decoration:none; display:flex; align-items:center; justify-content:center;" title="Sayfaya Git"><i class="fa-solid fa-arrow-right-to-bracket"></i></a>
+                            <a id="test-btn-${link.id}" href="${link.url || '#'}" class="btn btn-sm" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; padding:4px 8px; text-decoration:none; display:flex; align-items:center; justify-content:center;" title="Sayfaya Git"><i class="fa-solid fa-arrow-right-to-bracket"></i></a>
                             <button class="btn btn-sm" style="background:#fef2f2; color:#ef4444; border:1px solid #fecaca; padding:4px 8px; display:flex; align-items:center; justify-content:center;" onclick="removeLink('${link.id}')" title="Sil"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
@@ -659,6 +659,10 @@
             const link = portalLinks.find(l => l.id === id);
             if (link) {
                 link[field] = value;
+                if (field === 'url') {
+                    const btn = document.getElementById('test-btn-' + id);
+                    if (btn) btn.href = value || '#';
+                }
             }
         };
 
