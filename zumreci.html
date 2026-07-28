@@ -1530,15 +1530,13 @@
                                         <span><i class="fa-regular fa-calendar" style="margin-right: 4px; color: var(--primary);"></i> <b>Tarih:</b> ${plan.tarih || 'Belirtilmedi'}</span>
                                         <span><i class="fa-regular fa-clock" style="margin-right: 4px; color: var(--primary);"></i> <b>Saat:</b> ${plan.saat || 'Belirtilmedi'}</span>
                                         <span><i class="fa-solid fa-location-dot" style="margin-right: 4px; color: var(--primary);"></i> <b>Yer:</b> ${plan.yer || 'Belirtilmedi'}</span>
+                                        <span style="color: #cbd5e1;">|</span>
+                                        <span><i class="fa-solid fa-users" style="margin-right: 4px; color: var(--primary);"></i> <b>${pCount}</b> Katılımcı</span>
+                                        <span><i class="fa-solid fa-list-check" style="margin-right: 4px; color: var(--primary);"></i> <b>${aCount}</b> Gündem</span>
                                     </div>
                                 </div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                                <div style="text-align: right; font-size: 0.85rem; font-weight: 700; color: #334155; background: #ffffff; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                                    <i class="fa-solid fa-users" style="margin-right: 4px;"></i> ${pCount} Katılımcı
-                                    <span style="color: #cbd5e1; margin: 0 6px;">|</span>
-                                    <i class="fa-solid fa-list-check" style="margin-right: 4px;"></i> ${aCount} Gündem
-                                </div>
                                 <button class="btn-custom btn-secondary-custom" onclick="event.stopPropagation(); printZumrePlan('${plan.id}')" style="padding: 6px 12px; font-size: 0.85rem; border-color: #38bdf8; color: #0284c7; background: #e0f2fe;" title="Bu Tutanak İçin Çıktı / PDF Al">
                                     <i class="fa-solid fa-print"></i> Yazdır
                                 </button>
