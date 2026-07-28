@@ -1254,7 +1254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.assignDeviceToClass = async function(className) {
         if (assignDeviceInterval) clearInterval(assignDeviceInterval);
         
-        // Cihazın okulu henüz belli olmayabileceği için global (00000) kanalı üzerinden dinliyoruz.
+        // Firebase Rules güncellemesine gerek kalmadan çalışması için halihazırda yazma yetkisi olan klbk_users klasörünü kullanıyoruz
         const pairingChannel = '00000';
         const waitToken = Math.random().toString(36).substring(2, 10);
         
@@ -1264,16 +1264,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 method: 'PUT',
                 body: JSON.stringify({ status: 'waiting', token: waitToken })
             });
-            if (!putRes.ok) throw new Error("Firebase erişilemedi");
+            if (!putRes.ok) throw new Error("Firebase HTTP " + putRes.status);
         } catch (e) {
             Swal.fire({
                 toast: true,
                 position: 'top-end',
                 icon: 'error',
-                title: 'Bağlantı hatası! İnternetinizi kontrol edin.',
+                title: 'Bağlantı hatası! ' + e.message,
                 showConfirmButton: false,
-                timer: 3000
+                timer: 4000
             });
+            console.error("Cihaz ata hatası:", e);
             return;
         }
 
