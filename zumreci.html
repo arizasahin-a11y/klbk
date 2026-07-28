@@ -1203,41 +1203,22 @@
             const myId = sessionStorage.getItem('klbk_userId') ? sessionStorage.getItem('klbk_userId').toString().trim() : (sessionStorage.getItem('klbk_currentUser') || '').toString().trim();
             const isPlanner = (myId && plan.plannerId && plan.plannerId.toString().trim() === myId) ||
                               (myNameNorm && plan.planner && (normalizeTr(plan.planner).includes(myNameNorm) || myNameNorm.includes(normalizeTr(plan.planner))));
+            if (isPlanner) return true;
 
-            let canSeeSok = false;
-            const cleanCls = str => (str || '').toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
-            const sokClassNameMatch = (plan.konu || plan.tur || plan.branch || '').match(/(\d+)\s*[\/\-\.\s]?\s*([A-ZĞÜŞİÖÇ\d]+)/i);
-            const targetClass = sokClassNameMatch && sokClassNameMatch[1] ? cleanCls(sokClassNameMatch[1] + (sokClassNameMatch[2] || '')) : cleanCls(plan.branch || '');
-
-            if (targetClass && typeof schoolTeachersList !== 'undefined' && Array.isArray(schoolTeachersList)) {
-                const me = schoolTeachersList.find(t => (myId && t.id && t.id.toString().trim() === myId) || (t.name && myNameNorm && normalizeTr(t.name) === myNameNorm));
-                if (me) {
-                    const chkVal = (val, target) => {
-                        if (!val) return false;
-                        if (typeof val === 'string' || typeof val === 'number') {
-                            const cVal = cleanCls(val);
-                            if (!cVal) return false;
-                            return cVal === target || cVal.startsWith(target) || cVal.endsWith(target) || (target.length >= 2 && cVal.includes(target));
-                        } else if (Array.isArray(val)) return val.some(v => chkVal(v, target));
-                        else if (typeof val === 'object') {
-                            for (const k in val) if (chkVal(val[k], target)) return true;
-                        }
-                        return false;
-                    };
-                    let teachesThisClass = chkVal(me.classes, targetClass) || chkVal(me.schedule, targetClass);
-                    if (!teachesThisClass && me.rawObj) {
-                        const classKeys = ['classes', 'subeler', 'siniflar', 'assignedClasses', 'courses', 'dersler', 'schedule', 'dersProgrami', 'program', 'sube', 'sinif', 'class', 'rehberlikSiniF', 'sinifRehberlik'];
-                        for (const key of classKeys) {
-                            if (me.rawObj[key] && chkVal(me.rawObj[key], targetClass)) {
-                                teachesThisClass = true;
-                                break;
-                            }
-                        }
-                    }
-                    canSeeSok = teachesThisClass;
-                }
+            if (plan.participants && Array.isArray(plan.participants)) {
+                return plan.participants.some(p => {
+                    if (!p) return false;
+                    if (myId && p.id && p.id.toString().trim() === myId) return true;
+                    const pName = normalizeTr(p.name || '');
+                    if (!pName || !myNameNorm) return false;
+                    if (pName === myNameNorm || pName.includes(myNameNorm) || myNameNorm.includes(pName)) return true;
+                    const parts = myNameNorm.split(' ').filter(w => w.length > 2);
+                    if (parts.length >= 2) return parts.every(w => pName.includes(w));
+                    else if (parts.length === 1) return pName.includes(parts[0]);
+                    return false;
+                });
             }
-            return canSeeSok || isPlanner;
+            return false;
         }
 
         async function promptSyncOpinionToOtherSoks(sourcePlanId, agendaIdx, newOpObj) {
