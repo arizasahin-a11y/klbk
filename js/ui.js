@@ -1348,25 +1348,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             const class1 = window.selectedClassForSwap;
             const class2 = className;
             window.selectedClassForSwap = null;
-
-            // Remove visual selection highlight from all spans
             document.querySelectorAll('.device-badge-selected').forEach(el => el.classList.remove('device-badge-selected'));
-            
-            const id1 = DataManager.getSanitizedClassDeviceMapping(class1) || '';
-            const id2 = DataManager.getSanitizedClassDeviceMapping(class2) || '';
-            
-            if (id1) DataManager.saveClassDeviceMapping(class1, id2);
-            else DataManager.saveClassDeviceMapping(class1, '');
-            if (id2) DataManager.saveClassDeviceMapping(class2, id1);
-            else DataManager.saveClassDeviceMapping(class2, '');
+
+            // Single atomic save — no race condition
+            const { id1, id2 } = DataManager.swapClassDeviceMappings(class1, class2);
             
             Swal.fire({
                 toast: true,
                 position: 'top-end',
                 icon: 'success',
-                title: `Takas edildi: ${class1} ↔ ${class2}`,
+                title: `Takas edildi: ${class1} (${id1 || '—'}) ↔ ${class2} (${id2 || '—'})`,
                 showConfirmButton: false,
-                timer: 2000
+                timer: 2500
             });
             updateClassesList();
             return;

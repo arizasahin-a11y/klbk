@@ -525,8 +525,26 @@ const DataManager = {
         } else {
             delete data.classDeviceMappings[safeKey];
         }
-        this._saveData(data); // locally
-        this.forceSaveToCloud();
+        this._saveData(data);
+    },
+
+    // Atomically swap device codes between two classes (single save, no race condition)
+    swapClassDeviceMappings: function (class1, class2) {
+        let data = this._getData();
+        if (!data.classDeviceMappings) data.classDeviceMappings = {};
+        const key1 = this.sanitizeFirebaseKey(class1);
+        const key2 = this.sanitizeFirebaseKey(class2);
+        const id1 = data.classDeviceMappings[key1] || data.classDeviceMappings[class1] || '';
+        const id2 = data.classDeviceMappings[key2] || data.classDeviceMappings[class2] || '';
+        // Clean up any legacy keys
+        delete data.classDeviceMappings[class1];
+        delete data.classDeviceMappings[class2];
+        if (id2) data.classDeviceMappings[key1] = id2;
+        else delete data.classDeviceMappings[key1];
+        if (id1) data.classDeviceMappings[key2] = id1;
+        else delete data.classDeviceMappings[key2];
+        this._saveData(data);
+        return { id1, id2 };
     },
 
     getSanitizedClassRoomMapping: function (className) {
