@@ -920,14 +920,25 @@
         }
 
         function checkPersistentSession() {
-            if (checkClassroomDisplay()) return;
-            const savedNo = localStorage.getItem('klbk_student_session');
-            if (savedNo) {
-                document.getElementById('studentNo').value = savedNo;
-                queryExams(true);
-            } else {
-                document.getElementById('loginView').classList.remove('hidden');
+            try {
+                if (checkClassroomDisplay()) return;
+            } catch (err) {
+                console.error("checkClassroomDisplay crashed:", err);
             }
+
+            try {
+                const savedNo = localStorage.getItem('klbk_student_session');
+                if (savedNo) {
+                    document.getElementById('studentNo').value = savedNo;
+                    queryExams(true);
+                    return;
+                }
+            } catch (err) {
+                console.error("Session check crashed:", err);
+            }
+            
+            const lv = document.getElementById('loginView');
+            if(lv) lv.classList.remove('hidden');
         }
 
         function getNow() {
