@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let passStr = user.password || '---';
             if (passStr.length === 64 && /^[0-9a-f]{64}$/i.test(passStr)) {
-                passStr = '********';
+                passStr = '(Şifrelenmiş - Sıfırlayınız)';
             }
 
             html += `
@@ -600,12 +600,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (usersDb[uname]) {
                     Swal.fire('Hata', `'${uname}' kullanıcı adı zaten mevcut!`, 'error');
                 } else {
-                    // Hash password before saving
-                    const hashedPassword = await hashPassword(password);
-                    
+                    // Şifreyi açık metin olarak kaydet (Kullanıcı talebi)
                     usersDb[uname] = {
                         name: name,
-                        password: hashedPassword,
+                        password: password,
                         email: email,
                         gender: gender,
                         branch: branch,
