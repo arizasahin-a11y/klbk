@@ -1211,7 +1211,7 @@
                     if (myId && p.id && p.id.toString().trim() === myId) return true;
                     const pName = normalizeTr(p.name || '');
                     if (!pName || !myNameNorm) return false;
-                    if (pName === myNameNorm || pName.includes(myNameNorm) || myNameNorm.includes(pName)) return true;
+                    if (pName === myNameNorm || pName.includes(myNameNorm)) return true;
                     const parts = myNameNorm.split(' ').filter(w => w.length > 2);
                     if (parts.length >= 2) return parts.every(w => pName.includes(w));
                     else if (parts.length === 1) return pName.includes(parts[0]);
@@ -1393,8 +1393,9 @@
 
                 // Öğretmen için: ŞÖK toplantılarında kesinlikle öğretmenin o sınıfa dersi olup olmadığı kontrol edilir
                 const isSok = plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ')) || (plan.konu && plan.konu.includes('ŞÖ'));
+                const plannerNameNorm = normalizeTr(plan.planner || '');
                 const isPlanner = (myId && plan.plannerId && plan.plannerId.toString().trim() === myId) ||
-                                  (myNameNorm && plan.planner && (normalizeTr(plan.planner).includes(myNameNorm) || myNameNorm.includes(normalizeTr(plan.planner))));
+                                  (myNameNorm && plannerNameNorm && (plannerNameNorm === myNameNorm || plannerNameNorm.includes(myNameNorm)));
 
                 if (isSok) {
                     if (!canTeacherSeeSokPlan(plan)) return false;
@@ -1415,7 +1416,7 @@
                         if (myId && p.id && p.id.toString().trim() === myId) return true;
                         const pName = normalizeTr(p.name || '');
                         if (!pName || !myNameNorm) return false;
-                        if (pName === myNameNorm || pName.includes(myNameNorm) || myNameNorm.includes(pName)) return true;
+                        if (pName === myNameNorm || pName.includes(myNameNorm)) return true;
                         const parts = myNameNorm.split(' ').filter(w => w.length > 2);
                         if (parts.length >= 2) {
                             return parts.every(w => pName.includes(w));
