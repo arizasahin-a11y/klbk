@@ -1034,24 +1034,45 @@
                 // --- Cihaz Eşleştirme Modu (00000) ---
                 if (studentNo === '00000') {
                     const devId = await buildDeviceFingerprint();
+                    const beaconUrl = 'https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users/device_assign_00000.json';
+                    const beaconBody = JSON.stringify({ deviceId: devId, timestamp: Date.now() });
 
-
-                    // Check for auto-reload if mapped
-                    const checkMapping = async () => {
-                        const storeKey = encodeURIComponent(DataManager._getStorageKey());
-                        const res = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/${storeKey}/classDeviceMappings.json`);
-                        if(res.ok) {
-                            const mappings = await res.json() || {};
-                            if(Object.values(mappings).includes(devId)) location.reload();
-                        }
-                    };
-
-                    let beaconInterval = setInterval(async () => {
-                        fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users/device_assign_00000.json`, {
+                    // İlk sinyali HEMEN gönder (2 sn beklemeden)
+                    const sendBeacon = () => {
+                        return fetch(beaconUrl, {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ deviceId: devId, timestamp: Date.now() })
-                        }).catch(e => console.error("Beacon error", e));
+                        });
+                    };
+
+                    // Eşleşme kontrolü
+                    const checkMapping = async () => {
+                        try {
+                            const storeKey = encodeURIComponent(DataManager._getStorageKey());
+                            const res = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/${storeKey}/classDeviceMappings.json`);
+                            if (res.ok) {
+                                const mappings = await res.json() || {};
+                                if (Object.values(mappings).includes(devId)) location.reload();
+                            }
+                        } catch(e) {}
+                    };
+
+                    // İlk sinyali hemen gönder
+                    try {
+                        await sendBeacon();
+                        console.log('İlk sinyal gönderildi:', devId);
+                    } catch(e) {
+                        console.error('İlk sinyal hatası:', e);
+                    }
+
+                    // Sonra her 2 saniyede tekrarla
+                    let beaconInterval = setInterval(async () => {
+                        try {
+                            await sendBeacon();
+                        } catch(e) {
+                            console.error('Beacon hatası:', e);
+                        }
                         await checkMapping();
                     }, 2000);
 
@@ -1061,15 +1082,14 @@
                         allowOutsideClick: false,
                         showConfirmButton: true,
                         confirmButtonText: 'İptal',
-                        confirmButtonColor: 'var(--danger)'
+                        confirmButtonColor: '#ef4444'
                     }).then(() => {
-                    }).catch(e => {
-                        console.error(e);
-                        alert('Bağlantı hatası: Sinyal gönderilemedi.');
+                        if (beaconInterval) { clearInterval(beaconInterval); beaconInterval = null; }
                     });
                     
                     return; // Normal öğrenci girişini atla
                 }
+
                 
                 const students = DataManager.getStudents();
                 if (!students || (Array.isArray(students) && students.length === 0)) {
