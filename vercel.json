@@ -1,4 +1,19 @@
 {
+  "headers": [
+    {
+      "source": "/(.*)\\.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Pragma", "value": "no-cache" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    }
+  ],
   "routes": [
     { "src": "/master(\\.html)?$", "status": 302, "headers": { "Location": "/security_error" } },
     { "src": "/ogrenci(\\.html)?$", "status": 302, "headers": { "Location": "/security_error" } },
