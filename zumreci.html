@@ -284,11 +284,11 @@
         /* Mobil ve Tablet Uyumluluğu (Responsive Design) */
         @media (max-width: 1024px) {
             .zumre-container {
-                margin: 1rem auto;
+                margin: 0.75rem auto;
                 padding: 0 0.75rem;
             }
             .premium-header {
-                padding: 1rem 1.25rem;
+                padding: 0.85rem 1.25rem;
             }
             .section-card {
                 padding: 1.5rem;
@@ -296,83 +296,65 @@
         }
 
         @media (max-width: 768px) {
+            .zumre-container {
+                margin: 0.5rem auto;
+                padding: 0 0.6rem;
+            }
+            /* Header: tek satır, kompakt */
             .premium-header {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                gap: 8px;
+                padding: 0.6rem 0.75rem;
+                align-items: center;
             }
             .premium-header > div:first-child {
-                flex-direction: column;
-                text-align: center;
-                gap: 10px !important;
+                flex-direction: row !important;
+                text-align: left !important;
+                gap: 8px !important;
+                align-items: center !important;
+                flex: 1;
+                min-width: 0;
             }
-            .tabs-header {
-                flex-direction: column;
-                gap: 8px;
+            /* Header ikon küçük */
+            .premium-header > div:first-child > div:first-child {
+                padding: 7px !important;
+                border-radius: 8px !important;
+                flex-shrink: 0;
             }
-            .tab-btn {
-                border-radius: 12px;
-                justify-content: center;
-                width: 100%;
-                padding: 0.75rem 1rem;
+            .premium-header > div:first-child > div:first-child i {
+                font-size: 1.1rem !important;
             }
-            .section-card {
-                padding: 1.25rem;
+            /* Başlık metni kısalt */
+            .premium-header .header-sub-label { display: none; }
+            #welcomeTeacher { font-size: 0.92rem !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+            #welcomeSchool { display: none; }
+            /* Sağ butonlar */
+            .premium-header > div:last-child {
+                flex-shrink: 0;
+                gap: 6px;
             }
-            .form-select-custom, .form-control-custom, .btn-custom {
-                width: 100%;
-                box-sizing: border-box;
-            }
-            .radio-group {
-                flex-direction: column;
-            }
-            .radio-card {
-                min-width: 100%;
-            }
-            .participant-table, table {
-                width: 100%;
-            }
+            .premium-header .btn-logout-text { display: none; }
+            .premium-header .btn-custom { padding: 0.5rem 0.65rem; font-size: 0.85rem; }
+            /* Section kartları */
+            .section-card { padding: 1rem; }
+            .form-select-custom, .form-control-custom, .btn-custom { box-sizing: border-box; }
+            .radio-group { flex-direction: column; }
+            .radio-card { min-width: 100%; }
+            .participant-table, table { width: 100%; }
             div[style*="overflow-x: auto"], div[style*="overflow-y: auto"], .table-responsive {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                width: 100%;
-                display: block;
+                overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; display: block;
             }
-            .modal-box {
-                padding: 1.25rem;
-                width: 95%;
-                max-height: 90vh;
-            }
-            div[style*="justify-content: space-between"] {
-                flex-direction: column;
-                align-items: stretch !important;
-                gap: 12px !important;
-            }
-            div[style*="justify-content: flex-end"] {
-                justify-content: center !important;
-                width: 100%;
-            }
+            .modal-box { padding: 1.25rem; width: 95%; max-height: 90vh; }
             #gorusBransFilterContainer, #gorusSokClassFilterContainer {
-                width: 100%;
-                box-sizing: border-box;
-                justify-content: space-between;
+                width: 100%; box-sizing: border-box; justify-content: space-between;
             }
+            .tabs-header { display: none !important; }
         }
 
         @media (max-width: 480px) {
-            .premium-header h1 {
-                font-size: 1.25rem !important;
-            }
-            .section-card {
-                padding: 1rem;
-            }
-            .btn-custom {
-                padding: 0.75rem 1rem;
-                font-size: 0.9rem;
-            }
-            .tab-btn {
-                font-size: 0.9rem;
-            }
+            #welcomeTeacher { max-width: 110px; font-size: 0.85rem !important; }
+            .section-card { padding: 0.875rem; }
         }
 
         @keyframes smilePop {
@@ -381,65 +363,97 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* ── HAMBURGER MENU (mobile tabs) ── */
-        .mobile-tab-toggle {
+        /* ── HAMBURGER MENU — küçük sol-üst ikon butonu ── */
+        .mob-ham-btn {
             display: none;
-            width: 100%;
+            align-items: center;
+            justify-content: center;
             background: var(--primary);
             color: white;
             border: none;
-            border-radius: 12px;
-            padding: 0.85rem 1.25rem;
-            font-size: 1rem;
-            font-weight: 700;
-            font-family: 'Outfit', sans-serif;
+            border-radius: 9px;
+            width: 38px;
+            height: 38px;
+            flex-shrink: 0;
             cursor: pointer;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            box-shadow: 0 4px 12px rgba(13,148,136,0.25);
-            margin-bottom: 8px;
+            gap: 0;
+            box-shadow: 0 2px 8px rgba(13,148,136,0.28);
+            position: relative;
+            z-index: 200;
         }
-        .mobile-tab-toggle .hamburger-lines {
+        .mob-ham-btn .ham-lines {
             display: flex;
             flex-direction: column;
             gap: 4px;
+            pointer-events: none;
         }
-        .mobile-tab-toggle .hamburger-lines span {
+        .mob-ham-btn .ham-lines span {
             display: block;
-            width: 22px;
-            height: 2.5px;
+            width: 18px;
+            height: 2px;
             background: white;
             border-radius: 2px;
-            transition: all 0.25s;
+            transition: all 0.22s;
         }
-        .mobile-tab-dropdown {
+        /* Dropdown — sol üstten açılır, içerik alanının üstünde absolute */
+        .mob-tab-dropdown {
             display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            min-width: 230px;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
             background: white;
             border: 2px solid var(--primary);
             border-radius: 12px;
-            padding: 8px;
-            margin-bottom: 12px;
-            box-shadow: 0 8px 24px rgba(13,148,136,0.15);
-            animation: dropdownFade 0.2s ease;
+            padding: 6px;
+            box-shadow: 0 10px 28px rgba(13,148,136,0.18);
+            animation: mobDropFade 0.18s ease;
+            z-index: 500;
         }
-        .mobile-tab-dropdown.open { display: flex; }
-        .mobile-tab-dropdown .tab-btn {
+        .mob-tab-dropdown.open { display: flex; }
+        .mob-tab-dropdown .mob-tab-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0.7rem 1rem;
+            border: none;
             border-radius: 8px;
-            justify-content: flex-start;
-            width: 100%;
-            padding: 0.75rem 1rem;
+            background: transparent;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #475569;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.15s, color 0.15s;
         }
-        @keyframes dropdownFade {
-            from { opacity: 0; transform: translateY(-6px); }
+        .mob-tab-dropdown .mob-tab-item:hover { background: #f0fdf4; color: #0d9488; }
+        .mob-tab-dropdown .mob-tab-item.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 8px rgba(13,148,136,0.25);
+        }
+        .mob-tab-dropdown .mob-tab-item i { width: 18px; text-align: center; }
+        @keyframes mobDropFade {
+            from { opacity: 0; transform: translateY(-8px); }
             to   { opacity: 1; transform: translateY(0); }
         }
-
+        /* Sadece mobilde göster */
         @media (max-width: 768px) {
-            .mobile-tab-toggle { display: flex; }
-            .tabs-header { display: none; }
+            .mob-ham-btn { display: flex; }
+            /* Eski tam genişlik bar — gizle */
+            .mobile-tab-toggle { display: none !important; }
+            .mobile-tab-dropdown { display: none !important; }
+        }
+        /* Ham btn wrapper: header içinde relative konteynır */
+        .mob-ham-wrapper {
+            position: relative;
+            display: none;
+        }
+        @media (max-width: 768px) {
+            .mob-ham-wrapper { display: block; }
         }
     </style>
 </head>
@@ -480,49 +494,65 @@
     <!-- MAIN PORTAL CONTAINER -->
     <div id="mainContainer" class="zumre-container" style="display: none;">
         
-        <!-- Premium Header -->
-        <div class="premium-header glass-panel">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <div style="background: rgba(13, 148, 136, 0.1); padding: 12px; border-radius: 12px; color: var(--primary);">
-                    <i class="fa-solid fa-users-between-lines fa-2x"></i>
+        <!-- Premium Header — hamburger sol-üst köşede header içinde -->
+        <div class="premium-header glass-panel" style="position:relative;">
+
+            <!-- SOL: Hamburger (sadece mobilde) + Logo + Başlık -->
+            <div style="display: flex; align-items: center; gap: 10px; flex:1; min-width:0;">
+
+                <!-- HAMBURGER WRAPPER (mobilde görünür) -->
+                <div class="mob-ham-wrapper">
+                    <button class="mob-ham-btn" id="mobHamBtn" onclick="toggleMobMenu()" aria-expanded="false" aria-label="Menü">
+                        <div class="ham-lines">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </button>
+                    <!-- Dropdown -->
+                    <div class="mob-tab-dropdown" id="mobTabDropdown">
+                        <button class="mob-tab-item" id="mobItemPlan" onclick="switchTab('plan'); closeMobMenu()">
+                            <i class="fa-solid fa-calendar-check"></i> Zümre Planı
+                        </button>
+                        <button class="mob-tab-item active" id="mobItemGorus" onclick="switchTab('gorus'); closeMobMenu()">
+                            <i class="fa-solid fa-comments"></i> Görüş İşleme
+                        </button>
+                        <button class="mob-tab-item" id="mobItemIstatistik" onclick="switchTab('istatistik'); closeMobMenu()">
+                            <i class="fa-solid fa-chart-column"></i> İstatistik
+                        </button>
+                    </div>
                 </div>
-                <div>
-                    <div style="font-size: 0.65rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;"><i class="fa-solid fa-folder-tree" style="margin-right: 4px;"></i> ZÜMRE YÖNETİMİ (ZÜMRECİ)</div>
-                    <h1 style="font-size: 1.25rem; font-weight: 800; color: var(--dark); margin: 0;" id="welcomeTeacher">Hoş Geldiniz...</h1>
-                    <p style="font-size: 0.85rem; color: #64748b; margin: 2px 0 0 0;" id="welcomeSchool">...</p>
+
+                <!-- Logo ikon -->
+                <div style="background: rgba(13,148,136,0.1); padding: 10px; border-radius: 10px; color: var(--primary); flex-shrink:0;">
+                    <i class="fa-solid fa-users-between-lines" style="font-size:1.35rem;"></i>
+                </div>
+
+                <!-- Başlık -->
+                <div style="min-width:0;">
+                    <div class="header-sub-label" style="font-size:0.6rem; font-weight:800; color:var(--primary); text-transform:uppercase; letter-spacing:1px; margin-bottom:1px;">
+                        <i class="fa-solid fa-folder-tree" style="margin-right:3px;"></i> ZÜMRE YÖNETİMİ
+                    </div>
+                    <h1 style="font-size:1.15rem; font-weight:800; color:var(--dark); margin:0; line-height:1.2;" id="welcomeTeacher">Hoş Geldiniz...</h1>
+                    <p style="font-size:0.82rem; color:#64748b; margin:1px 0 0 0;" id="welcomeSchool">...</p>
                 </div>
             </div>
-            
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <button class="btn-custom btn-secondary-custom" onclick="window.location.href='/enter.html'" title="Portal Ana Sayfa">
+
+            <!-- SAĞ: Butonlar -->
+            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                <button class="btn-custom btn-secondary-custom" onclick="window.location.href='/enter.html'" title="Portal Ana Sayfa" style="padding:0.55rem 0.75rem;">
                     <i class="fa-solid fa-house"></i>
                 </button>
-                <button class="btn-custom btn-danger-custom" onclick="logoutZumreci()">
-                    <i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap
+                <button class="btn-custom btn-danger-custom" onclick="logoutZumreci()" style="padding:0.55rem 0.85rem;">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span class="btn-logout-text"> Çıkış Yap</span>
                 </button>
             </div>
         </div>
 
-        <!-- MOBILE HAMBURGER TOGGLE -->
-        <button class="mobile-tab-toggle" id="mobileTabToggle" onclick="toggleMobileTabMenu()" aria-expanded="false" aria-label="Sekmeler">
-            <span id="mobileTabLabel"><i class="fa-solid fa-comments" style="margin-right:8px;"></i>Zümre Görüş İşleme</span>
-            <div class="hamburger-lines">
-                <span></span><span></span><span></span>
-            </div>
-        </button>
-        <div class="mobile-tab-dropdown" id="mobileTabDropdown">
-            <button class="tab-btn" id="mobileTabBtnPlan" onclick="switchTab('plan'); closeMobileTabMenu()">
-                <i class="fa-solid fa-calendar-check"></i> Zümre Planı Sayfası
-            </button>
-            <button class="tab-btn active" id="mobileTabBtnGorus" onclick="switchTab('gorus'); closeMobileTabMenu()">
-                <i class="fa-solid fa-comments"></i> Zümre Görüş İşleme
-            </button>
-            <button class="tab-btn" id="mobileTabBtnIstatistik" onclick="switchTab('istatistik'); closeMobileTabMenu()">
-                <i class="fa-solid fa-chart-column"></i> İstatistik
-            </button>
-        </div>
+        <!-- Eski mobil tam-genişlik toggle (artık kullanılmıyor, gizli) -->
+        <div id="mobileTabToggle" style="display:none;"></div>
+        <div id="mobileTabDropdown" style="display:none;"></div>
 
-        <!-- TABS HEADER -->
+        <!-- TABS HEADER (masaüstü) -->
         <div class="tabs-header">
             <button class="tab-btn" id="tabBtnPlan" onclick="switchTab('plan')">
                 <i class="fa-solid fa-calendar-check"></i> Zümre Planı Sayfası
@@ -988,51 +1018,39 @@
 
         let allFetchedPlans = []; // Tab 2 için tüm çekilen zümreler
 
-        /* ── HAMBURGER MOBILE TAB MENU ── */
-        function toggleMobileTabMenu() {
-            const dropdown = document.getElementById('mobileTabDropdown');
-            const btn = document.getElementById('mobileTabToggle');
+        /* ── YENİ COMPACT HAMBURGER MENU JS ── */
+        function toggleMobMenu() {
+            const dropdown = document.getElementById('mobTabDropdown');
+            const btn = document.getElementById('mobHamBtn');
             if (!dropdown) return;
             const isOpen = dropdown.classList.contains('open');
-            if (isOpen) {
-                dropdown.classList.remove('open');
-                btn.setAttribute('aria-expanded', 'false');
-            } else {
-                dropdown.classList.add('open');
-                btn.setAttribute('aria-expanded', 'true');
-            }
+            dropdown.classList.toggle('open', !isOpen);
+            if (btn) btn.setAttribute('aria-expanded', String(!isOpen));
         }
-        function closeMobileTabMenu() {
-            const dropdown = document.getElementById('mobileTabDropdown');
-            const btn = document.getElementById('mobileTabToggle');
+        function closeMobMenu() {
+            const dropdown = document.getElementById('mobTabDropdown');
+            const btn = document.getElementById('mobHamBtn');
             if (dropdown) dropdown.classList.remove('open');
             if (btn) btn.setAttribute('aria-expanded', 'false');
         }
-        // Dışarı tıklanınca dropdown kapansın
+        // Dışarıya tıklanınca kapat
         document.addEventListener('click', (e) => {
-            const toggle = document.getElementById('mobileTabToggle');
-            const dropdown = document.getElementById('mobileTabDropdown');
-            if (toggle && dropdown && !toggle.contains(e.target) && !dropdown.contains(e.target)) {
-                closeMobileTabMenu();
-            }
+            const wrapper = document.getElementById('mobHamBtn') && document.getElementById('mobHamBtn').closest('.mob-ham-wrapper');
+            if (wrapper && !wrapper.contains(e.target)) closeMobMenu();
         });
-        // switchTab çağrıldığında mobil label'i güncelle
-        const _origSwitchTab = window.switchTab;
+        // Eski fonksiyonlar da sapasağlam çalışsın (başka yerde çağrılıyorsa)
+        function toggleMobileTabMenu() { toggleMobMenu(); }
+        function closeMobileTabMenu()  { closeMobMenu(); }
+
+        // switchTab çağrıldığında mobil dropdown'daki active item'ı güncelle
         function updateMobileTabLabel(tabName) {
-            const labelEl = document.getElementById('mobileTabLabel');
-            if (!labelEl) return;
-            const labels = {
-                'plan':       '<i class="fa-solid fa-calendar-check" style="margin-right:8px;"></i>Zümre Planı Sayfası',
-                'gorus':      '<i class="fa-solid fa-comments" style="margin-right:8px;"></i>Zümre Görüş İşleme',
-                'istatistik': '<i class="fa-solid fa-chart-column" style="margin-right:8px;"></i>İstatistik'
-            };
-            if (labels[tabName]) labelEl.innerHTML = labels[tabName];
-            // Mobil dropdown butonlarının active class'ını güncelle
-            ['plan','gorus','istatistik'].forEach(t => {
-                const mBtn = document.getElementById(`mobileTabBtn${t.charAt(0).toUpperCase()+t.slice(1)}`);
-                if (mBtn) mBtn.classList.toggle('active', t === tabName);
+            const map = { plan: 'mobItemPlan', gorus: 'mobItemGorus', istatistik: 'mobItemIstatistik' };
+            Object.entries(map).forEach(([t, id]) => {
+                const el = document.getElementById(id);
+                if (el) el.classList.toggle('active', t === tabName);
             });
         }
+
 
         document.addEventListener("DOMContentLoaded", () => {
             const urlParams = new URLSearchParams(window.location.search);
