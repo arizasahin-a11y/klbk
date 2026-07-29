@@ -957,8 +957,97 @@
                 
                 // --- Cihaz Eşleştirme Modu (00000) ---
                 if (studentNo === '00000') {
-                    const devId = localStorage.getItem('klbk_device_id') || ('CHZ-' + Math.floor(1000 + Math.random() * 9000));
-                    localStorage.setItem('klbk_device_id', devId);
+                // --- Gerçek Cihaz Parmak İzi (Device Fingerprint) Üret ---
+                async function buildDeviceFingerprint() {
+                    // 1) Önce localStorage'da kayıtlı varsa kullan
+                    const saved = localStorage.getItem('klbk_device_id');
+                    if (saved && saved.startsWith('CHZ-')) return saved;
+
+                    // 2) IndexedDB'de kayıtlı varsa kullan (tarayıcı localStorage temizlense de kalır)
+                    try {
+                        const idbVal = await new Promise((res, rej) => {
+                            const req = indexedDB.open('klbk_device_store', 1);
+                            req.onupgradeneeded = e => e.target.result.createObjectStore('data');
+                            req.onsuccess = e => {
+                                const db = e.target.result;
+                                const tx = db.transaction('data', 'readonly');
+                                const get = tx.objectStore('data').get('device_id');
+                                get.onsuccess = () => res(get.result);
+                                get.onerror = () => res(null);
+                            };
+                            req.onerror = () => res(null);
+                        });
+                        if (idbVal && idbVal.startsWith('CHZ-')) {
+                            localStorage.setItem('klbk_device_id', idbVal);
+                            return idbVal;
+                        }
+                    } catch(e) {}
+
+                    // 3) Yeni fingerprint hesapla — cihaza özgü kararlı veriler
+                    const parts = [];
+                    // Ekran boyutu (değişmez)
+                    parts.push(`${screen.width}x${screen.height}x${screen.colorDepth}`);
+                    // Saat dilimi (değişmez)
+                    parts.push(Intl.DateTimeFormat().resolvedOptions().timeZone || 'notz');
+                    // CPU / donanım (değişmez)
+                    parts.push(`cpu${navigator.hardwareConcurrency || 0}`);
+                    parts.push(`mem${navigator.deviceMemory || 0}`);
+                    // Platform (değişmez)
+                    parts.push(navigator.platform || 'noplat');
+                    // GPU Renderer (değişmez — donanıma özgü)
+                    try {
+                        const gl = document.createElement('canvas').getContext('webgl');
+                        if (gl) {
+                            const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+                            if (dbg) parts.push(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || 'nogpu');
+                        }
+                    } catch(e) { parts.push('nogpu'); }
+                    // Canvas fingerprint (piksel seviyesi donanım farkı)
+                    try {
+                        const cv = document.createElement('canvas');
+                        cv.width = 200; cv.height = 50;
+                        const ctx = cv.getContext('2d');
+                        ctx.font = '14px Arial';
+                        ctx.fillStyle = '#069';
+                        ctx.fillText('KLBK-device-fp-2025', 10, 30);
+                        ctx.strokeStyle = 'rgba(100,200,50,0.8)';
+                        ctx.beginPath(); ctx.arc(50, 25, 15, 0, Math.PI*2); ctx.stroke();
+                        parts.push(cv.toDataURL().slice(-80)); // Son 80 karakter yeterli
+                    } catch(e) { parts.push('nocv'); }
+
+                    // SHA-256 hash al → kısa CHZ-XXXX-XXXX kodu üret
+                    const raw = parts.join('|');
+                    let hashNum = 0;
+                    try {
+                        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
+                        const arr = Array.from(new Uint8Array(buf));
+                        // İlk 8 byte → 2 adet 4 haneli hex blok
+                        const h1 = arr.slice(0,4).map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase().slice(0,4);
+                        const h2 = arr.slice(4,8).map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase().slice(0,4);
+                        const devId = `CHZ-${h1}-${h2}`;
+
+                        // localStorage + IndexedDB'ye kaydet
+                        localStorage.setItem('klbk_device_id', devId);
+                        try {
+                            const req2 = indexedDB.open('klbk_device_store', 1);
+                            req2.onsuccess = e => {
+                                const db = e.target.result;
+                                const tx = db.transaction('data', 'readwrite');
+                                tx.objectStore('data').put(devId, 'device_id');
+                            };
+                        } catch(e2) {}
+                        return devId;
+                    } catch(e) {
+                        // crypto.subtle başarısız olursa ham stringe basit hash
+                        let h = 0;
+                        for (let i = 0; i < raw.length; i++) { h = ((h << 5) - h) + raw.charCodeAt(i); h |= 0; }
+                        const fallback = 'CHZ-' + Math.abs(h).toString(16).toUpperCase().padStart(8,'0').slice(0,8);
+                        localStorage.setItem('klbk_device_id', fallback);
+                        return fallback;
+                    }
+                }
+
+                    const devId = await buildDeviceFingerprint();
 
                     // Check for auto-reload if mapped
                     const checkMapping = async () => {
