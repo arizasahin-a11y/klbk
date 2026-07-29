@@ -950,9 +950,11 @@
 
         // --- Gerçek Cihaz Parmak İzi (Device Fingerprint) ---
         async function buildDeviceFingerprint() {
-            // 1) localStorage'da kayıtlı varsa kullan
+            // 1) localStorage'da kayıtlı varsa kullan (sadece yeni CHZ-XXXX-XXXX formatı)
             const saved = localStorage.getItem('klbk_device_id');
-            if (saved && saved.startsWith('CHZ-')) return saved;
+            if (saved && /^CHZ-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(saved)) return saved;
+            // Eski formattaki kodu temizle
+            if (saved) localStorage.removeItem('klbk_device_id');
 
             // 2) IndexedDB'de kayıtlı varsa kullan (localStorage temizlense de kalır)
             try {
@@ -968,63 +970,56 @@
                     };
                     req.onerror = () => res(null);
                 });
-                if (idbVal && idbVal.startsWith('CHZ-')) {
+                if (idbVal && /^CHZ-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(idbVal)) {
                     localStorage.setItem('klbk_device_id', idbVal);
                     return idbVal;
                 }
             } catch(e) {}
 
-            // 3) Donanıma özgü kararlı verilerden fingerprint hesapla
+            // 3) Donanıma özgü SABIT verilerden fingerprint hesapla
+            //    NOT: Canvas/WebGL/userAgent gibi tarayıcıya göre değişen veriler KULLANILMAZ
             const parts = [];
+            // Ekran boyutu — cihaza özgü, tarayıcıdan bağımsız
             parts.push(`${screen.width}x${screen.height}x${screen.colorDepth}`);
+            // Saat dilimi — cihaza özgü
             parts.push(Intl.DateTimeFormat().resolvedOptions().timeZone || 'notz');
+            // CPU çekirdek sayısı — donanıma özgü
             parts.push(`cpu${navigator.hardwareConcurrency || 0}`);
-            parts.push(`mem${navigator.deviceMemory || 0}`);
+            // Platform — işletim sistemine özgü
             parts.push(navigator.platform || 'noplat');
-            try {
-                const gl = document.createElement('canvas').getContext('webgl');
-                if (gl) {
-                    const dbg = gl.getExtension('WEBGL_debug_renderer_info');
-                    if (dbg) parts.push(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || 'nogpu');
-                }
-            } catch(e) { parts.push('nogpu'); }
-            try {
-                const cv = document.createElement('canvas');
-                cv.width = 200; cv.height = 50;
-                const ctx2d = cv.getContext('2d');
-                ctx2d.font = '14px Arial';
-                ctx2d.fillStyle = '#069';
-                ctx2d.fillText('KLBK-device-fp-2025', 10, 30);
-                ctx2d.strokeStyle = 'rgba(100,200,50,0.8)';
-                ctx2d.beginPath(); ctx2d.arc(50, 25, 15, 0, Math.PI * 2); ctx2d.stroke();
-                parts.push(cv.toDataURL().slice(-80));
-            } catch(e) { parts.push('nocv'); }
+            // Dil — genelde cihaza özgü
+            parts.push(navigator.language || 'nolang');
+            // Dokunmatik nokta sayısı — cihaz donanımına özgü
+            parts.push(`touch${navigator.maxTouchPoints || 0}`);
 
             const raw = parts.join('|');
-            const saveAndReturn = (id) => {
-                localStorage.setItem('klbk_device_id', id);
-                try {
-                    const r = indexedDB.open('klbk_device_store', 1);
-                    r.onsuccess = e => {
-                        const db = e.target.result;
-                        db.transaction('data', 'readwrite').objectStore('data').put(id, 'device_id');
-                    };
-                } catch(e) {}
-                return id;
-            };
 
-            try {
-                const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
-                const arr = Array.from(new Uint8Array(buf));
-                const h1 = arr.slice(0, 4).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase().slice(0, 4);
-                const h2 = arr.slice(4, 8).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase().slice(0, 4);
-                return saveAndReturn(`CHZ-${h1}-${h2}`);
-            } catch(e) {
-                let h = 0;
-                for (let i = 0; i < raw.length; i++) { h = ((h << 5) - h) + raw.charCodeAt(i); h |= 0; }
-                return saveAndReturn('CHZ-' + Math.abs(h).toString(16).toUpperCase().padStart(8, '0').slice(0, 8));
+            // djb2 hash — senkron, tüm tarayıcılarda aynı sonuç
+            let hash1 = 5381;
+            let hash2 = 52711;
+            for (let i = 0; i < raw.length; i++) {
+                const c = raw.charCodeAt(i);
+                hash1 = ((hash1 << 5) + hash1) + c;
+                hash2 = ((hash2 << 5) + hash2) + c;
             }
+            hash1 = Math.abs(hash1 | 0);
+            hash2 = Math.abs(hash2 | 0);
+            const h1 = hash1.toString(16).toUpperCase().padStart(4, '0').slice(0, 4);
+            const h2 = hash2.toString(16).toUpperCase().padStart(4, '0').slice(0, 4);
+            const devId = `CHZ-${h1}-${h2}`;
+
+            // localStorage + IndexedDB'ye kaydet
+            localStorage.setItem('klbk_device_id', devId);
+            try {
+                const r = indexedDB.open('klbk_device_store', 1);
+                r.onsuccess = e => {
+                    const db = e.target.result;
+                    db.transaction('data', 'readwrite').objectStore('data').put(devId, 'device_id');
+                };
+            } catch(e) {}
+            return devId;
         }
+
 
         async function queryExams(isAutoLogin = false) {
             try {
