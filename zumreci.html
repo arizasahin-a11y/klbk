@@ -380,6 +380,67 @@
             70%  { transform: scale(1.15); opacity: 1; }
             100% { transform: scale(1); opacity: 1; }
         }
+
+        /* ── HAMBURGER MENU (mobile tabs) ── */
+        .mobile-tab-toggle {
+            display: none;
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.85rem 1.25rem;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(13,148,136,0.25);
+            margin-bottom: 8px;
+        }
+        .mobile-tab-toggle .hamburger-lines {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .mobile-tab-toggle .hamburger-lines span {
+            display: block;
+            width: 22px;
+            height: 2.5px;
+            background: white;
+            border-radius: 2px;
+            transition: all 0.25s;
+        }
+        .mobile-tab-dropdown {
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            background: white;
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            padding: 8px;
+            margin-bottom: 12px;
+            box-shadow: 0 8px 24px rgba(13,148,136,0.15);
+            animation: dropdownFade 0.2s ease;
+        }
+        .mobile-tab-dropdown.open { display: flex; }
+        .mobile-tab-dropdown .tab-btn {
+            border-radius: 8px;
+            justify-content: flex-start;
+            width: 100%;
+            padding: 0.75rem 1rem;
+        }
+        @keyframes dropdownFade {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .mobile-tab-toggle { display: flex; }
+            .tabs-header { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -440,6 +501,25 @@
                     <i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap
                 </button>
             </div>
+        </div>
+
+        <!-- MOBILE HAMBURGER TOGGLE -->
+        <button class="mobile-tab-toggle" id="mobileTabToggle" onclick="toggleMobileTabMenu()" aria-expanded="false" aria-label="Sekmeler">
+            <span id="mobileTabLabel"><i class="fa-solid fa-comments" style="margin-right:8px;"></i>Zümre Görüş İşleme</span>
+            <div class="hamburger-lines">
+                <span></span><span></span><span></span>
+            </div>
+        </button>
+        <div class="mobile-tab-dropdown" id="mobileTabDropdown">
+            <button class="tab-btn" id="mobileTabBtnPlan" onclick="switchTab('plan'); closeMobileTabMenu()">
+                <i class="fa-solid fa-calendar-check"></i> Zümre Planı Sayfası
+            </button>
+            <button class="tab-btn active" id="mobileTabBtnGorus" onclick="switchTab('gorus'); closeMobileTabMenu()">
+                <i class="fa-solid fa-comments"></i> Zümre Görüş İşleme
+            </button>
+            <button class="tab-btn" id="mobileTabBtnIstatistik" onclick="switchTab('istatistik'); closeMobileTabMenu()">
+                <i class="fa-solid fa-chart-column"></i> İstatistik
+            </button>
         </div>
 
         <!-- TABS HEADER -->
@@ -907,6 +987,52 @@
         ];
 
         let allFetchedPlans = []; // Tab 2 için tüm çekilen zümreler
+
+        /* ── HAMBURGER MOBILE TAB MENU ── */
+        function toggleMobileTabMenu() {
+            const dropdown = document.getElementById('mobileTabDropdown');
+            const btn = document.getElementById('mobileTabToggle');
+            if (!dropdown) return;
+            const isOpen = dropdown.classList.contains('open');
+            if (isOpen) {
+                dropdown.classList.remove('open');
+                btn.setAttribute('aria-expanded', 'false');
+            } else {
+                dropdown.classList.add('open');
+                btn.setAttribute('aria-expanded', 'true');
+            }
+        }
+        function closeMobileTabMenu() {
+            const dropdown = document.getElementById('mobileTabDropdown');
+            const btn = document.getElementById('mobileTabToggle');
+            if (dropdown) dropdown.classList.remove('open');
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+        }
+        // Dışarı tıklanınca dropdown kapansın
+        document.addEventListener('click', (e) => {
+            const toggle = document.getElementById('mobileTabToggle');
+            const dropdown = document.getElementById('mobileTabDropdown');
+            if (toggle && dropdown && !toggle.contains(e.target) && !dropdown.contains(e.target)) {
+                closeMobileTabMenu();
+            }
+        });
+        // switchTab çağrıldığında mobil label'i güncelle
+        const _origSwitchTab = window.switchTab;
+        function updateMobileTabLabel(tabName) {
+            const labelEl = document.getElementById('mobileTabLabel');
+            if (!labelEl) return;
+            const labels = {
+                'plan':       '<i class="fa-solid fa-calendar-check" style="margin-right:8px;"></i>Zümre Planı Sayfası',
+                'gorus':      '<i class="fa-solid fa-comments" style="margin-right:8px;"></i>Zümre Görüş İşleme',
+                'istatistik': '<i class="fa-solid fa-chart-column" style="margin-right:8px;"></i>İstatistik'
+            };
+            if (labels[tabName]) labelEl.innerHTML = labels[tabName];
+            // Mobil dropdown butonlarının active class'ını güncelle
+            ['plan','gorus','istatistik'].forEach(t => {
+                const mBtn = document.getElementById(`mobileTabBtn${t.charAt(0).toUpperCase()+t.slice(1)}`);
+                if (mBtn) mBtn.classList.toggle('active', t === tabName);
+            });
+        }
 
         document.addEventListener("DOMContentLoaded", () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -1649,7 +1775,7 @@
                 const headerBg = isExpanded ? '#e0f2fe' : '#f8fafc';
 
                 html += `
-                    <div class="card-custom" style="padding: 0; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: all 0.2s; border-radius: 12px; background: white;">
+                    <div class="card-custom" style="padding: 0; overflow: hidden; border: 3px solid #16a34a; box-shadow: 0 4px 16px -1px rgba(22,163,74,0.15); transition: all 0.2s; border-radius: 14px; background: white;">
                         <div id="header_${plan.id}" onclick="toggleGorusAccordion('${plan.id}')" style="padding: 16px 20px; background: ${headerBg}; cursor: pointer; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid #e2e8f0; transition: background 0.2s;">
                             <div style="display: flex; align-items: center; gap: 12px; flex: 1 1 300px;">
                                 <div style="width: 40px; height: 40px; border-radius: 10px; background: ${isExpired ? '#f1f5f9' : '#f0fdf4'}; color: ${isExpired ? '#64748b' : '#16a34a'}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; border: 1px solid ${isExpired ? '#e2e8f0' : '#bbf7d0'};">
@@ -2177,6 +2303,8 @@
                 if(tabContentIstatistik) tabContentIstatistik.style.display = 'block';
                 loadIstatistik();
             }
+            // Mobil hamburger label'i güncelle
+            if (typeof updateMobileTabLabel === 'function') updateMobileTabLabel(tab);
             window.scrollTo(0, 0);
         }
 
