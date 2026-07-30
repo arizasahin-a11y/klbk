@@ -443,9 +443,10 @@
             currentUser = sessionStorage.getItem('klbk_currentUser') || 'Bilinmeyen Kullanıcı';
             currentName = DataManager.formatTeacherName(sessionStorage.getItem('klbk_name') || currentUser);
             
-            if (sessionStorage.getItem('klbk_isLoggedIn') !== 'true' || (currentRole !== 'ogretmen' && currentRole !== 'idareci' && currentRole !== 'admin' && currentRole !== 'master')) {
-                console.warn("Auth failure, redirecting...");
-                window.location.href = '/k9x7v2m4';
+            const isLogged = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || sessionStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true';
+            if (!isLogged) {
+                console.warn("Auth failure, redirecting to portal login...");
+                window.location.href = 'enter.html';
             }
 
             const rawBranch = sessionStorage.getItem('klbk_branch') || '';
