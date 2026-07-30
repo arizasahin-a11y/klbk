@@ -678,6 +678,13 @@
         function logoutOEYP() {
             sessionStorage.removeItem('klbk_teacher_token');
             sessionStorage.removeItem('klbk_teacher_user');
+            sessionStorage.removeItem('klbk_isLoggedIn');
+            sessionStorage.removeItem('klbk_faaliyet_isLoggedIn');
+            sessionStorage.removeItem('klbk_currentUser');
+            sessionStorage.removeItem('klbk_name');
+            sessionStorage.removeItem('klbk_role');
+            sessionStorage.removeItem('klbk_schoolName');
+            sessionStorage.removeItem('klbk_storeKey');
             window.location.reload();
         }
 
