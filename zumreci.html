@@ -795,6 +795,9 @@
                         <button class="btn-custom btn-primary-custom" onclick="openBatchPrintModal()" style="background: #10b981; border-color: #059669; box-shadow: 0 2px 4px rgba(16,185,129,0.2);" title="Toplu Tutanak Yazdır / PDF Al">
                             <i class="fa-solid fa-print"></i> Toplu Yazdır
                         </button>
+                        <button class="btn-custom btn-primary-custom" onclick="openBatchDeleteModal()" style="background: #ef4444; border-color: #dc2626; box-shadow: 0 2px 4px rgba(239,68,68,0.2);" title="Seçili Zümreleri Toplu Sil">
+                            <i class="fa-solid fa-trash-can"></i> Toplu Sil
+                        </button>
                     </div>
                 </div>
 
@@ -1006,6 +1009,38 @@
             <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; align-items: center; gap: 10px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
                 <button class="btn-custom btn-secondary-custom" onclick="closeBatchPrintModal()">İptal / Kapat</button>
                 <button class="btn-custom btn-primary-custom" style="background: #10b981; border-color: #059669; box-shadow: 0 2px 4px rgba(16,185,129,0.2);" onclick="confirmAndExecuteBatchPrint()"><i class="fa-solid fa-print"></i> Seçilenleri Yazdır / PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BATCH DELETE MODAL -->
+    <div id="batchDeleteModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 800px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+                <div>
+                    <h3 style="font-weight: 800; color: var(--dark); margin: 0; font-size: 1.3rem;"><i class="fa-solid fa-trash-can" style="color: #ef4444;"></i> Toplu Zümre Silme Ekranı</h3>
+                    <p style="color: #64748b; font-size: 0.85rem; margin: 4px 0 0 0;">Silmek istediğiniz zümre tutanaklarını aşağıdan seçebilirsiniz. <b style="color:#ef4444;">Bu işlem geri alınamaz!</b></p>
+                </div>
+                <button class="btn-custom btn-secondary-custom" style="padding: 6px 10px; border-radius: 50%;" onclick="closeBatchDeleteModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                <div style="font-size: 0.85rem; font-weight: 700; color: #475569;">
+                    <i class="fa-solid fa-list-check"></i> Listelenen Zümreler (<span id="batchDeleteTotalCount">0</span> adet) - Seçilen: <span id="batchDeleteSelectedCount" style="color:#ef4444; font-weight:900;">0</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-custom btn-secondary-custom" style="font-size: 0.75rem; padding: 4px 10px;" onclick="selectAllBatchDelete(true)"><i class="fa-solid fa-check-double"></i> Tümünü Seç</button>
+                    <button class="btn-custom btn-secondary-custom" style="font-size: 0.75rem; padding: 4px 10px;" onclick="selectAllBatchDelete(false)"><i class="fa-solid fa-square-xmark"></i> Seçimi Temizle</button>
+                </div>
+            </div>
+
+            <div id="batchDeleteListContainer" style="max-height: 450px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; background: #f8fafc; display: flex; flex-direction: column; gap: 10px;">
+                <!-- Dynamically populated -->
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; align-items: center; gap: 10px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+                <button class="btn-custom btn-secondary-custom" onclick="closeBatchDeleteModal()">İptal / Kapat</button>
+                <button class="btn-custom btn-primary-custom" style="background: #ef4444; border-color: #dc2626; box-shadow: 0 2px 4px rgba(239,68,68,0.2);" onclick="confirmAndExecuteBatchDelete()"><i class="fa-solid fa-trash-can"></i> Seçilenleri Kalıcı Olarak Sil</button>
             </div>
         </div>
     </div>
@@ -4884,6 +4919,137 @@ const getClassTeacherForSok = window.getClassTeacherForSok;
             }
 
             executeBatchPrint(selectedIds);
+        }
+
+        function openBatchDeleteModal() {
+            const modal = document.getElementById('batchDeleteModal');
+            const container = document.getElementById('batchDeleteListContainer');
+            if (!modal || !container) return;
+
+            const plansToList = (window.lastFilteredZumrePlans && window.lastFilteredZumrePlans.length > 0) ? window.lastFilteredZumrePlans : allFetchedPlans;
+            if (!plansToList || plansToList.length === 0) {
+                Swal.fire('Uyarı', 'Listede silinebilecek herhangi bir zümre toplantısı bulunmuyor.', 'warning');
+                return;
+            }
+
+            document.getElementById('batchDeleteTotalCount').innerText = plansToList.length;
+            let html = '';
+            plansToList.forEach(plan => {
+                const branchDisplay = plan.branch && plan.branch !== 'Genel' ? plan.branch : (plan.participants && plan.participants[0] ? plan.participants[0].gorev : 'Genel Zümre');
+                let cleanBranch = branchDisplay ? branchDisplay.replace(/Zümresi|Toplantısı/gi, '').trim() : 'Genel';
+                if (!cleanBranch || cleanBranch === 'Genel') cleanBranch = 'Genel';
+                let formattedTitle = `${cleanBranch !== 'Genel' ? cleanBranch + ' ' : ''}${plan.tur || 'Zümre Toplantısı'} (${plan.donem || ''})`;
+                if (plan.turCode === 'brans' || (plan.tur && plan.tur.includes('Branş'))) {
+                    formattedTitle = `${cleanBranch} Zümresi ${plan.donem} Toplantısı`;
+                } else if (plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ'))) {
+                    formattedTitle = typeof formatSokTitle === 'function' ? formatSokTitle(plan, false) : formattedTitle;
+                }
+
+                html += `
+                    <label class="batch-delete-item" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; background: white; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#ef4444'; this.style.background='#fef2f2';" onmouseout="const chk=this.querySelector('input'); if(!chk.checked){ this.style.borderColor='#e2e8f0'; this.style.background='white'; } else { this.style.borderColor='#ef4444'; }">
+                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                            <input type="checkbox" class="batch-delete-chk" value="${plan.id}" style="width: 18px; height: 18px; accent-color: #ef4444; cursor: pointer;" onchange="updateBatchDeleteSelectedCount()">
+                            <div>
+                                <div style="font-weight: 800; color: #1e293b; font-size: 0.95rem;">${formattedTitle}</div>
+                                <div style="font-size: 0.8rem; color: #64748b; margin-top: 3px;">
+                                    <i class="fa-solid fa-calendar-day" style="color: var(--primary);"></i> ${plan.tarih || 'Belirtilmedi'}
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+                `;
+            });
+
+            container.innerHTML = html;
+            modal.style.display = 'flex';
+            updateBatchDeleteSelectedCount();
+        }
+
+        function closeBatchDeleteModal() {
+            const modal = document.getElementById('batchDeleteModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function selectAllBatchDelete(select) {
+            const chks = document.querySelectorAll('.batch-delete-chk');
+            chks.forEach(chk => chk.checked = select);
+            updateBatchDeleteSelectedCount();
+        }
+
+        function updateBatchDeleteSelectedCount() {
+            const chks = document.querySelectorAll('.batch-delete-chk:checked');
+            const cntEl = document.getElementById('batchDeleteSelectedCount');
+            if (cntEl) cntEl.innerText = chks.length;
+        }
+
+        async function confirmAndExecuteBatchDelete() {
+            const checkedBoxes = Array.from(document.querySelectorAll('.batch-delete-chk:checked'));
+            if (checkedBoxes.length === 0) {
+                Swal.fire({
+                    title: 'Uyarı',
+                    text: 'Lütfen silmek için en az 1 zümre toplantısı seçin!',
+                    icon: 'warning',
+                    didOpen: () => {
+                        const swalContainer = document.querySelector('.swal2-container');
+                        if (swalContainer) swalContainer.style.zIndex = '100000';
+                    }
+                });
+                return;
+            }
+
+            const selectedIds = checkedBoxes.map(b => b.value);
+
+            closeBatchDeleteModal();
+            const res = await Swal.fire({
+                title: 'Toplu Silme İşlemi',
+                html: `Seçili <b>${selectedIds.length}</b> adet zümre toplantısını tamamen silmek istediğinize emin misiniz?<br><br><small style="color:#ef4444;">Bu işlem geri alınamaz ve toplantılara ait işlenmiş tüm görüşler/kararlar silinir.</small>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-trash-can"></i> Evet, Kalıcı Olarak Sil',
+                cancelButtonText: 'İptal Et',
+                didOpen: () => {
+                    const swalContainer = document.querySelector('.swal2-container');
+                    if (swalContainer) swalContainer.style.zIndex = '100000';
+                }
+            });
+
+            if (!res.isConfirmed) {
+                openBatchDeleteModal();
+                return;
+            }
+
+            Swal.fire({ title: 'Siliniyor...', html: 'Lütfen bekleyin, seçili kayıtlar veritabanından kaldırılıyor.', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            let successCount = 0;
+            let failCount = 0;
+
+            const promises = selectedIds.map(async (planId) => {
+                try {
+                    const delRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_zumre_plans/${planId}.json`, { method: 'DELETE' });
+                    if (delRes.ok) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                } catch (e) {
+                    failCount++;
+                }
+            });
+
+            await Promise.all(promises);
+
+            // Fetch list again
+            if (typeof loadGorusZümreListesi === 'function') {
+                await loadGorusZümreListesi(true);
+            }
+
+            if (failCount === 0) {
+                Swal.fire('Başarılı', `${successCount} adet toplantı başarıyla silindi.`, 'success');
+            } else {
+                Swal.fire('Bilgi', `${successCount} toplantı silindi, ancak ${failCount} toplantı silinirken hata oluştu.`, 'info');
+            }
         }
 
         async function executeBatchPrint(selectedIds) {
