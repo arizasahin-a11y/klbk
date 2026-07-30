@@ -1031,12 +1031,8 @@ let globalLeadersMap = new Map();
         }
 
         function handlePortalLogout() {
-            sessionStorage.removeItem('klbk_faaliyet_isLoggedIn');
-            sessionStorage.removeItem('klbk_faaliyet_user');
-            const overlay = document.getElementById('login-overlay');
-            if (overlay) overlay.style.display = 'flex';
-            const userBar = document.getElementById('user-info-bar');
-            if (userBar) userBar.style.display = 'none';
+            sessionStorage.clear();
+            window.location.reload();
         }
 
         function showAuthenticatedPortal(userName) {
@@ -1077,17 +1073,26 @@ let globalLeadersMap = new Map();
                 fetch("https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users.json")
                     .then(r => r.json())
                     .then(users => {
+                        let found = false;
                         if (users) {
                             for (let k in users) {
                                 if (users[k] && users[k].schoolName) {
                                     schoolNameEl.textContent = users[k].schoolName;
                                     schoolNameEl.style.display = 'block';
                                     localStorage.setItem('klbk_lastSchoolName', users[k].schoolName);
+                                    found = true;
                                     break;
                                 }
                             }
                         }
-                    }).catch(e => console.warn("Okul adı çekme uyarısı:", e));
+                        if (!found) {
+                            schoolNameEl.textContent = 'KELEBEK EĞİTİM PORTALI';
+                            schoolNameEl.style.display = 'block';
+                        }
+                    }).catch(e => {
+                        schoolNameEl.textContent = 'KELEBEK EĞİTİM PORTALI';
+                        schoolNameEl.style.display = 'block';
+                    });
             }
         }
 
@@ -1942,7 +1947,7 @@ let globalLeadersMap = new Map();
 
         // Initialize App
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', loadData);
+            document.addEventListener('DOMContentLoaded', () => { loadSchoolNameForLogin(); loadData(); });
         } else {
             loadData();
         }
