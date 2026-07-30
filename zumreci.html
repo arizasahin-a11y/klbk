@@ -1443,11 +1443,12 @@
                     sessionStorage.removeItem('klbk_currentUser');
                     sessionStorage.removeItem('klbk_role');
                     sessionStorage.removeItem('klbk_name');
+                    sessionStorage.removeItem('klbk_guestMode');
                     
                     localStorage.removeItem('klbk_isLoggedIn');
                     localStorage.removeItem('klbk_currentUser');
 
-                    window.location.reload();
+                    window.location.href = window.location.pathname;
                 }
             });
         }
