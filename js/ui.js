@@ -1529,18 +1529,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <button class="btn btn-secondary btn-sm" style="padding:0.4rem 0.75rem; font-size:0.9rem; font-weight:600; border-radius: 8px;" onclick="event.stopPropagation(); window.assignFieldToClass('${cls}')">
                                 <i class="fa-solid fa-layer-group"></i> Alan Tanımla
                             </button>
-                            <button class="btn btn-secondary btn-sm" style="padding:0.4rem 0.75rem; font-size:0.9rem; font-weight:600; border-radius: 8px; background-color: var(--primary); color: white; border:none;" onclick="event.stopPropagation(); window.assignDeviceToClass('${cls}')">
-                                <i class="fa-solid fa-tablet-screen-button"></i> Cihaz Ata
-                            </button>
                             <select class="form-control" style="width: auto; display: inline-block; padding: 0.4rem 0.75rem; font-size: 0.85rem; font-weight: 600; border: 2px solid #10b981; border-radius: 8px; background-color: #f0fdf4; color: #065f46; cursor: pointer; transition: all 0.2s; min-width: 140px;" onchange="window.assignClassTeacher('${cls}', this.value)" onclick="event.stopPropagation();" title="Sınıf Öğretmeni Ata">
                                 <option value="">👩‍🏫 Sınıf Öğrt.</option>
                                 ${Object.entries(allTeachers).filter(([uname, t]) => {
-                                    const currentAssigned = DataManager.getSanitizedClassTeacherMapping(cls);
+                                    if (!t.name || !t.name.trim()) return false;
                                     const tName = DataManager.formatTeacherName(t.name);
-                                    // Mevcut sınıfa atanmış öğretmeni göster, başka sınıfa atanmışları gizle
+                                    if (!tName || !tName.trim()) return false;
+                                    const currentAssigned = DataManager.getSanitizedClassTeacherMapping(cls);
                                     if (tName === currentAssigned) return true;
                                     return !assignedTeachers.includes(tName);
-                                }).map(([uname, t]) => {
+                                }).sort((a, b) => DataManager.formatTeacherName(a[1].name).localeCompare(DataManager.formatTeacherName(b[1].name), 'tr')).map(([uname, t]) => {
                                     const tName = DataManager.formatTeacherName(t.name);
                                     const currentAssigned = DataManager.getSanitizedClassTeacherMapping(cls);
                                     return '<option value="' + tName + '" ' + (currentAssigned === tName ? 'selected' : '') + '>' + tName + '</option>';
@@ -1550,7 +1548,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <option value="">Derslik Atayın</option>
                                 ${classrooms.filter(room => room.name === assignedRoom || !assignedRoomNames.includes(room.name)).map(room => `<option value="${room.name}" ${assignedRoom === room.name ? 'selected' : ''}>${room.name}</option>`).join('')}
                             </select>
+                            <button class="btn btn-secondary btn-sm" style="padding:0.4rem 0.75rem; font-size:0.9rem; font-weight:600; border-radius: 8px; background-color: var(--primary); color: white; border:none;" onclick="event.stopPropagation(); window.assignDeviceToClass('${cls}')">
+                                <i class="fa-solid fa-tablet-screen-button"></i> Cihaz Ata
+                            </button>
                             <span data-device-class="${cls}" onclick="event.stopPropagation(); window.editDeviceMapping('${cls}')" oncontextmenu="window.selectDeviceForSwap('${cls}', event)" ontouchstart="window.deviceTouchTimer = setTimeout(() => window.selectDeviceForSwap('${cls}', null), 800)" ontouchend="clearTimeout(window.deviceTouchTimer)" ontouchmove="clearTimeout(window.deviceTouchTimer)" style="cursor: pointer; display:inline-flex; align-items:center; min-width:130px; height:34px; padding: 0 10px; border-radius: 6px; border: 1px solid ${DataManager.getSanitizedClassDeviceMapping(cls) ? 'var(--gray-300)' : 'var(--gray-200)'}; background: ${DataManager.getSanitizedClassDeviceMapping(cls) ? 'var(--gray-100)' : 'transparent'}; font-size: 0.85rem; color: var(--primary); white-space:nowrap; transition: all 0.2s; box-sizing:border-box;" title="${DataManager.getSanitizedClassDeviceMapping(cls) ? 'Değiştirmek için tıklayın, takas için sağ tıklayın veya basılı tutun' : 'Cihaz atamak için tıklayın veya sağ tık ile takas yapın'}">${DataManager.getSanitizedClassDeviceMapping(cls) ? '<i class="fa-solid fa-mobile-screen-button" style="margin-right:5px;"></i>' + DataManager.getSanitizedClassDeviceMapping(cls) : ''}</span>
+
                             <button class="btn btn-danger btn-sm" style="padding:0.4rem; font-size:1rem; border-radius: 8px; display:flex; align-items:center; justify-content:center; width:34px; height:34px; margin-left:4px;" onclick="event.stopPropagation(); window.deleteClassCompletely('${cls}')" title="Sınıfı Sil">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
