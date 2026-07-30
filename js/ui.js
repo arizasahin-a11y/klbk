@@ -1434,12 +1434,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 3000);
     })();
 
+    // Öğretmen listesi cache (Firebase'den bir kez çekilir)
+    let _cachedTeachers = null;
+    let _teachersLoading = false;
+
+    async function ensureTeachersLoaded() {
+        if (_cachedTeachers) return _cachedTeachers;
+        if (_teachersLoading) return {};
+        _teachersLoading = true;
+        try {
+            _cachedTeachers = await DataManager.getSchoolTeachers();
+        } catch(e) { _cachedTeachers = {}; }
+        _teachersLoading = false;
+        return _cachedTeachers;
+    }
+
+    // İlk yüklemede öğretmenleri çek
+    ensureTeachersLoaded().then(() => { if (typeof updateClassesList === 'function') updateClassesList(); });
+
+    window.assignClassTeacher = function(className, teacherName) {
+        DataManager.saveClassTeacherMapping(className, teacherName || '');
+        updateClassesList();
+    };
+
     function updateClassesList() {
         const students = DataManager.getStudents();
         const container = document.getElementById('classesGridContainer');
         const recentWidget = document.getElementById('recentClassesList');
         const classrooms = DataManager.getClassrooms();
         const classRoomMappings = DataManager.getClassRoomMappings() || {};
+        const classTeacherMappings = DataManager.getClassTeacherMappings() || {};
+        const allTeachers = _cachedTeachers || {};
+        const assignedTeachers = Object.values(classTeacherMappings).filter(t => t);
         
         // Use sanitized mapping for display
         const getDisplayRoom = (cls) => DataManager.getSanitizedClassRoomMapping(cls);
@@ -1506,6 +1532,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <button class="btn btn-secondary btn-sm" style="padding:0.4rem 0.75rem; font-size:0.9rem; font-weight:600; border-radius: 8px; background-color: var(--primary); color: white; border:none;" onclick="event.stopPropagation(); window.assignDeviceToClass('${cls}')">
                                 <i class="fa-solid fa-tablet-screen-button"></i> Cihaz Ata
                             </button>
+                            <select class="form-control" style="width: auto; display: inline-block; padding: 0.4rem 0.75rem; font-size: 0.85rem; font-weight: 600; border: 2px solid #10b981; border-radius: 8px; background-color: #f0fdf4; color: #065f46; cursor: pointer; transition: all 0.2s; min-width: 140px;" onchange="window.assignClassTeacher('${cls}', this.value)" onclick="event.stopPropagation();" title="Sınıf Öğretmeni Ata">
+                                <option value="">👩‍🏫 Sınıf Öğrt.</option>
+                                ${Object.entries(allTeachers).filter(([uname, t]) => {
+                                    const currentAssigned = DataManager.getSanitizedClassTeacherMapping(cls);
+                                    const tName = DataManager.formatTeacherName(t.name);
+                                    // Mevcut sınıfa atanmış öğretmeni göster, başka sınıfa atanmışları gizle
+                                    if (tName === currentAssigned) return true;
+                                    return !assignedTeachers.includes(tName);
+                                }).map(([uname, t]) => {
+                                    const tName = DataManager.formatTeacherName(t.name);
+                                    const currentAssigned = DataManager.getSanitizedClassTeacherMapping(cls);
+                                    return '<option value="' + tName + '" ' + (currentAssigned === tName ? 'selected' : '') + '>' + tName + '</option>';
+                                }).join('')}
+                            </select>
                             <select class="form-control" style="width: auto; display: inline-block; padding: 0.4rem 0.75rem; font-size: 0.9rem; font-weight: 600; border: 1px solid #e2e8f0; border-radius: 8px; background-color: white; color: var(--primary); cursor: pointer; transition: all 0.2s;" onchange="window.assignRoomToClass('${cls}', this.value)" onclick="event.stopPropagation();">
                                 <option value="">Derslik Atayın</option>
                                 ${classrooms.filter(room => room.name === assignedRoom || !assignedRoomNames.includes(room.name)).map(room => `<option value="${room.name}" ${assignedRoom === room.name ? 'selected' : ''}>${room.name}</option>`).join('')}

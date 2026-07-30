@@ -508,6 +508,35 @@ const DataManager = {
         return this._getData().classDeviceMappings || {};
     },
 
+    // --- Sınıf Öğretmeni Eşleştirmeleri ---
+    getClassTeacherMappings: function () {
+        return this._getData().classTeacherMappings || {};
+    },
+
+    getSanitizedClassTeacherMapping: function (className) {
+        const mappings = this.getClassTeacherMappings();
+        const safeKey = this.sanitizeFirebaseKey(className);
+        if (mappings[safeKey]) return mappings[safeKey];
+        if (mappings[className]) return mappings[className];
+        return null;
+    },
+
+    saveClassTeacherMapping: function (className, teacherName) {
+        let data = this._getData();
+        if (!data.classTeacherMappings) data.classTeacherMappings = {};
+        const safeKey = this.sanitizeFirebaseKey(className);
+        if (teacherName) {
+            data.classTeacherMappings[safeKey] = teacherName;
+            if (safeKey !== className && data.classTeacherMappings[className]) {
+                delete data.classTeacherMappings[className];
+            }
+        } else {
+            delete data.classTeacherMappings[safeKey];
+            if (safeKey !== className) delete data.classTeacherMappings[className];
+        }
+        this._saveData(data);
+    },
+
     getSanitizedClassDeviceMapping: function (className) {
         const mappings = this.getClassDeviceMappings();
         const safeKey = this.sanitizeFirebaseKey(className);
