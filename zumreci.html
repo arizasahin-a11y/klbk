@@ -1440,6 +1440,13 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     sessionStorage.removeItem('klbk_isLoggedIn');
+                    sessionStorage.removeItem('klbk_currentUser');
+                    sessionStorage.removeItem('klbk_role');
+                    sessionStorage.removeItem('klbk_name');
+                    
+                    localStorage.removeItem('klbk_isLoggedIn');
+                    localStorage.removeItem('klbk_currentUser');
+
                     window.location.reload();
                 }
             });
