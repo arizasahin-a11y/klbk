@@ -1346,6 +1346,8 @@
             }
 
             Swal.fire('Hata', 'Kullanıcı bulunamadı veya bağlantı kurulamadı!', 'error');
+        }
+
         async function loadRemoteClassTeacherMappings() {
             try {
                 if (typeof FIREBASE_DB_URL !== 'undefined' && FIREBASE_DB_URL) {
