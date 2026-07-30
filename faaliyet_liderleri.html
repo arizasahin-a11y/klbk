@@ -289,10 +289,17 @@
             messagingSenderId: "715714176883",
             appId: "1:715714176883:web:a1a125314f834f61b60706"
         };
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
+        let db = null;
+        try {
+            if (typeof firebase !== 'undefined') {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                db = firebase.firestore();
+            }
+        } catch (e) {
+            console.warn("Firebase başlatılamadı:", e);
         }
-        const db = firebase.firestore();
         
         let allProcessedData = { og: new Map(), oo: new Map() };
 
@@ -329,17 +336,19 @@
         }
 
         function cleanUnicode(str) {
-            if (!str) return '';
-            return str.toString().normalize('NFC').replace(/[̀-ͯ]/g, '');
+            if (str === null || str === undefined) return '';
+            return String(str).normalize('NFC').replace(/[\u0300-\u036f]/g, '');
         }
+
         function lowerTR(str) {
-            if (!str) return '';
-            const clean = cleanUnicode(str);
+            if (str === null || str === undefined) return '';
+            const clean = String(cleanUnicode(str));
             return clean.replace(/I/g, 'ı').replace(/İ/g, 'i').toLowerCase();
         }
+
         function upperTR(str) {
-            if (!str) return '';
-            const clean = cleanUnicode(str);
+            if (str === null || str === undefined) return '';
+            const clean = String(cleanUnicode(str));
             return clean.replace(/i/g, 'İ').replace(/ı/g, 'I').toUpperCase();
         }
 
@@ -375,10 +384,10 @@
 
         function formatNameTR(rawName) {
             if (!rawName) return '';
-            if (rawName.includes(',')) {
-                return rawName.split(',').map(s => formatNameTR(s.trim())).join(', ');
+            if (String(rawName).includes(',')) {
+                return String(rawName).split(',').map(s => formatNameTR(s.trim())).join(', ');
             }
-            const val = rawName.trim();
+            const val = String(rawName).trim();
             const normVal = lowerTR(val).replace(/\s+/g, ' ');
             if (KNOWN_TEACHERS[normVal]) return KNOWN_TEACHERS[normVal];
 
@@ -397,9 +406,14 @@
             }
         }
 
+        function escapeStr(str) {
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/\\/g, "\\\\").replace(/'/g, "\\\\'").replace(/"/g, "&quot;");
+        }
+
         function normalizeString(s) {
-            if (!s) return "";
-            let str = lowerTR(s.toString().trim());
+            if (s === null || s === undefined) return "";
+            let str = lowerTR(String(s).trim());
             str = str.replace(/tekrarlayan\s*eylem.*?$/g, '');
             return str.replace(/\s+/g, '').replace(/[^a-z0-9ğüşıioöç]/g, '');
         }
@@ -986,21 +1000,23 @@ let globalLeadersMap = new Map();
                     rawName: nameText
                 };
 
-                fullActivityList.push({
+                const fullActObj = {
                     ...actInfo,
                     leaders: actLeaders.map(l => formatNameTR(l)).sort((a,b) => a.localeCompare(b, 'tr'))
-                });
+                };
+
+                fullActivityList.push(fullActObj);
 
                 actLeaders.forEach(ldr => {
                     const n = norm(ldr);
                     if (!leaderActivities.has(n)) leaderActivities.set(n, { original: formatNameTR(ldr), acts: [] });
                     
                     const alreadyExists = leaderActivities.get(n).acts.find(a => 
-                        a.name === actInfo.name && a.start === actInfo.start && a.end === actInfo.end
+                        a.name === fullActObj.name && a.start === fullActObj.start && a.end === fullActObj.end
                     );
                     
                     if (!alreadyExists) {
-                        leaderActivities.get(n).acts.push(actInfo);
+                        leaderActivities.get(n).acts.push(fullActObj);
                     }
                 });
             });
@@ -1027,7 +1043,7 @@ let globalLeadersMap = new Map();
                         if (!act.isExpired && isCompleted) return 4;  // Devam Ediyor - Tamamlandı
                         return 5;
                     };
-                    return getWeight(a) - getWeight(b) || a.rawName.localeCompare(b.rawName, 'tr');
+                    return getWeight(a) - getWeight(b) || (a.rawName || '').localeCompare(b.rawName || '', 'tr');
                 });
 
                 renderedActivities.forEach((act, actIdx) => {
@@ -1049,7 +1065,7 @@ let globalLeadersMap = new Map();
                     }
 
                     let leadersHtml = '';
-                    if (act.leaders.length > 0) {
+                    if (act.leaders && act.leaders.length > 0) {
                         leadersHtml = act.leaders.map(l => `<span style="display:inline-block; background:rgba(79,70,229,0.1); color:#4f46e5; padding:4px 8px; border-radius:6px; margin:2px; font-size:0.85em; font-weight:600; border:1px solid rgba(79,70,229,0.2);">${l}</span>`).join(' ');
                     } else {
                         leadersHtml = `<span style="color:#94a3b8; font-style:italic; font-size:0.9em;">Lider Atanmamış</span>`;
@@ -1057,7 +1073,8 @@ let globalLeadersMap = new Map();
 
                     const hasMultiLeaders1 = act.leaders && act.leaders.length > 1;
                     const actTitleAttr1 = 'title="Liderleri görmek veya düzenlemek için tıklayın (CTRL+Sol Tık: Liderleri Yönet)"';
-                    const actOnClick1 = `onclick="if(event.ctrlKey) { event.preventDefault(); openActivityLeadersModal('${act.planId}', '${act.rawName.replace(/'/g, "\\'")}', '${prefix}'); } else { showActivityLeadersListModal('${act.rawName.replace(/'/g, "\\'")}', ${JSON.stringify(act.leaders).replace(/"/g, '&quot;')}, '${act.planId}', '${prefix}'); }"`;
+                    const safeRawName1 = escapeStr(act.rawName || '');
+                    const actOnClick1 = `onclick="if(event.ctrlKey) { event.preventDefault(); openActivityLeadersModal('${act.planId}', '${safeRawName1}', '${prefix}'); } else { showActivityLeadersListModal('${safeRawName1}', '${act.planId}', '${prefix}'); }"`;
                     const actBadgeHtml1 = hasMultiLeaders1 ? `<i class="fas fa-users" style="color:#6366f1; margin-left:6px; font-size:0.8rem;" title="Çoklu Lider (${act.leaders.length})"></i>` : '';
 
                     html += `<tr class="${rowClass} leader-start-row">
@@ -1069,7 +1086,7 @@ let globalLeadersMap = new Map();
                         <td style="text-align:center;"><span class="status-badge" style="color:${expColor};background:${expBg};border:1px solid ${expColor}40;">${expText}</span></td>
                         <td style="text-align:center;">
                             <div style="display:inline-flex; align-items:center; justify-content:center; gap:6px;">
-                                <span class="status-badge" ${act.isReported ? `onclick="window.open('pts.html?printId=${act.reportId}', '_blank')" oncontextmenu="event.preventDefault(); window.open('pts.html?editId=${act.reportId}', '_blank');"` : `onclick="window.open('pts.html?fillPlanId=${act.planId}&fillerName=${act.leaders.length > 0 ? encodeURIComponent(act.leaders[0]) : ''}&startDate=${act.start}&endDate=${act.end}', '_blank')"`} style="cursor:pointer;color:${repColor};background:${repBg};border:1px solid ${repColor}40;" title="${act.isReported ? 'Sol Tık: Yazdır | Sağ Tık: Düzenle' : 'Raporu Doldurmak İçin Tıklayın'}">${repText}</span>
+                                <span class="status-badge" ${act.isReported ? `onclick="window.open('pts.html?printId=${act.reportId}', '_blank')" oncontextmenu="event.preventDefault(); window.open('pts.html?editId=${act.reportId}', '_blank');"` : `onclick="window.open('pts.html?fillPlanId=${act.planId}&fillerName=${act.leaders && act.leaders.length > 0 ? encodeURIComponent(act.leaders[0]) : ''}&startDate=${act.start}&endDate=${act.end}', '_blank')"`} style="cursor:pointer;color:${repColor};background:${repBg};border:1px solid ${repColor}40;" title="${act.isReported ? 'Sol Tık: Yazdır | Sağ Tık: Düzenle' : 'Raporu Doldurmak İçin Tıklayın'}">${repText}</span>
                                 ${act.isReported ? `<i class="fas fa-pencil-alt" onclick="window.open('pts.html?editId=${act.reportId}', '_blank')" style="cursor:pointer; color:${repColor}; opacity:0.8; font-size:0.85rem;" title="Düzenle"></i>` : ''}
                             </div>
                         </td>
@@ -1097,8 +1114,8 @@ let globalLeadersMap = new Map();
                                     onclick="handleLeaderClick(event, '${normLeader}', '${prefix}')" 
                                     title="CTRL+Sol Tık: Tebliğ Belgesi">${leader}</span>
                                 <div style="font-size:0.8rem; color:#94a3b8; margin-top:4px; font-weight:600; cursor:pointer;" 
-                                    onclick="if(event.ctrlKey) { event.preventDefault(); openAssignmentModal('${leader.replace(/'/g, "\\'")}', '${prefix}'); }"
-                                    oncontextmenu="if(event.ctrlKey) { event.preventDefault(); openAssignmentModal('${leader.replace(/'/g, "\\'")}', '${prefix}'); }"
+                                    onclick="if(event.ctrlKey) { event.preventDefault(); openAssignmentModal('${escapeStr(leader)}', '${prefix}'); }"
+                                    oncontextmenu="if(event.ctrlKey) { event.preventDefault(); openAssignmentModal('${escapeStr(leader)}', '${prefix}'); }"
                                     title="CTRL+Tık: Faaliyetleri Yönet">(${displayCount})</div>
                             </td>
                             <td colspan="6" style="text-align:center; color:#cbd5e1; font-style:italic; padding:24px; font-size:0.9rem;">
@@ -1128,8 +1145,8 @@ let globalLeadersMap = new Map();
                                     title="CTRL+Sol Tık: Tebliğ Belgesi | CTRL+ALT+Tık: Toplu Yazdır" 
                                     onclick="handleLeaderClick(event, '${normLeader}', '${prefix}')">${leader}</span>
                                 <div style="font-size:0.8rem; color:#b45309; margin-top:4px; font-weight:600; cursor:pointer;" 
-                                    onclick="if(event.ctrlKey) { event.preventDefault(); openAssignmentModal('${leader.replace(/'/g, "\\'")}', '${prefix}'); }"
-                                    oncontextmenu="if(event.ctrlKey) { event.preventDefault(); openAssignmentModal('${leader.replace(/'/g, "\\'")}', '${prefix}'); }"
+                                    onclick="if(event.ctrlKey) { event.preventDefault(); openAssignmentModal('${escapeStr(leader)}', '${prefix}'); }"
+                                    oncontextmenu="if(event.ctrlKey) { event.preventDefault(); openAssignmentModal('${escapeStr(leader)}', '${prefix}'); }"
                                     title="CTRL+Tık: Faaliyetleri Yönet">(${activities.length})</div>
                             </td>` : '';
                             
@@ -1138,8 +1155,9 @@ let globalLeadersMap = new Map();
                             const hasMultiLeaders2 = act.leaders && act.leaders.length > 1;
                             const actTitleAttr2 = 'title="Liderleri görmek veya düzenlemek için tıklayın (CTRL+Sol Tık: Liderleri Yönet)"';
                             const actCursorStyle2 = 'cursor:pointer;';
-                            const actOnClick2 = `onclick="if(event.ctrlKey) { event.preventDefault(); openActivityLeadersModal('${act.planId}', '${act.rawName.replace(/'/g, "\\'")}', '${prefix}'); } else { showActivityLeadersListModal('${act.rawName.replace(/'/g, "\\'")}', ${JSON.stringify(act.leaders).replace(/"/g, '&quot;')}, '${act.planId}', '${prefix}'); }"`;
-                            const actBadgeHtml2 = hasMultiLeaders2 ? `<i class="fas fa-users" style="color:#6366f1; margin-left:6px; font-size:0.8rem;" title="Çoklu Lider (${act.leaders.length})"></i>` : '';
+                            const safeRawName2 = escapeStr(act.rawName || '');
+                            const actOnClick2 = `onclick="if(event.ctrlKey) { event.preventDefault(); openActivityLeadersModal('${act.planId}', '${safeRawName2}', '${prefix}'); } else { showActivityLeadersListModal('${safeRawName2}', '${act.planId}', '${prefix}'); }"`;
+                            const actBadgeHtml2 = hasMultiLeaders2 ? `<i class="fas fa-users" style="color:#6366f1; margin-left:6px; font-size:0.8rem;" title="Çoklu Lider (${act.leaders ? act.leaders.length : 0})"></i>` : '';
                             
                             html += `<tr class="${rowClass} ${startClass}">
                                 ${ldrCell}
@@ -1150,7 +1168,7 @@ let globalLeadersMap = new Map();
                                 <td style="text-align:center;"><span class="status-badge" style="color:${expColor};background:${expBg};border:1px solid ${expColor}40;">${expText}</span></td>
                                 <td style="text-align:center;">
                                     <div style="display:inline-flex; align-items:center; justify-content:center; gap:6px;">
-                                        <span class="status-badge" ${act.isReported ? `onclick="window.open('pts.html?printId=${act.reportId}', '_blank')" oncontextmenu="event.preventDefault(); window.open('pts.html?editId=${act.reportId}', '_blank');"` : `onclick="window.open('pts.html?fillPlanId=${act.planId}&fillerName=${encodeURIComponent(leader)}&startDate=${act.start}&endDate=${act.end}', '_blank')"`} style="cursor:pointer;color:${repColor};background:${repBg};border:1px solid ${repColor}40;" title="${act.isReported ? 'Sol Tık: Yazdır | Sağ Tık: Düzenle' : 'Raporu Doldurmak İçin Tıklayın'}">${repText}</span>
+                                        <span class="status-badge" ${act.isReported ? `onclick="window.open('pts.html?printId=${act.reportId}', '_blank')" oncontextmenu="event.preventDefault(); window.open('pts.html?editId=${act.reportId}', '_blank');"` : `onclick="window.open('pts.html?fillPlanId=${act.planId}&fillerName=${encodeURIComponent(leader || '')}&startDate=${act.start}&endDate=${act.end}', '_blank')"`} style="cursor:pointer;color:${repColor};background:${repBg};border:1px solid ${repColor}40;" title="${act.isReported ? 'Sol Tık: Yazdır | Sağ Tık: Düzenle' : 'Raporu Doldurmak İçin Tıklayın'}">${repText}</span>
                                         ${act.isReported ? `<i class="fas fa-pencil-alt" onclick="window.open('pts.html?editId=${act.reportId}', '_blank')" style="cursor:pointer; color:${repColor}; opacity:0.8; font-size:0.85rem;" title="Düzenle"></i>` : ''}
                                     </div>
                                 </td>
@@ -1585,8 +1603,14 @@ let globalLeadersMap = new Map();
             `;
         }
 
-        function showActivityLeadersListModal(actName, leaders, planId, prefix) {
-            leaders = leaders || [];
+        function showActivityLeadersListModal(actName, planId, prefix) {
+            let leaders = (globalLeadersMap && globalLeadersMap.get(planId)) || 
+                          (typeof DEFAULT_ACTIVITY_LEADERS !== 'undefined' && DEFAULT_ACTIVITY_LEADERS[planId]) || 
+                          [];
+            
+            if (!Array.isArray(leaders)) leaders = [];
+            leaders = leaders.map(l => formatNameTR(l)).sort((a,b) => a.localeCompare(b, 'tr'));
+
             let modal = document.getElementById('leaders-list-popup-modal');
             if (!modal) {
                 modal = document.createElement('div');
@@ -1649,7 +1673,11 @@ let globalLeadersMap = new Map();
         }
 
         // Initialize App
-        document.addEventListener('DOMContentLoaded', loadData);
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadData);
+        } else {
+            loadData();
+        }
     </script>
 </body>
 </html>
