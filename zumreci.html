@@ -4478,13 +4478,13 @@ const getClassTeacherForSok = window.getClassTeacherForSok;
             const midPart = branchUpper ? `${branchUpper} ${turClean.toUpperCase()}` : turClean.toUpperCase();
             const cleanedMid = midPart.replace(/\bBRANŞI?\b\s+\bBRANŞ\b/gi, 'BRANŞ').replace(/\s+/g, ' ').trim();
             let docTitle = `${donemName} ${cleanedMid} TOPLANTI TUTANAĞI`;
-            const isSok = plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ')) || (plan.konu && plan.konu.includes('ŞÖ'));
+            let isSok = plan.turCode === 'sok' || (plan.tur && plan.tur.includes('ŞÖ')) || (plan.konu && plan.konu.includes('ŞÖ'));
             if (isSok && typeof formatSokTitle === 'function') {
                 docTitle = formatSokTitle(plan, true);
             }
             const meetDate = plan.tarih ? (plan.tarih.includes('-') ? plan.tarih.split('-').reverse().join('.') : plan.tarih) : (new Date().toLocaleDateString('tr-TR'));
 
-            const isSok = plan.turCode === 'sok' || (plan.tur && (plan.tur.includes('ŞÖK') || plan.tur.includes('Şube'))) || (plan.konu && (plan.konu.includes('ŞÖK') || plan.konu.includes('Şube'))) || (plan.branch && (plan.branch.includes('ŞÖK') || plan.branch.includes('Şube')));
+            isSok = isSok || (plan.tur && plan.tur.includes('Şube')) || (plan.konu && plan.konu.includes('Şube')) || (plan.branch && (plan.branch.includes('ŞÖK') || plan.branch.includes('Şube')));
             
             let sinifAdiForSok = '';
             if (isSok || (plan && plan.branch && /\d+\s*[\/\-\.\s]?\s*[A-ZÇĞİÖŞÜ]{1,3}\b/i.test(plan.branch))) {
