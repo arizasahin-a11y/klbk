@@ -3314,8 +3314,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const doDistribute = distCheck ? distCheck.checked : true;
 
                 if (doDistribute) {
-                    wizardSessionData.results = ExamAlgorithm.distribute([...targetStudents], targetRooms, wizardSessionData);
+                    const algo = window.ExamAlgorithm || (typeof ExamAlgorithm !== 'undefined' ? ExamAlgorithm : null);
+                    if (!algo || typeof algo.distribute !== 'function') {
+                        throw new Error('Dağıtım algoritması (ExamAlgorithm) yüklenemedi. Lütfen sayfayı yenileyip tekrar deneyin.');
+                    }
+                    wizardSessionData.results = algo.distribute([...targetStudents], targetRooms, wizardSessionData);
                 } else {
+
                     // Her sınıfı kendi dersliğinde bırak (Bypass Algorithm)
                     const fakeResults = targetRooms.map(room => {
                         const roomNameSafe = DataManager.getSanitizedClassRoomMapping(room.name);

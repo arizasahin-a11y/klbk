@@ -19,7 +19,7 @@
  *   → Her dersliğin arka köşe/sıralarında toplanır (OPT-C sıkıştırma).
  */
 
-const ExamAlgorithm = {
+var ExamAlgorithm = window.ExamAlgorithm = {
 
     _shuffle(arr) {
         const a = [...arr];
