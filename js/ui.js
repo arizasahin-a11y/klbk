@@ -3245,62 +3245,67 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (btnWizardFinish) {
         btnWizardFinish.addEventListener('click', () => {
-            // Calculate Results before closing
-            const allRooms = DataManager.getClassrooms();
-            const targetRooms = allRooms.filter(r => wizardSessionData.selectedClassrooms.includes(r.name));
+            try {
+                // Calculate Results before closing
+                const allRooms = DataManager.getClassrooms();
+                const selectedRoomsList = wizardSessionData.selectedClassrooms || [];
+                const targetRooms = allRooms.filter(r => selectedRoomsList.includes(r.name));
 
-            const allStudents = DataManager.getStudents();
-            const sessionSubjects = wizardSessionData.subjects.map(s => s.name);
+                const allStudents = DataManager.getStudents();
+                const wizardSubjectsList = wizardSessionData.subjects || [];
+                const selectedClassesList = wizardSessionData.selectedClasses || [];
+                const excludedStudentsList = wizardSessionData.excludedStudents || [];
 
-            const targetStudents = allStudents.filter(s => {
-                const sCls = (s.class || "Bilinmeyen").trim();
-                const sAlan = (s.alan || "Genel").trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
-                const sDersler = (s.dersler || []).map(d => d.trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ'));
+                const targetStudents = allStudents.filter(s => {
+                    const sCls = (s.class || "Bilinmeyen").trim();
+                    const sAlan = (s.alan || "Genel").trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
+                    const sDersler = (s.dersler || []).map(d => String(d || '').trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ'));
 
-                let matchingPoolSelected = false;
-                let matchedSubjectName = null;
+                    let matchingPoolSelected = false;
+                    let matchedSubjectName = null;
 
-                for (const subObj of wizardSessionData.subjects) {
-                    const subNameNorm = subObj.name.toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
-                    const sitsForThis = sDersler.some(dn =>
-                        dn === subNameNorm || dn.startsWith(subNameNorm + " ") || subNameNorm.startsWith(dn + " ")
-                    );
+                    for (const subObj of wizardSubjectsList) {
+                        const rawSubName = typeof subObj === 'object' ? subObj.name : subObj;
+                        const subNameNorm = String(rawSubName || '').toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
+                        const sitsForThis = sDersler.some(dn =>
+                            dn === subNameNorm || dn.startsWith(subNameNorm + " ") || subNameNorm.startsWith(dn + " ")
+                        );
 
-                    if (sitsForThis) {
-                        const pid = `${subNameNorm}_${sCls.toLocaleUpperCase('tr-TR').replace(/I/g, '\u0130')}_${sAlan}`;
-                        if (wizardSessionData.selectedClasses.includes(pid)) {
-                            matchingPoolSelected = true;
-                            const originalDers = (s.dersler || []).find(d => {
-                                const dn = d.trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
-                                return dn === subNameNorm || dn.startsWith(subNameNorm + " ") || subNameNorm.startsWith(dn + " ");
-                            }).trim();
+                        if (sitsForThis) {
+                            const pid = `${subNameNorm}_${sCls.toLocaleUpperCase('tr-TR').replace(/I/g, 'İ')}_${sAlan}`;
+                            if (selectedClassesList.includes(pid)) {
+                                matchingPoolSelected = true;
+                                const foundDers = (s.dersler || []).find(d => {
+                                    const dn = String(d || '').trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
+                                    return dn === subNameNorm || dn.startsWith(subNameNorm + " ") || subNameNorm.startsWith(dn + " ");
+                                });
+                                const originalDers = foundDers ? String(foundDers).trim() : rawSubName;
 
-                            // Use the actual subject name from student data to preserve its level
-                            matchedSubjectName = originalDers;
-                            
-                            // If the subject name doesn't end with a grade level, append it from class
-                            if (!/\d+$/.test(originalDers)) {
-                                const gradeMatch = sCls.match(/^\d+/);
-                                if (gradeMatch) matchedSubjectName += " " + gradeMatch[0];
+                                // Use the actual subject name from student data to preserve its level
+                                matchedSubjectName = originalDers;
+                                
+                                // If the subject name doesn't end with a grade level, append it from class
+                                if (!/\d+$/.test(originalDers)) {
+                                    const gradeMatch = sCls.match(/^\d+/);
+                                    if (gradeMatch) matchedSubjectName += " " + gradeMatch[0];
+                                }
+                                break;
                             }
-                            break;
                         }
                     }
+
+                    if (!matchingPoolSelected) return false;
+                    if (excludedStudentsList.includes(String(s.no || ''))) return false;
+
+                    s._matchedSubject = matchedSubjectName;
+                    return true;
+                });
+
+                if (targetStudents.length === 0 || targetRooms.length === 0) {
+                    Swal.fire('Hata', 'Dağıtım için geçerli öğrenci veya derslik bulunamadı! Lütfen sınıf ve derslik seçimlerinizi kontrol edin.', 'error');
+                    return;
                 }
 
-                if (!matchingPoolSelected) return false;
-                if (wizardSessionData.excludedStudents && wizardSessionData.excludedStudents.includes(s.no.toString())) return false;
-
-                s._matchedSubject = matchedSubjectName;
-                return true;
-            });
-
-            if (targetStudents.length === 0 || targetRooms.length === 0) {
-                Swal.fire('Hata', 'Dağıtım için geçerli öğrenci veya derslik bulunamadı!', 'error');
-                return;
-            }
-
-            try {
                 if (wizardSessionData.type === 'uygulama' && !wizardSessionData.name.endsWith('(UYG)')) {
                     wizardSessionData.name += ' (UYG)';
                 }
@@ -3369,8 +3374,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Auto-assign PDF header designs based on grade and field
                 if (!wizardSessionData.subjectMetadata) wizardSessionData.subjectMetadata = {};
                 
-                wizardSessionData.subjects.forEach(subObj => {
-                    const subName = subObj.name;
+                (wizardSessionData.subjects || []).forEach(subObj => {
+                    const subName = typeof subObj === 'object' ? subObj.name : subObj;
                     const safeSub = DataManager.sanitizeFirebaseKey(subName);
                     
                     if (!wizardSessionData.subjectMetadata[safeSub]) {
@@ -3404,7 +3409,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 });
 
-
                 // Save Session
                 DataManager.addExamSession(wizardSessionData);
                 hideExamWizardModal();
@@ -3422,7 +3426,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 renderExamSessionsList();
             } catch (err) {
-                Swal.fire('Dağıtım Hatası', err.message, 'error');
+                console.error("Wizard Finish Error:", err);
+                Swal.fire('Dağıtım Hatası', err.message || 'Oturum oluşturulurken bir hata oluştu.', 'error');
             }
         });
     }
