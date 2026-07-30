@@ -328,11 +328,19 @@
             return null;
         }
 
+        function cleanUnicode(str) {
+            if (!str) return '';
+            return str.toString().normalize('NFC').replace(/[̀-ͯ]/g, '');
+        }
         function lowerTR(str) {
-            return str.replace(/I/g, 'ı').replace(/İ/g, 'i').toLowerCase();
+            if (!str) return '';
+            const clean = cleanUnicode(str);
+            return clean.replace(/I/g, 'ı').replace(/İ/g, 'i').toLowerCase();
         }
         function upperTR(str) {
-            return str.replace(/i/g, 'İ').replace(/ı/g, 'I').toUpperCase();
+            if (!str) return '';
+            const clean = cleanUnicode(str);
+            return clean.replace(/i/g, 'İ').replace(/ı/g, 'I').toUpperCase();
         }
 
         const KNOWN_TEACHERS = {
@@ -398,7 +406,357 @@
 
         const norm = (s) => lowerTR((s || "").toString().trim());
 
-        let globalLeadersMap = new Map();
+        const DEFAULT_ACTIVITY_LEADERS = {
+    "og-1": [
+        "Hakan CORA"
+    ],
+    "og-2": [
+        "Hakan CORA"
+    ],
+    "og-8": [
+        "Hakan CORA"
+    ],
+    "og-9": [
+        "Hakan CORA"
+    ],
+    "og-14": [
+        "Hakan CORA",
+        "Ersin TOKDEMİR",
+        "Hasan SERİM"
+    ],
+    "og-41": [
+        "Hakan CORA"
+    ],
+    "og-42": [
+        "Hakan CORA"
+    ],
+    "og-12": [
+        "Hakan CORA"
+    ],
+    "og-4": [
+        "Melek YILMAZ"
+    ],
+    "og-21": [
+        "Melek YILMAZ"
+    ],
+    "og-35": [
+        "Melek YILMAZ"
+    ],
+    "og-70": [
+        "Melek YILMAZ"
+    ],
+    "og-71": [
+        "Melek YILMAZ"
+    ],
+    "og-72": [
+        "Melek YILMAZ"
+    ],
+    "og-5": [
+        "Sibel RESİMCİ"
+    ],
+    "og-20": [
+        "Sibel RESİMCİ"
+    ],
+    "og-26": [
+        "Sibel RESİMCİ"
+    ],
+    "og-11": [
+        "Sibel RESİMCİ",
+        "Asli İŞÇEN",
+        "Harika HAMZAOĞLU"
+    ],
+    "og-13": [
+        "Sibel RESİMCİ",
+        "Asli İŞÇEN",
+        "Harika HAMZAOĞLU"
+    ],
+    "og-6": [
+        "Ali Riza ŞAHİN"
+    ],
+    "og-24": [
+        "Ali Riza ŞAHİN",
+        "Ersin TOKDEMİR",
+        "Hasan SERİM",
+        "Serhat KIYAK"
+    ],
+    "og-43": [
+        "Ali Riza ŞAHİN",
+        "Çağla YALÇIN"
+    ],
+    "og-44": [
+        "Ali Riza ŞAHİN",
+        "Çağla YALÇIN"
+    ],
+    "og-62": [
+        "Ali Riza ŞAHİN",
+        "Serhat KIYAK"
+    ],
+    "og-76": [
+        "Ali Riza ŞAHİN",
+        "Aydan GÜRDAL"
+    ],
+    "og-10": [
+        "Sancar UZUNDERE"
+    ],
+    "og-23": [
+        "Sancar UZUNDERE",
+        "Hasan SERİM"
+    ],
+    "og-31": [
+        "Sancar UZUNDERE"
+    ],
+    "og-32": [
+        "Sancar UZUNDERE"
+    ],
+    "og-33": [
+        "Sancar UZUNDERE"
+    ],
+    "og-34": [
+        "Sancar UZUNDERE"
+    ],
+    "og-37": [
+        "Sancar UZUNDERE"
+    ],
+    "og-39": [
+        "Sancar UZUNDERE"
+    ],
+    "og-19": [
+        "Asli İŞÇEN"
+    ],
+    "og-27": [
+        "Asli İŞÇEN"
+    ],
+    "og-7": [
+        "Şebnem BAKIRCI"
+    ],
+    "og-45": [
+        "Şebnem BAKIRCI",
+        "Elif ŞAH",
+        "Vural DEMİR"
+    ],
+    "og-47": [
+        "Şebnem BAKIRCI"
+    ],
+    "og-52": [
+        "Şebnem BAKIRCI"
+    ],
+    "og-53": [
+        "Şebnem BAKIRCI"
+    ],
+    "og-54": [
+        "Şebnem BAKIRCI"
+    ],
+    "og-55": [
+        "Şebnem BAKIRCI"
+    ],
+    "og-56": [
+        "Şebnem BAKIRCI"
+    ],
+    "og-28": [
+        "Elif ŞAH"
+    ],
+    "og-30": [
+        "Elif ŞAH",
+        "Aydan GÜRDAL",
+        "Fethiye ELİTOĞ"
+    ],
+    "og-46": [
+        "Elif ŞAH"
+    ],
+    "og-48": [
+        "Elif ŞAH"
+    ],
+    "og-51": [
+        "Elif ŞAH"
+    ],
+    "og-57": [
+        "Elif ŞAH"
+    ],
+    "og-16": [
+        "Çağla YALÇIN"
+    ],
+    "og-78": [
+        "Çağla YALÇIN",
+        "Adil DURAL",
+        "Şeyma Ocak GÜVENÇ",
+        "Bahtiyar NAR",
+        "Ersin TOKDEMİR",
+        "Yasemin ALTAN",
+        "Cansel DALAN",
+        "Harika HAMZAOĞLU",
+        "Hasan SERİM",
+        "Aydan GÜRDAL"
+    ],
+    "og-77": [
+        "Çağla YALÇIN",
+        "Adil DURAL",
+        "Şeyma Ocak GÜVENÇ",
+        "Ersin TOKDEMİR",
+        "Yasemin ALTAN",
+        "Cansel DALAN",
+        "Hasan SERİM",
+        "Pınar ÇALIŞKAN",
+        "Aydan GÜRDAL"
+    ],
+    "og-17": [
+        "Adil DURAL"
+    ],
+    "og-18": [
+        "Adil DURAL"
+    ],
+    "og-25": [
+        "Selda ODUNCU"
+    ],
+    "og-59": [
+        "Selda ODUNCU"
+    ],
+    "og-29": [
+        "Şeyma Ocak GÜVENÇ"
+    ],
+    "og-49": [
+        "Ünsal YILMAZ"
+    ],
+    "og-50": [
+        "Ahmet ÇAĞLAYAN"
+    ],
+    "og-58": [
+        "Bahtiyar NAR"
+    ],
+    "og-63": [
+        "Bahtiyar NAR",
+        "Yasemin ALTAN",
+        "Cansel DALAN",
+        "Pınar ÇALIŞKAN",
+        "Serhat KIYAK"
+    ],
+    "og-60": [
+        "Ersin TOKDEMİR"
+    ],
+    "og-36": [
+        "Ersin TOKDEMİR",
+        "Hasan SERİM",
+        "Fethiye ELİTOĞ"
+    ],
+    "og-61": [
+        "Yasemin ALTAN"
+    ],
+    "og-64": [
+        "Süleyman Necip ZOR"
+    ],
+    "og-65": [
+        "Süleyman Necip ZOR"
+    ],
+    "og-66": [
+        "Süleyman Necip ZOR"
+    ],
+    "og-68": [
+        "Süleyman Necip ZOR"
+    ],
+    "og-67": [
+        "Vural DEMİR"
+    ],
+    "og-69": [
+        "Cansel DALAN"
+    ],
+    "og-3": [
+        "Harika HAMZAOĞLU"
+    ],
+    "og-74": [
+        "Pınar ÇALIŞKAN"
+    ],
+    "og-75": [
+        "Pınar ÇALIŞKAN"
+    ],
+    "og-15": [
+        "Serhat KIYAK"
+    ],
+    "og-38": [
+        "Serhat KIYAK"
+    ],
+    "og-40": [
+        "Aydan GÜRDAL"
+    ],
+    "oo-1": [
+        "Hakan CORA",
+        "Sibel RESİMCİ",
+        "Ali Rıza ŞAHİN"
+    ],
+    "oo-2": [
+        "Hakan CORA",
+        "Sibel RESİMCİ"
+    ],
+    "oo-7": [
+        "Hakan CORA",
+        "Sibel RESİMCİ"
+    ],
+    "oo-3": [
+        "Hakan CORA"
+    ],
+    "oo-4": [
+        "Hakan CORA"
+    ],
+    "oo-5": [
+        "Hakan CORA",
+        "Ali Rıza ŞAHİN"
+    ],
+    "oo-20": [
+        "Hakan CORA"
+    ],
+    "oo-9": [
+        "Sibel RESİMCİ",
+        "Sancar UZUNDERE",
+        "Fethiye ELİTOĞ"
+    ],
+    "oo-13": [
+        "Sibel RESİMCİ",
+        "Sancar UZUNDERE",
+        "Adil DURAL"
+    ],
+    "oo-15": [
+        "Sibel RESİMCİ",
+        "Melek YILMAZ"
+    ],
+    "oo-11": [
+        "Süleyman Necip ZOR",
+        "Çağla YALÇIN",
+        "Harika HAMZAOĞLU"
+    ],
+    "oo-12": [
+        "Süleyman Necip ZOR",
+        "Serhat KIYAK"
+    ],
+    "oo-16": [
+        "Süleyman Necip ZOR",
+        "Elif ŞAH",
+        "Şeyma Ocak GÜVENÇ"
+    ],
+    "oo-10": [
+        "Selda ODUNCU",
+        "Aslı İŞÇEN"
+    ],
+    "oo-14": [
+        "Serhat KIYAK",
+        "Yasemin ALTAN"
+    ],
+    "oo-18": [
+        "Adil DURAL",
+        "Ünsal YILMAZ",
+        "Ahmet ÇAĞLAYAN",
+        "Vural DEMİR"
+    ],
+    "oo-17": [
+        "Cansel DALAN",
+        "Aydan GÜRDAL",
+        "Hasan SERİM",
+        "Ersin TOKDEMİR"
+    ],
+    "oo-19": [
+        "Şebnem BAKIRCI",
+        "Pınar ÇALIŞKAN"
+    ]
+};
+
+let globalLeadersMap = new Map();
         let _lastRenderParams = null;
 
         function toggleViewMode() {
@@ -600,11 +958,15 @@
 
                 let actLeaders = leadersMap.get(planId);
                 if (!actLeaders || actLeaders.length === 0) {
-                    const rawSorumlu = isOG ? (item.sorumlu || '') : (item.sorumlu_verisi || '');
-                    if (rawSorumlu) {
-                        actLeaders = rawSorumlu.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+                    if (typeof DEFAULT_ACTIVITY_LEADERS !== 'undefined' && DEFAULT_ACTIVITY_LEADERS[planId]) {
+                        actLeaders = DEFAULT_ACTIVITY_LEADERS[planId];
                     } else {
-                        actLeaders = [];
+                        const rawSorumlu = isOG ? (item.sorumlu || '') : (item.sorumlu_verisi || '');
+                        if (rawSorumlu) {
+                            actLeaders = rawSorumlu.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+                        } else {
+                            actLeaders = [];
+                        }
                     }
                 }
                 
