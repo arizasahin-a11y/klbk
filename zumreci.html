@@ -4359,91 +4359,56 @@
                 const combinedStr = `${(plan && plan.branch) || ''} ${(plan && plan.konu) || ''} ${(plan && plan.tur) || ''}`;
                 const m = combinedStr.match(/(\d+)\s*([\/\-\.\s]?)\s*([A-ZĞÜŞİÖÇ]{1,3})\b/i);
                 if (m && !/^(ŞUB|SIN|DÖN|TOP|ZÜM|YIL|KUR|GEN)/i.test(m[3])) {
-                    sinifAdi = m[1] + (m[2] === '-' || m[2] === '/' ? m[2] : '/') + m[3].toUpperCase();
+                    sinifAdi = m[1] + '-' + m[3].toUpperCase();
                 }
                 if (!sinifAdi && plan && plan.branch && !plan.branch.toLowerCase().includes('genel')) {
                     sinifAdi = plan.branch.replace(/ŞÖK|Toplantısı|Zümresi|Şubesi|Sınıfı|\(|\)|\[|\]|-/gi, '').trim();
                 }
             }
 
-            const u = findTeacherInDatabase(cell);
-            if (!sinifAdi || sinifAdi.toLowerCase() === 'genel') {
-                if (u) {
-                    const hm = u.rehberlikSiniF || u.sinifRehberlik || u.rehberlikSinif || u.sinif || u.sube || '';
-                    if (typeof hm === 'string' && hm.trim() && hm.trim().toLowerCase() !== 'yok' && hm.trim().toLowerCase() !== 'genel') {
-                        sinifAdi = hm.trim();
+            const isBaskan = isBaskanCell || cell.isBaskan || /başkan/i.test(cell.gorev || '');
+
+            if (isSokPlan) {
+                const classTeacherName = (typeof getClassTeacherForSok === 'function') ? getClassTeacherForSok(sinifAdi) : null;
+                const isActualClassTeacher = classTeacherName && (cell.name.toLocaleUpperCase('tr-TR').includes(classTeacherName.toLocaleUpperCase('tr-TR')) || classTeacherName.toLocaleUpperCase('tr-TR').includes(cell.name.toLocaleUpperCase('tr-TR')));
+
+                if (isBaskan || isActualClassTeacher) {
+                    return `${sinifAdi ? sinifAdi + ' ' : ''}Sınıf Öğretmeni (ZÜMRE BAŞKANI)`;
+                } else {
+                    let b = cell.gorev || cell.branch || '';
+                    b = b.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/\s*-\s*Zümre Başkanı/gi, '').replace(/Zümre Başkanı/gi, '').trim();
+                    if (!b || b === 'Öğretmen') {
+                        const u = findTeacherInDatabase(cell);
+                        if (u && u.branch) b = Array.isArray(u.branch) ? u.branch.join(', ') : u.branch;
                     }
+                    if (b && !/öğretmen/i.test(b)) b += ' Öğretmeni';
+                    return b || 'Ders Öğretmeni';
                 }
             }
 
-            if (isBaskanCell || cell.isBaskan || /başkan/i.test(cell.gorev || '')) {
-                let hmClass = '';
-                if (u) {
-                    const hm = u.rehberlikSiniF || u.sinifRehberlik || u.rehberlikSinif || u.sinif || u.sube || '';
-                    if (typeof hm === 'string' && hm.trim() && !hm.trim().toLowerCase().includes('genel') && !hm.trim().toLowerCase().includes('yok')) {
-                        hmClass = hm.trim();
-                    }
-                }
-                if (!hmClass && sinifAdi && !sinifAdi.toLowerCase().includes('genel')) {
-                    hmClass = sinifAdi.trim();
-                }
-                if (hmClass) {
-                    let cleanClass = hmClass.replace(/sınıfı|şubesi/gi, '').trim();
-                    return cleanClass + ' Sınıf Öğretmeni';
-                }
-                if (isSokPlan && typeof formatSokTitle === 'function') {
-                    return formatSokTitle(plan, false).replace(/\s*1\.\s*Dönem|\s*2\.\s*Dönem|\s*Toplantısı/gi, '').trim() + ' Başkanı';
-                }
+            if (isBaskan) {
                 let bc = (branchClean || '').replace(/Öğretmeni|Öğretmenleri|Öğretmen|Zümresi|Toplantısı/gi, '').trim();
                 if (!bc && cell.branch) bc = cell.branch.replace(/Öğretmeni|Öğretmenleri|Öğretmen|Zümresi|Toplantısı/gi, '').trim();
-                if (!bc && cell.gorev) bc = cell.gorev.replace(/Öğretmeni|Öğretmenleri|Öğretmen|Zümresi|Toplantısı|Başkanı/gi, '').trim();
+                if (!bc && cell.gorev) bc = cell.gorev.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/Öğretmeni|Öğretmenleri|Öğretmen|Zümresi|Toplantısı|Başkanı/gi, '').trim();
                 if (bc && /[,;]/.test(bc)) bc = bc.split(/[,;]/)[0].trim();
-                return bc ? bc + ' Zümre Başkanı' : (cell.gorev || 'Zümre Başkanı');
+                if (bc && !/öğretmen/i.test(bc)) bc += ' Öğretmeni';
+                return bc ? bc + ' (ZÜMRE BAŞKANI)' : 'Zümre Başkanı';
             }
 
             if (isMultiSchool) {
                 return cell.kurum || cell.okul || cell.gorev || 'Öğretmen';
             }
 
-            let rawBranch = '';
-            if (u) {
-                if (Array.isArray(u.branch) && u.branch.length > 0) {
-                    rawBranch = u.branch.join(', ');
-                } else if (typeof u.branch === 'string' && u.branch.trim() && !u.branch.trim().toLowerCase().includes('genel')) {
-                    rawBranch = u.branch.trim();
-                } else if (u.branchList && Array.isArray(u.branchList) && u.branchList.length > 0) {
-                    rawBranch = u.branchList.join(', ');
+            let rawBranch = cell.gorev || cell.branch || '';
+            rawBranch = rawBranch.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/\s*-\s*Zümre Başkanı/gi, '').replace(/Zümre Başkanı/gi, '').trim();
+            if (!rawBranch || rawBranch === 'Öğretmen') {
+                const u = findTeacherInDatabase(cell);
+                if (u && u.branch) {
+                    rawBranch = Array.isArray(u.branch) ? u.branch.join(', ') : u.branch;
                 }
             }
-            if (!rawBranch && cell.branch && !cell.branch.toLowerCase().includes('genel')) {
-                rawBranch = cell.branch;
-            }
-            if (!rawBranch && cell.gorev && !cell.gorev.toLowerCase().includes('şök')) {
-                rawBranch = cell.gorev;
-            }
-
-            let cleanBranch = rawBranch.replace(/\s*\([^)]*\)/g, '')
-                                       .replace(/Öğretmeni|Öğretmenleri|Öğretmen|Zümresi|Toplantısı|Dersi|Şubesi|Sınıfı|ŞÖK|Başkanı/gi, '')
-                                       .trim();
-            if (!cleanBranch && rawBranch) {
-                cleanBranch = rawBranch.replace(/\s*\([^)]*\)/g, '').trim();
-            }
-            if (!cleanBranch && cell.gorev) {
-                cleanBranch = cell.gorev.replace(/\s*\([^)]*\)/g, '').replace(/Öğretmeni|Öğretmenleri|Öğretmen|Zümresi|Toplantısı|Dersi|Şubesi|Sınıfı|ŞÖK|Başkanı/gi, '').trim();
-            }
-            if (!cleanBranch && branchClean) {
-                cleanBranch = branchClean.replace(/Öğretmeni|Öğretmenleri|Öğretmen|Zümresi|Toplantısı|ŞÖK|Şubesi|Sınıfı/gi, '').trim();
-            }
-            if (!cleanBranch) {
-                cleanBranch = 'Öğretmen';
-            }
-            if (cleanBranch && /[,;]/.test(cleanBranch)) {
-                cleanBranch = cleanBranch.split(/[,;]/)[0].trim();
-            }
-            if (cleanBranch && !/öğretmen/i.test(cleanBranch) && !/başkan/i.test(cleanBranch) && !/müdür/i.test(cleanBranch) && !/idareci/i.test(cleanBranch) && !/yönetici/i.test(cleanBranch)) {
-                cleanBranch = cleanBranch + ' Öğretmeni';
-            }
-            return cleanBranch;
+            if (rawBranch && !/öğretmen/i.test(rawBranch)) rawBranch += ' Öğretmeni';
+            return rawBranch || 'Öğretmen';
         }
 
         function buildSingleZumrePageData(plan) {
