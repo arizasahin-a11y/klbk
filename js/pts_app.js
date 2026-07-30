@@ -2500,7 +2500,32 @@ function syncLeadersCache() {
     });
 }
 
-function syncRegisteredLeadersCache() {
+async function syncRegisteredLeadersCache() {
+    try {
+        const res = await fetch("https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users.json");
+        if (res.ok) {
+            const usersData = await res.json();
+            const uniqueNames = new Set();
+            if (usersData && typeof usersData === 'object') {
+                Object.values(usersData).forEach(u => {
+                    if (u && u.name && typeof u.name === 'string' && u.name.trim()) {
+                        const formatted = formatNameTR(u.name.trim());
+                        if (formatted) uniqueNames.add(formatted);
+                    }
+                });
+            }
+            if (uniqueNames.size > 0) {
+                registeredLeadersCache = Array.from(uniqueNames).sort((a, b) => a.localeCompare(b, 'tr'));
+                console.log(`Registered leaders cache updated from Dashboard RTDB: ${registeredLeadersCache.length} names.`);
+                populateRegisteredLeadersDropdown();
+                renderGlobalLeadersList();
+                return;
+            }
+        }
+    } catch (e) {
+        console.warn("Dashboard RTDB öğretmen verisi alınamadı, Firestore deneniyor:", e);
+    }
+
     if (!db) { setTimeout(syncRegisteredLeadersCache, 500); return; }
     db.collection(REGISTERED_LEADERS_STORE).onSnapshot((snapshot) => {
         const uniqueNames = new Set();
