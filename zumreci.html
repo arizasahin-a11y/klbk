@@ -769,35 +769,39 @@
                         </h2>
                         <p style="color: #64748b; font-size: 0.9rem; margin: 0; line-height: 1.4;">Süresi geçmemiş zümrelerinize ait gündem maddelerine görüş ve kararlarınızı işleyebilirsiniz.</p>
                     </div>
-                    <div class="zumre-filter-toolbar" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; flex: 0 0 auto;">
-                        <!-- Branş Seçim Filtresi -->
-                        <div id="gorusBransFilterContainer" style="display: flex; align-items: center; gap: 8px; background: #f0fdfa; padding: 6px 14px; border: 2px solid #0d9488; border-radius: 12px;">
-                            <label style="font-size: 0.85rem; font-weight: 700; color: #0f766e; margin: 0;"><i class="fa-solid fa-filter"></i> Branşınız / Alan:</label>
-                            <select id="gorusBransFilter" class="form-select-custom" style="padding: 6px 12px; font-size: 0.9rem; border-radius: 8px; border: 1px solid #0d9488; font-weight: 700; color: #0f766e; background: white; cursor: pointer;" onchange="filterAndRenderGorusList()">
-                                <option value="all">Tüm Branşlar / Genel</option>
-                            </select>
+                    <div class="zumre-filter-toolbar" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; flex: 1 1 auto;">
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; flex: 1;">
+                            <!-- Branş Seçim Filtresi -->
+                            <div id="gorusBransFilterContainer" style="display: none; align-items: center; gap: 8px; background: #f0fdfa; padding: 6px 14px; border: 2px solid #0d9488; border-radius: 12px;">
+                                <label style="font-size: 0.85rem; font-weight: 700; color: #0f766e; margin: 0;"><i class="fa-solid fa-filter"></i> Branşınız / Alan:</label>
+                                <select id="gorusBransFilter" class="form-select-custom" style="padding: 6px 12px; font-size: 0.9rem; border-radius: 8px; border: 1px solid #0d9488; font-weight: 700; color: #0f766e; background: white; cursor: pointer;" onchange="filterAndRenderGorusList()">
+                                    <option value="all">Tüm Branşlar / Genel</option>
+                                </select>
+                            </div>
+                            <!-- ŞÖK Sınıf/Şube Filtresi -->
+                            <div id="gorusSokClassFilterContainer" style="display: none; align-items: center; gap: 8px; background: #eff6ff; padding: 6px 14px; border: 2px solid #3b82f6; border-radius: 12px;">
+                                <label style="font-size: 0.85rem; font-weight: 700; color: #1d4ed8; margin: 0;"><i class="fa-solid fa-users-rectangle"></i> ŞÖK Sınıfı:</label>
+                                <select id="gorusSokClassFilter" class="form-select-custom" style="padding: 6px 12px; font-size: 0.9rem; border-radius: 8px; border: 1px solid #3b82f6; font-weight: 700; color: #1d4ed8; background: white; cursor: pointer;" onchange="filterAndRenderGorusList()">
+                                    <option value="all">Tüm Sınıflar</option>
+                                </select>
+                            </div>
+                            <!-- Geçmiş Zümreler Toggle -->
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; color: #64748b; cursor: pointer; background: white; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 10px;">
+                                <input type="checkbox" id="showExpiredZumres" checked style="width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer;" onchange="filterAndRenderGorusList()">
+                                <span>Geçmiş Zümreleri de Göster</span>
+                            </label>
+                            <button class="btn-custom btn-secondary-custom" onclick="loadGorusZümreListesi(true)" title="Yenile">
+                                <i class="fa-solid fa-rotate"></i> Yenile
+                            </button>
                         </div>
-                        <!-- ŞÖK Sınıf/Şube Filtresi -->
-                        <div id="gorusSokClassFilterContainer" style="display: flex; align-items: center; gap: 8px; background: #eff6ff; padding: 6px 14px; border: 2px solid #3b82f6; border-radius: 12px;">
-                            <label style="font-size: 0.85rem; font-weight: 700; color: #1d4ed8; margin: 0;"><i class="fa-solid fa-users-rectangle"></i> ŞÖK Sınıfı:</label>
-                            <select id="gorusSokClassFilter" class="form-select-custom" style="padding: 6px 12px; font-size: 0.9rem; border-radius: 8px; border: 1px solid #3b82f6; font-weight: 700; color: #1d4ed8; background: white; cursor: pointer;" onchange="filterAndRenderGorusList()">
-                                <option value="all">Tüm Sınıflar</option>
-                            </select>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button class="btn-custom btn-primary-custom" onclick="openBatchPrintModal()" style="background: #10b981; border-color: #059669; box-shadow: 0 2px 4px rgba(16,185,129,0.2);" title="Toplu Tutanak Yazdır / PDF Al">
+                                <i class="fa-solid fa-print"></i> Toplu Yazdır
+                            </button>
+                            <button class="btn-custom btn-primary-custom" onclick="openBatchDeleteModal()" style="background: #ef4444; border-color: #dc2626; box-shadow: 0 2px 4px rgba(239,68,68,0.2);" title="Seçili Zümreleri Toplu Sil">
+                                <i class="fa-solid fa-trash-can"></i> Toplu Sil
+                            </button>
                         </div>
-                        <!-- Geçmiş Zümreler Toggle -->
-                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; color: #64748b; cursor: pointer; background: white; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 10px;">
-                            <input type="checkbox" id="showExpiredZumres" checked style="width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer;" onchange="filterAndRenderGorusList()">
-                            <span>Geçmiş Zümreleri de Göster</span>
-                        </label>
-                        <button class="btn-custom btn-secondary-custom" onclick="loadGorusZümreListesi(true)" title="Yenile">
-                            <i class="fa-solid fa-rotate"></i> Yenile
-                        </button>
-                        <button class="btn-custom btn-primary-custom" onclick="openBatchPrintModal()" style="background: #10b981; border-color: #059669; box-shadow: 0 2px 4px rgba(16,185,129,0.2);" title="Toplu Tutanak Yazdır / PDF Al">
-                            <i class="fa-solid fa-print"></i> Toplu Yazdır
-                        </button>
-                        <button class="btn-custom btn-primary-custom" onclick="openBatchDeleteModal()" style="background: #ef4444; border-color: #dc2626; box-shadow: 0 2px 4px rgba(239,68,68,0.2);" title="Seçili Zümreleri Toplu Sil">
-                            <i class="fa-solid fa-trash-can"></i> Toplu Sil
-                        </button>
                     </div>
                 </div>
 
