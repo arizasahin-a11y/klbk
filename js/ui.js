@@ -5979,14 +5979,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 for (let i = 0; i < groupCount; i++) {
                     const groupLetter = alphabet[i];
                     paperInputs += `
-                    <div class="input-group" style="display:flex; align-items:center; gap:3px; margin-top:4px;">
-                            <span style="font-size:0.7rem; font-weight:700; color:var(--gray-500); min-width:18px;">${groupLetter}</span>
-                            <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-group="${groupLetter}" style="flex:1; margin:0; height:30px; font-size:0.8rem; padding:0 6px;" value="${subPapers[groupLetter] || ''}" placeholder="PDF yol / URL">
-                            <button type="button" class="btn btn-secondary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.openSafePdf(inp.value, 'Soru Kağıdı Önizleme'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
-                            <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem; background:#6366f1; border-color:#6366f1;" onclick="window.testSpecificRow(this, '${ses.type}')" title="Örnek Öğrenci Testi"><i class="fa-solid fa-file-circle-check"></i></button>
-                            <button type="button" class="btn btn-info btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
-                            <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
-                        </div>`;
+                    <div style="margin-top:6px; margin-bottom:2px; text-align:left;">
+                        <span style="font-size:0.75rem; font-weight:700; color:var(--primary); display:block; margin-bottom:2px;">${groupLetter} Grubu İçin Soru Kağıdı Adresi</span>
+                        <div class="input-group" style="display:flex; align-items:center; gap:3px;">
+                            <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-group="${groupLetter}" style="flex:1; margin:0; height:32px; font-size:0.8rem; padding:0 8px;" value="${subPapers[groupLetter] || ''}" placeholder="${groupLetter} Grubu İçin Soru Kağıdı Adresi (PDF URL)">
+                            <button type="button" class="btn btn-secondary btn-sm" style="height:32px; padding:0 7px; font-size:0.7rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.openSafePdf(inp.value, '${groupLetter} Grubu Soru Kağıdı Önizleme'); else Swal.showValidationMessage('Önce bir PDF yükleyin veya link girin');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
+                            <button type="button" class="btn btn-primary btn-sm" style="height:32px; padding:0 7px; font-size:0.7rem; background:#6366f1; border-color:#6366f1;" onclick="window.testSpecificRow(this, '${ses.type}')" title="Örnek Öğrenci Testi"><i class="fa-solid fa-file-circle-check"></i></button>
+                            <button type="button" class="btn btn-info btn-sm" style="height:32px; padding:0 7px; font-size:0.7rem;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
+                            <button type="button" class="btn btn-primary btn-sm" style="height:32px; padding:0 7px; font-size:0.7rem;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+                        </div>
+                    </div>`;
                 }
             } else {
                 paperInputs = `

@@ -727,6 +727,24 @@ const ExamAlgorithm = {
                 }
             }
             if (!anyFixed) break;
+        // ── 10. GRUP DAĞITIMI (Dengeli ve aynı gruplar birbirinden uzak olacak şekilde) ────────
+        const hasGroups = sessionData?.hasGroups || (sessionData?.subjects && sessionData.subjects.some(x => typeof x === 'object' && x.hasGroups));
+        if (hasGroups) {
+            const groupCount = sessionData.groupCount || 2;
+            roomNodes.forEach(node => {
+                const assignedEntries = Object.entries(node.assigned);
+                if (assignedEntries.length === 0) return;
+
+                // Salondaki koltukların konumuna göre (row + globalCol) dama tahtası paritesi ile grup harfi atanması.
+                // Bu sayede her salonda gruplar eşit (dengeli) sayıda olur ve aynı gruptan öğrenciler (sağ, sol, ön, arka, çapraz) birbirinden uzaklaştırılır.
+                assignedEntries.forEach(([seatId, student]) => {
+                    const seat = node.allSeats.find(s => s.id === seatId);
+                    if (seat && student) {
+                        const grpIdx = (seat.r + seat.globalCol) % groupCount;
+                        student._groupLabel = alphabet[grpIdx];
+                    }
+                });
+            });
         }
 
         return roomNodes.map(node => ({
@@ -735,6 +753,7 @@ const ExamAlgorithm = {
             rows: node.original.rows, cols: node.original.cols, seats: node.assigned
         }));
     },
+
     /**
      * Counts vertical collisions (same subject in adjacent rows within same column) across all rooms.
      * Returns total count of collision pairs.
