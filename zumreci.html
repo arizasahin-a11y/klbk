@@ -3228,39 +3228,12 @@
 
             if (typeof renderActiveAgendaList === 'function') renderActiveAgendaList();
 
-            if (!participantsList.some(p => (p.gorev || '').toLowerCase().includes('rehberlik') || (p.role || '').toLowerCase().includes('rehberlik'))) {
-                const rehberlikOgretmenleri = schoolTeachersList.filter(t => {
-                    const r = (t.role || '').toLowerCase();
-                    const b = (t.branch || '').toLowerCase();
-                    return r.includes('rehberlik') || b.includes('rehberlik');
-                });
-                
-                if (rehberlikOgretmenleri.length > 0) {
-                    rehberlikOgretmenleri.forEach(ro => {
-                        if (!participantsList.some(p => p.name.toLowerCase() === ro.name.toLowerCase())) {
-                            participantsList.push({
-                                id: 'auto_rehberlik_' + ro.id + '_' + Date.now(),
-                                name: ro.name,
-                                kurum: ro.school || localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz',
-                                gorev: 'Okul Rehberlik Öğrt.'
-                            });
-                        }
-                    });
-                } else {
-                    participantsList.push({
-                        id: 'auto_rehberlik_' + Date.now(),
-                        name: '.......................',
-                        kurum: localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz',
-                        gorev: 'Okul Rehberlik Öğrt.'
-                    });
-                }
-            }
-
-            // Sınıf Öğretmenini Veritabanından (DataManager ve Öğretmen Bilgilerinden) Bul ve Otomatik Olarak Zümre Başkanı Yap
-            const findClassTeacher = (cName) => {
+            // Sınıf Öğretmenini Dashboard "Öğrenci-Sınıf" sekmesindeki veritabanı tanımlarından (DataManager.getClassTeacherMappings / klbk_data) al
+            const getClassTeacherForSok = (cName) => {
                 if (!cName) return null;
                 const cleanTarget = cName.toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
 
+                // 1. DataManager üzerinden Sınıf Öğretmeni tanımları
                 if (typeof DataManager !== 'undefined') {
                     if (typeof DataManager.getSanitizedClassTeacherMapping === 'function') {
                         const m = DataManager.getSanitizedClassTeacherMapping(cName);
@@ -3269,32 +3242,32 @@
                     if (typeof DataManager.getClassTeacherMappings === 'function') {
                         const maps = DataManager.getClassTeacherMappings() || {};
                         for (const [clsKey, tName] of Object.entries(maps)) {
-                            if (clsKey.toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '') === cleanTarget && tName) {
+                            if (clsKey.toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '') === cleanTarget && tName && tName.trim()) {
                                 return tName.trim();
                             }
                         }
                     }
                 }
 
-                if (Array.isArray(schoolTeachersList)) {
-                    for (const t of schoolTeachersList) {
-                        if (t.rawObj) {
-                            const rKeys = ['rehberlikSinif', 'sinifRehberlik', 'sinifOgretmeni', 'rehberSube', 'rehberlik', 'rehberlikSiniF'];
-                            for (const key of rKeys) {
-                                if (t.rawObj[key]) {
-                                    const vStr = t.rawObj[key].toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
-                                    if (vStr === cleanTarget) {
-                                        return t.name;
-                                    }
+                // 2. LocalStorage klbk_data içerisinden doğrudan kontrol
+                try {
+                    const rawData = localStorage.getItem('klbk_data');
+                    if (rawData) {
+                        const parsed = JSON.parse(rawData);
+                        if (parsed && parsed.classTeacherMappings) {
+                            for (const [clsKey, tName] of Object.entries(parsed.classTeacherMappings)) {
+                                if (clsKey.toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '') === cleanTarget && tName && tName.trim()) {
+                                    return tName.trim();
                                 }
                             }
                         }
                     }
-                }
+                } catch (e) {}
+
                 return null;
             };
 
-            const classTeacherName = findClassTeacher(className);
+            const classTeacherName = getClassTeacherForSok(className);
             if (classTeacherName) {
                 let ctPart = participantsList.find(p => p.name.toLocaleUpperCase('tr-TR').trim() === classTeacherName.toLocaleUpperCase('tr-TR').trim());
                 if (!ctPart) {
@@ -3318,6 +3291,9 @@
                 participantsList.forEach(p => {
                     if (p !== ctPart && p.name.toLocaleUpperCase('tr-TR').trim() !== classTeacherName.toLocaleUpperCase('tr-TR').trim()) {
                         p.isBaskan = false;
+                        if (p.gorev && p.gorev.includes('Zümre Başkanı')) {
+                            p.gorev = p.gorev.replace(/\s*-\s*Zümre Başkanı/g, '').replace('Zümre Başkanı', 'Öğretmen');
+                        }
                     }
                 });
             }
