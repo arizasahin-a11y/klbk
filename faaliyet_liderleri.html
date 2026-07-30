@@ -598,7 +598,15 @@
 
                 const actNameHtml = (isOG && item.tema) ? `${nameText} <span style="color:#94a3b8;font-size:0.85em;display:inline-block;margin-left:4px;">(TEMA ${item.tema})</span>` : nameText;
 
-                let actLeaders = leadersMap.get(planId) || [];
+                let actLeaders = leadersMap.get(planId);
+                if (!actLeaders || actLeaders.length === 0) {
+                    const rawSorumlu = isOG ? (item.sorumlu || '') : (item.sorumlu_verisi || '');
+                    if (rawSorumlu) {
+                        actLeaders = rawSorumlu.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+                    } else {
+                        actLeaders = [];
+                    }
+                }
                 
                 const isArchived = report ? report.isArchived === true : false;
 
