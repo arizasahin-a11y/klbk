@@ -155,7 +155,12 @@
         <div class="rh">
             <div>
                 <h1><i class="fas fa-crown" style="color: #fbbf24;"></i> Faaliyet Liderleri Listesi</h1>
-                <a href="pts.html" class="back-link"><i class="fas fa-arrow-left"></i> Veri Giriş Portalı'na Dön</a>
+                <div style="display: flex; gap: 10px; align-items: center; margin-top: 6px; flex-wrap: wrap;">
+                    <a href="enter.html" class="back-link" style="background:#0d9488; color:white; padding:4px 12px; border-radius:8px; text-decoration:none; font-weight:700; font-size:0.85rem;" title="Portal Ana Sayfaya Dön">
+                        <i class="fas fa-home"></i> Portal Ana Sayfa
+                    </a>
+                    <a href="pts.html" class="back-link"><i class="fas fa-arrow-left"></i> Veri Giriş Portalı'na Dön</a>
+                </div>
             </div>
             <button class="print-btn" onclick="window.print()">
                 <i class="fas fa-print"></i> Listeyi Yazdır
@@ -433,15 +438,38 @@
                     throw new Error("db_data.js yüklenemedi (COMBINED_DB bulunamadı).");
                 }
 
-                // Calculate Project-Specific Counts (Case-Insensitive)
-                const baseTeachers = [
-                    "Adil DURAL", "Ahmet ÇAĞLAYAN", "Ali Rıza ŞAHİN", "Aslı İŞÇEN", "Aydan GÜRDAL",
-                    "Bahtiyar NAR", "Cansel DALAN", "Çağla YALÇIN", "Elif ŞAH", "Ersin TOKDEMİR",
-                    "Ferdi ALTUNDAŞ", "Fethiye ELİTOĞ", "Hakan CORA", "Harika HAMZAOĞLU", "Hasan SERİM",
-                    "Melek YILMAZ", "Pınar ÇALIŞKAN", "Selda ODUNCU", "Serhat KIYAK", "Sibel RESİMCİ",
-                    "Süleyman Necip ZOR", "Şebnem BAKIRCI", "Şeyma OCAK GÜVENÇ", "Ünsal YILMAZ",
-                    "Vural DEMİR", "Yasemin ALTAN", "Sancar UZUNDERE"
-                ].map(t => formatNameTR(t));
+                // Calculate Project-Specific Counts — Fetch Teachers Dynamically from Dashboard Cloud Database (klbk_users.json)
+                let baseTeachers = [];
+                try {
+                    const res = await fetch("https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users.json");
+                    if (res.ok) {
+                        const usersData = await res.json();
+                        if (usersData && typeof usersData === 'object') {
+                            Object.values(usersData).forEach(u => {
+                                if (u && u.name && typeof u.name === 'string' && u.name.trim()) {
+                                    const formattedName = formatNameTR(u.name.trim());
+                                    if (formattedName && !baseTeachers.includes(formattedName)) {
+                                        baseTeachers.push(formattedName);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Dashboard öğretmen listesi çekilirken hata:", e);
+                }
+
+                // Fallback list if cloud fetch is empty
+                if (baseTeachers.length === 0) {
+                    baseTeachers = [
+                        "Adil DURAL", "Ahmet ÇAĞLAYAN", "Ali Rıza ŞAHİN", "Aslı İŞÇEN", "Aydan GÜRDAL",
+                        "Bahtiyar NAR", "Cansel DALAN", "Çağla YALÇIN", "Elif ŞAH", "Ersin TOKDEMİR",
+                        "Ferdi ALTUNDAŞ", "Fethiye ELİTOĞ", "Hakan CORA", "Harika HAMZAOĞLU", "Hasan SERİM",
+                        "Melek YILMAZ", "Pınar ÇALIŞKAN", "Selda ODUNCU", "Serhat KIYAK", "Sibel RESİMCİ",
+                        "Süleyman Necip ZOR", "Şebnem BAKIRCI", "Şeyma OCAK GÜVENÇ", "Ünsal YILMAZ",
+                        "Vural DEMİR", "Yasemin ALTAN", "Sancar UZUNDERE"
+                    ].map(t => formatNameTR(t));
+                }
 
                 const teacherSet = new Set(baseTeachers);
                 leadersMap.forEach((leaders) => {
