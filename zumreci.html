@@ -4319,6 +4319,20 @@ const getClassTeacherForSok = window.getClassTeacherForSok;
                 title: 'Toplantı Silinecek?',
                 html: `<b>${plan.donem} - ${plan.tur}</b> toplantı kaydını silmek istediğinize emin misiniz?<br><br><small style="color:#ef4444;">Bu işlem geri alınamaz ve işlenmiş tüm görüşler/kararlar silinir.</small>`,
                 icon: 'warning',
+                input: 'password',
+                inputPlaceholder: 'Silme onay şifresini giriniz',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocorrect: 'off'
+                },
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'İşlemi onaylamak için şifre girmelisiniz!';
+                    }
+                    if (value !== '1234') {
+                        return 'Hatalı şifre girdiniz!';
+                    }
+                },
                 showCancelButton: true,
                 confirmButtonText: 'Evet, Kalıcı Olarak Sil',
                 cancelButtonText: 'İptal',
@@ -5004,6 +5018,20 @@ const getClassTeacherForSok = window.getClassTeacherForSok;
                 title: 'Toplu Silme İşlemi',
                 html: `Seçili <b>${selectedIds.length}</b> adet zümre toplantısını tamamen silmek istediğinize emin misiniz?<br><br><small style="color:#ef4444;">Bu işlem geri alınamaz ve toplantılara ait işlenmiş tüm görüşler/kararlar silinir.</small>`,
                 icon: 'warning',
+                input: 'password',
+                inputPlaceholder: 'Silme onay şifresini giriniz',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocorrect: 'off'
+                },
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'İşlemi onaylamak için şifre girmelisiniz!';
+                    }
+                    if (value !== '1234') {
+                        return 'Hatalı şifre girdiniz!';
+                    }
+                },
                 showCancelButton: true,
                 confirmButtonColor: '#ef4444',
                 cancelButtonColor: '#64748b',
