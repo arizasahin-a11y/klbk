@@ -4715,6 +4715,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    window.getEffectiveSubjectGroupCount = function (session, subName) {
+        if (!session || !subName) return 1;
+        const meta = DataManager.getSanitizedSubjectMetadata(session, subName);
+        const papers = meta.papers || {};
+        if (typeof papers === 'string') {
+            return papers.trim() ? 1 : (session.hasGroups ? (session.groupCount || 2) : 1);
+        }
+        if (typeof papers === 'object' && papers !== null) {
+            const filledKeys = Object.keys(papers).filter(k => typeof papers[k] === 'string' && papers[k].trim().length > 0);
+            if (filledKeys.length > 0) return filledKeys.length;
+        }
+        return session.hasGroups ? (session.groupCount || 2) : 1;
+    };
+    const getEffectiveSubjectGroupCount = window.getEffectiveSubjectGroupCount;
+
     // ─── Oturumu Yazdır ────────────────────────────────────────────────────────
     window.printSessionDistribution = async function (id, filterValue = null, forcePrintPapers = false) {
         let selectedExams = null;
@@ -5545,7 +5560,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const rows = chunk.map(sid => {
                             const s = room.seats[sid];
                             if (s) {
-                                const groupSuffix = (s._groupLabel || s.group) ? ` (${s._groupLabel || s.group})` : '';
+                                const effCount = getEffectiveSubjectGroupCount(session, s._matchedSubject);
+                                const groupSuffix = (effCount > 1 && (s._groupLabel || s.group)) ? ` (${s._groupLabel || s.group})` : '';
                                 return `<tr><td style="text-align:center;"><b>${seatToNum[sid] || '-'}</b></td>
                                     <td>${s.class}</td><td style="text-align:center;"><b>${s.no}</b></td>
                                     <td>${s.name}${groupSuffix}</td><td>${abbr(s._matchedSubject || '-', 15)}</td>
@@ -6531,12 +6547,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                             style="width:15px; height:15px;">`;
             }
 
+            const effCount = getEffectiveSubjectGroupCount(session, s._matchedSubject);
+            const groupSuffix = (effCount > 1 && (s._groupLabel || s.group)) ? ` (${s._groupLabel || s.group})` : '';
+
             return `
                 <tr>
                     <td style="padding:8px; border-bottom:1px solid #eee;"><b>${seatToNum[seatId] || '-'}</b></td>
                     <td style="padding:8px; border-bottom:1px solid #eee;">${s.class}</td>
                     <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}</b></td>
-                    <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.name}${(s._groupLabel || s.group) ? ` (${s._groupLabel || s.group})` : ''}</b></td>
+                    <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.name}${groupSuffix}</b></td>
                     <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${window.shortenSubject(s._matchedSubject || '-', 15)}</td>
                     <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">
                         ${checkboxHtml}

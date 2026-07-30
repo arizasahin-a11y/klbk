@@ -4648,6 +4648,22 @@
                 return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : d;
             };
 
+            const getEffectiveSubjectGroupCount = (sessionObj, subName) => {
+                if (!sessionObj || !subName) return 1;
+                const meta = (window.DataManager && DataManager.getSanitizedSubjectMetadata)
+                    ? DataManager.getSanitizedSubjectMetadata(sessionObj, subName)
+                    : (sessionObj.subjectMetadata?.[subName] || {});
+                const papers = meta.papers || {};
+                if (typeof papers === 'string') {
+                    return papers.trim() ? 1 : (sessionObj.hasGroups ? (sessionObj.groupCount || 2) : 1);
+                }
+                if (typeof papers === 'object' && papers !== null) {
+                    const filledKeys = Object.keys(papers).filter(k => typeof papers[k] === 'string' && papers[k].trim().length > 0);
+                    if (filledKeys.length > 0) return filledKeys.length;
+                }
+                return sessionObj.hasGroups ? (sessionObj.groupCount || 2) : 1;
+            };
+
             const abbr = (n, lim = 15) => {
                 if (!n || n === '-') return n;
                 return window.shortenSubject ? window.shortenSubject(n, lim) : n;
@@ -4754,7 +4770,8 @@
                         const isHighDensity = PAGE_SIZE > 42 || (isLastPage && teacherMsg && PAGE_SIZE > 35);
                         const rows = chunk.map(sid => {
                             const s = room.seats[sid];
-                            const groupSuffix = (s && (s._groupLabel || s.group)) ? ` (${s._groupLabel || s.group})` : '';
+                            const effCount = getEffectiveSubjectGroupCount(session, s?._matchedSubject);
+                            const groupSuffix = (effCount > 1 && s && (s._groupLabel || s.group)) ? ` (${s._groupLabel || s.group})` : '';
                             if (s) return `<tr><td class="text-center text-bold" style="width:8%;">${seatToNum[sid] || '-'}</td><td class="text-center" style="width:10%;">${s.class}</td><td class="text-center text-bold" style="width:10%;">${s.no}</td><td style="width:42%; text-transform:uppercase; font-weight:600;">${s.name}${groupSuffix}</td><td style="width:15%;">${abbr(s._matchedSubject || '-', 20)}</td><td style="width:15%;"></td></tr> `;
                             else return `<tr style="color:#94a3b8; background:#fffafa;"><td class="text-center text-bold" style="width:8%;">${seatToNum[sid] || '-'}</td><td colspan="4" class="text-center" style="font-weight:900; letter-spacing:4px; font-size:10pt; color:#ef4444;">BOŞ</td><td style="width:15%;"></td></tr> `;
                         }).join('');

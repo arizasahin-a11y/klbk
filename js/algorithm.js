@@ -732,18 +732,41 @@ var ExamAlgorithm = window.ExamAlgorithm = {
         // ── 10. GRUP DAĞITIMI (Dengeli ve aynı gruplar birbirinden uzak olacak şekilde) ────────
         const hasGroups = sessionData?.hasGroups || (sessionData?.subjects && sessionData.subjects.some(x => typeof x === 'object' && x.hasGroups));
         if (hasGroups) {
-            const groupCount = sessionData.groupCount || 2;
+            const defaultGroupCount = sessionData.groupCount || 2;
+            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+            // Ders bazlı doldurulan PDF link sayısına göre aktif grup sayısını hesaplar
+            const getEffGroupCount = (subName) => {
+                if (!subName) return defaultGroupCount;
+                const meta = (typeof DataManager !== 'undefined' && DataManager.getSanitizedSubjectMetadata)
+                    ? DataManager.getSanitizedSubjectMetadata(sessionData, subName)
+                    : (sessionData?.subjectMetadata?.[subName] || {});
+                const papers = meta.papers || {};
+                if (typeof papers === 'string') {
+                    return papers.trim() ? 1 : defaultGroupCount;
+                }
+                if (typeof papers === 'object' && papers !== null) {
+                    const filledKeys = Object.keys(papers).filter(k => typeof papers[k] === 'string' && papers[k].trim().length > 0);
+                    if (filledKeys.length > 0) return filledKeys.length;
+                }
+                return defaultGroupCount;
+            };
+
             roomNodes.forEach(node => {
                 const assignedEntries = Object.entries(node.assigned);
                 if (assignedEntries.length === 0) return;
 
-                // Salondaki koltukların konumuna göre (row + globalCol) dama tahtası paritesi ile grup harfi atanması.
-                // Bu sayede her salonda gruplar eşit (dengeli) sayıda olur ve aynı gruptan öğrenciler (sağ, sol, ön, arka, çapraz) birbirinden uzaklaştırılır.
                 assignedEntries.forEach(([seatId, student]) => {
                     const seat = node.allSeats.find(s => s.id === seatId);
                     if (seat && student) {
-                        const grpIdx = (seat.r + seat.globalCol) % groupCount;
-                        student._groupLabel = alphabet[grpIdx];
+                        const subName = student._matchedSubject || '';
+                        const effCount = getEffGroupCount(subName);
+                        if (effCount > 1) {
+                            const grpIdx = (seat.r + seat.globalCol) % effCount;
+                            student._groupLabel = alphabet[grpIdx];
+                        } else {
+                            delete student._groupLabel;
+                        }
                     }
                 });
             });
