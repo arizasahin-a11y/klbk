@@ -681,58 +681,6 @@
                         <div id="examSessionsList" style="margin-bottom: 2rem; overflow-x: auto;">
                             <!-- JS injected sessions table -->
                         </div>
-
-                        <!-- THE WIZARD MODAL (Hidden by default) -->
-                        <div id="examWizardModal" class="modal-overlay hidden">
-                            <div class="modal-content glass-panel" style="max-width: 550px;">
-
-                                <!-- Wizard Header -->
-                                <div class="modal-header">
-                                    <h2>Yeni Sınav Oturumu Ekle</h2>
-                                    <button id="btnWizardClose" class="modal-close">
-                                        <i class="fa-solid fa-xmark"></i>
-                                    </button>
-                                </div>
-
-                                <!-- Stepper -->
-                                <div class="wizard-stepper">
-                                    <div class="wizard-step active" data-step="1">1. Bilgiler</div>
-                                    <div class="wizard-step" data-step="2">2. Ders & Sınıf</div>
-                                    <div class="wizard-step" data-step="3">3. Derslikler</div>
-                                    <div class="wizard-step" data-step="4">4. Onay</div>
-                                </div>
-
-                                <!-- Wizard Body -->
-                                <div class="modal-body">
-
-                                    <!-- STEP 1: Info -->
-                                    <div id="wizardStep1" class="wizard-pane">
-                                        <div style="text-align: center; margin-bottom: 2rem;">
-                                            <div
-                                                style="width: 60px; height: 60px; background: rgba(79, 70, 229, 0.1); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem;">
-                                                <i class="fa-solid fa-calendar-check"></i>
-                                            </div>
-                                            <h3>Oturum Bilgileri</h3>
-                                            <p style="color: var(--gray-500); font-size: 0.9rem;">Sınav oturumu için temel tanımlamaları yapın.</p>
-                                        </div>
-
-                                        <div class="modal-form-card">
-                                            <div class="modal-row" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
-                                                <div class="modal-form-group" style="flex: 3; min-width: 200px;">
-                                                    <label>Sınav Adı</label>
-                                                    <input type="text" id="wizSessionName"
-                                                        placeholder="Örn: 1. Dönem 1. Ortak Fizik Sınavı" required style="width: 100%; box-sizing: border-box; height: 48px; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px;">
-                                                </div>
-                                                <div class="modal-form-group" style="flex: 1; min-width: 100px;">
-                                                    <label>Sınav No</label>
-                                                    <input type="number" id="wizSessionExamNo" min="1" max="10" value="1" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; font-family: inherit; box-sizing: border-box; height: 48px;">
-                                                </div>
-                                            </div>
-                                            <div class="modal-form-group">
-                                                <label>Sınav Türü</label>
-                                                <select id="wizSessionType" required>
-                                                    <option value="yazili" selected>Yazılı Sınav</option>
-                                                    <option value="uygulama">Uygulama Sınavı</option>
                                                 </select>
                                             </div>
 

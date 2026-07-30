@@ -736,30 +736,33 @@ small {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    z-index: 1000;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 99999;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 1.5rem;
-    animation: fadeIn 0.3s ease;
+    overflow-y: auto;
+    animation: fadeIn 0.25s ease;
 }
 
 .modal-content {
     width: 95%;
     max-width: 650px;
-    max-height: 90vh;
-    background: white;
+    max-height: 85vh;
+    background: #ffffff;
     border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-2xl);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.8);
     position: relative;
+    margin: auto;
 }
+
 
 .modal-header {
     padding: 1.5rem;

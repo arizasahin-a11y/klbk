@@ -2564,23 +2564,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateWizardUI();
     }
 
+    function hideExamWizardModal() {
+        if (examWizardModal) {
+            examWizardModal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+    }
+
     if (btnOpenExamWizard) {
         btnOpenExamWizard.addEventListener('click', () => {
             resetWizard();
-            examWizardModal.classList.remove('hidden');
+            if (examWizardModal) {
+                if (examWizardModal.parentElement !== document.body) {
+                    document.body.appendChild(examWizardModal);
+                }
+                examWizardModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
         });
     }
 
     if (btnWizardClose) {
-        btnWizardClose.addEventListener('click', () => {
-            examWizardModal.classList.add('hidden');
-        });
+        btnWizardClose.addEventListener('click', hideExamWizardModal);
     }
 
     if (btnWizardCancel) {
-        btnWizardCancel.addEventListener('click', () => {
-            examWizardModal.classList.add('hidden');
-        });
+        btnWizardCancel.addEventListener('click', hideExamWizardModal);
     }
 
     function updateWizardUI() {
@@ -3388,7 +3398,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Save Session
                 DataManager.addExamSession(wizardSessionData);
-                examWizardModal.classList.add('hidden');
+                hideExamWizardModal();
 
                 Swal.fire({
                     title: 'Dağıtımı Yapıldı',
