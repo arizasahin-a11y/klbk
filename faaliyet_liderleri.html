@@ -415,24 +415,38 @@
             }
         }
 
+        let _liveSnapshotInit = false;
+
         async function loadData() {
             try {
-                // Fetch Leaders from activity_leaders collection
+                // Fetch Leaders & Reports with timeout to prevent getting stuck
                 const leadersMap = new Map();
-                const lSnap = await db.collection('activity_leaders').get();
-                lSnap.forEach(doc => {
-                    leadersMap.set(doc.id, doc.data().leaders || []);
-                });
+                let reports = [];
+
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error("Zaman aşımı (Firestore yanıt vermedi, yerel veriler kullanılıyor)")), 3000)
+                );
+
+                try {
+                    const fetchPromise = Promise.all([
+                        db.collection('activity_leaders').get(),
+                        db.collection('reports').get()
+                    ]);
+
+                    const [lSnap, rSnap] = await Promise.race([fetchPromise, timeoutPromise]);
+
+                    lSnap.forEach(doc => {
+                        leadersMap.set(doc.id, doc.data().leaders || []);
+                    });
+                    rSnap.forEach(doc => {
+                        reports.push({ id: doc.id, ...doc.data() });
+                    });
+                } catch (snapErr) {
+                    console.warn("Firestore hızlı yükleme uyarısı (zaman aşımı veya offline):", snapErr);
+                }
+
                 globalLeadersMap = leadersMap;
 
-                // Fetch Reports for report status checks
-                let reports = [];
-                const rSnap = await db.collection('reports').get();
-                rSnap.forEach(doc => {
-                    const data = doc.data();
-                    reports.push({ id: doc.id, ...data });
-                });
-                
                 // Load Master DB logic
                 if (typeof COMBINED_DB === 'undefined') {
                     throw new Error("db_data.js yüklenemedi (COMBINED_DB bulunamadı).");
@@ -485,6 +499,7 @@
                 // Dynamic leader filter options
                 const filterSelect = document.getElementById('leader-filter');
                 if (filterSelect) {
+                    const selectedVal = filterSelect.value;
                     filterSelect.innerHTML = '<option value="">Tüm Liderler (Filtre Yok)</option>';
                     ALL_TEACHERS.forEach(t => {
                         const opt = document.createElement('option');
@@ -492,6 +507,7 @@
                         opt.textContent = t;
                         filterSelect.appendChild(opt);
                     });
+                    filterSelect.value = selectedVal;
                 }
 
                 const ogCounts = new Map();
@@ -519,6 +535,13 @@
                 renderTable('oo', COMBINED_DB.oo_db, false, leadersMap, reports, ALL_TEACHERS, ooCounts);
 
                 document.getElementById('loading').style.display = 'none';
+
+                // Setup live listeners once
+                if (!_liveSnapshotInit) {
+                    _liveSnapshotInit = true;
+                    db.collection('activity_leaders').onSnapshot(() => loadData(), () => {});
+                    db.collection('reports').onSnapshot(() => loadData(), () => {});
+                }
 
             } catch(e) {
                 console.error(e);
