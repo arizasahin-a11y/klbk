@@ -2571,6 +2571,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // Modal'ı hemen body seviyesine taşı (glass-panel / backdrop-filter kısıtlamalarını engeller)
+    if (examWizardModal && examWizardModal.parentElement !== document.body) {
+        document.body.appendChild(examWizardModal);
+    }
+
     if (btnOpenExamWizard) {
         btnOpenExamWizard.addEventListener('click', () => {
             resetWizard();
@@ -2580,7 +2585,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 examWizardModal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
-                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         });
     }
@@ -2592,6 +2596,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (btnWizardCancel) {
         btnWizardCancel.addEventListener('click', hideExamWizardModal);
     }
+
 
     function updateWizardUI() {
         // Toggle Panes
