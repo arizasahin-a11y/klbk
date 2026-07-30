@@ -2172,6 +2172,8 @@
                         title: isDecision ? 'Karar başarıyla işlendi!' : 'Görüş başarıyla işlendi!',
                         showConfirmButton: false,
                         timer: 1500
+                    }).then(() => {
+                        window.location.reload();
                     });
                     filterAndRenderGorusList();
                     if (typeof promptSyncOpinionToOtherSoks === 'function') {
@@ -2247,6 +2249,8 @@
                             title: 'Görüş güncellendi!',
                             showConfirmButton: false,
                             timer: 1500
+                        }).then(() => {
+                            window.location.reload();
                         });
                         filterAndRenderGorusList();
                         if (typeof promptSyncOpinionToOtherSoks === 'function') {
@@ -2304,6 +2308,8 @@
                         title: 'Görüş silindi!',
                         showConfirmButton: false,
                         timer: 1500
+                    }).then(() => {
+                        window.location.reload();
                     });
                     filterAndRenderGorusList();
                 } else {
@@ -3267,7 +3273,18 @@
                 return null;
             };
 
+            // Sınıf Öğretmenini Zümre Başkanı Yapma
             const classTeacherName = getClassTeacherForSok(className);
+
+            // Önce listedeki tüm öğretmenlerin isBaskan bayrağını ve (ZÜMRE BAŞKANI) unvanını temizle
+            participantsList.forEach(p => {
+                p.isBaskan = false;
+                if (p.gorev) {
+                    p.gorev = p.gorev.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/\s*-\s*Zümre Başkanı/gi, '').replace(/Zümre Başkanı/gi, '').trim();
+                    if (!p.gorev) p.gorev = 'Öğretmen';
+                }
+            });
+
             if (classTeacherName) {
                 let ctPart = participantsList.find(p => p.name.toLocaleUpperCase('tr-TR').trim() === classTeacherName.toLocaleUpperCase('tr-TR').trim());
                 if (!ctPart) {
@@ -3276,26 +3293,20 @@
 
                 if (ctPart) {
                     ctPart.isBaskan = true;
-                    ctPart.gorev = `${className} Sınıf Öğretmeni - Zümre Başkanı`;
+                    let g = ctPart.gorev || 'Öğretmen';
+                    g = g.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/\s*-\s*Zümre Başkanı/gi, '').replace(/Zümre Başkanı/gi, '').trim();
+                    if (!g) g = 'Öğretmen';
+                    ctPart.gorev = `${g} (ZÜMRE BAŞKANI)`;
                 } else {
                     participantsList.unshift({
                         id: 'sok_baskan_' + Date.now(),
                         name: classTeacherName,
                         kurum: localStorage.getItem('klbk_lastSchoolName') || 'Okulumuz',
-                        gorev: `${className} Sınıf Öğretmeni - Zümre Başkanı`,
+                        gorev: `${className} Sınıf Öğretmeni (ZÜMRE BAŞKANI)`,
                         isBaskan: true
                     });
                     count++;
                 }
-
-                participantsList.forEach(p => {
-                    if (p !== ctPart && p.name.toLocaleUpperCase('tr-TR').trim() !== classTeacherName.toLocaleUpperCase('tr-TR').trim()) {
-                        p.isBaskan = false;
-                        if (p.gorev && p.gorev.includes('Zümre Başkanı')) {
-                            p.gorev = p.gorev.replace(/\s*-\s*Zümre Başkanı/g, '').replace('Zümre Başkanı', 'Öğretmen');
-                        }
-                    }
-                });
             }
 
             renderParticipantsTable();
@@ -3491,13 +3502,24 @@
                 
                 const kurumTd = isIlOrIlce ? `<td><span class="badge-info">${p.kurum || ''}</span></td>` : '';
 
+                let rawGorev = p.gorev || 'Öğretmen';
+                if (isBaskanCell) {
+                    if (!rawGorev.includes('(ZÜMRE BAŞKANI)')) {
+                        rawGorev = rawGorev.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/\s*-\s*Zümre Başkanı/gi, '').replace(/Zümre Başkanı/gi, '').trim();
+                        if (!rawGorev) rawGorev = 'Öğretmen';
+                        rawGorev += ' (ZÜMRE BAŞKANI)';
+                    }
+                } else {
+                    rawGorev = rawGorev.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').trim();
+                }
+
                 html += `
                     <tr oncontextmenu="event.preventDefault(); setZumreBaskani('${p.id}')" style="cursor: context-menu;" title="Zümre başkanı olarak belirlemek için sağ tıklayın">
                         <td style="font-weight: 700; color: #64748b;">${index + 1}</td>
                         <td style="font-weight: 700; color: var(--dark); cursor: pointer;" onclick="window.editParticipantName('${p.id}')" title="İsmi düzenlemek için tıklayın"><i class="fa-regular fa-user" style="margin-right: 6px; color: var(--primary);"></i> ${p.name}${crownHtml}</td>
                         ${kurumTd}
                         <td style="font-weight: 600; color: ${isBaskanCell ? '#059669' : '#475569'};">
-                            ${(p.gorev || '').split(',').map(b => `<span style="cursor: pointer; padding: 2px 4px; border-radius: 4px; transition: background 0.2s;" oncontextmenu="event.stopPropagation(); event.preventDefault(); window.removeBranchFromParticipant('${p.id}', '${b.trim().replace(/'/g, "\\'")}')" onclick="event.stopPropagation(); window.editParticipantGorev('${p.id}')" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='transparent'" title="Sol tık: Branşı Düzenle | Sağ tık: Bu Branşı Sil">${b.trim()}</span>`).join(', ')}
+                            ${rawGorev.split(',').map(b => `<span style="cursor: pointer; padding: 2px 4px; border-radius: 4px; transition: background 0.2s;" oncontextmenu="event.stopPropagation(); event.preventDefault(); window.removeBranchFromParticipant('${p.id}', '${b.trim().replace(/'/g, "\\'")}')" onclick="event.stopPropagation(); window.editParticipantGorev('${p.id}')" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='transparent'" title="Sol tık: Branşı Düzenle | Sağ tık: Bu Branşı Sil">${b.trim()}</span>`).join(', ')}
                         </td>
                         <td style="text-align: center;">
                             <button class="btn-custom btn-danger-custom" style="padding: 5px 10px; border-radius: 6px; font-size: 0.8rem;" onclick="removeParticipant('${p.id}')" title="Kaldır">
@@ -3514,12 +3536,15 @@
             participantsList.forEach(p => {
                 if (p.id === id) {
                     p.isBaskan = true;
-                    p.gorev = 'Zümre Başkanı';
+                    let g = p.gorev || 'Öğretmen';
+                    g = g.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/\s*-\s*Zümre Başkanı/gi, '').replace(/Zümre Başkanı/gi, '').trim();
+                    if (!g) g = 'Öğretmen';
+                    p.gorev = g + ' (ZÜMRE BAŞKANI)';
                     Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `${p.name} Zümre Başkanı olarak belirlendi!`, showConfirmButton: false, timer: 1500 });
                 } else {
-                    if (p.isBaskan) {
-                        p.isBaskan = false;
-                        if (p.gorev === 'Zümre Başkanı') p.gorev = 'Öğretmen';
+                    p.isBaskan = false;
+                    if (p.gorev) {
+                        p.gorev = p.gorev.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/\s*-\s*Zümre Başkanı/gi, '').replace(/Zümre Başkanı/gi, '').trim();
                     }
                 }
             });
