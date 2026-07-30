@@ -447,9 +447,13 @@
                         if (usersData && typeof usersData === 'object') {
                             Object.values(usersData).forEach(u => {
                                 if (u && u.name && typeof u.name === 'string' && u.name.trim()) {
-                                    const formattedName = formatNameTR(u.name.trim());
-                                    if (formattedName && !baseTeachers.includes(formattedName)) {
-                                        baseTeachers.push(formattedName);
+                                    const role = (u.role || '').toLowerCase().trim();
+                                    const isAdmin = role === 'admin' || role === 'master' || role === 'idareci' || u.isAdmin === true;
+                                    if (!isAdmin) {
+                                        const formattedName = formatNameTR(u.name.trim());
+                                        if (formattedName && !baseTeachers.includes(formattedName)) {
+                                            baseTeachers.push(formattedName);
+                                        }
                                     }
                                 }
                             });

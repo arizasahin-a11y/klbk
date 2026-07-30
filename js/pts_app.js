@@ -2509,8 +2509,12 @@ async function syncRegisteredLeadersCache() {
             if (usersData && typeof usersData === 'object') {
                 Object.values(usersData).forEach(u => {
                     if (u && u.name && typeof u.name === 'string' && u.name.trim()) {
-                        const formatted = formatNameTR(u.name.trim());
-                        if (formatted) uniqueNames.add(formatted);
+                        const role = (u.role || '').toLowerCase().trim();
+                        const isAdmin = role === 'admin' || role === 'master' || role === 'idareci' || u.isAdmin === true;
+                        if (!isAdmin) {
+                            const formatted = formatNameTR(u.name.trim());
+                            if (formatted) uniqueNames.add(formatted);
+                        }
                     }
                 });
             }
