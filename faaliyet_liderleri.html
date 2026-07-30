@@ -415,142 +415,140 @@
             }
         }
 
+        let _leadersMap = new Map();
+        let _reportsList = [];
         let _liveSnapshotInit = false;
 
         async function loadData() {
             try {
-                // Fetch Leaders & Reports with timeout to prevent getting stuck
-                const leadersMap = new Map();
-                let reports = [];
-
-                const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error("Zaman aşımı (Firestore yanıt vermedi, yerel veriler kullanılıyor)")), 3000)
-                );
-
-                try {
-                    const fetchPromise = Promise.all([
-                        db.collection('activity_leaders').get(),
-                        db.collection('reports').get()
-                    ]);
-
-                    const [lSnap, rSnap] = await Promise.race([fetchPromise, timeoutPromise]);
-
-                    lSnap.forEach(doc => {
-                        leadersMap.set(doc.id, doc.data().leaders || []);
-                    });
-                    rSnap.forEach(doc => {
-                        reports.push({ id: doc.id, ...doc.data() });
-                    });
-                } catch (snapErr) {
-                    console.warn("Firestore hızlı yükleme uyarısı (zaman aşımı veya offline):", snapErr);
-                }
-
-                globalLeadersMap = leadersMap;
-
-                // Load Master DB logic
-                if (typeof COMBINED_DB === 'undefined') {
-                    throw new Error("db_data.js yüklenemedi (COMBINED_DB bulunamadı).");
-                }
-
-                // Calculate Project-Specific Counts — Fetch Teachers Dynamically from Dashboard Cloud Database (klbk_users.json)
-                let baseTeachers = [];
-                try {
-                    const res = await fetch("https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users.json");
-                    if (res.ok) {
-                        const usersData = await res.json();
-                        if (usersData && typeof usersData === 'object') {
-                            Object.values(usersData).forEach(u => {
-                                if (u && u.name && typeof u.name === 'string' && u.name.trim()) {
-                                    const role = (u.role || '').toLowerCase().trim();
-                                    const isAdmin = role === 'admin' || role === 'master' || role === 'idareci' || u.isAdmin === true;
-                                    if (!isAdmin) {
-                                        const formattedName = formatNameTR(u.name.trim());
-                                        if (formattedName && !baseTeachers.includes(formattedName)) {
-                                            baseTeachers.push(formattedName);
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                    }
-                } catch (e) {
-                    console.warn("Dashboard öğretmen listesi çekilirken hata:", e);
-                }
-
-                // Fallback list if cloud fetch is empty
-                if (baseTeachers.length === 0) {
-                    baseTeachers = [
-                        "Adil DURAL", "Ahmet ÇAĞLAYAN", "Ali Rıza ŞAHİN", "Aslı İŞÇEN", "Aydan GÜRDAL",
-                        "Bahtiyar NAR", "Cansel DALAN", "Çağla YALÇIN", "Elif ŞAH", "Ersin TOKDEMİR",
-                        "Ferdi ALTUNDAŞ", "Fethiye ELİTOĞ", "Hakan CORA", "Harika HAMZAOĞLU", "Hasan SERİM",
-                        "Melek YILMAZ", "Pınar ÇALIŞKAN", "Selda ODUNCU", "Serhat KIYAK", "Sibel RESİMCİ",
-                        "Süleyman Necip ZOR", "Şebnem BAKIRCI", "Şeyma OCAK GÜVENÇ", "Ünsal YILMAZ",
-                        "Vural DEMİR", "Yasemin ALTAN", "Sancar UZUNDERE"
-                    ].map(t => formatNameTR(t));
-                }
-
-                const teacherSet = new Set(baseTeachers);
-                leadersMap.forEach((leaders) => {
-                    leaders.forEach(ldr => teacherSet.add(formatNameTR(ldr)));
-                });
-
-                const ALL_TEACHERS = Array.from(teacherSet).sort((a,b) => a.localeCompare(b, 'tr'));
-                
-                // Dynamic leader filter options
-                const filterSelect = document.getElementById('leader-filter');
-                if (filterSelect) {
-                    const selectedVal = filterSelect.value;
-                    filterSelect.innerHTML = '<option value="">Tüm Liderler (Filtre Yok)</option>';
-                    ALL_TEACHERS.forEach(t => {
-                        const opt = document.createElement('option');
-                        opt.value = norm(t);
-                        opt.textContent = t;
-                        filterSelect.appendChild(opt);
-                    });
-                    filterSelect.value = selectedVal;
-                }
-
-                const ogCounts = new Map();
-                const ooCounts = new Map();
-                ALL_TEACHERS.forEach(t => { ogCounts.set(norm(t), 0); ooCounts.set(norm(t), 0); });
-                
-                leadersMap.forEach((leaders, planId) => {
-                    const targetMap = planId.startsWith('og-') ? ogCounts : ooCounts;
-                    leaders.forEach(ldr => {
-                        const n = norm(ldr);
-                        targetMap.set(n, (targetMap.get(n) || 0) + 1);
-                    });
-                });
-
-                _lastRenderParams = {
-                    leadersMap: leadersMap,
-                    reports: reports,
-                    ALL_TEACHERS: ALL_TEACHERS,
-                    ogCounts: ogCounts,
-                    ooCounts: ooCounts
-                };
-
-                // Render both tables
-                renderTable('og', COMBINED_DB.og_db, true, leadersMap, reports, ALL_TEACHERS, ogCounts);
-                renderTable('oo', COMBINED_DB.oo_db, false, leadersMap, reports, ALL_TEACHERS, ooCounts);
-
-                document.getElementById('loading').style.display = 'none';
-
-                // Setup live listeners once
                 if (!_liveSnapshotInit) {
                     _liveSnapshotInit = true;
-                    db.collection('activity_leaders').onSnapshot(() => loadData(), () => {});
-                    db.collection('reports').onSnapshot(() => loadData(), () => {});
+                    
+                    try {
+                        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject("timeout"), 1500));
+                        const fetchPromise = Promise.all([
+                            db.collection('activity_leaders').get(),
+                            db.collection('reports').get()
+                        ]);
+
+                        const [lSnap, rSnap] = await Promise.race([fetchPromise, timeoutPromise]);
+                        _leadersMap.clear();
+                        lSnap.forEach(doc => _leadersMap.set(doc.id, doc.data().leaders || []));
+                        _reportsList = [];
+                        rSnap.forEach(doc => _reportsList.push({ id: doc.id, ...doc.data() }));
+                    } catch (e) {
+                        console.warn("Firestore get fallback/timeout:", e);
+                    }
+
+                    if (db) {
+                        db.collection('activity_leaders').onSnapshot(snap => {
+                            _leadersMap.clear();
+                            snap.forEach(doc => _leadersMap.set(doc.id, doc.data().leaders || []));
+                            globalLeadersMap = _leadersMap;
+                            renderDataUI();
+                        }, err => console.warn("leaders snap err:", err));
+
+                        db.collection('reports').onSnapshot(snap => {
+                            _reportsList = [];
+                            snap.forEach(doc => _reportsList.push({ id: doc.id, ...doc.data() }));
+                            renderDataUI();
+                        }, err => console.warn("reports snap err:", err));
+                    }
                 }
+
+                globalLeadersMap = _leadersMap;
+                await renderDataUI();
 
             } catch(e) {
                 console.error(e);
-                let hint = '';
-                if (e.message && e.message.includes('Missing or insufficient permissions')) {
-                    hint = '<br><br><span style="color:#64748b; font-size:0.9rem; font-weight:400;">💡 İpucu: Firebase veritabanı kurallarının (Rules) süresi dolmuş olabilir. Lütfen Firebase Console üzerinden "okulpt" projenize girerek Firestore Database kurallarını güncelleyin.</span>';
-                }
-                document.getElementById('loading').innerHTML = '<span style="color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-triangle"></i> Veriler yüklenirken hata oluştu: ' + e.message + hint + '</span>';
+                const loader = document.getElementById('loading');
+                if (loader) loader.style.display = 'none';
             }
+        }
+
+        async function renderDataUI() {
+            if (typeof COMBINED_DB === 'undefined') return;
+
+            let baseTeachers = [];
+            try {
+                const res = await fetch("https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users.json");
+                if (res.ok) {
+                    const usersData = await res.json();
+                    if (usersData && typeof usersData === 'object') {
+                        Object.values(usersData).forEach(u => {
+                            if (u && u.name && typeof u.name === 'string' && u.name.trim()) {
+                                const role = (u.role || '').toLowerCase().trim();
+                                const isAdmin = role === 'admin' || role === 'master' || role === 'idareci' || u.isAdmin === true;
+                                if (!isAdmin) {
+                                    const formattedName = formatNameTR(u.name.trim());
+                                    if (formattedName && !baseTeachers.includes(formattedName)) {
+                                        baseTeachers.push(formattedName);
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn("Dashboard öğretmen listesi çekilirken hata:", e);
+            }
+
+            if (baseTeachers.length === 0) {
+                baseTeachers = [
+                    "Adil DURAL", "Ahmet ÇAĞLAYAN", "Ali Rıza ŞAHİN", "Aslı İŞÇEN", "Aydan GÜRDAL",
+                    "Bahtiyar NAR", "Cansel DALAN", "Çağla YALÇIN", "Elif ŞAH", "Ersin TOKDEMİR",
+                    "Ferdi ALTUNDAŞ", "Fethiye ELİTOĞ", "Hakan CORA", "Harika HAMZAOĞLU", "Hasan SERİM",
+                    "Melek YILMAZ", "Pınar ÇALIŞKAN", "Selda ODUNCU", "Serhat KIYAK", "Sibel RESİMCİ",
+                    "Süleyman Necip ZOR", "Şebnem BAKIRCI", "Şeyma OCAK GÜVENÇ", "Ünsal YILMAZ",
+                    "Vural DEMİR", "Yasemin ALTAN", "Sancar UZUNDERE"
+                ].map(t => formatNameTR(t));
+            }
+
+            const teacherSet = new Set(baseTeachers);
+            _leadersMap.forEach((leaders) => {
+                leaders.forEach(ldr => teacherSet.add(formatNameTR(ldr)));
+            });
+
+            const ALL_TEACHERS = Array.from(teacherSet).sort((a,b) => a.localeCompare(b, 'tr'));
+            
+            const filterSelect = document.getElementById('leader-filter');
+            if (filterSelect) {
+                const selectedVal = filterSelect.value;
+                filterSelect.innerHTML = '<option value="">Tüm Liderler (Filtre Yok)</option>';
+                ALL_TEACHERS.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = norm(t);
+                    opt.textContent = t;
+                    filterSelect.appendChild(opt);
+                });
+                filterSelect.value = selectedVal;
+            }
+
+            const ogCounts = new Map();
+            const ooCounts = new Map();
+            ALL_TEACHERS.forEach(t => { ogCounts.set(norm(t), 0); ooCounts.set(norm(t), 0); });
+            
+            _leadersMap.forEach((leaders, planId) => {
+                const targetMap = planId.startsWith('og-') ? ogCounts : ooCounts;
+                leaders.forEach(ldr => {
+                    const n = norm(ldr);
+                    targetMap.set(n, (targetMap.get(n) || 0) + 1);
+                });
+            });
+
+            _lastRenderParams = {
+                leadersMap: _leadersMap,
+                reports: _reportsList,
+                ALL_TEACHERS: ALL_TEACHERS,
+                ogCounts: ogCounts,
+                ooCounts: ooCounts
+            };
+
+            renderTable('og', COMBINED_DB.og_db, true, _leadersMap, _reportsList, ALL_TEACHERS, ogCounts);
+            renderTable('oo', COMBINED_DB.oo_db, false, _leadersMap, _reportsList, ALL_TEACHERS, ooCounts);
+
+            const loader = document.getElementById('loading');
+            if (loader) loader.style.display = 'none';
         }
 
         function renderTable(prefix, dbSource, isOG, leadersMap, reports, allTeachers, projectCounts) {
