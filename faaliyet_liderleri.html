@@ -994,6 +994,7 @@ let globalLeadersMap = new Map();
                 if (isAuth) {
                     const displayName = (userObj && userObj.name) ? formatNameTR(userObj.name) : formatNameTR(matchedUsername);
                     sessionStorage.setItem('klbk_faaliyet_isLoggedIn', 'true');
+                    sessionStorage.setItem('klbk_isLoggedIn', 'true');
                     sessionStorage.setItem('klbk_faaliyet_user', displayName);
 
                     if (typeof Swal !== 'undefined') {
@@ -1012,6 +1013,7 @@ let globalLeadersMap = new Map();
                 if (pass === '1234' || pass === 'admin' || pass === 'master') {
                     const displayName = formatNameTR(user);
                     sessionStorage.setItem('klbk_faaliyet_isLoggedIn', 'true');
+                    sessionStorage.setItem('klbk_isLoggedIn', 'true');
                     sessionStorage.setItem('klbk_faaliyet_user', displayName);
                     showAuthenticatedPortal(displayName);
                 } else {
@@ -1036,8 +1038,16 @@ let globalLeadersMap = new Map();
         }
 
         function showAuthenticatedPortal(userName) {
+            const af = document.getElementById('anti-flicker-style');
+            if (af) af.remove();
             const overlay = document.getElementById('login-overlay');
-            if (overlay) overlay.style.display = 'none';
+            if (overlay) {
+                overlay.style.setProperty('display', 'none', 'important');
+            }
+            const wrap = document.querySelector('.wrap');
+            if (wrap) {
+                wrap.style.setProperty('display', 'block', 'important');
+            }
 
             const userBar = document.getElementById('user-info-bar');
             const nameEl = document.getElementById('logged-user-name');
@@ -1097,7 +1107,7 @@ let globalLeadersMap = new Map();
         }
 
         function checkPortalAuth() {
-            const isLogged = sessionStorage.getItem('klbk_faaliyet_isLoggedIn') || sessionStorage.getItem('klbk_isLoggedIn');
+            const isLogged = (sessionStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true' || sessionStorage.getItem('klbk_isLoggedIn') === 'true') ? 'true' : 'false';
             const user = sessionStorage.getItem('klbk_faaliyet_user') || sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser');
 
             if (isLogged === 'true' || isLogged === 'guest') {

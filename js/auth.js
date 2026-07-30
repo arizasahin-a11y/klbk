@@ -192,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     sessionStorage.setItem(key, value);
                 }
                 sessionStorage.setItem('klbk_isLoggedIn', 'true');
+            sessionStorage.setItem('klbk_faaliyet_isLoggedIn', 'true');
 
                 // Auto-redirect if not coming from a "Back" action
                 // We check if we are on the login page and NOT explicitly logging out
@@ -433,6 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Setup session
                     sessionStorage.setItem('klbk_isLoggedIn', 'true');
+            sessionStorage.setItem('klbk_faaliyet_isLoggedIn', 'true');
                     sessionStorage.setItem('klbk_currentUser', username);
                     sessionStorage.setItem('klbk_name', formatTeacherName(userData.name || username));
                     sessionStorage.setItem('klbk_schoolName', userData.schoolName || '');
