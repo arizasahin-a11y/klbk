@@ -236,6 +236,16 @@
         }
 
     </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const isLogged = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || sessionStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true';
+            if (isLogged) {
+                const lp = document.getElementById('loginPanel');
+                if (lp) lp.style.display = 'none';
+            }
+        });
+    </script>
 </head>
 <body>
 

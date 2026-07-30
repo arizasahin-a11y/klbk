@@ -1264,11 +1264,11 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             // 1. Auth Validation
-            const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true';
+            const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || sessionStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true';
             const role = sessionStorage.getItem('klbk_role') || '';
             activeTeacherUsername = sessionStorage.getItem('klbk_currentUser') || '';
 
-            if (!isLoggedIn || !activeTeacherUsername) {
+            if (!isLoggedIn) {
                 document.getElementById('loginPanel').style.display = 'flex';
                 
                 const lastSchoolName = localStorage.getItem('klbk_lastSchoolName');
