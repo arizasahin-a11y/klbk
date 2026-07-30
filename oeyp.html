@@ -239,10 +239,26 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const isLogged = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || sessionStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true';
+            const isLogged = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || 
+                           sessionStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true' || 
+                           sessionStorage.getItem('klbk_teacher_token') === 'true';
             if (isLogged) {
-                const lp = document.getElementById('loginPanel');
-                if (lp) lp.style.display = 'none';
+                let name = sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || 'Öğretmen';
+                let storedUser = sessionStorage.getItem('klbk_teacher_user');
+                if (storedUser) {
+                    try { currentUser = JSON.parse(storedUser); } catch(e) {}
+                }
+                if (!currentUser) {
+                    currentUser = { username: name, name: name };
+                }
+                if (typeof initializeApp === 'function') {
+                    initializeApp();
+                } else {
+                    const lp = document.getElementById('loginPanel');
+                    if (lp) lp.style.display = 'none';
+                    const ac = document.getElementById('appContainer');
+                    if (ac) ac.style.display = 'block';
+                }
             }
         });
     </script>
