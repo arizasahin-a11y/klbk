@@ -461,6 +461,14 @@
                 }
             });
 
+            // Deduplicate links by URL so duplicate cards never show up
+            const seenUrls = new Set();
+            portalLinks = portalLinks.filter(link => {
+                if (!link.url || seenUrls.has(link.url)) return false;
+                seenUrls.add(link.url);
+                return true;
+            });
+
             if (isAdmin) {
                 renderAdminLinks();
             }
