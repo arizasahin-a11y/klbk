@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Faaliyet Liderleri Listesi | PFDS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Outfit', sans-serif; background: #f1f5f9; color: #1e293b; padding: 28px 18px; }
+        .wrap { max-width: 1200px; margin: 0 auto; }
+        .rh { background: linear-gradient(135deg, #1e293b, #0f172a); color: #fff; border-radius: 16px; padding: 22px 28px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        .rh h1 { font-size: 1.6rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        .rh .back-link { color: #cbd5e1; text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; transition: color 0.2s; margin-top: 5px; }
+        .rh .back-link:hover { color: #fff; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { background: #cbd5e1; color: #334155; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+        .tab-btn:hover { background: #94a3b8; }
+        .tab-btn.active { background: #4f46e5; color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+        .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .tw { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 18px rgba(0,0,0,.06); border: 1px solid #e2e8f0; }
+        table { width: 100%; border-collapse: collapse; }
+        thead th { background: #1e293b; color: #f8fafc; padding: 14px 12px; text-align: left; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border-right: 1px solid rgba(255,255,255,.05); }
+        thead th:last-child { border-right: none; }
+        tbody td { padding: 12px; border: 1px solid #e5e7eb; font-size: 14px; color: #334155; line-height: 1.4; }
+        tbody tr:hover { background: #f8fafc; }
+        .ldr-cell { vertical-align: middle; text-align: center; background: #fefce8; border-right: 2px solid #fde047 !important; }
+        .ldr-badge { display: inline-block; font-size: 0.7rem; background: #fbbf24; color: #1e293b; padding: 3px 8px; border-radius: 12px; margin-bottom: 6px; font-weight: 700; letter-spacing: 0.05em; }
+        .ldr-name { display: block; font-weight: 700; color: #b45309; font-size: 1rem; }
+        .status-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+        #loading { text-align: center; font-size: 1.2rem; color: #64748b; padding: 60px; background: white; border-radius: 14px; box-shadow: 0 4px 18px rgba(0,0,0,.06); }
+        .proj-badge { background: #ede9fe; color: #7c3aed; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+        .print-btn { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #1e293b; border: none; padding: 10px 22px; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 1rem; transition: transform 0.2s; white-space: nowrap; }
+        .print-btn:hover { transform: translateY(-2px); }
+        
+        /* RESPONSIVE DÜZENLEMELER */
+        @media (max-width: 768px) {
+            body { padding: 15px 10px; }
+            .rh { flex-direction: column; text-align: center; gap: 15px; padding: 20px; }
+            .rh h1 { font-size: 1.3rem; justify-content: center; }
+            .rh .back-link { justify-content: center; }
+            .tabs { flex-direction: column; gap: 8px; }
+            .tab-btn { width: 100%; justify-content: center; padding: 15px; font-size: 1.1rem; }
+            .tw { border-radius: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            table { min-width: 800px; } /* Mobilde yatay kaydırma için minimum genişlik */
+            tbody td, thead th { padding: 10px 8px; font-size: 12px; }
+            .ldr-name { font-size: 0.85rem; }
+            .filter-wrapper { width: 100%; justify-content: space-between; }
+            .filter-select { flex: 1; text-align: right; }
+        }
+
+        /* Akıllı Tahta ve Tablet için dokunmatik iyileştirmeleri */
+        @media (pointer: coarse) {
+            .tab-btn, .print-btn { min-height: 48px; } /* Dokunmatik hedef boyutu */
+        }
+        
+        /* Lider Grupları Renkleri */
+        .row-group-0 { background-color: rgba(56, 189, 248, 0.08); } /* Açık Mavi */
+        .row-group-1 { background-color: rgba(244, 114, 182, 0.08); } /* Açık Pembe */
+        .row-group-0:hover { background-color: rgba(56, 189, 248, 0.12) !important; }
+        .row-group-1:hover { background-color: rgba(244, 114, 182, 0.12) !important; }
+        
+        /* Lider Grupları Arasındaki Kalın Çizgi */
+        .leader-start-row td {
+            border-top: 3px solid #475569 !important;
+        }
+        
+        @media print {
+            .tabs, .rh, .print-btn { display: none !important; }
+            body { padding: 0; background: white; }
+            .wrap { max-width: 100%; }
+            .tab-content { display: block !important; margin-bottom: 40px; page-break-after: always; }
+            .tab-content:last-child { page-break-after: auto; }
+            .tab-content h2 { display: block !important; margin-bottom: 15px; font-size: 1.5rem; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+            .tw { box-shadow: none; border: 1px solid #cbd5e1; border-radius: 0; }
+            table { width: 100%; }
+            thead th { background: #cbd5e1 !important; color: #0f172a !important; border: 1px solid #94a3b8 !important; }
+            tbody td { border: 1px solid #cbd5e1 !important; }
+            .ldr-cell { background: white !important; border-right: 1px solid #cbd5e1 !important; }
+            .ldr-badge { border: 1px solid #fbbf24; background: white; }
+            .status-badge, .proj-badge { border: 1px solid #cbd5e1 !important; background: white !important; color: #0f172a !important; }
+            
+            /* Letter Print Styles */
+            @page { size: A4; margin: 0; }
+            .teblig-page { 
+                display: block !important; 
+                page-break-after: always; 
+                width: 210mm; 
+                height: 290mm; 
+                padding: 1.5cm 2cm; 
+                margin: 0; 
+                box-sizing: border-box; 
+                font-family: 'Times New Roman', serif; 
+                color: black; 
+                line-height: 1.2; 
+                font-size: 11pt; 
+                position: relative;
+                overflow: hidden;
+            }
+            .teblig-page:last-of-type { page-break-after: avoid !important; }
+        }
+        .print-title { display: none; }
+        
+        /* Tebliğ Formatı CSS */
+        .teblig-page { display: none; background: white; width: 210mm; height: 290mm; margin: 0 auto; box-shadow: none; padding: 1.5cm 2cm; font-family: 'Times New Roman', Times, serif; color: black; line-height: 1.2; font-size: 11pt; box-sizing: border-box; position: relative; overflow: hidden; border: none; display: block; }
+        .teblig-page:last-of-type { page-break-after: avoid !important; }
+        .teblig-header { text-align: center; margin-bottom: 25px; font-weight: bold; line-height: 1.2; }
+        .teblig-top-info { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .teblig-date { text-align: right; }
+        .teblig-subject { margin-bottom: 25px; }
+        .teblig-title { text-align: center; font-weight: bold; margin-bottom: 30px; text-decoration: none; }
+        .teblig-recipient { margin-bottom: 20px; }
+        .teblig-content { margin-bottom: 10px; text-align: justify; text-indent: 1.5cm; }
+        .teblig-tasks-title { font-weight: bold; margin-bottom: 8px; }
+        .teblig-tasks-list { list-style-type: disc; margin-left: 2.5cm; margin-bottom: 25px; }
+        .teblig-tasks-list li { margin-bottom: 3px; padding-left: 5px; }
+        .teblig-signature { margin-left: 10cm; text-align: center; margin-top: auto; min-height: 80px; }
+        .teblig-signature-name { font-weight: bold; text-transform: uppercase; margin-bottom: 2px; }
+        .teblig-footer { position: relative; margin-top: 1.5cm; margin-bottom: 1cm; margin-left: 2.0cm; width: calc(100% - 2.0cm); display: flex; justify-content: center; gap: 4cm; font-size: 10.5pt; }
+        .teblig-footer div { width: 5.5cm; text-align: left; }
+        .teblig-footer div:last-child { margin-left: 1.5cm; }
+        .teblig-footer strong { text-decoration: underline; }
+
+        /* Assignment Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2000; }
+        .modal-content { background: white; width: 650px; max-width: 95%; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); display: flex; flex-direction: column; max-height: 90vh; animation: modalFadeIn 0.3s ease; }
+        @keyframes modalFadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-header { padding: 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { margin: 0; font-size: 1.1rem; color: #0f172a; font-weight: 700; }
+        .close-btn { font-size: 1.5rem; cursor: pointer; color: #94a3b8; line-height: 1; }
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+        .am-list { border: 1px solid #f1f5f9; border-radius: 10px; max-height: 250px; overflow-y: auto; margin-bottom: 20px; background: #fafafa; }
+        .am-item { padding: 10px 15px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 12px; font-size: 0.9rem; color: #334155; }
+        .am-item:last-child { border-bottom: none; }
+        .am-item:hover { background: #f1f5f9; }
+        .am-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: #4f46e5; }
+        .am-section label { display: block; font-weight: 700; font-size: 0.75rem; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .am-search-wrap { margin-bottom: 10px; }
+        .am-search-wrap input { width: 100%; padding: 10px 15px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; outline: none; }
+        .am-search-wrap input:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        .modal-footer { padding: 15px 20px; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 12px; background: #f8fafc; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; }
+        .btn-save { background: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; }
+        .btn-save:hover { background: #4338ca; transform: translateY(-1px); }
+        .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-cancel { background: white; color: #64748b; border: 1px solid #e2e8f0; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+        .filter-wrapper { display: flex; align-items: center; gap: 8px; background: #fff; padding: 10px 15px; border-radius: 10px; font-weight: 600; color: #334155; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .filter-select { border: none; outline: none; background: transparent; font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 600; color: #334155; cursor: pointer; min-width: 180px; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="rh">
+            <div>
+                <h1><i class="fas fa-crown" style="color: #fbbf24;"></i> Faaliyet Liderleri Listesi</h1>
+                <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Veri Giriş Portalı'na Dön</a>
+            </div>
+            <button class="print-btn" onclick="window.print()">
+                <i class="fas fa-print"></i> Listeyi Yazdır
+            </button>
+        </div>
+
+        <div class="tabs" style="align-items: center; justify-content: space-between;">
+            <div style="display: flex; gap: 10px;">
+                <button class="tab-btn active" onclick="switchTab('og', this)" oncontextmenu="handleTabRightClick(event, 'og')"><i class="fas fa-chart-line"></i> Okul Gelişim</button>
+                <button class="tab-btn" onclick="switchTab('oo', this)" oncontextmenu="handleTabRightClick(event, 'oo')"><i class="fas fa-star"></i> Okul Özel</button>
+            </div>
+            
+            <div class="filter-wrapper">
+                <i class="fas fa-filter" style="color: #4f46e5;"></i>
+                <label for="leader-filter" style="cursor: pointer; user-select: none;">Lider Filtresi:</label>
+                <select id="leader-filter" class="filter-select" onchange="onLeaderFilterChange()">
+                    <option value="">Yükleniyor...</option>
+                </select>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 8px; background: #e2e8f0; padding: 10px 15px; border-radius: 10px; font-weight: 600; color: #334155;">
+                <input type="checkbox" id="view-mode-toggle" style="width: 18px; height: 18px; accent-color: #4f46e5; cursor: pointer;" onchange="toggleViewMode()">
+                <label for="view-mode-toggle" style="cursor: pointer; user-select: none;">Faaliyete göre Liste</label>
+            </div>
+        </div>
+
+        <div id="loading"><i class="fas fa-circle-notch fa-spin"></i> Firebase'den lider verileri yükleniyor...</div>
+
+        <div id="og" class="tab-content active">
+            <h2 class="print-title">Okul Gelişim Projesi — Faaliyet Liderleri</h2>
+            <div class="tw">
+                <table id="og-table">
+                    <thead><tr><th style="width:180px;text-align:center;">Lider Adı</th><th>Faaliyet / Eylem Adı</th><th style="text-align:center;width:120px;">Proje</th><th style="text-align:center;width:100px;">Başlangıç</th><th style="text-align:center;width:100px;">Bitiş</th><th style="text-align:center;width:110px;">Zaman Durumu</th><th style="text-align:center;width:110px;">Rapor Durumu</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="oo" class="tab-content">
+            <h2 class="print-title">Okul Özel Projesi — Faaliyet Liderleri</h2>
+            <div class="tw">
+                <table id="oo-table">
+                    <thead><tr><th style="width:180px;text-align:center;">Lider Adı</th><th>Faaliyet / Eylem Adı</th><th style="text-align:center;width:120px;">Proje</th><th style="text-align:center;width:100px;">Başlangıç</th><th style="text-align:center;width:100px;">Bitiş</th><th style="text-align:center;width:110px;">Zaman Durumu</th><th style="text-align:center;width:110px;">Rapor Durumu</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignment Modal -->
+    <div id="assignment-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeAssignmentModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-tasks"></i> Faaliyet Atamalarını Yönet</h3>
+                <span class="close-btn" onclick="closeAssignmentModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="am-leader-display" style="padding:15px; background:rgba(79,70,229,0.05); border-radius:12px; margin-bottom:20px; border:1px solid rgba(79,70,229,0.1);">
+                    <div style="font-size:0.75rem; color:#64748b; text-transform:uppercase; font-weight:700; margin-bottom:4px;">Seçili Lider</div>
+                    <div id="am-leader-name" style="font-size:1.2rem; font-weight:800; color:#4f46e5;"></div>
+                </div>
+                
+                <div class="am-section">
+                    <label>Atanmış Faaliyetler (<span id="am-assigned-count">0</span>)</label>
+                    <div id="am-assigned-list" class="am-list"></div>
+                </div>
+                
+                <div class="am-section">
+                    <label>Atanabilir Faaliyetler</label>
+                    <div class="am-search-wrap">
+                        <input type="text" id="am-search" placeholder="Faaliyet veya kod ara..." oninput="filterAvailableActivities()">
+                    </div>
+                    <div id="am-available-list" class="am-list"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeAssignmentModal()">İptal</button>
+                <button id="am-save-btn" class="btn-save" onclick="saveAssignments()">Değişiklikleri Uygula</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Leaders Modal -->
+    <div id="activity-leaders-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeActivityLeadersModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-users"></i> Liderleri Yönet</h3>
+                <span class="close-btn" onclick="closeActivityLeadersModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="alm-activity-display" style="padding:15px; background:rgba(16,185,129,0.05); border-radius:12px; margin-bottom:20px; border:1px solid rgba(16,185,129,0.1);">
+                    <div style="font-size:0.75rem; color:#64748b; text-transform:uppercase; font-weight:700; margin-bottom:4px;">Seçili Faaliyet</div>
+                    <div id="alm-activity-name" style="font-size:1.1rem; font-weight:700; color:#059669;"></div>
+                </div>
+                
+                <div class="am-section">
+                    <label>Atanmış Liderler (<span id="alm-assigned-count">0</span>)</label>
+                    <div id="alm-assigned-list" class="am-list"></div>
+                </div>
+                
+                <div class="am-section">
+                    <label>Tüm Liderler (Havuz)</label>
+                    <div class="am-search-wrap">
+                        <input type="text" id="alm-search" placeholder="İsim ara..." oninput="filterAvailableActivityLeaders()">
+                    </div>
+                    <div id="alm-available-list" class="am-list"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeActivityLeadersModal()">İptal</button>
+                <button id="alm-save-btn" class="btn-save" style="background:#059669;" onclick="saveActivityLeaders()">Değişiklikleri Uygula</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="db_data.js?v=2026.04.30.1"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+    
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBoScB63OHNIPZ2y1Eo9LWa3ynSRPG6xYU",
+            authDomain: "okulpt.firebaseapp.com",
+            projectId: "okulpt",
+            storageBucket: "okulpt.firebasestorage.app",
+            messagingSenderId: "715714176883",
+            appId: "1:715714176883:web:a1a125314f834f61b60706"
+        };
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+        
+        let allProcessedData = { og: new Map(), oo: new Map() };
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function parseDBDate(str) {
+            if (!str || str === 'NaN') return null;
+            let s = str.toString().trim();
+            if (s.includes(' ')) s = s.split(' ')[0]; // Remove time if present
+            
+            let dObj;
+            if (s.indexOf('.') !== -1) {
+                let parts = s.split('.');
+                dObj = new Date(parts[2], parts[1] - 1, parts[0]);
+            } else if (s.indexOf('-') !== -1) {
+                let parts = s.split('-');
+                if (parts[0].length === 4) {
+                    dObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                }
+            }
+
+            if (dObj && !isNaN(dObj)) {
+                const year = dObj.getFullYear();
+                const month = String(dObj.getMonth() + 1).padStart(2, '0');
+                const day = String(dObj.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+            return null;
+        }
+
+        function lowerTR(str) {
+            return str.replace(/I/g, 'ı').replace(/İ/g, 'i').toLowerCase();
+        }
+        function upperTR(str) {
+            return str.replace(/i/g, 'İ').replace(/ı/g, 'I').toUpperCase();
+        }
+
+        const KNOWN_TEACHERS = {
+            "adil dural": "Adil DURAL",
+            "ahmet çağlayan": "Ahmet ÇAĞLAYAN",
+            "ali rıza şahin": "Ali Rıza ŞAHİN",
+            "aslı işçen": "Aslı İŞÇEN",
+            "aydan gürdal": "Aydan GÜRDAL",
+            "bahtiyar nar": "Bahtiyar NAR",
+            "cansel dalan": "Cansel DALAN",
+            "çağla yalçın": "Çağla YALÇIN",
+            "elif şah": "Elif ŞAH",
+            "ersin tokdemir": "Ersin TOKDEMİR",
+            "ferdi altundaş": "Ferdi ALTUNDAŞ",
+            "fethiye elitoğ": "Fethiye ELİTOĞ",
+            "hakan cora": "Hakan CORA",
+            "harika hamzaoğlu": "Harika HAMZAOĞLU",
+            "hasan serim": "Hasan SERİM",
+            "melek yılmaz": "Melek YILMAZ",
+            "pınar çalışkan": "Pınar ÇALIŞKAN",
+            "selda oduncu": "Selda ODUNCU",
+            "serhat kıyak": "Serhat KIYAK",
+            "sibel resimci": "Sibel RESİMCİ",
+            "süleyman necip zor": "Süleyman Necip ZOR",
+            "şebnem bakırcı": "Şebnem BAKIRCI",
+            "şeyma ocak güvenç": "Şeyma OCAK GÜVENÇ",
+            "ünsal yılmaz": "Ünsal YILMAZ",
+            "vural demir": "Vural DEMİR",
+            "yasemin altan": "Yasemin ALTAN",
+            "sancar uzundere": "Sancar UZUNDERE"
+        };
+
+        function formatNameTR(rawName) {
+            if (!rawName) return '';
+            if (rawName.includes(',')) {
+                return rawName.split(',').map(s => formatNameTR(s.trim())).join(', ');
+            }
+            const val = rawName.trim();
+            const normVal = lowerTR(val).replace(/\s+/g, ' ');
+            if (KNOWN_TEACHERS[normVal]) return KNOWN_TEACHERS[normVal];
+
+            const orgKeywords = ['yönetimi', 'idaresi', 'lideri', 'vakfı', 'derneği', 'birliği', 'zümresi', 'kurulu', 'kulübü', 'okul', 'tema', 'servisi', 'rehberlik', 'müdürlüğü'];
+            const isOrg = orgKeywords.some(key => lowerTR(val).includes(key));
+            const parts = val.split(/\s+/).filter(p => p.length > 0);
+            if (parts.length === 0) return '';
+            if (isOrg) {
+                return parts.map(n => upperTR(n.charAt(0)) + lowerTR(n.slice(1))).join(' ');
+            } else if (parts.length === 1) {
+                return upperTR(parts[0].charAt(0)) + lowerTR(parts[0].slice(1));
+            } else {
+                const surname = upperTR(parts.pop());
+                const names = parts.map(n => upperTR(n.charAt(0)) + lowerTR(n.slice(1)));
+                return [...names, surname].join(' ');
+            }
+        }
+
+        function normalizeString(s) {
+            if (!s) return "";
+            let str = lowerTR(s.toString().trim());
+            str = str.replace(/tekrarlayan\s*eylem.*?$/g, '');
+            return str.replace(/\s+/g, '').replace(/[^a-z0-9ğüşıioöç]/g, '');
+        }
+
+        const norm = (s) => lowerTR((s || "").toString().trim());
+
+        let globalLeadersMap = new Map();
+        let _lastRenderParams = null;
+
+        function toggleViewMode() {
+            if (_lastRenderParams) {
+                renderTable('og', COMBINED_DB.og_db, true, _lastRenderParams.leadersMap, _lastRenderParams.reports, _lastRenderParams.ALL_TEACHERS, _lastRenderParams.ogCounts);
+                renderTable('oo', COMBINED_DB.oo_db, false, _lastRenderParams.leadersMap, _lastRenderParams.reports, _lastRenderParams.ALL_TEACHERS, _lastRenderParams.ooCounts);
+            }
+        }
+
+        function onLeaderFilterChange() {
+            if (_lastRenderParams) {
+                renderTable('og', COMBINED_DB.og_db, true, _lastRenderParams.leadersMap, _lastRenderParams.reports, _lastRenderParams.ALL_TEACHERS, _lastRenderParams.ogCounts);
+                renderTable('oo', COMBINED_DB.oo_db, false, _lastRenderParams.leadersMap, _lastRenderParams.reports, _lastRenderParams.ALL_TEACHERS, _lastRenderParams.ooCounts);
+            }
+        }
+
+        async function loadData() {
+            try {
+                // Fetch Leaders from activity_leaders collection
+                const leadersMap = new Map();
+                const lSnap = await db.collection('activity_leaders').get();
+                lSnap.forEach(doc => {
+                    leadersMap.set(doc.id, doc.data().leaders || []);
+                });
+                globalLeadersMap = leadersMap;
+
+                // Fetch Reports for report status checks
+                let reports = [];
+                const rSnap = await db.collection('reports').get();
+                rSnap.forEach(doc => {
+                    const data = doc.data();
+                    reports.push({ id: doc.id, ...data });
+                });
+                
+                // Load Master DB logic
+                if (typeof COMBINED_DB === 'undefined') {
+                    throw new Error("db_data.js yüklenemedi (COMBINED_DB bulunamadı).");
+                }
+
+                // Calculate Project-Specific Counts (Case-Insensitive)
+                const baseTeachers = [
+                    "Adil DURAL", "Ahmet ÇAĞLAYAN", "Ali Rıza ŞAHİN", "Aslı İŞÇEN", "Aydan GÜRDAL",
+                    "Bahtiyar NAR", "Cansel DALAN", "Çağla YALÇIN", "Elif ŞAH", "Ersin TOKDEMİR",
+                    "Ferdi ALTUNDAŞ", "Fethiye ELİTOĞ", "Hakan CORA", "Harika HAMZAOĞLU", "Hasan SERİM",
+                    "Melek YILMAZ", "Pınar ÇALIŞKAN", "Selda ODUNCU", "Serhat KIYAK", "Sibel RESİMCİ",
+                    "Süleyman Necip ZOR", "Şebnem BAKIRCI", "Şeyma OCAK GÜVENÇ", "Ünsal YILMAZ",
+                    "Vural DEMİR", "Yasemin ALTAN", "Sancar UZUNDERE"
+                ].map(t => formatNameTR(t));
+
+                const teacherSet = new Set(baseTeachers);
+                leadersMap.forEach((leaders) => {
+                    leaders.forEach(ldr => teacherSet.add(formatNameTR(ldr)));
+                });
+
+                const ALL_TEACHERS = Array.from(teacherSet).sort((a,b) => a.localeCompare(b, 'tr'));
+                
+                // Dynamic leader filter options
+                const filterSelect = document.getElementById('leader-filter');
+                if (filterSelect) {
+                    filterSelect.innerHTML = '<option value="">Tüm Liderler (Filtre Yok)</option>';
+                    ALL_TEACHERS.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = norm(t);
+                        opt.textContent = t;
+                        filterSelect.appendChild(opt);
+                    });
+                }
+
+                const ogCounts = new Map();
+                const ooCounts = new Map();
+                ALL_TEACHERS.forEach(t => { ogCounts.set(norm(t), 0); ooCounts.set(norm(t), 0); });
+                
+                leadersMap.forEach((leaders, planId) => {
+                    const targetMap = planId.startsWith('og-') ? ogCounts : ooCounts;
+                    leaders.forEach(ldr => {
+                        const n = norm(ldr);
+                        targetMap.set(n, (targetMap.get(n) || 0) + 1);
+                    });
+                });
+
+                _lastRenderParams = {
+                    leadersMap: leadersMap,
+                    reports: reports,
+                    ALL_TEACHERS: ALL_TEACHERS,
+                    ogCounts: ogCounts,
+                    ooCounts: ooCounts
+                };
+
+                // Render both tables
+                renderTable('og', COMBINED_DB.og_db, true, leadersMap, reports, ALL_TEACHERS, ogCounts);
+                renderTable('oo', COMBINED_DB.oo_db, false, leadersMap, reports, ALL_TEACHERS, ooCounts);
+
+                document.getElementById('loading').style.display = 'none';
+
+            } catch(e) {
+                console.error(e);
+                let hint = '';
+                if (e.message && e.message.includes('Missing or insufficient permissions')) {
+                    hint = '<br><br><span style="color:#64748b; font-size:0.9rem; font-weight:400;">💡 İpucu: Firebase veritabanı kurallarının (Rules) süresi dolmuş olabilir. Lütfen Firebase Console üzerinden "okulpt" projenize girerek Firestore Database kurallarını güncelleyin.</span>';
+                }
+                document.getElementById('loading').innerHTML = '<span style="color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-triangle"></i> Veriler yüklenirken hata oluştu: ' + e.message + hint + '</span>';
+            }
+        }
+
+        function renderTable(prefix, dbSource, isOG, leadersMap, reports, allTeachers, projectCounts) {
+            const isActivityView = document.getElementById('view-mode-toggle') ? document.getElementById('view-mode-toggle').checked : false;
+            const filterSelect = document.getElementById('leader-filter');
+            const selectedLeaderNorm = filterSelect ? filterSelect.value : "";
+            const thead = document.querySelector(`#${prefix}-table thead tr`);
+            if (isActivityView) {
+                thead.innerHTML = `<th style="width:350px;">Faaliyetler</th><th>Atanan Liderler</th><th style="text-align:center;width:120px;">Proje</th><th style="text-align:center;width:100px;">Başlangıç</th><th style="text-align:center;width:100px;">Bitiş</th><th style="text-align:center;width:110px;">Zaman Durumu</th><th style="text-align:center;width:110px;">Rapor Durumu</th>`;
+            } else {
+                thead.innerHTML = `<th style="width:180px;text-align:center;">Lider Adı</th><th>Faaliyet / Eylem Adı</th><th style="text-align:center;width:120px;">Proje</th><th style="text-align:center;width:100px;">Başlangıç</th><th style="text-align:center;width:100px;">Bitiş</th><th style="text-align:center;width:110px;">Zaman Durumu</th><th style="text-align:center;width:110px;">Rapor Durumu</th>`;
+            }
+
+            const leaderActivities = new Map();
+            const fullActivityList = [];
+            const today = new Date(); today.setHours(0,0,0,0);
+            
+            // Initialize with all teachers (Storing original name for display)
+            allTeachers.forEach(t => leaderActivities.set(norm(t), { original: t, acts: [] }));
+
+            dbSource.forEach(item => {
+                const planId = isOG ? `og-${item.no}` : `oo-${item.sira}`;
+                
+                const startStr = isOG ? (item['y1_bas'] || item['genel_baslangic']) : (item['baslangic_1'] || item['baslangic_2']);
+                const endStr = isOG ? (item['y1_bit'] || item['genel_bitis']) : (item['bitis_1'] || item['bitis_2']);
+                
+                const fmtDate = (dStr) => {
+                    const d = parseDBDate(dStr);
+                    if (!d) return '—';
+                    const parts = d.split('-');
+                    return `${parts[2]}.${parts[1]}.${parts[0]}`;
+                };
+
+                const dt = parseDBDate(endStr || startStr);
+                const endDate = dt ? new Date(dt) : null;
+                const isExpired = endDate ? endDate < today : false;
+
+                const nameText = isOG ? item.eylem_adi : item.eylem_gorev;
+                const normName = normalizeString(nameText);
+                
+                const typeVal = isOG ? 'OKUL GELİŞİM PROJESİ' : 'OKUL ÖZEL PROJESİ';
+                const report = reports.find(r => {
+                    if (r.projectType !== typeVal) return false;
+                    if (r.planId && r.planId === planId) return true;
+                    return normalizeString(r.activityName) === normName;
+                });
+
+                const actNameHtml = (isOG && item.tema) ? `${nameText} <span style="color:#94a3b8;font-size:0.85em;display:inline-block;margin-left:4px;">(TEMA ${item.tema})</span>` : nameText;
+
+                let actLeaders = leadersMap.get(planId) || [];
+                
+                const isArchived = report ? report.isArchived === true : false;
+
+                const actInfo = {
+                    name: actNameHtml,
+                    project: isOG ? 'Okul Gelişim' : 'Okul Özel',
+                    start: fmtDate(startStr),
+                    end: fmtDate(endStr),
+                    isExpired,
+                    isArchived,
+                    isReported: !!report,
+                    status: report ? report.status : null,
+                    reportId: report ? report.id : null,
+                    planId: planId,
+                    rawName: nameText
+                };
+
+                fullActivityList.push({
+                    ...actInfo,
+                    leaders: actLeaders.map(l => formatNameTR(l)).sort((a,b) => a.localeCompare(b, 'tr'))
+                });
+
+                actLeaders.forEach(ldr => {
+                    const n = norm(ldr);
+                    if (!leaderActivities.has(n)) leaderActivities.set(n, { original: formatNameTR(ldr), acts: [] });
+                    
+                    const alreadyExists = leaderActivities.get(n).acts.find(a => 
+                        a.name === actInfo.name && a.start === actInfo.start && a.end === actInfo.end
+                    );
+                    
+                    if (!alreadyExists) {
+                        leaderActivities.get(n).acts.push(actInfo);
+                    }
+                });
+            });
+
+            allProcessedData[prefix] = leaderActivities;
+
+            const tbody = document.querySelector(`#${prefix}-table tbody`);
+            let html = '';
+
+            if (isActivityView) {
+                let renderedActivities = fullActivityList;
+                if (selectedLeaderNorm) {
+                    renderedActivities = fullActivityList.filter(act => 
+                        act.leaders.some(ldr => norm(ldr) === selectedLeaderNorm)
+                    );
+                }
+
+                renderedActivities.sort((a, b) => {
+                    const getWeight = (act) => {
+                        const isCompleted = act.isReported && act.status !== 'İptal';
+                        if (act.isExpired && !isCompleted) return 1; // Süresi Doldu - Rapor Yok
+                        if (act.isExpired && isCompleted) return 2;  // Süresi Doldu - Tamamlandı
+                        if (!act.isExpired && !isCompleted) return 3; // Devam Ediyor - Rapor Yok
+                        if (!act.isExpired && isCompleted) return 4;  // Devam Ediyor - Tamamlandı
+                        return 5;
+                    };
+                    return getWeight(a) - getWeight(b) || a.rawName.localeCompare(b.rawName, 'tr');
+                });
+
+                renderedActivities.forEach((act, actIdx) => {
+                    const rowClass = `row-group-${actIdx % 2}`;
+                    
+                    const expColor = act.isExpired ? '#dc2626' : '#059669';
+                    const expText = act.isExpired ? 'Süresi Doldu' : 'Devam Ediyor';
+                    const expBg = act.isExpired ? 'rgba(220,38,38,0.08)' : 'rgba(5,150,105,0.08)';
+                    
+                    const repColor = act.isReported ? (act.status === 'İptal' ? '#dc2626' : '#059669') : (act.isExpired ? '#dc2626' : '#6b7280');
+                    const repText = act.isReported ? (act.status || 'Tamamlandı') : 'Rapor Yok';
+                    const repBg = act.isReported ? (act.status === 'İptal' ? 'rgba(220,38,38,0.08)' : 'rgba(5,150,105,0.08)') : (act.isExpired ? 'rgba(220,38,38,0.08)' : 'rgba(107,114,128,0.08)');
+
+                    let nameColor = 'inherit';
+                    if (act.isReported && act.status !== 'İptal') {
+                        nameColor = '#059669';
+                    } else if (act.isExpired) {
+                        nameColor = '#dc2626';
+                    }
+
+                    let leadersHtml = '';
+                    if (act.leaders.length > 0) {
+                        leadersHtml = act.leaders.map(l => `<span style="display:inline-block; background:rgba(79,70,229,0.1); color:#4f46e5; padding:4px 8px; border-radius:6px; margin:2px; font-size:0.85em; font-weight:600; border:1px solid rgba(79,70,229,0.2);">${l}</span>`).join(' ');
+                    } else {
+                        leadersHtml = `<span style="color:#94a3b8; font-style:italic; font-size:0.9em;">Lider Atanmamış</span>`;
+                    }
+
+                    html += `<tr class="${rowClass} leader-start-row">
+                        <td style="font-weight:600; color:${nameColor}; padding-right: 15px; cursor:pointer;${act.isArchived ? ' font-style:italic; opacity:0.75;' : ''}" onclick="if(event.ctrlKey) { event.preventDefault(); openActivityLeadersModal('${act.planId}', '${act.rawName.replace(/'/g, "\\'")}', '${prefix}'); }" title="CTRL+Sol Tık: Liderleri Yönet">${act.name}</td>
+                        <td>${leadersHtml}</td>
+                        <td style="text-align:center;"><span class="proj-badge">${act.project}</span></td>
+                        <td style="text-align:center;color:#64748b;">${act.start}</td>
+                        <td style="text-align:center;color:#64748b;">${act.end}</td>
+                        <td style="text-align:center;"><span class="status-badge" style="color:${expColor};background:${expBg};border:1px solid ${expColor}40;">${expText}</span></td>
+                        <td style="text-align:center;">
+                            <div style="display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+                                <span class="status-badge" ${act.isReported ? `onclick="window.open('index.html?printId=${act.reportId}', '_blank')" oncontextmenu="event.preventDefault(); window.open('index.html?editId=${act.reportId}', '_blank');"` : `onclick="window.open('index.html?fillPlanId=${act.planId}&fillerName=${act.leaders.length > 0 ? encodeURIComponent(act.leaders[0]) : ''}&startDate=${act.start}&endDate=${act.end}', '_blank')"`} style="cursor:pointer;color:${repColor};background:${repBg};border:1px solid ${repColor}40;" title="${act.isReported ? 'Sol Tık: Yazdır | Sağ Tık: Düzenle' : 'Raporu Doldurmak İçin Tıklayın'}">${repText}</span>
+                                ${act.isReported ? `<i class="fas fa-pencil-alt" onclick="window.open('index.html?editId=${act.reportId}', '_blank')" style="cursor:pointer; color:${repColor}; opacity:0.8; font-size:0.85rem;" title="Düzenle"></i>` : ''}
+                            </div>
+                        </td>
+                    </tr>`;
+                });
+            } else {
+                let sortedEntries = Array.from(leaderActivities.entries()).sort((a,b) => a[1].original.localeCompare(b[1].original, 'tr'));
+
+                if (selectedLeaderNorm) {
+                    sortedEntries = sortedEntries.filter(([normLeader]) => normLeader === selectedLeaderNorm);
+                }
+
+                sortedEntries.forEach(([normLeader, data], leaderIdx) => {
+                    const leader = data.original;
+                    const activities = data.acts;
+                    const rowClass = `row-group-${leaderIdx % 2}`;
+                    const displayCount = activities.length;
+
+                    if (activities.length === 0) {
+                        const badgeHtml = displayCount > 0 ? `<span class="ldr-badge" style="background:#f1f5f9; color:#94a3b8; border:1px solid #e2e8f0;"><i class="fas fa-user"></i> ÜYE</span>` : '';
+                        html += `<tr class="${rowClass} leader-start-row">
+                            <td class="ldr-cell">
+                                ${badgeHtml}
+                                <span class="ldr-name" style="color:#94a3b8; cursor:pointer;" 
+                                    onclick="handleLeaderClick(event, '${normLeader}', '${prefix}')" 
+                                    title="CTRL+Sol Tık: Tebliğ Belgesi">${leader}</span>
+                                <div style="font-size:0.8rem; color:#94a3b8; margin-top:4px; font-weight:600; cursor:pointer;" 
+                                    onclick="if(event.ctrlKey) { event.preventDefault(); openAssignmentModal('${leader.replace(/'/g, "\\'")}', '${prefix}'); }"
+                                    oncontextmenu="if(event.ctrlKey) { event.preventDefault(); openAssignmentModal('${leader.replace(/'/g, "\\'")}', '${prefix}'); }"
+                                    title="CTRL+Tık: Faaliyetleri Yönet">(${displayCount})</div>
+                            </td>
+                            <td colspan="6" style="text-align:center; color:#cbd5e1; font-style:italic; padding:24px; font-size:0.9rem;">
+                                <i class="fas fa-info-circle" style="margin-right:6px;"></i> Bu proje türünde tanımlanmış bir liderliği bulunmuyor.
+                            </td>
+                        </tr>`;
+                    } else {
+                        activities.forEach((act, idx) => {
+                            const expColor = act.isExpired ? '#dc2626' : '#059669';
+                            const expText = act.isExpired ? 'Süresi Doldu' : 'Devam Ediyor';
+                            const expBg = act.isExpired ? 'rgba(220,38,38,0.08)' : 'rgba(5,150,105,0.08)';
+                            
+                            const repColor = act.isReported ? (act.status === 'İptal' ? '#dc2626' : '#059669') : (act.isExpired ? '#dc2626' : '#6b7280');
+                            const repText = act.isReported ? (act.status || 'Tamamlandı') : 'Rapor Yok';
+                            const repBg = act.isReported ? (act.status === 'İptal' ? 'rgba(220,38,38,0.08)' : 'rgba(5,150,105,0.08)') : (act.isExpired ? 'rgba(220,38,38,0.08)' : 'rgba(107,114,128,0.08)');
+
+                            let nameColor = 'inherit';
+                            if (act.isReported && act.status !== 'İptal') {
+                                nameColor = '#059669'; 
+                            } else if (act.isExpired) {
+                                nameColor = '#dc2626'; 
+                            }
+
+                            const ldrCell = idx === 0 ? `<td class="ldr-cell" rowspan="${activities.length}">
+                                <span class="ldr-badge"><i class="fas fa-crown"></i> LİDER</span>
+                                <span class="ldr-name" style="cursor:pointer; user-select:none;" 
+                                    title="CTRL+Sol Tık: Tebliğ Belgesi | CTRL+ALT+Tık: Toplu Yazdır" 
+                                    onclick="handleLeaderClick(event, '${normLeader}', '${prefix}')">${leader}</span>
+                                <div style="font-size:0.8rem; color:#b45309; margin-top:4px; font-weight:600; cursor:pointer;" 
+                                    onclick="if(event.ctrlKey) { event.preventDefault(); openAssignmentModal('${leader.replace(/'/g, "\\'")}', '${prefix}'); }"
+                                    oncontextmenu="if(event.ctrlKey) { event.preventDefault(); openAssignmentModal('${leader.replace(/'/g, "\\'")}', '${prefix}'); }"
+                                    title="CTRL+Tık: Faaliyetleri Yönet">(${activities.length})</div>
+                            </td>` : '';
+                            
+                            const startClass = idx === 0 ? 'leader-start-row' : '';
+                            
+                            html += `<tr class="${rowClass} ${startClass}">
+                                ${ldrCell}
+                                <td style="font-weight:600; color:${nameColor};${act.isArchived ? ' font-style:italic; opacity:0.75;' : ''}">${act.name}</td>
+                                <td style="text-align:center;"><span class="proj-badge">${act.project}</span></td>
+                                <td style="text-align:center;color:#64748b;">${act.start}</td>
+                                <td style="text-align:center;color:#64748b;">${act.end}</td>
+                                <td style="text-align:center;"><span class="status-badge" style="color:${expColor};background:${expBg};border:1px solid ${expColor}40;">${expText}</span></td>
+                                <td style="text-align:center;">
+                                    <div style="display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+                                        <span class="status-badge" ${act.isReported ? `onclick="window.open('index.html?printId=${act.reportId}', '_blank')" oncontextmenu="event.preventDefault(); window.open('index.html?editId=${act.reportId}', '_blank');"` : `onclick="window.open('index.html?fillPlanId=${act.planId}&fillerName=${encodeURIComponent(leader)}&startDate=${act.start}&endDate=${act.end}', '_blank')"`} style="cursor:pointer;color:${repColor};background:${repBg};border:1px solid ${repColor}40;" title="${act.isReported ? 'Sol Tık: Yazdır | Sağ Tık: Düzenle' : 'Raporu Doldurmak İçin Tıklayın'}">${repText}</span>
+                                        ${act.isReported ? `<i class="fas fa-pencil-alt" onclick="window.open('index.html?editId=${act.reportId}', '_blank')" style="cursor:pointer; color:${repColor}; opacity:0.8; font-size:0.85rem;" title="Düzenle"></i>` : ''}
+                                    </div>
+                                </td>
+                            </tr>`;
+                        });
+                    }
+                });
+            }
+
+            tbody.innerHTML = html;
+        }
+
+        function handleTabRightClick(event, prefix) {
+            if (event.ctrlKey) {
+                event.preventDefault();
+                const current = localStorage.getItem('teblig_sayi_' + prefix) || 'E-59965669-010.05-159365286';
+                const label = prefix === 'og' ? 'Okul Gelişim' : 'Okul Özel';
+                const newVal = prompt(`${label} Tebliğ Sayısı giriniz:`, current);
+                if (newVal !== null) {
+                    localStorage.setItem('teblig_sayi_' + prefix, newVal.trim());
+                    alert(`✅ ${label} Tebliğ Sayısı güncellendi.`);
+                }
+            }
+        }
+
+        function handleLeaderClick(event, normLeader, prefix) {
+            // Handle Left Click with CTRL (Tebliğ Belgesi)
+            if (event.ctrlKey) {
+                event.preventDefault();
+                const leaderData = allProcessedData[prefix].get(normLeader);
+                if (!leaderData) return;
+
+                if (event.altKey) {
+                    printAllLetters(prefix);
+                } else {
+                    printNotificationLetter(leaderData.original, leaderData.acts, prefix);
+                }
+            }
+        }
+
+        // --- Assignment Modal Logic ---
+        let _editingLeader = null;
+        let _editingPrefix = null;
+        let _currentAssignments = new Set(); // Set of planIds
+
+        function openAssignmentModal(leaderName, prefix) {
+            console.log('Opening Modal for:', leaderName, prefix);
+            _editingLeader = leaderName;
+            _editingPrefix = prefix;
+            
+            const modal = document.getElementById('assignment-modal');
+            const nameEl = document.getElementById('am-leader-name');
+            if (!modal || !nameEl) { console.error('Modal elements missing!'); return; }
+
+            nameEl.textContent = leaderName;
+            document.getElementById('am-search').value = '';
+            
+            // Get current assignments for this leader from Firestore data
+            _currentAssignments = new Set();
+            globalLeadersMap.forEach((leaders, planId) => {
+                if (planId.startsWith(prefix + '-') && leaders.some(l => norm(l) === norm(leaderName))) {
+                    _currentAssignments.add(planId);
+                }
+            });
+
+            renderAssignmentLists();
+            modal.style.display = 'flex';
+        }
+
+        function closeAssignmentModal() {
+            document.getElementById('assignment-modal').style.display = 'none';
+        }
+
+        function renderAssignmentLists() {
+            const assignedList = document.getElementById('am-assigned-list');
+            const availableList = document.getElementById('am-available-list');
+            
+            const dbSource = _editingPrefix === 'og' ? COMBINED_DB.og_db : COMBINED_DB.oo_db;
+            const prefix = _editingPrefix + '-';
+            
+            let assignedHTML = '';
+            let availableHTML = '';
+            let assignedCount = 0;
+
+            dbSource.forEach(item => {
+                const planId = prefix + (_editingPrefix === 'og' ? item.no : item.sira);
+                const name = _editingPrefix === 'og' ? item.eylem_adi : item.eylem_gorev;
+                const isAssigned = _currentAssignments.has(planId);
+                
+                const html = `
+                    <div class="am-item" data-name="${norm(name)}" data-id="${planId}">
+                        <input type="checkbox" id="chk-${planId}" ${isAssigned ? 'checked' : ''} onchange="toggleAssignment('${planId}', this.checked)">
+                        <label style="cursor:pointer; flex:1;" for="chk-${planId}">
+                            ${name}
+                        </label>
+                    </div>`;
+
+                if (isAssigned) {
+                    assignedHTML += html;
+                    assignedCount++;
+                } else {
+                    availableHTML += html;
+                }
+            });
+
+            assignedList.innerHTML = assignedHTML || '<div style="padding:15px; color:#94a3b8; text-align:center;">Henüz atanmış faaliyet yok.</div>';
+            availableList.innerHTML = availableHTML || '<div style="padding:15px; color:#94a3b8; text-align:center;">Atanabilir faaliyet kalmadı.</div>';
+            document.getElementById('am-assigned-count').textContent = assignedCount;
+            filterAvailableActivities();
+        }
+
+        function toggleAssignment(planId, checked) {
+            if (checked) _currentAssignments.add(planId);
+            else _currentAssignments.delete(planId);
+            
+            // Just update count and possibly move visually if we wanted, 
+            // but for simple multi-select, we'll keep them in lists until re-rendered or saved.
+            document.getElementById('am-assigned-count').textContent = _currentAssignments.size;
+        }
+
+        function filterAvailableActivities() {
+            const query = norm(document.getElementById('am-search').value);
+            const items = document.querySelectorAll('#am-available-list .am-item');
+            items.forEach(el => {
+                const text = el.getAttribute('data-name') + " " + el.getAttribute('data-id');
+                el.style.display = text.includes(query) ? 'flex' : 'none';
+            });
+        }
+
+        async function saveAssignments() {
+            const btn = document.getElementById('am-save-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Kaydediliyor...';
+
+            try {
+                const batch = db.batch();
+                
+                // We need to iterate over ALL activities of this prefix in COMBINED_DB
+                // to decide whether to add or remove this leader.
+                const dbSource = _editingPrefix === 'og' ? COMBINED_DB.og_db : COMBINED_DB.oo_db;
+                const prefix = _editingPrefix + '-';
+
+                dbSource.forEach(item => {
+                    const planId = prefix + (_editingPrefix === 'og' ? item.no : item.sira);
+                    const shouldBeAssigned = _currentAssignments.has(planId);
+                    
+                    let leaders = globalLeadersMap.get(planId) || [];
+                    const isAlreadyThere = leaders.some(l => norm(l) === norm(_editingLeader));
+
+                    let newLeaders = [...leaders];
+                    let changed = false;
+
+                    if (shouldBeAssigned && !isAlreadyThere) {
+                        newLeaders.push(_editingLeader);
+                        changed = true;
+                    } else if (!shouldBeAssigned && isAlreadyThere) {
+                        newLeaders = newLeaders.filter(l => norm(l) !== norm(_editingLeader));
+                        changed = true;
+                    }
+
+                    if (changed) {
+                        batch.set(db.collection('activity_leaders').doc(planId), { leaders: newLeaders });
+                    }
+                });
+
+                await batch.commit();
+                alert('✅ Atamalar başarıyla güncellendi.');
+                closeAssignmentModal();
+                loadData(); // Refresh the page data
+            } catch (e) {
+                console.error(e);
+                alert('❌ Hata oluştu: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Değişiklikleri Uygula';
+            }
+        }
+
+        // --- Activity Leaders Modal Logic ---
+        let _editingPlanId = null;
+        let _editingActName = null;
+        let _currentActLeaders = new Set(); // Set of norm(leaderNames)
+
+        function openActivityLeadersModal(planId, actName, prefix) {
+            _editingPlanId = planId;
+            _editingActName = actName;
+            
+            const modal = document.getElementById('activity-leaders-modal');
+            const nameEl = document.getElementById('alm-activity-name');
+            if (!modal || !nameEl) return;
+
+            nameEl.textContent = actName;
+            document.getElementById('alm-search').value = '';
+            
+            _currentActLeaders = new Set();
+            const leaders = globalLeadersMap.get(planId) || [];
+            leaders.forEach(l => _currentActLeaders.add(norm(l)));
+
+            renderActivityLeadersLists();
+            modal.style.display = 'flex';
+        }
+
+        function closeActivityLeadersModal() {
+            document.getElementById('activity-leaders-modal').style.display = 'none';
+        }
+
+        function renderActivityLeadersLists() {
+            const assignedList = document.getElementById('alm-assigned-list');
+            const availableList = document.getElementById('alm-available-list');
+            
+            let assignedHTML = '';
+            let availableHTML = '';
+            let assignedCount = 0;
+
+            _lastRenderParams.ALL_TEACHERS.forEach(teacherName => {
+                const n = norm(teacherName);
+                const isAssigned = _currentActLeaders.has(n);
+                
+                const html = `
+                    <div class="am-item" data-name="${n}">
+                        <input type="checkbox" id="chk-alm-${n}" ${isAssigned ? 'checked' : ''} onchange="toggleActivityLeader('${n}', this.checked)">
+                        <label style="cursor:pointer; flex:1;" for="chk-alm-${n}">
+                            ${teacherName}
+                        </label>
+                    </div>`;
+
+                if (isAssigned) {
+                    assignedHTML += html;
+                    assignedCount++;
+                } else {
+                    availableHTML += html;
+                }
+            });
+
+            assignedList.innerHTML = assignedHTML || '<div style="padding:15px; color:#94a3b8; text-align:center;">Henüz atanmış lider yok.</div>';
+            availableList.innerHTML = availableHTML || '<div style="padding:15px; color:#94a3b8; text-align:center;">Atanabilir lider kalmadı.</div>';
+            document.getElementById('alm-assigned-count').textContent = assignedCount;
+            filterAvailableActivityLeaders();
+        }
+
+        function toggleActivityLeader(normLeader, checked) {
+            if (checked) _currentActLeaders.add(normLeader);
+            else _currentActLeaders.delete(normLeader);
+            document.getElementById('alm-assigned-count').textContent = _currentActLeaders.size;
+        }
+
+        function filterAvailableActivityLeaders() {
+            const query = norm(document.getElementById('alm-search').value);
+            const items = document.querySelectorAll('#alm-available-list .am-item');
+            items.forEach(el => {
+                const text = el.getAttribute('data-name');
+                el.style.display = text.includes(query) ? 'flex' : 'none';
+            });
+        }
+
+        async function saveActivityLeaders() {
+            const btn = document.getElementById('alm-save-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Kaydediliyor...';
+
+            try {
+                const newLeaders = _lastRenderParams.ALL_TEACHERS.filter(t => _currentActLeaders.has(norm(t)));
+                await db.collection('activity_leaders').doc(_editingPlanId).set({ leaders: newLeaders });
+                
+                alert('✅ Liderler başarıyla güncellendi.');
+                closeActivityLeadersModal();
+                loadData(); 
+            } catch (e) {
+                console.error(e);
+                alert('❌ Hata oluştu: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Değişiklikleri Uygula';
+            }
+        }
+
+        function printNotificationLetter(leaderName, activities, prefix) {
+            const printWindow = window.open('', '_blank');
+            const content = generateLetterHTML(leaderName, activities, prefix);
+            const fileName = `Teblig_Yazisi_${leaderName.replace(/\s+/g, '_')}.pdf`;
+            
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Tebliğ Yazısı - ${leaderName}</title>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><\/script>
+                    <style>
+                        body { margin: 0; padding: 0; background: #cbd5e1; min-height: 100vh; padding-top: 60px; padding-bottom: 40px; }
+                        ${document.querySelector('style').innerHTML}
+                        .teblig-page { display: block; margin: 0 auto 40px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: none; background: white; }
+                        @media print { 
+                            body { background: white; padding: 0; }
+                            .no-print { display: none !important; }
+                            .teblig-page { margin: 0; box-shadow: none !important; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print" data-html2canvas-ignore="true" style="position:fixed; top:20px; right:20px; z-index:999; display:flex; gap:10px;">
+                        <button onclick="alert('Kusursuz, yüksek kaliteli ve tabloları bölünmeyen bir PDF almak için açılan ekranda Hedef kısmından \'PDF Olarak Kaydet\' (Save as PDF) seçeneğini seçiniz.'); window.print()" style="padding:15px 25px; background:#4f46e5; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+                            <i class="fas fa-print"></i> YAZDIR (PDF & KAĞIT)
+                        </button>
+                    </div>
+                    <div id="pdf-content" style="background:white;">${content}</div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        function printAllLetters(prefix) {
+            const printWindow = window.open('', '_blank');
+            let allContent = '';
+            const label = prefix === 'og' ? 'Okul_Gelisim' : 'Okul_Ozel';
+            const fileName = `Toplu_Teblig_Yazilari_${label}.pdf`;
+            
+            const entries = Array.from(allProcessedData[prefix].entries()).sort((a,b) => a[1].original.localeCompare(b[1].original, 'tr'));
+            
+            entries.forEach(([norm, data]) => {
+                if (data.acts.length > 0) {
+                    allContent += generateLetterHTML(data.original, data.acts, prefix);
+                }
+            });
+
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Toplu Tebliğ Yazıları - ${prefix === 'og' ? 'Okul Gelişim' : 'Okul Özel'}</title>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><\/script>
+                    <style>
+                        body { margin: 0; padding: 0; background: #cbd5e1; min-height: 100vh; padding-top: 60px; padding-bottom: 40px; }
+                        ${document.querySelector('style').innerHTML}
+                        .teblig-page { display: block; margin: 0 auto 40px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: none; background: white; }
+                        @media print { 
+                            body { background: white; padding: 0; }
+                            .no-print { display: none !important; }
+                            .teblig-page { margin: 0; box-shadow: none !important; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print" data-html2canvas-ignore="true" style="position:fixed; top:20px; right:20px; z-index:999; display:flex; gap:10px;">
+                        <button onclick="alert('Kusursuz, yüksek kaliteli ve tabloları bölünmeyen bir PDF almak için açılan ekranda Hedef kısmından \'PDF Olarak Kaydet\' (Save as PDF) seçeneğini seçiniz.'); window.print()" style="padding:15px 25px; background:#4f46e5; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+                            <i class="fas fa-print"></i> TÜMÜNÜ YAZDIR (PDF & KAĞIT)
+                        </button>
+                    </div>
+                    <div id="pdf-content" style="background:white;">${allContent}</div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        function generateLetterHTML(leaderName, activities, prefix) {
+            const today = new Date().toLocaleDateString('tr-TR');
+            const principal = localStorage.getItem('schoolPrincipal') || 'FERDİ ALTUNDAŞ';
+            const sayiNo = localStorage.getItem('teblig_sayi_' + prefix) || 'E-59965669-010.05-159365286';
+            
+            const introText = prefix === 'og' 
+                ? 'Okulumuzda yürütülmekte olan “Bütüncül Okul Gelişim Projesi: Öğrenen, Gelişen ve Güçlü Okul Ekosistemi” kapsamında aşağıda belirtilen görevlerde görevlendirilmiş bulunmaktasınız.'
+                : 'Okulumuzda yürütülmekte olan “Okulum Sağlıklı Yuvam” okul özel projesi kapsamında aşağıda belirtilen faaliyetlerde görevlendirilmiş bulunmaktasınız.';
+
+            const tasksHtml = activities.map(a => `<li>${a.name}</li>`).join('');
+
+            // Proje tipine göre paragraf sırası (Görsellerdeki fark)
+            let bodyContent = '';
+            if (prefix === 'og') {
+                bodyContent = `
+                    <div class="teblig-content">${introText}</div>
+                    <div class="teblig-tasks-title">Görevleriniz:</div>
+                    <ul class="teblig-tasks-list">${tasksHtml}</ul>
+                    <div class="teblig-content">Bilgilerinizi ve gereğini rica ederim.</div>
+                `;
+            } else {
+                bodyContent = `
+                    <div class="teblig-content">${introText}</div>
+                    <div class="teblig-content">Bilgilerinizi ve gereğini rica ederim.</div>
+                    <div class="teblig-tasks-title">Görevleriniz:</div>
+                    <ul class="teblig-tasks-list">${tasksHtml}</ul>
+                `;
+            }
+
+            return `
+                <div class="teblig-page">
+                    <div class="teblig-header">
+                        T.C.<br>
+                        BEYOĞLU KAYMAKAMLIĞI<br>
+                        İSTANBUL ATATÜRK ANADOLU LİSESİ MÜDÜRLÜĞÜ
+                    </div>
+                    
+                    <div class="teblig-top-info">
+                        <div class="teblig-sayi"><strong>Sayı :</strong> ${sayiNo}</div>
+                        <div class="teblig-date">${today}</div>
+                    </div>
+                    
+                    <div class="teblig-subject">
+                        <strong>Konu :</strong> Görevlendirme
+                    </div>
+                    
+                    <div class="teblig-title">TEBLİĞ YAZISI</div>
+                    
+                    <div class="teblig-recipient">
+                        Sayın, ${formatNameTR(leaderName)}
+                    </div>
+                    
+                    ${bodyContent}
+                    
+                    <div class="teblig-signature" style="margin-top: 3cm;">
+                        <div class="teblig-signature-name">${formatNameTR(principal)}</div>
+                        <div>Okul Müdürü</div>
+                    </div>
+                    
+                    <div class="teblig-footer">
+                        <div>
+                            <strong>Tebliğ eden:</strong><br>
+                            Ad- Soyad:<br>
+                            İmza:
+                        </div>
+                        <div>
+                            <strong>Tebellüğ eden:</strong><br>
+                            Ad- Soyad:<br>
+                            İmza:
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>

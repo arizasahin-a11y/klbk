@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Lider Güncelleme Aracı</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #0f172a; color: #f8fafc; line-height: 1.6; max-width: 1000px; margin: 0 auto; }
+        h1, h2 { color: #fbbf24; }
+        .card { background: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #334155; }
+        ul { padding-left: 20px; background: #0f172a; padding: 15px 15px 15px 35px; border-radius: 6px; border-left: 4px solid #fbbf24; }
+        li { margin-bottom: 8px; font-size: 0.95rem; }
+        .btn { background: #fbbf24; color: #0f172a; border: none; padding: 12px 24px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        .btn:hover { background: #f59e0b; transform: translateY(-2px); }
+        .btn:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; transform: none; }
+        .text-danger { color: #ef4444; }
+        .text-warning { color: #eab308; }
+        .text-success { color: #22c55e; }
+        .text-muted { color: #94a3b8; font-size: 0.9rem; }
+        
+        /* Tab Styles */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { background: #334155; color: #f8fafc; border: none; padding: 10px 20px; border-radius: 6px 6px 0 0; cursor: pointer; font-weight: bold; }
+        .tab-btn.active { background: #fbbf24; color: #0f172a; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <h1><i class="fas fa-sync"></i> Lider Senkronizasyon Aracı</h1>
+    
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('og')">Okul Gelişim (OG)</button>
+        <button class="tab-btn" onclick="switchTab('oo')">Okul Özel (OO)</button>
+    </div>
+
+    <!-- OKUL GELİŞİM TAB -->
+    <div id="og-content" class="tab-content active">
+        <div class="card">
+            <h2><i class="fas fa-exclamation-triangle"></i> Word'de Olup Veritabanında Bulunamayanlar (OG)</h2>
+            <ul id="not-found-og"></ul>
+        </div>
+        <div class="card">
+            <h2><i class="fas fa-user-times"></i> Liderlikten Çıkarılacaklar (OG)</h2>
+            <ul id="removed-og"></ul>
+        </div>
+        <div class="card">
+            <h2><i class="fas fa-user-slash"></i> Veritabanında Olup Word'de Olmayanlar (OG)</h2>
+            <ul id="unassigned-og"></ul>
+        </div>
+        <div class="card">
+            <h2><i class="fas fa-check-double"></i> Eşleşen ve Atanacaklar (OG)</h2>
+            <ul id="matched-og"></ul>
+        </div>
+    </div>
+
+    <!-- OKUL ÖZEL TAB -->
+    <div id="oo-content" class="tab-content">
+        <div class="card">
+            <h2><i class="fas fa-exclamation-triangle"></i> Word'de Olup Veritabanında Bulunamayanlar (OO)</h2>
+            <ul id="not-found-oo"></ul>
+        </div>
+        <div class="card">
+            <h2><i class="fas fa-user-times"></i> Liderlikten Çıkarılacaklar (OO)</h2>
+            <ul id="removed-oo"></ul>
+        </div>
+        <div class="card">
+            <h2><i class="fas fa-user-slash"></i> Veritabanında Olup Word'de Olmayanlar (OO)</h2>
+            <ul id="unassigned-oo"></ul>
+        </div>
+        <div class="card">
+            <h2><i class="fas fa-check-double"></i> Eşleşen ve Atanacaklar (OO)</h2>
+            <ul id="matched-oo"></ul>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2><i class="fas fa-cloud-upload-alt"></i> Veritabanını Güncelle</h2>
+        <p>Her iki projedeki değişiklikler Firebase üzerine yazılacaktır.</p>
+        <button class="btn" id="update-btn" disabled><i class="fas fa-sync-alt"></i> Firebase'i Güncelle</button>
+        <div id="update-status" style="margin-top: 15px; font-weight: bold;"></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyBoScB63OHNIPZ2y1Eo9LWa3ynSRPG6xYU",
+          authDomain: "okulpt.firebaseapp.com",
+          projectId: "okulpt",
+          storageBucket: "okulpt.firebasestorage.app",
+          messagingSenderId: "715714176883",
+          appId: "1:715714176883:web:a1a125314f834f61b60706"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const LEADER_STORE = 'activity_leaders';
+
+        function normalizeTr(str) {
+            if (!str) return '';
+            return str.replace(/İ/g, 'I').replace(/ı/g, 'i').replace(/Ş/g, 'S').replace(/ş/g, 's').replace(/Ğ/g, 'G').replace(/ğ/g, 'g').replace(/Ü/g, 'U').replace(/ü/g, 'u').replace(/Ö/g, 'O').replace(/ö/g, 'o').replace(/Ç/g, 'C').replace(/ç/g, 'c').toUpperCase();
+        }
+
+        const PAYLOAD = {
+  "all_activities": {
+    "og-1": "Yeni gelen velilerle kahvaltılı tanışma toplantısı",
+    "og-2": "Geleneksel Pilav Günü ve Mezun Buluşması’nın düzenlenmesi",
+    "og-3": "Mezun Web Sitesinin Oluşturulması",
+    "og-4": "Geleneksel Okul İftar Programı",
+    "og-5": "Veli Kitap Okuma Kulübü (İnsan Olmak Temalı)",
+    "og-6": "Deney Haftası (Kimya zümresi, Biyoloji Zümresi zümresi, fizik zümresi 9. sınıflar deneleri)",
+    "og-7": "Kütüphane kullanım alanının güçlendirilmesi",
+    "og-8": "Veli Akademileri",
+    "og-9": "9. Sınıf Velileriyle Kahvaltı",
+    "og-10": "Öğrencilerin Öğrenme Stillerinin Belirlenmesine Yönelik Çalışmalar (Öğrenme Stilleri Envanteri Uygulanması ve Sonuçlarına Göre Eğitimler Düzenlenmesi)",
+    "og-11": "Erasmus+ proje için uluslararası işbirliği çalışmaları",
+    "og-12": "Kardeş Okul protokolü imzalanması",
+    "og-13": "E-Twinning proje başvurusu ve yürütülmesi",
+    "og-14": "Öğrenci-Öğretmen-İdare Diyalog Günleri",
+    "og-15": "İAAL Okul Gelişim Modeli broşürünün Basımı ve Geri Bildirim Raporu Sunumu",
+    "og-16": "İstanbul Öğretmen Akademileri veya ÖBA'dan Yılda 3 Eğitimin Tamamlanması",
+    "og-17": "Her zümrenin dersindeki Örnek Uygulamalarının diğer branş öğretmenlerine aktarılması",
+    "og-18": "Farklı Okullardaki Aynı Branşlardan Öğretmenlerle Buluşma Etkinliği",
+    "og-19": "Erasmus+ Öğretmen Hareketliliği İşbaşı Gözlem Proje başvurusu",
+    "og-20": "Veli Kitap Okuma Kulübü (Özel Gereksinimli Bireylerle Empati üzerine)",
+    "og-21": "23 Nisan haftasında ilçemizdeki dezavantajlı bir ilkokula ziyaret ve hediye Götürülmesi",
+    "og-22": "Özel Eğitim Uygulama Okulu'na Ziyaret ve Hediye Götürülmesi",
+    "og-23": "Okul Risk Analizi Hazırlanması",
+    "og-24": "Öğrenme eksikliklerine yönelik takviye dersler verilmesi",
+    "og-25": "Müzede Dersim Var Etkinliği",
+    "og-26": "Cafe'de İngilizce Konuşma Pratiği Dersi",
+    "og-27": "English Scrabble Turnuvası",
+    "og-28": "Dış Mekanda Kitap Tahlili",
+    "og-29": "Almanca: Sprechstunde (Konuşma Saati) Kültür Sanat Mekanlarını Gezerek İngilizce ve Almanca Deneyim Aktarımı",
+    "og-30": "Kulüp Tanıtım Günleri ile Öğrencilerin İlgi ve Yeteneklerine Göre Kulüp Seçmeleri",
+    "og-31": "Velilere “Aile İçi İletişim” Konulu Seminer",
+    "og-32": "Öğrencilere “Siber Zorbalık ve Akran Zorbalığı” Eğitimi",
+    "og-33": "“İhmal ve İstismar Farkındalığı” Konulu Broşür Hazırlanması (Veli, Öğrenci ve Öğretmen Broşürleri)",
+    "og-34": "Üniversite Tanıtım Gezileri",
+    "og-35": "İAAL Girişimcilik Zirvesi (İstanbul liseler arası)",
+    "og-36": "Akademik Hedef Belirleme Formu Doldurma",
+    "og-37": "Kendini Değerlendirme Envanteri Uygulaması",
+    "og-38": "9. Sınıflara Mesleki Beceri Envanteri (MEB) Uygulanması",
+    "og-39": "Öğrencilere Mesleki İlgi Envanteri Uygulaması",
+    "og-40": "Ders-Meslek İlişkisi Haritası Oluşturulması",
+    "og-41": "Sınıf İçi Motivasyon Panosu Hazırlama (Sınıf Öğretmenleri)",
+    "og-42": "Veli Bilgilendirme Toplantıları ve Birebir Öğretmen Görüşmeleri",
+    "og-43": "Teknoloji Desteğiyle Fizik Dersinin Desteklenmesi",
+    "og-44": "Online Ödev ve Ders Etkinlikleri Takibi",
+    "og-45": "Ben Okuyorum İstanbul Okuyor Projesi",
+    "og-46": "Roman Kahramanları Haftası",
+    "og-47": "Sene Sonu Tiyatro Kulübü Gösterisi",
+    "og-48": "İstanbul Geneli Münazara Kulübü Turnuvası",
+    "og-49": "Müzik Zümresi kulübünün Sene Sonu Gösterisi",
+    "og-50": "Resim Zümresi Kulübünün Sene Sonu Resim Zümresi Sergisi",
+    "og-51": "8 Mart Kadınlar Günü ile ilgili görsel materyaller hazırlanması",
+    "og-52": "Ulusal düzeyde gerçekleşen fotoğraf, kısa film, vb. yarışmalara öğrenci katılımın sağlanması",
+    "og-53": "Tirat Sahneleme Yarışması",
+    "og-54": "Şiir Okuma Yarışması",
+    "og-55": "Şiir Dinletisi",
+    "og-56": "Eleştirel Film Okumaları",
+    "og-57": "Yazar Buluşmaları",
+    "og-58": "TÜBİTAK 4006 Şenliği",
+    "og-59": "Cogito Sosyal Bilgiler Çalıştayı",
+    "og-60": "14 Mart Pi Günü etkinlikleri",
+    "og-61": "Dijital Okul Biyoloji Zümresi Dergisi",
+    "og-62": "TÜBİTAK Bilim Söyleşileri",
+    "og-63": "Bilim Olimpiyatları çalışmaları ve başvurusu",
+    "og-64": "Okul içi voleybol turnuvalarının düzenlenmesi",
+    "og-65": "Okul içi basketbol turnuvalarının düzenlenmesi",
+    "og-66": "Okul içi futbol turnuvalarının düzenlenmesi",
+    "og-67": "Geleneksel Ayhan Suskun Satranç Kulübü Turnuvasının düzenlenmesi",
+    "og-68": "Oryantring Kulübü eğitimlerinin verilmesi ve yarışmalara katılım",
+    "og-69": "Okul saksılarının çiçeklendirilmesi ve bakımı",
+    "og-70": "Çorbada Tuzun Olsun Sosyal Sorumluluk Projesi",
+    "og-71": "Çak Bi Pati Projesi ( Sokak hayvanları ve barınak hayvanları için destek etkinliği)",
+    "og-72": "Ramazan Gıda Bağışı Kampanyası",
+    "og-73": "Veli Okuma Kulübü (Sağlıklı Yaşam ve Doğa temalı)",
+    "og-74": "Dünya Temizlik Günü etkinliklerine öğrenci katılımı",
+    "og-75": "Doğada Bir Gün",
+    "og-76": "Liselerde Bilim Uygulamalari Projesi etkinlikleri",
+    "og-77": "TEKNOFEST'e öğrenci katılımının sağlanması",
+    "og-78": "TÜBİTAK 2204-A ve 2204-B Lise Öğrencileri Araştırma Projelerine katılım sağlanması",
+    "oo-1": "Proje tanıtımı, öğretmen süpervizyonu ve planlama toplantısı",
+    "oo-2": "Veli bilgilendirme toplantısı ve onay formları Tekrarlayan eylem (2 yıl)",
+    "oo-3": "9.sınıflar için ilk Tanita ölçümü, ilk kan testi ve sağlık anketi uygulaması Tekrarlayan eylem (2 yıl)",
+    "oo-4": "İkinci Tanita ölçümü, kan tahlili ve anket uygulaması Tekrarlayan eylem (2 yıl)",
+    "oo-5": "Proje verilerinin analizi, rapor hazırlanması, sonuç sunumu Tekrarlayan eylem (2 yıl)",
+    "oo-7": "Veli bilgilendirme toplantısı ve onay formları",
+    "oo-9": "Önleyici tıp semineri ve Longevity bilimi oturumu Tekrarlayan eylem (2 yıl)",
+    "oo-10": "Diyetisyen buluşması ve anti-inflamatuar beslenme atölyesi Tekrarlayan eylem (2 yıl)",
+    "oo-11": "Egzersiz ve hareket farkındalığı çalışmaları Tekrarlayan eylem (2 yıl)",
+    "oo-12": "Sirkadiyen sistem, uyku hijyeni ve egzersiz etkinlikleri Tekrarlayan eylem (2 yıl)",
+    "oo-13": "Stres yönetimi, detoks ve soğuğa maruz kalma etkinlikleri Tekrarlayan eylem (2 yıl)",
+    "oo-14": "Bağışıklık, mikrobiyota ve diş sağlığı taramaları Tekrarlayan eylem (2 yıl)",
+    "oo-15": "Nadir Hastalıklar Günü sosyal medya çalışmaları Tekrarlayan eylem (2 yıl)",
+    "oo-16": "Güneş, topraklanma ve doğa temalı etkinlikler Tekrarlayan eylem (2 yıl)",
+    "oo-17": "Mavi bölgeler, hormon dengesi sunumları Tekrarlayan eylem (2 yıl)",
+    "oo-18": "9. sınıfların kısa film üretim çalışmalar Tekrarlayan eylem (2 yıl)",
+    "oo-19": "“Lorenzo’nun Yağı” film gösterimi Tekrarlayan eylem (2 yıl)",
+    "oo-20": "Mezuniyet öncesi (12. sınıf) son Tanita ölçümü, son kan testi ve son sağlık anketi uygulaması Tekrarlayan eylem (2 yıl)"
+  },
+  "assignments": {
+    "og-1": {
+      "eylem_adi": "Yeni gelen velilerle kahvaltılı tanışma toplantısı",
+      "leaders": [
+        "Hakan CORA"
+      ]
+    },
+    "og-2": {
+      "eylem_adi": "Geleneksel Pilav Günü ve Mezun Buluşması’nın düzenlenmesi",
+      "leaders": [
+        "Hakan CORA"
+      ]
+    },
+    "og-8": {
+      "eylem_adi": "Veli Akademileri",
+      "leaders": [
+        "Hakan CORA"
+      ]
+    },
+    "og-9": {
+      "eylem_adi": "9. Sınıf Velileriyle Kahvaltı",
+      "leaders": [
+        "Hakan CORA"
+      ]
+    },
+    "og-14": {
+      "eylem_adi": "Öğrenci-Öğretmen-İdare Diyalog Günleri",
+      "leaders": [
+        "Hakan CORA",
+        "Ersi̇n TOKDEMİR",
+        "Hasan SERİM"
+      ]
+    },
+    "og-41": {
+      "eylem_adi": "Sınıf İçi Motivasyon Panosu Hazırlama (Sınıf Öğretmenleri)",
+      "leaders": [
+        "Hakan CORA"
+      ]
+    },
+    "og-42": {
+      "eylem_adi": "Veli Bilgilendirme Toplantıları ve Birebir Öğretmen Görüşmeleri",
+      "leaders": [
+        "Hakan CORA"
+      ]
+    },
+    "og-12": {
+      "eylem_adi": "Kardeş Okul protokolü imzalanması",
+      "leaders": [
+        "Hakan CORA"
+      ]
+    },
+    "og-4": {
+      "eylem_adi": "Geleneksel Okul İftar Programı",
+      "leaders": [
+        "Melek YILMAZ"
+      ]
+    },
+    "og-21": {
+      "eylem_adi": "23 Nisan haftasında ilçemizdeki dezavantajlı bir ilkokula ziyaret ve hediye Götürülmesi",
+      "leaders": [
+        "Melek YILMAZ"
+      ]
+    },
+    "og-35": {
+      "eylem_adi": "İAAL Girişimcilik Zirvesi (İstanbul liseler arası)",
+      "leaders": [
+        "Melek YILMAZ"
+      ]
+    },
+    "og-70": {
+      "eylem_adi": "Çorbada Tuzun Olsun Sosyal Sorumluluk Projesi",
+      "leaders": [
+        "Melek YILMAZ"
+      ]
+    },
+    "og-71": {
+      "eylem_adi": "Çak Bi Pati Projesi ( Sokak hayvanları ve barınak hayvanları için destek etkinliği)",
+      "leaders": [
+        "Melek YILMAZ"
+      ]
+    },
+    "og-72": {
+      "eylem_adi": "Ramazan Gıda Bağışı Kampanyası",
+      "leaders": [
+        "Melek YILMAZ"
+      ]
+    },
+    "og-5": {
+      "eylem_adi": "Veli Kitap Okuma Kulübü (İnsan Olmak Temalı)",
+      "leaders": [
+        "Si̇bel RESİMCİ"
+      ]
+    },
+    "og-20": {
+      "eylem_adi": "Veli Kitap Okuma Kulübü (Özel Gereksinimli Bireylerle Empati üzerine)",
+      "leaders": [
+        "Si̇bel RESİMCİ"
+      ]
+    },
+    "og-26": {
+      "eylem_adi": "Cafe'de İngilizce Konuşma Pratiği Dersi",
+      "leaders": [
+        "Si̇bel RESİMCİ"
+      ]
+    },
+    "og-11": {
+      "eylem_adi": "Erasmus+ proje için uluslararası işbirliği çalışmaları",
+      "leaders": [
+        "Si̇bel RESİMCİ",
+        "Asli İŞÇEN",
+        "Harika HAMZAOĞLU"
+      ]
+    },
+    "og-13": {
+      "eylem_adi": "E-Twinning proje başvurusu ve yürütülmesi",
+      "leaders": [
+        "Si̇bel RESİMCİ",
+        "Asli İŞÇEN",
+        "Harika HAMZAOĞLU"
+      ]
+    },
+    "og-6": {
+      "eylem_adi": "Deney Haftası (Kimya zümresi, Biyoloji Zümresi zümresi, fizik zümresi 9. sınıflar deneleri)",
+      "leaders": [
+        "Ali̇ Riza ŞAHİN"
+      ]
+    },
+    "og-24": {
+      "eylem_adi": "Öğrenme eksikliklerine yönelik takviye dersler verilmesi",
+      "leaders": [
+        "Ali̇ Riza ŞAHİN",
+        "Ersi̇n TOKDEMİR",
+        "Hasan SERİM",
+        "Serhat KIYAK"
+      ]
+    },
+    "og-43": {
+      "eylem_adi": "Teknoloji Desteğiyle Fizik Dersinin Desteklenmesi",
+      "leaders": [
+        "Ali̇ Riza ŞAHİN",
+        "Çağla YALÇIN"
+      ]
+    },
+    "og-44": {
+      "eylem_adi": "Online Ödev ve Ders Etkinlikleri Takibi",
+      "leaders": [
+        "Ali̇ Riza ŞAHİN",
+        "Çağla YALÇIN"
+      ]
+    },
+    "og-62": {
+      "eylem_adi": "TÜBİTAK Bilim Söyleşileri",
+      "leaders": [
+        "Ali̇ Riza ŞAHİN",
+        "Serhat KIYAK"
+      ]
+    },
+    "og-76": {
+      "eylem_adi": "Liselerde Bilim Uygulamalari Projesi etkinlikleri",
+      "leaders": [
+        "Ali̇ Riza ŞAHİN",
+        "Aydan GÜRDAL"
+      ]
+    },
+    "og-10": {
+      "eylem_adi": "Öğrencilerin Öğrenme Stillerinin Belirlenmesine Yönelik Çalışmalar (Öğrenme Stilleri Envanteri Uygulanması ve Sonuçlarına Göre Eğitimler Düzenlenmesi)",
+      "leaders": [
+        "Sancar UZUNDERE"
+      ]
+    },
+    "og-23": {
+      "eylem_adi": "Okul Risk Analizi Hazırlanması",
+      "leaders": [
+        "Sancar UZUNDERE",
+        "Hasan SERİM"
+      ]
+    },
+    "og-31": {
+      "eylem_adi": "Velilere “Aile İçi İletişim” Konulu Seminer",
+      "leaders": [
+        "Sancar UZUNDERE"
+      ]
+    },
+    "og-32": {
+      "eylem_adi": "Öğrencilere “Siber Zorbalık ve Akran Zorbalığı” Eğitimi",
+      "leaders": [
+        "Sancar UZUNDERE"
+      ]
+    },
+    "og-33": {
+      "eylem_adi": "“İhmal ve İstismar Farkındalığı” Konulu Broşür Hazırlanması (Veli, Öğrenci ve Öğretmen Broşürleri)",
+      "leaders": [
+        "Sancar UZUNDERE"
+      ]
+    },
+    "og-34": {
+      "eylem_adi": "Üniversite Tanıtım Gezileri",
+      "leaders": [
+        "Sancar UZUNDERE"
+      ]
+    },
+    "og-37": {
+      "eylem_adi": "Kendini Değerlendirme Envanteri Uygulaması",
+      "leaders": [
+        "Sancar UZUNDERE"
+      ]
+    },
+    "og-39": {
+      "eylem_adi": "Öğrencilere Mesleki İlgi Envanteri Uygulaması",
+      "leaders": [
+        "Sancar UZUNDERE"
+      ]
+    },
+    "og-19": {
+      "eylem_adi": "Erasmus+ Öğretmen Hareketliliği İşbaşı Gözlem Proje başvurusu",
+      "leaders": [
+        "Asli İŞÇEN"
+      ]
+    },
+    "og-27": {
+      "eylem_adi": "English Scrabble Turnuvası",
+      "leaders": [
+        "Asli İŞÇEN"
+      ]
+    },
+    "og-7": {
+      "eylem_adi": "Kütüphane kullanım alanının güçlendirilmesi",
+      "leaders": [
+        "Şebnem BAKIRCI"
+      ]
+    },
+    "og-45": {
+      "eylem_adi": "Ben Okuyorum İstanbul Okuyor Projesi",
+      "leaders": [
+        "Şebnem BAKIRCI",
+        "Eli̇f ŞAH",
+        "Vural DEMİR"
+      ]
+    },
+    "og-47": {
+      "eylem_adi": "Sene Sonu Tiyatro Kulübü Gösterisi",
+      "leaders": [
+        "Şebnem BAKIRCI"
+      ]
+    },
+    "og-52": {
+      "eylem_adi": "Ulusal düzeyde gerçekleşen fotoğraf, kısa film, vb. yarışmalara öğrenci katılımın sağlanması",
+      "leaders": [
+        "Şebnem BAKIRCI"
+      ]
+    },
+    "og-53": {
+      "eylem_adi": "Tirat Sahneleme Yarışması",
+      "leaders": [
+        "Şebnem BAKIRCI"
+      ]
+    },
+    "og-54": {
+      "eylem_adi": "Şiir Okuma Yarışması",
+      "leaders": [
+        "Şebnem BAKIRCI"
+      ]
+    },
+    "og-55": {
+      "eylem_adi": "Şiir Dinletisi",
+      "leaders": [
+        "Şebnem BAKIRCI"
+      ]
+    },
+    "og-56": {
+      "eylem_adi": "Eleştirel Film Okumaları",
+      "leaders": [
+        "Şebnem BAKIRCI"
+      ]
+    },
+    "og-28": {
+      "eylem_adi": "Dış Mekanda Kitap Tahlili",
+      "leaders": [
+        "Eli̇f ŞAH"
+      ]
+    },
+    "og-30": {
+      "eylem_adi": "Kulüp Tanıtım Günleri ile Öğrencilerin İlgi ve Yeteneklerine Göre Kulüp Seçmeleri",
+      "leaders": [
+        "Eli̇f ŞAH",
+        "Aydan GÜRDAL",
+        "Fethi̇ye ELİTOĞ"
+      ]
+    },
+    "og-46": {
+      "eylem_adi": "Roman Kahramanları Haftası",
+      "leaders": [
+        "Eli̇f ŞAH"
+      ]
+    },
+    "og-48": {
+      "eylem_adi": "İstanbul Geneli Münazara Kulübü Turnuvası",
+      "leaders": [
+        "Eli̇f ŞAH"
+      ]
+    },
+    "og-51": {
+      "eylem_adi": "8 Mart Kadınlar Günü ile ilgili görsel materyaller hazırlanması",
+      "leaders": [
+        "Eli̇f ŞAH"
+      ]
+    },
+    "og-57": {
+      "eylem_adi": "Yazar Buluşmaları",
+      "leaders": [
+        "Eli̇f ŞAH"
+      ]
+    },
+    "og-16": {
+      "eylem_adi": "İstanbul Öğretmen Akademileri veya ÖBA'dan Yılda 3 Eğitimin Tamamlanması",
+      "leaders": [
+        "Çağla YALÇIN"
+      ]
+    },
+    "og-78": {
+      "eylem_adi": "TÜBİTAK 2204-A ve 2204-B Lise Öğrencileri Araştırma Projelerine katılım sağlanması",
+      "leaders": [
+        "Çağla YALÇIN",
+        "Adi̇l DURAL",
+        "Şeyma Ocak GÜVENÇ",
+        "Bahti̇yar NAR",
+        "Ersi̇n TOKDEMİR",
+        "Yasemi̇n ALTAN",
+        "Cansel DALAN",
+        "Harika HAMZAOĞLU",
+        "Hasan SERİM",
+        "Aydan GÜRDAL"
+      ]
+    },
+    "og-77": {
+      "eylem_adi": "TEKNOFEST'e öğrenci katılımının sağlanması",
+      "leaders": [
+        "Çağla YALÇIN",
+        "Adi̇l DURAL",
+        "Şeyma Ocak GÜVENÇ",
+        "Ersi̇n TOKDEMİR",
+        "Yasemi̇n ALTAN",
+        "Cansel DALAN",
+        "Hasan SERİM",
+        "Pınar ÇALIŞKAN",
+        "Aydan GÜRDAL"
+      ]
+    },
+    "og-17": {
+      "eylem_adi": "Her zümrenin dersindeki Örnek Uygulamalarının diğer branş öğretmenlerine aktarılması",
+      "leaders": [
+        "Adi̇l DURAL"
+      ]
+    },
+    "og-18": {
+      "eylem_adi": "Farklı Okullardaki Aynı Branşlardan Öğretmenlerle Buluşma Etkinliği",
+      "leaders": [
+        "Adi̇l DURAL"
+      ]
+    },
+    "og-25": {
+      "eylem_adi": "Müzede Dersim Var Etkinliği",
+      "leaders": [
+        "Selda ODUNCU"
+      ]
+    },
+    "og-59": {
+      "eylem_adi": "Cogito Sosyal Bilgiler Çalıştayı",
+      "leaders": [
+        "Selda ODUNCU"
+      ]
+    },
+    "og-29": {
+      "eylem_adi": "Almanca: Sprechstunde (Konuşma Saati) Kültür Sanat Mekanlarını Gezerek İngilizce ve Almanca Deneyim Aktarımı",
+      "leaders": [
+        "Şeyma Ocak GÜVENÇ"
+      ]
+    },
+    "og-49": {
+      "eylem_adi": "Müzik Zümresi kulübünün Sene Sonu Gösterisi",
+      "leaders": [
+        "Ünsal YILMAZ"
+      ]
+    },
+    "og-50": {
+      "eylem_adi": "Resim Zümresi Kulübünün Sene Sonu Resim Zümresi Sergisi",
+      "leaders": [
+        "Ahmet ÇAĞLAYAN"
+      ]
+    },
+    "og-58": {
+      "eylem_adi": "TÜBİTAK 4006 Şenliği",
+      "leaders": [
+        "Bahti̇yar NAR"
+      ]
+    },
+    "og-63": {
+      "eylem_adi": "Bilim Olimpiyatları çalışmaları ve başvurusu",
+      "leaders": [
+        "Bahti̇yar NAR",
+        "Yasemi̇n ALTAN",
+        "Cansel DALAN",
+        "Pınar ÇALIŞKAN",
+        "Serhat KIYAK"
+      ]
+    },
+    "og-60": {
+      "eylem_adi": "14 Mart Pi Günü etkinlikleri",
+      "leaders": [
+        "Ersi̇n TOKDEMİR"
+      ]
+    },
+    "og-36": {
+      "eylem_adi": "Akademik Hedef Belirleme Formu Doldurma",
+      "leaders": [
+        "Ersi̇n TOKDEMİR",
+        "Hasan SERİM",
+        "Fethi̇ye ELİTOĞ"
+      ]
+    },
+    "og-61": {
+      "eylem_adi": "Dijital Okul Biyoloji Zümresi Dergisi",
+      "leaders": [
+        "Yasemi̇n ALTAN"
+      ]
+    },
+    "og-64": {
+      "eylem_adi": "Okul içi voleybol turnuvalarının düzenlenmesi",
+      "leaders": [
+        "Süleyman Neci̇p ZOR"
+      ]
+    },
+    "og-65": {
+      "eylem_adi": "Okul içi basketbol turnuvalarının düzenlenmesi",
+      "leaders": [
+        "Süleyman Neci̇p ZOR"
+      ]
+    },
+    "og-66": {
+      "eylem_adi": "Okul içi futbol turnuvalarının düzenlenmesi",
+      "leaders": [
+        "Süleyman Neci̇p ZOR"
+      ]
+    },
+    "og-68": {
+      "eylem_adi": "Oryantring Kulübü eğitimlerinin verilmesi ve yarışmalara katılım",
+      "leaders": [
+        "Süleyman Neci̇p ZOR"
+      ]
+    },
+    "og-67": {
+      "eylem_adi": "Geleneksel Ayhan Suskun Satranç Kulübü Turnuvasının düzenlenmesi",
+      "leaders": [
+        "Vural DEMİR"
+      ]
+    },
+    "og-69": {
+      "eylem_adi": "Okul saksılarının çiçeklendirilmesi ve bakımı",
+      "leaders": [
+        "Cansel DALAN"
+      ]
+    },
+    "og-3": {
+      "eylem_adi": "Mezun Web Sitesinin Oluşturulması",
+      "leaders": [
+        "Harika HAMZAOĞLU"
+      ]
+    },
+    "og-74": {
+      "eylem_adi": "Dünya Temizlik Günü etkinliklerine öğrenci katılımı",
+      "leaders": [
+        "Pınar ÇALIŞKAN"
+      ]
+    },
+    "og-75": {
+      "eylem_adi": "Doğada Bir Gün",
+      "leaders": [
+        "Pınar ÇALIŞKAN"
+      ]
+    },
+    "og-15": {
+      "eylem_adi": "İAAL Okul Gelişim Modeli broşürünün Basımı ve Geri Bildirim Raporu Sunumu",
+      "leaders": [
+        "Serhat KIYAK"
+      ]
+    },
+    "og-38": {
+      "eylem_adi": "9. Sınıflara Mesleki Beceri Envanteri (MEB) Uygulanması",
+      "leaders": [
+        "Serhat KIYAK"
+      ]
+    },
+    "og-40": {
+      "eylem_adi": "Ders-Meslek İlişkisi Haritası Oluşturulması",
+      "leaders": [
+        "Aydan GÜRDAL"
+      ]
+    },
+    "oo-1": {
+      "eylem_adi": "Proje tanıtımı, öğretmen süpervizyonu ve planlama toplantısı",
+      "leaders": [
+        "Hakan CORA",
+        "Sibel RESİMCİ",
+        "Ali Rıza ŞAHİN"
+      ]
+    },
+    "oo-2": {
+      "eylem_adi": "Veli bilgilendirme toplantısı ve onay formları Tekrarlayan eylem (2 yıl)",
+      "leaders": [
+        "Hakan CORA",
+        "Sibel RESİMCİ"
+      ]
+    },
+    "oo-7": {
+      "eylem_adi": "Veli bilgilendirme toplantısı ve onay formları",
+      "leaders": [
+        "Hakan CORA",
+        "Sibel RESİMCİ"
+      ]
+    },
+    "oo-3": {
+      "eylem_adi": "9.sınıflar için ilk Tanita ölçümü, ilk kan testi ve sağlık anketi uygulaması Tekrarlayan eylem (2 yıl)",
+      "leaders": [
+        "Hakan CORA"
+      ]
+    },
+    "oo-4": {
+      "eylem_adi": "İkinci Tanita ölçümü, kan tahlili ve anket uygulaması Tekrarlayan eylem (2 yıl)",
+      "leaders": [
+        "Hakan CORA"
+      ]
+    },
+    "oo-5": {
+      "eylem_adi": "Proje verilerinin analizi, rapor hazırlanması, sonuç sunumu Tekrarlayan eylem (2 yıl)",
+      "leaders": [
+        "Hakan CORA",
+        "Ali Rıza ŞAHİN"
+      ]
+    },
+    "oo-20": {
+      "eylem_adi": "Mezuniyet öncesi (12. sınıf) son Tanita ölçümü, son kan testi ve son sağlık anketi uygulaması Tekrarlayan eylem (2 yıl)",
+      "leaders": [
+        "Hakan CORA"
+      ]
+    },
+    "oo-9": {
+      "eylem_adi": "Önleyici tıp semineri ve Longevity bilimi oturumu Tekrarlayan eylem (2 yıl)",
+      "leaders": [
+        "Sibel RESİMCİ",
+        "Sancar UZUNDERE",
+        "Fethiye ELİTOĞ"
+      ]
+    },
+    "oo-13": {
+      "eylem_adi": "Stres yönetimi, detoks ve soğuğa maruz kalma etkinlikleri Tekrarlayan eylem (2 yıl)",
+      "leaders": [
+        "Sibel RESİMCİ",
+        "Sancar UZUNDERE",
+        "Adil DURAL"
+      ]
+    },
+    "oo-15": {
+      "eylem_adi": "Nadir Hastalıklar Günü sosyal medya çalışmaları Tekrarlayan eylem (2 yıl)",
+      "leaders": [
+        "Sibel RESİMCİ",
+        "Melek YILMAZ"
+      ]
+    },
+    "oo-11": {
+      "eylem_adi": "Egzersiz ve hareket farkındalığı çalışmaları Tekrarlayan eylem (2 yıl)",
+      "leaders": [
+        "Süleyman Neci̇p ZOR",
+        "Çağla YALÇIN",
+        "Harika HAMZAOĞLU"
+      ]
+    },
+    "oo-12": {
+      "eylem_adi": "Sirkadiyen sistem, uyku hijyeni ve egzersiz etkinlikleri Tekrarlayan eylem (2 yıl)",
+      "leaders": [
+        "Süleyman Neci̇p ZOR",
+        "Serhat KIYAK"
+      ]
+    },
+    "oo-16": {
+      "eylem_adi": "Güneş, topraklanma ve doğa temalı etkinlikler Tekrarlayan eylem (2 yıl)",
+      "leaders": [
+        "Süleyman Neci̇p ZOR",
+        "Elif ŞAH",
+        "Şeyma Ocak GÜVENÇ"
+      ]
+    },
+    "oo-10": {
+      "eylem_adi": "Diyetisyen buluşması ve anti-inflamatuar beslenme atölyesi Tekrarlayan eylem (2 yıl)",
+      "leaders": [
+        "Selda ODUNCU",
+        "Aslı İŞÇEN"
+      ]
+    },
+    "oo-14": {
+      "eylem_adi": "Bağışıklık, mikrobiyota ve diş sağlığı taramaları Tekrarlayan eylem (2 yıl)",
+      "leaders": [
+        "Serhat KIYAK",
+        "Yasemin ALTAN"
+      ]
+    },
+    "oo-18": {
+      "eylem_adi": "9. sınıfların kısa film üretim çalışmalar Tekrarlayan eylem (2 yıl)",
+      "leaders": [
+        "Adil DURAL",
+        "Ünsal YILMAZ",
+        "Ahmet ÇAĞLAYAN",
+        "Vural DEMİR"
+      ]
+    },
+    "oo-17": {
+      "eylem_adi": "Mavi bölgeler, hormon dengesi sunumları Tekrarlayan eylem (2 yıl)",
+      "leaders": [
+        "Cansel DALAN",
+        "Aydan GÜRDAL",
+        "Hasan SERİM",
+        "Ersin TOKDEMİR"
+      ]
+    },
+    "oo-19": {
+      "eylem_adi": "“Lorenzo’nun Yağı” film gösterimi Tekrarlayan eylem (2 yıl)",
+      "leaders": [
+        "Şebnem BAKIRCI",
+        "Pınar ÇALIŞKAN"
+      ]
+    }
+  },
+  "not_found_og": [],
+  "not_found_oo": [
+    {
+      "docx_activity": "Öğrencilerde Sağlıklı Yaşam Bilinci, Öz Bakım ve Beden Farkındalığı Geliştirmek",
+      "teachers": [
+        "Hakan CORA",
+        "Sibel RESİMCİ",
+        "Aslı İŞÇEN",
+        "Elif ŞAH",
+        "Bahtiyar NAR"
+      ]
+    }
+  ],
+  "unassigned_og": [
+    {
+      "kod": "og-22",
+      "eylem_adi": "Özel Eğitim Uygulama Okulu'na Ziyaret ve Hediye Götürülmesi"
+    },
+    {
+      "kod": "og-73",
+      "eylem_adi": "Veli Okuma Kulübü (Sağlıklı Yaşam ve Doğa temalı)"
+    }
+  ],
+  "unassigned_oo": []
+};
+        
+        function switchTab(id) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(id + '-content').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Render Not Found
+        const renderNF = (id, list) => {
+            const el = document.getElementById(id);
+            if (!list || list.length === 0) { el.innerHTML = '<li>Hepsi eşleşti.</li>'; return; }
+            list.forEach(item => {
+                el.innerHTML += `<li>${item.docx_activity}<br><small class="text-muted">Kişiler: ${item.teachers.join(', ')}</small></li>`;
+            });
+        };
+        renderNF('not-found-og', PAYLOAD.not_found_og);
+        renderNF('not-found-oo', PAYLOAD.not_found_oo);
+
+        // Render Unassigned
+        const renderUn = (id, list) => {
+            const el = document.getElementById(id);
+            if (!list || list.length === 0) { el.innerHTML = '<li>Hepsi atanmış.</li>'; return; }
+            list.forEach(item => {
+                el.innerHTML += `<li>[${item.kod}] ${item.eylem_adi}</li>`;
+            });
+        };
+        renderUn('unassigned-og', PAYLOAD.unassigned_og);
+        renderUn('unassigned-oo', PAYLOAD.unassigned_oo);
+
+        // Render Matched
+        const renderMatched = (id, assignments, prefix) => {
+            const el = document.getElementById(id);
+            const filtered = Object.entries(assignments).filter(([kod]) => kod.startsWith(prefix));
+            if (filtered.length === 0) { el.innerHTML = '<li>Henüz eşleşme yok.</li>'; return; }
+            filtered.forEach(([kod, data]) => {
+                el.innerHTML += `<li>[${kod}] <strong>${data.eylem_adi}</strong><br><small class="text-success">Atanacak Liderler: ${data.leaders.join(', ')}</small></li>`;
+            });
+        };
+        renderMatched('matched-og', PAYLOAD.assignments, 'og-');
+        renderMatched('matched-oo', PAYLOAD.assignments, 'oo-');
+
+        // Fetch Firestore and Calculate Removals
+        let currentFirestoreLeaders = {};
+        db.collection(LEADER_STORE).get().then(snapshot => {
+            snapshot.forEach(doc => { currentFirestoreLeaders[doc.id] = doc.data().leaders || []; });
+            
+            let removalsList = [];
+            for (const [kod, leadersInDB] of Object.entries(currentFirestoreLeaders)) {
+                const newLeaders = PAYLOAD.assignments[kod] ? PAYLOAD.assignments[kod].leaders : [];
+                leadersInDB.forEach(l => {
+                    if (!newLeaders.find(nl => normalizeTr(nl) === normalizeTr(l))) {
+                        const actName = (PAYLOAD.assignments[kod] && PAYLOAD.assignments[kod].eylem_adi) || (PAYLOAD.all_activities[kod] || "Bilinmeyen");
+                        removalsList.push({ kod, leader: l, actName });
+                    }
+                });
+            }
+
+            // Sort removals by leader name
+            removalsList.sort((a, b) => a.leader.localeCompare(b.leader, 'tr'));
+
+            removalsList.forEach(item => {
+                const prefix = item.kod.startsWith('og-') ? 'og' : 'oo';
+                const el = document.getElementById('removed-' + prefix);
+                el.innerHTML += `
+                <li style="display:flex; gap:10px; background:rgba(239,68,68,0.1); padding:10px; border-radius:6px; margin-bottom:5px;">
+                    <input type="checkbox" class="removal-checkbox" data-kod="${item.kod}" data-leader="${item.leader}">
+                    <label><strong>${item.leader}</strong> - [${item.kod}] ${item.actName}</label>
+                </li>`;
+                removalsCount++;
+            });
+            document.getElementById('update-btn').disabled = false;
+        });
+
+        document.getElementById('update-btn').addEventListener('click', async () => {
+            if (!confirm("Firebase güncellenecek, onaylıyor musunuz?")) return;
+            const btn = document.getElementById('update-btn');
+            btn.disabled = true;
+            const status = document.getElementById('update-status');
+            status.innerHTML = "Güncelleniyor...";
+
+            try {
+                let batch = db.batch();
+                let final = {};
+                
+                // 1. New assignments
+                for (const [kod, data] of Object.entries(PAYLOAD.assignments)) {
+                    final[kod] = [...data.leaders];
+                }
+                
+                // 2. Keep or remove old leaders
+                for (const [kod, leadersInDB] of Object.entries(currentFirestoreLeaders)) {
+                    if (!final[kod]) final[kod] = [];
+                    leadersInDB.forEach(l => {
+                        const inNew = PAYLOAD.assignments[kod] && PAYLOAD.assignments[kod].leaders.find(nl => normalizeTr(nl) === normalizeTr(l));
+                        if (!inNew) {
+                            const cb = document.querySelector(`.removal-checkbox[data-kod="${kod}"][data-leader="${l}"]`);
+                            if (!cb || !cb.checked) final[kod].push(l);
+                        }
+                    });
+                }
+
+                for (const [kod, leaders] of Object.entries(final)) {
+                    batch.set(db.collection(LEADER_STORE).doc(kod), { leaders });
+                }
+                await batch.commit();
+                status.innerHTML = '<span class="text-success">Başarıyla güncellendi!</span>';
+            } catch(e) {
+                status.innerHTML = '<span class="text-danger">Hata: ' + e.message + '</span>';
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

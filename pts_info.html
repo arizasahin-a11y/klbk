@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PTS | Kullanım Kılavuzu ve Teknik Dokümantasyon</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #a855f7;
+            --accent: #f59e0b;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            background-image: 
+                radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.15) 0%, transparent 50%);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .logo-area {
+            display: inline-flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .logo-icon {
+            font-size: 3rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.5));
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+
+        /* Hero Card */
+        .hero-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            color: var(--text);
+        }
+
+        .section-title i {
+            color: var(--primary);
+        }
+
+        /* Feature Grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .feature-item {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .feature-item:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+
+        .feature-item i {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            display: block;
+            color: var(--accent);
+        }
+
+        .feature-item h3 {
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .feature-item p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Shortcut Panel */
+        .shortcut-panel {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 40px;
+        }
+
+        .shortcut-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .shortcut-entry {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .key-badge {
+            background: #1e293b;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            border: 1px solid #334155;
+            box-shadow: 0 2px 0 #000;
+            white-space: nowrap;
+        }
+
+        /* Technical Specs */
+        .tech-specs {
+            margin-top: 60px;
+            border-top: 1px solid var(--border);
+            padding-top: 40px;
+        }
+
+        .tech-tag {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 8px;
+            background: #1e293b;
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
+            color: var(--primary);
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 80px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            padding-bottom: 40px;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-left: 8px;
+        }
+        .status-new { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .status-update { background: rgba(99, 102, 241, 0.2); color: #6366f1; }
+
+        @media (max-width: 768px) {
+            .hero-card { padding: 25px; }
+            h1 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="logo-area">
+            <i class="fas fa-microchip logo-icon"></i>
+            <div>
+                <h1>PTS Documentation</h1>
+                <p class="subtitle">Proje Faaliyeti Değerlendirme ve Raporlama Sistemi</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Ana Raporlama Sistemi -->
+    <div class="hero-card">
+        <h2 class="section-title"><i class="fas fa-file-signature"></i> 1. Raporlama Formu (index.html)</h2>
+        <p style="margin-bottom: 25px; color: var(--text-muted);">Sistemin kalbi olan bu modül, faaliyet raporlarının girilmesi, yönetilmesi ve yazdırılması süreçlerini otomatikleştirir.</p>
+        
+        <div class="feature-grid">
+            <div class="feature-item">
+                <i class="fas fa-magic"></i>
+                <h3>Akıllı Öneriler</h3>
+                <p>Öğretmen ismi veya faaliyet adı yazmaya başladığınızda, sistem otomatik olarak öneriler sunar. Faaliyet seçildiğinde TEMA, Plan ID ve tarihler otomatik dolar.</p>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-font"></i>
+                <h3>Ad SOYAD Standardı <span class="status-pill status-new">YENİ</span></h3>
+                <p>İsimler girilirken "Ali Rıza ŞAHİN" formatına otomatik dönüştürülür. Büyük/küçük harf hataları sistem tarafından anında düzeltilir.</p>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-print"></i>
+                <h3>Gelişmiş Yazdırma</h3>
+                <p>PDF çıktıları için "Kompakt" ve "Standart" modlar bulunur. Sayfa yapısı, kutu yükseklikleri içeriğe göre dinamik olarak ayarlanır.</p>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-history"></i>
+                <h3>Canlı Senkronizasyon</h3>
+                <p>Firebase Firestore entegrasyonu sayesinde veriler tüm cihazlarda anlık güncellenir. Çevrimdışı çalışma desteği mevcuttur.</p>
+            </div>
+        </div>
+
+        <div class="shortcut-panel">
+            <h3 style="margin-bottom: 15px; font-size: 1.1rem;"><i class="fas fa-keyboard"></i> Uzman Kısayolları</h3>
+            <div class="shortcut-list">
+                <div class="shortcut-entry">
+                    <span class="key-badge">Sağ Tık</span>
+                    <p style="font-size: 0.85rem;">Geçmiş kayıtlarda hızlı DÜZENLEME.</p>
+                </div>
+                <div class="shortcut-entry">
+                    <span class="key-badge">CTRL + Sağ Tık</span>
+                    <p style="font-size: 0.85rem;">Yazdırma ayarlarını (Kompakt Mod) açar.</p>
+                </div>
+                <div class="shortcut-entry">
+                    <span class="key-badge">Shift + Sağ Tık</span>
+                    <p style="font-size: 0.85rem;">Ana başlıkta: Okul Müdürü ismini günceller.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Faaliyet Liderleri Raporu -->
+    <div class="hero-card">
+        <h2 class="section-title"><i class="fas fa-crown"></i> 2. Faaliyet Liderleri (faaliyet_liderleri.html)</h2>
+        <p style="margin-bottom: 25px; color: var(--text-muted);">Öğretmenlerin liderlik performanslarını ve görev dağılımlarını takip eden gelişmiş raporlama sayfası.</p>
+        
+        <div class="feature-grid">
+            <div class="feature-item">
+                <i class="fas fa-chart-pie"></i>
+                <h3>Otomatik Sayım</h3>
+                <p>Her öğretmenin Okul Gelişim ve Okul Özel projelerindeki faaliyet sayıları ayrı ayrı hesaplanır ve (n) şeklinde gösterilir.</p>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-users"></i>
+                <h3>Tam Kadro Listeleme</h3>
+                <p>Sistemde tanımlı 26 öğretmenin tamamı, faaliyeti olmasa bile listede görünür. Faaliyet sayısı 0 olanlarda rozetler gizlenerek temiz bir görünüm sağlanır.</p>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-filter"></i>
+                <h3>Kategorik Ayrım</h3>
+                <p>Sekmeli yapı sayesinde Okul Gelişim ve Okul Özel projeleri birbirinden tamamen bağımsız olarak raporlanır.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teknik Detaylar -->
+    <div class="tech-specs">
+        <h2 class="section-title"><i class="fas fa-code"></i> Teknik Altyapı ve Veri Yönetimi</h2>
+        <div style="display: flex; flex-wrap: wrap; margin-bottom: 30px;">
+            <span class="tech-tag">Firebase Firestore (Realtime DB)</span>
+            <span class="tech-tag">Vanilla JavaScript (ES6+)</span>
+            <span class="tech-tag">HTML5 & CSS3 (Glassmorphism UI)</span>
+            <span class="tech-tag">FontAwesome 6.4</span>
+            <span class="tech-tag">html2pdf.js Entegrasyonu</span>
+        </div>
+        
+        <div class="feature-item" style="background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2);">
+            <h3 style="color: #10b981;"><i class="fas fa-sync"></i> Veri Güvenliği ve Yedekleme</h3>
+            <p>Sistem bulut tabanlıdır ancak veri kaybını önlemek için her kayıtta yerel önbellek (Cache) kullanılır. Ayrıca "Download Master JSON" özelliği ile tüm veritabanı tek tıkla yerel bilgisayara yedeklenebilir.</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 PTS | Proje Faaliyeti Değerlendirme Sistemi</p>
+        <p style="font-size: 0.7rem; margin-top: 5px; opacity: 0.5;">Aesthetics & Logic by Antigravity AI</p>
+    </footer>
+</div>
+
+</body>
+</html>
