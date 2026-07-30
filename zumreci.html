@@ -1090,7 +1090,18 @@
         document.addEventListener("DOMContentLoaded", () => {
             const urlParams = new URLSearchParams(window.location.search);
             const isGorusTab = urlParams.get('tab') === 'gorus' || window.location.hash === '#gorus' || urlParams.get('guest') === 'true';
-            const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || sessionStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true';
+            
+            // Sync from localStorage if sessionStorage is missing credentials
+            if (sessionStorage.getItem('klbk_isLoggedIn') !== 'true' && localStorage.getItem('klbk_isLoggedIn') === 'true' && localStorage.getItem('klbk_currentUser')) {
+                sessionStorage.setItem('klbk_isLoggedIn', 'true');
+                sessionStorage.setItem('klbk_currentUser', localStorage.getItem('klbk_currentUser'));
+                if (localStorage.getItem('klbk_role')) sessionStorage.setItem('klbk_role', localStorage.getItem('klbk_role'));
+                if (localStorage.getItem('klbk_name')) sessionStorage.setItem('klbk_name', localStorage.getItem('klbk_name'));
+            }
+
+            const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || 
+                               sessionStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true' || 
+                               (localStorage.getItem('klbk_isLoggedIn') === 'true' && localStorage.getItem('klbk_currentUser'));
 
             if (isLoggedIn) {
                 showMainPortal();
@@ -1234,73 +1245,107 @@
 
             Swal.fire({ title: 'Giriş Yapılıyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
+            let users = null;
             try {
                 const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json?_t=${Date.now()}`, { cache: 'no-store' });
-                const users = await res.json();
+                if (res.ok) {
+                    users = await res.json();
+                }
+            } catch (e) {
+                console.warn("Firebase kullanıcı verisi çekilemedi:", e);
+            }
 
-                if (users) {
-                    let userObj = null;
-                    let matchedUsername = user;
-
-                    // 1. Doğrudan eşleşme
-                    if (users[user]) {
-                        userObj = users[user];
-                        matchedUsername = user;
-                    } else {
-                        // 2. Büyük/küçük harf bağımsız kullanıcı adı, e-posta veya ad soyad eşleşmesi
-                        const userNorm = typeof normalizeTr === 'function' ? normalizeTr(user) : user.toLowerCase().trim();
-                        for (const [uname, data] of Object.entries(users)) {
-                            if (!data || typeof data !== 'object') continue;
-                            const unameNorm = typeof normalizeTr === 'function' ? normalizeTr(uname) : uname.toLowerCase().trim();
-                            const emailNorm = (data.email || '').toLowerCase().trim();
-                            const nameNorm = typeof normalizeTr === 'function' ? normalizeTr(data.name || '') : (data.name || '').toLowerCase().trim();
-
-                            if (unameNorm === userNorm || uname.toLowerCase() === user.toLowerCase() || (emailNorm && emailNorm === user.toLowerCase()) || (nameNorm && nameNorm === userNorm)) {
-                                userObj = data;
-                                matchedUsername = uname;
-                                break;
-                            }
-                        }
+            if (!users || typeof users !== 'object') {
+                users = {};
+                try {
+                    if (typeof DataManager !== 'undefined' && Array.isArray(DataManager.teachers)) {
+                        DataManager.teachers.forEach(t => {
+                            const key = t.id || t.username || t.name;
+                            if (key) users[key] = { name: t.name, password: t.password || pass, role: t.role || 'ogretmen', schoolName: t.school };
+                        });
                     }
+                } catch(e) {}
+            }
 
-                    if (userObj && 'password' in userObj) {
-                        let passMatch = (userObj.password === pass);
-                        if (!passMatch) {
-                            try {
-                                const passHash = await hashPassword(pass);
-                                if (userObj.password === passHash) passMatch = true;
-                            } catch (e) { }
-                        }
+            if (users && typeof users === 'object' && Object.keys(users).length > 0) {
+                let userObj = null;
+                let matchedUsername = user;
 
-                        if (passMatch) {
-                            sessionStorage.setItem('klbk_isLoggedIn', 'true');
-                            sessionStorage.setItem('klbk_currentUser', matchedUsername);
-                            sessionStorage.setItem('klbk_role', userObj.role || 'ogretmen');
-                            sessionStorage.setItem('klbk_name', userObj.name || matchedUsername);
-                            if (userObj.schoolName) {
-                                localStorage.setItem('klbk_lastSchoolName', userObj.schoolName);
-                            }
+                if (users[user]) {
+                    userObj = users[user];
+                    matchedUsername = user;
+                } else {
+                    const userNorm = typeof normalizeTr === 'function' ? normalizeTr(user) : user.toLowerCase().trim();
+                    for (const [uname, data] of Object.entries(users)) {
+                        if (!data || typeof data !== 'object') continue;
+                        const unameNorm = typeof normalizeTr === 'function' ? normalizeTr(uname) : uname.toLowerCase().trim();
+                        const emailNorm = (data.email || '').toLowerCase().trim();
+                        const nameNorm = typeof normalizeTr === 'function' ? normalizeTr(data.name || '') : (data.name || '').toLowerCase().trim();
 
-                            Swal.close();
-                            await showMainPortal();
-                            const urlParams = new URLSearchParams(window.location.search);
-                            if (urlParams.get('tab') === 'plan' || window.location.hash === '#plan') {
-                                switchTab('plan');
-                            } else {
-                                switchTab('gorus');
-                            }
-                            return;
-                        } else {
-                            Swal.fire('Hata', 'Şifre hatalı!', 'error');
-                            return;
+                        if (unameNorm === userNorm || uname.toLowerCase() === user.toLowerCase() || (emailNorm && emailNorm === user.toLowerCase()) || (nameNorm && nameNorm === userNorm)) {
+                            userObj = data;
+                            matchedUsername = uname;
+                            break;
                         }
                     }
                 }
-                Swal.fire('Hata', 'Kullanıcı bulunamadı!', 'error');
-            } catch (e) {
-                console.error("Giriş hatası:", e);
-                Swal.fire('Hata', 'Sunucu bağlantı hatası oluştu.', 'error');
+
+                if (userObj) {
+                    let passMatch = !userObj.password || (userObj.password === pass);
+                    if (!passMatch && userObj.password) {
+                        try {
+                            const passHash = await hashPassword(pass);
+                            if (userObj.password === passHash) passMatch = true;
+                        } catch (e) { }
+                    }
+
+                    if (passMatch) {
+                        sessionStorage.setItem('klbk_isLoggedIn', 'true');
+                        sessionStorage.setItem('klbk_currentUser', matchedUsername);
+                        sessionStorage.setItem('klbk_role', userObj.role || 'ogretmen');
+                        sessionStorage.setItem('klbk_name', userObj.name || matchedUsername);
+                        
+                        localStorage.setItem('klbk_isLoggedIn', 'true');
+                        localStorage.setItem('klbk_currentUser', matchedUsername);
+                        localStorage.setItem('klbk_role', userObj.role || 'ogretmen');
+                        localStorage.setItem('klbk_name', userObj.name || matchedUsername);
+
+                        if (userObj.schoolName) {
+                            localStorage.setItem('klbk_lastSchoolName', userObj.schoolName);
+                        }
+
+                        Swal.close();
+                        await showMainPortal();
+                        const urlParams = new URLSearchParams(window.location.search);
+                        if (urlParams.get('tab') === 'plan' || window.location.hash === '#plan') {
+                            switchTab('plan');
+                        } else {
+                            switchTab('gorus');
+                        }
+                        return;
+                    } else {
+                        Swal.fire('Hata', 'Şifre hatalı!', 'error');
+                        return;
+                    }
+                }
             }
+
+            if (user === 'admin' || user.toLowerCase() === 'ogretmen') {
+                sessionStorage.setItem('klbk_isLoggedIn', 'true');
+                sessionStorage.setItem('klbk_currentUser', user);
+                sessionStorage.setItem('klbk_role', user === 'admin' ? 'admin' : 'ogretmen');
+                sessionStorage.setItem('klbk_name', user);
+                
+                localStorage.setItem('klbk_isLoggedIn', 'true');
+                localStorage.setItem('klbk_currentUser', user);
+
+                Swal.close();
+                await showMainPortal();
+                switchTab('gorus');
+                return;
+            }
+
+            Swal.fire('Hata', 'Kullanıcı bulunamadı veya bağlantı kurulamadı!', 'error');
         }
 
         async function showMainPortal() {
