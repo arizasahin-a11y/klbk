@@ -735,21 +735,21 @@ var ExamAlgorithm = window.ExamAlgorithm = {
             const defaultGroupCount = sessionData.groupCount || 2;
             const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-            // Ders bazlı doldurulan PDF link sayısına göre aktif grup sayısını hesaplar
+            // Ders bazlı doldurulan PDF link sayısına göre aktif grup sayısını hesaplar (0 veya 1 link = 1 grup)
             const getEffGroupCount = (subName) => {
-                if (!subName) return defaultGroupCount;
+                if (!subName) return 1;
                 const meta = (typeof DataManager !== 'undefined' && DataManager.getSanitizedSubjectMetadata)
                     ? DataManager.getSanitizedSubjectMetadata(sessionData, subName)
                     : (sessionData?.subjectMetadata?.[subName] || {});
                 const papers = meta.papers || {};
                 if (typeof papers === 'string') {
-                    return papers.trim() ? 1 : defaultGroupCount;
+                    return 1;
                 }
                 if (typeof papers === 'object' && papers !== null) {
                     const filledKeys = Object.keys(papers).filter(k => typeof papers[k] === 'string' && papers[k].trim().length > 0);
-                    if (filledKeys.length > 0) return filledKeys.length;
+                    return filledKeys.length > 0 ? filledKeys.length : 1;
                 }
-                return defaultGroupCount;
+                return 1;
             };
 
             roomNodes.forEach(node => {

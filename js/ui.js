@@ -4720,13 +4720,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const meta = DataManager.getSanitizedSubjectMetadata(session, subName);
         const papers = meta.papers || {};
         if (typeof papers === 'string') {
-            return papers.trim() ? 1 : (session.hasGroups ? (session.groupCount || 2) : 1);
+            return 1;
         }
         if (typeof papers === 'object' && papers !== null) {
             const filledKeys = Object.keys(papers).filter(k => typeof papers[k] === 'string' && papers[k].trim().length > 0);
-            if (filledKeys.length > 0) return filledKeys.length;
+            return filledKeys.length > 0 ? filledKeys.length : 1;
         }
-        return session.hasGroups ? (session.groupCount || 2) : 1;
+        return 1;
     };
     const getEffectiveSubjectGroupCount = window.getEffectiveSubjectGroupCount;
 
