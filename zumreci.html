@@ -534,7 +534,6 @@
 
             <!-- SOL: Hamburger (sadece mobilde) + Logo + Başlık -->
             <div style="display: flex; align-items: center; gap: 10px; flex:1; min-width:0;">
-
                 <!-- HAMBURGER WRAPPER (mobilde görünür) -->
                 <div class="mob-ham-wrapper">
                     <button class="mob-ham-btn" id="mobHamBtn" onclick="toggleMobMenu()" aria-expanded="false" aria-label="Menü">
@@ -544,11 +543,11 @@
                     </button>
                     <!-- Dropdown -->
                     <div class="mob-tab-dropdown" id="mobTabDropdown">
-                        <button class="mob-tab-item" id="mobItemPlan" onclick="switchTab('plan'); closeMobMenu()">
-                            <i class="fa-solid fa-calendar-check"></i> Zümre Planı
-                        </button>
                         <button class="mob-tab-item active" id="mobItemGorus" onclick="switchTab('gorus'); closeMobMenu()">
-                            <i class="fa-solid fa-comments"></i> Görüş İşleme
+                            <i class="fa-solid fa-comments"></i> 1. Görüş İşleme
+                        </button>
+                        <button class="mob-tab-item" id="mobItemPlan" onclick="switchTab('plan'); closeMobMenu()">
+                            <i class="fa-solid fa-calendar-check"></i> 2. Zümre Planı
                         </button>
                         <button class="mob-tab-item" id="mobItemIstatistik" onclick="switchTab('istatistik'); closeMobMenu()">
                             <i class="fa-solid fa-chart-column"></i> İstatistik
@@ -589,11 +588,11 @@
 
         <!-- TABS HEADER (masaüstü) -->
         <div class="tabs-header">
-            <button class="tab-btn" id="tabBtnPlan" onclick="switchTab('plan')">
-                <i class="fa-solid fa-calendar-check"></i> Zümre Planı Sayfası
-            </button>
             <button class="tab-btn active" id="tabBtnGorus" onclick="switchTab('gorus')">
-                <i class="fa-solid fa-comments"></i> Zümre Görüş İşleme
+                <i class="fa-solid fa-comments"></i> 1. Zümre Görüş ve Karar İşleme
+            </button>
+            <button class="tab-btn" id="tabBtnPlan" onclick="switchTab('plan')">
+                <i class="fa-solid fa-calendar-check"></i> 2. Zümre Planı Oluşturma
             </button>
             <button class="tab-btn" id="tabBtnIstatistik" onclick="switchTab('istatistik')">
                 <i class="fa-solid fa-chart-column"></i> İstatistik
@@ -605,22 +604,10 @@
             <!-- 1. Dönem ve Tür Seçimi -->
             <div class="glass-panel section-card">
                 <h3 style="margin: 0 0 1.25rem 0; color: var(--dark); font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-layer-group" style="color: var(--primary);"></i> 1. Zümre Dönemi ve Türü Belirleme
+                    <i class="fa-solid fa-layer-group" style="color: var(--primary);"></i> 1. Zümre Türü ve Dönemi Belirleme
                 </h3>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label" for="zumreDonemSelect">
-                            <i class="fa-solid fa-calendar-days" style="color: var(--primary); margin-right: 6px;"></i>Zümre Dönemi Seçin
-                        </label>
-                        <select id="zumreDonemSelect" class="form-select-custom" style="font-weight: 600; cursor: pointer; border: 2px solid #0d9488; background-color: #f0fdfa; color: #0f766e; padding: 0.9rem 1rem; border-radius: 12px; font-size: 1rem; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.1);">
-                            <option value="Sene Başı">Sene Başı Zümresi</option>
-                            <option value="2. Dönem Başı">2. Dönem Başı Zümresi</option>
-                            <option value="Sene Sonu">Sene Sonu Zümresi</option>
-                            <option value="Ek Zümre">Ek Zümre Toplantısı</option>
-                        </select>
-                    </div>
-
                     <div class="form-group" style="margin-bottom: 0;">
                         <label class="form-label" for="zumreTurSelect">
                             <i class="fa-solid fa-users-gear" style="color: var(--primary); margin-right: 6px;"></i>Zümre Türü Seçin
@@ -632,6 +619,18 @@
                             <option value="okul_baskan">Okul Zümre Başkanları Toplantısı</option>
                             <option value="sok">ŞÖK (Şube Öğretmenler Kurulu)</option>
                             <option value="brans">Branş Zümresi Toplantısı</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" for="zumreDonemSelect">
+                            <i class="fa-solid fa-calendar-days" style="color: var(--primary); margin-right: 6px;"></i>Zümre Dönemi Seçin
+                        </label>
+                        <select id="zumreDonemSelect" class="form-select-custom" style="font-weight: 600; cursor: pointer; border: 2px solid #0d9488; background-color: #f0fdfa; color: #0f766e; padding: 0.9rem 1rem; border-radius: 12px; font-size: 1rem; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.1);">
+                            <option value="Sene Başı">Sene Başı Zümresi</option>
+                            <option value="2. Dönem Başı">2. Dönem Başı Zümresi</option>
+                            <option value="Sene Sonu">Sene Sonu Zümresi</option>
+                            <option value="Ek Zümre">Ek Zümre Toplantısı</option>
                         </select>
                     </div>
                 </div>
