@@ -3119,17 +3119,16 @@
             });
         }
 
-        
-        // Sınıf Öğretmenini veritabanı tanımlarından (Firebase / DataManager / klbk_data) al
+                // Sınıf Öğretmenini veritabanı tanımlarından (Firebase / DataManager / klbk_data) al
         window.getClassTeacherForSok = function(cName) {
             if (!cName) return null;
-            const cleanTarget = cName.toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
+            const cleanTarget = cName.toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9]/g, '');
             if (!cleanTarget) return null;
 
             // 1. Canlı Firebase veritabanı (klbk_data_admin vb.) Sınıf Öğretmeni tanımları
             if (window.remoteClassTeacherMappings && typeof window.remoteClassTeacherMappings === 'object') {
                 for (const [clsKey, tName] of Object.entries(window.remoteClassTeacherMappings)) {
-                    const cleanKey = clsKey.toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
+                    const cleanKey = clsKey.toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9]/g, '');
                     if (cleanKey === cleanTarget && tName && typeof tName === 'string' && tName.trim()) {
                         return tName.trim();
                     }
@@ -3145,7 +3144,7 @@
                 if (typeof DataManager.getClassTeacherMappings === 'function') {
                     const maps = DataManager.getClassTeacherMappings() || {};
                     for (const [clsKey, tName] of Object.entries(maps)) {
-                        const cleanKey = clsKey.toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
+                        const cleanKey = clsKey.toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9]/g, '');
                         if (cleanKey === cleanTarget && tName && typeof tName === 'string' && tName.trim()) {
                             return tName.trim();
                         }
@@ -3160,7 +3159,7 @@
                     const parsed = JSON.parse(rawData);
                     if (parsed && parsed.classTeacherMappings) {
                         for (const [clsKey, tName] of Object.entries(parsed.classTeacherMappings)) {
-                            const cleanKey = clsKey.toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
+                            const cleanKey = clsKey.toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9]/g, '');
                             if (cleanKey === cleanTarget && tName && typeof tName === 'string' && tName.trim()) {
                                 return tName.trim();
                             }
@@ -3176,7 +3175,7 @@
                         const rKeys = ['rehberlikSinif', 'sinifRehberlik', 'sinifOgretmeni', 'rehberSube', 'rehberlikSiniF'];
                         for (const key of rKeys) {
                             if (t.rawObj[key]) {
-                                const vStr = t.rawObj[key].toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ĞÜŞİÖÇ]/g, '');
+                                const vStr = t.rawObj[key].toString().toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9]/g, '');
                                 if (vStr === cleanTarget) {
                                     return t.name;
                                 }
@@ -3316,9 +3315,9 @@
 
             if (typeof renderActiveAgendaList === 'function') renderActiveAgendaList();
 
-            // Sınıf Öğretmenini Dashboard "Öğrenci-Sınıf" sekmesindeki veritabanı tanımlarından (Firebase / DataManager / klbk_data) al
-            const getClassTeacherForSok = window.getClassTeacherForSok;
+const getClassTeacherForSok = window.getClassTeacherForSok;
 
+            // Sınıf Öğretmenini Zümre Başkanı Yapma
             const classTeacherName = getClassTeacherForSok(className);
 
             // Önce listedeki tüm öğretmenlerin isBaskan bayrağını ve (ZÜMRE BAŞKANI) unvanını temizle
