@@ -1512,24 +1512,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Accordion Header
             html += `
-                <div class="accordion-item glass-panel" style="border-radius:10px; overflow:hidden;">
-                    <div class="accordion-header" style="padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer; flex-wrap:wrap; gap:10px;" onclick="this.nextElementSibling.classList.toggle('hidden');">
-                        <div style="display:flex; align-items:center; gap:10px; flex-shrink: 0;">
-                            <h2 style="color:var(--primary); font-size:1.3rem; margin:0;">
+                <div class="accordion-item glass-panel" style="border-radius:10px; overflow-x:auto;">
+                    <div class="accordion-header" style="padding:0.85rem 1.25rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer; gap:10px; min-width:980px;" onclick="this.nextElementSibling.classList.toggle('hidden');">
+                        <div style="width:150px; min-width:150px; flex-shrink:0; display:flex; align-items:center; gap:8px;">
+                            <h2 style="color:var(--primary); font-size:1.2rem; margin:0; white-space:nowrap;">
                                 ${cls} Sınıfı
                             </h2>
-                            <span style="background:var(--secondary); color:#fff; padding:0.2rem 0.6rem; border-radius:1rem; font-size:0.8rem; white-space:nowrap;">
+                            <span style="background:var(--secondary); color:#fff; padding:0.2rem 0.5rem; border-radius:1rem; font-size:0.75rem; white-space:nowrap; display:inline-flex; align-items:center; gap:4px; height:24px;">
                                 <i class="fa-solid fa-users"></i> ${count}
                             </span>
                         </div>
-                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; flex:1;">
-                            <button class="btn btn-secondary btn-sm" style="height:38px; padding:0 0.85rem; font-size:0.85rem; font-weight:600; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; gap:6px; box-sizing:border-box; white-space:nowrap;" onclick="event.stopPropagation(); window.assignSubjectsToClass('${cls}')">
+                        <div style="display:flex; align-items:center; gap:8px; flex:1; justify-content:flex-end;">
+                            <button class="btn btn-secondary btn-sm" style="height:38px; width:125px; min-width:125px; flex-shrink:0; padding:0 0.5rem; font-size:0.85rem; font-weight:600; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; gap:5px; box-sizing:border-box; white-space:nowrap;" onclick="event.stopPropagation(); window.assignSubjectsToClass('${cls}')">
                                 <i class="fa-solid fa-book"></i> Ders Tanımla
                             </button>
-                            <button class="btn btn-secondary btn-sm" style="height:38px; padding:0 0.85rem; font-size:0.85rem; font-weight:600; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; gap:6px; box-sizing:border-box; white-space:nowrap;" onclick="event.stopPropagation(); window.assignFieldToClass('${cls}')">
+                            <button class="btn btn-secondary btn-sm" style="height:38px; width:125px; min-width:125px; flex-shrink:0; padding:0 0.5rem; font-size:0.85rem; font-weight:600; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; gap:5px; box-sizing:border-box; white-space:nowrap;" onclick="event.stopPropagation(); window.assignFieldToClass('${cls}')">
                                 <i class="fa-solid fa-layer-group"></i> Alan Tanımla
                             </button>
-                            <select class="form-control" style="height:38px; padding:0 0.75rem; font-size:0.85rem; font-weight:600; border:2px solid #10b981; border-radius:8px; background-color:#f0fdf4; color:#065f46; cursor:pointer; min-width:140px; box-sizing:border-box; display:inline-flex; align-items:center; margin:0;" onchange="window.assignClassTeacher('${cls}', this.value)" onclick="event.stopPropagation();" title="Sınıf Öğretmeni Ata">
+                            <select class="form-control" style="height:38px; width:170px; min-width:170px; flex-shrink:0; padding:0 0.5rem; font-size:0.85rem; font-weight:600; border:2px solid #10b981; border-radius:8px; background-color:#f0fdf4; color:#065f46; cursor:pointer; box-sizing:border-box; display:inline-flex; align-items:center; margin:0;" onchange="window.assignClassTeacher('${cls}', this.value)" onclick="event.stopPropagation();" title="Sınıf Öğretmeni Ata">
                                 <option value="">👩‍🏫 Sınıf Öğrt.</option>
                                 ${Object.entries(allTeachers).filter(([uname, t]) => {
                                     if (!t.name || !t.name.trim()) return false;
@@ -1544,16 +1544,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     return '<option value="' + tName + '" ' + (currentAssigned === tName ? 'selected' : '') + '>' + tName + '</option>';
                                 }).join('')}
                             </select>
-                            <select class="form-control" style="height:38px; padding:0 0.75rem; font-size:0.85rem; font-weight:600; border:1px solid #cbd5e1; border-radius:8px; background-color:white; color:var(--primary); cursor:pointer; box-sizing:border-box; display:inline-flex; align-items:center; margin:0;" onchange="window.assignRoomToClass('${cls}', this.value)" onclick="event.stopPropagation();">
-                                <option value="">Derslik Atayın</option>
+                            <select class="form-control" style="height:38px; width:85px; min-width:85px; flex-shrink:0; padding:0 0.4rem; font-size:0.85rem; font-weight:600; border:1px solid #cbd5e1; border-radius:8px; background-color:white; color:var(--primary); cursor:pointer; box-sizing:border-box; display:inline-flex; align-items:center; margin:0;" onchange="window.assignRoomToClass('${cls}', this.value)" onclick="event.stopPropagation();">
+                                <option value="">Derslik</option>
                                 ${classrooms.filter(room => room.name === assignedRoom || !assignedRoomNames.includes(room.name)).map(room => `<option value="${room.name}" ${assignedRoom === room.name ? 'selected' : ''}>${room.name}</option>`).join('')}
                             </select>
-                            <button class="btn btn-secondary btn-sm" style="height:38px; padding:0 0.85rem; font-size:0.85rem; font-weight:600; border-radius:8px; background-color:var(--primary); color:white; border:none; display:inline-flex; align-items:center; justify-content:center; gap:6px; box-sizing:border-box; white-space:nowrap;" onclick="event.stopPropagation(); window.assignDeviceToClass('${cls}')">
+                            <button class="btn btn-secondary btn-sm" style="height:38px; width:110px; min-width:110px; flex-shrink:0; padding:0 0.5rem; font-size:0.85rem; font-weight:600; border-radius:8px; background-color:var(--primary); color:white; border:none; display:inline-flex; align-items:center; justify-content:center; gap:5px; box-sizing:border-box; white-space:nowrap;" onclick="event.stopPropagation(); window.assignDeviceToClass('${cls}')">
                                 <i class="fa-solid fa-tablet-screen-button"></i> Cihaz Ata
                             </button>
-                            <span data-device-class="${cls}" onclick="event.stopPropagation(); window.editDeviceMapping('${cls}')" oncontextmenu="window.selectDeviceForSwap('${cls}', event)" ontouchstart="window.deviceTouchTimer = setTimeout(() => window.selectDeviceForSwap('${cls}', null), 800)" ontouchend="clearTimeout(window.deviceTouchTimer)" ontouchmove="clearTimeout(window.deviceTouchTimer)" style="height:38px; min-width:120px; padding:0 10px; border-radius:8px; border:1px solid ${DataManager.getSanitizedClassDeviceMapping(cls) ? '#cbd5e1' : '#e2e8f0'}; background:${DataManager.getSanitizedClassDeviceMapping(cls) ? '#f8fafc' : 'transparent'}; font-size:0.85rem; color:var(--primary); white-space:nowrap; display:inline-flex; align-items:center; justify-content:center; gap:5px; box-sizing:border-box; cursor:pointer;" title="${DataManager.getSanitizedClassDeviceMapping(cls) ? 'Değiştirmek için tıklayın, takas için sağ tıklayın veya basılı tutun' : 'Cihaz atamak için tıklayın veya sağ tık ile takas yapın'}">${DataManager.getSanitizedClassDeviceMapping(cls) ? '<i class="fa-solid fa-mobile-screen-button"></i>' + DataManager.getSanitizedClassDeviceMapping(cls) : ''}</span>
+                            <span data-device-class="${cls}" onclick="event.stopPropagation(); window.editDeviceMapping('${cls}')" oncontextmenu="window.selectDeviceForSwap('${cls}', event)" ontouchstart="window.deviceTouchTimer = setTimeout(() => window.selectDeviceForSwap('${cls}', null), 800)" ontouchend="clearTimeout(window.deviceTouchTimer)" ontouchmove="clearTimeout(window.deviceTouchTimer)" style="height:38px; width:140px; min-width:140px; flex-shrink:0; padding:0 8px; border-radius:8px; border:1px solid ${DataManager.getSanitizedClassDeviceMapping(cls) ? '#cbd5e1' : '#e2e8f0'}; background:${DataManager.getSanitizedClassDeviceMapping(cls) ? '#f8fafc' : 'transparent'}; font-size:0.82rem; color:var(--primary); white-space:nowrap; display:inline-flex; align-items:center; justify-content:center; gap:5px; box-sizing:border-box; cursor:pointer;" title="${DataManager.getSanitizedClassDeviceMapping(cls) ? 'Değiştirmek için tıklayın, takas için sağ tıklayın veya basılı tutun' : 'Cihaz atamak için tıklayın veya sağ tık ile takas yapın'}">${DataManager.getSanitizedClassDeviceMapping(cls) ? '<i class="fa-solid fa-mobile-screen-button"></i>' + DataManager.getSanitizedClassDeviceMapping(cls) : ''}</span>
 
-                            <button class="btn btn-danger btn-sm" style="height:38px; width:38px; min-width:38px; padding:0; font-size:0.95rem; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; margin-left:2px;" onclick="event.stopPropagation(); window.deleteClassCompletely('${cls}')" title="Sınıfı Sil">
+                            <button class="btn btn-danger btn-sm" style="height:38px; width:38px; min-width:38px; flex-shrink:0; padding:0; font-size:0.95rem; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; margin-left:2px;" onclick="event.stopPropagation(); window.deleteClassCompletely('${cls}')" title="Sınıfı Sil">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </div>
