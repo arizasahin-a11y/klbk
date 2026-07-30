@@ -664,8 +664,13 @@
                         leadersHtml = `<span style="color:#94a3b8; font-style:italic; font-size:0.9em;">Lider Atanmamış</span>`;
                     }
 
+                    const hasMultiLeaders1 = act.leaders && act.leaders.length > 1;
+                    const actTitleAttr1 = hasMultiLeaders1 ? 'title="Diğer liderleri görmek için tıklayın (CTRL+Sol Tık: Liderleri Yönet)"' : 'title="CTRL+Sol Tık: Liderleri Yönet"';
+                    const actOnClick1 = `onclick="if(event.ctrlKey) { event.preventDefault(); openActivityLeadersModal('${act.planId}', '${act.rawName.replace(/'/g, "\\'")}', '${prefix}'); } else if(${hasMultiLeaders1}) { showActivityLeadersListModal('${act.rawName.replace(/'/g, "\\'")}', ${JSON.stringify(act.leaders).replace(/"/g, '&quot;')}); }"`;
+                    const actBadgeHtml1 = hasMultiLeaders1 ? `<i class="fas fa-users" style="color:#6366f1; margin-left:6px; font-size:0.8rem;" title="Çoklu Lider (${act.leaders.length})"></i>` : '';
+
                     html += `<tr class="${rowClass} leader-start-row">
-                        <td style="font-weight:600; color:${nameColor}; padding-right: 15px; cursor:pointer;${act.isArchived ? ' font-style:italic; opacity:0.75;' : ''}" onclick="if(event.ctrlKey) { event.preventDefault(); openActivityLeadersModal('${act.planId}', '${act.rawName.replace(/'/g, "\\'")}', '${prefix}'); }" title="CTRL+Sol Tık: Liderleri Yönet">${act.name}</td>
+                        <td style="font-weight:600; color:${nameColor}; padding-right: 15px; cursor:pointer;${act.isArchived ? ' font-style:italic; opacity:0.75;' : ''}" ${actOnClick1} ${actTitleAttr1}>${act.name}${actBadgeHtml1}</td>
                         <td>${leadersHtml}</td>
                         <td style="text-align:center;"><span class="proj-badge">${act.project}</span></td>
                         <td style="text-align:center;color:#64748b;">${act.start}</td>
@@ -738,10 +743,16 @@
                             </td>` : '';
                             
                             const startClass = idx === 0 ? 'leader-start-row' : '';
+
+                            const hasMultiLeaders2 = act.leaders && act.leaders.length > 1;
+                            const actTitleAttr2 = hasMultiLeaders2 ? 'title="Diğer liderleri görmek için tıklayın"' : '';
+                            const actCursorStyle2 = hasMultiLeaders2 ? 'cursor:pointer;' : '';
+                            const actOnClick2 = hasMultiLeaders2 ? `onclick="showActivityLeadersListModal('${act.rawName.replace(/'/g, "\\'")}', ${JSON.stringify(act.leaders).replace(/"/g, '&quot;')})"` : '';
+                            const actBadgeHtml2 = hasMultiLeaders2 ? `<i class="fas fa-users" style="color:#6366f1; margin-left:6px; font-size:0.8rem;" title="Çoklu Lider (${act.leaders.length})"></i>` : '';
                             
                             html += `<tr class="${rowClass} ${startClass}">
                                 ${ldrCell}
-                                <td style="font-weight:600; color:${nameColor};${act.isArchived ? ' font-style:italic; opacity:0.75;' : ''}">${act.name}</td>
+                                <td style="font-weight:600; color:${nameColor}; ${actCursorStyle2}${act.isArchived ? ' font-style:italic; opacity:0.75;' : ''}" ${actTitleAttr2} ${actOnClick2}>${act.name}${actBadgeHtml2}</td>
                                 <td style="text-align:center;"><span class="proj-badge">${act.project}</span></td>
                                 <td style="text-align:center;color:#64748b;">${act.start}</td>
                                 <td style="text-align:center;color:#64748b;">${act.end}</td>
@@ -1181,6 +1192,52 @@
                     </div>
                 </div>
             `;
+        function showActivityLeadersListModal(actName, leaders) {
+            if (!leaders || leaders.length <= 1) return;
+            
+            let modal = document.getElementById('leaders-list-popup-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'leaders-list-popup-modal';
+                modal.className = 'modal';
+                modal.style.cssText = 'display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px); z-index:99999; justify-content:center; align-items:center;';
+                modal.innerHTML = `
+                    <div style="background:white; border-radius:16px; padding:24px 28px; width:90%; max-width:480px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); border:1px solid #e2e8f0; animation:modalFadeIn 0.2s ease-out;">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; border-bottom:1px solid #f1f5f9; padding-bottom:12px;">
+                            <div>
+                                <div style="font-size:0.8rem; font-weight:700; color:#6366f1; text-transform:uppercase; letter-spacing:0.5px;"><i class="fas fa-crown" style="color:#fbbf24; margin-right:4px;"></i> Faaliyet Liderleri</div>
+                                <h3 id="llpm-title" style="margin:4px 0 0 0; font-size:1.1rem; color:#0f172a; font-weight:700; line-height:1.4;"></h3>
+                            </div>
+                            <button onclick="closeLeadersListPopupModal()" style="background:#f1f5f9; border:none; border-radius:8px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#64748b; font-size:1rem;" title="Kapat">✕</button>
+                        </div>
+                        <div id="llpm-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px; max-height:260px; overflow-y:auto; padding-right:4px;"></div>
+                        <div style="text-align:right;">
+                            <button onclick="closeLeadersListPopupModal()" style="background:#4f46e5; color:white; border:none; padding:8px 20px; border-radius:8px; font-weight:600; font-size:0.9rem; cursor:pointer; box-shadow:0 4px 12px rgba(79,70,229,0.3);">Tamam</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+                modal.onclick = (e) => {
+                    if (e.target === modal) closeLeadersListPopupModal();
+                };
+            }
+            
+            document.getElementById('llpm-title').textContent = actName;
+            const listEl = document.getElementById('llpm-list');
+            listEl.innerHTML = leaders.map(l => `
+                <div style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0;">
+                    <i class="fas fa-user-check" style="color:#4f46e5; font-size:1rem;"></i>
+                    <span style="font-weight:700; color:#1e293b; font-size:0.95rem;">${formatNameTR(l)}</span>
+                </div>
+            `).join('');
+            
+            modal.style.display = 'flex';
+        }
+
+        function closeLeadersListPopupModal() {
+            const modal = document.getElementById('leaders-list-popup-modal');
+            if (modal) modal.style.display = 'none';
         }
 
         // Initialize App
