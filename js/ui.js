@@ -1602,11 +1602,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
             `;
 
+            const assignedTeacher = DataManager.getSanitizedClassTeacherMapping(cls) || '';
+
             widgetHtml += `
-                <div style="display:flex; justify-content:space-between; padding:0.75rem 0; border-bottom:1px solid #f1f5f9;">
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 0; border-bottom:1px solid #f1f5f9;">
                     <div style="display:flex; flex-direction:column;">
                         <strong>${cls}</strong>
                         <span style="font-size:0.75rem; color:var(--gray-500);">${count} Öğrenci</span>
+                        ${assignedTeacher ? `<span style="font-size:0.8rem; color:#059669; font-weight:600; margin-top:3px;"><i class="fa-solid fa-user-tie" style="margin-right:4px;"></i>${assignedTeacher}</span>` : ''}
                     </div>
                     <div style="text-align:right;">
                         <span style="font-size:0.85rem; color:var(--primary); font-weight:600;">${assignedRoom || '<small style="color:var(--gray-400); font-weight:normal;">Atanmadı</small>'}</span>
@@ -1614,6 +1617,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
             `;
         });
+
 
         html += '</div>';
 
