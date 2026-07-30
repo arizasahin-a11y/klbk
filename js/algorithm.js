@@ -727,6 +727,8 @@ var ExamAlgorithm = window.ExamAlgorithm = {
                 }
             }
             if (!anyFixed) break;
+        }
+
         // ── 10. GRUP DAĞITIMI (Dengeli ve aynı gruplar birbirinden uzak olacak şekilde) ────────
         const hasGroups = sessionData?.hasGroups || (sessionData?.subjects && sessionData.subjects.some(x => typeof x === 'object' && x.hasGroups));
         if (hasGroups) {
