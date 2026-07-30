@@ -150,6 +150,18 @@
         .filter-select { border: none; outline: none; background: transparent; font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 600; color: #334155; cursor: pointer; min-width: 180px; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        (function() {
+            try {
+                var isLogged = sessionStorage.getItem('klbk_faaliyet_isLoggedIn') || sessionStorage.getItem('klbk_isLoggedIn');
+                if (isLogged === 'true') {
+                    document.write('<style id="anti-flicker-style">#login-overlay { display: none !important; } .wrap { display: block !important; }</style>');
+                } else {
+                    document.write('<style id="anti-flicker-style">#login-overlay { display: flex !important; } .wrap { display: none !important; }</style>');
+                }
+            } catch(e) {}
+        })();
+    </script>
 </head>
 <body>
     <body>

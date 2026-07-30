@@ -24,7 +24,7 @@
         }
 
         body {
-            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 50%, #0284c7 100%);
             min-height: 100vh;
             font-family: 'Outfit', sans-serif;
         }
@@ -269,6 +269,18 @@
             }
         }
     </style>
+    <script>
+        (function() {
+            try {
+                var isLogged = sessionStorage.getItem('klbk_isLoggedIn') === 'true';
+                if (isLogged) {
+                    document.write('<style id="listeci-anti-flicker">#loginPanel { display: none !important; } #mainContainer { display: block !important; }</style>');
+                } else {
+                    document.write('<style id="listeci-anti-flicker">#loginPanel { display: flex !important; } #mainContainer { display: none !important; }</style>');
+                }
+            } catch(e) {}
+        })();
+    </script>
 </head>
 <body>
 

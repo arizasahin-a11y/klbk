@@ -435,7 +435,7 @@
                 { id: "html_dashboard", title: "Dashboard", desc: "Ana Yönetim Paneli", url: "/r1p5s8q3", icon: "fa-chart-line", active: false },
                 { id: "html_enter", title: "Portal Giriş", desc: "Bu Sayfa", url: "/enter.html", icon: "fa-compass", active: false },
                 { id: "html_index", title: "Ana Giriş", desc: "Sistem Ana Giriş Sayfası", url: "/index.html", icon: "fa-right-to-bracket", active: false },
-                { id: "html_listeci", title: "Listeci", desc: "Liste okuma ve barkod işlemleri", url: "/listeci.html", icon: "fa-list-ol", active: false },
+                { id: "html_listeci", title: "Listeci (Barkod & Liste)", desc: "Öğrenci Barkod ve Liste Okuma Ekranı", url: "/listeci.html", icon: "fa-barcode", active: true },
                 { id: "html_listeci_print", title: "Listeci Yazdır", desc: "Liste yazdırma ekranı", url: "/listeci_print.html", icon: "fa-print", active: false },
                 { id: "html_master", title: "Master Ayarlar", desc: "Sistem Master Kullanıcı Ayarları", url: "/n4b9v1c7", icon: "fa-cogs", active: false },
                 { id: "html_oeovvb", title: "OEOVVB", desc: "Öğretmen Eylem Veritabanı", url: "/oeovvb.html", icon: "fa-database", active: false },
@@ -454,7 +454,7 @@
             allHtmlFiles.forEach(hf => {
                 if (!portalLinks.find(pl => pl.id === hf.id)) {
                     // İlk yuklemede yoklama vs aktif gelsin diye kucuk bir ayar
-                    if (hf.id === 'html_yoklama_ogretmen' || hf.id === 'html_ogrenci' || hf.id === 'html_ogrencitakip' || hf.id === 'html_zumreci' || hf.id === 'html_pts') {
+                    if (hf.id === 'html_yoklama_ogretmen' || hf.id === 'html_ogrenci' || hf.id === 'html_ogrencitakip' || hf.id === 'html_zumreci' || hf.id === 'html_pts' || hf.id === 'html_listeci') {
                         hf.active = true;
                     }
                     portalLinks.push(hf);
