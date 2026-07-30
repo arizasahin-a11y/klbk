@@ -1346,6 +1346,22 @@
             }
 
             Swal.fire('Hata', 'Kullanıcı bulunamadı veya bağlantı kurulamadı!', 'error');
+        async function loadRemoteClassTeacherMappings() {
+            try {
+                if (typeof FIREBASE_DB_URL !== 'undefined' && FIREBASE_DB_URL) {
+                    const schoolId = localStorage.getItem('klbk_school_id') || 'admin';
+                    const resData = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_data_${schoolId}.json?_t=${Date.now()}`, { cache: 'no-store' });
+                    if (resData && resData.ok) {
+                        const dbData = await resData.json();
+                        if (dbData && dbData.classTeacherMappings) {
+                            window.remoteClassTeacherMappings = dbData.classTeacherMappings;
+                            console.log("🔥 Sınıf Öğretmeni eşleştirmeleri başarıyla yüklendi:", Object.keys(dbData.classTeacherMappings).length, "sınıf");
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("loadRemoteClassTeacherMappings failed:", e);
+            }
         }
 
         async function showMainPortal() {
@@ -1359,6 +1375,7 @@
             document.getElementById('welcomeSchool').innerText = school;
 
             fetchSchoolTeachers();
+            await loadRemoteClassTeacherMappings();
             
             const savedPool = localStorage.getItem('klbk_agenda_pool');
             if (savedPool) {
