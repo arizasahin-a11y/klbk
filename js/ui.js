@@ -5545,9 +5545,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const rows = chunk.map(sid => {
                             const s = room.seats[sid];
                             if (s) {
+                                const groupSuffix = (s._groupLabel || s.group) ? ` (${s._groupLabel || s.group})` : '';
                                 return `<tr><td style="text-align:center;"><b>${seatToNum[sid] || '-'}</b></td>
                                     <td>${s.class}</td><td style="text-align:center;"><b>${s.no}</b></td>
-                                    <td>${s.name}</td><td>${abbr(s._matchedSubject || '-', 15)}</td>
+                                    <td>${s.name}${groupSuffix}</td><td>${abbr(s._matchedSubject || '-', 15)}</td>
                                     <td style="border-bottom:1px solid #eee;"></td></tr>`;
                             } else {
                                 return `<tr style="color: #64748b; background: #fff5f5;"><td style="text-align:center;"><b>${seatToNum[sid] || '-'}</b></td>
@@ -6534,8 +6535,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <tr>
                     <td style="padding:8px; border-bottom:1px solid #eee;"><b>${seatToNum[seatId] || '-'}</b></td>
                     <td style="padding:8px; border-bottom:1px solid #eee;">${s.class}</td>
-                    <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}${s._groupLabel ? ` (${s._groupLabel})` : ''}</b></td>
-                    <td style="padding:8px; border-bottom:1px solid #eee;">${s.name}</td>
+                    <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}</b></td>
+                    <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.name}${(s._groupLabel || s.group) ? ` (${s._groupLabel || s.group})` : ''}</b></td>
                     <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${window.shortenSubject(s._matchedSubject || '-', 15)}</td>
                     <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">
                         ${checkboxHtml}

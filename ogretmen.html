@@ -4754,7 +4754,8 @@
                         const isHighDensity = PAGE_SIZE > 42 || (isLastPage && teacherMsg && PAGE_SIZE > 35);
                         const rows = chunk.map(sid => {
                             const s = room.seats[sid];
-                            if (s) return `<tr><td class="text-center text-bold" style="width:8%;">${seatToNum[sid] || '-'}</td><td class="text-center" style="width:10%;">${s.class}</td><td class="text-center text-bold" style="width:10%;">${s.no}</td><td style="width:42%; text-transform:uppercase; font-weight:600;">${s.name}</td><td style="width:15%;">${abbr(s._matchedSubject || '-', 20)}</td><td style="width:15%;"></td></tr> `;
+                            const groupSuffix = (s && (s._groupLabel || s.group)) ? ` (${s._groupLabel || s.group})` : '';
+                            if (s) return `<tr><td class="text-center text-bold" style="width:8%;">${seatToNum[sid] || '-'}</td><td class="text-center" style="width:10%;">${s.class}</td><td class="text-center text-bold" style="width:10%;">${s.no}</td><td style="width:42%; text-transform:uppercase; font-weight:600;">${s.name}${groupSuffix}</td><td style="width:15%;">${abbr(s._matchedSubject || '-', 20)}</td><td style="width:15%;"></td></tr> `;
                             else return `<tr style="color:#94a3b8; background:#fffafa;"><td class="text-center text-bold" style="width:8%;">${seatToNum[sid] || '-'}</td><td colspan="4" class="text-center" style="font-weight:900; letter-spacing:4px; font-size:10pt; color:#ef4444;">BOŞ</td><td style="width:15%;"></td></tr> `;
                         }).join('');
                         const studentsInRoom = Object.values(room.seats || {});
