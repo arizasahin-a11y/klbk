@@ -272,7 +272,7 @@
             const classesToFetch = config.classes || [];
             const titleSuffix = config.titleSuffix || '';
             const blankColumnsCount = config.blankColumns || 1;
-            const listType = config.listType || 'normal';
+            let listType = config.listType || 'normal';
             const emptyTemplateTitle = config.emptyTemplateTitle || 'Boş Liste';
             const showAlanInEmptyTemplate = config.showAlanInEmptyTemplate || false;
             const karmaClubTitle = config.karmaClubTitle || 'Karma Öğrenci Listesi';
@@ -464,6 +464,21 @@
             } else if (listType === 'empty_template') {
                 pagesHtml = processStudentList(emptyTemplateTitle, []);
                 document.title = emptyTemplateTitle;
+            } else if (listType === 'saved_custom_lists') {
+                const savedLists = config.savedLists || [];
+                const originalListType = listType;
+                
+                savedLists.forEach(listData => {
+                    const selectedSet = new Set(listData.students);
+                    const karmaList = allDataStudents.filter(s => selectedSet.has(`${s.class}_${s.no}`));
+                    
+                    // Geçici olarak karma_club gibi davranmasını sağla (sınıf sütunu vs için)
+                    listType = 'karma_club';
+                    pagesHtml += processStudentList(listData.title, karmaList);
+                    listType = originalListType;
+                });
+                
+                document.title = "Kayitli_Listeler";
             } else {
                 classesToFetch.forEach(key => {
                     let students = classGroups[key] ? [...classGroups[key]] : [];

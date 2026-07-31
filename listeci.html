@@ -398,8 +398,32 @@
                     <button class="btn-primary" style="background: #8b5cf6; margin-bottom: 1rem; width: 100%;" onclick="openStudentSelectorModal()">
                         <i class="fa-solid fa-user-plus"></i> Öğrencileri Seç (<span id="selectedStudentCount">0</span> seçili)
                     </button>
-                    <button class="btn-primary" style="width: 100%;" onclick="generateList('karma_club')">
-                        <i class="fa-solid fa-file-pdf"></i> Karma Listeyi Oluştur
+                    <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
+                        <button class="btn-primary" style="background: #0ea5e9; flex: 1;" onclick="saveKarmaList()">
+                            <i class="fa-solid fa-save"></i> Kaydet
+                        </button>
+                        <button class="btn-primary" style="flex: 2;" onclick="generateList('karma_club')">
+                            <i class="fa-solid fa-file-pdf"></i> Karma Listeyi Oluştur
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accordion: Kayıtlı Listelerim -->
+            <div class="accordion-item" id="savedListsAccordion" style="border-left: 4px solid #f59e0b; display: none;">
+                <div class="accordion-header" onclick="toggleAccordion(this); loadSavedKarmaLists();">
+                    <h3><i class="fa-solid fa-bookmark" style="color: #f59e0b;"></i> Kayıtlı Listelerim</h3>
+                    <i class="fa-solid fa-chevron-down accordion-icon"></i>
+                </div>
+                <div class="accordion-content">
+                    <p class="accordion-desc">Daha önceden kaydettiğiniz karma listeleri buradan görüntüleyip yazdırabilirsiniz.</p>
+                    
+                    <div id="savedListsContainer" style="margin-bottom: 1rem; max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                        <!-- List of saved lists will be injected here -->
+                    </div>
+
+                    <button class="btn-primary" style="background: #f59e0b; width: 100%;" onclick="generateList('saved_custom_lists')">
+                        <i class="fa-solid fa-print"></i> Seçili Listeleri Oluştur
                     </button>
                 </div>
             </div>
@@ -788,7 +812,11 @@
                 if (role === 'admin') roleIcon = 'fa-user-shield';
                 else if (role === 'idareci') roleIcon = 'fa-user-gear';
                 
-                document.getElementById('teacherNameDisplay').innerHTML = `<i class="fa-solid ${roleIcon}"></i> ${name}`;
+                document.getElementById('loggedUserInfo').innerHTML = `<i class="fa-solid ${roleIcon}" style="color: var(--primary);"></i> ${name}`;
+                
+                // Show saved lists accordion for all logged in users
+                const savedListsAcc = document.getElementById('savedListsAccordion');
+                if (savedListsAcc) savedListsAcc.style.display = 'block';
             }
 
             try {
@@ -895,21 +923,155 @@
                 }
             }
 
-            const config = {
-                classes: selectedClasses,
-                titleSuffix: document.getElementById('titleSuffix') ? document.getElementById('titleSuffix').value.trim() : '',
-                blankColumns: blankCols,
-                listType: listType,
-                emptyTemplateTitle: document.getElementById('emptyTemplateTitle') ? document.getElementById('emptyTemplateTitle').value.trim() : 'Boş Liste',
-                showAlanInEmptyTemplate: document.getElementById('showAlanInEmptyTemplate') ? document.getElementById('showAlanInEmptyTemplate').checked : false,
-                karmaClubTitle: document.getElementById('karmaClubTitle') ? document.getElementById('karmaClubTitle').value.trim() : 'Karma Öğrenci Listesi',
-                selectedKarmaStudents: Array.from(selectedStudentsSet)
-            };
+            if (listType === 'saved_custom_lists') {
+                const checkedLists = Array.from(document.querySelectorAll('.saved-list-checkbox:checked')).map(cb => {
+                    return JSON.parse(decodeURIComponent(cb.value));
+                });
+                
+                if (checkedLists.length === 0) {
+                    Swal.fire('Uyarı', 'Lütfen yazdırmak için en az bir kayıtlı liste seçin.', 'warning');
+                    return;
+                }
+                
+                config.savedLists = checkedLists;
+            }
 
             localStorage.setItem('listeciConfig', JSON.stringify(config));
             
             // Yeni sekmede listeci_print.html'i aç
             window.open('listeci_print.html', '_blank');
+        }
+        async function saveKarmaList() {
+            if (selectedStudentsSet.size === 0) {
+                Swal.fire('Uyarı', 'Kaydetmek için en az bir öğrenci seçmelisiniz.', 'warning');
+                return;
+            }
+            
+            const title = document.getElementById('karmaClubTitle').value.trim();
+            if (!title) {
+                Swal.fire('Uyarı', 'Lütfen liste başlığı girin.', 'warning');
+                return;
+            }
+            
+            const storeKey = sessionStorage.getItem('klbk_storeKey');
+            const user = sessionStorage.getItem('klbk_user');
+            if (!storeKey || !user) {
+                Swal.fire('Hata', 'Kullanıcı bilgileri bulunamadı. Lütfen giriş yapın.', 'error');
+                return;
+            }
+
+            const listData = {
+                title: title,
+                students: Array.from(selectedStudentsSet),
+                timestamp: Date.now()
+            };
+            
+            const listId = 'list_' + Date.now();
+            const url = `${firebaseDatabaseUrl}/app_store/${storeKey}/custom_lists/${user}/${listId}.json`;
+            
+            try {
+                const res = await fetch(url, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(listData)
+                });
+                
+                if (res.ok) {
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Liste Kaydedildi!', showConfirmButton: false, timer: 2000 });
+                    // Refresh if the accordion is open
+                    const acc = document.getElementById('savedListsAccordion');
+                    if (acc && acc.style.display !== 'none' && acc.querySelector('.accordion-content').style.display === 'block') {
+                        loadSavedKarmaLists();
+                    }
+                    // Flash effect on saved lists accordion
+                    acc.style.display = 'block';
+                } else {
+                    throw new Error("HTTP error " + res.status);
+                }
+            } catch (err) {
+                console.error("Save list error:", err);
+                Swal.fire('Hata', 'Liste kaydedilirken bir hata oluştu.', 'error');
+            }
+        }
+
+        async function loadSavedKarmaLists() {
+            const container = document.getElementById('savedListsContainer');
+            if (!container) return;
+            
+            const storeKey = sessionStorage.getItem('klbk_storeKey');
+            const user = sessionStorage.getItem('klbk_user');
+            if (!storeKey || !user) {
+                container.innerHTML = '<div style="color:var(--danger); padding:10px;">Lütfen giriş yapın.</div>';
+                return;
+            }
+            
+            container.innerHTML = '<div style="color:var(--gray-500); padding:10px;"><i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...</div>';
+            
+            const url = `${firebaseDatabaseUrl}/app_store/${storeKey}/custom_lists/${user}.json`;
+            try {
+                const res = await fetch(url, { cache: 'no-store' });
+                const data = await res.json();
+                
+                if (!data) {
+                    container.innerHTML = '<div style="color:var(--gray-500); padding:10px;">Henüz kaydedilmiş bir listeniz bulunmuyor.</div>';
+                    return;
+                }
+                
+                let html = '';
+                const lists = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+                lists.sort((a, b) => b.timestamp - a.timestamp); // Newest first
+                
+                lists.forEach(list => {
+                    const dateStr = new Date(list.timestamp).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const listObjStr = encodeURIComponent(JSON.stringify({ title: list.title, students: list.students }));
+                    
+                    html += `
+                        <div style="display:flex; align-items:center; justify-content:space-between; background:white; padding:8px 12px; border:1px solid var(--gray-200); border-radius:8px;">
+                            <label style="display:flex; align-items:center; gap:10px; cursor:pointer; flex:1; margin:0;">
+                                <input type="checkbox" class="saved-list-checkbox" value="${listObjStr}" style="accent-color:#f59e0b; width:16px; height:16px;">
+                                <div style="display:flex; flex-direction:column;">
+                                    <span style="font-weight:700; color:var(--dark); font-size:0.9rem;">${list.title}</span>
+                                    <span style="font-size:0.75rem; color:var(--gray-500);">${list.students.length} Öğrenci &bull; ${dateStr}</span>
+                                </div>
+                            </label>
+                            <button class="btn" style="background:transparent; color:var(--danger); padding:4px 8px;" onclick="deleteKarmaList('${list.id}', '${list.title}')" title="Sil"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            } catch (err) {
+                console.error("Load lists error:", err);
+                container.innerHTML = '<div style="color:var(--danger); padding:10px;">Listeler yüklenirken hata oluştu.</div>';
+            }
+        }
+        
+        async function deleteKarmaList(id, title) {
+            const storeKey = sessionStorage.getItem('klbk_storeKey');
+            const user = sessionStorage.getItem('klbk_user');
+            if (!storeKey || !user) return;
+            
+            const result = await Swal.fire({
+                title: 'Emin misiniz?',
+                text: `"${title}" adlı listeyi silmek üzeresiniz.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal'
+            });
+            
+            if (result.isConfirmed) {
+                const url = `${firebaseDatabaseUrl}/app_store/${storeKey}/custom_lists/${user}/${id}.json`;
+                try {
+                    await fetch(url, { method: 'DELETE' });
+                    loadSavedKarmaLists(); // Refresh list
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Silindi', showConfirmButton: false, timer: 2000 });
+                } catch (e) {
+                    Swal.fire('Hata', 'Silinirken bir hata oluştu.', 'error');
+                }
+            }
         }
     </script>
 
