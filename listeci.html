@@ -1046,13 +1046,13 @@
                     
                     html += `
                         <div style="display:flex; align-items:center; justify-content:space-between; background:white; padding:8px 12px; border:1px solid var(--gray-200); border-radius:8px;">
-                            <label style="display:flex; align-items:center; gap:10px; cursor:pointer; flex:1; margin:0;">
+                            <label style="display:flex; align-items:center; margin:0; cursor:pointer; padding-right:10px;">
                                 <input type="checkbox" class="saved-list-checkbox" value="${listObjStr}" style="accent-color:#f59e0b; width:16px; height:16px;">
-                                <div style="display:flex; flex-direction:column;">
-                                    <span style="font-weight:700; color:var(--dark); font-size:0.9rem;">${list.title}</span>
-                                    <span style="font-size:0.75rem; color:var(--gray-500);">${list.students.length} Öğrenci &bull; ${dateStr}</span>
-                                </div>
                             </label>
+                            <div onclick="showKarmaListDetails('${listObjStr}')" style="display:flex; flex-direction:column; flex:1; cursor:pointer;">
+                                <span style="font-weight:700; color:var(--dark); font-size:0.9rem; text-decoration: underline; text-decoration-color: var(--gray-300);">${list.title}</span>
+                                <span style="font-size:0.75rem; color:var(--gray-500);">${list.students.length} Öğrenci &bull; ${dateStr}</span>
+                            </div>
                             <button class="btn" style="background:transparent; color:var(--danger); padding:4px 8px;" onclick="deleteKarmaList('${list.id}', '${list.title}')" title="Sil"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     `;
@@ -1091,6 +1091,61 @@
                     Swal.fire('Hata', 'Silinirken bir hata oluştu.', 'error');
                 }
             }
+        }
+        
+        function showKarmaListDetails(listObjStr) {
+            const listData = JSON.parse(decodeURIComponent(listObjStr));
+            const allStudents = DataManager.getStudents();
+            
+            if (!allStudents || allStudents.length === 0) {
+                Swal.fire('Hata', 'Öğrenci verileri bulunamadı. Lütfen önce sisteme öğrenci yükleyin.', 'error');
+                return;
+            }
+            
+            const selectedSet = new Set(listData.students);
+            const studentsInList = allStudents.filter(s => selectedSet.has(`${s.class}_${s.no}`));
+            
+            studentsInList.sort((a, b) => {
+                const numACls = parseInt((a.class || '').match(/\d+/)) || 0;
+                const numBCls = parseInt((b.class || '').match(/\d+/)) || 0;
+                if (numACls !== numBCls) return numACls - numBCls;
+                
+                const clsCmp = (a.class || '').localeCompare(b.class || '');
+                if (clsCmp !== 0) return clsCmp;
+                
+                return (parseInt(a.no) || 0) - (parseInt(b.no) || 0);
+            });
+            
+            let html = '<div style="max-height:60vh; overflow-y:auto; text-align:left;">';
+            html += '<table style="width:100%; border-collapse:collapse; font-size:0.9rem;">';
+            html += '<tr style="background:#f1f5f9; position:sticky; top:0; box-shadow:0 1px 2px rgba(0,0,0,0.1);"><th style="padding:10px 8px; border-bottom:1px solid #cbd5e1;">Sınıf</th><th style="padding:10px 8px; border-bottom:1px solid #cbd5e1;">No</th><th style="padding:10px 8px; border-bottom:1px solid #cbd5e1;">Alan</th><th style="padding:10px 8px; border-bottom:1px solid #cbd5e1;">Ad Soyad</th></tr>';
+            
+            studentsInList.forEach(s => {
+                const alanStr = (s.alan || s.track || s.field || s.group) || '-';
+                html += `<tr style="border-bottom:1px solid #e2e8f0;">
+                    <td style="padding:8px; font-weight:bold; color:var(--primary);">${s.class}</td>
+                    <td style="padding:8px;">${s.no}</td>
+                    <td style="padding:8px;">${alanStr}</td>
+                    <td style="padding:8px;">${s.name} ${s.surname || ''}</td>
+                </tr>`;
+            });
+            
+            if (studentsInList.length === 0) {
+                html += '<tr><td colspan="4" style="text-align:center; padding:15px; color:var(--gray-500);">Bu listedeki öğrenciler okul mevcudunda bulunamadı.</td></tr>';
+            }
+            
+            html += '</table></div>';
+            
+            Swal.fire({
+                title: `<span style="font-size:1.2rem; color:var(--dark);">${listData.title}</span>`,
+                html: html,
+                width: 600,
+                confirmButtonText: 'Kapat',
+                confirmButtonColor: '#64748b',
+                customClass: {
+                    container: 'student-list-modal'
+                }
+            });
         }
     </script>
 
