@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
     if (!firebaseSecret) {
         console.error("FIREBASE_SECRET environment variable is not set.");
-        return res.status(500).json({ error: 'FIREBASE_SECRET_MISSING' });
+        return res.status(500).json({ error: 'FIREBASE_SECRET_MISSING', env_keys: Object.keys(process.env).join(',') });
     }
 
     try {
@@ -23,7 +23,8 @@ export default async function handler(req, res) {
         
         const response = await fetch(url);
         if (!response.ok) {
-            throw new Error(`Firebase fetch failed: ${response.status}`);
+            const errText = await response.text();
+            throw new Error(`Firebase fetch failed: ${response.status} - ${errText}`);
         }
         
         const usersDb = await response.json();
@@ -124,6 +125,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("Login API Error:", error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ error: 'Firebase veya Sunucu Hatası: ' + error.message });
     }
 }
