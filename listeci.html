@@ -412,7 +412,7 @@
             <!-- Accordion: Kayıtlı Listelerim -->
             <div class="accordion-item" id="savedListsAccordion" style="border-left: 4px solid #f59e0b; display: none;">
                 <div class="accordion-header" onclick="toggleAccordion(this); loadSavedKarmaLists();">
-                    <h3><i class="fa-solid fa-bookmark" style="color: #f59e0b;"></i> Kayıtlı Listelerim</h3>
+                    <h3><i class="fa-solid fa-bookmark" style="color: #f59e0b;"></i> Kayıtlı Listelerim <span id="savedListsCountSpan" style="color: var(--gray-500); font-weight: normal; font-size: 1rem;"></span></h3>
                     <i class="fa-solid fa-chevron-down accordion-icon"></i>
                 </div>
                 <div class="accordion-content">
@@ -816,7 +816,10 @@
                 
                 // Show saved lists accordion for all logged in users
                 const savedListsAcc = document.getElementById('savedListsAccordion');
-                if (savedListsAcc) savedListsAcc.style.display = 'block';
+                if (savedListsAcc) {
+                    savedListsAcc.style.display = 'block';
+                    loadSavedKarmaLists(); // arka planda yükleyip sayıyı güncellesin
+                }
             }
 
             try {
@@ -1023,14 +1026,19 @@
                 const res = await fetch(url, { cache: 'no-store' });
                 const data = await res.json();
                 
+                const countSpan = document.getElementById('savedListsCountSpan');
+                
                 if (!data) {
                     container.innerHTML = '<div style="color:var(--gray-500); padding:10px;">Henüz kaydedilmiş bir listeniz bulunmuyor.</div>';
+                    if (countSpan) countSpan.innerText = '(0)';
                     return;
                 }
                 
                 let html = '';
                 const lists = Object.entries(data).map(([id, val]) => ({ id, ...val }));
                 lists.sort((a, b) => b.timestamp - a.timestamp); // Newest first
+                
+                if (countSpan) countSpan.innerText = `(${lists.length})`;
                 
                 lists.forEach(list => {
                     const dateStr = new Date(list.timestamp).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
