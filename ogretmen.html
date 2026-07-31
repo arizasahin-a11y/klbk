@@ -1165,6 +1165,7 @@
                 });
 
                 let html = '';
+                let dutiesHtml = '';
 
                 if (targetSessions.length === 0) {
                     html = `
@@ -1247,7 +1248,7 @@
                             + '</div></div>';
                     });
 
-                    html += '<div class="glass-panel" style="margin-top: 2.5rem; margin-bottom: 2rem; border: 3px solid #d97706; padding: 0; overflow: hidden;">'
+                    dutiesHtml += '<div class="glass-panel" style="margin-top: 2.5rem; margin-bottom: 2rem; border: 3px solid #d97706; padding: 0; overflow: hidden;">'
                         + '<div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(217, 119, 6, 0.05);" onclick="window.toggleMyDuties()">'
                         + '<h3 style="margin: 0; font-size: 1.1rem; font-weight: 900; color: #d97706; display: flex; align-items: center; gap: 10px;">'
                         + '<i class="fa-solid fa-clipboard-check"></i> SINAV GÖREVLERİNİZ'
@@ -1697,6 +1698,7 @@
                         });
 
                 }
+                html += dutiesHtml;
                 listContainer.innerHTML = html;
             } catch (err) {
                 console.error("renderExams error:", err);
