@@ -1,0 +1,422 @@
+[
+  {
+    "line": 14,
+    "content": "// --- Global Date Helpers (Delegated to DataManager) ---"
+  },
+  {
+    "line": 32,
+    "content": "// --- 1. Authentication & Path enforcement ---"
+  },
+  {
+    "line": 49,
+    "content": "// --- Cloud Sync ---"
+  },
+  {
+    "line": 71,
+    "content": "// --- Data Mutation Wrappers for UI Sync ---"
+  },
+  {
+    "line": 103,
+    "content": "// --- Logout Action ---"
+  },
+  {
+    "line": 110,
+    "content": "// --- Global Reset Rules Action ---"
+  },
+  {
+    "line": 194,
+    "content": "// --- System Settings Action ---"
+  },
+  {
+    "line": 195,
+    "content": "async function openSystemSettings() {"
+  },
+  {
+    "line": 325,
+    "content": "// --- Global Event Delegation for Accordion Classroom Editor ---"
+  },
+  {
+    "line": 342,
+    "content": "// --- 2. Sidebar Navigation ---"
+  },
+  {
+    "line": 407,
+    "content": "function initializeNavigation() {"
+  },
+  {
+    "line": 454,
+    "content": "// --- 3. Inner Tabs (Students View) ---"
+  },
+  {
+    "line": 477,
+    "content": "// --- 4. Load Data using DataManager ---"
+  },
+  {
+    "line": 480,
+    "content": "function loadSchoolSettings() {"
+  },
+  {
+    "line": 539,
+    "content": "// --- Gear Menu Toggle ---"
+  },
+  {
+    "line": 550,
+    "content": "// --- Lesson Schedule Builder ---"
+  },
+  {
+    "line": 551,
+    "content": "window.updateLessonSchedule = function (count, savedTimes) {"
+  },
+  {
+    "line": 587,
+    "content": "// --- Backup / Import Functions ---"
+  },
+  {
+    "line": 588,
+    "content": "window.backupAllData = function () {"
+  },
+  {
+    "line": 605,
+    "content": "window.importBackupData = function () {"
+  },
+  {
+    "line": 706,
+    "content": "// --- 5. Add Single Student ---"
+  },
+  {
+    "line": 748,
+    "content": "// --- 5.5 Bulk Import via Excel ---"
+  },
+  {
+    "line": 996,
+    "content": "// --- 6. Update Dashboard Stats ---"
+  },
+  {
+    "line": 997,
+    "content": "function updateDashboardStats() {"
+  },
+  {
+    "line": 1011,
+    "content": "// --- 7. Students & Classes UI Helpers ---"
+  },
+  {
+    "line": 1012,
+    "content": "window.assignRoomToClass = function (className, roomName) {"
+  },
+  {
+    "line": 1026,
+    "content": "window.assignDeviceToClass = async function(className) {"
+  },
+  {
+    "line": 1098,
+    "content": "window.selectDeviceForSwap = function(className, e) {"
+  },
+  {
+    "line": 1118,
+    "content": "window.editDeviceMapping = async function(className) {"
+  },
+  {
+    "line": 1183,
+    "content": "// --- Real-time device mapping polling (every 3 seconds) ---"
+  },
+  {
+    "line": 1213,
+    "content": "async function ensureTeachersLoaded() {"
+  },
+  {
+    "line": 1227,
+    "content": "window.assignClassTeacher = function(className, teacherName) {"
+  },
+  {
+    "line": 1232,
+    "content": "function updateClassesList() {"
+  },
+  {
+    "line": 1400,
+    "content": "// --- 8. Classroom Management ---"
+  },
+  {
+    "line": 1524,
+    "content": "function renderDynamicGroupInputs(groupCount, configs = null) {"
+  },
+  {
+    "line": 1580,
+    "content": "function renderClassroomPreview() {"
+  },
+  {
+    "line": 1720,
+    "content": "window.updateClassroomsList = function () {"
+  },
+  {
+    "line": 1876,
+    "content": "window.editClassroom = function (name) {"
+  },
+  {
+    "line": 1902,
+    "content": "window.deleteClassroom = function (name) {"
+  },
+  {
+    "line": 1919,
+    "content": "// --- 9. Exam Distribution UI ---"
+  },
+  {
+    "line": 1946,
+    "content": "async function distributeWithRetry(students, classrooms, sessionData, onFinish) {"
+  },
+  {
+    "line": 2067,
+    "content": "window.toggleNestedAccordion = function (id) {"
+  },
+  {
+    "line": 2082,
+    "content": "function renderExamResults(session, targetContainer = null, appendMode = false) {"
+  },
+  {
+    "line": 2232,
+    "content": "// --- 10. Exam Session Wizard Logic ---"
+  },
+  {
+    "line": 2257,
+    "content": "function resetWizard() {"
+  },
+  {
+    "line": 2343,
+    "content": "function hideExamWizardModal() {"
+  },
+  {
+    "line": 2377,
+    "content": "function updateWizardUI() {"
+  },
+  {
+    "line": 2420,
+    "content": "function populateWizardSubjects() {"
+  },
+  {
+    "line": 2508,
+    "content": "function populateWizardClasses() {"
+  },
+  {
+    "line": 2622,
+    "content": "// --- 1.5 Determine who is ACTUALLY CLAIMED based on current checkboxes ---"
+  },
+  {
+    "line": 2873,
+    "content": "function populateWizardClassrooms() {"
+  },
+  {
+    "line": 2922,
+    "content": "function prepareStep4Summary() {"
+  },
+  {
+    "line": 2967,
+    "content": "function getGroupNames(count) {"
+  },
+  {
+    "line": 3218,
+    "content": "function renderExamSessionsList() {"
+  },
+  {
+    "line": 3447,
+    "content": "window.updateSessionStatus = function (id, val) {"
+  },
+  {
+    "line": 3484,
+    "content": "// ===== YEDEK KAĞIT YAZDIRMA (Sağ tıklama) ====="
+  },
+  {
+    "line": 3493,
+    "content": "window.openSparePaperModal = function (sessionId) {"
+  },
+  {
+    "line": 3606,
+    "content": "window.printSparePapers = async function (sessionId, items) {"
+  },
+  {
+    "line": 3822,
+    "content": "window.deleteExamSession = function (id) {"
+  },
+  {
+    "line": 3838,
+    "content": "window.toggleSessionPublish = function (id) {"
+  },
+  {
+    "line": 3849,
+    "content": "// --- School Logo Handler ---"
+  },
+  {
+    "line": 3850,
+    "content": "window.handleLogoUpload = function (input) {"
+  },
+  {
+    "line": 3879,
+    "content": "window.getFileBytes = async function (url) {"
+  },
+  {
+    "line": 3883,
+    "content": "window.loadRequiredFonts = async function (pdfDoc) {"
+  },
+  {
+    "line": 3893,
+    "content": "window.printFile = function (path, studentInfo = null) {"
+  },
+  {
+    "line": 3909,
+    "content": "window._processPrintQueue = async function () {"
+  },
+  {
+    "line": 4044,
+    "content": "window.exportBatchPDFs = async function (session, mode, filterValue, selectedExams = null, groupByLevel = false) {"
+  },
+  {
+    "line": 4490,
+    "content": "window.getEffectiveSubjectGroupCount = function (session, subName) {"
+  },
+  {
+    "line": 4506,
+    "content": "window.printSessionDistribution = async function (id, filterValue = null, forcePrintPapers = false) {"
+  },
+  {
+    "line": 5514,
+    "content": "window.pasteToInput = async function (btn) {"
+  },
+  {
+    "line": 5532,
+    "content": "window.browseToInput = function (btn) {"
+  },
+  {
+    "line": 5608,
+    "content": "window.showCloudFiles = async function (btn) {"
+  },
+  {
+    "line": 5710,
+    "content": "window.openSessionMetadataEditor = function (id) {"
+  },
+  {
+    "line": 6051,
+    "content": "window.redistributeSession = function (id) {"
+  },
+  {
+    "line": 6185,
+    "content": "window.viewSessionDistribution = function (id, forceMode = null, isModeSwitch = false, isAutoRefresh = false) {"
+  },
+  {
+    "line": 6259,
+    "content": "function renderRoomwiseList(session, targetContainer = null, appendMode = false) {"
+  },
+  {
+    "line": 6376,
+    "content": "function renderClasswiseList(session, targetContainer = null, appendMode = false) {"
+  },
+  {
+    "line": 6518,
+    "content": "window.startSessionDistribution = function (id) {"
+  },
+  {
+    "line": 6565,
+    "content": "// --- End Exam Session Wizard Logic ---"
+  },
+  {
+    "line": 6573,
+    "content": "// --- 11. Custom Global Class Bulk Assignment Methods ---"
+  },
+  {
+    "line": 6574,
+    "content": "window.assignSubjectsToClass = function (className) {"
+  },
+  {
+    "line": 6616,
+    "content": "window.updateSwalSubjects = function () {"
+  },
+  {
+    "line": 6762,
+    "content": "window.assignFieldToClass = function (className) {"
+  },
+  {
+    "line": 6848,
+    "content": "window.editStudentDetails = function (studentNo) {"
+  },
+  {
+    "line": 7045,
+    "content": "window.deleteClassCompletely = function (className) {"
+  },
+  {
+    "line": 7079,
+    "content": "window.updateDeskPos = function (roomName, pos) {"
+  },
+  {
+    "line": 7087,
+    "content": "window.toggleSeat = function (roomName, seatId) {"
+  },
+  {
+    "line": 7102,
+    "content": "// --- 13. Student Code Guide ---"
+  },
+  {
+    "line": 7103,
+    "content": "window.showStudentCodeGuide = function (targetInputId) {"
+  },
+  {
+    "line": 7174,
+    "content": "// --- Anlık Senkronizasyon (Diğer sayfalardaki değişiklikleri dashboard'a yansıtır) ---"
+  },
+  {
+    "line": 7176,
+    "content": "window.updateSyncHash = function() {"
+  },
+  {
+    "line": 7217,
+    "content": "function getMenu() {"
+  },
+  {
+    "line": 7242,
+    "content": "function hideMenu() {"
+  },
+  {
+    "line": 7247,
+    "content": "function renderResults() {"
+  },
+  {
+    "line": 7255,
+    "content": "window.examDeskRightClick = function (e, roomIdx, seatId) {"
+  },
+  {
+    "line": 7273,
+    "content": "window.examDeskClick = function (e, roomIdx, seatId) {"
+  },
+  {
+    "line": 7317,
+    "content": "function onDelete() {"
+  },
+  {
+    "line": 7348,
+    "content": "function onMove() {"
+  },
+  {
+    "line": 7361,
+    "content": "function clearHighlights() {"
+  },
+  {
+    "line": 7379,
+    "content": "window.testDashboardPdf = async function(customUrl = null, customDesignId = null, customSubject = null, sessType = 'klasik') {"
+  },
+  {
+    "line": 7439,
+    "content": "window.testSpecificRow = function(btn, sessType = 'klasik') {"
+  },
+  {
+    "line": 7466,
+    "content": "window.addUygulamaFileRow = function(sub) {"
+  },
+  {
+    "line": 7486,
+    "content": "window.testUygulamaMedia = async function(btn) {"
+  },
+  {
+    "line": 7646,
+    "content": "window.handleKlbkPlayerError = async function(mediaElement, originalUrl) {"
+  },
+  {
+    "line": 7735,
+    "content": "window.switchKlbkPlayerTab = function(tabName) {"
+  }
+]
