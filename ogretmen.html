@@ -488,9 +488,8 @@
         async function syncTime() {
             const statusEl = document.getElementById('timeSyncStatus');
             const timeApis = [
-                'https://worldtimeapi.org/api/ip',
-                'https://ipapi.co/json/',
-                'https://worldclockapi.com/api/json/est/now'
+                'https://timeapi.io/api/Time/current/zone?timeZone=Europe/Istanbul',
+                'https://worldtimeapi.org/api/timezone/Europe/Istanbul'
             ];
 
             // Set local fallback base time immediately so timers can start instantly!
@@ -536,6 +535,21 @@
 
             // Fetch high-accuracy internet clock asynchronously in the background!
             (async () => {
+                try {
+                    // Method 1: Use the server's own Date header (most reliable, no CORS issues)
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 2000);
+                    const res = await fetch(window.location.href, { method: 'HEAD', cache: 'no-store', signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    const dateHeader = res.headers.get('date');
+                    if (dateHeader) {
+                        trustedBaseTime = new Date(dateHeader).getTime();
+                        performanceAtSync = performance.now();
+                        console.log("Internet clock successfully synced from server header!");
+                        return;
+                    }
+                } catch(e) {}
+                
                 let syncSuccess = false;
                 for (const apiUrl of timeApis) {
                     if (syncSuccess) break;
@@ -547,14 +561,14 @@
                         const data = await response.json();
                         
                         let serverTime;
-                        if (data.datetime) serverTime = new Date(data.datetime).getTime();
-                        else if (data.utc_datetime) serverTime = new Date(data.utc_datetime).getTime();
-                        else if (data.currentDateTime) serverTime = new Date(data.currentDateTime).getTime();
+                        if (data.dateTime) serverTime = new Date(data.dateTime).getTime(); // timeapi.io
+                        else if (data.utc_datetime) serverTime = new Date(data.utc_datetime).getTime(); // worldtimeapi
+                        else if (data.datetime) serverTime = new Date(data.datetime).getTime();
                         
                         if (serverTime) {
                             trustedBaseTime = serverTime;
                             performanceAtSync = performance.now();
-                            console.log("Internet clock successfully synced in background!");
+                            console.log("Internet clock successfully synced from " + apiUrl);
                             syncSuccess = true;
                         }
                     } catch (e) { /* silent fail, try next API */ }

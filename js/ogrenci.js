@@ -29,13 +29,25 @@ DataManager._getStorageKey = function () {
                 // Add a 3-second timeout for worldtimeapi
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 3000);
-
                 const startTime = Date.now();
-                const response = await fetch('https://worldtimeapi.org/api/ip', { signal: controller.signal });
+                
+                // Try server header first
+                let serverTime = null;
+                try {
+                    const res = await fetch(window.location.href, { method: 'HEAD', cache: 'no-store', signal: controller.signal });
+                    const dateHeader = res.headers.get('date');
+                    if (dateHeader) serverTime = new Date(dateHeader).getTime();
+                } catch(e) {}
+                
+                if (!serverTime) {
+                    // Fallback to timeapi.io
+                    const response = await fetch('https://timeapi.io/api/Time/current/zone?timeZone=Europe/Istanbul', { signal: controller.signal });
+                    const data = await response.json();
+                    if (data.dateTime) serverTime = new Date(data.dateTime).getTime();
+                }
+
                 clearTimeout(timeoutId);
 
-                const data = await response.json();
-                const serverTime = new Date(data.datetime).getTime();
                 const endTime = Date.now();
                 const latency = (endTime - startTime) / 2;
                 trustedBaseTime = serverTime + latency;

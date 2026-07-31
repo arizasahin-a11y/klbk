@@ -1019,10 +1019,22 @@
         let internetTimeOffset = 0;
         async function syncInternetTime() {
             try {
-                const res = await fetch('https://worldtimeapi.org/api/timezone/Europe/Istanbul', { cache: 'no-store' });
-                if (res.ok) {
-                    const data = await res.json();
-                    const serverMs = new Date(data.utc_datetime).getTime();
+                let serverMs = null;
+                try {
+                    const r = await fetch(window.location.href, { method: 'HEAD', cache: 'no-store' });
+                    const d = r.headers.get('date');
+                    if (d) serverMs = new Date(d).getTime();
+                } catch(e) {}
+                
+                if (!serverMs) {
+                    const res = await fetch('https://timeapi.io/api/Time/current/zone?timeZone=Europe/Istanbul', { cache: 'no-store' });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.dateTime) serverMs = new Date(data.dateTime).getTime();
+                    }
+                }
+                
+                if (serverMs) {
                     internetTimeOffset = serverMs - Date.now();
                     console.log("Internet time synced. Offset:", internetTimeOffset, "ms");
                 }
