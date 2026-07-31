@@ -470,21 +470,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                             updatePayload.password = matchedUser.password;
                         }
 
-                        if (currentUser.includes('.')) {
-                            setDeepValue(usersDb, currentUser, updatePayload);
-                        } else {
-                            usersDb[currentUser] = {
-                                ...usersDb[currentUser],
-                                ...updatePayload
-                            };
-                        }
-
-                        const putRes = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`, {
-                            method: 'PUT',
+                        // Use PATCH to update only the current user's node, avoiding full DB overwrite
+                        const putRes = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users/${encodeURIComponent(currentUser)}.json`, {
+                            method: 'PATCH',
                             headers: {
                                 'Content-Type': 'application/json'
                             },
-                            body: JSON.stringify(usersDb)
+                            body: JSON.stringify(updatePayload)
                         });
 
                         if (!putRes.ok) throw new Error('Veritabanına kaydedilemedi.');

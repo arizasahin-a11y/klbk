@@ -281,94 +281,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Bilgiler Doğrulanıyor...';
                 btn.disabled = true;
 
-                const usersDb = await getCloudUsers();
-                
-                // Helper to find a user in a potentially nested object (Firebase "dot" behavior)
-                const findDeepUser = (obj, targetPath) => {
-                    const parts = targetPath.split('.');
-                    let current = obj;
-                    for (const p of parts) {
-                        if (current && typeof current === 'object' && p in current) {
-                            current = current[p];
-                        } else {
-                            return null;
-                        }
-                    }
-                    // Validate if it's the actual user object (should have password)
-                    return (current && typeof current === 'object' && 'password' in current) ? current : null;
-                };
+                const loginRes = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
 
-                // 1. Direct match (No dots or successfully retrieved as flat key)
-                let matchedUser = usersDb[username];
-                let actualUsername = username;
-
-                // 2. Deep match (If dots in username caused nesting in Firebase)
-                if (!matchedUser && username.includes('.')) {
-                    matchedUser = findDeepUser(usersDb, username);
+                if (!loginRes.ok) {
+                    showMessage(loginMessageBox, 'Hatalı kullanıcı adı veya şifre.', 'error');
+                    if (typeof shakeForm === 'function') shakeForm();
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                    return;
                 }
 
-                // 3. Email match (Fallthrough search)
-                if (!matchedUser) {
-                    const flattenUsers = (obj, prefix = '') => {
-                        let results = {};
-                        for (const k in obj) {
-                            const newKey = prefix ? `${prefix}.${k}` : k;
-                            if (obj[k] && typeof obj[k] === 'object' && 'password' in obj[k]) {
-                                results[newKey] = obj[k];
-                            } else if (obj[k] && typeof obj[k] === 'object') {
-                                Object.assign(results, flattenUsers(obj[k], newKey));
-                            }
-                        }
-                        return results;
-                    };
+                const loginData = await loginRes.json();
+                const matchedUser = loginData.user;
+                username = loginData.actualUsername;
+                const usersDb = loginData.usersDb || {};
 
-                    const flatUsers = flattenUsers(usersDb);
-                    for (const [uname, data] of Object.entries(flatUsers)) {
-                        if (data.email && data.email.toLowerCase() === username.toLowerCase()) {
-                            matchedUser = data;
-                            actualUsername = uname;
-                            break;
-                        }
+                // Legacy migration support if needed
+                if (!isHashedPassword(matchedUser.password) && matchedUser.password === password) {
+                     migratePasswordIfNeeded(username, matchedUser, usersDb).catch(e => console.error(e));
+                }
+
+                if (matchedUser.role === 'master' && username !== 'admin' && username !== '@arız@' && username !== '@rız@') {
+                    if (!matchedUser.storeKey) {
+                        showMessage(loginMessageBox, 'Hesabınız eski sisteme ait. Lütfen yeni sisteme entegre olun.', 'error');
+                        if (typeof shakeForm === 'function') shakeForm();
+                        btn.innerHTML = originalHtml;
+                        btn.disabled = false;
+                        return;
                     }
                 }
 
-                // Validate credentials (Support both plaintext and hashed passwords)
-                let passwordMatch = false;
-                if (matchedUser && matchedUser.password) {
-                    if (isHashedPassword(matchedUser.password)) {
-                        // Password is hashed, hash input and compare
-                        const inputHash = await hashPassword(password);
-                        passwordMatch = matchedUser.password === inputHash;
-                    } else {
-                        // Legacy plaintext password - direct compare
-                        passwordMatch = matchedUser.password === password;
-                        
-                        // Auto-migrate to hash on successful login
-                        if (passwordMatch) {
-                            migratePasswordIfNeeded(actualUsername, matchedUser, usersDb).catch(e => 
-                                console.error('Background password migration failed:', e)
-                            );
-                        }
-                    }
-                }
-
-                if (passwordMatch) {
-                    
-                    // Sadece 'admin', '@arız@' ve '@rız@' hesabı storeKey (yeni sistem kaydı) olmadan girebilir.
-                    // Diğer eski master kullanıcıları (örn: ariza) veya her türlü master yeni sistemdeyse girebilir.
-                    if (matchedUser.role === 'master' && actualUsername !== 'admin' && actualUsername !== '@arız@' && actualUsername !== '@rız@') {
-                        if (!matchedUser.storeKey) {
-                            showMessage(loginMessageBox, 'Hesabınız eski sisteme ait. Lütfen yeni sisteme entegre olun.', 'error');
-                            if (typeof shakeForm === 'function') shakeForm();
-                            btn.innerHTML = originalHtml;
-                            btn.disabled = false;
-                            return;
-                        }
-                    }
-
-                    username = actualUsername;
-                    const userData = matchedUser;
-                    showMessage(loginMessageBox, 'Giriş başarılı! Yönlendiriliyorsunuz...', 'success');
+                const userData = matchedUser;
+                showMessage(loginMessageBox, 'Giriş başarılı! Yönlendiriliyorsunuz...', 'success');
 
                     // --- Asenkron Aktivite Loglama ---
                     try {
