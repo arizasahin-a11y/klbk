@@ -4895,10 +4895,7 @@
             doc.write('<style>' + pageCss + ' .floating-print-btn { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #4f46e5; color: white; border: none; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 24px; z-index: 10000; transition: all 0.3s; } .floating-print-btn:hover { background: #4338ca; transform: scale(1.1); } @media print { .floating-print-btn { display: none !important; } }</style>');
             doc.write('</head><body>' + body);
             doc.write('<button class="floating-print-btn" onclick="window.print()" title="Yazdır"><i class="fas fa-print"></i></button>');
-            doc.write('
-
-
-</body></html>');
+            doc.write('</body></html>');
             doc.close();
         }
 

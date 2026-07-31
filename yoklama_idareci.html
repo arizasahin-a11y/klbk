@@ -2092,10 +2092,7 @@
                 selectedClasses.forEach(cls => {
                     htmlStr += generateWeeklyPrintFis(cls, datesToPrint);
                 });
-                htmlStr += '
-
-
-</body></html>';
+                htmlStr += '</body></html>';
                 openPrintWindow(htmlStr, format);
                 return;
             }
