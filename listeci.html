@@ -812,7 +812,7 @@
                 if (role === 'admin') roleIcon = 'fa-user-shield';
                 else if (role === 'idareci') roleIcon = 'fa-user-gear';
                 
-                document.getElementById('loggedUserInfo').innerHTML = `<i class="fa-solid ${roleIcon}" style="color: var(--primary);"></i> ${name}`;
+                document.getElementById('teacherNameDisplay').innerHTML = `<i class="fa-solid ${roleIcon}" style="color: var(--primary);"></i> ${name}`;
                 
                 // Show saved lists accordion for all logged in users
                 const savedListsAcc = document.getElementById('savedListsAccordion');
