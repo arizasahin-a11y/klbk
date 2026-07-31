@@ -2225,6 +2225,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     window._renderExamResults = renderExamResults;
+    window._distributeWithRetry = distributeWithRetry;
 
 
     // Context menu handlers are defined globally below (outside DOMContentLoaded)

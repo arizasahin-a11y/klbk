@@ -3936,14 +3936,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            distributeWithRetry([...targetStudents], targetRooms, session, (res) => {
+            window._distributeWithRetry([...targetStudents], targetRooms, session, (res) => {
                 if (!res) { Swal.fire('Hata', 'Dağıtım sonucu alınamadı.', 'error'); return; }
                 session.results = res;
                 DataManager.addExamSession(session);
                 window._currentExamResults = res;
                 window.currentRenderedSession = session;
                 window.renderExamSessionsList();
-                renderExamResults(res);
+                window._renderExamResults(res);
                 setTimeout(() => {
                     if (typeof window.viewSessionDistribution === 'function') {
                         window.viewSessionDistribution(id, null, true);
@@ -4016,7 +4016,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 renderRoomwiseList(session, resultsContainer, true);
             } else {
                 window._currentExamResults = session.results;
-                renderExamResults(session, resultsContainer, true);
+                window._renderExamResults(session, resultsContainer, true);
             }
 
 
@@ -4321,7 +4321,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        distributeWithRetry([...targetStudents], targetRooms, session, (res) => {
+        window._distributeWithRetry([...targetStudents], targetRooms, session, (res) => {
             if (!res) { Swal.fire('Hata', 'Dağıtım sonucu alınamadı.', 'error'); return; }
             session.results = res;
             DataManager.addExamSession(session);
@@ -4329,7 +4329,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('examSetupPanel').classList.add('hidden');
             document.getElementById('examResultsPanel').classList.remove('hidden');
             window.currentRenderedSession = session;
-            renderExamResults(res);
+            window._renderExamResults(res);
         });
     };
 
