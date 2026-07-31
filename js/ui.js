@@ -2237,7 +2237,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateDashboardStats();
     updateClassesList();
     updateClassroomsList();
-    renderExamSessionsList();
+    window.renderExamSessionsList();
 
     // --- 11. Custom Global Class Bulk Assignment Methods ---
     window.assignSubjectsToClass = function (className) {
@@ -2859,7 +2859,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (currentHash !== window._lastSyncHash) {
                     window._lastSyncHash = currentHash;
                     console.log("Dış veri değişikliği algılandı, oturum listesi yenileniyor...");
-                    if (typeof renderExamSessionsList === 'function') renderExamSessionsList();
+                    if (typeof window.renderExamSessionsList === 'function') window.renderExamSessionsList();
                 }
             }
         }, 5000); // Admin dashboard için 5 saniye yeterli

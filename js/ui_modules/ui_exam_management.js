@@ -972,7 +972,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     window.viewSessionDistribution(wizardSessionData.id, 'class');
                 });
 
-                renderExamSessionsList();
+                window.renderExamSessionsList();
             } catch (err) {
                 console.error("Wizard Finish Error:", err);
                 Swal.fire('Dağıtım Hatası', err.message || 'Oturum oluşturulurken bir hata oluştu.', 'error');
@@ -986,7 +986,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window._currentlyOpenSessionMode = {}; // sessionID -> mode
     window._activeResultsContainer = null;
 
-    function renderExamSessionsList() {
+    window.renderExamSessionsList = function() {
         if (!examSessionsList) return;
         const scrollPos = window.scrollY;
         
@@ -1234,7 +1234,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         DataManager.addExamSession(ses);
-        renderExamSessionsList();
+        window.renderExamSessionsList();
 
         let msg = '';
         let icon = 'success';
@@ -1601,7 +1601,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }).then((result) => {
             if (result.isConfirmed) {
                 DataManager.removeExamSession(id);
-                renderExamSessionsList();
+                window.renderExamSessionsList();
             }
         });
     };
@@ -3812,7 +3812,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (result.isConfirmed) {
                     const updatedSes = { ...ses, ...result.value };
                     DataManager.addExamSession(updatedSes);
-                    renderExamSessionsList();
+                    window.renderExamSessionsList();
                     Swal.fire('Kaydedildi', 'Tüm ders bilgileri başarıyla güncellendi.', 'success');
                 }
             });
@@ -3942,7 +3942,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 DataManager.addExamSession(session);
                 window._currentExamResults = res;
                 window.currentRenderedSession = session;
-                renderExamSessionsList();
+                window.renderExamSessionsList();
                 renderExamResults(res);
                 setTimeout(() => {
                     if (typeof window.viewSessionDistribution === 'function') {
