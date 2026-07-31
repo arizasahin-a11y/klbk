@@ -923,6 +923,17 @@
                 }
             }
 
+            const config = {
+                classes: selectedClasses,
+                titleSuffix: document.getElementById('titleSuffix') ? document.getElementById('titleSuffix').value.trim() : '',
+                blankColumns: blankCols,
+                listType: listType,
+                emptyTemplateTitle: document.getElementById('emptyTemplateTitle') ? document.getElementById('emptyTemplateTitle').value.trim() : 'Boş Liste',
+                showAlanInEmptyTemplate: document.getElementById('showAlanInEmptyTemplate') ? document.getElementById('showAlanInEmptyTemplate').checked : false,
+                karmaClubTitle: document.getElementById('karmaClubTitle') ? document.getElementById('karmaClubTitle').value.trim() : 'Karma Öğrenci Listesi',
+                selectedKarmaStudents: Array.from(selectedStudentsSet)
+            };
+
             if (listType === 'saved_custom_lists') {
                 const checkedLists = Array.from(document.querySelectorAll('.saved-list-checkbox:checked')).map(cb => {
                     return JSON.parse(decodeURIComponent(cb.value));
@@ -954,7 +965,7 @@
             }
             
             const storeKey = sessionStorage.getItem('klbk_storeKey');
-            const user = sessionStorage.getItem('klbk_user');
+            const user = sessionStorage.getItem('klbk_currentUser');
             if (!storeKey || !user) {
                 Swal.fire('Hata', 'Kullanıcı bilgileri bulunamadı. Lütfen giriş yapın.', 'error');
                 return;
@@ -999,7 +1010,7 @@
             if (!container) return;
             
             const storeKey = sessionStorage.getItem('klbk_storeKey');
-            const user = sessionStorage.getItem('klbk_user');
+            const user = sessionStorage.getItem('klbk_currentUser');
             if (!storeKey || !user) {
                 container.innerHTML = '<div style="color:var(--danger); padding:10px;">Lütfen giriş yapın.</div>';
                 return;
@@ -1048,7 +1059,7 @@
         
         async function deleteKarmaList(id, title) {
             const storeKey = sessionStorage.getItem('klbk_storeKey');
-            const user = sessionStorage.getItem('klbk_user');
+            const user = sessionStorage.getItem('klbk_currentUser');
             if (!storeKey || !user) return;
             
             const result = await Swal.fire({
