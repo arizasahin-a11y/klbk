@@ -461,12 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         }
                     }, 1000);
-                } else {
-                    showMessage(loginMessageBox, 'Hatalı kullanıcı adı veya şifre.', 'error');
-                    if (typeof shakeForm === 'function') shakeForm();
-                    btn.innerHTML = originalHtml;
-                    btn.disabled = false;
-                }
+
             } catch (err) {
                 console.error("Giriş sırasında hata:", err);
                 showMessage(loginMessageBox, 'Sistem hatası oluştu. Lütfen tekrar deneyin.', 'error');
