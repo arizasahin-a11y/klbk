@@ -1678,7 +1678,7 @@ const DataManager = {
                     
                     if (originalName && originalName !== customName && originalName !== "Belirlenmedi") {
                         const cleanName = originalName.replace(" (İdare)", "");
-                        const tMatch = Object.values(teachersDb).find(t => (t.name === cleanName) || (t.name.toUpperCase() === cleanName.toUpperCase()));
+                        const tMatch = Object.values(teachersDb).find(t => t && t.name && cleanName && ((t.name === cleanName) || (t.name.toUpperCase() === cleanName.toUpperCase())));
                         
                         if (tMatch) {
                             result.globalSpares.push({
