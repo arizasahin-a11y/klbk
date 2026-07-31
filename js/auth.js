@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi') {
                         targetUrl = '/yoklama_idareci.html';
                     } else if (role === 'master' || role === 'admin' || role === 'dashboard') {
-                        targetUrl = '/r1p5s8q3';
+                        targetUrl = '/enter.html';
                     }
                     
                     // If we are already on the login page and have a session, 
@@ -459,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 sessionStorage.removeItem('klbk_intended_url');
                                 window.location.href = intended;
                             } else {
-                                window.location.href = '/r1p5s8q3';
+                                window.location.href = '/enter.html';
                             }
                         } else {
                             const intended = sessionStorage.getItem('klbk_intended_url');
