@@ -288,7 +288,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (!loginRes.ok) {
-                    showMessage(loginMessageBox, 'Hatalı kullanıcı adı veya şifre.', 'error');
+                    let errorMessage = 'Hatalı kullanıcı adı veya şifre.';
+                    try {
+                        const errData = await loginRes.json();
+                        if (errData.error === 'FIREBASE_SECRET_MISSING') {
+                            errorMessage = 'Sunucu yapılandırma hatası: FIREBASE_SECRET eksik. Lütfen Vercel ayarlarınızı kontrol edin.';
+                        } else if (errData.error) {
+                            errorMessage = errData.error;
+                        }
+                    } catch(e) {}
+                    
+                    showMessage(loginMessageBox, errorMessage, 'error');
                     if (typeof shakeForm === 'function') shakeForm();
                     btn.innerHTML = originalHtml;
                     btn.disabled = false;

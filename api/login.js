@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
     if (!firebaseSecret) {
         console.error("FIREBASE_SECRET environment variable is not set.");
-        return res.status(500).json({ error: 'Server configuration error' });
+        return res.status(500).json({ error: 'FIREBASE_SECRET_MISSING' });
     }
 
     try {
@@ -77,11 +77,44 @@ export default async function handler(req, res) {
         }
 
         if (!matchedUser) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+            return res.status(401).json({ error: 'Hatalı kullanıcı adı veya şifre.' });
         }
 
-        // Return user data (client performs password hash checking for legacy reasons,
-        // although doing it server-side is safer, we return the hashed password to match auth.js logic)
+        // Server-side password validation
+        const crypto = require('crypto');
+        const hashPassword = (pass) => {
+            return crypto.createHash('sha256').update(pass).digest('hex');
+        };
+
+        const isHashedPassword = (pass) => {
+            return pass && /^[a-f0-9]{64}$/i.test(pass);
+        };
+
+        const submittedPassword = password;
+        let passwordIsValid = false;
+
+        if (matchedUser.password) {
+            if (isHashedPassword(matchedUser.password)) {
+                // Database has hashed password
+                const hashedSubmitted = hashPassword(submittedPassword);
+                if (hashedSubmitted === matchedUser.password) {
+                    passwordIsValid = true;
+                }
+            } else {
+                // Database has plaintext password (legacy)
+                if (submittedPassword === matchedUser.password) {
+                    passwordIsValid = true;
+                }
+            }
+        }
+
+        // If the user's password field is empty in DB (e.g. they never set one), we might want to allow login?
+        // Let's assume passwords are required. If not, we fail.
+        if (!passwordIsValid && matchedUser.password) {
+             return res.status(401).json({ error: 'Hatalı kullanıcı adı veya şifre.' });
+        }
+        
+        // Return user data 
         return res.status(200).json({ 
             success: true, 
             actualUsername, 
