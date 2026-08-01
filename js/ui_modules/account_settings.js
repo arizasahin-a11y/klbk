@@ -187,7 +187,7 @@ window.openAccountSettings = async function() {
                     let bg = '#2196f3';
                     if (result.value.gender === 'kadin') { iconClass = 'fa-user-nurse'; bg = '#e91e63'; }
                     else if (result.value.gender === 'diger') { iconClass = 'fa-user'; bg = '#6c757d'; }
-                    tIcon.className = \`fa-solid \${iconClass}\`;
+                    tIcon.className = `fa-solid ${iconClass}`;
                     const container = document.getElementById('teacherGenderContainer');
                     if (container) container.style.background = bg;
                 }
@@ -197,7 +197,7 @@ window.openAccountSettings = async function() {
                     let bg = '#2196f3';
                     if (result.value.gender === 'kadin') { iconClass = 'fa-user-nurse'; bg = '#e91e63'; }
                     else if (result.value.gender === 'diger') { iconClass = 'fa-user'; bg = '#6c757d'; }
-                    sidebarAvatarIcon.className = \`fa-solid \${iconClass}\`;
+                    sidebarAvatarIcon.className = `fa-solid ${iconClass}`;
                     sidebarAvatarIcon.parentElement.style.background = bg;
                     sidebarAvatarIcon.parentElement.style.color = 'white';
                 }
