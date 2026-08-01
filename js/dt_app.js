@@ -236,6 +236,7 @@ async function loadInitialData() {
             }
         }
 
+        populateTeacherDropdowns();
         updateAdminSettingsUI();
         updateTeacherViewUI();
         if(isAdmin) loadIncidents();
