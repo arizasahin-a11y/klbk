@@ -69,14 +69,11 @@ window.openAccountSettings = async function() {
             title: 'Hesap Ayarlarım',
             html: `
                 <div style="text-align: left; margin-top: 10px;">
-                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Adı Soyadı</label>
-                    <input type="text" id="accName" class="form-control" value="${currentName}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Kullanıcı Adı</label>
+                    <input type="text" id="accUser" class="form-control" value="${currentUser}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
 
-                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">E-posta Adresi</label>
-                    <input type="email" id="accEmail" class="form-control" value="${currentEmail}" placeholder="ornek@okul.com" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
-
-                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Giriş Şifresi</label>
-                    <input type="password" id="accPassword" class="form-control" placeholder="Yeni şifre (boş bırakırsanız değişmez)" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">E-Posta Adresi</label>
+                    <input type="email" id="accEmail" class="form-control" value="${currentEmail}" placeholder="E-Posta" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
 
                     <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Cinsiyet</label>
                     <select id="accGender" class="form-control" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit; height: auto;">
@@ -84,122 +81,134 @@ window.openAccountSettings = async function() {
                         <option value="kadin" ${currentGender === 'kadin' ? 'selected' : ''}>Kadın</option>
                         <option value="diger" ${currentGender === 'diger' ? 'selected' : ''}>Belirtilmemiş</option>
                     </select>
+
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 4px;">Yeni Şifre</label>
+                    <input type="password" id="accPass" class="form-control" placeholder="Değiştirmek istemiyorsanız boş bırakın" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 15px; font-family: inherit;">
+                    
+                    <hr style="margin: 15px 0; border: 0; border-top: 1px solid var(--gray-200);">
+                    <label style="display:block; font-size: 0.85rem; font-weight: 700; color: var(--danger); margin-bottom: 4px;">Değişiklikleri Onaylamak İçin Güncel Şifreniz</label>
+                    <input type="password" id="currentPassVerify" class="form-control" placeholder="Mevcut şifrenizi girin" style="width: 100%; padding: 0.75rem; border: 2px solid var(--danger); border-radius: 6px; font-family: inherit;">
                 </div>
             `,
             showCancelButton: true,
             confirmButtonText: 'Kaydet',
             cancelButtonText: 'İptal',
             confirmButtonColor: '#4f46e5',
-            preConfirm: () => {
-                const nameVal = document.getElementById('accName').value.trim();
-                const emailVal = document.getElementById('accEmail').value.trim();
-                const passVal = document.getElementById('accPassword').value;
-                const genderVal = document.getElementById('accGender').value;
+            preConfirm: async () => {
+                const newUsername = document.getElementById('accUser').value.trim();
+                const email = document.getElementById('accEmail').value.trim();
+                const gender = document.getElementById('accGender').value;
+                const pass = document.getElementById('accPass').value;
+                const currentPassVerify = document.getElementById('currentPassVerify').value;
 
-                if (!nameVal) {
-                    Swal.showValidationMessage('Adı Soyadı alanı boş olamaz.');
+                if (!newUsername) {
+                    Swal.showValidationMessage('Kullanıcı adı boş olamaz');
                     return false;
                 }
-                if (passVal && passVal.length < 4) {
-                    Swal.showValidationMessage('Şifre en az 4 karakter olmalıdır.');
+                if (!currentPassVerify) {
+                    Swal.showValidationMessage('İşlemi onaylamak için güncel şifrenizi girmelisiniz');
                     return false;
                 }
 
-                return {
-                    name: nameVal,
-                    email: emailVal,
-                    password: passVal,
-                    gender: genderVal
-                };
-            }
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                    title: 'Güncelleniyor',
-                    text: 'Bilgiler buluta kaydediliyor...',
-                    allowOutsideClick: false,
-                    didOpen: () => { Swal.showLoading(); }
-                });
-
+                Swal.showLoading();
                 try {
-                    const updatePayload = {
-                        name: result.value.name,
-                        email: result.value.email,
-                        gender: result.value.gender
-                    };
+                    const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
+                    if (res.ok) {
+                        const db = await res.json();
+                        if (db) {
+                            if (!db[currentUser]) {
+                                throw new Error("Kullanıcı bulunamadı!");
+                            }
 
-                    // Only update password if new one is provided
-                    if (result.value.password && result.value.password.trim() !== '') {
-                        updatePayload.password = await window.hashPassword(result.value.password);
-                    } else {
-                        // Keep existing password
-                        updatePayload.password = matchedUser.password;
-                    }
+                            let passwordMatch = false;
+                            const storedPassword = db[currentUser].password;
+                            
+                            if (window.isHashedPassword(storedPassword)) {
+                                const verifyHash = await window.hashPassword(currentPassVerify);
+                                passwordMatch = storedPassword === verifyHash;
+                            } else {
+                                passwordMatch = storedPassword === currentPassVerify;
+                            }
 
-                    // Use PATCH to update only the current user's node, avoiding full DB overwrite
-                    const putRes = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users/${encodeURIComponent(currentUser)}.json`, {
-                        method: 'PATCH',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(updatePayload)
-                    });
+                            if (!passwordMatch) {
+                                throw new Error("Güncel şifreniz hatalı!");
+                            }
 
-                    if (!putRes.ok) throw new Error('Veritabanına kaydedilemedi.');
+                            if (newUsername !== currentUser && db[newUsername]) {
+                                throw new Error("Bu kullanıcı adı zaten alınmış!");
+                            }
 
-                    const formattedName = (name) => {
-                        if (!name) return "";
-                        const cleanName = name.trim().replace(/\s+/g, ' ');
-                        const parts = cleanName.split(' ');
-                        if (parts.length === 0) return "";
-                        if (parts.length === 1) return parts[0].toLocaleUpperCase('tr-TR');
-                        const surname = parts.pop().toLocaleUpperCase('tr-TR');
-                        const firstNames = parts.map(n => {
-                            if (!n) return "";
-                            return n.charAt(0).toLocaleUpperCase('tr-TR') + n.slice(1).toLocaleLowerCase('tr-TR');
-                        }).join(" ");
-                        return `${firstNames} ${surname}`;
-                    };
+                            const userData = db[currentUser];
+                            userData.email = email;
+                            userData.gender = gender;
+                            
+                            if (pass && pass.trim() !== '') {
+                                userData.password = await window.hashPassword(pass);
+                            }
 
-                    const displayFormattedName = formattedName(result.value.name);
+                            if (newUsername !== currentUser) {
+                                db[newUsername] = userData;
+                                delete db[currentUser];
+                            } else {
+                                db[currentUser] = userData;
+                            }
 
-                    sessionStorage.setItem('klbk_name', displayFormattedName);
-                    sessionStorage.setItem('klbk_gender', result.value.gender);
+                            const putRes = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(db)
+                            });
+                            if (!putRes.ok) throw new Error("Kayıt sırasında hata oluştu");
 
-                    const persistentSession = localStorage.getItem('klbk_persistent_session');
-                    if (persistentSession) {
-                        try {
-                            const data = JSON.parse(persistentSession);
-                            data.klbk_name = displayFormattedName;
-                            data.klbk_gender = result.value.gender;
-                            localStorage.setItem('klbk_persistent_session', JSON.stringify(data));
-                        } catch (e) {
-                            console.error(e);
+                            sessionStorage.setItem('klbk_gender', gender);
+
+                            if (newUsername !== currentUser) {
+                                sessionStorage.setItem('klbk_currentUser', newUsername);
+                                const oldStoreKey = sessionStorage.getItem('klbk_storeKey');
+                                if (oldStoreKey === `klbk_data_${currentUser}`) {
+                                    sessionStorage.setItem('klbk_storeKey', `klbk_data_${newUsername}`);
+                                }
+                            }
+                            
+                            return { newUsername, gender };
                         }
                     }
-
-                    const sidebarAvatarIcon = document.getElementById('sidebarAvatarIcon');
-                    if (sidebarAvatarIcon) {
-                        let iconClass = 'fa-user-tie';
-                        let bg = '#2196f3';
-                        if (result.value.gender === 'kadin') { iconClass = 'fa-user-nurse'; bg = '#e91e63'; }
-                        else if (result.value.gender === 'diger') { iconClass = 'fa-user'; bg = '#6c757d'; }
-                        sidebarAvatarIcon.className = `fa-solid ${iconClass}`;
-                        sidebarAvatarIcon.parentElement.style.background = bg;
-                        sidebarAvatarIcon.parentElement.style.color = 'white';
-                    }
-
-                    Swal.fire({
-                        title: 'Başarılı!',
-                        text: 'Hesap ayarlarınız başarıyla güncellendi.',
-                        icon: 'success',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-
+                    throw new Error("Veritabanı hatası");
                 } catch (e) {
-                    Swal.fire('Hata', 'Güncelleme sırasında hata oluştu: ' + e.message, 'error');
+                    Swal.showValidationMessage(e.message);
+                    return false;
                 }
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const tIcon = document.getElementById('teacherGenderIcon');
+                if (tIcon) {
+                    let iconClass = 'fa-user-tie';
+                    let bg = '#2196f3';
+                    if (result.value.gender === 'kadin') { iconClass = 'fa-user-nurse'; bg = '#e91e63'; }
+                    else if (result.value.gender === 'diger') { iconClass = 'fa-user'; bg = '#6c757d'; }
+                    tIcon.className = \`fa-solid \${iconClass}\`;
+                    const container = document.getElementById('teacherGenderContainer');
+                    if (container) container.style.background = bg;
+                }
+                const sidebarAvatarIcon = document.getElementById('sidebarAvatarIcon');
+                if (sidebarAvatarIcon) {
+                    let iconClass = 'fa-user-tie';
+                    let bg = '#2196f3';
+                    if (result.value.gender === 'kadin') { iconClass = 'fa-user-nurse'; bg = '#e91e63'; }
+                    else if (result.value.gender === 'diger') { iconClass = 'fa-user'; bg = '#6c757d'; }
+                    sidebarAvatarIcon.className = \`fa-solid \${iconClass}\`;
+                    sidebarAvatarIcon.parentElement.style.background = bg;
+                    sidebarAvatarIcon.parentElement.style.color = 'white';
+                }
+
+                Swal.fire({
+                    title: 'Başarılı',
+                    text: 'Profil ayarlarınız güncellendi. Kullanıcı adı değişikliği yaptıysanız, sistem tutarlılığı için sayfa yenilenecektir.',
+                    icon: 'success'
+                }).then(() => {
+                    window.location.reload();
+                });
             }
         });
 
