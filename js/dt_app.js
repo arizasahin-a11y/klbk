@@ -562,10 +562,10 @@ window.generatePlan = async function() {
         const scoreDayForTeacher = (uid, dayName) => {
             const shortName = shortDays[dayName] || dayName;
             const s = (klbkUsers[uid] && klbkUsers[uid].schedule && klbkUsers[uid].schedule[shortName]) ? klbkUsers[uid].schedule[shortName] : null;
-            if(!s) return -999; // Not at school
+            if(!s) return -99999; // Not at school
             
             let lessons = Object.keys(s).map(n => parseInt(n)).sort((a,b)=>a-b);
-            if(lessons.length === 0) return -999;
+            if(lessons.length === 0) return -99999;
             
             let min = lessons[0];
             let max = lessons[lessons.length-1];
@@ -577,8 +577,13 @@ window.generatePlan = async function() {
             let score = (span * 100) + (emptyCount * 10);
             
             // Penalize if arriving late or leaving early (ilk ve son saatleri boş olanlar)
-            if(min > 1) score -= 200; // 1. dersi boşsa (veya daha geç geliyorsa)
-            if(max < 8) score -= 200; // 8. dersi boşsa (veya daha erken çıkıyorsa)
+            if(min > 1 && max < 8) {
+                // Hem sabah ilk dersleri yok, hem akşam son dersleri yok (En istenmeyen)
+                score -= 5000;
+            } else if(min > 1 || max < 8) {
+                // Sadece biri yoksa hafif ceza
+                score -= 200; 
+            }
             
             return score;
         };
@@ -597,7 +602,7 @@ window.generatePlan = async function() {
         let teachersWithAvail = eligibleTeachersList.map(uid => {
             let availCount = 0;
             for(let i=0; i<5; i++) {
-                if(scoreDayForTeacher(uid, days[i]) > -900) availCount++;
+                if(scoreDayForTeacher(uid, days[i]) > -90000) availCount++;
             }
             return { uid, availCount };
         });
@@ -614,7 +619,7 @@ window.generatePlan = async function() {
                     let d = days[i];
                     if(teacherAssignments[uid].includes(d)) continue; 
                     let score = scoreDayForTeacher(uid, d);
-                    if(score > -900 && dayCounts[d] < dailyCap) {
+                    if(score > -90000 && dayCounts[d] < dailyCap) {
                         if(score > bestScore) {
                             bestScore = score;
                             bestDay = d;
@@ -629,7 +634,7 @@ window.generatePlan = async function() {
                         let d = days[i];
                         if(teacherAssignments[uid].includes(d)) continue;
                         let score = scoreDayForTeacher(uid, d);
-                        if(score > -900) {
+                        if(score > -90000) {
                             if(dayCounts[d] < minCount) {
                                 minCount = dayCounts[d];
                                 bestDay = d;
