@@ -274,12 +274,15 @@ function populateTeacherDropdowns() {
             return (a.text || '').localeCompare(b.text || '');
         });
         
+        let statusListHtml = '';
+
         teacherArr.forEach(t => {
             let color = '';
             let displayText = t.text;
             
             if(t.exempt) {
                 color = 'red';
+                statusListHtml += `<li style="color: red; padding: 3px 0; border-bottom: 1px dashed var(--gray-200);"><i class="fa-solid fa-ban"></i> ${t.text} (Nöbetten Muaf)</li>`;
             } else if(t.fixedLoc) {
                 color = 'green';
                 let locName = t.fixedLoc;
@@ -289,10 +292,16 @@ function populateTeacherDropdowns() {
                     if(locObj) locName = locObj.name;
                 }
                 displayText += ` (${locName})`;
+                statusListHtml += `<li style="color: green; padding: 3px 0; border-bottom: 1px dashed var(--gray-200);"><i class="fa-solid fa-thumbtack"></i> ${t.text} (Sabit Yeri: ${locName})</li>`;
             }
             
             options += `<option value="${t.id}" data-color="${color}">${displayText}</option>`;
         });
+        
+        if (statusListHtml === '') {
+            statusListHtml = '<li style="color: var(--gray-500); font-style: italic;">Özel durumlu öğretmen bulunmuyor.</li>';
+        }
+        $('#teacherStatusList').html(statusListHtml);
 
         if ($('.select2-teachers').hasClass("select2-hidden-accessible")) {
             $('.select2-teachers').select2('destroy');
