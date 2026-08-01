@@ -334,7 +334,13 @@
     <div id="portalSection" class="portal-container" style="display: none;">
         <div class="portal-header">
             <div>
-                <h2>Hoş Geldiniz, <span id="portalUserName" style="color:var(--primary);"></span></h2>
+                <h2 style="display: flex; align-items: center;">
+                    Hoş Geldiniz, <span id="portalUserName" style="color:var(--primary); margin-left: 5px;"></span>
+                    <button onclick="openAccountSettings()"
+                        style="background: none; border: none; color: var(--primary); cursor: pointer; font-size: 1.2rem; opacity: 0.8; transition: all 0.2s; margin-left: 10px; padding: 0;"
+                        title="Hesap Ayarları" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'"><i
+                            class="fa-solid fa-gear"></i></button>
+                </h2>
                 <p id="portalRoleDesc">Sistem Portalı</p>
             </div>
             <button class="btn-logout-portal" onclick="window.location.href='?logout=true'">
@@ -377,6 +383,7 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/auth.js?v=2.9"></script>
+    <script src="js/ui_modules/account_settings.js"></script>
 
     <script>
         const FIREBASE_DB_URL = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
