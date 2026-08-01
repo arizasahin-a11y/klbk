@@ -431,10 +431,12 @@ window.updatePlanActionButtons = () => {
     if(p.status === 'published') {
         $('#publishPlanBtn').html('<i class="fa-solid fa-pen"></i> Tarihi Güncelle');
         $('#publishPlanBtn').show();
+        $('#unpublishPlanBtn').show();
         $('#planStatusBanner').html(`<i class="fa-solid fa-check-circle"></i> Bu plan yayında. Uygulama Tarihi: ${p.startDate || 'Belirtilmedi'}`).css({background: '#d1fae5', color: '#065f46'}).show();
     } else {
         $('#publishPlanBtn').html('<i class="fa-solid fa-bullhorn"></i> Yayınla');
         $('#publishPlanBtn').show();
+        $('#unpublishPlanBtn').hide();
         $('#planStatusBanner').html(`<i class="fa-solid fa-triangle-exclamation"></i> Bu plan henüz TASLAK aşamasındadır. Öğretmenler tarafından görülmüyor.`).css({background: '#fef3c7', color: '#92400e'}).show();
     }
     
@@ -445,6 +447,47 @@ window.updatePlanActionButtons = () => {
 window.loadSelectedPlan = () => {
     viewingPlanId = $('#planArchiveSelect').val();
     updatePlanActionButtons();
+};
+
+window.unpublishCurrentPlan = async () => {
+    if(!viewingPlanId || !allNobetPlans[viewingPlanId]) return;
+    
+    const { isConfirmed } = await Swal.fire({
+        title: 'Yayından Kaldır',
+        text: 'Bu planı yayından kaldırmak istediğinize emin misiniz? Öğretmenler artık bu planı göremeyecek.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Evet, Kaldır',
+        cancelButtonText: 'İptal'
+    });
+    
+    if (isConfirmed) {
+        allNobetPlans[viewingPlanId].status = 'archived';
+        publishedPlanMeta = null;
+        
+        try {
+            await fetch('/api/updateNobet', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    path: 'plans',
+                    data: allNobetPlans
+                })
+            });
+            await fetch('/api/updateNobet', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    path: 'publishedPlan'
+                })
+            });
+            
+            populatePlanArchiveDropdown();
+            Swal.fire('Başarılı', 'Plan yayından kaldırıldı!', 'success');
+        } catch(e) {
+            Swal.fire('Hata', 'İşlem sırasında bir hata oluştu: ' + e.message, 'error');
+        }
+    }
 };
 
 window.publishCurrentPlan = async () => {
