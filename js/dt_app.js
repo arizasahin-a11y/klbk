@@ -248,68 +248,76 @@ async function loadInitialData() {
 }
 
 function populateTeacherDropdowns() {
-    let options = '<option value="">-- Öğretmen Seç --</option>';
-    let teacherArr = [];
-    const adminRoles = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'];
-    
-    for(let uid in klbkUsers) {
-        let role = (klbkUsers[uid].role || '').toLowerCase().trim();
-        let isSystemAccount = uid.startsWith('admin') || uid.startsWith('master') || uid.startsWith('device_assign') || uid.startsWith('@');
-        if(!isSystemAccount && !adminRoles.includes(role)) {
-            let tData = teacherData[uid] || { exempt: false, fixedLoc: '' };
-            teacherArr.push({ 
-                id: uid, 
-                text: klbkUsers[uid].name || uid,
-                exempt: tData.exempt,
-                fixedLoc: tData.fixedLoc
-            });
-        }
-    }
-    
-    // Sort: Exempt at bottom, then alphabetical
-    teacherArr.sort((a,b) => {
-        if(a.exempt && !b.exempt) return 1;
-        if(!a.exempt && b.exempt) return -1;
-        return a.text.localeCompare(b.text);
-    });
-    
-    teacherArr.forEach(t => {
-        let color = '';
-        let displayText = t.text;
+    try {
+        let options = '<option value="">-- Öğretmen Seç --</option>';
+        let teacherArr = [];
+        const adminRoles = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'];
         
-        if(t.exempt) {
-            color = 'red';
-        } else if(t.fixedLoc) {
-            color = 'green';
-            let locName = t.fixedLoc;
-            if(nobetSettings && nobetSettings.locations) {
-                let locObj = nobetSettings.locations.find(l => l.id === t.fixedLoc);
-                if(locObj) locName = locObj.name;
+        for(let uid in klbkUsers) {
+            let role = (klbkUsers[uid].role || '').toLowerCase().trim();
+            let isSystemAccount = uid.startsWith('admin') || uid.startsWith('master') || uid.startsWith('device_assign') || uid.startsWith('@');
+            if(!isSystemAccount && !adminRoles.includes(role)) {
+                let tData = teacherData[uid] || { exempt: false, fixedLoc: '' };
+                teacherArr.push({ 
+                    id: uid, 
+                    text: klbkUsers[uid].name || uid,
+                    exempt: tData.exempt,
+                    fixedLoc: tData.fixedLoc
+                });
             }
-            displayText += ` (${locName})`;
         }
         
-        options += `<option value="${t.id}" data-color="${color}">${displayText}</option>`;
-    });
+        // Sort: Exempt at bottom, then alphabetical
+        teacherArr.sort((a,b) => {
+            if(a.exempt && !b.exempt) return 1;
+            if(!a.exempt && b.exempt) return -1;
+            return (a.text || '').localeCompare(b.text || '');
+        });
+        
+        teacherArr.forEach(t => {
+            let color = '';
+            let displayText = t.text;
+            
+            if(t.exempt) {
+                color = 'red';
+            } else if(t.fixedLoc) {
+                color = 'green';
+                let locName = t.fixedLoc;
+                // Safely check if locations exists and is an array
+                if(nobetSettings && Array.isArray(nobetSettings.locations)) {
+                    let locObj = nobetSettings.locations.find(l => l.id === t.fixedLoc);
+                    if(locObj) locName = locObj.name;
+                }
+                displayText += ` (${locName})`;
+            }
+            
+            options += `<option value="${t.id}" data-color="${color}">${displayText}</option>`;
+        });
 
-    if ($('.select2-teachers').hasClass("select2-hidden-accessible")) {
-        $('.select2-teachers').select2('destroy');
+        if ($('.select2-teachers').hasClass("select2-hidden-accessible")) {
+            $('.select2-teachers').select2('destroy');
+        }
+
+        $('#teacherSelect').html(options);
+        $('#incTeachers').html(options); // multiple select
+        
+        const formatState = function (state) {
+            if (!state.id) return state.text;
+            let color = '';
+            if (state.element) {
+                color = $(state.element).attr('data-color');
+            }
+            if (!color) return state.text;
+            return $(`<span style="color: ${color}; font-weight: 500;">${state.text}</span>`);
+        };
+
+        $('.select2-teachers').select2({
+            templateResult: formatState,
+            templateSelection: formatState
+        });
+    } catch (err) {
+        console.error("Dropdown error:", err);
     }
-
-    $('#teacherSelect').html(options);
-    $('#incTeachers').html(options); // multiple select
-    
-    const formatState = function (state) {
-        if (!state.id) return state.text;
-        let color = $(state.element).attr('data-color');
-        if (!color) return state.text;
-        return $(`<span style="color: ${color}; font-weight: 500;">${state.text}</span>`);
-    };
-
-    $('.select2-teachers').select2({
-        templateResult: formatState,
-        templateSelection: formatState
-    });
 }
 
 function populateStudentDropdown() {
