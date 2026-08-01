@@ -1134,7 +1134,16 @@ function updateTeacherViewUI() {
     
     for(let dateStr of dates) {
         for(let shiftId in currentWeekPlan[dateStr]) {
-            if(currentWeekPlan[dateStr][shiftId].includes(currentUser.username)) {
+            let shiftData = currentWeekPlan[dateStr][shiftId];
+            let hasTeacher = false;
+            
+            if (Array.isArray(shiftData)) {
+                hasTeacher = shiftData.includes(currentUser.username);
+            } else if (typeof shiftData === 'string') {
+                hasTeacher = shiftData.includes(currentUser.username);
+            }
+
+            if(hasTeacher) {
                 let lName = shiftId;
                 if(shiftId === '_admin_duty') {
                     lName = "Nöbetçi İdareci";
