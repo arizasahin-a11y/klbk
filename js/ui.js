@@ -2585,7 +2585,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             <div class="modal-row" style="margin-bottom:10px;">
                 <div class="modal-form-group">
-                    <label style="font-weight:600; font-size:0.8rem;">Ekstra 1</label>
+                    <label style="font-weight:600; font-size:0.8rem;">Cinsiyet (K/E)</label>
                     <input type="text" id="edit-std-ex1" class="swal2-input" value="${std.extra1 || ''}" style="margin:0; width:100%; height:34px; font-size:0.85rem;">
                 </div>
                 <div class="modal-form-group">
