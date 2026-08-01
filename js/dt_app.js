@@ -789,45 +789,87 @@ window.generatePlan = async function() {
 };
 
 function renderWeeklyPlan() {
-    let html = '';
-    const daysTr = {'Pazartesi':0, 'Salı':1, 'Çarşamba':2, 'Perşembe':3, 'Cuma':4};
-    
-    if(Object.keys(currentWeekPlan).length === 0) {
+    if(!currentWeekPlan || Object.keys(currentWeekPlan).length === 0) {
         $('#weeklyPlanContainer').html('<p style="color:var(--gray-500);">Plan bulunmuyor.</p>');
         return;
     }
     
-    for(let dateStr in currentWeekPlan) {
-        let dateObj = new Date(dateStr);
-        let trDay = Object.keys(daysTr)[dateObj.getDay()-1] || '';
-        
-        html += `<h3 style="margin-top:20px; border-bottom:1px solid var(--gray-200); padding-bottom:5px;">${dateStr} (${trDay})</h3>`;
-        
-        for(let shiftId in currentWeekPlan[dateStr]) {
-            let locName = shiftId;
-            if(shiftId === '_admin_duty') {
-                locName = "Nöbetçi İdareci";
-            } else {
-                let isDilim1 = shiftId.includes('_dilim1');
-                let isDilim2 = shiftId.includes('_dilim2');
-                let locId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
-                
-                let locInfo = nobetSettings.locations?.find(l => l.id === locId);
-                locName = locInfo ? locInfo.name : locId;
-                if(isDilim1) locName += " (1. Dilim)";
-                if(isDilim2) locName += " (2. Dilim)";
-            }
-            
-            let teachersList = currentWeekPlan[dateStr][shiftId].map(uid => klbkUsers[uid]?.name || uid).join(', ');
-            
-            html += `
-                <div class="item-row" style="margin-bottom:5px; background:var(--white);">
-                    <span style="font-weight:600; color:var(--primary-dark); width: 150px;">${locName}</span>
-                    <span style="flex:1;">${teachersList || 'Atanmadı'}</span>
-                </div>
-            `;
+    let dates = Object.keys(currentWeekPlan).sort();
+    const dayNames = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
+    
+    // Collect all unique locations across all days
+    let allShifts = [];
+    dates.forEach(d => {
+        for(let shiftId in currentWeekPlan[d]) {
+            if(!allShifts.includes(shiftId)) allShifts.push(shiftId);
         }
+    });
+    
+    // Sort shifts: _admin_duty first, then by location priority if possible
+    allShifts.sort((a, b) => {
+        if(a === '_admin_duty') return -1;
+        if(b === '_admin_duty') return 1;
+        
+        let locIdA = a.replace('_dilim1', '').replace('_dilim2', '');
+        let locIdB = b.replace('_dilim1', '').replace('_dilim2', '');
+        let infoA = nobetSettings.locations?.find(l => l.id === locIdA);
+        let infoB = nobetSettings.locations?.find(l => l.id === locIdB);
+        let pA = infoA ? infoA.priority : 99;
+        let pB = infoB ? infoB.priority : 99;
+        if(pA !== pB) return pA - pB;
+        return a.localeCompare(b);
+    });
+
+    let html = `
+    <div style="overflow-x: auto; margin-top: 20px;">
+        <table style="width: 100%; border-collapse: collapse; min-width: 800px; text-align: center; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <thead>
+                <tr style="background: var(--primary); color: white;">
+                    <th style="padding: 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">Nöbet Yeri</th>`;
+    
+    for(let i=0; i<5; i++) {
+        html += `<th style="padding: 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">${dayNames[i] || ''}</th>`;
     }
+    
+    html += `</tr>
+            </thead>
+            <tbody>`;
+            
+    allShifts.forEach((shiftId, index) => {
+        let locName = shiftId;
+        if(shiftId === '_admin_duty') {
+            locName = "Nöbetçi İdareci";
+        } else {
+            let isDilim1 = shiftId.includes('_dilim1');
+            let isDilim2 = shiftId.includes('_dilim2');
+            let locId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+            
+            let locInfo = nobetSettings.locations?.find(l => l.id === locId);
+            locName = locInfo ? locInfo.name : locId;
+            if(isDilim1) locName += " (1. Dilim)";
+            if(isDilim2) locName += " (2. Dilim)";
+        }
+        
+        let rowBg = index % 2 === 0 ? 'background: var(--white);' : 'background: #f9fafb;';
+        html += `<tr style="${rowBg}">
+                    <td style="padding: 12px; border: 1px solid var(--gray-200); font-weight: 600; color: var(--primary-dark); text-align: left;">${locName}</td>`;
+                    
+        for(let i=0; i<5; i++) {
+            let dateStr = dates[i];
+            let teachersList = '';
+            if(dateStr && currentWeekPlan[dateStr] && currentWeekPlan[dateStr][shiftId]) {
+                teachersList = currentWeekPlan[dateStr][shiftId].map(uid => klbkUsers[uid]?.name || uid).join('<br>');
+            }
+            html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">${teachersList || '<span style="color:var(--gray-400);">-</span>'}</td>`;
+        }
+        
+        html += `</tr>`;
+    });
+    
+    html += `</tbody>
+        </table>
+    </div>`;
+    
     $('#weeklyPlanContainer').html(html);
 }
 
