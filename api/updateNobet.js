@@ -1,4 +1,4 @@
-﻿export default async function handler(req, res) {
+export default async function handler(req, res) {
     if (req.method !== 'PUT' && req.method !== 'PATCH') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -17,7 +17,7 @@
     }
 
     try {
-        const updateUrl = \\/app_store/klbk_nobet/\.json?auth=\\;
+        const updateUrl = `${firebaseDatabaseUrl}/app_store/klbk_nobet/${path}.json?auth=${firebaseSecret}`;
         
         const updateRes = await fetch(updateUrl, {
             method: req.method,
