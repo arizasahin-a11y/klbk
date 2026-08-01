@@ -210,9 +210,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (intended && intended !== '/enter.html' && intended !== '/index.html') {
                         sessionStorage.removeItem('klbk_intended_url');
                         window.location.href = intended;
-                    } else {
-                        window.location.reload();
                     }
+                    // We don't reload here because enter.html's own script will show the portal UI
+                    // since we just populated sessionStorage.
                 } else {
                     let targetUrl = '/j2k5l0p8'; // Default (ogrenci)
                     if (role === 'ogretmen') {
