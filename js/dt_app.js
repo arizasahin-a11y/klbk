@@ -557,8 +557,11 @@ window.generatePlan = async function() {
         const days = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
         let dayDate = new Date(nextMonday);
         
+        const shortDays = { 'Pazartesi': 'Pa', 'Salı': 'Sa', 'Çarşamba': 'Ça', 'Perşembe': 'Pe', 'Cuma': 'Cu' };
+        
         const scoreDayForTeacher = (uid, dayName) => {
-            const s = (klbkUsers[uid] && klbkUsers[uid].schedule && klbkUsers[uid].schedule[dayName]) ? klbkUsers[uid].schedule[dayName] : null;
+            const shortName = shortDays[dayName] || dayName;
+            const s = (klbkUsers[uid] && klbkUsers[uid].schedule && klbkUsers[uid].schedule[shortName]) ? klbkUsers[uid].schedule[shortName] : null;
             if(!s) return -999; // Not at school
             
             let lessons = Object.keys(s).map(n => parseInt(n)).sort((a,b)=>a-b);
