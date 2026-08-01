@@ -150,69 +150,10 @@
         .filter-select { border: none; outline: none; background: transparent; font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 600; color: #334155; cursor: pointer; min-width: 180px; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        (function() {
-            try {
-                var isLogged = sessionStorage.getItem('klbk_faaliyet_isLoggedIn') || sessionStorage.getItem('klbk_isLoggedIn');
-                if (isLogged === 'true') {
-                    document.write('<style id="anti-flicker-style">#login-overlay { display: none !important; } .wrap { display: block !important; }</style>');
-                } else {
-                    document.write('<style id="anti-flicker-style">#login-overlay { display: flex !important; } .wrap { display: none !important; }</style>');
-                }
-            } catch(e) {}
-        })();
-    </script>
+    
 </head>
 <body>
     <body>
-    <!-- MANDATORY LOGIN OVERLAY FOR FAALİYET LİDERLERİ PORTALI -->
-    <div id="login-overlay" style="position: fixed; inset: 0; z-index: 99999; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%); display: flex; align-items: center; justify-content: center; padding: 20px; font-family: 'Outfit', sans-serif;">
-        <div style="background: rgba(255, 255, 255, 0.97); backdrop-filter: blur(16px); border-radius: 24px; padding: 40px 36px; width: 100%; max-width: 440px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(99, 102, 241, 0.2); text-align: center; position: relative; animation: modalFadeIn 0.3s ease-out;">
-            
-            <!-- Header Badge (Royal Indigo & Gold Crown) -->
-            <div style="width: 76px; height: 76px; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.5); border: 3px solid #fef3c7;">
-                <i class="fas fa-crown" style="font-size: 2.2rem; color: #fbbf24;"></i>
-            </div>
-
-            <h2 style="font-size: 1.7rem; font-weight: 800; color: #1e1b4b; margin-bottom: 4px; letter-spacing: -0.02em;">
-                Proje Faaliyet Raporu (PTS)
-            </h2>
-            <p style="color: #6366f1; font-weight: 600; margin: 0 0 6px 0; font-size: 0.95rem;">OGP ve OÖP Faaliyet Değerlendirme &amp; Raporlama</p>
-            <h3 id="loginSchoolName" style="color: #4f46e5; font-weight: 700; margin: 4px 0 12px 0; font-size: 1.1rem; display: none;"></h3>
-            <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 26px; line-height: 1.4;">
-                Gizlilik Gereği Giriş Yapmanız Zorunludur
-            </p>
-
-            <!-- Form Group: User -->
-            <div style="text-align: left; margin-bottom: 18px;">
-                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #4338ca; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">
-                    <i class="fas fa-user" style="margin-right: 4px;"></i> Kullanıcı Adı / Ad Soyad
-                </label>
-                <input type="text" id="loginUsername" placeholder="Kullanıcı adınızı veya adınızı girin" style="width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 0.95rem; font-family: inherit; outline: none; transition: all 0.2s;" onfocus="this.style.borderColor='#6366f1'; this.style.boxShadow='0 0 0 4px rgba(99,102,241,0.15)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
-            </div>
-
-            <!-- Form Group: Password -->
-            <div style="text-align: left; margin-bottom: 24px;">
-                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #4338ca; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">
-                    <i class="fas fa-key" style="margin-right: 4px;"></i> Şifre
-                </label>
-                <div style="position: relative;">
-                    <input type="password" id="loginPassword" placeholder="Şifrenizi girin" style="width: 100%; padding: 14px 44px 14px 16px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 0.95rem; font-family: inherit; outline: none; transition: all 0.2s;" onfocus="this.style.borderColor='#6366f1'; this.style.boxShadow='0 0 0 4px rgba(99,102,241,0.15)';" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';" onkeypress="if(event.key === 'Enter') handlePortalLogin()">
-                    <i class="fas fa-eye" id="togglePassIcon" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; cursor: pointer; font-size: 1.1rem;" onclick="toggleLoginPassVisibility()"></i>
-                </div>
-                <div style="text-align: right; margin-top: 8px;">
-                    <a href="#" onclick="event.preventDefault(); Swal.fire('Şifre Sıfırlama', 'Şifrenizi öğrenmek veya sıfırlamak için lütfen okul idaresi ile iletişime geçiniz.', 'info');" style="color: #6366f1; font-size: 0.82rem; text-decoration: none; font-weight: 600;">Şifremi Unuttum</a>
-                </div>
-            </div>
-
-            <!-- Submit Button -->
-            <button onclick="handlePortalLogin()" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.4); display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <i class="fas fa-right-to-bracket"></i> Giriş Yap
-            </button>
-        </div>
-    </div>
-
-
     <div class="wrap">
         <div class="rh">
             <div>
@@ -937,49 +878,7 @@ let globalLeadersMap = new Map();
             }
         }
 
-        async function handlePortalLogin() {
-            const user = (document.getElementById('loginUsername').value || '').trim();
-            const pass = (document.getElementById('loginPassword').value || '').trim();
-
-            if (!user || !pass) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Eksik Bilgi', 'Lütfen kullanıcı adınızı ve şifrenizi giriniz.', 'warning');
-                } else {
-                    alert('Lütfen kullanıcı adınızı ve şifrenizi giriniz.');
-                }
-                return;
-            }
-
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({ title: 'Giriş Yapılıyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            }
-
-            try {
-                const res = await fetch("https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users.json?_t=" + Date.now(), { cache: 'no-store' });
-                const users = await res.json();
-
-                let userObj = null;
-                let matchedUsername = user;
-
-                if (users) {
-                    if (users[user]) {
-                        userObj = users[user];
-                        matchedUsername = user;
-                    } else {
-                        const userNorm = lowerTR(user);
-                        for (const [uname, data] of Object.entries(users)) {
-                            if (!data || typeof data !== 'object') continue;
-                            const unameNorm = lowerTR(uname);
-                            const emailNorm = lowerTR(data.email || '');
-                            const nameNorm = lowerTR(data.name || '');
-
-                            if (unameNorm === userNorm || emailNorm === userNorm || nameNorm === userNorm) {
-                                userObj = data;
-                                matchedUsername = uname;
-                                break;
-                            }
-                        }
-                    }
+        
                 }
 
                 let isAuth = false;
@@ -1072,29 +971,7 @@ let globalLeadersMap = new Map();
         }
 
         
-        function loadSchoolNameForLogin() {
-            const schoolNameEl = document.getElementById('loginSchoolName');
-            if (!schoolNameEl) return;
-            
-            let school = localStorage.getItem('klbk_lastSchoolName') || localStorage.getItem('schoolName');
-            if (school) {
-                schoolNameEl.textContent = school;
-                schoolNameEl.style.display = 'block';
-            } else {
-                fetch("https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users.json")
-                    .then(r => r.json())
-                    .then(users => {
-                        let found = false;
-                        if (users) {
-                            for (let k in users) {
-                                if (users[k] && users[k].schoolName) {
-                                    schoolNameEl.textContent = users[k].schoolName;
-                                    schoolNameEl.style.display = 'block';
-                                    localStorage.setItem('klbk_lastSchoolName', users[k].schoolName);
-                                    found = true;
-                                    break;
-                                }
-                            }
+                                    }
                         }
                         if (!found) {
                             schoolNameEl.textContent = 'KELEBEK EĞİTİM PORTALI';
@@ -1962,7 +1839,7 @@ let globalLeadersMap = new Map();
 
         // Initialize App
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => { loadSchoolNameForLogin(); loadData(); });
+            document.addEventListener('DOMContentLoaded', () => { loadData(); });
         } else {
             loadData();
         }
