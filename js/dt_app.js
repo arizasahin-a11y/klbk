@@ -376,14 +376,23 @@ window.saveAdminSettings = async function() {
     
     Swal.fire({title:'Kaydediliyor...', didOpen:()=>Swal.showLoading()});
     try {
-        await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/settings/global.json`, {
+        const res = await fetch('/api/updateNobet', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(nobetSettings)
+            body: JSON.stringify({
+                path: 'settings/global',
+                data: nobetSettings
+            })
         });
+        
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'API Error');
+        }
+        
         Swal.fire('Başarılı', 'Ayarlar kaydedildi.', 'success');
     } catch(e) {
-        Swal.fire('Hata', e.message, 'error');
+        Swal.fire('Hata', 'Ayarlar kaydedilirken hata oluştu: ' + e.message, 'error');
     }
 };
 
@@ -415,14 +424,24 @@ window.saveTeacherSettings = async function() {
     
     Swal.fire({title:'Kaydediliyor...', didOpen:()=>Swal.showLoading()});
     try {
-        await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/settings/teachers/${uid}.json`, {
+        const res = await fetch('/api/updateNobet', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(tData)
+            body: JSON.stringify({
+                path: `settings/teachers/${uid}`,
+                data: tData
+            })
         });
-        Swal.fire({toast:true, position:'top-end', icon:'success', title:'Öğretmen ayarı kaydedildi.', showConfirmButton:false, timer:2000});
+        
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'API Error');
+        }
+
+        $('#teacherSettingsForm').fadeOut();
+        Swal.fire('Başarılı', 'Öğretmen ayarları kaydedildi.', 'success');
     } catch(e) {
-        Swal.fire('Hata', e.message, 'error');
+        Swal.fire('Hata', 'Ayarlar kaydedilirken hata oluştu: ' + e.message, 'error');
     }
 };
 
@@ -551,13 +570,22 @@ window.generatePlan = async function() {
         
         currentWeekPlan = newPlan;
         
-        // Save to Firebase
+        // Save to Firebase via API
         try {
-            await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/plans.json`, {
+            const res = await fetch('/api/updateNobet', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(currentWeekPlan)
+                body: JSON.stringify({
+                    path: 'plans',
+                    data: currentWeekPlan
+                })
             });
+            
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'API Error');
+            }
+
             updateTeacherViewUI();
             Swal.fire('Başarılı', 'Yeni nöbet planı oluşturuldu ve kaydedildi.', 'success');
         } catch(e) {
