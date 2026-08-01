@@ -194,7 +194,7 @@ async function loadInitialData() {
         populateStudentDropdown();
 
         // Fetch Settings & Plans from Firebase using REST
-        const settingsRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/settings.json`); // if db rules allow, else we need a proxy API. Assuming db rules allow authenticated read.
+        const settingsRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/settings.json?t=${Date.now()}`); 
         if (settingsRes.ok) {
             const data = await settingsRes.json();
             if (data) {
@@ -203,7 +203,7 @@ async function loadInitialData() {
             }
         }
         
-        const plansRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/plans.json`);
+        const plansRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/plans.json?t=${Date.now()}`);
         if (plansRes.ok) {
             const plans = await plansRes.json();
             if (plans) currentWeekPlan = plans;
