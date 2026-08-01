@@ -980,28 +980,28 @@ async function refreshCombinedData() {
         if (res.ok) {
             const users = await res.json();
             const lastUser = localStorage.getItem('klbk_currentUser') || sessionStorage.getItem('klbk_currentUser');
-            let targetTeachers = [];
+            let currentSchoolName = '';
             
-            if (users && lastUser && users[lastUser]) {
-                targetTeachers = users[lastUser].teachers || [];
-            } else if (users) {
-                // Fallback: bulmaya çalış
+            if (users && lastUser && users[lastUser] && users[lastUser].schoolName) {
+                currentSchoolName = users[lastUser].schoolName;
+            } else {
                 const schoolHeader = document.getElementById('school-name-header');
-                const currentSchoolName = schoolHeader ? schoolHeader.textContent.split('|')[0].trim() : '';
-                const userKey = Object.keys(users).find(key => users[key].schoolName && users[key].schoolName.trim() === currentSchoolName);
-                if (userKey) {
-                    targetTeachers = users[userKey].teachers || [];
-                }
+                currentSchoolName = schoolHeader ? schoolHeader.textContent.split('|')[0].trim() : '';
             }
             
-            if (targetTeachers.length > 0) {
-                const mudurObj = targetTeachers.find(t => t.role === 'mudur' || (t.branch || '').toLowerCase().includes('müdür') || (t.name || '').toLowerCase().includes('müdür'));
-                if (mudurObj) window.fetchedMudurName = mudurObj.name;
+            if (users && currentSchoolName) {
+                const searchSchool = currentSchoolName.toLocaleLowerCase('tr-TR').trim();
+                const schoolUsers = Object.values(users).filter(u => u.schoolName && u.schoolName.toLocaleLowerCase('tr-TR').trim() === searchSchool);
                 
-                const mdyObj = targetTeachers.find(t => t.role === 'mudur_yardimcisi' || t.role === 'mudur_basyardimcisi' || t.role === 'idareci');
-                if (mdyObj) {
-                    window.fetchedMdyName = mdyObj.name;
-                    window.fetchedMdyRole = mdyObj.role === 'mudur_basyardimcisi' ? 'Müdür Başyardımcısı' : 'Müdür Yardımcısı';
+                if (schoolUsers.length > 0) {
+                    const mudurObj = schoolUsers.find(t => t.role === 'mudur' || (t.branch && typeof t.branch === 'string' && t.branch.toLocaleLowerCase('tr-TR').includes('müdür')) || (t.name || '').toLocaleLowerCase('tr-TR').includes('müdür'));
+                    if (mudurObj) window.fetchedMudurName = mudurObj.name;
+                    
+                    const mdyObj = schoolUsers.find(t => t.role === 'mudur_yardimcisi' || t.role === 'mudur_basyardimcisi' || t.role === 'idareci');
+                    if (mdyObj) {
+                        window.fetchedMdyName = mdyObj.name;
+                        window.fetchedMdyRole = mdyObj.role === 'mudur_basyardimcisi' ? 'Müdür Başyardımcısı' : 'Müdür Yardımcısı';
+                    }
                 }
             }
         }
