@@ -661,6 +661,19 @@ window.generatePlan = async function() {
                     }
                 }
                 
+                // If they STILL have no bestDay (e.g. they have no schedule at all on any day), force assign them to the least populated day
+                if(!bestDay) {
+                    let minCount = 9999;
+                    for(let i=0; i<5; i++) {
+                        let d = days[i];
+                        if(teacherAssignments[uid].includes(d)) continue;
+                        if(dayCounts[d] < minCount) {
+                            minCount = dayCounts[d];
+                            bestDay = d;
+                        }
+                    }
+                }
+                
                 if(bestDay) {
                     teacherAssignments[uid].push(bestDay);
                     dayCounts[bestDay]++;
