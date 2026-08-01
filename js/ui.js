@@ -2588,8 +2588,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <label style="font-weight:600; font-size:0.8rem;">Cinsiyet (K/E)</label>
                     <select id="edit-std-ex1" class="swal2-select" style="margin:0; width:100%; height:34px; font-size:0.85rem; padding:0 8px; border:1px solid #d9d9d9; border-radius:6px; background:#fff; outline:none;">
                         <option value="" ${!std.extra1 ? 'selected' : ''}>Seçiniz</option>
-                        <option value="K" ${std.extra1 === 'K' ? 'selected' : ''}>Kız (K)</option>
-                        <option value="E" ${std.extra1 === 'E' ? 'selected' : ''}>Erkek (E)</option>
+                        <option value="K" ${std.extra1 === 'K' ? 'selected' : ''}>KIZ</option>
+                        <option value="E" ${std.extra1 === 'E' ? 'selected' : ''}>ERKEK</option>
                     </select>
                 </div>
                 <div class="modal-form-group">
