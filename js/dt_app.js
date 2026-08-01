@@ -301,6 +301,17 @@ function populateTeacherDropdowns() {
         if (statusListHtml === '') {
             statusListHtml = '<li style="color: var(--gray-500); font-style: italic;">Özel durumlu öğretmen bulunmuyor.</li>';
         }
+        
+        if ($('#teacherStatusList').length === 0) {
+            $('#teacherSettingsForm').after(`
+                <div id="teacherStatusContainer" style="margin-top: 20px; background: rgba(255,255,255,0.5); padding: 15px; border-radius: 12px; border: 1px solid var(--gray-200);">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; color: var(--primary); border-bottom: 1px solid var(--gray-200); padding-bottom: 5px;">Özel Durumlu Öğretmenler</h4>
+                    <ul id="teacherStatusList" style="list-style: none; padding: 0; margin: 0; font-size: 14px; line-height: 1.6;">
+                    </ul>
+                </div>
+            `);
+        }
+        
         $('#teacherStatusList').html(statusListHtml);
 
         if ($('.select2-teachers').hasClass("select2-hidden-accessible")) {
