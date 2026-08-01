@@ -582,6 +582,69 @@ window.generatePlan = async function() {
         const targetAdminCount = nobetSettings.adminCount !== undefined ? nobetSettings.adminCount : 1;
         const isHalf = nobetSettings.dutyDuration === 'half';
         
+        // --- NEW ALGORITHM: Distribute teachers across days first ---
+        let dailyCap = Math.ceil((eligibleTeachersList.length * targetDutyCount) / 5);
+        let dayCounts = { 'Pazartesi': 0, 'Salı': 0, 'Çarşamba': 0, 'Perşembe': 0, 'Cuma': 0 };
+        let teacherAssignments = {};
+        eligibleTeachersList.forEach(uid => teacherAssignments[uid] = []);
+        
+        // Sort teachers by how many days they are available (most constrained first)
+        let teachersWithAvail = eligibleTeachersList.map(uid => {
+            let availCount = 0;
+            for(let i=0; i<5; i++) {
+                if(scoreDayForTeacher(uid, days[i]) > -500) availCount++;
+            }
+            return { uid, availCount };
+        });
+        teachersWithAvail.sort((a,b) => a.availCount - b.availCount);
+        
+        for(let loop=0; loop<targetDutyCount; loop++) {
+            teachersWithAvail.forEach(t => {
+                let uid = t.uid;
+                let bestDay = null;
+                let bestScore = -9999;
+                
+                // Try to find a valid day under the daily cap
+                for(let i=0; i<5; i++) {
+                    let d = days[i];
+                    if(teacherAssignments[uid].includes(d)) continue; 
+                    let score = scoreDayForTeacher(uid, d);
+                    if(score > -500 && dayCounts[d] < dailyCap) {
+                        if(score > bestScore) {
+                            bestScore = score;
+                            bestDay = d;
+                        }
+                    }
+                }
+                
+                // If all available days are at cap, pick the day with the absolute minimum count
+                if(!bestDay) {
+                    let minCount = 9999;
+                    for(let i=0; i<5; i++) {
+                        let d = days[i];
+                        if(teacherAssignments[uid].includes(d)) continue;
+                        let score = scoreDayForTeacher(uid, d);
+                        if(score > -500) {
+                            if(dayCounts[d] < minCount) {
+                                minCount = dayCounts[d];
+                                bestDay = d;
+                                bestScore = score;
+                            } else if (dayCounts[d] === minCount && score > bestScore) {
+                                bestDay = d;
+                                bestScore = score;
+                            }
+                        }
+                    }
+                }
+                
+                if(bestDay) {
+                    teacherAssignments[uid].push(bestDay);
+                    dayCounts[bestDay]++;
+                }
+            });
+        }
+        // --- END DAY DISTRIBUTION ---
+
         for(let i=0; i<5; i++) {
             let dateStr = dayDate.toISOString().split('T')[0];
             let dayName = days[i];
@@ -591,7 +654,6 @@ window.generatePlan = async function() {
             if(targetAdminCount > 0 && eligibleAdminsList.length > 0) {
                 newPlan[dateStr]['_admin_duty'] = [];
                 let availableAdmins = [...eligibleAdminsList];
-                // sort admins by lowest assignment count, then randomly
                 availableAdmins.sort((a,b) => {
                     let diff = adminAssignmentCounts[a] - adminAssignmentCounts[b];
                     return diff === 0 ? Math.random() - 0.5 : diff;
@@ -606,37 +668,54 @@ window.generatePlan = async function() {
                 }
             }
             
-            // 2. Assign Teachers
-            if(nobetSettings.locations) {
-                // sort locations by priority
+            // 2. Assign Teachers dynamically to balance locations
+            let teachersToday = eligibleTeachersList.filter(uid => teacherAssignments[uid].includes(dayName));
+            
+            if(nobetSettings.locations && nobetSettings.locations.length > 0) {
                 let sortedLocs = [...nobetSettings.locations].sort((a,b) => a.priority - b.priority);
+                let shifts = [];
                 
                 sortedLocs.forEach(loc => {
-                    // if half day, we need 2 shifts per location (1. Dilim and 2. Dilim). Or we just assign normally and display it?
-                    // The simplest is to create loc_1 and loc_2 under the same date
-                    let shifts = isHalf ? [`${loc.id}_dilim1`, `${loc.id}_dilim2`] : [loc.id];
-                    
-                    shifts.forEach(shiftId => {
-                        newPlan[dateStr][shiftId] = [];
-                        
-                        // Sort teachers by score
-                        let availableToday = eligibleTeachersList.filter(uid => teacherAssignmentCounts[uid] < targetDutyCount);
-                        
-                        availableToday.sort((a,b) => {
-                            return scoreDayForTeacher(b, dayName) - scoreDayForTeacher(a, dayName);
-                        });
-                        
-                        for(let k=0; k<loc.reqTeachers; k++) {
-                            if(availableToday.length > 0) {
-                                // Must have score > -999 (at school)
-                                if(scoreDayForTeacher(availableToday[0], dayName) > -500) {
-                                    let chosen = availableToday.shift();
-                                    newPlan[dateStr][shiftId].push(chosen);
-                                    teacherAssignmentCounts[chosen]++;
-                                }
-                            }
+                    if(isHalf) {
+                        shifts.push({ id: `${loc.id}_dilim1`, locId: loc.id, priority: loc.priority });
+                        shifts.push({ id: `${loc.id}_dilim2`, locId: loc.id, priority: loc.priority });
+                    } else {
+                        shifts.push({ id: loc.id, locId: loc.id, priority: loc.priority });
+                    }
+                });
+                
+                shifts.forEach(s => newPlan[dateStr][s.id] = []);
+                
+                // Handle fixed locations first
+                let remainingTeachers = [];
+                teachersToday.forEach(uid => {
+                    let tData = teacherData[uid];
+                    if(tData && tData.fixedLoc) {
+                        let validShifts = shifts.filter(s => s.locId === tData.fixedLoc);
+                        if(validShifts.length > 0) {
+                            validShifts.sort((a,b) => newPlan[dateStr][a.id].length - newPlan[dateStr][b.id].length);
+                            newPlan[dateStr][validShifts[0].id].push(uid);
+                        } else {
+                            remainingTeachers.push(uid);
                         }
+                    } else {
+                        remainingTeachers.push(uid);
+                    }
+                });
+                
+                // Distribute remaining teachers to balance shifts
+                // Sort them so teachers with higher schedule scores get priority placement (if tie)
+                remainingTeachers.sort((a,b) => scoreDayForTeacher(b, dayName) - scoreDayForTeacher(a, dayName));
+                
+                remainingTeachers.forEach(uid => {
+                    // Find shift with lowest count, tie-break by priority
+                    shifts.sort((a,b) => {
+                        let countA = newPlan[dateStr][a.id].length;
+                        let countB = newPlan[dateStr][b.id].length;
+                        if(countA !== countB) return countA - countB;
+                        return a.priority - b.priority;
                     });
+                    newPlan[dateStr][shifts[0].id].push(uid);
                 });
             }
             dayDate.setDate(dayDate.getDate() + 1);
