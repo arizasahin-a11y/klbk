@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Nöbet Planlama | KLBK</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Select2 CSS for searchable dropdowns -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/dt_style.css">
+</head>
+<body>
+    <!-- Background Animations -->
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+    <div class="bg-shape shape-3"></div>
+
+    <!-- LOGIN SECTION -->
+    <div id="loginSection" class="login-container" style="display: none;">
+        <div class="login-card glass-panel">
+            <div class="login-header">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </div>
+                <h2>Nöbet Planlama</h2>
+                <p>Nöbet bilgilerinize erişmek için giriş yapın</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Kullanıcı Adı</label>
+                    <div class="input-wrapper">
+                        <i class="fa-regular fa-user"></i>
+                        <input type="text" id="username" placeholder="Kullanıcı adınızı girin" required autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Şifre</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="password" placeholder="Şifrenizi girin" required>
+                        <button type="button" class="toggle-password" id="togglePassword">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-options">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="rememberMe">
+                        Beni Hatırla
+                    </label>
+                    <a href="#" class="forgot-link" onclick="Swal.fire('Bilgi', 'Şifrenizi unuttuysanız idarecinizle iletişime geçin.', 'info')">Şifremi Unuttum</a>
+                </div>
+
+                <div id="loginMessage" class="message-box" style="display: none;"></div>
+
+                <button type="submit" class="btn btn-primary btn-block btn-lg" id="loginBtn">
+                    <span>Giriş Yap</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+            <div style="margin-top: 20px; font-size: 0.85rem; color: var(--gray-500);">
+                <a href="enter.html" style="color: var(--primary-dark); text-decoration: none;"><i class="fa-solid fa-arrow-left"></i> Portala Dön</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD SECTION -->
+    <div id="dashboardSection" class="dashboard-container" style="display: none;">
+        <div class="header glass-panel">
+            <div class="header-title">
+                <div class="header-icon">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+                <div>
+                    <h1>Nöbet Planlama</h1>
+                    <p>Hoş Geldiniz, <span id="userNameDisplay" style="font-weight: 700; color: var(--primary-dark);"></span></p>
+                </div>
+            </div>
+            <button class="btn btn-outline" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap
+            </button>
+        </div>
+
+        <!-- TABS -->
+        <div class="tabs" id="mainTabs">
+            <!-- Tabs will be injected via JS based on role -->
+        </div>
+
+        <!-- CONTENT AREAS -->
+        
+        <!-- TEACHER: Aktif Nöbet View -->
+        <div id="tab-teacher-active" class="tab-content">
+            <div class="panel-card glass-panel" style="text-align: center; padding: 40px 20px;">
+                <div id="noDutyState">
+                    <i class="fa-solid fa-mug-hot" style="font-size: 4rem; color: var(--gray-400); margin-bottom: 20px;"></i>
+                    <h2 style="margin:0 0 10px 0;">Şu an nöbetçi değilsiniz</h2>
+                    <p style="color: var(--gray-500);">En yakın nöbetiniz: <span id="nextDutyDateStr" style="font-weight: bold; color: var(--dark);">Hesaplanıyor...</span></p>
+                </div>
+                
+                <div id="activeDutyState" style="display: none;">
+                    <div style="width: 80px; height: 80px; background: var(--primary-light); color: var(--primary-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 0 auto 20px;">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <h2 style="margin:0 0 5px 0; color: var(--primary-dark);">Bugün Nöbetçisiniz!</h2>
+                    <h3 style="margin:0 0 20px 0;">Görev Yeri: <span id="activeDutyLocation">...</span></h3>
+                    
+                    <button class="btn btn-danger btn-lg" onclick="showIncidentForm()">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Olay / Tutanak Ekle
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TEACHER: Olay Bildirim Formu (Modal/Section) -->
+        <div id="incidentSection" class="panel-card glass-panel" style="display: none;">
+            <h2 class="panel-title"><i class="fa-solid fa-file-signature"></i> Olay / Tutanak Bildirimi</h2>
+            <form id="incidentForm">
+                <div class="form-group">
+                    <label>Olay Saati</label>
+                    <div class="input-wrapper">
+                        <i class="fa-regular fa-clock"></i>
+                        <input type="time" id="incTime" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Olaya Karışan Öğrenciler (İsim/Numara)</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-user-graduate"></i>
+                        <input type="text" id="incStudents" placeholder="Örn: 10-A Ali Yılmaz, 9-B Ayşe Kaya" required>
+                    </div>
+                    <small style="color:var(--gray-500); margin-top:5px; display:block;">Birden fazla öğrenci varsa virgülle ayırın.</small>
+                </div>
+                <div class="form-group">
+                    <label>İlgili Diğer Öğretmenler (Varsa)</label>
+                    <div class="input-wrapper" style="width: 100%;">
+                        <select id="incTeachers" class="select2-teachers" multiple="multiple" style="width: 100%;">
+                            <!-- Loaded via JS -->
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Olay Açıklaması</label>
+                    <div class="input-wrapper" style="align-items: flex-start;">
+                        <i class="fa-solid fa-align-left" style="top: 15px;"></i>
+                        <textarea id="incDesc" rows="4" style="width: 100%; padding: 12px 15px 12px 45px; border: 2px solid var(--white); border-radius: 12px; background: rgba(255, 255, 255, 0.8); font-family: 'Outfit'; font-size: 1rem; resize: vertical;" placeholder="Olayı detaylıca açıklayın..." required></textarea>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="hideIncidentForm()">İptal</button>
+                    <button type="submit" class="btn btn-danger"><i class="fa-solid fa-paper-plane"></i> Bildirimi Gönder</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- ADMIN: Ayarlar -->
+        <div id="tab-admin-settings" class="tab-content">
+            <div class="grid-2">
+                <!-- Temel Ayarlar -->
+                <div class="panel-card glass-panel">
+                    <h2 class="panel-title"><i class="fa-solid fa-cogs"></i> Nöbet Temel Ayarları</h2>
+                    
+                    <div class="toggle-label">
+                        <span>Nöbet Tipi: <span id="dutyTypeLabel" style="color:var(--primary);">Dönüşümlü</span></span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="settingDutyType"> <!-- Checked = Fixed -->
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <small style="display:block; margin-top:-10px; margin-bottom:20px; color:var(--gray-500);">Dönüşümlü: Öğretmenlerin yerleri her hafta değişir. Sabit: Her öğretmen aynı yerde kalır.</small>
+
+                    <div id="rotationSettingsContainer">
+                        <div class="toggle-label">
+                            <span>Dönüşüm Yönü: <span id="rotationDirLabel" style="color:var(--primary);">Artan (1→2→3)</span></span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="settingRotationDir"> <!-- Checked = Descending -->
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr style="border:0; border-top:1px solid var(--gray-200); margin: 20px 0;">
+
+                    <h3 style="font-size: 1.1rem; margin-top: 0;">Nöbet Yerleri Yönetimi</h3>
+                    <div id="locationsList" class="item-list" style="margin-bottom: 15px; max-height: 250px; overflow-y: auto;">
+                        <!-- JS injected -->
+                    </div>
+                    
+                    <button class="btn btn-outline btn-block" onclick="openAddLocationModal()">
+                        <i class="fa-solid fa-plus"></i> Yeni Nöbet Yeri Ekle
+                    </button>
+                    
+                    <div style="margin-top: 30px; text-align: right;">
+                        <button class="btn btn-primary" onclick="saveAdminSettings()"><i class="fa-solid fa-save"></i> Ayarları Kaydet</button>
+                    </div>
+                </div>
+
+                <!-- Öğretmen Yönetimi -->
+                <div class="panel-card glass-panel">
+                    <h2 class="panel-title"><i class="fa-solid fa-users"></i> Öğretmen Nöbet Durumları</h2>
+                    
+                    <div class="form-group">
+                        <label>Öğretmen Seçin (Ders Yükü & Muafiyet Ayarı)</label>
+                        <select id="teacherSelect" class="select2-teachers" style="width: 100%;">
+                            <option value="">-- Öğretmen Seç --</option>
+                        </select>
+                    </div>
+
+                    <div id="teacherSettingsForm" style="display: none; background: rgba(255,255,255,0.5); padding: 15px; border-radius: 12px; border: 1px solid var(--gray-200);">
+                        <h4 id="tsName" style="margin: 0 0 15px 0;">Öğretmen Adı</h4>
+                        
+                        <div class="toggle-label">
+                            <span>Nöbetten Muaf mı?</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="tsExempt">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="form-group" id="tsFixedLocGroup">
+                            <label>Sabit Nöbet Yeri (İsteğe Bağlı)</label>
+                            <select id="tsFixedLoc" class="input-wrapper select" style="width: 100%; border-radius:8px; padding:8px;">
+                                <option value="">-- Sabit Yeri Yok --</option>
+                                <!-- JS Injected -->
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Haftalık Ders Yükü (Günlük Ders Saati)</label>
+                            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; text-align:center;">
+                                <div><small>Pzt</small><input type="number" id="tsLoadPzt" min="0" max="10" value="0" style="width:100%; padding:5px; border:1px solid #ccc; border-radius:4px;"></div>
+                                <div><small>Sal</small><input type="number" id="tsLoadSal" min="0" max="10" value="0" style="width:100%; padding:5px; border:1px solid #ccc; border-radius:4px;"></div>
+                                <div><small>Çar</small><input type="number" id="tsLoadCar" min="0" max="10" value="0" style="width:100%; padding:5px; border:1px solid #ccc; border-radius:4px;"></div>
+                                <div><small>Per</small><input type="number" id="tsLoadPer" min="0" max="10" value="0" style="width:100%; padding:5px; border:1px solid #ccc; border-radius:4px;"></div>
+                                <div><small>Cum</small><input type="number" id="tsLoadCum" min="0" max="10" value="0" style="width:100%; padding:5px; border:1px solid #ccc; border-radius:4px;"></div>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-success btn-block" onclick="saveTeacherSettings()"><i class="fa-solid fa-check"></i> Öğretmen Ayarını Kaydet</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADMIN: Planlama & Listeler -->
+        <div id="tab-admin-plan" class="tab-content">
+            <div class="panel-card glass-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 class="panel-title" style="margin:0;"><i class="fa-solid fa-wand-magic-sparkles"></i> Otomatik Planlama & Liste</h2>
+                    <button class="btn btn-primary" onclick="generatePlan()"><i class="fa-solid fa-bolt"></i> Yeni Plan Oluştur (Gelecek Hafta)</button>
+                </div>
+                
+                <div id="weeklyPlanContainer">
+                    <p style="color:var(--gray-500);">Plan oluşturulmadı veya yükleniyor...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADMIN: Olay Tutanakları -->
+        <div id="tab-admin-incidents" class="tab-content">
+            <div class="panel-card glass-panel">
+                <h2 class="panel-title"><i class="fa-solid fa-folder-open"></i> Olay Tutanakları (Son 30 Gün)</h2>
+                <div id="incidentsList" class="item-list">
+                    <p style="color:var(--gray-500); text-align:center; padding: 20px;">Kayıtlı olay bulunamadı.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <!-- jQuery required for Select2 -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/dt_app.js"></script>
+</body>
+</html>
