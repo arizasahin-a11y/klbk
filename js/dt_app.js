@@ -81,17 +81,14 @@ async function checkSession() {
         const role = (sessionStorage.getItem('klbk_role') || localStorage.getItem('klbk_role') || '').toLowerCase().trim();
         const token = sessionStorage.getItem('klbk_session_token') || localStorage.getItem('klbk_session_token');
         
-        const rawUsername = sessionStorage.getItem('klbk_currentUser') || sessionStorage.getItem('klbk_username') || localStorage.getItem('klbk_currentUser') || localStorage.getItem('klbk_username') || '';
-        
         currentUser = {
-            username: rawUsername,
+            username: sessionStorage.getItem('klbk_username') || localStorage.getItem('klbk_username'),
             name: username,
             role: role,
             token: token
         };
 
-        const sysAdmins = ['admin', '@arız@', '@rız@', 'master'];
-        isAdmin = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'].includes(role) || sysAdmins.includes(rawUsername);
+        isAdmin = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'].includes(role);
         
         $('#userNameDisplay').text(username);
         $('#loginSection').hide();
@@ -196,20 +193,37 @@ async function loadInitialData() {
         }
         populateStudentDropdown();
 
-        // Fetch Settings & Plans from Firebase using REST
-        const settingsRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/settings.json?t=${Date.now()}`); 
+        const settingsRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/settings.json`); // if db rules allow, else we need a proxy API. Assuming db rules allow authenticated read.
         if (settingsRes.ok) {
             const data = await settingsRes.json();
             if (data) {
-                if(data.global) nobetSettings = data.global;
-                if(data.teachers) teacherData = data.teachers;
+                if(data.global) {
+                    if(typeof data.global === 'string') {
+                        try { nobetSettings = JSON.parse(data.global); } catch(e) { console.error("Could not parse global settings"); }
+                    } else {
+                        nobetSettings = data.global;
+                    }
+                }
+                if(data.teachers) {
+                    if(typeof data.teachers === 'string') {
+                        try { teacherData = JSON.parse(data.teachers); } catch(e) { console.error("Could not parse teacher settings"); }
+                    } else {
+                        teacherData = data.teachers;
+                    }
+                }
             }
         }
         
-        const plansRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/plans.json?t=${Date.now()}`);
+        const plansRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/plans.json`);
         if (plansRes.ok) {
             const plans = await plansRes.json();
-            if (plans) currentWeekPlan = plans;
+            if (plans) {
+                if(typeof plans === 'string') {
+                    try { currentWeekPlan = JSON.parse(plans); } catch(e) { console.error("Could not parse plans"); }
+                } else {
+                    currentWeekPlan = plans;
+                }
+            }
         }
 
         updateAdminSettingsUI();
@@ -230,8 +244,7 @@ function populateTeacherDropdowns() {
     
     for(let uid in klbkUsers) {
         let role = (klbkUsers[uid].role || '').toLowerCase().trim();
-        const sysAdmins = ['admin', '@arız@', '@rız@', 'master'];
-        if(!sysAdmins.includes(uid) && !uid.startsWith('device_assign') && !adminRoles.includes(role)) {
+        if(uid !== 'admin' && uid !== 'master' && !uid.startsWith('device_assign') && !adminRoles.includes(role)) {
             teacherArr.push({ id: uid, text: klbkUsers[uid].name || uid });
         }
     }
@@ -342,6 +355,8 @@ window.removeLocation = function(index) {
 };
 
 window.saveAdminSettings = async function() {
+    nobetSettings = (typeof nobetSettings === 'string') ? {} : nobetSettings; // recovery if it was corrupted
+    
     nobetSettings.dutyType = $('#settingDutyType').val();
     nobetSettings.dutyDuration = $('#settingDutyDuration').val();
     nobetSettings.dutyCount = parseInt($('#settingDutyCount').val()) || 1;
@@ -352,6 +367,7 @@ window.saveAdminSettings = async function() {
     try {
         await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/settings/global.json`, {
             method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(nobetSettings)
         });
         Swal.fire('Başarılı', 'Ayarlar kaydedildi.', 'success');
@@ -383,12 +399,14 @@ window.saveTeacherSettings = async function() {
         fixedLoc: $('#tsFixedLoc').val()
     };
     
+    teacherData = (typeof teacherData === 'string') ? {} : teacherData;
     teacherData[uid] = tData;
     
     Swal.fire({title:'Kaydediliyor...', didOpen:()=>Swal.showLoading()});
     try {
         await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/settings/teachers/${uid}.json`, {
             method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(tData)
         });
         Swal.fire({toast:true, position:'top-end', icon:'success', title:'Öğretmen ayarı kaydedildi.', showConfirmButton:false, timer:2000});
@@ -412,11 +430,10 @@ window.generatePlan = async function() {
         let newPlan = {}; // { 'YYYY-MM-DD': { 'locId': ['teacherUid'] } }
         const adminRoles = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'];
         const realAdminRoles = ['idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi']; // exclude master/admin sys accounts
-        const sysAdmins = ['admin', '@arız@', '@rız@', 'master'];
 
         let eligibleTeachersList = Object.keys(klbkUsers).filter(uid => {
             let role = (klbkUsers[uid].role || '').toLowerCase().trim();
-            return !sysAdmins.includes(uid) && !uid.startsWith('device_assign') && !adminRoles.includes(role) && !(teacherData[uid] && teacherData[uid].exempt);
+            return uid !== 'admin' && uid !== 'master' && !uid.startsWith('device_assign') && !adminRoles.includes(role) && !(teacherData[uid] && teacherData[uid].exempt);
         });
 
         let eligibleAdminsList = Object.keys(klbkUsers).filter(uid => {
@@ -525,12 +542,13 @@ window.generatePlan = async function() {
         try {
             await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/plans.json`, {
                 method: 'PUT',
-                body: JSON.stringify(newPlan)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(currentWeekPlan)
             });
-            Swal.fire('Başarılı', 'Haftalık plan oluşturuldu ve kaydedildi.', 'success');
-            renderWeeklyPlan();
+            updateTeacherViewUI();
+            Swal.fire('Başarılı', 'Yeni nöbet planı oluşturuldu ve kaydedildi.', 'success');
         } catch(e) {
-            Swal.fire('Hata', 'Plan kaydedilemedi: ' + e.message, 'error');
+            Swal.fire('Hata', 'Plan kaydedilirken bir hata oluştu: ' + e.message, 'error');
         }
     }, 1500);
 };
@@ -668,6 +686,7 @@ async function submitIncident() {
     try {
         await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/incidents/${Date.now()}.json`, {
             method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(incidentData)
         });
         Swal.fire('Başarılı', 'Tutanak kaydedildi.', 'success');
