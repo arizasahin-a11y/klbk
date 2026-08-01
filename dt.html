@@ -173,14 +173,27 @@
                 <div class="panel-card glass-panel">
                     <h2 class="panel-title"><i class="fa-solid fa-cogs"></i> Nöbet Temel Ayarları</h2>
                     
-                    <div class="toggle-label">
-                        <span>Nöbet Tipi: <span id="dutyTypeLabel" style="color:var(--primary);">Dönüşümlü</span></span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="settingDutyType"> <!-- Checked = Fixed -->
-                            <span class="toggle-slider"></span>
-                        </label>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>Nöbet Tipi</label>
+                        <select id="settingDutyType" class="input-wrapper select" style="width: 100%; border-radius:8px; padding:8px;">
+                            <option value="fixed">Sabit (Değişmez)</option>
+                            <option value="weekly">Dönüşümlü (Haftalık)</option>
+                            <option value="monthly">Dönüşümlü (Aylık)</option>
+                        </select>
                     </div>
-                    <small style="display:block; margin-top:-10px; margin-bottom:20px; color:var(--gray-500);">Dönüşümlü: Öğretmenlerin yerleri her hafta değişir. Sabit: Her öğretmen aynı yerde kalır.</small>
+
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>Nöbet Süresi</label>
+                        <select id="settingDutyDuration" class="input-wrapper select" style="width: 100%; border-radius:8px; padding:8px;">
+                            <option value="full">Tam Gün</option>
+                            <option value="half">Yarım Gün (1. ve 2. Dilim)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>Öğretmen Başına Haftalık Nöbet Sayısı</label>
+                        <input type="number" id="settingDutyCount" min="1" max="5" value="1" class="input-wrapper" style="width: 100%; border-radius:8px; padding:8px; border: 2px solid var(--white);">
+                    </div>
 
                     <div id="rotationSettingsContainer">
                         <div class="toggle-label">

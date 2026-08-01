@@ -2,7 +2,9 @@
 const FIREBASE_DB_URL = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
 let klbkUsers = {};
 let nobetSettings = {
-    dutyType: 'rotating', // 'rotating' or 'fixed'
+    dutyType: 'weekly', // 'weekly', 'monthly', 'fixed'
+    dutyDuration: 'full', // 'full', 'half'
+    dutyCount: 1,
     rotationDir: 'asc', // 'asc' or 'desc'
     locations: []
 };
@@ -38,13 +40,11 @@ $(document).ready(function() {
     // Check Session
     checkSession();
 
-    // Incident form toggle
+    // Settings toggle
     $('#settingDutyType').on('change', function() {
-        if(this.checked) {
-            $('#dutyTypeLabel').text('Sabit (Haftalık Değişmez)');
+        if($(this).val() === 'fixed') {
             $('#rotationSettingsContainer').hide();
         } else {
-            $('#dutyTypeLabel').text('Dönüşümlü (Haftalık Değişir)');
             $('#rotationSettingsContainer').show();
         }
     });
@@ -256,7 +256,9 @@ function populateStudentDropdown() {
 }
 
 function updateAdminSettingsUI() {
-    $('#settingDutyType').prop('checked', nobetSettings.dutyType === 'fixed').trigger('change');
+    $('#settingDutyType').val(nobetSettings.dutyType || 'weekly').trigger('change');
+    $('#settingDutyDuration').val(nobetSettings.dutyDuration || 'full');
+    $('#settingDutyCount').val(nobetSettings.dutyCount || 1);
     $('#settingRotationDir').prop('checked', nobetSettings.rotationDir === 'desc').trigger('change');
     renderLocationsList();
 }
@@ -276,7 +278,7 @@ function renderLocationsList() {
                 <div class="item-row">
                     <div class="item-row-content">
                         <span class="item-row-title">${loc.name}</span>
-                        <span class="item-row-desc">Öncelik: ${loc.priority} | Öğretmen: ${loc.reqTeachers} | Öğrenci Sınıf: ${loc.gradeLevels}</span>
+                        <span class="item-row-desc">Öncelik: ${loc.priority} | Öğretmen: ${loc.reqTeachers}</span>
                     </div>
                     <button class="btn btn-sm" style="background:#fef2f2; color:#ef4444; border:1px solid #fecaca; padding:5px 10px;" onclick="removeLocation(${index})"><i class="fa-solid fa-trash"></i></button>
                 </div>
@@ -295,7 +297,6 @@ window.openAddLocationModal = function() {
             <input id="swal-input1" class="swal2-input" placeholder="Yer Adı (Örn: Bahçe)">
             <input id="swal-input2" type="number" class="swal2-input" placeholder="Öncelik (1 en yüksek)">
             <input id="swal-input3" type="number" class="swal2-input" placeholder="Gereken Öğretmen Sayısı">
-            <input id="swal-input4" class="swal2-input" placeholder="Öğrenci Sınıfları (Örn: 9,10,11)">
         `,
         focusConfirm: false,
         showCancelButton: true,
@@ -305,8 +306,7 @@ window.openAddLocationModal = function() {
             return [
                 document.getElementById('swal-input1').value,
                 document.getElementById('swal-input2').value,
-                document.getElementById('swal-input3').value,
-                document.getElementById('swal-input4').value
+                document.getElementById('swal-input3').value
             ]
         }
     }).then((result) => {
@@ -319,8 +319,7 @@ window.openAddLocationModal = function() {
                 id: 'loc_' + Date.now(),
                 name: vals[0],
                 priority: parseInt(vals[1] || 1),
-                reqTeachers: parseInt(vals[2] || 1),
-                gradeLevels: vals[3] || ''
+                reqTeachers: parseInt(vals[2] || 1)
             });
             renderLocationsList();
         }
@@ -335,7 +334,9 @@ window.removeLocation = function(index) {
 };
 
 window.saveAdminSettings = async function() {
-    nobetSettings.dutyType = $('#settingDutyType').is(':checked') ? 'fixed' : 'rotating';
+    nobetSettings.dutyType = $('#settingDutyType').val();
+    nobetSettings.dutyDuration = $('#settingDutyDuration').val();
+    nobetSettings.dutyCount = parseInt($('#settingDutyCount').val()) || 1;
     nobetSettings.rotationDir = $('#settingRotationDir').is(':checked') ? 'desc' : 'asc';
     
     Swal.fire({title:'Kaydediliyor...', didOpen:()=>Swal.showLoading()});
@@ -388,10 +389,6 @@ window.saveTeacherSettings = async function() {
 };
 
 window.generatePlan = async function() {
-    // Basic Algorithm placeholder
-    // 1. Get next week's dates
-    // 2. For each day (Pzt-Cum), assign teachers with lowest load on that day who haven't had duty yet
-    // 3. Match with locations
     Swal.fire({
         title: 'Plan Oluşturuluyor...',
         text: 'Ders yükleri ve ayarlar hesaba katılıyor',
@@ -400,15 +397,42 @@ window.generatePlan = async function() {
     });
     
     setTimeout(async () => {
-        // Mock Generation
         const nextMonday = new Date();
         nextMonday.setDate(nextMonday.getDate() + (1 + 7 - nextMonday.getDay()) % 7);
         
         let newPlan = {}; // { 'YYYY-MM-DD': { 'locId': ['teacherUid'] } }
-        let eligibleTeachers = Object.keys(klbkUsers).filter(uid => uid !== 'admin' && uid !== 'master' && !(teacherData[uid] && teacherData[uid].exempt));
+        let eligibleTeachersList = Object.keys(klbkUsers).filter(uid => uid !== 'admin' && uid !== 'master' && !(teacherData[uid] && teacherData[uid].exempt));
+        
+        // Track how many assignments each teacher has received this week
+        let teacherAssignmentCounts = {};
+        eligibleTeachersList.forEach(uid => teacherAssignmentCounts[uid] = 0);
         
         const days = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
         let dayDate = new Date(nextMonday);
+        
+        const scoreDayForTeacher = (uid, dayName) => {
+            const s = (klbkUsers[uid] && klbkUsers[uid].schedule && klbkUsers[uid].schedule[dayName]) ? klbkUsers[uid].schedule[dayName] : null;
+            if(!s) return -999; // Not at school
+            
+            let lessons = Object.keys(s).map(n => parseInt(n)).sort((a,b)=>a-b);
+            if(lessons.length === 0) return -999;
+            
+            let min = lessons[0];
+            let max = lessons[lessons.length-1];
+            let span = max - min + 1;
+            let emptyCount = span - lessons.length;
+            
+            let score = emptyCount * 10 + span; // Priority: max empty, then max span
+            
+            // Penalize if first 2 or last 2 are empty (assuming 8 periods)
+            if(!s['1'] && !s['2']) score -= 50;
+            if(!s['7'] && !s['8']) score -= 50;
+            
+            return score;
+        };
+
+        const targetDutyCount = nobetSettings.dutyCount || 1;
+        const isHalf = nobetSettings.dutyDuration === 'half';
         
         for(let i=0; i<5; i++) {
             let dateStr = dayDate.toISOString().split('T')[0];
@@ -416,28 +440,35 @@ window.generatePlan = async function() {
             newPlan[dateStr] = {};
             
             if(nobetSettings.locations) {
-                nobetSettings.locations.forEach(loc => {
-                    newPlan[dateStr][loc.id] = [];
-                    // Assign required num of teachers randomly for now, prioritizing low load
-                    for(let k=0; k<loc.reqTeachers; k++) {
-                        if(eligibleTeachers.length > 0) {
-                            // find teacher with lowest load on this day from klbkUsers[uid].schedule
-                            eligibleTeachers.sort((a,b) => {
-                                let loadA = 0;
-                                let loadB = 0;
-                                if(klbkUsers[a] && klbkUsers[a].schedule && klbkUsers[a].schedule[dayName]) {
-                                    loadA = Object.keys(klbkUsers[a].schedule[dayName]).length;
+                // sort locations by priority
+                let sortedLocs = [...nobetSettings.locations].sort((a,b) => a.priority - b.priority);
+                
+                sortedLocs.forEach(loc => {
+                    // if half day, we need 2 shifts per location (1. Dilim and 2. Dilim). Or we just assign normally and display it?
+                    // The simplest is to create loc_1 and loc_2 under the same date
+                    let shifts = isHalf ? [`${loc.id}_dilim1`, `${loc.id}_dilim2`] : [loc.id];
+                    
+                    shifts.forEach(shiftId => {
+                        newPlan[dateStr][shiftId] = [];
+                        
+                        // Sort teachers by score
+                        let availableToday = eligibleTeachersList.filter(uid => teacherAssignmentCounts[uid] < targetDutyCount);
+                        
+                        availableToday.sort((a,b) => {
+                            return scoreDayForTeacher(b, dayName) - scoreDayForTeacher(a, dayName);
+                        });
+                        
+                        for(let k=0; k<loc.reqTeachers; k++) {
+                            if(availableToday.length > 0) {
+                                // Must have score > -999 (at school)
+                                if(scoreDayForTeacher(availableToday[0], dayName) > -500) {
+                                    let chosen = availableToday.shift();
+                                    newPlan[dateStr][shiftId].push(chosen);
+                                    teacherAssignmentCounts[chosen]++;
                                 }
-                                if(klbkUsers[b] && klbkUsers[b].schedule && klbkUsers[b].schedule[dayName]) {
-                                    loadB = Object.keys(klbkUsers[b].schedule[dayName]).length;
-                                }
-                                return loadA - loadB;
-                            });
-                            
-                            let chosen = eligibleTeachers.shift();
-                            newPlan[dateStr][loc.id].push(chosen);
+                            }
                         }
-                    }
+                    });
                 });
             }
             dayDate.setDate(dayDate.getDate() + 1);
@@ -474,10 +505,17 @@ function renderWeeklyPlan() {
         
         html += `<h3 style="margin-top:20px; border-bottom:1px solid var(--gray-200); padding-bottom:5px;">${dateStr} (${trDay})</h3>`;
         
-        for(let locId in currentWeekPlan[dateStr]) {
+        for(let shiftId in currentWeekPlan[dateStr]) {
+            let isDilim1 = shiftId.includes('_dilim1');
+            let isDilim2 = shiftId.includes('_dilim2');
+            let locId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+            
             let locInfo = nobetSettings.locations?.find(l => l.id === locId);
             let locName = locInfo ? locInfo.name : locId;
-            let teachersList = currentWeekPlan[dateStr][locId].map(uid => klbkUsers[uid]?.name || uid).join(', ');
+            if(isDilim1) locName += " (1. Dilim)";
+            if(isDilim2) locName += " (2. Dilim)";
+            
+            let teachersList = currentWeekPlan[dateStr][shiftId].map(uid => klbkUsers[uid]?.name || uid).join(', ');
             
             html += `
                 <div class="item-row" style="margin-bottom:5px; background:var(--white);">
@@ -503,10 +541,16 @@ function updateTeacherViewUI() {
     let dates = Object.keys(currentWeekPlan).sort();
     
     for(let dateStr of dates) {
-        for(let locId in currentWeekPlan[dateStr]) {
-            if(currentWeekPlan[dateStr][locId].includes(currentUser.username)) {
+        for(let shiftId in currentWeekPlan[dateStr]) {
+            if(currentWeekPlan[dateStr][shiftId].includes(currentUser.username)) {
+                let isDilim1 = shiftId.includes('_dilim1');
+                let isDilim2 = shiftId.includes('_dilim2');
+                let locId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                
                 let locInfo = nobetSettings.locations?.find(l => l.id === locId);
                 let lName = locInfo ? locInfo.name : locId;
+                if(isDilim1) lName += " (1. Dilim)";
+                if(isDilim2) lName += " (2. Dilim)";
                 
                 if(dateStr === today) {
                     isDutyToday = true;
