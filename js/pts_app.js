@@ -980,12 +980,25 @@ async function refreshCombinedData() {
         if (res.ok) {
             const users = await res.json();
             const lastUser = localStorage.getItem('klbk_currentUser') || sessionStorage.getItem('klbk_currentUser');
+            let targetTeachers = [];
+            
             if (users && lastUser && users[lastUser]) {
-                const teachers = users[lastUser].teachers || [];
-                const mudurObj = teachers.find(t => t.role === 'mudur' || (t.branch || '').toLowerCase().includes('müdür') || (t.name || '').toLowerCase().includes('müdür'));
+                targetTeachers = users[lastUser].teachers || [];
+            } else if (users) {
+                // Fallback: bulmaya çalış
+                const schoolHeader = document.getElementById('school-name-header');
+                const currentSchoolName = schoolHeader ? schoolHeader.textContent.split('|')[0].trim() : '';
+                const userKey = Object.keys(users).find(key => users[key].schoolName && users[key].schoolName.trim() === currentSchoolName);
+                if (userKey) {
+                    targetTeachers = users[userKey].teachers || [];
+                }
+            }
+            
+            if (targetTeachers.length > 0) {
+                const mudurObj = targetTeachers.find(t => t.role === 'mudur' || (t.branch || '').toLowerCase().includes('müdür') || (t.name || '').toLowerCase().includes('müdür'));
                 if (mudurObj) window.fetchedMudurName = mudurObj.name;
                 
-                const mdyObj = teachers.find(t => t.role === 'mudur_yardimcisi' || t.role === 'mudur_basyardimcisi' || t.role === 'idareci');
+                const mdyObj = targetTeachers.find(t => t.role === 'mudur_yardimcisi' || t.role === 'mudur_basyardimcisi' || t.role === 'idareci');
                 if (mdyObj) {
                     window.fetchedMdyName = mdyObj.name;
                     window.fetchedMdyRole = mdyObj.role === 'mudur_basyardimcisi' ? 'Müdür Başyardımcısı' : 'Müdür Yardımcısı';
