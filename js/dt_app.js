@@ -120,9 +120,14 @@ async function doLogin(username, password, remember) {
             const storage = remember ? localStorage : sessionStorage;
             storage.setItem('klbk_isLoggedIn', 'true');
             storage.setItem('klbk_username', username);
-            storage.setItem('klbk_name', data.name || username);
-            storage.setItem('klbk_role', data.role || 'user');
-            storage.setItem('klbk_session_token', data.token);
+            
+            let matchedRole = (data.user && data.user.role) ? data.user.role : (data.role || 'user');
+            let matchedName = (data.user && data.user.name) ? data.user.name : (data.name || username);
+            let token = data.token || (data.user && data.user.token) || 'legacy-session';
+            
+            storage.setItem('klbk_name', matchedName);
+            storage.setItem('klbk_role', matchedRole);
+            storage.setItem('klbk_session_token', token);
             
             checkSession();
         } else {
