@@ -973,6 +973,29 @@ async function refreshCombinedData() {
     reports.sort((a, b) => a.timestamp - b.timestamp).forEach(report => {
         if (report.status === 'Güncellendi') applyOverlayUpdate(combinedData, report);
     });
+    
+    try {
+        const firebaseDatabaseUrl = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
+        const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
+        if (res.ok) {
+            const users = await res.json();
+            const lastUser = localStorage.getItem('klbk_currentUser') || sessionStorage.getItem('klbk_currentUser');
+            if (users && lastUser && users[lastUser]) {
+                const teachers = users[lastUser].teachers || [];
+                const mudurObj = teachers.find(t => t.role === 'mudur' || (t.branch || '').toLowerCase().includes('müdür') || (t.name || '').toLowerCase().includes('müdür'));
+                if (mudurObj) window.fetchedMudurName = mudurObj.name;
+                
+                const mdyObj = teachers.find(t => t.role === 'mudur_yardimcisi' || t.role === 'mudur_basyardimcisi' || t.role === 'idareci');
+                if (mdyObj) {
+                    window.fetchedMdyName = mdyObj.name;
+                    window.fetchedMdyRole = mdyObj.role === 'mudur_basyardimcisi' ? 'Müdür Başyardımcısı' : 'Müdür Yardımcısı';
+                }
+            }
+        }
+    } catch(e) {
+        console.error("Müdür/Müdür Yrd çekilirken hata:", e);
+    }
+
     console.log('Data synchronization complete.');
     autoSelectTheme();
 }
@@ -1559,12 +1582,27 @@ function printReport(data) {
     fill('#p-filler', `${data.fillerName}\n${data.fillerRole}\n${fDate}`);
     
     if (pc.querySelector('#p-principal-name')) {
-        const rawName = data.principalName || localStorage.getItem('schoolPrincipal') || '';
+        const rawName = window.fetchedMudurName || data.principalName || localStorage.getItem('schoolPrincipal') || '';
         const parts = rawName.trim().split(/\s+/);
-        if (parts.length > 0) {
+        if (parts.length > 0 && rawName.trim() !== '') {
             const surname = parts.pop().toLocaleUpperCase('tr-TR');
             const names = parts.map(n => n.charAt(0).toLocaleUpperCase('tr-TR') + n.slice(1).toLocaleLowerCase('tr-TR'));
             pc.querySelector('#p-principal-name').textContent = [...names, surname].join(' ');
+        }
+    }
+
+    const vpContainer = pc.querySelector('#vp-container');
+    if (vpContainer && window.fetchedMdyName) {
+        vpContainer.style.display = 'block';
+        const rawVpName = window.fetchedMdyName;
+        const vpParts = rawVpName.trim().split(/\s+/);
+        if (vpParts.length > 0 && rawVpName.trim() !== '') {
+            const vpSurname = vpParts.pop().toLocaleUpperCase('tr-TR');
+            const vpNames = vpParts.map(n => n.charAt(0).toLocaleUpperCase('tr-TR') + n.slice(1).toLocaleLowerCase('tr-TR'));
+            pc.querySelector('#p-vice-principal-name').textContent = [...vpNames, vpSurname].join(' ');
+        }
+        if (window.fetchedMdyRole) {
+            pc.querySelector('#p-vice-principal-role').textContent = window.fetchedMdyRole;
         }
     }
 
