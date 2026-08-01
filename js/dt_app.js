@@ -569,21 +569,18 @@ window.generatePlan = async function() {
             
             let min = lessons[0];
             let max = lessons[lessons.length-1];
+            
+            // Kullanıcının kuralı: 1. ve 2. ders yoksa VEYA 7. ve 8. ders yoksa kesinlikle nöbet atama
+            if (min > 2 || max < 7) {
+                return -99999;
+            }
+            
             let span = max - min + 1;
             let emptyCount = span - lessons.length;
             
             // Primary: max span (en çok okulda durduğu gün)
             // Secondary: max empty hours (en çok boş saatlerin olduğu gün)
             let score = (span * 100) + (emptyCount * 10);
-            
-            // Penalize if arriving late or leaving early (ilk ve son saatleri boş olanlar)
-            if(min > 1 && max < 8) {
-                // Hem sabah ilk dersleri yok, hem akşam son dersleri yok (En istenmeyen)
-                score -= 5000;
-            } else if(min > 1 || max < 8) {
-                // Sadece biri yoksa hafif ceza
-                score -= 200; 
-            }
             
             return score;
         };
