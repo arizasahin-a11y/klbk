@@ -497,6 +497,10 @@ window.saveTeacherSettings = async function() {
         }
 
         $('#teacherSettingsForm').fadeOut();
+        
+        // RE-POPULATE THE DROPDOWN AND LIST SO IT UPDATES INSTANTLY
+        populateTeacherDropdowns();
+        
         Swal.fire('Başarılı', 'Öğretmen ayarları kaydedildi.', 'success');
     } catch(e) {
         Swal.fire('Hata', 'Ayarlar kaydedilirken hata oluştu: ' + e.message, 'error');
