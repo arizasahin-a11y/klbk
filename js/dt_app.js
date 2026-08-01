@@ -564,7 +564,11 @@ window.generatePlan = async function() {
             const s = (klbkUsers[uid] && klbkUsers[uid].schedule && klbkUsers[uid].schedule[shortName]) ? klbkUsers[uid].schedule[shortName] : null;
             if(!s) return -99999; // Not at school
             
-            let lessons = Object.keys(s).map(n => parseInt(n)).sort((a,b)=>a-b);
+            let lessons = Object.keys(s)
+                .filter(n => s[n] !== null && s[n] !== '' && s[n] !== undefined && n !== '0')
+                .map(n => parseInt(n))
+                .sort((a,b)=>a-b);
+                
             if(lessons.length === 0) return -99999;
             
             let min = lessons[0];
