@@ -5,6 +5,7 @@ let nobetSettings = {
     dutyType: 'weekly', // 'weekly', 'monthly', 'fixed'
     dutyDuration: 'full', // 'full', 'half'
     dutyCount: 1,
+    adminCount: 1,
     rotationDir: 'asc', // 'asc' or 'desc'
     locations: []
 };
@@ -261,6 +262,7 @@ function updateAdminSettingsUI() {
     $('#settingDutyType').val(nobetSettings.dutyType || 'weekly').trigger('change');
     $('#settingDutyDuration').val(nobetSettings.dutyDuration || 'full');
     $('#settingDutyCount').val(nobetSettings.dutyCount || 1);
+    $('#settingAdminCount').val(nobetSettings.adminCount !== undefined ? nobetSettings.adminCount : 1);
     $('#settingRotationDir').prop('checked', nobetSettings.rotationDir === 'desc').trigger('change');
     renderLocationsList();
 }
@@ -339,6 +341,7 @@ window.saveAdminSettings = async function() {
     nobetSettings.dutyType = $('#settingDutyType').val();
     nobetSettings.dutyDuration = $('#settingDutyDuration').val();
     nobetSettings.dutyCount = parseInt($('#settingDutyCount').val()) || 1;
+    nobetSettings.adminCount = parseInt($('#settingAdminCount').val()) || 0;
     nobetSettings.rotationDir = $('#settingRotationDir').is(':checked') ? 'desc' : 'asc';
     
     Swal.fire({title:'Kaydediliyor...', didOpen:()=>Swal.showLoading()});
@@ -404,14 +407,24 @@ window.generatePlan = async function() {
         
         let newPlan = {}; // { 'YYYY-MM-DD': { 'locId': ['teacherUid'] } }
         const adminRoles = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'];
+        const realAdminRoles = ['idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi']; // exclude master/admin sys accounts
+
         let eligibleTeachersList = Object.keys(klbkUsers).filter(uid => {
             let role = (klbkUsers[uid].role || '').toLowerCase().trim();
             return uid !== 'admin' && uid !== 'master' && !adminRoles.includes(role) && !(teacherData[uid] && teacherData[uid].exempt);
+        });
+
+        let eligibleAdminsList = Object.keys(klbkUsers).filter(uid => {
+            let role = (klbkUsers[uid].role || '').toLowerCase().trim();
+            return realAdminRoles.includes(role) && !(teacherData[uid] && teacherData[uid].exempt);
         });
         
         // Track how many assignments each teacher has received this week
         let teacherAssignmentCounts = {};
         eligibleTeachersList.forEach(uid => teacherAssignmentCounts[uid] = 0);
+
+        let adminAssignmentCounts = {};
+        eligibleAdminsList.forEach(uid => adminAssignmentCounts[uid] = 0);
         
         const days = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
         let dayDate = new Date(nextMonday);
@@ -438,13 +451,34 @@ window.generatePlan = async function() {
         };
 
         const targetDutyCount = nobetSettings.dutyCount || 1;
+        const targetAdminCount = nobetSettings.adminCount !== undefined ? nobetSettings.adminCount : 1;
         const isHalf = nobetSettings.dutyDuration === 'half';
         
         for(let i=0; i<5; i++) {
             let dateStr = dayDate.toISOString().split('T')[0];
             let dayName = days[i];
             newPlan[dateStr] = {};
+
+            // 1. Assign Admins
+            if(targetAdminCount > 0 && eligibleAdminsList.length > 0) {
+                newPlan[dateStr]['_admin_duty'] = [];
+                let availableAdmins = [...eligibleAdminsList];
+                // sort admins by lowest assignment count, then randomly
+                availableAdmins.sort((a,b) => {
+                    let diff = adminAssignmentCounts[a] - adminAssignmentCounts[b];
+                    return diff === 0 ? Math.random() - 0.5 : diff;
+                });
+
+                for(let k=0; k<targetAdminCount; k++) {
+                    if(availableAdmins.length > 0) {
+                        let chosenAdmin = availableAdmins.shift();
+                        newPlan[dateStr]['_admin_duty'].push(chosenAdmin);
+                        adminAssignmentCounts[chosenAdmin]++;
+                    }
+                }
+            }
             
+            // 2. Assign Teachers
             if(nobetSettings.locations) {
                 // sort locations by priority
                 let sortedLocs = [...nobetSettings.locations].sort((a,b) => a.priority - b.priority);
@@ -512,14 +546,19 @@ function renderWeeklyPlan() {
         html += `<h3 style="margin-top:20px; border-bottom:1px solid var(--gray-200); padding-bottom:5px;">${dateStr} (${trDay})</h3>`;
         
         for(let shiftId in currentWeekPlan[dateStr]) {
-            let isDilim1 = shiftId.includes('_dilim1');
-            let isDilim2 = shiftId.includes('_dilim2');
-            let locId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
-            
-            let locInfo = nobetSettings.locations?.find(l => l.id === locId);
-            let locName = locInfo ? locInfo.name : locId;
-            if(isDilim1) locName += " (1. Dilim)";
-            if(isDilim2) locName += " (2. Dilim)";
+            let locName = shiftId;
+            if(shiftId === '_admin_duty') {
+                locName = "Nöbetçi İdareci";
+            } else {
+                let isDilim1 = shiftId.includes('_dilim1');
+                let isDilim2 = shiftId.includes('_dilim2');
+                let locId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                
+                let locInfo = nobetSettings.locations?.find(l => l.id === locId);
+                locName = locInfo ? locInfo.name : locId;
+                if(isDilim1) locName += " (1. Dilim)";
+                if(isDilim2) locName += " (2. Dilim)";
+            }
             
             let teachersList = currentWeekPlan[dateStr][shiftId].map(uid => klbkUsers[uid]?.name || uid).join(', ');
             
@@ -549,14 +588,19 @@ function updateTeacherViewUI() {
     for(let dateStr of dates) {
         for(let shiftId in currentWeekPlan[dateStr]) {
             if(currentWeekPlan[dateStr][shiftId].includes(currentUser.username)) {
-                let isDilim1 = shiftId.includes('_dilim1');
-                let isDilim2 = shiftId.includes('_dilim2');
-                let locId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
-                
-                let locInfo = nobetSettings.locations?.find(l => l.id === locId);
-                let lName = locInfo ? locInfo.name : locId;
-                if(isDilim1) lName += " (1. Dilim)";
-                if(isDilim2) lName += " (2. Dilim)";
+                let lName = shiftId;
+                if(shiftId === '_admin_duty') {
+                    lName = "Nöbetçi İdareci";
+                } else {
+                    let isDilim1 = shiftId.includes('_dilim1');
+                    let isDilim2 = shiftId.includes('_dilim2');
+                    let locId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                    
+                    let locInfo = nobetSettings.locations?.find(l => l.id === locId);
+                    lName = locInfo ? locInfo.name : locId;
+                    if(isDilim1) lName += " (1. Dilim)";
+                    if(isDilim2) lName += " (2. Dilim)";
+                }
                 
                 if(dateStr === today) {
                     isDutyToday = true;
