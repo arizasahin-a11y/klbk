@@ -1117,12 +1117,24 @@ let globalLeadersMap = new Map();
         }
 
         function checkPortalAuth() {
-            const isLogged = (sessionStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true' || 
-                              sessionStorage.getItem('klbk_isLoggedIn') === 'true' ||
-                              localStorage.getItem('klbk_isLoggedIn') === 'true' ||
-                              localStorage.getItem('klbk_currentUser') !== null ||
-                              sessionStorage.getItem('klbk_currentUser') !== null) ? 'true' : 'false';
-            const user = sessionStorage.getItem('klbk_faaliyet_user') || sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || localStorage.getItem('klbk_currentUser');
+            const urlParams = new URLSearchParams(window.location.search);
+            const isGuest = urlParams.get('guest') === 'true';
+
+            let isLogged = 'false';
+            if (isGuest) {
+                isLogged = 'true';
+                // Automatically set a guest session so refresh works
+                sessionStorage.setItem('klbk_faaliyet_isLoggedIn', 'true');
+                sessionStorage.setItem('klbk_faaliyet_user', 'PTS Misafiri');
+            } else {
+                isLogged = (sessionStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true' || 
+                                sessionStorage.getItem('klbk_isLoggedIn') === 'true' ||
+                                localStorage.getItem('klbk_isLoggedIn') === 'true' ||
+                                localStorage.getItem('klbk_currentUser') !== null ||
+                                sessionStorage.getItem('klbk_currentUser') !== null) ? 'true' : 'false';
+            }
+
+            const user = sessionStorage.getItem('klbk_faaliyet_user') || sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || localStorage.getItem('klbk_currentUser') || 'Misafir Kullanıcı';
 
             if (isLogged === 'true' || isLogged === 'guest') {
                 showAuthenticatedPortal(user || 'Giriş Yapıldı');
