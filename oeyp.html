@@ -1117,13 +1117,14 @@
             const act = schoolData.activities.find(a => a.id === id);
             if (!act) return;
             
-            // Scroll to top
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            
-            // Open accordion if closed
-            const formAccordion = document.querySelector('.accordion-item');
-            if(formAccordion && !formAccordion.classList.contains('active')) {
-                formAccordion.classList.add('active');
+            // Scroll to the new activity panel
+            const formAccordion = document.getElementById('newActivityPanel');
+            if (formAccordion) {
+                formAccordion.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Open accordion if closed
+                if (!formAccordion.classList.contains('active')) {
+                    formAccordion.classList.add('active');
+                }
             }
             
             // Fill the form
