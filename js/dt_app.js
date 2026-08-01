@@ -175,8 +175,7 @@ async function loadInitialData() {
     
     try {
         // Fetch Users (for teacher lists) - API handles token
-        const headers = { 'Authorization': `Bearer ${currentUser.token}` };
-        const usersRes = await fetch('/api/users', { headers });
+        const usersRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json`);
         if(usersRes.ok) {
             klbkUsers = await usersRes.json();
             populateTeacherDropdowns();
@@ -184,7 +183,7 @@ async function loadInitialData() {
 
         // Fetch Students
         const storeKey = sessionStorage.getItem('klbk_storeKey') || 'klbk_data_admin';
-        const stRes = await fetch(`${FIREBASE_DB_URL}/app_store/${storeKey}.json?auth=${currentUser.token}`);
+        const stRes = await fetch(`${FIREBASE_DB_URL}/app_store/${storeKey}.json`);
         if(stRes.ok) {
             const stData = await stRes.json();
             if(stData && stData.students) {
@@ -194,7 +193,7 @@ async function loadInitialData() {
         populateStudentDropdown();
 
         // Fetch Settings & Plans from Firebase using REST
-        const settingsRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/settings.json?auth=${currentUser.token}`); // if db rules allow, else we need a proxy API. Assuming db rules allow authenticated read.
+        const settingsRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/settings.json`); // if db rules allow, else we need a proxy API. Assuming db rules allow authenticated read.
         if (settingsRes.ok) {
             const data = await settingsRes.json();
             if (data) {
@@ -341,7 +340,7 @@ window.saveAdminSettings = async function() {
     
     Swal.fire({title:'Kaydediliyor...', didOpen:()=>Swal.showLoading()});
     try {
-        await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/settings/global.json?auth=${currentUser.token}`, {
+        await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/settings/global.json`, {
             method: 'PUT',
             body: JSON.stringify(nobetSettings)
         });
@@ -378,7 +377,7 @@ window.saveTeacherSettings = async function() {
     
     Swal.fire({title:'Kaydediliyor...', didOpen:()=>Swal.showLoading()});
     try {
-        await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/settings/teachers/${uid}.json?auth=${currentUser.token}`, {
+        await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/settings/teachers/${uid}.json`, {
             method: 'PUT',
             body: JSON.stringify(tData)
         });
@@ -478,7 +477,7 @@ window.generatePlan = async function() {
         
         // Save to Firebase
         try {
-            await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/plans.json?auth=${currentUser.token}`, {
+            await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/plans.json`, {
                 method: 'PUT',
                 body: JSON.stringify(newPlan)
             });
@@ -611,7 +610,7 @@ async function submitIncident() {
     
     Swal.fire({title:'Gönderiliyor...', didOpen:()=>Swal.showLoading()});
     try {
-        await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/incidents/${Date.now()}.json?auth=${currentUser.token}`, {
+        await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/incidents/${Date.now()}.json`, {
             method: 'PUT',
             body: JSON.stringify(incidentData)
         });
@@ -625,7 +624,7 @@ async function submitIncident() {
 
 async function loadIncidents() {
     try {
-        const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/incidents.json?auth=${currentUser.token}`);
+        const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/incidents.json`);
         if(res.ok) {
             const data = await res.json();
             if(data) {
