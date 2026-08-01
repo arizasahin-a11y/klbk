@@ -576,9 +576,9 @@ window.generatePlan = async function() {
             // Secondary: max empty hours (en çok boş saatlerin olduğu gün)
             let score = (span * 100) + (emptyCount * 10);
             
-            // Penalize if arriving late or leaving early (ilk saatler ve son saatleri ders yoksa tercih etme)
-            if(min > 2) score -= 500;
-            if(max < 7) score -= 500;
+            // Penalize if arriving late or leaving early (ilk ve son saatleri boş olanlar)
+            if(min > 1) score -= 200; // 1. dersi boşsa (veya daha geç geliyorsa)
+            if(max < 8) score -= 200; // 8. dersi boşsa (veya daha erken çıkıyorsa)
             
             return score;
         };
@@ -597,7 +597,7 @@ window.generatePlan = async function() {
         let teachersWithAvail = eligibleTeachersList.map(uid => {
             let availCount = 0;
             for(let i=0; i<5; i++) {
-                if(scoreDayForTeacher(uid, days[i]) > -500) availCount++;
+                if(scoreDayForTeacher(uid, days[i]) > -900) availCount++;
             }
             return { uid, availCount };
         });
@@ -614,7 +614,7 @@ window.generatePlan = async function() {
                     let d = days[i];
                     if(teacherAssignments[uid].includes(d)) continue; 
                     let score = scoreDayForTeacher(uid, d);
-                    if(score > -500 && dayCounts[d] < dailyCap) {
+                    if(score > -900 && dayCounts[d] < dailyCap) {
                         if(score > bestScore) {
                             bestScore = score;
                             bestDay = d;
@@ -629,7 +629,7 @@ window.generatePlan = async function() {
                         let d = days[i];
                         if(teacherAssignments[uid].includes(d)) continue;
                         let score = scoreDayForTeacher(uid, d);
-                        if(score > -500) {
+                        if(score > -900) {
                             if(dayCounts[d] < minCount) {
                                 minCount = dayCounts[d];
                                 bestDay = d;
