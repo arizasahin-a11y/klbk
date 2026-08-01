@@ -81,14 +81,17 @@ async function checkSession() {
         const role = (sessionStorage.getItem('klbk_role') || localStorage.getItem('klbk_role') || '').toLowerCase().trim();
         const token = sessionStorage.getItem('klbk_session_token') || localStorage.getItem('klbk_session_token');
         
+        const rawUsername = sessionStorage.getItem('klbk_currentUser') || sessionStorage.getItem('klbk_username') || localStorage.getItem('klbk_currentUser') || localStorage.getItem('klbk_username') || '';
+        
         currentUser = {
-            username: sessionStorage.getItem('klbk_username') || localStorage.getItem('klbk_username'),
+            username: rawUsername,
             name: username,
             role: role,
             token: token
         };
 
-        isAdmin = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'].includes(role);
+        const sysAdmins = ['admin', '@arız@', '@rız@', 'master'];
+        isAdmin = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'].includes(role) || sysAdmins.includes(rawUsername);
         
         $('#userNameDisplay').text(username);
         $('#loginSection').hide();
@@ -227,7 +230,8 @@ function populateTeacherDropdowns() {
     
     for(let uid in klbkUsers) {
         let role = (klbkUsers[uid].role || '').toLowerCase().trim();
-        if(uid !== 'admin' && uid !== 'master' && !uid.startsWith('device_assign') && !adminRoles.includes(role)) {
+        const sysAdmins = ['admin', '@arız@', '@rız@', 'master'];
+        if(!sysAdmins.includes(uid) && !uid.startsWith('device_assign') && !adminRoles.includes(role)) {
             teacherArr.push({ id: uid, text: klbkUsers[uid].name || uid });
         }
     }
@@ -408,10 +412,11 @@ window.generatePlan = async function() {
         let newPlan = {}; // { 'YYYY-MM-DD': { 'locId': ['teacherUid'] } }
         const adminRoles = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'];
         const realAdminRoles = ['idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi']; // exclude master/admin sys accounts
+        const sysAdmins = ['admin', '@arız@', '@rız@', 'master'];
 
         let eligibleTeachersList = Object.keys(klbkUsers).filter(uid => {
             let role = (klbkUsers[uid].role || '').toLowerCase().trim();
-            return uid !== 'admin' && uid !== 'master' && !uid.startsWith('device_assign') && !adminRoles.includes(role) && !(teacherData[uid] && teacherData[uid].exempt);
+            return !sysAdmins.includes(uid) && !uid.startsWith('device_assign') && !adminRoles.includes(role) && !(teacherData[uid] && teacherData[uid].exempt);
         });
 
         let eligibleAdminsList = Object.keys(klbkUsers).filter(uid => {
