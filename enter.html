@@ -390,11 +390,17 @@
         let portalLinks = [];
 
         document.addEventListener('DOMContentLoaded', () => {
-            const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true';
+            const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || localStorage.getItem('klbk_isLoggedIn') === 'true';
             
             if (isLoggedIn) {
                 document.getElementById('portalSection').style.display = 'block';
-                document.getElementById('portalUserName').innerText = sessionStorage.getItem('klbk_name') || 'Kullanıcı';
+                const userName = sessionStorage.getItem('klbk_name') || 
+                                 sessionStorage.getItem('klbk_faaliyet_user') || 
+                                 localStorage.getItem('klbk_name') || 
+                                 localStorage.getItem('klbk_currentUser') || 
+                                 sessionStorage.getItem('klbk_currentUser') || 
+                                 'Kullanıcı';
+                document.getElementById('portalUserName').innerText = userName;
                 
                 const role = (sessionStorage.getItem('klbk_role') || '').toLowerCase().trim();
                 const isAdmin = role === 'admin' || role === 'master' || role === 'idareci';
