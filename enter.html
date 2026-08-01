@@ -424,9 +424,9 @@
                     const data = await res.json();
                     if (data && data.links) {
                         if (Array.isArray(data.links)) {
-                            portalLinks = data.links;
+                            portalLinks = data.links.filter(l => l != null);
                         } else if (typeof data.links === 'object') {
-                            portalLinks = Object.values(data.links);
+                            portalLinks = Object.values(data.links).filter(l => l != null);
                         } else {
                             portalLinks = [];
                         }
@@ -459,7 +459,7 @@
 
             // Veritabaninda kayitli olmayanlari listeye ekle
             allHtmlFiles.forEach(hf => {
-                if (!portalLinks.find(pl => pl.id === hf.id)) {
+                if (!portalLinks.find(pl => pl && pl.id === hf.id)) {
                     // İlk yuklemede yoklama vs aktif gelsin diye kucuk bir ayar
                     if (hf.id === 'html_yoklama_ogretmen' || hf.id === 'html_ogrenci' || hf.id === 'html_ogrencitakip' || hf.id === 'html_zumreci' || hf.id === 'html_pts' || hf.id === 'html_listeci') {
                         hf.active = true;
@@ -471,7 +471,7 @@
             // Deduplicate links by URL so duplicate cards never show up
             const seenUrls = new Set();
             portalLinks = portalLinks.filter(link => {
-                if (!link.url || seenUrls.has(link.url)) return false;
+                if (!link || !link.url || seenUrls.has(link.url)) return false;
                 seenUrls.add(link.url);
                 return true;
             });
