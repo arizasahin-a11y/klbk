@@ -402,8 +402,8 @@
                                  'Kullanıcı';
                 document.getElementById('portalUserName').innerText = userName;
                 
-                const role = (sessionStorage.getItem('klbk_role') || '').toLowerCase().trim();
-                const isAdmin = role === 'admin' || role === 'master' || role === 'idareci';
+                const role = (sessionStorage.getItem('klbk_role') || localStorage.getItem('klbk_role') || '').toLowerCase().trim();
+                const isAdmin = role === 'admin' || role === 'master' || role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi';
                 
                 if (isAdmin) {
                     document.getElementById('portalRoleDesc').innerText = 'Yönetici Portalı';
@@ -615,8 +615,8 @@
             localStorage.setItem('klbk_teacher_link_order', JSON.stringify(orderIds));
             
             // Check isAdmin global var or re-calculate
-            const role = (sessionStorage.getItem('klbk_role') || '').toLowerCase().trim();
-            const isAdmin = role === 'admin' || role === 'master' || role === 'idareci';
+            const role = (sessionStorage.getItem('klbk_role') || localStorage.getItem('klbk_role') || '').toLowerCase().trim();
+            const isAdmin = role === 'admin' || role === 'master' || role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi';
             renderTeacherLinks(isAdmin);
         }
 

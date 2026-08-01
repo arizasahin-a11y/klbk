@@ -1001,6 +1001,9 @@ let globalLeadersMap = new Map();
                     sessionStorage.setItem('klbk_faaliyet_isLoggedIn', 'true');
                     sessionStorage.setItem('klbk_isLoggedIn', 'true');
                     sessionStorage.setItem('klbk_faaliyet_user', displayName);
+                    if (userObj && userObj.role) {
+                        sessionStorage.setItem('klbk_role', userObj.role);
+                    }
 
                     if (typeof Swal !== 'undefined') {
                         Swal.fire({ icon: 'success', title: 'Giriş Başarılı', text: `Hoş geldiniz, ${displayName}`, timer: 1200, showConfirmButton: false });
