@@ -256,19 +256,60 @@ function populateTeacherDropdowns() {
         let role = (klbkUsers[uid].role || '').toLowerCase().trim();
         let isSystemAccount = uid.startsWith('admin') || uid.startsWith('master') || uid.startsWith('device_assign') || uid.startsWith('@');
         if(!isSystemAccount && !adminRoles.includes(role)) {
-            teacherArr.push({ id: uid, text: klbkUsers[uid].name || uid });
+            let tData = teacherData[uid] || { exempt: false, fixedLoc: '' };
+            teacherArr.push({ 
+                id: uid, 
+                text: klbkUsers[uid].name || uid,
+                exempt: tData.exempt,
+                fixedLoc: tData.fixedLoc
+            });
         }
     }
-    teacherArr.sort((a,b) => a.text.localeCompare(b.text));
+    
+    // Sort: Exempt at bottom, then alphabetical
+    teacherArr.sort((a,b) => {
+        if(a.exempt && !b.exempt) return 1;
+        if(!a.exempt && b.exempt) return -1;
+        return a.text.localeCompare(b.text);
+    });
     
     teacherArr.forEach(t => {
-        options += `<option value="${t.id}">${t.text}</option>`;
+        let color = '';
+        let displayText = t.text;
+        
+        if(t.exempt) {
+            color = 'red';
+        } else if(t.fixedLoc) {
+            color = 'green';
+            let locName = t.fixedLoc;
+            if(nobetSettings && nobetSettings.locations) {
+                let locObj = nobetSettings.locations.find(l => l.id === t.fixedLoc);
+                if(locObj) locName = locObj.name;
+            }
+            displayText += ` (${locName})`;
+        }
+        
+        options += `<option value="${t.id}" data-color="${color}">${displayText}</option>`;
     });
+
+    if ($('.select2-teachers').hasClass("select2-hidden-accessible")) {
+        $('.select2-teachers').select2('destroy');
+    }
 
     $('#teacherSelect').html(options);
     $('#incTeachers').html(options); // multiple select
     
-    $('.select2-teachers').select2();
+    const formatState = function (state) {
+        if (!state.id) return state.text;
+        let color = $(state.element).attr('data-color');
+        if (!color) return state.text;
+        return $(`<span style="color: ${color}; font-weight: 500;">${state.text}</span>`);
+    };
+
+    $('.select2-teachers').select2({
+        templateResult: formatState,
+        templateSelection: formatState
+    });
 }
 
 function populateStudentDropdown() {
