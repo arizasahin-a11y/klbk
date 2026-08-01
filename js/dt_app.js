@@ -591,9 +591,19 @@ window.generatePlan = async function() {
         const targetDutyCount = nobetSettings.dutyCount || 1;
         const targetAdminCount = nobetSettings.adminCount !== undefined ? nobetSettings.adminCount : 1;
         const isHalf = nobetSettings.dutyDuration === 'half';
+        // Calculate minimum required teachers per day
+        let reqPerDay = 0;
+        if(nobetSettings.locations && nobetSettings.locations.length > 0) {
+            nobetSettings.locations.forEach(loc => {
+                reqPerDay += (loc.reqTeachers ? parseInt(loc.reqTeachers) : 1);
+            });
+            if (isHalf) reqPerDay *= 2;
+        } else {
+            reqPerDay = 1;
+        }
         
         // --- NEW ALGORITHM: Distribute teachers across days first ---
-        let dailyCap = Math.ceil((eligibleTeachersList.length * targetDutyCount) / 5);
+        let dailyCap = Math.max(reqPerDay, Math.ceil((eligibleTeachersList.length * targetDutyCount) / 5));
         let dayCounts = { 'Pazartesi': 0, 'Salı': 0, 'Çarşamba': 0, 'Perşembe': 0, 'Cuma': 0 };
         let teacherAssignments = {};
         eligibleTeachersList.forEach(uid => teacherAssignments[uid] = []);
@@ -619,9 +629,11 @@ window.generatePlan = async function() {
                     let d = days[i];
                     if(teacherAssignments[uid].includes(d)) continue; 
                     let score = scoreDayForTeacher(uid, d);
+                    let starvationBoost = (dayCounts[d] < reqPerDay) ? 10000 : 0;
+                    let boostedScore = score + starvationBoost;
                     if(score > -90000 && dayCounts[d] < dailyCap) {
-                        if(score > bestScore) {
-                            bestScore = score;
+                        if(boostedScore > bestScore) {
+                            bestScore = boostedScore;
                             bestDay = d;
                         }
                     }
@@ -634,14 +646,16 @@ window.generatePlan = async function() {
                         let d = days[i];
                         if(teacherAssignments[uid].includes(d)) continue;
                         let score = scoreDayForTeacher(uid, d);
+                        let starvationBoost = (dayCounts[d] < reqPerDay) ? 10000 : 0;
+                        let boostedScore = score + starvationBoost;
                         if(score > -90000) {
                             if(dayCounts[d] < minCount) {
                                 minCount = dayCounts[d];
                                 bestDay = d;
-                                bestScore = score;
-                            } else if (dayCounts[d] === minCount && score > bestScore) {
+                                bestScore = boostedScore;
+                            } else if (dayCounts[d] === minCount && boostedScore > bestScore) {
                                 bestDay = d;
-                                bestScore = score;
+                                bestScore = boostedScore;
                             }
                         }
                     }
@@ -686,11 +700,15 @@ window.generatePlan = async function() {
                 let shifts = [];
                 
                 sortedLocs.forEach(loc => {
-                    if(isHalf) {
-                        shifts.push({ id: `${loc.id}_dilim1`, locId: loc.id, priority: loc.priority });
-                        shifts.push({ id: `${loc.id}_dilim2`, locId: loc.id, priority: loc.priority });
-                    } else {
-                        shifts.push({ id: loc.id, locId: loc.id, priority: loc.priority });
+                    let req = loc.reqTeachers ? parseInt(loc.reqTeachers) : 1;
+                    for (let r = 0; r < req; r++) {
+                        let idSuffix = req > 1 ? `_${r+1}` : '';
+                        if(isHalf) {
+                            shifts.push({ id: `${loc.id}${idSuffix}_dilim1`, locId: loc.id, priority: loc.priority });
+                            shifts.push({ id: `${loc.id}${idSuffix}_dilim2`, locId: loc.id, priority: loc.priority });
+                        } else {
+                            shifts.push({ id: `${loc.id}${idSuffix}`, locId: loc.id, priority: loc.priority });
+                        }
                     }
                 });
                 
