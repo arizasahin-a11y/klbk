@@ -227,7 +227,7 @@ function populateTeacherDropdowns() {
     
     for(let uid in klbkUsers) {
         let role = (klbkUsers[uid].role || '').toLowerCase().trim();
-        if(uid !== 'admin' && uid !== 'master' && !adminRoles.includes(role)) {
+        if(uid !== 'admin' && uid !== 'master' && !uid.startsWith('device_assign') && !adminRoles.includes(role)) {
             teacherArr.push({ id: uid, text: klbkUsers[uid].name || uid });
         }
     }
@@ -411,12 +411,12 @@ window.generatePlan = async function() {
 
         let eligibleTeachersList = Object.keys(klbkUsers).filter(uid => {
             let role = (klbkUsers[uid].role || '').toLowerCase().trim();
-            return uid !== 'admin' && uid !== 'master' && !adminRoles.includes(role) && !(teacherData[uid] && teacherData[uid].exempt);
+            return uid !== 'admin' && uid !== 'master' && !uid.startsWith('device_assign') && !adminRoles.includes(role) && !(teacherData[uid] && teacherData[uid].exempt);
         });
 
         let eligibleAdminsList = Object.keys(klbkUsers).filter(uid => {
             let role = (klbkUsers[uid].role || '').toLowerCase().trim();
-            return realAdminRoles.includes(role) && !(teacherData[uid] && teacherData[uid].exempt);
+            return realAdminRoles.includes(role) && !uid.startsWith('device_assign') && !(teacherData[uid] && teacherData[uid].exempt);
         });
         
         // Track how many assignments each teacher has received this week
