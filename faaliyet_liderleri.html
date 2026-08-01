@@ -1039,6 +1039,8 @@ let globalLeadersMap = new Map();
 
         function handlePortalLogout() {
             sessionStorage.clear();
+            localStorage.removeItem('klbk_currentUser');
+            localStorage.removeItem('klbk_isLoggedIn');
             window.location.reload();
         }
 
