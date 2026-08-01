@@ -222,8 +222,11 @@ async function loadInitialData() {
 function populateTeacherDropdowns() {
     let options = '<option value="">-- Öğretmen Seç --</option>';
     let teacherArr = [];
+    const adminRoles = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'];
+    
     for(let uid in klbkUsers) {
-        if(uid !== 'admin' && uid !== 'master') {
+        let role = (klbkUsers[uid].role || '').toLowerCase().trim();
+        if(uid !== 'admin' && uid !== 'master' && !adminRoles.includes(role)) {
             teacherArr.push({ id: uid, text: klbkUsers[uid].name || uid });
         }
     }
@@ -400,7 +403,11 @@ window.generatePlan = async function() {
         nextMonday.setDate(nextMonday.getDate() + (1 + 7 - nextMonday.getDay()) % 7);
         
         let newPlan = {}; // { 'YYYY-MM-DD': { 'locId': ['teacherUid'] } }
-        let eligibleTeachersList = Object.keys(klbkUsers).filter(uid => uid !== 'admin' && uid !== 'master' && !(teacherData[uid] && teacherData[uid].exempt));
+        const adminRoles = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'];
+        let eligibleTeachersList = Object.keys(klbkUsers).filter(uid => {
+            let role = (klbkUsers[uid].role || '').toLowerCase().trim();
+            return uid !== 'admin' && uid !== 'master' && !adminRoles.includes(role) && !(teacherData[uid] && teacherData[uid].exempt);
+        });
         
         // Track how many assignments each teacher has received this week
         let teacherAssignmentCounts = {};
