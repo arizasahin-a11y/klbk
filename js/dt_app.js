@@ -572,11 +572,13 @@ window.generatePlan = async function() {
             let span = max - min + 1;
             let emptyCount = span - lessons.length;
             
-            let score = emptyCount * 10 + span; // Priority: max empty, then max span
+            // Primary: max span (en çok okulda durduğu gün)
+            // Secondary: max empty hours (en çok boş saatlerin olduğu gün)
+            let score = (span * 100) + (emptyCount * 10);
             
-            // Penalize if first 2 or last 2 are empty (assuming 8 periods)
-            if(!s['1'] && !s['2']) score -= 50;
-            if(!s['7'] && !s['8']) score -= 50;
+            // Penalize if arriving late or leaving early (ilk saatler ve son saatleri ders yoksa tercih etme)
+            if(min > 2) score -= 500;
+            if(max < 7) score -= 500;
             
             return score;
         };
