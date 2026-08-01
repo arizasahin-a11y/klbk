@@ -153,19 +153,24 @@ function logout() {
 function buildTabs() {
     let tabsHtml = '';
     
-    // Both Admin and Teacher see their active duty tab
-    tabsHtml += `<button class="tab-btn active" onclick="switchTab('teacher-active', this)"><i class="fa-solid fa-user-shield"></i> Nöbet Durumum</button>`;
-
     if (isAdmin) {
         tabsHtml += `
+            <button class="tab-btn" onclick="switchTab('teacher-active', this)"><i class="fa-solid fa-user-shield"></i> Nöbet Durumum</button>
             <button class="tab-btn" onclick="switchTab('admin-settings', this)"><i class="fa-solid fa-cogs"></i> Ayarlar</button>
-            <button class="tab-btn" onclick="switchTab('admin-plan', this)"><i class="fa-solid fa-calendar-alt"></i> Planlama</button>
+            <button class="tab-btn active" onclick="switchTab('admin-plan', this)"><i class="fa-solid fa-calendar-alt"></i> Planlama</button>
             <button class="tab-btn" onclick="switchTab('admin-incidents', this)"><i class="fa-solid fa-folder-open"></i> Tutanaklar</button>
         `;
+    } else {
+        tabsHtml += `<button class="tab-btn active" onclick="switchTab('teacher-active', this)"><i class="fa-solid fa-user-shield"></i> Nöbet Durumum</button>`;
     }
     
     $('#mainTabs').html(tabsHtml);
-    switchTab('teacher-active', $('#mainTabs .tab-btn').first()[0]);
+    
+    if (isAdmin) {
+        switchTab('admin-plan', $('.tab-btn.active')[0]);
+    } else {
+        switchTab('teacher-active', $('.tab-btn.active')[0]);
+    }
 }
 
 window.switchTab = function(tabId, btnElement) {
