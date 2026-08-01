@@ -283,15 +283,17 @@
                         <option value="">Plan Bulunmuyor</option>
                     </select>
                     
-                    <button id="publishPlanBtn" class="btn" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: none;" onclick="publishCurrentPlan()">
-                        <i class="fa-solid fa-bullhorn"></i> Yayınla
-                    </button>
-                    <button id="unpublishPlanBtn" class="btn" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: none;" onclick="unpublishCurrentPlan()">
-                        <i class="fa-solid fa-eye-slash"></i> Yayından Kaldır
-                    </button>
-                    <button id="deletePlanBtn" class="btn" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: none;" onclick="deleteCurrentPlan()">
-                        <i class="fa-solid fa-trash"></i> Sil
-                    </button>
+                    <div id="planActionToggleGroup" style="display: none; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex;">
+                        <button id="togglePublishBtn" style="padding: 8px 16px; border: none; background: white; cursor: pointer; border-right: 1px solid #cbd5e1; font-weight: 600; color: #64748b; transition: all 0.2s;" onclick="publishCurrentPlan()">
+                            <i class="fa-solid fa-bullhorn"></i> Yayınla
+                        </button>
+                        <button id="toggleUnpublishBtn" style="padding: 8px 16px; border: none; background: white; cursor: pointer; border-right: 1px solid #cbd5e1; font-weight: 600; color: #64748b; transition: all 0.2s;" onclick="unpublishCurrentPlan()">
+                            <i class="fa-solid fa-eye-slash"></i> Yayından Kaldır
+                        </button>
+                        <button id="toggleArchiveBtn" style="padding: 8px 16px; border: none; background: white; cursor: pointer; font-weight: 600; color: #64748b; transition: all 0.2s;" onclick="deleteCurrentPlan()">
+                            <i class="fa-solid fa-box-archive"></i> Arşivle (Sil)
+                        </button>
+                    </div>
                 </div>
                 
                 <div id="planStatusBanner" style="display: none; padding: 10px; text-align: center; font-weight: 600; margin-bottom: 15px; border-radius: 6px;"></div>
