@@ -136,12 +136,12 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Olaya Karışan Öğrenciler (İsim/Numara)</label>
-                    <div class="input-wrapper">
-                        <i class="fa-solid fa-user-graduate"></i>
-                        <input type="text" id="incStudents" placeholder="Örn: 10-A Ali Yılmaz, 9-B Ayşe Kaya" required>
+                    <label>Olaya Karışan Öğrenciler (Varsa)</label>
+                    <div class="input-wrapper" style="width: 100%;">
+                        <select id="incStudents" class="select2-students" multiple="multiple" style="width: 100%;">
+                            <!-- Loaded via JS -->
+                        </select>
                     </div>
-                    <small style="color:var(--gray-500); margin-top:5px; display:block;">Birden fazla öğrenci varsa virgülle ayırın.</small>
                 </div>
                 <div class="form-group">
                     <label>İlgili Diğer Öğretmenler (Varsa)</label>
@@ -236,17 +236,6 @@
                                 <option value="">-- Sabit Yeri Yok --</option>
                                 <!-- JS Injected -->
                             </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Haftalık Ders Yükü (Günlük Ders Saati)</label>
-                            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; text-align:center;">
-                                <div><small>Pzt</small><input type="number" id="tsLoadPzt" min="0" max="10" value="0" style="width:100%; padding:5px; border:1px solid #ccc; border-radius:4px;"></div>
-                                <div><small>Sal</small><input type="number" id="tsLoadSal" min="0" max="10" value="0" style="width:100%; padding:5px; border:1px solid #ccc; border-radius:4px;"></div>
-                                <div><small>Çar</small><input type="number" id="tsLoadCar" min="0" max="10" value="0" style="width:100%; padding:5px; border:1px solid #ccc; border-radius:4px;"></div>
-                                <div><small>Per</small><input type="number" id="tsLoadPer" min="0" max="10" value="0" style="width:100%; padding:5px; border:1px solid #ccc; border-radius:4px;"></div>
-                                <div><small>Cum</small><input type="number" id="tsLoadCum" min="0" max="10" value="0" style="width:100%; padding:5px; border:1px solid #ccc; border-radius:4px;"></div>
-                            </div>
                         </div>
 
                         <button class="btn btn-success btn-block" onclick="saveTeacherSettings()"><i class="fa-solid fa-check"></i> Öğretmen Ayarını Kaydet</button>

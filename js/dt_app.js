@@ -6,10 +6,11 @@ let nobetSettings = {
     rotationDir: 'asc', // 'asc' or 'desc'
     locations: []
 };
-let teacherData = {}; // teacher specific settings: { [uid]: { exempt: false, fixedLoc: '', load: {pzt:0, sal:0, car:0, per:0, cum:0} } }
+let teacherData = {}; // teacher specific settings: { [uid]: { exempt: false, fixedLoc: '' } }
 let currentUser = null;
 let isAdmin = false;
 let currentWeekPlan = {}; // { dateStr: { locationId: userId } }
+let studentsList = [];
 
 $(document).ready(function() {
     // Password toggle
@@ -181,6 +182,17 @@ async function loadInitialData() {
             populateTeacherDropdowns();
         }
 
+        // Fetch Students
+        const storeKey = sessionStorage.getItem('klbk_storeKey') || 'klbk_data_admin';
+        const stRes = await fetch(`${FIREBASE_DB_URL}/app_store/${storeKey}.json?auth=${currentUser.token}`);
+        if(stRes.ok) {
+            const stData = await stRes.json();
+            if(stData && stData.students) {
+                studentsList = stData.students;
+            }
+        }
+        populateStudentDropdown();
+
         // Fetch Settings & Plans from Firebase using REST
         const settingsRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/settings.json?auth=${currentUser.token}`); // if db rules allow, else we need a proxy API. Assuming db rules allow authenticated read.
         if (settingsRes.ok) {
@@ -226,6 +238,21 @@ function populateTeacherDropdowns() {
     $('#incTeachers').html(options); // multiple select
     
     $('.select2-teachers').select2();
+}
+
+function populateStudentDropdown() {
+    let options = '<option value="">-- Öğrenci Seç --</option>';
+    let stdArr = studentsList.map(s => {
+        return { id: (s.class || '') + ' - ' + (s.name || ''), text: (s.class || '') + ' - ' + (s.name || '') };
+    });
+    stdArr.sort((a,b) => a.text.localeCompare(b.text));
+    
+    stdArr.forEach(s => {
+        options += `<option value="${s.id}">${s.text}</option>`;
+    });
+
+    $('#incStudents').html(options);
+    $('.select2-students').select2();
 }
 
 function updateAdminSettingsUI() {
@@ -329,15 +356,10 @@ window.loadTeacherSettingsForm = function(uid) {
     
     $('#tsName').text(user.name || uid);
     
-    const tData = teacherData[uid] || { exempt: false, fixedLoc: '', load: {pzt:0, sal:0, car:0, per:0, cum:0} };
+    const tData = teacherData[uid] || { exempt: false, fixedLoc: '' };
     
     $('#tsExempt').prop('checked', tData.exempt);
     $('#tsFixedLoc').val(tData.fixedLoc || '');
-    $('#tsLoadPzt').val(tData.load?.pzt || 0);
-    $('#tsLoadSal').val(tData.load?.sal || 0);
-    $('#tsLoadCar').val(tData.load?.car || 0);
-    $('#tsLoadPer').val(tData.load?.per || 0);
-    $('#tsLoadCum').val(tData.load?.cum || 0);
     
     $('#teacherSettingsForm').fadeIn();
 };
@@ -348,14 +370,7 @@ window.saveTeacherSettings = async function() {
     
     const tData = {
         exempt: $('#tsExempt').is(':checked'),
-        fixedLoc: $('#tsFixedLoc').val(),
-        load: {
-            pzt: parseInt($('#tsLoadPzt').val()||0),
-            sal: parseInt($('#tsLoadSal').val()||0),
-            car: parseInt($('#tsLoadCar').val()||0),
-            per: parseInt($('#tsLoadPer').val()||0),
-            cum: parseInt($('#tsLoadCum').val()||0)
-        }
+        fixedLoc: $('#tsFixedLoc').val()
     };
     
     teacherData[uid] = tData;
@@ -392,11 +407,12 @@ window.generatePlan = async function() {
         let newPlan = {}; // { 'YYYY-MM-DD': { 'locId': ['teacherUid'] } }
         let eligibleTeachers = Object.keys(klbkUsers).filter(uid => uid !== 'admin' && uid !== 'master' && !(teacherData[uid] && teacherData[uid].exempt));
         
-        const days = ['pzt', 'sal', 'car', 'per', 'cum'];
+        const days = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
         let dayDate = new Date(nextMonday);
         
         for(let i=0; i<5; i++) {
             let dateStr = dayDate.toISOString().split('T')[0];
+            let dayName = days[i];
             newPlan[dateStr] = {};
             
             if(nobetSettings.locations) {
@@ -405,11 +421,17 @@ window.generatePlan = async function() {
                     // Assign required num of teachers randomly for now, prioritizing low load
                     for(let k=0; k<loc.reqTeachers; k++) {
                         if(eligibleTeachers.length > 0) {
-                            // find teacher with lowest load on this day
+                            // find teacher with lowest load on this day from klbkUsers[uid].schedule
                             eligibleTeachers.sort((a,b) => {
-                                let la = (teacherData[a] && teacherData[a].load) ? teacherData[a].load[days[i]] : 0;
-                                let lb = (teacherData[b] && teacherData[b].load) ? teacherData[b].load[days[i]] : 0;
-                                return la - lb;
+                                let loadA = 0;
+                                let loadB = 0;
+                                if(klbkUsers[a] && klbkUsers[a].schedule && klbkUsers[a].schedule[dayName]) {
+                                    loadA = Object.keys(klbkUsers[a].schedule[dayName]).length;
+                                }
+                                if(klbkUsers[b] && klbkUsers[b].schedule && klbkUsers[b].schedule[dayName]) {
+                                    loadB = Object.keys(klbkUsers[b].schedule[dayName]).length;
+                                }
+                                return loadA - loadB;
                             });
                             
                             let chosen = eligibleTeachers.shift();
@@ -525,7 +547,8 @@ window.hideIncidentForm = function() {
 
 async function submitIncident() {
     const time = $('#incTime').val();
-    const students = $('#incStudents').val();
+    const students = $('#incStudents').val() || [];
+    const studentsStr = students.join(', ');
     const teachers = $('#incTeachers').val() || [];
     const desc = $('#incDesc').val();
     
@@ -536,7 +559,7 @@ async function submitIncident() {
         time: time,
         reporterId: currentUser.username,
         reporterName: currentUser.name,
-        students: students,
+        students: studentsStr,
         involvedTeachers: teachers,
         description: desc,
         timestamp: Date.now()
