@@ -272,10 +272,26 @@
         <!-- ADMIN: Planlama & Listeler -->
         <div id="tab-admin-plan" class="tab-content">
             <div class="panel-card glass-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <h2 class="panel-title" style="margin:0;"><i class="fa-solid fa-wand-magic-sparkles"></i> Otomatik Planlama & Liste</h2>
-                    <button class="btn btn-primary" onclick="generatePlan()"><i class="fa-solid fa-bolt"></i> Yeni Plan Oluştur (Gelecek Hafta)</button>
+                    <button class="btn btn-primary" onclick="generatePlan()"><i class="fa-solid fa-bolt"></i> Yeni Plan Oluştur (Taslak)</button>
                 </div>
+                
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; background: rgba(255,255,255,0.6); padding: 10px; border-radius: 8px; border: 1px solid var(--gray-200);">
+                    <label style="font-weight: 600; color: var(--primary);"><i class="fa-solid fa-clock-rotate-left"></i> Kayıtlı Planlar:</label>
+                    <select id="planArchiveSelect" class="form-control" style="flex:1; max-width: 300px; padding: 5px; border-radius: 6px;" onchange="loadSelectedPlan()">
+                        <option value="">Plan Bulunmuyor</option>
+                    </select>
+                    
+                    <button id="publishPlanBtn" class="btn" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: none;" onclick="publishCurrentPlan()">
+                        <i class="fa-solid fa-bullhorn"></i> Yayınla
+                    </button>
+                    <button id="deletePlanBtn" class="btn" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: none;" onclick="deleteCurrentPlan()">
+                        <i class="fa-solid fa-trash"></i> Sil
+                    </button>
+                </div>
+                
+                <div id="planStatusBanner" style="display: none; padding: 10px; text-align: center; font-weight: 600; margin-bottom: 15px; border-radius: 6px;"></div>
                 
                 <div id="weeklyPlanContainer">
                     <p style="color:var(--gray-500);">Plan oluşturulmadı veya yükleniyor...</p>
