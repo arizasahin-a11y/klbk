@@ -1094,8 +1094,11 @@
 
         function logoutTeacher() {
             sessionStorage.clear();
+            localStorage.removeItem('klbk_currentUser');
+            localStorage.removeItem('klbk_isLoggedIn');
+            localStorage.removeItem('klbk_persistent_session');
             localStorage.removeItem('klbk_storeKey');
-            window.location.reload();
+            window.location.href = 'enter.html';
         }
 
         async function openTeacherSettings() {
@@ -2622,8 +2625,11 @@
 
         function logout() {
             sessionStorage.clear();
+            localStorage.removeItem('klbk_currentUser');
+            localStorage.removeItem('klbk_isLoggedIn');
             localStorage.removeItem('klbk_persistent_session');
-            window.location.href = '/k9x7v2m4';
+            localStorage.removeItem('klbk_storeKey');
+            window.location.href = 'enter.html';
         }
         // Global utility to pad zero
         function padZero(num) {

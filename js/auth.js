@@ -171,6 +171,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('logout') === 'true') {
         sessionStorage.clear();
+        localStorage.removeItem('klbk_currentUser');
+        localStorage.removeItem('klbk_isLoggedIn');
         localStorage.removeItem('klbk_persistent_session');
         // Clean the URL to avoid loop
         const newUrl = window.location.origin + window.location.pathname;

@@ -103,8 +103,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Logout Action ---
     document.getElementById('logoutBtn').addEventListener('click', () => {
         sessionStorage.clear();
-        localStorage.removeItem('klbk_persistent_session');
-        window.location.href = '/k9x7v2m4?logout=true';
+            localStorage.removeItem('klbk_currentUser');
+            localStorage.removeItem('klbk_isLoggedIn');
+            localStorage.removeItem('klbk_persistent_session');
+            localStorage.removeItem('klbk_storeKey');
+            window.location.href = 'enter.html';
     });
 
     // --- Global Reset Rules Action ---
