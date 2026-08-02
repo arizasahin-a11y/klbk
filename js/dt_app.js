@@ -1805,6 +1805,11 @@ function renderTeacherWeeklyPlan() {
                 teachersList = currentWeekPlan[dateStr][shiftId].map(uid => {
                     let name = klbkUsers[uid]?.name || uid;
                     
+                    let countStr = "";
+                    if (window.rotationTally && window.rotationTally[dateStr] && window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid]) {
+                        countStr = ` <span style="font-size:0.85em; opacity:0.8;">(${window.rotationTally[dateStr][shiftId][uid]})</span>`;
+                    }
+                    
                     let isFixed = false;
                     if (teacherData && teacherData[uid] && teacherData[uid].fixedLoc) {
                         let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
@@ -1818,7 +1823,7 @@ function renderTeacherWeeklyPlan() {
                         highlightStyle = 'color: #39ff14; font-weight: 900; font-size: 1.15em; background: var(--gray-900); padding: 4px 8px; border-radius: 6px; display:inline-block; margin:2px; box-shadow: 0 0 8px rgba(57,255,20,0.4);';
                     }
                     
-                    return `<span style="${highlightStyle}">${name}</span>`;
+                    return `<span style="${highlightStyle}">${name}${countStr}</span>`;
                 }).join('<br>');
             }
             html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">${teachersList || '<span style="color:var(--gray-400);">-</span>'}</td>`;
