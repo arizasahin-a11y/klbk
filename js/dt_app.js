@@ -1292,13 +1292,25 @@ function renderWeeklyPlan() {
                     if (window.rotationTally && window.rotationTally[dateStr] && window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid]) {
                         countStr = ` <span style="font-size:0.85em; opacity:0.8;">(${window.rotationTally[dateStr][shiftId][uid]})</span>`;
                     }
+                    let isFixed = false;
+                    if (teacherData && teacherData[uid] && teacherData[uid].fixedLoc) {
+                        let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                        if (teacherData[uid].fixedLoc === shiftId || teacherData[uid].fixedLoc === baseShift) {
+                            isFixed = true;
+                        }
+                    }
+                    
+                    let baseStyle = isFixed ? "font-weight:900; color:#111827;" : "";
+
                     if (isAdmin) {
                         if (shiftId === '_admin_duty') {
-                            return `<span style="cursor:pointer; text-decoration:underline; color:var(--primary);" onclick="window.changeAdminDuty('${dateStr}', '${uid}')">${name}${countStr}</span>`;
+                            return `<span style="cursor:pointer; text-decoration:underline; color:var(--primary); ${baseStyle}" onclick="window.changeAdminDuty('${dateStr}', '${uid}')">${name}${countStr}</span>`;
                         } else {
                             let cleanUid = uid.replace(/[^a-zA-Z0-9]/g, '');
-                            return `<span style="cursor:pointer; display:inline-block;" oncontextmenu="window.selectTeacherForSwap('${dateStr}', '${uid}', event)" onclick="window.handleTeacherClick('${dateStr}', '${uid}', event)" id="span_swap_${dateStr}_${cleanUid}">${name}${countStr}</span>`;
+                            return `<span style="cursor:pointer; display:inline-block; ${baseStyle}" oncontextmenu="window.selectTeacherForSwap('${dateStr}', '${uid}', event)" onclick="window.handleTeacherClick('${dateStr}', '${uid}', event)" id="span_swap_${dateStr}_${cleanUid}">${name}${countStr}</span>`;
                         }
+                    } else if (isFixed) {
+                        return `<span style="${baseStyle}">${name}${countStr}</span>`;
                     }
                     return name + countStr;
                 }).join('<br>');
