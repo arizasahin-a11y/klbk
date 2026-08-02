@@ -1,229 +1,298 @@
 <!DOCTYPE html>
 <html lang="tr">
-
 <head>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>Sistem Yönetimi | Master</title>
-    <script>
-        if (window.location.pathname.endsWith('/master.html') || window.location.pathname.endsWith('/master')) {
-            window.location.href = '/security_error';
-        }
-    </script>
+    <title>Master Yetki Merkezi</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
+
     <style>
-        .action-icon-btn {
-            background: var(--primary);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
+        .master-container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .master-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 20px 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        .master-header h2 {
+            margin: 0;
+            color: var(--dark);
+            font-weight: 800;
+        }
+        
+        .master-header p {
+            margin: 5px 0 0 0;
+            color: var(--gray-500);
+            font-size: 0.95rem;
+        }
+
+        .btn-action {
+            background: #e0e7ff;
+            color: #4338ca;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-action:hover {
+            background: #c7d2fe;
+        }
+
+        .btn-danger {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        .btn-danger:hover { background: #fca5a5; }
+
+        .app-list-container {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        .app-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--gray-200);
+            transition: background 0.2s;
+        }
+        .app-row:last-child {
+            border-bottom: none;
+        }
+        .app-row:hover {
+            background: rgba(248, 250, 252, 0.8);
+        }
+
+        .app-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+        .app-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--gray-100);
+            color: var(--primary);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 1.2rem;
+        }
+        .app-text h4 { margin: 0; font-size: 1.1rem; color: var(--dark); }
+        .app-text p { margin: 2px 0 0; font-size: 0.85rem; color: var(--gray-500); }
+
+        .app-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
             cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1;
+            transition: .4s;
+            border-radius: 34px;
         }
-        .action-icon-btn:hover {
-            background: var(--primary-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
         }
-        .action-icon-btn:active {
-            transform: translateY(0);
+        input:checked + .slider { background-color: #10b981; }
+        input:checked + .slider:before { transform: translateX(24px); }
+
+        .assigned-users-badge {
+            background: #f1f5f9;
+            color: #475569;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
         }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h3 { margin: 0; }
+        .close-modal {
+            background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--gray-500);
+        }
+        .teacher-list {
+            overflow-y: auto;
+            flex: 1;
+            margin-bottom: 20px;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+        }
+        .teacher-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        .teacher-item:last-child { border-bottom: none; }
+        .role-selector select {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--gray-300);
+            outline: none;
+        }
+
     </style>
 </head>
+<body>
 
-<body class="login-body">
+    <!-- PIN Prompt Overlay (Shows by default) -->
+    <div id="pinOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:var(--gray-900); z-index:9999; display:flex; align-items:center; justify-content:center; flex-direction:column;">
+        <div style="background:white; padding:40px; border-radius:16px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.5); max-width:400px; width:90%;">
+            <h2 style="margin-bottom: 10px; color:var(--dark);"><i class="fa-solid fa-lock" style="color:var(--primary); margin-right:8px;"></i> Master Girişi</h2>
+            <p style="color:var(--gray-500); margin-bottom:20px;">Lütfen Master PIN kodunu giriniz.</p>
+            <input type="password" id="masterPinInput" placeholder="PIN Kodu" style="width:100%; padding:12px; border:2px solid var(--gray-200); border-radius:8px; font-size:1.2rem; text-align:center; letter-spacing:5px; margin-bottom:20px; outline:none;">
+            <button onclick="verifyPin()" class="btn-action" style="width:100%; justify-content:center; background:var(--primary); color:white; font-size:1.1rem; padding:12px;">Giriş Yap</button>
+        </div>
+    </div>
 
-    <!-- Background Animation Elements -->
-    <div class="bg-shape shape-1"
-        style="background: radial-gradient(circle, rgba(16,185,129,0.2) 0%, transparent 70%);"></div>
-    <div class="bg-shape shape-2"></div>
-    <div class="bg-shape shape-3"
-        style="background: radial-gradient(circle, rgba(245,158,11,0.2) 0%, transparent 70%);"></div>
-
-    <div class="login-container">
-        <div class="login-card glass-panel" style="border-top: 4px solid var(--primary);">
-            <div class="login-header" style="position: relative;">
-                <div class="logo-icon" style="background: var(--primary); color: white;">
-                    <i class="fa-solid fa-user-shield"></i>
-                </div>
-                <div class="header-actions" style="position: absolute; top: 0; right: 0; display: flex; gap: 8px;">
-                    <button type="button" id="btnBackupMaster" class="action-icon-btn" title="Veritabanını Yedekle (JSON)">
-                        <i class="fa-solid fa-download"></i>
-                    </button>
-                    <button type="button" id="btnRestoreMaster" class="action-icon-btn" title="Yedekten Geri Yükle">
-                        <i class="fa-solid fa-upload"></i>
-                    </button>
-                </div>
-                <h2>Master Ayarlar</h2>
-                <p>Yeni okul tanımlama ve kullanıcı oluşturma paneli</p>
+    <!-- Main Content -->
+    <div class="master-container" id="mainContent" style="display:none;">
+        <div class="master-header">
+            <div>
+                <h2><i class="fa-solid fa-shield-halved" style="color:var(--primary); margin-right:10px;"></i> Uygulama Yetki Merkezi</h2>
+                <p>Uygulamalara genel erişimi kapatın veya özel yetkiler tanımlayın.</p>
             </div>
-
-            <form id="masterForm" class="login-form">
-                <div class="form-group">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">
-                        <label for="regSchoolSelect" style="margin-bottom: 0;">Kurum Adı</label>
-                        <a href="#" id="editSchoolNameBtn" class="hidden"
-                            style="color: var(--primary); font-size: 0.85rem; text-decoration: none;"><i
-                                class="fa-solid fa-pen"></i> İsmi Düzenle</a>
-                        <a href="#" id="deleteSchoolBtn" class="hidden"
-                            style="color: var(--danger); font-size: 0.85rem; text-decoration: none; margin-left:10px;"><i
-                                class="fa-solid fa-trash-can"></i> Kurumu Sil</a>
-                    </div>
-                    <div class="input-wrapper">
-                        <i class="fa-solid fa-school"></i>
-                        <select id="regSchoolSelect" name="regSchoolSelect" required
-                            style="width: 100%; height: 100%; border: none; background: transparent; padding: 0 10px 0 45px; font-family: inherit; font-size: 1rem; color: var(--dark); cursor: pointer; outline: none;">
-                            <option value="">Yükleniyor...</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group hidden" id="newSchoolGroup">
-                    <label for="regSchoolNew">Yeni Kurum Adı</label>
-                    <div class="input-wrapper">
-                        <i class="fa-solid fa-building"></i>
-                        <input type="text" id="regSchoolNew" name="regSchoolNew"
-                            placeholder="Örn: Atatürk Anadolu Lisesi" autocomplete="off">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">
-                        <label for="regUsernameSelect" style="margin-bottom: 0;">Hesap Kullanıcı Adı</label>
-                        <button type="button" id="btnDeleteUser" class="hidden"
-                            style="background:none; border:none; color:var(--danger); font-size:0.85rem; cursor:pointer; padding: 0;"><i
-                                class="fa-solid fa-trash"></i> Kullanıcıyı Sil</button>
-                    </div>
-                    <div class="input-wrapper">
-                        <i class="fa-regular fa-user"></i>
-                        <select id="regUsernameSelect"
-                            style="width: 100%; height: 100%; border: none; background: transparent; padding: 0 10px 0 45px; font-family: inherit; font-size: 1rem; color: var(--dark); cursor: pointer; outline: none;">
-                            <option value="">Lütfen Önce Okul Seçin</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group hidden" id="usernameNewGroup">
-                    <label for="regUsername">Yeni Kullanıcı Adı</label>
-                    <div class="input-wrapper">
-                        <i class="fa-solid fa-user-plus"></i>
-                        <input type="text" id="regUsername" name="regUsername" placeholder="Örn: ahmet_hoca"
-                            autocomplete="off">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="regPassword">Hesap Şifresi</label>
-                    <div class="input-wrapper">
-                        <i class="fa-solid fa-lock"></i>
-                        <input type="password" id="regPassword" name="regPassword" placeholder="Şifre belirleyin"
-                            required>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="regEmail">E-Posta Adresi</label>
-                    <div class="input-wrapper">
-                        <i class="fa-solid fa-envelope"></i>
-                        <input type="email" id="regEmail" name="regEmail" placeholder="Örn: ornek@okul.com"
-                            autocomplete="email">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="regRole">Yetkisi</label>
-                    <div class="input-wrapper">
-                        <i class="fa-solid fa-id-badge"></i>
-                        <select id="regRole" name="regRole" required
-                            style="width: 100%; height: 100%; border: none; background: transparent; padding: 0 10px 0 45px; font-family: inherit; font-size: 1rem; color: var(--dark); cursor: pointer; outline: none;">
-                            <option value="admin">Admin</option>
-                            <option value="idareci">İdareci</option>
-                            <option value="ogretmen" selected>Öğretmen</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group" id="branchGroup">
-                    <label for="regBranch">Branş (Birden fazla seçilebilir)</label>
-                    <div class="input-wrapper"
-                        style="height: auto; align-items: flex-start; padding-top: 5px; padding-bottom: 5px;">
-                        <i class="fa-solid fa-book" style="margin-top: 8px;"></i>
-                        <select id="regBranch" name="regBranch" multiple
-                            style="width: 100%; height: 100px; border: none; background: transparent; padding: 0 10px 0 45px; font-family: inherit; font-size: 1rem; color: var(--dark); cursor: pointer; outline: none; overflow-y: auto;">
-                            <option value="">Lütfen Önce Okul Seçin</option>
-                        </select>
-                    </div>
-                    <small style="color: var(--gray-500); display: block; margin-top: 4px; padding-left: 10px;">
-                        <em>* CTRL (Windows) veya CMD (Mac) tuşuna basılı tutarak çoklu seçim yapabilirsiniz.</em>
-                    </small>
-                    <div id="quickBranchDiv" class="hidden" style="margin-top: 10px; padding: 10px; background: rgba(99, 102, 241, 0.05); border-radius: 8px; border: 1px dashed var(--primary);">
-                        <p style="font-size: 0.75rem; color: var(--primary); margin-bottom: 5px; font-weight: 600;">Ders Listesi Bulunamadı!</p>
-                        <p style="font-size: 0.7rem; color: var(--gray-500); margin-bottom: 8px;">Okulun ders listesini virgülle ayırarak aşağıya yazın veya hazır listeyi yükleyin:</p>
-                        <textarea id="quickBranchInput" placeholder="Matematik, Türk Dili ve Edebiyatı, Fizik..." style="width: 100%; height: 60px; font-size: 0.8rem; padding: 5px; border: 1px solid var(--gray-300); border-radius: 4px;"></textarea>
-                        <div style="display: flex; gap: 5px; margin-top: 5px;">
-                            <button type="button" id="btnSaveQuickBranches" class="btn btn-primary btn-sm" style="flex: 1; font-size: 0.75rem;">Kaydet</button>
-                            <button type="button" id="btnSeedBranches" class="btn btn-secondary btn-sm" style="flex: 1; font-size: 0.75rem;">Hazır Listeyi Yükle</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="masterMessage" class="message-box hidden"></div>
-                
-                <div class="form-group hidden" id="excelUploadGroup" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--gray-300);">
-                    <label for="regExcelUpload" style="color: var(--primary);"><i class="fa-solid fa-file-excel"></i> Excel'den Toplu Hesap Oluştur</label>
-                    <p style="font-size: 0.8rem; color: var(--gray-500); margin-bottom: 8px;">
-                        Excel Sütunları: <br>1. Ad Soyad (Zorunlu) | 2. Kullanıcı Adı | 3. E-Posta | 4. Şifre | 5. Branşlar (Virgüllü) | 6. Yetki (Boşsa öğretmen)
-                    </p>
-                    <input type="file" id="regExcelUpload" accept=".xlsx, .xls" style="font-size: 0.85rem; width: 100%;">
-                    <button type="button" id="btnUploadExcel" class="btn btn-secondary btn-sm hidden" style="margin-top: 10px; width: 100%;"><i class="fa-solid fa-upload"></i> Excel'i İçeri Aktar</button>
-                    <div id="excelMessage" style="font-size: 0.85rem; margin-top: 5px; font-weight: bold;"></div>
-                </div>
-
-                <button type="submit" id="btnSubmitMaster" class="btn btn-primary btn-block btn-lg">
-                    <i class="fa-solid fa-plus-circle"></i>
-                    <span>Okul Ekle ve Kullanıcı Oluştur</span>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-action" onclick="openChangePinModal()">
+                    <i class="fa-solid fa-gear"></i> Ayarlar
                 </button>
-
-                <button type="button" id="btnShowActivity" class="btn btn-block btn-lg" style="margin-top: 15px; background: #6366f1; color: white;">
-                    <i class="fa-solid fa-list-check"></i>
-                    <span>Aktivite Seçenekleri (Giriş Logları)</span>
+                <button class="btn-action btn-danger" onclick="window.location.href='/enter.html'">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Çıkış
                 </button>
+            </div>
+        </div>
 
-                <div style="text-align: center; margin-top: 1rem;">
-                    <a href="/k9x7v2m4?logout=true" class="forgot-link" style="color: var(--gray-500);"><i
-                            class="fa-solid fa-arrow-left"></i> Giriş Sayfasına Dön</a>
-                </div>
-            </form>
-
-            <div class="login-footer">
-                <p>Kelebek Sınav Sistemi Master Paneli</p>
+        <div class="app-list-container" id="appListContainer">
+            <div style="text-align:center; padding:3rem; color:var(--gray-400);">
+                <i class="fa-solid fa-spinner fa-spin fa-2x"></i><br><br>Yükleniyor...
             </div>
         </div>
     </div>
 
-    <!-- Custom JS -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="js/master.js?v=2.9"></script>
-</body>
+    <!-- Teacher Assignment Modal -->
+    <div class="modal-overlay" id="assignModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalAppTitle">Kullanıcı Yetkilendir</h3>
+                <button class="close-modal" onclick="closeAssignModal()">&times;</button>
+            </div>
+            <div style="margin-bottom:15px; display:flex; gap:10px;">
+                <input type="text" id="teacherSearch" placeholder="Öğretmen ara..." style="flex:1; padding:8px 12px; border:1px solid var(--gray-300); border-radius:8px; outline:none;" onkeyup="filterTeachers()">
+            </div>
+            <div class="teacher-list" id="teacherListContainer">
+                <!-- Populated by JS -->
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button class="btn-action btn-danger" style="background:#f1f5f9; color:var(--dark);" onclick="closeAssignModal()">İptal</button>
+                <button class="btn-action" style="background:var(--primary); color:white;" onclick="saveAssignments()">Değişiklikleri Kaydet</button>
+            </div>
+        </div>
+    </div>
 
+    <!-- Change PIN Modal -->
+    <div class="modal-overlay" id="changePinModal">
+        <div class="modal-content" style="max-width:400px;">
+            <div class="modal-header">
+                <h3>PIN Değiştir</h3>
+                <button class="close-modal" onclick="closeChangePinModal()">&times;</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:15px; margin-bottom:20px;">
+                <input type="password" id="oldPinInput" placeholder="Eski PIN" style="padding:10px; border:1px solid var(--gray-300); border-radius:8px; text-align:center; letter-spacing:3px;">
+                <input type="password" id="newPinInput" placeholder="Yeni PIN" style="padding:10px; border:1px solid var(--gray-300); border-radius:8px; text-align:center; letter-spacing:3px;">
+                <input type="password" id="newPinConfirmInput" placeholder="Yeni PIN (Tekrar)" style="padding:10px; border:1px solid var(--gray-300); border-radius:8px; text-align:center; letter-spacing:3px;">
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button class="btn-action btn-danger" style="background:#f1f5f9; color:var(--dark);" onclick="closeChangePinModal()">İptal</button>
+                <button class="btn-action" style="background:var(--primary); color:white;" onclick="changeMasterPin()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/master_app.js"></script>
+</body>
 </html>
