@@ -269,7 +269,16 @@
             }
         }
     </style>
-    
+    <script>
+        (function() {
+            try {
+                var isLogged = sessionStorage.getItem('klbk_isLoggedIn') === 'true';
+                if (isLogged) {
+                    document.write('<style id="listeci-anti-flicker">#loginPanel { display: none !important; } #mainPanel { display: block !important; }</style>');
+                }
+            } catch(e) {}
+        })();
+    </script>
     <script src="js/app_permissions.js"></script>
 </head>
 <body>
@@ -880,7 +889,6 @@
             updateClassDropdownText();
         }
 
-        
         let pendingListType = null;
 
         function openColumnModal(listType) {
@@ -1183,7 +1191,8 @@
 <a href="enter.html" style="position: fixed; bottom: 20px; left: 20px; background: #2563eb; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 9999; text-decoration: none; font-size: 1.2rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" title="Ana Sayfaya Dön (Portal)">
     <i class="fa-solid fa-home"></i>
 </a>
-<!-- Column Layout Modal -->
+
+    <!-- Column Layout Modal -->
     <div id="columnLayoutModal" class="modal-overlay" style="display: none;">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
@@ -1211,16 +1220,5 @@
             </div>
         </div>
     </div>
-
-    <script>
-        (function() {
-            try {
-                var isLogged = sessionStorage.getItem('klbk_isLoggedIn') === 'true';
-                if (isLogged) {
-                    document.write('<style id="listeci-anti-flicker">#loginPanel { display: none !important; } #mainPanel { display: block !important; }</style>');
-                }
-            } catch(e) {}
-        })();
-    </script>
 </body>
 </html>
