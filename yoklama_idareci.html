@@ -2092,8 +2092,7 @@
             let finalPrintContent = '';
 
             if (format === 'haftalik_a4') {
-                let htmlStr = `<html><head><title>Haftalık Yoklama Çizelgesi</title><style>body{font-family:sans-serif; margin:0; padding:20px;} .page-break-after{page-break-after:always;} .print-title{text-align:center; font-size:16pt; font-weight:bold; margin-bottom:15px;} table{width:100%; border-collapse:collapse;} th,td{border:1px solid #ccc; padding:5px; text-align:center;} .print-footer{margin-top:15px; text-align:center; font-size:10pt;}</style>    <script src="js/app_permissions.js"></script>
-</head><body>`;
+                let htmlStr = `<html><head><title>Haftalık Yoklama Çizelgesi</title><style>body{font-family:sans-serif; margin:0; padding:20px;} .page-break-after{page-break-after:always;} .print-title{text-align:center; font-size:16pt; font-weight:bold; margin-bottom:15px;} table{width:100%; border-collapse:collapse;} th,td{border:1px solid #ccc; padding:5px; text-align:center;} .print-footer{margin-top:15px; text-align:center; font-size:10pt;}</style></head><body>`;
                 selectedClasses.forEach(cls => {
                     htmlStr += generateWeeklyPrintFis(cls, datesToPrint);
                 });
@@ -2597,8 +2596,7 @@
                             });
                         }
                     <\/script>
-                    <script src="js/app_permissions.js"></script>
-</head>
+                </head>
                 <body>
                     <div id="print-action">
                         <button onclick="window.print()" style="padding: 10px 20px; background: #10b981; color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; font-size: 14px; margin-right: 10px;">🖨️ YAZDIR</button>
