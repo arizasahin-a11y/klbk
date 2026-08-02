@@ -506,6 +506,8 @@ window.updatePlanActionButtons = () => {
         $('#planActionToggleGroup').hide();
         $('#deletePlanBtn').hide();
         $('#planStatusBanner').hide();
+        currentWeekPlan = null;
+        if(isAdmin) renderWeeklyPlan();
         return;
     }
     
