@@ -464,16 +464,16 @@
                 { id: "html_zumreci", title: "Zümreci", desc: "Zümre Planlama ve Görüş İşleme", url: "/zumreci.html", icon: "fa-users-between-lines", active: true }
             ];
 
-            // Veritabaninda kayitli olmayanlari listeye ekle
-            allHtmlFiles.forEach(hf => {
-                if (!portalLinks.find(pl => pl && pl.id === hf.id)) {
+            // Sadece veritabanı tamamen boşsa varsayılanları yükle (silinenlerin geri gelmemesi için)
+            if (portalLinks.length === 0) {
+                allHtmlFiles.forEach(hf => {
                     // İlk yuklemede yoklama vs aktif gelsin diye kucuk bir ayar
                     if (hf.id === 'html_yoklama_ogretmen' || hf.id === 'html_ogrenci' || hf.id === 'html_ogrencitakip' || hf.id === 'html_zumreci' || hf.id === 'html_pts' || hf.id === 'html_listeci') {
                         hf.active = true;
                     }
                     portalLinks.push(hf);
-                }
-            });
+                });
+            }
 
             // Deduplicate links by URL so duplicate cards never show up
             const seenUrls = new Set();
