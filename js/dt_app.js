@@ -121,16 +121,18 @@ async function doLogin(username, password, remember) {
         const data = await res.json();
         
         if (res.ok) {
+            let finalUsername = data.actualUsername || username;
+            
             const storage = remember ? localStorage : sessionStorage;
             storage.setItem('klbk_isLoggedIn', 'true');
             storage.setItem('klbk_faaliyet_isLoggedIn', 'true');
-            storage.setItem('klbk_username', username);
-            storage.setItem('klbk_currentUser', username);
+            storage.setItem('klbk_username', finalUsername);
+            storage.setItem('klbk_currentUser', finalUsername);
             
             let matchedRole = (data.user && data.user.role) ? data.user.role : (data.role || 'user');
-            let matchedName = (data.user && data.user.name) ? data.user.name : (data.name || username);
+            let matchedName = (data.user && data.user.name) ? data.user.name : (data.name || finalUsername);
             let token = data.token || (data.user && data.user.token) || 'legacy-session';
-            let storeKey = (data.user && data.user.storeKey) ? data.user.storeKey : `klbk_data_${username}`;
+            let storeKey = (data.user && data.user.storeKey) ? data.user.storeKey : `klbk_data_${finalUsername}`;
             let schoolName = (data.user && data.user.schoolName) ? data.user.schoolName : '';
             
             storage.setItem('klbk_name', matchedName);
@@ -145,7 +147,7 @@ async function doLogin(username, password, remember) {
             
             if (remember && matchedRole !== 'student' && matchedRole !== 'ogrenci') {
                 const sessionData = {
-                    klbk_currentUser: username,
+                    klbk_currentUser: finalUsername,
                     klbk_name: matchedName,
                     klbk_schoolName: schoolName,
                     klbk_storeKey: storeKey,
