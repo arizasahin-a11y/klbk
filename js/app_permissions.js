@@ -43,7 +43,14 @@
                 const perm = data[dbKey];
                 
                 // 1. Check Global Access
-                if (perm.globalAccess === false) {
+                let isAccessClosed = perm.globalAccess === false;
+                
+                // Check if access has expired
+                if (perm.globalAccess === true && perm.expiresAt && Date.now() > perm.expiresAt) {
+                    isAccessClosed = true;
+                }
+
+                if (isAccessClosed) {
                     showAccessDenied();
                     return; // Stop execution
                 }
@@ -74,9 +81,10 @@
                         <svg style="width:64px; height:64px; margin:0 auto;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                     </div>
                     <h1 style="color:#1e293b; margin-top:0;">Erişim Engellendi</h1>
-                    <p style="color:#64748b; font-size:1.1rem; line-height:1.5;">Bu uygulamaya erişim engellenmiş. Lütfen admininize danışın.</p>
-                    <div style="margin-top:20px; padding:15px; background:#f1f5f9; border-radius:8px; font-weight:600; color:#334155;">
-                        <a href="mailto:arizasahin@gmail.com" style="color:#2563eb; text-decoration:none;">arizasahin@gmail.com</a>
+                    <p style="color:#64748b; font-size:1.1rem; line-height:1.5;">Bu uygulamaya erişim engellenmiş veya erişim süresi dolmuş. Lütfen admininize danışın.</p>
+                    <div style="margin-top:20px; padding:15px; background:#f1f5f9; border-radius:8px; font-weight:600; color:#334155; display:flex; align-items:center; justify-content:center; gap:10px;">
+                        <span id="adminEmailText" style="color:#2563eb; user-select:all;">arizasahin@gmail.com</span>
+                        <button onclick="navigator.clipboard.writeText('arizasahin@gmail.com').then(() => { this.innerHTML='Kopyalandı!'; setTimeout(() => this.innerHTML='Kopyala', 2000); })" style="background:#e2e8f0; border:none; padding:4px 8px; border-radius:4px; font-size:0.8rem; cursor:pointer; color:#475569;">Kopyala</button>
                     </div>
                     <button onclick="window.history.back()" style="margin-top:30px; background:#e2e8f0; color:#475569; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:600;">Geri Dön</button>
                 </div>

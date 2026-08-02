@@ -119,6 +119,16 @@ function renderAppList() {
         const perm = appPermissions[dbKey];
         const isGlobalAccess = perm.globalAccess;
         const assignmentCount = perm.assignments ? Object.keys(perm.assignments).length : 0;
+        
+        let expiryText = '';
+        if (isGlobalAccess && perm.expiresAt) {
+            const expDate = new Date(perm.expiresAt);
+            if (Date.now() > expDate.getTime()) {
+                expiryText = `<span style="color:#ef4444; font-size:0.8rem; margin-top:4px; display:block;"><i class="fa-solid fa-clock"></i> Süresi Doldu (${expDate.toLocaleDateString('tr-TR')})</span>`;
+            } else {
+                expiryText = `<span style="color:#10b981; font-size:0.8rem; margin-top:4px; display:block;"><i class="fa-solid fa-clock"></i> Kapanış: ${expDate.toLocaleDateString('tr-TR')}</span>`;
+            }
+        }
 
         const row = document.createElement('div');
         row.className = 'app-row';
@@ -128,6 +138,7 @@ function renderAppList() {
                 <div class="app-text">
                     <h4>${app.title}</h4>
                     <p>${app.url} &bull; ${app.desc}</p>
+                    ${expiryText}
                 </div>
             </div>
             <div class="app-controls">
@@ -138,7 +149,7 @@ function renderAppList() {
                 </button>
                 
                 <label class="toggle-switch" title="Genel Erişime Aç/Kapat">
-                    <input type="checkbox" ${isGlobalAccess ? 'checked' : ''} onchange="toggleGlobalAccess('${dbKey}', this.checked)">
+                    <input type="checkbox" id="toggle_${dbKey}" ${isGlobalAccess ? 'checked' : ''} onchange="toggleGlobalAccess('${dbKey}', this.checked)">
                     <span class="slider"></span>
                 </label>
             </div>
@@ -168,13 +179,43 @@ async function savePermissionsToBackend() {
 
 async function toggleGlobalAccess(appKey, isChecked) {
     if (!appPermissions[appKey]) appPermissions[appKey] = { assignments: {} };
-    appPermissions[appKey].globalAccess = isChecked;
+    
+    if (isChecked) {
+        const { value: months } = await Swal.fire({
+            title: 'Süre Belirleme',
+            text: 'Uygulama erişime açılıyor. Kaç ay açık kalmasını istersiniz?',
+            input: 'number',
+            inputAttributes: { min: 1, max: 120, step: 1 },
+            inputValue: 12,
+            showCancelButton: true,
+            confirmButtonText: 'Aç',
+            cancelButtonText: 'İptal',
+            inputValidator: (value) => {
+                if (!value || value <= 0) return 'Lütfen geçerli bir ay sayısı girin!';
+            }
+        });
+
+        if (!months) {
+            // User cancelled, revert switch visually
+            document.getElementById(`toggle_${appKey}`).checked = false;
+            return;
+        }
+
+        appPermissions[appKey].globalAccess = true;
+        const date = new Date();
+        date.setMonth(date.getMonth() + parseInt(months));
+        appPermissions[appKey].expiresAt = date.getTime();
+    } else {
+        appPermissions[appKey].globalAccess = false;
+        appPermissions[appKey].expiresAt = null;
+    }
     
     Swal.fire({ title: 'Kaydediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     
     const success = await savePermissionsToBackend();
     if (success) {
         Swal.close();
+        renderAppList(); // Update UI with new dates
     } else {
         // Revert UI on failure
         appPermissions[appKey].globalAccess = !isChecked;
