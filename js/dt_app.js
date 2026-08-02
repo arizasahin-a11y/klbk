@@ -1133,7 +1133,13 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType) {
             
             for (let i = 0; i < teachersInLoc.length; i++) {
                 let uname = teachersInLoc[i];
-                let isFixed = teacherData && teacherData[uname] && teacherData[uname].fixedLoc === shiftId;
+                let isFixed = false;
+                if (teacherData && teacherData[uname] && teacherData[uname].fixedLoc) {
+                    let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                    if (teacherData[uname].fixedLoc === shiftId || teacherData[uname].fixedLoc === baseShift) {
+                        isFixed = true;
+                    }
+                }
                 if (!isFixed) {
                     dynamicSlots.push(uname);
                     slotMap.push({ shiftId, index: i });
@@ -1161,7 +1167,13 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType) {
             for (let shiftId of shiftIds) {
                 let teachersInLoc = newPlan[day][shiftId];
                 for (let uname of teachersInLoc) {
-                    let isFixed = teacherData && teacherData[uname] && teacherData[uname].fixedLoc === shiftId;
+                    let isFixed = false;
+                    if (teacherData && teacherData[uname] && teacherData[uname].fixedLoc) {
+                        let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                        if (teacherData[uname].fixedLoc === shiftId || teacherData[uname].fixedLoc === baseShift) {
+                            isFixed = true;
+                        }
+                    }
                     if (isFixed) {
                         window.rotationTally[day][shiftId][uname] = (window.rotationTally[day][shiftId][uname] || 0) + 1;
                     }
