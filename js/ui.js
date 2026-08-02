@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const path = window.location.pathname;
 
     // Allow dashboard access but check session
-    const isDashboard = path.endsWith('/dashboard.html') || path.endsWith('/dashboard');
+    const isDashboard = path.endsWith('/dashboard.html') || path.endsWith('/dashboard') || path.includes('/r1p5s8q3');
 
     const isLoginPage = path.includes('k9x7v2m4');
     
@@ -43,6 +43,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             sessionStorage.setItem('klbk_intended_url', window.location.pathname);
             window.location.href = '/enter.html';
             return;
+        }
+        
+        // Enforce Admin Access for Dashboard
+        if (isDashboard) {
+            const currentRole = sessionStorage.getItem('klbk_role') || '';
+            if (currentRole !== 'admin' && currentRole !== 'idareci' && currentRole !== 'master') {
+                // Not authorized to view dashboard
+                window.location.href = '/security_error.html';
+                return;
+            }
         }
     }
 
