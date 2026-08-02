@@ -208,7 +208,7 @@ function renderTeacherList(filterText = '') {
     const container = document.getElementById('teacherListContainer');
     container.innerHTML = '';
 
-    const users = Object.values(usersData).filter(u => u && u.name);
+    const users = Object.entries(usersData).map(([uname, data]) => ({ uid: uname, ...data })).filter(u => u && u.name);
     users.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
 
     users.forEach(user => {
@@ -221,12 +221,15 @@ function renderTeacherList(filterText = '') {
         const item = document.createElement('div');
         item.className = 'teacher-item';
         item.innerHTML = `
-            <div>
-                <strong style="color:var(--dark); display:block;">${displayName}</strong>
-                <span style="font-size:0.8rem; color:var(--gray-500);">Genel Rol: ${roleLabel}</span>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <input type="checkbox" class="teacher-checkbox" value="${user.uid}" style="width:18px; height:18px; cursor:pointer;">
+                <div>
+                    <strong style="color:var(--dark); display:block;">${displayName}</strong>
+                    <span style="font-size:0.8rem; color:var(--gray-500);">Genel Rol: ${roleLabel}</span>
+                </div>
             </div>
             <div class="role-selector">
-                <select onchange="updateTempAssignment('${user.uid}', this.value)">
+                <select id="select_role_${user.uid}" onchange="updateTempAssignment('${user.uid}', this.value)">
                     <option value="ogretmen" ${currentRole === 'ogretmen' ? 'selected' : ''}>Öğretmen (Varsayılan)</option>
                     <option value="admin" ${currentRole === 'admin' ? 'selected' : ''}>Admin</option>
                     <option value="serbest" ${currentRole === 'serbest' ? 'selected' : ''}>Serbest</option>
@@ -234,6 +237,39 @@ function renderTeacherList(filterText = '') {
             </div>
         `;
         container.appendChild(item);
+    });
+}
+
+function toggleSelectAllTeachers() {
+    const checkboxes = document.querySelectorAll('.teacher-checkbox');
+    if (checkboxes.length === 0) return;
+    const allChecked = Array.from(checkboxes).every(c => c.checked);
+    checkboxes.forEach(c => c.checked = !allChecked);
+}
+
+function bulkAssignRole(role) {
+    const checkboxes = document.querySelectorAll('.teacher-checkbox:checked');
+    if (checkboxes.length === 0) {
+        Swal.fire('Uyarı', 'Lütfen en az bir kişi seçin.', 'warning');
+        return;
+    }
+    
+    checkboxes.forEach(c => {
+        const uid = c.value;
+        const selectEl = document.getElementById(`select_role_${uid}`);
+        if (selectEl) selectEl.value = role;
+        updateTempAssignment(uid, role);
+    });
+    
+    // Uncheck them after bulk apply to prevent mistakes
+    checkboxes.forEach(c => c.checked = false);
+    
+    Swal.fire({
+        icon: 'success',
+        title: 'Atandı!',
+        text: `Seçili kişilere "${role}" yetkisi uygulandı. Değişiklikleri kaydetmeyi unutmayın!`,
+        timer: 2000,
+        showConfirmButton: false
     });
 }
 

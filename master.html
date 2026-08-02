@@ -261,10 +261,19 @@
             </div>
             <div style="margin-bottom:15px; display:flex; gap:10px;">
                 <input type="text" id="teacherSearch" placeholder="Öğretmen ara..." style="flex:1; padding:8px 12px; border:1px solid var(--gray-300); border-radius:8px; outline:none;" onkeyup="filterTeachers()">
+                <button class="btn-action" style="background:#e2e8f0; color:var(--dark);" onclick="toggleSelectAllTeachers()">Tümünü Seç</button>
             </div>
             <div class="teacher-list" id="teacherListContainer">
                 <!-- Populated by JS -->
             </div>
+            
+            <div style="display:flex; justify-content:center; gap:10px; margin-bottom:20px; flex-wrap:wrap; background:#f8fafc; padding:10px; border-radius:8px; border:1px solid var(--gray-200);">
+                <span style="display:flex; align-items:center; color:var(--gray-600); font-size:0.95rem; font-weight:500;"><i class="fa-solid fa-check-double" style="margin-right:5px;"></i> Seçili Olanlara:</span>
+                <button class="btn-action" style="background:#ef4444; color:white; padding:6px 12px; font-size:0.9rem;" onclick="bulkAssignRole('admin')">Admin Ata</button>
+                <button class="btn-action" style="background:#3b82f6; color:white; padding:6px 12px; font-size:0.9rem;" onclick="bulkAssignRole('ogretmen')">Öğretmen Ata</button>
+                <button class="btn-action" style="background:#10b981; color:white; padding:6px 12px; font-size:0.9rem;" onclick="bulkAssignRole('serbest')">Serbest Ata</button>
+            </div>
+
             <div style="display:flex; justify-content:flex-end; gap:10px;">
                 <button class="btn-action btn-danger" style="background:#f1f5f9; color:var(--dark);" onclick="closeAssignModal()">İptal</button>
                 <button class="btn-action" style="background:var(--primary); color:white;" onclick="saveAssignments()">Değişiklikleri Kaydet</button>
