@@ -715,29 +715,16 @@
                     didOpen: () => { Swal.showLoading(); }
                 });
                 
-                // 1. Create a temporary session token to satisfy Firebase security rules for $storeKey
-                const tempToken = "token_" + Date.now() + "_" + Math.random().toString(36).substring(7);
-                await fetch(`${FIREBASE_DB_URL}/app_store/active_sessions/${tempToken}.json`, {
+                // Save links via backend API to bypass Firebase client security rules
+                const res = await fetch('/api/updateLinks', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        token: tempToken,
-                        username: "admin_override",
-                        storeKey: "klbk_teacher_links",
-                        timestamp: Date.now(),
-                        expiresAt: Date.now() + 60000 // Valid for 1 minute
-                    })
-                });
-
-                // 2. Save the actual links with the token
-                const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_teacher_links.json`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ links: portalLinks, _sessionToken: tempToken })
+                    body: JSON.stringify({ links: portalLinks })
                 });
 
                 if (!res.ok) {
-                    throw new Error("Veritabanı reddetti (HTTP " + res.status + ")");
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.error || "Sunucu reddetti (HTTP " + res.status + ")");
                 }
 
                 Swal.fire({
