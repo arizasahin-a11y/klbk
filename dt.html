@@ -104,19 +104,13 @@
         <!-- TEACHER: Aktif Nöbet View -->
         <div id="tab-teacher-active" class="tab-content">
             <div class="panel-card glass-panel" style="text-align: center; padding: 40px 20px;">
-                <div id="noDutyState">
-                    <i class="fa-solid fa-mug-hot" style="font-size: 4rem; color: var(--gray-400); margin-bottom: 20px;"></i>
-                    <h2 style="margin:0 0 10px 0;">Şu an nöbetçi değilsiniz</h2>
-                    <p style="color: var(--gray-500);">En yakın nöbetiniz: <span id="nextDutyDateStr" style="font-weight: bold; color: var(--dark);">Hesaplanıyor...</span></p>
+                <h2 style="margin:0 0 20px 0; color: var(--primary-dark); border-bottom: 2px solid var(--gray-200); padding-bottom: 15px;">Nöbet Göreviniz</h2>
+                <div id="teacherDutyDashboardContainer">
+                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary);"></i>
+                    <p style="margin-top: 10px; color: var(--gray-500);">Nöbet durumu hesaplanıyor...</p>
                 </div>
                 
-                <div id="activeDutyState" style="display: none;">
-                    <div style="width: 80px; height: 80px; background: var(--primary-light); color: var(--primary-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 0 auto 20px;">
-                        <i class="fa-solid fa-shield-halved"></i>
-                    </div>
-                    <h2 style="margin:0 0 5px 0; color: var(--primary-dark);">Bugün Nöbetçisiniz!</h2>
-                    <h3 style="margin:0 0 20px 0;">Görev Yeri: <span id="activeDutyLocation">...</span></h3>
-                    
+                <div id="teacherIncidentBtnContainer" style="display: none; margin-top: 30px;">
                     <button class="btn btn-danger btn-lg" onclick="showIncidentForm()">
                         <i class="fa-solid fa-triangle-exclamation"></i> Olay / Tutanak Ekle
                     </button>

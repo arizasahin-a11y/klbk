@@ -1488,69 +1488,226 @@ function renderWeeklyPlan() {
     $('#weeklyPlanContainer').html(html);
 }
 
-function updateTeacherViewUI() {
-    if(isAdmin) renderWeeklyPlan(); // If admin, render plan view too
-    
-    const today = new Date().toISOString().split('T')[0];
-    let isDutyToday = false;
-    let todayLocName = "";
-    let nextDutyDate = null;
-    let nextDutyLoc = "";
+let teacherDutyInterval = null;
 
-    // Search plan for user
-    let dates = Object.keys(currentWeekPlan).sort();
-    
-    for(let dateStr of dates) {
-        for(let shiftId in currentWeekPlan[dateStr]) {
-            let shiftData = currentWeekPlan[dateStr][shiftId];
-            let hasTeacher = false;
-            
-            if (Array.isArray(shiftData)) {
-                hasTeacher = shiftData.includes(currentUser.username);
-            } else if (typeof shiftData === 'string') {
-                hasTeacher = shiftData.includes(currentUser.username);
-            }
-
-            if(hasTeacher) {
-                let lName = shiftId;
-                if(shiftId === '_admin_duty') {
-                    lName = "Nöbetçi İdareci";
-                } else {
-                    let isDilim1 = shiftId.includes('_dilim1');
-                    let isDilim2 = shiftId.includes('_dilim2');
-                    let locId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
-                    
-                    let locInfo = nobetSettings.locations?.find(l => l.id === locId);
-                    lName = locInfo ? locInfo.name : locId;
-                    if(isDilim1) lName += " (1. Dilim)";
-                    if(isDilim2) lName += " (2. Dilim)";
-                }
-                
-                if(dateStr === today) {
-                    isDutyToday = true;
-                    todayLocName = lName;
-                } else if(dateStr > today && !nextDutyDate) {
-                    nextDutyDate = dateStr;
-                    nextDutyLoc = lName;
-                }
-            }
-        }
-    }
-
-    if(isDutyToday) {
-        $('#noDutyState').hide();
-        $('#activeDutyState').show();
-        $('#activeDutyLocation').text(todayLocName);
-    } else {
-        $('#activeDutyState').hide();
-        $('#noDutyState').show();
-        if(nextDutyDate) {
-            $('#nextDutyDateStr').text(`${nextDutyDate} (${nextDutyLoc})`);
-        } else {
-            $('#nextDutyDateStr').text("Planlanmış nöbetiniz bulunmuyor.");
-        }
-    }
+function getDutyLocationName(shiftId) {
+    if(shiftId === '_admin_duty') return "Nöbetçi İdareci";
+    let isDilim1 = shiftId.includes('_dilim1');
+    let isDilim2 = shiftId.includes('_dilim2');
+    let locId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+    let locInfo = nobetSettings.locations?.find(l => l.id === locId);
+    let lName = locInfo ? locInfo.name : locId;
+    if(isDilim1) lName += " (1. Dilim)";
+    if(isDilim2) lName += " (2. Dilim)";
+    return lName;
 }
+
+function determineNextDuty(teacherUid) {
+    if (!publishedPlanMeta || !publishedPlanMeta.data) return null;
+    let p = publishedPlanMeta;
+    let dutyType = p.dutyType || nobetSettings.dutyType || 'weekly';
+    
+    if (teacherData[teacherUid] && teacherData[teacherUid].exempt) return { exempt: true };
+    
+    let isTeacherInPlan = false;
+    Object.values(p.data).forEach(dayObj => {
+        Object.values(dayObj).forEach(shiftData => {
+            if (Array.isArray(shiftData) && shiftData.includes(teacherUid)) isTeacherInPlan = true;
+            if (typeof shiftData === 'string' && shiftData.includes(teacherUid)) isTeacherInPlan = true;
+        });
+    });
+    
+    if (!isTeacherInPlan) return { notInPlan: true };
+    
+    let originalDates = Object.keys(p.data).sort();
+    let checkDate = new Date();
+    
+    for(let i=0; i<60; i++) {
+        let d = new Date(checkDate);
+        d.setDate(d.getDate() + i);
+        let dayOfWeek = d.getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+        
+        let matchingOrigDateStr = originalDates.find(dStr => new Date(dStr).getDay() === dayOfWeek);
+        if(!matchingOrigDateStr) continue;
+        
+        let virtualPlan = dutyType === 'fixed' ? p.data : applyDynamicRotation(p.data, p.startDate, dutyType, d);
+        let dayPlan = virtualPlan[matchingOrigDateStr];
+        
+        if (dayPlan) {
+            for(let shiftId in dayPlan) {
+                let shiftData = dayPlan[shiftId];
+                let hasTeacher = false;
+                if (Array.isArray(shiftData) && shiftData.includes(teacherUid)) hasTeacher = true;
+                if (typeof shiftData === 'string' && shiftData.includes(teacherUid)) hasTeacher = true;
+                
+                if (hasTeacher) {
+                    let partners = [];
+                    for (let sId in dayPlan) {
+                        let sData = dayPlan[sId];
+                        let tList = Array.isArray(sData) ? sData : (sData ? [sData] : []);
+                        tList.forEach(t => {
+                            if (t !== teacherUid && t && klbkUsers[t]) {
+                                partners.push(`${klbkUsers[t].name || t} (${getDutyLocationName(sId)})`);
+                            }
+                        });
+                    }
+                    
+                    return {
+                        dateObj: d,
+                        locationName: getDutyLocationName(shiftId),
+                        partners: partners
+                    };
+                }
+            }
+        }
+    }
+    return { notFound: true };
+}
+
+function updateTeacherDutyDashboardUI() {
+    if(isAdmin) renderWeeklyPlan();
+    
+    if (teacherDutyInterval) clearInterval(teacherDutyInterval);
+    
+    const container = $('#teacherDutyDashboardContainer');
+    const incidentBtn = $('#teacherIncidentBtnContainer');
+    
+    if (!publishedPlanMeta) {
+        container.html(`<div style="padding: 30px;"><i class="fa-solid fa-calendar-xmark" style="font-size: 3rem; color: var(--gray-400); margin-bottom:15px;"></i><h3>Aktif Nöbet Planı Yok</h3></div>`);
+        incidentBtn.hide();
+        return;
+    }
+    
+    let dutyInfo = determineNextDuty(currentUser.username);
+    
+    if (!dutyInfo || dutyInfo.exempt) {
+        container.html(`<div style="padding: 30px;"><i class="fa-solid fa-mug-hot" style="font-size: 3rem; color: var(--gray-400); margin-bottom:15px;"></i><h3>Nöbetten Muafsınız</h3><p style="color:var(--gray-500);">Nöbet göreviniz bulunmamaktadır.</p></div>`);
+        incidentBtn.hide();
+        return;
+    }
+    if (dutyInfo.notInPlan || dutyInfo.notFound) {
+        container.html(`<div style="padding: 30px;"><i class="fa-solid fa-mug-hot" style="font-size: 3rem; color: var(--gray-400); margin-bottom:15px;"></i><h3>Şu an nöbetçi değilsiniz</h3><p style="color:var(--gray-500);">Bu plan periyodunda nöbetiniz bulunmuyor.</p></div>`);
+        incidentBtn.hide();
+        return;
+    }
+    
+    // We have a next duty or today duty
+    let dutyDate = dutyInfo.dateObj;
+    let today = new Date();
+    let isToday = dutyDate.toDateString() === today.toDateString();
+    
+    // Get lesson times
+    let storeKey = sessionStorage.getItem('klbk_storeKey') || 'klbk_data_admin';
+    fetch(`${FIREBASE_DB_URL}/app_store/${storeKey}/school/lessonTimes.json`).then(res => res.json()).then(lessonTimes => {
+        let firstStart = lessonTimes && lessonTimes['1_start'] ? lessonTimes['1_start'] : '08:30';
+        let lastEnd = '15:30';
+        if(lessonTimes) {
+            let maxHour = Math.max(...Object.keys(lessonTimes).map(k => parseInt(k.split('_')[0])).filter(n => !isNaN(n)));
+            if(lessonTimes[`${maxHour}_end`]) lastEnd = lessonTimes[`${maxHour}_end`];
+        }
+        
+        let startH = parseInt(firstStart.split(':')[0]);
+        let startM = parseInt(firstStart.split(':')[1]);
+        let endH = parseInt(lastEnd.split(':')[0]);
+        let endM = parseInt(lastEnd.split(':')[1]);
+        
+        let dutyStart = new Date(dutyDate);
+        dutyStart.setHours(startH, startM, 0, 0);
+        dutyStart.setMinutes(dutyStart.getMinutes() - 30); // 30 mins before first lesson
+        
+        let dutyEnd = new Date(dutyDate);
+        dutyEnd.setHours(endH, endM, 0, 0);
+        dutyEnd.setMinutes(dutyEnd.getMinutes() + 15); // 15 mins after last lesson
+        
+        const days = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+        let dateFormatted = String(dutyDate.getDate()).padStart(2,'0') + '.' + String(dutyDate.getMonth()+1).padStart(2,'0') + '.' + dutyDate.getFullYear() + ' ' + days[dutyDate.getDay()];
+        
+        function renderUI() {
+            let now = new Date();
+            let html = '';
+            
+            if (isToday) {
+                incidentBtn.show();
+                if (now < dutyStart) {
+                    let diff = dutyStart.getTime() - now.getTime();
+                    html = renderStateHtml('Bugün nöbetçisiniz, Kolay Gelsin', dutyInfo.locationName, formatCountdown(diff), dutyInfo.partners, 'Nöbet Başlıyor:');
+                } else if (now >= dutyStart && now <= dutyEnd) {
+                    let diff = dutyEnd.getTime() - now.getTime();
+                    html = renderStateHtml('Nöbetiniz Başladı', dutyInfo.locationName, formatCountdown(diff), dutyInfo.partners, 'Nöbet Bitiyor:');
+                } else {
+                    html = renderPostDutyHtml(dateFormatted, dutyInfo.locationName); // Actually this needs next duty
+                    incidentBtn.hide(); // Hide after duty? Usually keep it just in case, but let's hide for simplicity or let it stay. Let's hide.
+                }
+            } else {
+                incidentBtn.hide();
+                let diff = dutyStart.getTime() - now.getTime();
+                html = `<div style="padding: 20px;">
+                    <i class="fa-solid fa-mug-hot" style="font-size: 3rem; color: var(--gray-400); margin-bottom: 15px;"></i>
+                    <h2 style="margin:0 0 10px 0;">Şu an nöbetçi değilsiniz</h2>
+                    <div style="background: var(--gray-100); padding: 15px; border-radius: 8px; margin-top: 15px;">
+                        <p style="margin:0; color: var(--gray-600); font-size: 0.95rem;">En yakın nöbetiniz:</p>
+                        <p style="margin:5px 0 0 0; font-weight: bold; font-size: 1.2rem; color: var(--dark);">${dateFormatted}</p>
+                        <p style="margin:5px 0 0 0; color: var(--primary-dark); font-weight: 600;">Görev Yeri: ${dutyInfo.locationName}</p>
+                    </div>
+                    <div style="margin-top: 20px; font-size: 1.5rem; font-weight: 900; font-family: monospace; letter-spacing: 2px; color: var(--gray-700);">
+                        <i class="fa-solid fa-hourglass-half"></i> Kalan Süre: ${formatCountdown(diff)}
+                    </div>
+                    ${dutyInfo.partners.length > 0 ? `<div style="margin-top:20px; text-align:left; font-size:0.9rem; color:var(--gray-600);"><strong style="color:var(--dark);">Nöbet Arkadaşlarınız:</strong><br>${dutyInfo.partners.join('<br>')}</div>` : ''}
+                </div>`;
+            }
+            container.html(html);
+        }
+        
+        renderUI();
+        teacherDutyInterval = setInterval(renderUI, 1000);
+    }).catch(e => {
+        container.html(`<div style="padding: 30px; color: red;">Ders saatleri alınamadı. Lütfen sayfayı yenileyin.</div>`);
+    });
+}
+
+function renderStateHtml(title, location, countdown, partners, countdownLabel) {
+    let pList = partners.length > 0 ? `<div style="margin-top:20px; padding: 15px; background: rgba(255,255,255,0.5); border-radius: 8px; text-align:left; font-size:0.95rem; color:var(--gray-700);"><strong style="color:var(--dark);"><i class="fa-solid fa-users"></i> Nöbet Arkadaşlarınız:</strong><br><div style="margin-top:8px; line-height: 1.6;">${partners.join('<br>')}</div></div>` : '';
+    return `
+        <div style="padding: 10px;">
+            <div style="width: 70px; height: 70px; background: var(--primary-light); color: var(--primary-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 15px;">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h2 style="margin:0 0 10px 0; color: var(--primary-dark);">${title}</h2>
+            <h3 style="margin:0 0 20px 0; color: var(--dark);">Görev Yeri: ${location}</h3>
+            
+            <div style="background: var(--gray-900); color: #22c55e; padding: 15px; border-radius: 8px; margin-top: 15px; display: inline-block;">
+                <p style="margin:0 0 5px 0; color: var(--gray-400); font-size: 0.85rem; font-family: sans-serif;">${countdownLabel}</p>
+                <div style="font-size: 2rem; font-weight: 900; font-family: 'Courier New', Courier, monospace; letter-spacing: 2px; text-shadow: 0 0 10px rgba(34, 197, 94, 0.4);">
+                    ${countdown}
+                </div>
+            </div>
+            ${pList}
+        </div>
+    `;
+}
+
+function renderPostDutyHtml(dateStr, location) {
+    return `
+        <div style="padding: 20px;">
+            <i class="fa-solid fa-check-circle" style="font-size: 3.5rem; color: var(--success); margin-bottom: 15px;"></i>
+            <h2 style="margin:0 0 10px 0; color: var(--dark);">Bugünkü Nöbetiniz Bitti</h2>
+            <p style="color: var(--gray-500); margin-bottom: 20px;">Tebrikler, bugünkü nöbet görevinizi başarıyla tamamladınız.</p>
+            <p style="color: var(--gray-400); font-size: 0.9rem;">Bir sonraki nöbet bilginiz sayfa yenilendiğinde (veya yarın) hesaplanacaktır.</p>
+        </div>
+    `;
+}
+
+function formatCountdown(ms) {
+    if (ms < 0) ms = 0;
+    let s = Math.floor((ms / 1000) % 60);
+    let m = Math.floor((ms / (1000 * 60)) % 60);
+    let h = Math.floor((ms / (1000 * 60 * 60)) % 24);
+    let d = Math.floor(ms / (1000 * 60 * 60 * 24));
+    return `${String(d).padStart(2,'0')}:${String(h).padStart(2,'0')}.${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+window.updateTeacherViewUI = updateTeacherDutyDashboardUI;
 
 window.showIncidentForm = function() {
     $('#incidentSection').slideDown();
