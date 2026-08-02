@@ -18,8 +18,13 @@
         const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_app_permissions.json?_=${Date.now()}`);
         if (res.ok) {
             const data = await res.json();
-            if (data && data[currentPath]) {
-                const perm = data[currentPath];
+            
+            let dbKey = currentPath;
+            if (dbKey.startsWith('/')) dbKey = dbKey.substring(1);
+            dbKey = dbKey.replace(/\./g, '_');
+            
+            if (data && data[dbKey]) {
+                const perm = data[dbKey];
                 
                 // 1. Check Global Access
                 if (perm.globalAccess === false) {

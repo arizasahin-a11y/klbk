@@ -106,12 +106,17 @@ function renderAppList() {
     container.innerHTML = '';
 
     allHtmlFiles.forEach(app => {
+        // Create a Firebase-safe key from the URL (e.g., /dt.html -> dt_html)
+        let dbKey = app.url;
+        if (dbKey.startsWith('/')) dbKey = dbKey.substring(1);
+        dbKey = dbKey.replace(/\./g, '_');
+
         // Initialize default permissions if not exists
-        if (!appPermissions[app.url]) {
-            appPermissions[app.url] = { globalAccess: true, assignments: {} };
+        if (!appPermissions[dbKey]) {
+            appPermissions[dbKey] = { globalAccess: true, assignments: {} };
         }
         
-        const perm = appPermissions[app.url];
+        const perm = appPermissions[dbKey];
         const isGlobalAccess = perm.globalAccess;
         const assignmentCount = perm.assignments ? Object.keys(perm.assignments).length : 0;
 
@@ -128,12 +133,12 @@ function renderAppList() {
             <div class="app-controls">
                 ${assignmentCount > 0 ? `<span class="assigned-users-badge" title="Özel rol atanmış kullanıcı sayısı"><i class="fa-solid fa-users"></i> ${assignmentCount} Özel Yetki</span>` : ''}
                 
-                <button class="btn-action" style="background:#e2e8f0; color:#475569;" onclick="openAssignModal('${app.url}')" title="Kullanıcı Yetkilendir">
+                <button class="btn-action" style="background:#e2e8f0; color:#475569;" onclick="openAssignModal('${dbKey}', '${app.title}')" title="Kullanıcı Yetkilendir">
                     <i class="fa-solid fa-user-plus"></i> Kullanıcı Ata
                 </button>
                 
                 <label class="toggle-switch" title="Genel Erişime Aç/Kapat">
-                    <input type="checkbox" ${isGlobalAccess ? 'checked' : ''} onchange="toggleGlobalAccess('${app.url}', this.checked)">
+                    <input type="checkbox" ${isGlobalAccess ? 'checked' : ''} onchange="toggleGlobalAccess('${dbKey}', this.checked)">
                     <span class="slider"></span>
                 </label>
             </div>
@@ -161,9 +166,9 @@ async function savePermissionsToBackend() {
     }
 }
 
-async function toggleGlobalAccess(appUrl, isChecked) {
-    if (!appPermissions[appUrl]) appPermissions[appUrl] = { assignments: {} };
-    appPermissions[appUrl].globalAccess = isChecked;
+async function toggleGlobalAccess(appKey, isChecked) {
+    if (!appPermissions[appKey]) appPermissions[appKey] = { assignments: {} };
+    appPermissions[appKey].globalAccess = isChecked;
     
     Swal.fire({ title: 'Kaydediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     
@@ -172,7 +177,7 @@ async function toggleGlobalAccess(appUrl, isChecked) {
         Swal.close();
     } else {
         // Revert UI on failure
-        appPermissions[appUrl].globalAccess = !isChecked;
+        appPermissions[appKey].globalAccess = !isChecked;
         renderAppList();
         Swal.fire('Hata', 'Değişiklik kaydedilemedi.', 'error');
     }
@@ -184,12 +189,11 @@ function formatTeacherName(name) {
     return name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 }
 
-function openAssignModal(appUrl) {
-    currentEditingApp = appUrl;
-    const app = allHtmlFiles.find(a => a.url === appUrl);
-    document.getElementById('modalAppTitle').innerText = `${app.title} - Yetkilendirme`;
+function openAssignModal(appKey, appTitle) {
+    currentEditingApp = appKey;
+    document.getElementById('modalAppTitle').innerText = `${appTitle} - Yetkilendirme`;
     
-    tempAssignments = JSON.parse(JSON.stringify(appPermissions[appUrl]?.assignments || {}));
+    tempAssignments = JSON.parse(JSON.stringify(appPermissions[appKey]?.assignments || {}));
     
     document.getElementById('teacherSearch').value = '';
     document.getElementById('assignModal').style.display = 'flex';
