@@ -150,7 +150,10 @@ async function savePermissionsToBackend() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ permissions: appPermissions })
         });
-        if (!res.ok) throw new Error("Sunucu reddetti");
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || "Sunucu reddetti (HTTP " + res.status + ")");
+        }
         return true;
     } catch (e) {
         console.error("Save error:", e);
