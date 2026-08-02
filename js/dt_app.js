@@ -1133,7 +1133,7 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType) {
             
             for (let i = 0; i < teachersInLoc.length; i++) {
                 let uname = teachersInLoc[i];
-                let isFixed = teacherData?.find(t => t.username === uname)?.fixedLoc === shiftId;
+                let isFixed = teacherData && teacherData[uname] && teacherData[uname].fixedLoc === shiftId;
                 if (!isFixed) {
                     dynamicSlots.push(uname);
                     slotMap.push({ shiftId, index: i });
@@ -1161,7 +1161,7 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType) {
             for (let shiftId of shiftIds) {
                 let teachersInLoc = newPlan[day][shiftId];
                 for (let uname of teachersInLoc) {
-                    let isFixed = teacherData?.find(t => t.username === uname)?.fixedLoc === shiftId;
+                    let isFixed = teacherData && teacherData[uname] && teacherData[uname].fixedLoc === shiftId;
                     if (isFixed) {
                         window.rotationTally[day][shiftId][uname] = (window.rotationTally[day][shiftId][uname] || 0) + 1;
                     }
