@@ -1737,28 +1737,28 @@ function renderTeacherWeeklyPlan() {
         return a.localeCompare(b);
     });
     
-    let html = \`
+    let html = `
     <h3 style="margin-bottom:15px; color:var(--primary-dark); text-align:left; border-bottom:1px solid var(--gray-200); padding-bottom:10px;"><i class="fa-solid fa-table-list"></i> Genel Nöbet Planı</h3>
     <div style="overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse; min-width: 800px; text-align: center; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
             <thead>
                 <tr style="background: var(--primary); color: white;">
-                    <th style="padding: 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">Nöbet Yeri</th>\`;
+                    <th style="padding: 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">Nöbet Yeri</th>`;
     
     for(let i=0; i<5; i++) {
-        html += \`<th style="padding: 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">\${dayNames[i] || ''}</th>\`;
+        html += `<th style="padding: 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">${dayNames[i] || ''}</th>`;
     }
     
-    html += \`</tr>
+    html += `</tr>
             </thead>
-            <tbody>\`;
+            <tbody>`;
             
     allShifts.forEach((shiftId, index) => {
         let locName = getDutyLocationName(shiftId);
         
         let rowBg = index % 2 === 0 ? 'background: var(--white);' : 'background: #f9fafb;';
-        html += \`<tr style="\${rowBg}">
-                    <td style="padding: 12px; border: 1px solid var(--gray-200); font-weight: 600; color: var(--primary-dark); text-align: left;">\${locName}</td>\`;
+        html += `<tr style="${rowBg}">
+                    <td style="padding: 12px; border: 1px solid var(--gray-200); font-weight: 600; color: var(--primary-dark); text-align: left;">${locName}</td>`;
                     
         for(let i=0; i<5; i++) {
             let dateStr = dates[i];
@@ -1772,18 +1772,18 @@ function renderTeacherWeeklyPlan() {
                         highlightStyle = 'color: #39ff14; font-weight: 900; font-size: 1.15em; background: var(--gray-900); padding: 4px 8px; border-radius: 6px; display:inline-block; margin:2px; box-shadow: 0 0 8px rgba(57,255,20,0.4);';
                     }
                     
-                    return \`<span style="\${highlightStyle}">\${name}</span>\`;
+                    return `<span style="${highlightStyle}">${name}</span>`;
                 }).join('<br>');
             }
-            html += \`<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">\${teachersList || '<span style="color:var(--gray-400);">-</span>'}</td>\`;
+            html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">${teachersList || '<span style="color:var(--gray-400);">-</span>'}</td>`;
         }
         
-        html += \`</tr>\`;
+        html += `</tr>`;
     });
     
-    html += \`</tbody>
+    html += `</tbody>
         </table>
-    </div>\`;
+    </div>`;
     
     $('#teacherWeeklyPlanContainer').html(html);
 }
