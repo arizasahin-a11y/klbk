@@ -1650,8 +1650,8 @@ function updateTeacherDutyDashboardUI() {
                         <p style="margin:5px 0 0 0; font-weight: bold; font-size: 1.2rem; color: var(--dark);">${dateFormatted}</p>
                         <p style="margin:5px 0 0 0; color: var(--primary-dark); font-weight: 600;">Görev Yeri: ${dutyInfo.locationName}</p>
                     </div>
-                    <div style="margin-top: 20px; font-size: 1.5rem; font-weight: 900; font-family: monospace; letter-spacing: 2px; color: var(--gray-700);">
-                        <i class="fa-solid fa-hourglass-half"></i> Kalan Süre: ${formatCountdown(diff)}
+                    <div style="margin-top: 20px; font-size: 2.2rem; font-weight: 900; font-family: 'Courier New', Courier, monospace; letter-spacing: 2px; color: #39ff14; text-shadow: 0 0 10px rgba(57, 255, 20, 0.5); background: var(--gray-900); padding: 15px 20px; border-radius: 8px; display: inline-block;">
+                        <i class="fa-solid fa-hourglass-half" style="color: #fff; font-size: 1.5rem; vertical-align: middle;"></i> Kalan Süre: <span style="vertical-align: middle;">${formatCountdown(diff)}</span>
                     </div>
                     ${dutyInfo.partners.length > 0 ? `<div style="margin-top:20px; text-align:left; font-size:0.9rem; color:var(--gray-600);"><strong style="color:var(--dark);">Nöbet Arkadaşlarınız:</strong><br>${dutyInfo.partners.join('<br>')}</div>` : ''}
                 </div>`;
@@ -1661,6 +1661,7 @@ function updateTeacherDutyDashboardUI() {
         
         renderUI();
         teacherDutyInterval = setInterval(renderUI, 1000);
+        if(!isAdmin) renderTeacherWeeklyPlan();
     }).catch(e => {
         container.html(`<div style="padding: 30px; color: red;">Ders saatleri alınamadı. Lütfen sayfayı yenileyin.</div>`);
     });
@@ -1676,9 +1677,9 @@ function renderStateHtml(title, location, countdown, partners, countdownLabel) {
             <h2 style="margin:0 0 10px 0; color: var(--primary-dark);">${title}</h2>
             <h3 style="margin:0 0 20px 0; color: var(--dark);">Görev Yeri: ${location}</h3>
             
-            <div style="background: var(--gray-900); color: #22c55e; padding: 15px; border-radius: 8px; margin-top: 15px; display: inline-block;">
+            <div style="background: var(--gray-900); color: #39ff14; padding: 15px 25px; border-radius: 8px; margin-top: 15px; display: inline-block; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
                 <p style="margin:0 0 5px 0; color: var(--gray-400); font-size: 0.85rem; font-family: sans-serif;">${countdownLabel}</p>
-                <div style="font-size: 2rem; font-weight: 900; font-family: 'Courier New', Courier, monospace; letter-spacing: 2px; text-shadow: 0 0 10px rgba(34, 197, 94, 0.4);">
+                <div style="font-size: 2.5rem; font-weight: 900; font-family: 'Courier New', Courier, monospace; letter-spacing: 2px; text-shadow: 0 0 10px rgba(57, 255, 20, 0.6);">
                     ${countdown}
                 </div>
             </div>
@@ -1704,7 +1705,87 @@ function formatCountdown(ms) {
     let m = Math.floor((ms / (1000 * 60)) % 60);
     let h = Math.floor((ms / (1000 * 60 * 60)) % 24);
     let d = Math.floor(ms / (1000 * 60 * 60 * 24));
-    return `${String(d).padStart(2,'0')}:${String(h).padStart(2,'0')}.${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    return `${String(d).padStart(2,'0')}:${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function renderTeacherWeeklyPlan() {
+    if(!currentWeekPlan || Object.keys(currentWeekPlan).length === 0) {
+        $('#teacherWeeklyPlanContainer').html('');
+        return;
+    }
+    
+    let dates = Object.keys(currentWeekPlan).sort();
+    const dayNames = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
+    
+    let allShifts = [];
+    dates.forEach(d => {
+        for(let shiftId in currentWeekPlan[d]) {
+            if(!allShifts.includes(shiftId)) allShifts.push(shiftId);
+        }
+    });
+    
+    allShifts.sort((a, b) => {
+        if(a === '_admin_duty') return -1;
+        if(b === '_admin_duty') return 1;
+        let locIdA = a.replace('_dilim1', '').replace('_dilim2', '');
+        let locIdB = b.replace('_dilim1', '').replace('_dilim2', '');
+        let infoA = nobetSettings.locations?.find(l => l.id === locIdA);
+        let infoB = nobetSettings.locations?.find(l => l.id === locIdB);
+        let pA = infoA ? infoA.priority : 99;
+        let pB = infoB ? infoB.priority : 99;
+        if(pA !== pB) return pA - pB;
+        return a.localeCompare(b);
+    });
+    
+    let html = \`
+    <h3 style="margin-bottom:15px; color:var(--primary-dark); text-align:left; border-bottom:1px solid var(--gray-200); padding-bottom:10px;"><i class="fa-solid fa-table-list"></i> Genel Nöbet Planı</h3>
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; min-width: 800px; text-align: center; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <thead>
+                <tr style="background: var(--primary); color: white;">
+                    <th style="padding: 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">Nöbet Yeri</th>\`;
+    
+    for(let i=0; i<5; i++) {
+        html += \`<th style="padding: 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">\${dayNames[i] || ''}</th>\`;
+    }
+    
+    html += \`</tr>
+            </thead>
+            <tbody>\`;
+            
+    allShifts.forEach((shiftId, index) => {
+        let locName = getDutyLocationName(shiftId);
+        
+        let rowBg = index % 2 === 0 ? 'background: var(--white);' : 'background: #f9fafb;';
+        html += \`<tr style="\${rowBg}">
+                    <td style="padding: 12px; border: 1px solid var(--gray-200); font-weight: 600; color: var(--primary-dark); text-align: left;">\${locName}</td>\`;
+                    
+        for(let i=0; i<5; i++) {
+            let dateStr = dates[i];
+            let teachersList = '';
+            if(dateStr && currentWeekPlan[dateStr] && currentWeekPlan[dateStr][shiftId]) {
+                teachersList = currentWeekPlan[dateStr][shiftId].map(uid => {
+                    let name = klbkUsers[uid]?.name || uid;
+                    
+                    let highlightStyle = '';
+                    if (uid === currentUser.username) {
+                        highlightStyle = 'color: #39ff14; font-weight: 900; font-size: 1.15em; background: var(--gray-900); padding: 4px 8px; border-radius: 6px; display:inline-block; margin:2px; box-shadow: 0 0 8px rgba(57,255,20,0.4);';
+                    }
+                    
+                    return \`<span style="\${highlightStyle}">\${name}</span>\`;
+                }).join('<br>');
+            }
+            html += \`<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">\${teachersList || '<span style="color:var(--gray-400);">-</span>'}</td>\`;
+        }
+        
+        html += \`</tr>\`;
+    });
+    
+    html += \`</tbody>
+        </table>
+    </div>\`;
+    
+    $('#teacherWeeklyPlanContainer').html(html);
 }
 
 window.updateTeacherViewUI = updateTeacherDutyDashboardUI;
