@@ -575,7 +575,8 @@ window.updatePlanActionButtons = () => {
             bannerText = `${formatStr(currentCycleStart)} - ${formatStr(currentCycleEnd)} arasında geçerlidir.`;
         }
         
-        $('#planStatusBanner').html(`<i class="fa-solid fa-calendar-check"></i> <b>Bu plan yayında.</b> ${bannerText}`).css({background: '#d1fae5', color: '#065f46'}).show();
+        let typeName = dutyType === 'monthly' ? 'Aylık Dönüşümlü' : (dutyType === 'fixed' ? 'Sabit' : 'Haftalık Dönüşümlü');
+        $('#planStatusBanner').html(`<i class="fa-solid fa-calendar-check"></i> <b>Bu plan yayında. (${typeName})</b> ${bannerText}`).css({background: '#d1fae5', color: '#065f46'}).show();
     } else if (p.status === 'archived') {
         $('#planStatusBanner').html(`<i class="fa-solid fa-box-archive"></i> Bu plan ARŞİVLENMİŞ durumdadır. Öğretmenler tarafından görülmüyor.`).css({background: '#e2e8f0', color: '#475569'}).show();
     } else {
