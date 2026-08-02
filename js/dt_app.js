@@ -9,6 +9,7 @@ let nobetSettings = {
     rotationDir: 'asc', // 'asc' or 'desc'
     locations: []
 };
+let nobetSettingsProfiles = {}; // { profileId: { name: '...', settings: {...} } }
 let teacherData = {}; // teacher specific settings: { [uid]: { exempt: false, fixedLoc: '' } }
 let currentUser = null;
 let isAdmin = false;
@@ -217,6 +218,9 @@ async function loadInitialData() {
                         nobetSettings = data.global;
                     }
                 }
+                if(data.profiles) {
+                    nobetSettingsProfiles = data.profiles;
+                }
                 if(data.teachers) {
                     if(typeof data.teachers === 'string') {
                         try { teacherData = JSON.parse(data.teachers); } catch(e) { console.error("Could not parse teacher settings"); }
@@ -415,8 +419,67 @@ function updateAdminSettingsUI() {
     $('#settingAdminCount').val(nobetSettings.adminCount !== undefined ? nobetSettings.adminCount : 1);
     $('#settingRotationDir').prop('checked', nobetSettings.rotationDir === 'desc').trigger('change');
     renderLocationsList();
+    renderSettingsProfilesList();
     populatePlanArchiveDropdown();
 }
+
+window.renderSettingsProfilesList = function() {
+    let html = '';
+    let keys = Object.keys(nobetSettingsProfiles);
+    if(keys.length === 0) {
+        html = '<p style="color:var(--gray-500); text-align:center; padding: 10px;">Kaydedilmiş profil yok.</p>';
+    } else {
+        keys.forEach(k => {
+            let prof = nobetSettingsProfiles[k];
+            let name = prof.planName || 'Adsız Profil';
+            let type = prof.dutyType === 'fixed' ? 'Sabit' : (prof.dutyType === 'monthly' ? 'Aylık' : 'Haftalık');
+            html += `
+                <div class="list-item" style="display:flex; justify-content:space-between; align-items:center; background:white; padding:10px; border-radius:6px; margin-bottom:5px; border:1px solid #e2e8f0;">
+                    <div>
+                        <strong style="display:block;">${name}</strong>
+                        <small style="color:var(--gray-500);">${type} - ${prof.dutyDuration === 'half' ? 'Yarım Gün' : 'Tam Gün'}</small>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-primary" onclick="loadSettingsProfile('${k}')" style="padding:4px 8px; font-size:12px; margin-right:5px;"><i class="fa-solid fa-download"></i> Yükle</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteSettingsProfile('${k}')" style="padding:4px 8px; font-size:12px;"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    $('#settingsProfilesList').html(html);
+};
+
+window.loadSettingsProfile = function(k) {
+    if(nobetSettingsProfiles[k]) {
+        nobetSettings = JSON.parse(JSON.stringify(nobetSettingsProfiles[k]));
+        updateAdminSettingsUI();
+        Swal.fire({title: 'Yüklendi', text: 'Ayar profili yüklendi', icon: 'success', timer: 1500, showConfirmButton: false});
+    }
+};
+
+window.deleteSettingsProfile = async function(k) {
+    const { isConfirmed } = await Swal.fire({
+        title: 'Emin misiniz?',
+        text: "Bu profil silinecektir!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Evet, Sil!',
+        cancelButtonText: 'İptal'
+    });
+    if(!isConfirmed) return;
+    
+    delete nobetSettingsProfiles[k];
+    renderSettingsProfilesList();
+    
+    await fetch('/api/updateNobet', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            path: \`settings/profiles/\${k}\`
+        })
+    });
+};
 
 window.populatePlanArchiveDropdown = () => {
     let html = '';
@@ -655,6 +718,7 @@ window.deleteCurrentPlan = async () => {
             if(planKeys.length > 0) viewingPlanId = planKeys[0];
             
             populatePlanArchiveDropdown();
+            loadSelectedPlan();
             Swal.fire('Silindi', 'Plan arşivden silindi.', 'success');
         } catch(e) {
             Swal.fire('Hata', 'Silinirken bir hata oluştu: ' + e.message, 'error');
@@ -753,6 +817,19 @@ window.saveAdminSettings = async function() {
             })
         });
         
+        let pId = nobetSettings.planName ? 'prof_' + nobetSettings.planName.replace(/[^a-zA-Z0-9]/g, '_') : 'prof_default';
+        nobetSettingsProfiles[pId] = JSON.parse(JSON.stringify(nobetSettings));
+        await fetch('/api/updateNobet', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                path: \`settings/profiles/\${pId}\`,
+                data: nobetSettings
+            })
+        });
+        
+        renderSettingsProfilesList();
+        
         if (!res.ok) {
             const err = await res.json();
             throw new Error(err.error || 'API Error');
@@ -818,38 +895,62 @@ window.saveTeacherSettings = async function() {
 };
 
 window.generatePlan = async function() {
-    let typeName = nobetSettings.dutyType === 'fixed' ? 'Sabit (Değişmez)' : (nobetSettings.dutyType === 'monthly' ? 'Dönüşümlü (Aylık)' : 'Dönüşümlü (Haftalık)');
-    let durationName = nobetSettings.dutyDuration === 'half' ? 'Yarım Gün' : 'Tam Gün';
+    let profileOptions = `<option value="active">-- Mevcut Ekran Ayarları --</option>`;
+    Object.keys(nobetSettingsProfiles).forEach(k => {
+        let prof = nobetSettingsProfiles[k];
+        let name = prof.planName || 'Adsız Profil';
+        profileOptions += `<option value="${k}">${name}</option>`;
+    });
+
     let basePlanName = nobetSettings.planName || 'Yeni Plan';
     
     const { value: formValues, isConfirmed } = await Swal.fire({
         title: 'Yeni Plan Oluştur',
         html: `
-            <div style="text-align:left; font-size: 14px; margin-bottom:15px; background: #f8fafc; padding:10px; border-radius:6px; border:1px solid #e2e8f0;">
-                <b>Aktif Ayarlar:</b><br>
-                Nöbet Tipi: ${typeName}<br>
-                Süre: ${durationName}<br>
-                Nöbet Sayısı: ${nobetSettings.dutyCount || 1}
+            <div style="text-align: left; margin-bottom: 15px;">
+                <label style="font-weight: bold; font-size:14px;">Ayar Profili Seçin:</label>
+                <select id="swal-profile-select" class="swal2-select" style="width: 100%; font-size:14px; margin-top:5px; padding:8px;">
+                    ${profileOptions}
+                </select>
             </div>
             <div style="text-align: left;">
                 <label style="font-weight: bold; font-size:14px;">Plan Adı (Tarih eklenecek):</label>
                 <input id="swal-plan-name" class="swal2-input" value="${basePlanName}" style="margin-top: 5px; width: 90%; font-size:15px;">
             </div>
         `,
+        didOpen: () => {
+            document.getElementById('swal-profile-select').addEventListener('change', (e) => {
+                let k = e.target.value;
+                if(k === 'active') {
+                    document.getElementById('swal-plan-name').value = nobetSettings.planName || 'Yeni Plan';
+                } else if(nobetSettingsProfiles[k]) {
+                    document.getElementById('swal-plan-name').value = nobetSettingsProfiles[k].planName || 'Yeni Plan';
+                }
+            });
+        },
         focusConfirm: false,
         showCancelButton: true,
         confirmButtonText: '<i class="fa-solid fa-bolt"></i> Oluştur',
         cancelButtonText: 'İptal',
         preConfirm: () => {
-            return document.getElementById('swal-plan-name').value.trim() || 'Adsız Plan';
+            return {
+                planName: document.getElementById('swal-plan-name').value.trim() || 'Adsız Plan',
+                profileId: document.getElementById('swal-profile-select').value
+            };
         }
     });
 
     if (!isConfirmed) return;
     
+    let selectedSettings = nobetSettings;
+    if (formValues.profileId !== 'active' && nobetSettingsProfiles[formValues.profileId]) {
+        selectedSettings = nobetSettingsProfiles[formValues.profileId];
+    }
+    window._tempGenSettings = selectedSettings;
+    
     let now = new Date();
     let timeStr = String(now.getDate()).padStart(2,'0') + '.' + String(now.getMonth()+1).padStart(2,'0') + '.' + now.getFullYear() + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
-    window._tempFinalPlanName = formValues + ' - ' + timeStr;
+    window._tempFinalPlanName = formValues.planName + ' - ' + timeStr;
 
     Swal.fire({
         title: 'Plan Oluşturuluyor...',
@@ -919,13 +1020,13 @@ window.generatePlan = async function() {
             return score;
         };
 
-        const targetDutyCount = nobetSettings.dutyCount || 1;
-        const targetAdminCount = nobetSettings.adminCount !== undefined ? nobetSettings.adminCount : 1;
-        const isHalf = nobetSettings.dutyDuration === 'half';
+        const targetDutyCount = window._tempGenSettings.dutyCount || 1;
+        const targetAdminCount = window._tempGenSettings.adminCount !== undefined ? window._tempGenSettings.adminCount : 1;
+        const isHalf = window._tempGenSettings.dutyDuration === 'half';
         // Calculate minimum required teachers per day
         let reqPerDay = 0;
-        if(nobetSettings.locations && nobetSettings.locations.length > 0) {
-            nobetSettings.locations.forEach(loc => {
+        if(window._tempGenSettings.locations && window._tempGenSettings.locations.length > 0) {
+            window._tempGenSettings.locations.forEach(loc => {
                 reqPerDay += (loc.reqTeachers ? parseInt(loc.reqTeachers) : 1);
             });
             if (isHalf) reqPerDay *= 2;
@@ -1039,8 +1140,8 @@ window.generatePlan = async function() {
             // 2. Assign Teachers dynamically to balance locations
             let teachersToday = eligibleTeachersList.filter(uid => teacherAssignments[uid].includes(dayName));
             
-            if(nobetSettings.locations && nobetSettings.locations.length > 0) {
-                let sortedLocs = [...nobetSettings.locations].sort((a,b) => a.priority - b.priority);
+            if(window._tempGenSettings.locations && window._tempGenSettings.locations.length > 0) {
+                let sortedLocs = [...window._tempGenSettings.locations].sort((a,b) => a.priority - b.priority);
                 let shifts = [];
                 
                 sortedLocs.forEach(loc => {
@@ -1763,13 +1864,19 @@ window.openPrintTab = async () => {
     
     let sName = validSchoolName.trim() ? validSchoolName : '.......................';
     
+    let paragraphText = '';
+    if (nobetSettings.dutyType === 'fixed') {
+        paragraphText = `Okulumuzda <b>${window.tempPrintHeaderData.start}</b> Pazartesi gününden itibaren uygulanacak nöbetçi öğretmen çizelgesi aşağıdadır.<br>Bilgilerinizi rica ederim.`;
+    } else {
+        paragraphText = `Okulumuzda <b>${window.tempPrintHeaderData.start}</b> Pazartesi - <b>${window.tempPrintHeaderData.end}</b> Cuma günleri arasında uygulanacak nöbetçi öğretmen çizelgesi aşağıdadır.<br>Bilgilerinizi rica ederim.`;
+    }
+
     let officialHeader = `
         <div style="text-align: center; margin-top: 40px; margin-bottom: 25px;">
             <h2 style="margin: 0; font-size: 14pt;">${sName.toUpperCase()} MÜDÜRLÜĞÜ</h2>
         </div>
         <p style="text-align: justify; font-size: 12pt; margin-bottom: 15px; line-height: 1.5;">
-            Okulumuzda <b>${window.tempPrintHeaderData.start}</b> Pazartesi - <b>${window.tempPrintHeaderData.end}</b> Cuma günleri arasında uygulanacak nöbetçi öğretmen çizelgesi aşağıdadır.<br>
-            Bilgilerinizi rica ederim.
+            ${paragraphText}
         </p>
     `;
     let officialFooter = `
