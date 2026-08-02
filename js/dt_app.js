@@ -1235,6 +1235,7 @@ function renderWeeklyPlan() {
         let pB = infoB ? infoB.priority : 99;
         if(pA !== pB) return pA - pB;
         return a.localeCompare(b);
+    });
     let html = `
     <div style="text-align:right; margin-bottom:10px;">
         <button onclick="window.openPrintTab()" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;"><i class="fa-solid fa-print"></i> PDF Yap / Yazdır</button>
@@ -1293,11 +1294,13 @@ function renderWeeklyPlan() {
                     let baseStyle = isFixed ? "font-weight:900; color:#111827;" : "";
 
                     if (isAdmin) {
+                        let safeUid = uid.replace(/'/g, "\\'");
+                        let safeDate = dateStr.replace(/'/g, "\\'");
                         if (shiftId === '_admin_duty') {
-                            return `<span style="cursor:pointer; text-decoration:underline; color:var(--primary); ${baseStyle}" onclick="window.changeAdminDuty('${dateStr}', '${uid}')">${name}${countStr}</span>`;
+                            return `<span style="cursor:pointer; text-decoration:underline; color:var(--primary); ${baseStyle}" onclick="window.changeAdminDuty('${safeDate}', '${safeUid}')">${name}${countStr}</span>`;
                         } else {
                             let cleanUid = uid.replace(/[^a-zA-Z0-9]/g, '');
-                            return `<span style="cursor:pointer; display:inline-block; ${baseStyle}" oncontextmenu="window.selectTeacherForSwap('${dateStr}', '${uid}', event)" onclick="window.handleTeacherClick('${dateStr}', '${uid}', event)" id="span_swap_${dateStr}_${cleanUid}">${name}${countStr}</span>`;
+                            return `<span style="cursor:pointer; display:inline-block; ${baseStyle}" oncontextmenu="window.selectTeacherForSwap('${safeDate}', '${safeUid}', event)" onclick="window.handleTeacherClick('${safeDate}', '${safeUid}', event)" id="span_swap_${dateStr}_${cleanUid}">${name}${countStr}</span>`;
                         }
                     } else if (isFixed) {
                         return `<span style="${baseStyle}">${name}${countStr}</span>`;
