@@ -19,7 +19,23 @@
         if (res.ok) {
             const data = await res.json();
             
-            let dbKey = currentPath;
+            // Map obfuscated Vercel URLs to their canonical HTML files
+            const urlMap = {
+                '/k9x7v2m4': '/index.html',
+                '/k9x7v2m4.html': '/index.html',
+                '/h6t3y9w1': '/ogretmen.html',
+                '/h6t3y9w1.html': '/ogretmen.html',
+                '/r1p5s8q3': '/dashboard.html',
+                '/r1p5s8q3.html': '/dashboard.html',
+                '/n4b9v1c7': '/master.html',
+                '/n4b9v1c7.html': '/master.html',
+                '/j2k5l0p8': '/ogrenci.html',
+                '/j2k5l0p8.html': '/ogrenci.html'
+            };
+            
+            const canonicalPath = urlMap[currentPath] || currentPath;
+            
+            let dbKey = canonicalPath;
             if (dbKey.startsWith('/')) dbKey = dbKey.substring(1);
             dbKey = dbKey.replace(/\./g, '_');
             
