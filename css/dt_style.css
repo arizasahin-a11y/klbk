@@ -607,3 +607,36 @@ input:checked + .toggle-slider:before {
         width: 100%;
     }
 }
+
+.sticky-home-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 55px;
+    height: 55px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 1000;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+.sticky-home-btn:hover {
+    transform: scale(1.1);
+    background: var(--primary-dark);
+    color: white;
+}
+@media (max-width: 768px) {
+    .sticky-home-btn {
+        bottom: 20px;
+        right: 20px;
+        width: 45px;
+        height: 45px;
+        font-size: 1.2rem;
+    }
+}
