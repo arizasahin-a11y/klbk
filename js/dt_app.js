@@ -476,7 +476,7 @@ window.deleteSettingsProfile = async function(k) {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            path: \`settings/profiles/\${k}\`
+            path: `settings/profiles/${k}`
         })
     });
 };
@@ -823,7 +823,7 @@ window.saveAdminSettings = async function() {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                path: \`settings/profiles/\${pId}\`,
+                path: `settings/profiles/${pId}`,
                 data: nobetSettings
             })
         });
