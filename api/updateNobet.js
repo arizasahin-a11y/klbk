@@ -1,11 +1,11 @@
 export default async function handler(req, res) {
-    if (req.method !== 'PUT' && req.method !== 'PATCH') {
+    if (req.method !== 'PUT' && req.method !== 'PATCH' && req.method !== 'DELETE') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
     const { path, data } = req.body;
     
-    if (!path || data === undefined) {
+    if (!path || (req.method !== 'DELETE' && data === undefined)) {
         return res.status(400).json({ error: 'Missing path or data' });
     }
 
@@ -19,11 +19,15 @@ export default async function handler(req, res) {
     try {
         const updateUrl = `${firebaseDatabaseUrl}/app_store/klbk_nobet/${path}.json?auth=${firebaseSecret}`;
         
-        const updateRes = await fetch(updateUrl, {
+        let fetchOptions = {
             method: req.method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
+            headers: { 'Content-Type': 'application/json' }
+        };
+        if (req.method !== 'DELETE') {
+            fetchOptions.body = JSON.stringify(data);
+        }
+        
+        const updateRes = await fetch(updateUrl, fetchOptions);
         
         if (!updateRes.ok) {
             const err = await updateRes.text();
