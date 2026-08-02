@@ -208,7 +208,7 @@ function renderTeacherList(filterText = '') {
         const displayName = formatTeacherName(user.name);
         if (filterText && !displayName.toLowerCase().includes(filterText.toLowerCase())) return;
 
-        const currentRole = tempAssignments[user.uid] || 'default';
+        const currentRole = tempAssignments[user.uid] || 'ogretmen';
         const roleLabel = user.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase()) : 'Bilinmiyor';
 
         const item = document.createElement('div');
@@ -220,9 +220,9 @@ function renderTeacherList(filterText = '') {
             </div>
             <div class="role-selector">
                 <select onchange="updateTempAssignment('${user.uid}', this.value)">
-                    <option value="default" ${currentRole === 'default' ? 'selected' : ''}>Varsayılan</option>
+                    <option value="ogretmen" ${currentRole === 'ogretmen' ? 'selected' : ''}>Öğretmen (Varsayılan)</option>
                     <option value="admin" ${currentRole === 'admin' ? 'selected' : ''}>Admin</option>
-                    <option value="ogretmen" ${currentRole === 'ogretmen' ? 'selected' : ''}>Öğretmen</option>
+                    <option value="serbest" ${currentRole === 'serbest' ? 'selected' : ''}>Serbest</option>
                 </select>
             </div>
         `;
@@ -236,7 +236,7 @@ function filterTeachers() {
 }
 
 function updateTempAssignment(uid, role) {
-    if (role === 'default') {
+    if (role === 'ogretmen') {
         delete tempAssignments[uid];
     } else {
         tempAssignments[uid] = role;

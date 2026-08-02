@@ -29,9 +29,11 @@
 
                 // 2. Check Role Overrides
                 const currentUser = sessionStorage.getItem('klbk_currentUser') || localStorage.getItem('klbk_currentUser');
-                if (currentUser && perm.assignments && perm.assignments[currentUser]) {
-                    const assignedRole = perm.assignments[currentUser];
-                    sessionStorage.setItem('klbk_role', assignedRole); // Override role for this session context
+                if (currentUser) {
+                    const assignedRole = (perm.assignments && perm.assignments[currentUser]) ? perm.assignments[currentUser] : 'ogretmen';
+                    if (assignedRole !== 'serbest') {
+                        sessionStorage.setItem('klbk_role', assignedRole); // Override role for this session context
+                    }
                 }
             }
         }
