@@ -420,7 +420,7 @@
 
         async function loadPortalLinks(isAdmin) {
             try {
-                const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_teacher_links.json`, {
+                const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_teacher_links.json?_=${Date.now()}`, {
                     headers: {
                         'Cache-Control': 'no-cache',
                         'Pragma': 'no-cache'
