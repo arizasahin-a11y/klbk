@@ -1708,9 +1708,22 @@ window.openPrintTab = async () => {
         window.tempPrintHeaderData = { start: pStartStr, end: '...' };
     }
     
-    let sName = localStorage.getItem('klbk_schoolName') || localStorage.getItem('schoolName') || 'OKUL';
     let mudurObj = Object.values(klbkUsers).find(u => u.role === 'mudur');
     let mudurName = mudurObj ? mudurObj.name : '.......................';
+    
+    let validSchoolName = '';
+    if (mudurObj && mudurObj.schoolName) {
+        validSchoolName = mudurObj.schoolName;
+    } else {
+        let anyUser = Object.values(klbkUsers).find(u => u.schoolName);
+        if (anyUser) validSchoolName = anyUser.schoolName;
+    }
+    
+    if (!validSchoolName) {
+        validSchoolName = sessionStorage.getItem('klbk_schoolName') || localStorage.getItem('klbk_lastSchoolName') || localStorage.getItem('klbk_schoolName') || localStorage.getItem('schoolName') || '';
+    }
+    
+    let sName = validSchoolName.trim() ? validSchoolName : '.......................';
     
     let officialHeader = `
         <div style="text-align: center; margin-top: 40px; margin-bottom: 25px;">
