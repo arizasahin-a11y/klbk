@@ -1685,20 +1685,30 @@ window.openPrintTab = () => {
                     box-shadow: 0 0 10px rgba(0,0,0,0.1);
                     margin-bottom: 20px;
                     box-sizing: border-box;
+                    overflow: hidden;
                 }
                 @page { size: A4 portrait; margin: 5mm; }
-                table { width: 100%; border-collapse: collapse; margin-top: 15px; table-layout: fixed; }
+                table { 
+                    width: 100% !important; 
+                    min-width: 100% !important; 
+                    max-width: 100% !important; 
+                    border-collapse: collapse; 
+                    margin-top: 15px; 
+                    table-layout: fixed;
+                    box-shadow: none !important;
+                    border-radius: 0 !important;
+                }
                 th, td { 
                     border: 1.5px solid #000 !important; 
                     padding: 6px; 
                     text-align: center; 
-                    font-size: 9.5pt; 
+                    font-size: 9pt; 
                     color: black !important; 
                     word-wrap: break-word; 
                 }
                 th { background-color: #e5e7eb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: bold; }
                 span { color: black !important; text-decoration: none !important; }
-                span[style*="opacity:0.8"] { color: #444 !important; font-size: 0.8em; }
+                span[style*="opacity:0.8"] { color: #444 !important; font-size: 0.8em; display:block; margin-top:2px; }
                 .print-actions { text-align: center; margin-bottom: 15px; display: flex; gap: 15px; justify-content: center; width: 100%; }
                 .print-actions button {
                     color: white; border: none; padding: 10px 20px; 
