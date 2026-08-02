@@ -1805,7 +1805,15 @@ function renderTeacherWeeklyPlan() {
                 teachersList = currentWeekPlan[dateStr][shiftId].map(uid => {
                     let name = klbkUsers[uid]?.name || uid;
                     
-                    let highlightStyle = '';
+                    let isFixed = false;
+                    if (teacherData && teacherData[uid] && teacherData[uid].fixedLoc) {
+                        let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                        if (teacherData[uid].fixedLoc === shiftId || teacherData[uid].fixedLoc === baseShift) {
+                            isFixed = true;
+                        }
+                    }
+                    
+                    let highlightStyle = isFixed ? 'font-weight: 900; color: #111827;' : '';
                     if (uid === currentUser.username) {
                         highlightStyle = 'color: #39ff14; font-weight: 900; font-size: 1.15em; background: var(--gray-900); padding: 4px 8px; border-radius: 6px; display:inline-block; margin:2px; box-shadow: 0 0 8px rgba(57,255,20,0.4);';
                     }
