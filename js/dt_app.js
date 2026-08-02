@@ -1280,6 +1280,14 @@ function renderWeeklyPlan() {
                     if (window.rotationTally && window.rotationTally[dateStr] && window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid]) {
                         countStr = ` <span style="font-size:0.85em; opacity:0.8;">(${window.rotationTally[dateStr][shiftId][uid]})</span>`;
                     }
+                    if (isAdmin) {
+                        if (shiftId === '_admin_duty') {
+                            return `<span style="cursor:pointer; text-decoration:underline; color:var(--primary);" onclick="window.changeAdminDuty('${dateStr}', '${uid}')">${name}${countStr}</span>`;
+                        } else {
+                            let cleanUid = uid.replace(/[^a-zA-Z0-9]/g, '');
+                            return `<span style="cursor:pointer; display:inline-block;" oncontextmenu="window.selectTeacherForSwap('${dateStr}', '${uid}', event)" onclick="window.handleTeacherClick('${dateStr}', '${uid}', event)" id="span_swap_${dateStr}_${cleanUid}">${name}${countStr}</span>`;
+                        }
+                    }
                     return name + countStr;
                 }).join('<br>');
             }
@@ -1436,5 +1444,166 @@ async function loadIncidents() {
         }
     } catch(e) {
         console.error('Tutanaklar yüklenirken hata', e);
+    }
+}
+
+// --- Interactive Table Features ---
+window.changeAdminDuty = async (dateStr, currentUid) => {
+    if (!isAdmin) return;
+    
+    // Warn if dynamic rotation is active
+    let p = allNobetPlans[viewingPlanId];
+    if (p.status === 'published' && p.startDate) {
+        let diffTime = new Date().getTime() - new Date(p.startDate).getTime();
+        let weeksPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+        if (weeksPassed > 0) {
+            const { isConfirmed } = await Swal.fire({
+                title: 'Dikkat!',
+                text: 'Bu plan yayında ve dinamik dönüşüm aşamasında. İdareciyi değiştirmek ana taslağı güncelleyecektir.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Devam Et',
+                cancelButtonText: 'İptal'
+            });
+            if(!isConfirmed) return;
+        }
+    }
+
+    // Get admins
+    let adminsList = Object.keys(klbkUsers).filter(uid => {
+        let t = klbkUsers[uid];
+        return (t.role === 'yonetici' || t.role === 'admin' || t.role === 'kurucu') && !t.isSystemAccount;
+    });
+
+    let inputOptions = {};
+    adminsList.forEach(uid => {
+        inputOptions[uid] = klbkUsers[uid].name;
+    });
+
+    const { value: selectedUid } = await Swal.fire({
+        title: 'Nöbetçi İdareci Değiştir',
+        input: 'select',
+        inputOptions: inputOptions,
+        inputPlaceholder: 'İdareci Seçin',
+        showCancelButton: true,
+        confirmButtonText: 'Değiştir',
+        cancelButtonText: 'İptal'
+    });
+
+    if (selectedUid && selectedUid !== currentUid) {
+        let plan = allNobetPlans[viewingPlanId].data;
+        if(plan[dateStr] && plan[dateStr]['_admin_duty']) {
+            let idx = plan[dateStr]['_admin_duty'].indexOf(currentUid);
+            if (idx > -1) {
+                plan[dateStr]['_admin_duty'][idx] = selectedUid;
+                await savePlanChanges('İdareci başarıyla değiştirildi.');
+            }
+        }
+    }
+};
+
+window.selectedSwapTeacher = null;
+
+window.selectTeacherForSwap = (dateStr, uid, e) => {
+    e.preventDefault();
+    if (!isAdmin) return;
+    
+    if (window.selectedSwapTeacher) {
+        let cleanOldUid = window.selectedSwapTeacher.uid.replace(/[^a-zA-Z0-9]/g, '');
+        $(`#span_swap_${window.selectedSwapTeacher.dateStr}_${cleanOldUid}`).css({background: 'transparent', padding: '0'});
+    }
+    window.selectedSwapTeacher = { dateStr, uid };
+    
+    let cleanUid = uid.replace(/[^a-zA-Z0-9]/g, '');
+    $(`#span_swap_${dateStr}_${cleanUid}`).css({background: '#fef08a', padding: '2px 4px', borderRadius: '4px'});
+};
+
+window.handleTeacherClick = (dateStr, uid, e) => {
+    if (!isAdmin) return;
+    if (!window.selectedSwapTeacher) return;
+    if (window.selectedSwapTeacher.uid === uid && window.selectedSwapTeacher.dateStr === dateStr) return; // Same person/day
+    
+    window.confirmTeacherSwap(window.selectedSwapTeacher, {dateStr, uid});
+};
+
+window.confirmTeacherSwap = async (t1, t2) => {
+    let name1 = klbkUsers[t1.uid]?.name || t1.uid;
+    let name2 = klbkUsers[t2.uid]?.name || t2.uid;
+    
+    let p = allNobetPlans[viewingPlanId];
+    if (p.status === 'published' && p.startDate) {
+        let diffTime = new Date().getTime() - new Date(p.startDate).getTime();
+        let weeksPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+        if (weeksPassed > 0) {
+            const { isConfirmed } = await Swal.fire({
+                title: 'Dikkat!',
+                text: 'Bu plan yayında ve dinamik dönüşüm aşamasında. Takas yaparsanız değişiklikler 1. haftadaki ORİJİNAL taslağa uygulanır!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Devam Et',
+                cancelButtonText: 'İptal'
+            });
+            if(!isConfirmed) return;
+        }
+    }
+    
+    const { isConfirmed } = await Swal.fire({
+        title: 'Nöbet Takası Onayı',
+        html: `<b>${name1}</b> ile <b>${name2}</b> kişilerinin nöbet günlerini veya yerlerini takas etmek istediğinize emin misiniz?<br><br><i>Not: Bu işlem orijinal plana işlenecektir.</i>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Evet, Takas Et',
+        cancelButtonText: 'İptal'
+    });
+    
+    if (isConfirmed) {
+        let plan = allNobetPlans[viewingPlanId].data;
+        
+        let shift1 = null, shift2 = null;
+        for (let sid in plan[t1.dateStr]) {
+            if (plan[t1.dateStr][sid].includes(t1.uid)) shift1 = sid;
+        }
+        for (let sid in plan[t2.dateStr]) {
+            if (plan[t2.dateStr][sid].includes(t2.uid)) shift2 = sid;
+        }
+        
+        if (shift1 && shift2) {
+            let idx1 = plan[t1.dateStr][shift1].indexOf(t1.uid);
+            let idx2 = plan[t2.dateStr][shift2].indexOf(t2.uid);
+            
+            plan[t1.dateStr][shift1][idx1] = t2.uid;
+            plan[t2.dateStr][shift2][idx2] = t1.uid;
+            
+            window.selectedSwapTeacher = null;
+            await savePlanChanges('Öğretmenler başarıyla takas edildi.');
+        } else {
+            Swal.fire('Hata', 'Kişilerin baz plandaki yerleri bulunamadı.', 'error');
+        }
+    }
+};
+
+async function savePlanChanges(successMsg) {
+    let p = allNobetPlans[viewingPlanId];
+    try {
+        await fetch('/api/updateNobet', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: 'plans', data: allNobetPlans })
+        });
+        
+        if (p.status === 'published') {
+            await fetch('/api/updateNobet', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: 'publishedPlan', data: p })
+            });
+        }
+        
+        currentWeekPlan = applyDynamicRotation(p.data, p.startDate, nobetSettings.dutyType || 'fixed');
+        renderWeeklyPlan();
+        
+        Swal.fire('Başarılı', successMsg, 'success');
+    } catch(e) {
+        Swal.fire('Hata', 'Değişiklik kaydedilemedi: ' + e.message, 'error');
     }
 }
