@@ -492,11 +492,11 @@ window.populatePlanArchiveDropdown = () => {
     } else {
         planKeys.forEach(pid => {
             let p = allNobetPlans[pid];
-            let planNameText = p.planName ? `${p.planName} | ` : '';
             let dateStr = new Date(p.createdAt).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' });
+            let planNameText = p.planName ? p.planName : `Adsız Plan | ${dateStr}`;
             let statusText = p.status === 'published' ? `(YAYINDA: ${p.startDate || 'Tarih Yok'})` : '(TASLAK)';
             let optionStyle = p.status === 'published' ? 'font-weight: bold; color: #16a34a;' : '';
-            html += `<option value="${pid}" style="${optionStyle}">${planNameText}${dateStr} - ${statusText}</option>`;
+            html += `<option value="${pid}" style="${optionStyle}">${planNameText} - ${statusText}</option>`;
         });
     }
     $('#planArchiveSelect').html(html);
