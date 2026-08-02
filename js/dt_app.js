@@ -1481,10 +1481,10 @@ window.changeAdminDuty = async (dateStr, currentUid) => {
         }
     }
 
-    // Get admins
+    // Get admins (only Idareci roles)
     let adminsList = Object.keys(klbkUsers).filter(uid => {
         let t = klbkUsers[uid];
-        return (t.role === 'yonetici' || t.role === 'admin' || t.role === 'kurucu') && !t.isSystemAccount;
+        return (t.role === 'mudur' || t.role === 'mudur_basyardimcisi' || t.role === 'mudur_yardimcisi') && !t.isSystemAccount;
     });
 
     let inputOptions = {};
@@ -1528,6 +1528,17 @@ window.selectTeacherForSwap = (dateStr, uid, e) => {
     
     let cleanUid = uid.replace(/[^a-zA-Z0-9]/g, '');
     $(`#span_swap_${dateStr}_${cleanUid}`).css({background: '#fef08a', padding: '2px 4px', borderRadius: '4px'});
+    
+    let tName = klbkUsers[uid]?.name || uid;
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        icon: 'info',
+        title: `${tName} seçildi. Takas etmek istediğiniz diğer öğretmene tıklayın.`
+    });
 };
 
 window.handleTeacherClick = (dateStr, uid, e) => {
