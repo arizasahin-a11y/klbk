@@ -1713,8 +1713,8 @@ window.openPrintTab = async () => {
     let mudurName = mudurObj ? mudurObj.name : '.......................';
     
     let officialHeader = `
-        <div style="text-align: center; margin-bottom: 25px;">
-            <h2 style="margin: 0; font-size: 16pt;">${sName.toUpperCase()} MÜDÜRLÜĞÜNE</h2>
+        <div style="text-align: center; margin-top: 40px; margin-bottom: 25px;">
+            <h2 style="margin: 0; font-size: 14pt;">${sName.toUpperCase()} MÜDÜRLÜĞÜ</h2>
         </div>
         <p style="text-align: justify; font-size: 12pt; margin-bottom: 15px; line-height: 1.5;">
             Okulumuzda <b>${window.tempPrintHeaderData.start}</b> Pazartesi - <b>${window.tempPrintHeaderData.end}</b> Cuma günleri arasında uygulanacak nöbetçi öğretmen çizelgesi aşağıdadır.<br>
@@ -1722,7 +1722,7 @@ window.openPrintTab = async () => {
         </p>
     `;
     let officialFooter = `
-        <div style="margin-top: 40px; text-align: center; float: right; width: 250px;">
+        <div style="margin-top: 80px; text-align: center; width: 300px; margin-left: auto; margin-right: auto;">
             <div style="margin-bottom: 50px;">${window.tempPrintHeaderData.start}</div>
             <div style="font-weight: bold; text-decoration: underline;">${mudurName}</div>
             <div>Okul Müdürü</div>
