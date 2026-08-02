@@ -60,7 +60,12 @@
                 if (currentUser) {
                     const assignedRole = (perm.assignments && perm.assignments[currentUser]) ? perm.assignments[currentUser] : 'ogretmen';
                     if (assignedRole !== 'serbest') {
-                        sessionStorage.setItem('klbk_role', assignedRole); // Override role for this session context
+                        const currentSessionRole = sessionStorage.getItem('klbk_role');
+                        if (currentSessionRole !== assignedRole) {
+                            sessionStorage.setItem('klbk_role', assignedRole); // Override role for this session context
+                            window.location.reload(); // Force reload to ensure UI renders with the correct restricted role
+                            return; // Stop execution
+                        }
                     }
                 }
             }
