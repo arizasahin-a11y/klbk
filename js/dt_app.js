@@ -1681,21 +1681,28 @@ window.openPrintTab = () => {
                     background: #fff;
                     width: 210mm;
                     min-height: 297mm;
-                    padding: 20mm;
+                    padding: 10mm;
                     box-shadow: 0 0 10px rgba(0,0,0,0.1);
                     margin-bottom: 20px;
                     box-sizing: border-box;
                 }
-                @page { size: A4 portrait; margin: 10mm; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { border: 1px solid black; padding: 10px; text-align: center; font-size: 11pt; color: black !important; }
-                th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                @page { size: A4 portrait; margin: 5mm; }
+                table { width: 100%; border-collapse: collapse; margin-top: 15px; table-layout: fixed; }
+                th, td { 
+                    border: 1.5px solid #000 !important; 
+                    padding: 6px; 
+                    text-align: center; 
+                    font-size: 9.5pt; 
+                    color: black !important; 
+                    word-wrap: break-word; 
+                }
+                th { background-color: #e5e7eb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-weight: bold; }
                 span { color: black !important; text-decoration: none !important; }
-                span[style*="opacity:0.8"] { color: #555 !important; }
-                .print-actions { text-align: center; margin-bottom: 20px; display: flex; gap: 15px; justify-content: center; width: 100%; }
+                span[style*="opacity:0.8"] { color: #444 !important; font-size: 0.8em; }
+                .print-actions { text-align: center; margin-bottom: 15px; display: flex; gap: 15px; justify-content: center; width: 100%; }
                 .print-actions button {
-                    color: white; border: none; padding: 12px 24px; 
-                    border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold;
+                    color: white; border: none; padding: 10px 20px; 
+                    border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold;
                 }
                 .btn-pdf { background: #dc2626; }
                 .btn-print { background: #2563eb; }
