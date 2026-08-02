@@ -123,15 +123,40 @@ async function doLogin(username, password, remember) {
         if (res.ok) {
             const storage = remember ? localStorage : sessionStorage;
             storage.setItem('klbk_isLoggedIn', 'true');
+            storage.setItem('klbk_faaliyet_isLoggedIn', 'true');
             storage.setItem('klbk_username', username);
+            storage.setItem('klbk_currentUser', username);
             
             let matchedRole = (data.user && data.user.role) ? data.user.role : (data.role || 'user');
             let matchedName = (data.user && data.user.name) ? data.user.name : (data.name || username);
             let token = data.token || (data.user && data.user.token) || 'legacy-session';
+            let storeKey = (data.user && data.user.storeKey) ? data.user.storeKey : `klbk_data_${username}`;
+            let schoolName = (data.user && data.user.schoolName) ? data.user.schoolName : '';
             
             storage.setItem('klbk_name', matchedName);
             storage.setItem('klbk_role', matchedRole);
             storage.setItem('klbk_session_token', token);
+            storage.setItem('klbk_storeKey', storeKey);
+            storage.setItem('klbk_schoolName', schoolName);
+            
+            if (data.user && data.user.branch) {
+                storage.setItem('klbk_branch', data.user.branch);
+            }
+            
+            if (remember && matchedRole !== 'student' && matchedRole !== 'ogrenci') {
+                const sessionData = {
+                    klbk_currentUser: username,
+                    klbk_name: matchedName,
+                    klbk_schoolName: schoolName,
+                    klbk_storeKey: storeKey,
+                    klbk_role: matchedRole,
+                    klbk_loginTime: new Date().toISOString()
+                };
+                if (data.user && data.user.branch) {
+                    sessionData.klbk_branch = data.user.branch;
+                }
+                localStorage.setItem('klbk_persistent_session', JSON.stringify(sessionData));
+            }
             
             checkSession();
         } else {
@@ -147,10 +172,17 @@ async function doLogin(username, password, remember) {
 function logout() {
     sessionStorage.clear();
     localStorage.removeItem('klbk_isLoggedIn');
+    localStorage.removeItem('klbk_faaliyet_isLoggedIn');
     localStorage.removeItem('klbk_username');
+    localStorage.removeItem('klbk_currentUser');
     localStorage.removeItem('klbk_name');
     localStorage.removeItem('klbk_role');
     localStorage.removeItem('klbk_session_token');
+    localStorage.removeItem('klbk_storeKey');
+    localStorage.removeItem('klbk_schoolName');
+    localStorage.removeItem('klbk_branch');
+    localStorage.removeItem('klbk_persistent_session');
+    localStorage.removeItem('klbk_rememberedUser');
     window.location.reload();
 }
 
