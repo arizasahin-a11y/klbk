@@ -8,8 +8,8 @@
     const firebaseDatabaseUrl = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
     const currentPath = window.location.pathname;
     
-    // Ignore permissions check for login, enter (portal), and security_error
-    if (currentPath === '/' || currentPath.endsWith('index.html') || currentPath.endsWith('enter.html') || currentPath.endsWith('security_error.html') || currentPath.endsWith('master.html')) {
+    // Ignore permissions check for login, and security_error
+    if (currentPath === '/' || currentPath.endsWith('index.html') || currentPath.endsWith('security_error.html') || currentPath.endsWith('master.html')) {
         document.head.removeChild(style);
         return;
     }
