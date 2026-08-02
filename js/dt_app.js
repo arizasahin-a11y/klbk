@@ -281,7 +281,10 @@ async function loadInitialData() {
                     
                     // Set default viewing plan for admin
                     let planKeys = Object.keys(allNobetPlans).sort().reverse();
-                    if(planKeys.length > 0) viewingPlanId = planKeys[0];
+                    if(planKeys.length > 0) {
+                        let publishedKey = planKeys.find(k => allNobetPlans[k].status === 'published');
+                        viewingPlanId = publishedKey || planKeys[0];
+                    }
                 }
             }
         }
@@ -492,7 +495,8 @@ window.populatePlanArchiveDropdown = () => {
             let planNameText = p.planName ? `${p.planName} | ` : '';
             let dateStr = new Date(p.createdAt).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' });
             let statusText = p.status === 'published' ? `(YAYINDA: ${p.startDate || 'Tarih Yok'})` : '(TASLAK)';
-            html += `<option value="${pid}">${planNameText}${dateStr} - ${statusText}</option>`;
+            let optionStyle = p.status === 'published' ? 'font-weight: bold; color: #16a34a;' : '';
+            html += `<option value="${pid}" style="${optionStyle}">${planNameText}${dateStr} - ${statusText}</option>`;
         });
     }
     $('#planArchiveSelect').html(html);
@@ -525,6 +529,13 @@ window.updatePlanActionButtons = () => {
     $('#deletePlanBtn').css({ opacity: '1', pointerEvents: 'auto' });
     
     if(!p.status) p.status = 'draft';
+    
+    // Style select dropdown based on selected status
+    if (p.status === 'published') {
+        $('#planArchiveSelect').css({ 'font-weight': 'bold', 'color': '#16a34a', 'border-color': '#16a34a', 'background-color': '#f0fdf4' });
+    } else {
+        $('#planArchiveSelect').css({ 'font-weight': 'normal', 'color': 'inherit', 'border-color': '#cbd5e1', 'background-color': 'white' });
+    }
     
     if(p.status === 'published') {
         $('#togglePublishBtn').html('<i class="fa-solid fa-pen"></i> Tarihi Güncelle').css({ background: '#10b981', color: 'white' });
