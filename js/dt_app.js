@@ -522,6 +522,7 @@ window.updatePlanActionButtons = () => {
         opacity: '1',
         pointerEvents: 'auto'
     });
+    $('#deletePlanBtn').css({ opacity: '1', pointerEvents: 'auto' });
     
     if(!p.status) p.status = 'draft';
     
@@ -1234,7 +1235,7 @@ window.generatePlan = async function() {
 };
 
 function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateObj) {
-    if (!startDateStr || dutyType === 'fixed' || !originalPlan) return originalPlan;
+    if (!startDateStr || !originalPlan) return originalPlan;
     
     let startDate = new Date(startDateStr);
     let currentDate = targetDateObj ? new Date(targetDateObj) : new Date();
@@ -1297,7 +1298,7 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateOb
         for (let cycle = 0; cycle <= cyclesPassed; cycle++) {
             let currentSlots = [...dynamicSlots];
             
-            if (cycle > 0) {
+            if (cycle > 0 && dutyType !== 'fixed') {
                 let s = (cycle * (dir === 'desc' ? -1 : 1)) % dynamicSlots.length;
                 if (s < 0) s += dynamicSlots.length;
                 currentSlots = [...dynamicSlots.slice(dynamicSlots.length - s), ...dynamicSlots.slice(0, dynamicSlots.length - s)];
