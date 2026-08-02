@@ -232,6 +232,12 @@ async function loadInitialData() {
             const p = await pubRes.json();
             if (p && typeof p === 'object') {
                 if (p.data) {
+                    // CORRUPTION FIX: Remove mistakenly nested plans inside the published data
+                    for (let k in p.data) {
+                        if (k.startsWith('plan_') && p.data[k] && p.data[k].createdAt) {
+                            delete p.data[k];
+                        }
+                    }
                     currentWeekPlan = p.data;
                     publishedPlanMeta = p;
                 } else {
@@ -256,6 +262,19 @@ async function loadInitialData() {
                     if(!publishedPlanMeta) { currentWeekPlan = plans; viewingPlanId = 'plan_legacy'; }
                 } else {
                     allNobetPlans = plans;
+                    
+                    // CORRUPTION FIX: Extract mistakenly nested plans (e.g. inside plan_legacy.data)
+                    for (let pk in allNobetPlans) {
+                        let p = allNobetPlans[pk];
+                        if (p && p.data && typeof p.data === 'object') {
+                            for (let subK in p.data) {
+                                if (subK.startsWith('plan_') && p.data[subK] && p.data[subK].createdAt) {
+                                    allNobetPlans[subK] = p.data[subK];
+                                    delete p.data[subK];
+                                }
+                            }
+                        }
+                    }
                     
                     // Set default viewing plan for admin
                     let planKeys = Object.keys(allNobetPlans).sort().reverse();
