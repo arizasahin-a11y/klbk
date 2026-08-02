@@ -494,7 +494,16 @@ window.populatePlanArchiveDropdown = () => {
             let p = allNobetPlans[pid];
             let dateStr = new Date(p.createdAt).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' });
             let planNameText = p.planName ? p.planName : `Adsız Plan | ${dateStr}`;
-            let statusText = p.status === 'published' ? `(YAYINDA: ${p.startDate || 'Tarih Yok'})` : '(TASLAK)';
+            let formattedStartDate = 'Tarih Yok';
+            if (p.startDate) {
+                let d = new Date(p.startDate);
+                if (!isNaN(d.getTime())) {
+                    formattedStartDate = String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth()+1).padStart(2, '0') + '.' + d.getFullYear();
+                } else {
+                    formattedStartDate = p.startDate;
+                }
+            }
+            let statusText = p.status === 'published' ? `(YAYINDA: ${formattedStartDate})` : '(TASLAK)';
             let optionStyle = p.status === 'published' ? 'font-weight: bold; color: #16a34a;' : '';
             html += `<option value="${pid}" style="${optionStyle}">${planNameText} - ${statusText}</option>`;
         });
