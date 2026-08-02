@@ -1257,8 +1257,9 @@ function renderWeeklyPlan() {
     }
 
     let html = `
-    <div style="text-align:right; margin-bottom:10px;">
-        <button onclick="window.printPlan()" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;"><i class="fa-solid fa-print"></i> Yazdır / PDF Yap</button>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:10px;">
+        <button onclick="window.openPrintTab('pdf')" style="background:#dc2626; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;"><i class="fa-solid fa-file-pdf"></i> PDF İndir</button>
+        <button onclick="window.openPrintTab('print')" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;"><i class="fa-solid fa-print"></i> Yazdır</button>
     </div>
     <div style="overflow-x: auto; margin-top: 20px;" id="printablePlanArea">
         ${planDateText}
@@ -1655,31 +1656,56 @@ async function savePlanChanges(successMsg) {
     }
 }
 
-window.printPlan = () => {
+window.openPrintTab = (action) => {
     let printContent = document.getElementById('printablePlanArea').innerHTML;
-    let originalContent = document.body.innerHTML;
     
-    // Add print styles to head temporarily
-    let style = document.createElement('style');
-    style.id = 'printStyles';
-    style.innerHTML = `
-        @media print {
-            body * { visibility: hidden; }
-            #printablePlanArea, #printablePlanArea * { visibility: visible; }
-            #printablePlanArea { position: absolute; left: 0; top: 0; width: 100%; }
-            @page { size: A4 landscape; margin: 1cm; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid black; padding: 8px; text-align: center; font-size: 12pt; color: black !important; }
-            th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
-            span { color: black !important; text-decoration: none !important; }
-            /* Hide counts in print if needed, but they are useful, so keep them */
-            span[style*="opacity:0.8"] { color: #555 !important; }
+    let win = window.open('', '_blank');
+    if(!win) {
+        Swal.fire('Hata', 'Açılır pencere engelleyicisi yeni sekmeyi engelledi. Lütfen izin verin.', 'error');
+        return;
+    }
+    
+    win.document.write(`
+        <html>
+        <head>
+            <title>Nöbet Planı</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 20px;
+                    background: #fff;
+                }
+                @page { size: A4 landscape; margin: 1cm; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                th, td { border: 1px solid black; padding: 10px; text-align: center; font-size: 11pt; color: black !important; }
+                th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                span { color: black !important; text-decoration: none !important; }
+                span[style*="opacity:0.8"] { color: #555 !important; }
+                .print-actions { text-align: center; margin-bottom: 20px; }
+                .print-actions button {
+                    background: #3b82f6; color: white; border: none; padding: 10px 20px; 
+                    border-radius: 6px; cursor: pointer; font-size: 16px; margin: 0 10px;
+                }
+                @media print {
+                    .print-actions { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="print-actions">
+                <button onclick="window.print()">Yazdır / PDF Kaydet</button>
+            </div>
+            ${printContent}
+        </body>
+        </html>
+    `);
+    
+    win.document.close();
+    
+    // Auto-trigger print dialog if requested
+    setTimeout(() => {
+        if (action === 'print' || action === 'pdf') {
+            win.print();
         }
-    `;
-    document.head.appendChild(style);
-    
-    window.print();
-    
-    // Cleanup
-    document.head.removeChild(style);
+    }, 500);
 };
