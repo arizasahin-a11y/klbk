@@ -541,7 +541,7 @@ window.updatePlanActionButtons = () => {
     
     // Banner Logic
     if (p.status === 'published' && p.startDate) {
-        let dutyType = nobetSettings.dutyType || 'fixed';
+        let dutyType = p.dutyType || nobetSettings.dutyType || 'fixed';
         let startDate = new Date(p.startDate);
         let bannerText = "";
         
@@ -582,7 +582,8 @@ window.updatePlanActionButtons = () => {
         $('#planStatusBanner').html(`<i class="fa-solid fa-triangle-exclamation"></i> Bu plan henüz TASLAK aşamasındadır. Öğretmenler tarafından görülmüyor.`).css({background: '#fef3c7', color: '#92400e'}).show();
     }
     
-    currentWeekPlan = applyDynamicRotation(p.data, p.startDate, nobetSettings.dutyType || 'fixed');
+    let activeDutyType = p.dutyType || nobetSettings.dutyType || 'fixed';
+    currentWeekPlan = applyDynamicRotation(p.data, p.startDate, activeDutyType);
     if(isAdmin) renderWeeklyPlan();
 };
 
@@ -1201,6 +1202,7 @@ window.generatePlan = async function() {
         const planObj = {
             planName: window._tempFinalPlanName || 'Adsız Plan',
             data: newPlan,
+            dutyType: window._tempGenSettings ? window._tempGenSettings.dutyType : nobetSettings.dutyType,
             status: 'draft',
             createdAt: new Date().toISOString()
         };
@@ -1782,7 +1784,9 @@ async function savePlanChanges(successMsg) {
 
 window.openPrintTab = async () => {
     let p = allNobetPlans[viewingPlanId];
-    if (isAdmin && p && p.status === 'published' && (nobetSettings.dutyType === 'weekly' || nobetSettings.dutyType === 'monthly')) {
+    let activeDutyType = (p && p.dutyType) ? p.dutyType : nobetSettings.dutyType;
+    
+    if (isAdmin && p && p.status === 'published' && (activeDutyType === 'weekly' || activeDutyType === 'monthly')) {
         const { value: targetDateStr } = await Swal.fire({
             title: 'Yazdırma Tarihi Seçimi',
             html: `Hangi haftanın planını yazdırmak istersiniz?<br><br><small>Seçtiğiniz tarihteki dönüşüm düzeni ve nöbet sayıları hesaplanacaktır.</small>`,
@@ -1797,9 +1801,8 @@ window.openPrintTab = async () => {
         
         // Re-calculate based on selected date
         let targetDateObj = new Date(targetDateStr);
-        currentWeekPlan = applyDynamicRotation(p.data, p.startDate, nobetSettings.dutyType, targetDateObj);
+        currentWeekPlan = applyDynamicRotation(p.data, p.startDate, activeDutyType, targetDateObj);
         
-        // Update the banner date format based on duty type
         // Update the banner date format based on duty type
         let formatDateShort = (dStr) => {
             if (!dStr) return "";
@@ -1810,7 +1813,7 @@ window.openPrintTab = async () => {
             return `${day}.${month}.${year}`;
         };
         
-        let cycleWeeks = nobetSettings.dutyType === 'monthly' ? 4 : 1;
+        let cycleWeeks = activeDutyType === 'monthly' ? 4 : 1;
         let diffTime = targetDateObj.getTime() - new Date(p.startDate).getTime();
         let weeksPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
         if (weeksPassed < 0) weeksPassed = 0;
@@ -1839,8 +1842,9 @@ window.openPrintTab = async () => {
     let printContent = document.getElementById('printablePlanArea').innerHTML;
     
     // If we changed the date for printing, revert it back to today's view for the live dashboard
-    if (isAdmin && p && p.status === 'published' && (nobetSettings.dutyType === 'weekly' || nobetSettings.dutyType === 'monthly')) {
-        currentWeekPlan = applyDynamicRotation(p.data, p.startDate, nobetSettings.dutyType);
+    let activeDutyType2 = (p && p.dutyType) ? p.dutyType : nobetSettings.dutyType;
+    if (isAdmin && p && p.status === 'published' && (activeDutyType2 === 'weekly' || activeDutyType2 === 'monthly')) {
+        currentWeekPlan = applyDynamicRotation(p.data, p.startDate, activeDutyType2);
         renderWeeklyPlan();
     }
     
@@ -1870,7 +1874,8 @@ window.openPrintTab = async () => {
     let sName = validSchoolName.trim() ? validSchoolName : '.......................';
     
     let paragraphText = '';
-    if (nobetSettings.dutyType === 'fixed') {
+    let finalDutyType = (p && p.dutyType) ? p.dutyType : nobetSettings.dutyType;
+    if (finalDutyType === 'fixed') {
         paragraphText = `Okulumuzda <b>${window.tempPrintHeaderData.start}</b> Pazartesi gününden itibaren uygulanacak nöbetçi öğretmen çizelgesi aşağıdadır.<br>Bilgilerinizi rica ederim.`;
     } else {
         paragraphText = `Okulumuzda <b>${window.tempPrintHeaderData.start}</b> Pazartesi - <b>${window.tempPrintHeaderData.end}</b> Cuma günleri arasında uygulanacak nöbetçi öğretmen çizelgesi aşağıdadır.<br>Bilgilerinizi rica ederim.`;
