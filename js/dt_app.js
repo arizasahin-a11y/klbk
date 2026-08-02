@@ -408,6 +408,7 @@ function populateStudentDropdown() {
 }
 
 function updateAdminSettingsUI() {
+    $('#settingPlanName').val(nobetSettings.planName || '');
     $('#settingDutyType').val(nobetSettings.dutyType || 'weekly').trigger('change');
     $('#settingDutyDuration').val(nobetSettings.dutyDuration || 'full');
     $('#settingDutyCount').val(nobetSettings.dutyCount || 1);
@@ -425,9 +426,10 @@ window.populatePlanArchiveDropdown = () => {
     } else {
         planKeys.forEach(pid => {
             let p = allNobetPlans[pid];
+            let planNameText = p.planName ? `${p.planName} | ` : '';
             let dateStr = new Date(p.createdAt).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' });
             let statusText = p.status === 'published' ? `(YAYINDA: ${p.startDate || 'Tarih Yok'})` : '(TASLAK)';
-            html += `<option value="${pid}">${dateStr} - ${statusText}</option>`;
+            html += `<option value="${pid}">${planNameText}${dateStr} - ${statusText}</option>`;
         });
     }
     $('#planArchiveSelect').html(html);
@@ -733,6 +735,7 @@ window.removeLocation = function(index) {
 window.saveAdminSettings = async function() {
     nobetSettings = (typeof nobetSettings === 'string') ? {} : nobetSettings; // recovery if it was corrupted
     
+    nobetSettings.planName = $('#settingPlanName').val().trim();
     nobetSettings.dutyType = $('#settingDutyType').val();
     nobetSettings.dutyDuration = $('#settingDutyDuration').val();
     nobetSettings.dutyCount = parseInt($('#settingDutyCount').val()) || 1;
@@ -1059,6 +1062,7 @@ window.generatePlan = async function() {
         
         const newPlanId = 'plan_' + Date.now();
         const planObj = {
+            planName: nobetSettings.planName || 'Adsız Plan',
             data: newPlan,
             status: 'draft',
             createdAt: new Date().toISOString()
