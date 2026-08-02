@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             // Make sure valid array
                             if (!Array.isArray(logs)) logs = [];
 
-                            const role = userData.role || 'admin';
+                            const role = userData.role || 'ogretmen';
                             // Master logins also counted
                             logs.unshift({
                                 username: username,
@@ -372,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         localStorage.setItem('klbk_rememberedUser', username);
 
                         // Save full session to localStorage for persistence (Except students)
-                        const role = userData.role || 'admin';
+                        const role = userData.role || 'ogretmen';
                         if (role !== 'student' && role !== 'ogrenci') {
                                 const sessionData = {
                                     klbk_currentUser: username,
@@ -399,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     sessionStorage.setItem('klbk_name', formatTeacherName(userData.name || username));
                     sessionStorage.setItem('klbk_schoolName', userData.schoolName || '');
                     sessionStorage.setItem('klbk_storeKey', userData.storeKey || (`klbk_data_${username}`));
-                    sessionStorage.setItem('klbk_role', userData.role || 'admin');
+                    sessionStorage.setItem('klbk_role', userData.role || 'ogretmen');
                     sessionStorage.setItem('klbk_gender', userData.gender || 'erkek');
                     if (userData.branch) {
                         sessionStorage.setItem('klbk_branch', userData.branch);
@@ -413,7 +413,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         sessionStorage.setItem('klbk_sessionToken', sessionToken);
                         
                         // Store token in Firebase for validation
-                        await storeSessionToken(username, sessionToken, storeKey, userData.role || 'admin');
+                        await storeSessionToken(username, sessionToken, storeKey, userData.role || 'ogretmen');
                         console.log('✓ Session token generated and stored');
                     } catch (e) {
                         console.error('Session token generation failed:', e);
@@ -421,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Redirect logic
                     setTimeout(() => {
-                        const rawRole = userData.role || 'admin';
+                        const rawRole = userData.role || 'ogretmen';
                         const role = rawRole.toLowerCase().trim();
                         
                         const currentPath = window.location.pathname;
