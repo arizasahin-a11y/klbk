@@ -1785,12 +1785,51 @@ async function savePlanChanges(successMsg) {
 
 window.openPrintTab = async () => {
     let p = allNobetPlans[viewingPlanId];
-    let activeDutyType = (p && p.dutyType) ? p.dutyType : nobetSettings.dutyType;
+    if (!p) return;
+
+    let activeDutyType = (p && p.dutyType) ? p.dutyType : null;
+    
+    // For old plans missing dutyType, ask the user to set it
+    if (!activeDutyType && p.status !== 'draft') {
+        const { value: selectedType } = await Swal.fire({
+            title: 'Plan Türü Belirleme',
+            html: 'Bu plan eski bir versiyonda oluşturulmuş. Lütfen bu planın türünü seçiniz (Bu seçim kaydedilecektir):',
+            input: 'select',
+            inputOptions: {
+                'weekly': 'Haftalık Dönüşümlü',
+                'monthly': 'Aylık Dönüşümlü',
+                'fixed': 'Sabit (Değişmez)'
+            },
+            inputPlaceholder: 'Plan türünü seçin',
+            showCancelButton: true,
+            confirmButtonText: 'Kaydet ve Devam Et',
+            cancelButtonText: 'İptal'
+        });
+        if (selectedType) {
+            p.dutyType = selectedType;
+            activeDutyType = selectedType;
+            // Save to firebase
+            await fetch('/api/updateNobet', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    path: `plans/${viewingPlanId}/dutyType`,
+                    data: selectedType
+                })
+            });
+            window.updatePlanActionButtons();
+        } else {
+            return; // Cancelled
+        }
+    } else if (!activeDutyType) {
+        activeDutyType = nobetSettings.dutyType || 'weekly';
+    }
     
     if (isAdmin && p && p.status === 'published' && (activeDutyType === 'weekly' || activeDutyType === 'monthly')) {
+        let qHtml = activeDutyType === 'monthly' ? `Yazdırmak istediğiniz ayın/döngünün içinden herhangi bir tarih seçiniz.<br><br><small>Seçtiğiniz tarihe denk gelen 4 haftalık döngü tarihi yazdırılacaktır.</small>` : `Hangi haftanın planını yazdırmak istersiniz?<br><br><small>Seçtiğiniz tarihteki dönüşüm düzeni ve nöbet sayıları hesaplanacaktır.</small>`;
         const { value: targetDateStr } = await Swal.fire({
             title: 'Yazdırma Tarihi Seçimi',
-            html: `Hangi haftanın planını yazdırmak istersiniz?<br><br><small>Seçtiğiniz tarihteki dönüşüm düzeni ve nöbet sayıları hesaplanacaktır.</small>`,
+            html: qHtml,
             input: 'date',
             inputValue: new Date().toISOString().split('T')[0],
             showCancelButton: true,
