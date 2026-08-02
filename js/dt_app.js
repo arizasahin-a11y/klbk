@@ -1257,9 +1257,8 @@ function renderWeeklyPlan() {
     }
 
     let html = `
-    <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:10px;">
-        <button onclick="window.openPrintTab('pdf')" style="background:#dc2626; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;"><i class="fa-solid fa-file-pdf"></i> PDF İndir</button>
-        <button onclick="window.openPrintTab('print')" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;"><i class="fa-solid fa-print"></i> Yazdır</button>
+    <div style="text-align:right; margin-bottom:10px;">
+        <button onclick="window.openPrintTab()" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;"><i class="fa-solid fa-print"></i> PDF Yap / Yazdır</button>
     </div>
     <div style="overflow-x: auto; margin-top: 20px;" id="printablePlanArea">
         ${planDateText}
@@ -1656,7 +1655,7 @@ async function savePlanChanges(successMsg) {
     }
 }
 
-window.openPrintTab = (action) => {
+window.openPrintTab = () => {
     let printContent = document.getElementById('printablePlanArea').innerHTML;
     
     let win = window.open('', '_blank');
@@ -1673,39 +1672,51 @@ window.openPrintTab = (action) => {
                 body {
                     font-family: Arial, sans-serif;
                     padding: 20px;
-                    background: #fff;
+                    background: #f3f4f6;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
                 }
-                @page { size: A4 landscape; margin: 1cm; }
+                .a4-container {
+                    background: #fff;
+                    width: 210mm;
+                    min-height: 297mm;
+                    padding: 20mm;
+                    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                    margin-bottom: 20px;
+                    box-sizing: border-box;
+                }
+                @page { size: A4 portrait; margin: 10mm; }
                 table { width: 100%; border-collapse: collapse; margin-top: 20px; }
                 th, td { border: 1px solid black; padding: 10px; text-align: center; font-size: 11pt; color: black !important; }
                 th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                 span { color: black !important; text-decoration: none !important; }
                 span[style*="opacity:0.8"] { color: #555 !important; }
-                .print-actions { text-align: center; margin-bottom: 20px; }
+                .print-actions { text-align: center; margin-bottom: 20px; display: flex; gap: 15px; justify-content: center; width: 100%; }
                 .print-actions button {
-                    background: #3b82f6; color: white; border: none; padding: 10px 20px; 
-                    border-radius: 6px; cursor: pointer; font-size: 16px; margin: 0 10px;
+                    color: white; border: none; padding: 12px 24px; 
+                    border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold;
                 }
+                .btn-pdf { background: #dc2626; }
+                .btn-print { background: #2563eb; }
                 @media print {
+                    body { background: #fff; padding: 0; display: block; }
+                    .a4-container { width: 100%; min-height: auto; padding: 0; box-shadow: none; margin: 0; }
                     .print-actions { display: none; }
                 }
             </style>
         </head>
         <body>
             <div class="print-actions">
-                <button onclick="window.print()">Yazdır / PDF Kaydet</button>
+                <button class="btn-pdf" onclick="alert('Lütfen açılan yazdırma penceresinde hedefi \\'PDF Olarak Kaydet\\' seçiniz.'); window.print();">PDF İndir</button>
+                <button class="btn-print" onclick="window.print()">Yazdır</button>
             </div>
-            ${printContent}
+            <div class="a4-container">
+                ${printContent}
+            </div>
         </body>
         </html>
     `);
     
     win.document.close();
-    
-    // Auto-trigger print dialog if requested
-    setTimeout(() => {
-        if (action === 'print' || action === 'pdf') {
-            win.print();
-        }
-    }, 500);
 };
