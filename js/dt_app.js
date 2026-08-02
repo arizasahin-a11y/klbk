@@ -158,6 +158,10 @@ async function doLogin(username, password, remember) {
                     sessionData.klbk_branch = data.user.branch;
                 }
                 localStorage.setItem('klbk_persistent_session', JSON.stringify(sessionData));
+                localStorage.setItem('klbk_rememberedUser', finalUsername);
+            } else {
+                localStorage.removeItem('klbk_persistent_session');
+                localStorage.removeItem('klbk_rememberedUser');
             }
             
             checkSession();
