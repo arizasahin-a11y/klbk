@@ -527,8 +527,8 @@ window.changePlanStatus = async (newStatus) => {
     if(!viewingPlanId || !allNobetPlans[viewingPlanId]) return;
     let p = allNobetPlans[viewingPlanId];
     
-    // If it's already in the requested state, do nothing
-    if (p.status === newStatus) return;
+    // If it's already in the requested state (and not published, where we might want to update the date), do nothing
+    if (p.status === newStatus && newStatus !== 'published') return;
 
     if (newStatus === 'published') {
         const { value: startDate } = await Swal.fire({
