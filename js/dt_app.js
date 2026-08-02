@@ -1238,17 +1238,29 @@ function renderWeeklyPlan() {
     });
     
     let planDateText = "";
+    let formatDateShort = (dStr) => {
+        if (!dStr) return "";
+        let d = new Date(dStr);
+        let day = String(d.getDate()).padStart(2, '0');
+        let month = String(d.getMonth()+1).padStart(2, '0');
+        let year = d.getFullYear();
+        return `${day}.${month}.${year}`;
+    };
+
     if (isAdmin && viewingPlanId && allNobetPlans[viewingPlanId]) {
         let p = allNobetPlans[viewingPlanId];
         if (p.status === 'published' && p.startDate) {
-            planDateText = `<div style="text-align: center; margin-bottom: 10px; font-weight: 700; color: var(--primary);">Geçerlilik Tarihi: ${p.startDate}</div>`;
+            planDateText = `<div style="text-align: center; margin-bottom: 10px; font-weight: 700; color: var(--primary);">Yürürlüğe Girme Tarihi: ${formatDateShort(p.startDate)}</div>`;
         }
     } else if (!isAdmin && publishedPlanMeta && publishedPlanMeta.startDate) {
-        planDateText = `<div style="text-align: center; margin-bottom: 10px; font-weight: 700; color: var(--primary);">Geçerlilik Tarihi: ${publishedPlanMeta.startDate}</div>`;
+        planDateText = `<div style="text-align: center; margin-bottom: 10px; font-weight: 700; color: var(--primary);">Yürürlüğe Girme Tarihi: ${formatDateShort(publishedPlanMeta.startDate)}</div>`;
     }
 
     let html = `
-    <div style="overflow-x: auto; margin-top: 20px;">
+    <div style="text-align:right; margin-bottom:10px;">
+        <button onclick="window.printPlan()" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;"><i class="fa-solid fa-print"></i> Yazdır / PDF Yap</button>
+    </div>
+    <div style="overflow-x: auto; margin-top: 20px;" id="printablePlanArea">
         ${planDateText}
         <table style="width: 100%; border-collapse: collapse; min-width: 800px; text-align: center; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
             <thead>
@@ -1642,3 +1654,32 @@ async function savePlanChanges(successMsg) {
         Swal.fire('Hata', 'Değişiklik kaydedilemedi: ' + e.message, 'error');
     }
 }
+
+window.printPlan = () => {
+    let printContent = document.getElementById('printablePlanArea').innerHTML;
+    let originalContent = document.body.innerHTML;
+    
+    // Add print styles to head temporarily
+    let style = document.createElement('style');
+    style.id = 'printStyles';
+    style.innerHTML = `
+        @media print {
+            body * { visibility: hidden; }
+            #printablePlanArea, #printablePlanArea * { visibility: visible; }
+            #printablePlanArea { position: absolute; left: 0; top: 0; width: 100%; }
+            @page { size: A4 landscape; margin: 1cm; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid black; padding: 8px; text-align: center; font-size: 12pt; color: black !important; }
+            th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+            span { color: black !important; text-decoration: none !important; }
+            /* Hide counts in print if needed, but they are useful, so keep them */
+            span[style*="opacity:0.8"] { color: #555 !important; }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    window.print();
+    
+    // Cleanup
+    document.head.removeChild(style);
+};
