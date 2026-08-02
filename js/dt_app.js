@@ -529,7 +529,7 @@ window.updatePlanActionButtons = () => {
     if(p.status === 'published') {
         $('#togglePublishBtn').html('<i class="fa-solid fa-pen"></i> Tarihi Güncelle').css({ background: '#10b981', color: 'white' });
         $('#toggleDraftBtn').html('<i class="fa-solid fa-pen-ruler"></i> Taslak Yap');
-        $('#deletePlanBtn').css({ opacity: '0.5', pointerEvents: 'none' }); // Cannot delete while published
+        $('#deletePlanBtn').css({ opacity: '0.5' }); // Visual disabled state only, click will show alert
     } else if (p.status === 'archived') {
         $('#togglePublishBtn').html('<i class="fa-solid fa-bullhorn"></i> Yayınla');
         $('#toggleDraftBtn').html('<i class="fa-solid fa-pen-ruler"></i> Taslak Yap');
@@ -1304,6 +1304,8 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateOb
                 currentSlots = [...dynamicSlots.slice(dynamicSlots.length - s), ...dynamicSlots.slice(0, dynamicSlots.length - s)];
             }
             
+            let weeksInThisCycle = (cycle === cyclesPassed) ? ((weeksPassed % cycleWeeks) + 1) : cycleWeeks;
+            
             // Record tallies for this cycle
             // 1. Fixed teachers (always at their spot)
             for (let shiftId of shiftIds) {
@@ -1317,21 +1319,21 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateOb
                         }
                     }
                     if (isFixed) {
-                        window.rotationTally[day][shiftId][uname] = (window.rotationTally[day][shiftId][uname] || 0) + 1;
+                        window.rotationTally[day][shiftId][uname] = (window.rotationTally[day][shiftId][uname] || 0) + weeksInThisCycle;
                     }
                 }
             }
             // 2. Admin duty
             if (newPlan[day]['_admin_duty']) {
                 for (let uname of newPlan[day]['_admin_duty']) {
-                    window.rotationTally[day]['_admin_duty'][uname] = (window.rotationTally[day]['_admin_duty'][uname] || 0) + 1;
+                    window.rotationTally[day]['_admin_duty'][uname] = (window.rotationTally[day]['_admin_duty'][uname] || 0) + weeksInThisCycle;
                 }
             }
             // 3. Dynamic teachers
             for (let i = 0; i < currentSlots.length; i++) {
                 let shiftId = slotMap[i].shiftId;
                 let uname = currentSlots[i];
-                window.rotationTally[day][shiftId][uname] = (window.rotationTally[day][shiftId][uname] || 0) + 1;
+                window.rotationTally[day][shiftId][uname] = (window.rotationTally[day][shiftId][uname] || 0) + weeksInThisCycle;
             }
             
             // If this is the FINAL cycle, modify newPlan to reflect it
