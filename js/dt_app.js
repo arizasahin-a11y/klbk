@@ -233,13 +233,12 @@ async function loadInitialData() {
             if (p && typeof p === 'object') {
                 if (p.data) {
                     // CORRUPTION FIX: Remove mistakenly nested plans inside the published data
-                    for (let k in p.data) {
-                        if (k.startsWith('plan_') && p.data[k] && p.data[k].createdAt) {
-                            delete p.data[k];
-                        }
-                    }
-                    currentWeekPlan = p.data;
                     publishedPlanMeta = p;
+                    if (!isAdmin) {
+                        currentWeekPlan = applyDynamicRotation(p.data, p.startDate, nobetSettings.dutyType || 'fixed');
+                    } else {
+                        currentWeekPlan = p.data;
+                    }
                 } else {
                     currentWeekPlan = p; // backward compat if saved directly
                 }
@@ -440,36 +439,82 @@ window.populatePlanArchiveDropdown = () => {
 window.updatePlanActionButtons = () => {
     if(!viewingPlanId || !allNobetPlans[viewingPlanId]) {
         $('#planActionToggleGroup').hide();
+        $('#deletePlanBtn').hide();
         $('#planStatusBanner').hide();
         return;
     }
     
     $('#planActionToggleGroup').css('display', 'flex');
+    $('#deletePlanBtn').show();
     let p = allNobetPlans[viewingPlanId];
     
     // Reset buttons
-    $('#togglePublishBtn, #toggleUnpublishBtn, #toggleArchiveBtn').css({
+    $('#togglePublishBtn, #toggleDraftBtn, #toggleArchiveBtn').css({
         background: 'white',
         color: '#64748b',
         opacity: '1',
         pointerEvents: 'auto'
     });
     
+    if(!p.status) p.status = 'draft';
+    
     if(p.status === 'published') {
-        // Active publish state
         $('#togglePublishBtn').html('<i class="fa-solid fa-pen"></i> Tarihi Güncelle').css({ background: '#10b981', color: 'white' });
-        $('#toggleArchiveBtn').css({ opacity: '0.5', pointerEvents: 'none' }); // Cannot archive while published
-        
-        $('#planStatusBanner').html(`<i class="fa-solid fa-check-circle"></i> Bu plan yayında. Uygulama Tarihi: ${p.startDate || 'Belirtilmedi'}`).css({background: '#d1fae5', color: '#065f46'}).show();
-    } else {
-        // Active unpublish/draft state
+        $('#toggleDraftBtn').html('<i class="fa-solid fa-pen-ruler"></i> Taslak Yap');
+        $('#deletePlanBtn').css({ opacity: '0.5', pointerEvents: 'none' }); // Cannot delete while published
+    } else if (p.status === 'archived') {
         $('#togglePublishBtn').html('<i class="fa-solid fa-bullhorn"></i> Yayınla');
-        $('#toggleUnpublishBtn').css({ background: '#f59e0b', color: 'white' });
+        $('#toggleDraftBtn').html('<i class="fa-solid fa-pen-ruler"></i> Taslak Yap');
+        $('#toggleArchiveBtn').css({ background: '#64748b', color: 'white' });
+    } else {
+        $('#togglePublishBtn').html('<i class="fa-solid fa-bullhorn"></i> Yayınla');
+        $('#toggleDraftBtn').css({ background: '#f59e0b', color: 'white' });
+    }
+    
+    // Banner Logic
+    if (p.status === 'published' && p.startDate) {
+        let dutyType = nobetSettings.dutyType || 'fixed';
+        let startDate = new Date(p.startDate);
+        let bannerText = "";
         
+        let formatStr = (d) => {
+            let day = String(d.getDate()).padStart(2, '0');
+            let month = String(d.getMonth()+1).padStart(2, '0');
+            let year = d.getFullYear();
+            const days = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+            return `${day}.${month}.${year} ${days[d.getDay()]}`;
+        };
+        
+        let currentDate = new Date();
+        let diffTime = currentDate.getTime() - startDate.getTime();
+        let weeksPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+        if (weeksPassed < 0) weeksPassed = 0;
+        
+        if (dutyType === 'fixed') {
+            bannerText = `${formatStr(startDate)} tarihinden itibaren geçerlidir.`;
+        } else {
+            let cycleWeeks = dutyType === 'monthly' ? 4 : 1;
+            
+            // For monthly, the "current cycle" starts every 4 weeks. So we calculate how many cycles passed.
+            let cyclesPassed = Math.floor(weeksPassed / cycleWeeks);
+            let currentCycleStart = new Date(startDate.getTime());
+            currentCycleStart.setDate(currentCycleStart.getDate() + (cyclesPassed * cycleWeeks * 7));
+            
+            let currentCycleEnd = new Date(currentCycleStart.getTime());
+            // Move to Friday of the final week of the cycle
+            currentCycleEnd.setDate(currentCycleEnd.getDate() + ((cycleWeeks - 1) * 7) + 4);
+            
+            bannerText = `${formatStr(currentCycleStart)} - ${formatStr(currentCycleEnd)} arasında geçerlidir.`;
+        }
+        
+        $('#planStatusBanner').html(`<i class="fa-solid fa-calendar-check"></i> <b>Bu plan yayında.</b> ${bannerText}`).css({background: '#d1fae5', color: '#065f46'}).show();
+    } else if (p.status === 'archived') {
+        $('#planStatusBanner').html(`<i class="fa-solid fa-box-archive"></i> Bu plan ARŞİVLENMİŞ durumdadır. Öğretmenler tarafından görülmüyor.`).css({background: '#e2e8f0', color: '#475569'}).show();
+    } else {
         $('#planStatusBanner').html(`<i class="fa-solid fa-triangle-exclamation"></i> Bu plan henüz TASLAK aşamasındadır. Öğretmenler tarafından görülmüyor.`).css({background: '#fef3c7', color: '#92400e'}).show();
     }
     
-    currentWeekPlan = p.data;
+    currentWeekPlan = applyDynamicRotation(p.data, p.startDate, nobetSettings.dutyType || 'fixed');
     if(isAdmin) renderWeeklyPlan();
 };
 
@@ -478,100 +523,94 @@ window.loadSelectedPlan = () => {
     updatePlanActionButtons();
 };
 
-window.unpublishCurrentPlan = async () => {
+window.changePlanStatus = async (newStatus) => {
     if(!viewingPlanId || !allNobetPlans[viewingPlanId]) return;
+    let p = allNobetPlans[viewingPlanId];
     
-    const { isConfirmed } = await Swal.fire({
-        title: 'Yayından Kaldır',
-        text: 'Bu planı yayından kaldırmak istediğinize emin misiniz? Öğretmenler artık bu planı göremeyecek.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Evet, Kaldır',
-        cancelButtonText: 'İptal'
-    });
-    
-    if (isConfirmed) {
-        allNobetPlans[viewingPlanId].status = 'archived';
-        publishedPlanMeta = null;
-        
-        try {
-            await fetch('/api/updateNobet', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    path: 'plans',
-                    data: allNobetPlans
-                })
-            });
-            await fetch('/api/updateNobet', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    path: 'publishedPlan'
-                })
-            });
-            
-            populatePlanArchiveDropdown();
-            Swal.fire('Başarılı', 'Plan yayından kaldırıldı!', 'success');
-        } catch(e) {
-            Swal.fire('Hata', 'İşlem sırasında bir hata oluştu: ' + e.message, 'error');
-        }
-    }
-};
+    // If it's already in the requested state, do nothing
+    if (p.status === newStatus) return;
 
-window.publishCurrentPlan = async () => {
-    if(!viewingPlanId || !allNobetPlans[viewingPlanId]) return;
-    
-    const { value: startDate } = await Swal.fire({
-        title: 'İlk Uygulama Tarihi',
-        input: 'text',
-        inputLabel: 'Bu plan hangi tarihten itibaren geçerli olacak?',
-        inputPlaceholder: 'Örn: 12 Ekim Pazartesi',
-        showCancelButton: true,
-        confirmButtonText: 'Yayınla',
-        cancelButtonText: 'İptal',
-        inputValidator: (value) => {
-            if (!value) {
-                return 'Lütfen bir tarih giriniz!';
-            }
-        }
-    });
-
-    if (startDate) {
-        // Update all plans status to archived if they were published
-        Object.keys(allNobetPlans).forEach(k => {
-            if (allNobetPlans[k].status === 'published') {
-                allNobetPlans[k].status = 'archived';
+    if (newStatus === 'published') {
+        const { value: startDate } = await Swal.fire({
+            title: 'İlk Uygulama Tarihi',
+            input: 'date',
+            inputLabel: 'Bu plan hangi tarihten itibaren geçerli olacak?',
+            showCancelButton: true,
+            confirmButtonText: 'Yayınla',
+            cancelButtonText: 'İptal',
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'Lütfen bir tarih giriniz!';
+                }
             }
         });
         
-        let p = allNobetPlans[viewingPlanId];
-        p.status = 'published';
-        p.startDate = startDate;
-        publishedPlanMeta = p;
-        
-        try {
-            await fetch('/api/updateNobet', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    path: 'plans',
-                    data: allNobetPlans
-                })
-            });
-            await fetch('/api/updateNobet', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    path: 'publishedPlan',
-                    data: p
-                })
+        if (startDate) {
+            // Update all plans status to archived if they were published
+            Object.keys(allNobetPlans).forEach(k => {
+                if (allNobetPlans[k].status === 'published') {
+                    allNobetPlans[k].status = 'archived';
+                }
             });
             
-            populatePlanArchiveDropdown();
-            Swal.fire('Başarılı', 'Plan yayınlandı ve öğretmenlerin erişimine açıldı!', 'success');
-        } catch(e) {
-            Swal.fire('Hata', 'Yayınlanırken bir hata oluştu: ' + e.message, 'error');
+            p.status = 'published';
+            p.startDate = startDate;
+            publishedPlanMeta = p;
+            
+            try {
+                await fetch('/api/updateNobet', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: 'plans', data: allNobetPlans })
+                });
+                await fetch('/api/updateNobet', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: 'publishedPlan', data: p })
+                });
+                populatePlanArchiveDropdown();
+                Swal.fire('Yayınlandı!', 'Plan başarıyla yayına alındı.', 'success');
+            } catch(e) {
+                Swal.fire('Hata', 'İşlem sırasında bir hata oluştu: ' + e.message, 'error');
+            }
+        }
+    } else {
+        // Draft or Archived
+        const actionName = newStatus === 'draft' ? 'Taslak Yap' : 'Arşivle';
+        const { isConfirmed } = await Swal.fire({
+            title: actionName,
+            text: `Bu planı ${newStatus === 'draft' ? 'taslak' : 'arşiv'} durumuna getirmek istediğinize emin misiniz? Eğer bu plan yayındaysa yayından kaldırılacaktır.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Evet',
+            cancelButtonText: 'İptal'
+        });
+        
+        if (isConfirmed) {
+            p.status = newStatus;
+            
+            try {
+                await fetch('/api/updateNobet', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: 'plans', data: allNobetPlans })
+                });
+                
+                // If this was the published plan, remove it from publishedPlan
+                if (publishedPlanMeta && publishedPlanMeta.createdAt === p.createdAt) {
+                    publishedPlanMeta = null;
+                    await fetch('/api/updateNobet', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ path: 'publishedPlan' })
+                    });
+                }
+                
+                populatePlanArchiveDropdown();
+                Swal.fire('Başarılı', `Plan durumu güncellendi.`, 'success');
+            } catch(e) {
+                Swal.fire('Hata', 'İşlem sırasında bir hata oluştu: ' + e.message, 'error');
+            }
         }
     }
 };
@@ -1053,6 +1092,107 @@ window.generatePlan = async function() {
     }, 1500);
 };
 
+function applyDynamicRotation(originalPlan, startDateStr, dutyType) {
+    if (!startDateStr || dutyType === 'fixed' || !originalPlan) return originalPlan;
+    
+    let startDate = new Date(startDateStr);
+    let currentDate = new Date();
+    let diffTime = currentDate.getTime() - startDate.getTime();
+    let weeksPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+    if (weeksPassed < 0) weeksPassed = 0;
+    
+    let cycleWeeks = dutyType === 'monthly' ? 4 : 1;
+    let cyclesPassed = Math.floor(weeksPassed / cycleWeeks);
+    
+    let dir = nobetSettings.rotationDir || 'asc';
+    window.rotationTally = {}; 
+    let newPlan = JSON.parse(JSON.stringify(originalPlan));
+    
+    let dates = Object.keys(newPlan);
+    for (let day of dates) {
+        window.rotationTally[day] = {};
+        
+        let shiftIds = Object.keys(newPlan[day]).filter(id => id !== '_admin_duty' && !id.startsWith('fixed_')); 
+        
+        // Sort shiftIds by priority so slots are ordered geographically
+        shiftIds.sort((a, b) => {
+            let locIdA = a.replace('_dilim1', '').replace('_dilim2', '');
+            let locIdB = b.replace('_dilim1', '').replace('_dilim2', '');
+            let pA = nobetSettings.locations?.find(l => l.id === locIdA)?.priority || 99;
+            let pB = nobetSettings.locations?.find(l => l.id === locIdB)?.priority || 99;
+            if(pA !== pB) return pA - pB;
+            return a.localeCompare(b);
+        });
+
+        let dynamicSlots = [];
+        let slotMap = []; 
+
+        for (let shiftId of shiftIds) {
+            let teachersInLoc = newPlan[day][shiftId];
+            window.rotationTally[day][shiftId] = {};
+            
+            for (let i = 0; i < teachersInLoc.length; i++) {
+                let uname = teachersInLoc[i];
+                let isFixed = teacherData?.find(t => t.username === uname)?.fixedLoc === shiftId;
+                if (!isFixed) {
+                    dynamicSlots.push(uname);
+                    slotMap.push({ shiftId, index: i });
+                }
+            }
+        }
+        
+        // Initialize admin tallies
+        if (newPlan[day]['_admin_duty']) {
+            window.rotationTally[day]['_admin_duty'] = {};
+        }
+
+        // Simulate each cycle to count assignments up to the current cycle
+        for (let cycle = 0; cycle <= cyclesPassed; cycle++) {
+            let currentSlots = [...dynamicSlots];
+            
+            if (cycle > 0) {
+                let s = (cycle * (dir === 'desc' ? -1 : 1)) % dynamicSlots.length;
+                if (s < 0) s += dynamicSlots.length;
+                currentSlots = [...dynamicSlots.slice(dynamicSlots.length - s), ...dynamicSlots.slice(0, dynamicSlots.length - s)];
+            }
+            
+            // Record tallies for this cycle
+            // 1. Fixed teachers (always at their spot)
+            for (let shiftId of shiftIds) {
+                let teachersInLoc = newPlan[day][shiftId];
+                for (let uname of teachersInLoc) {
+                    let isFixed = teacherData?.find(t => t.username === uname)?.fixedLoc === shiftId;
+                    if (isFixed) {
+                        window.rotationTally[day][shiftId][uname] = (window.rotationTally[day][shiftId][uname] || 0) + 1;
+                    }
+                }
+            }
+            // 2. Admin duty
+            if (newPlan[day]['_admin_duty']) {
+                for (let uname of newPlan[day]['_admin_duty']) {
+                    window.rotationTally[day]['_admin_duty'][uname] = (window.rotationTally[day]['_admin_duty'][uname] || 0) + 1;
+                }
+            }
+            // 3. Dynamic teachers
+            for (let i = 0; i < currentSlots.length; i++) {
+                let shiftId = slotMap[i].shiftId;
+                let uname = currentSlots[i];
+                window.rotationTally[day][shiftId][uname] = (window.rotationTally[day][shiftId][uname] || 0) + 1;
+            }
+            
+            // If this is the FINAL cycle, modify newPlan to reflect it
+            if (cycle === cyclesPassed) {
+                for (let i = 0; i < currentSlots.length; i++) {
+                    let { shiftId, index } = slotMap[i];
+                    newPlan[day][shiftId][index] = currentSlots[i];
+                }
+            }
+        }
+    }
+    
+    return newPlan;
+}
+
 function renderWeeklyPlan() {
     if(!currentWeekPlan || Object.keys(currentWeekPlan).length === 0) {
         $('#weeklyPlanContainer').html('<p style="color:var(--gray-500);">Plan bulunmuyor.</p>');
@@ -1134,7 +1274,14 @@ function renderWeeklyPlan() {
             let dateStr = dates[i];
             let teachersList = '';
             if(dateStr && currentWeekPlan[dateStr] && currentWeekPlan[dateStr][shiftId]) {
-                teachersList = currentWeekPlan[dateStr][shiftId].map(uid => klbkUsers[uid]?.name || uid).join('<br>');
+                teachersList = currentWeekPlan[dateStr][shiftId].map(uid => {
+                    let name = klbkUsers[uid]?.name || uid;
+                    let countStr = "";
+                    if (window.rotationTally && window.rotationTally[dateStr] && window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid]) {
+                        countStr = ` <span style="font-size:0.85em; opacity:0.8;">(${window.rotationTally[dateStr][shiftId][uid]})</span>`;
+                    }
+                    return name + countStr;
+                }).join('<br>');
             }
             html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">${teachersList || '<span style="color:var(--gray-400);">-</span>'}</td>`;
         }
