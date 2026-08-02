@@ -1092,11 +1092,11 @@ window.generatePlan = async function() {
     }, 1500);
 };
 
-function applyDynamicRotation(originalPlan, startDateStr, dutyType) {
+function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateObj) {
     if (!startDateStr || dutyType === 'fixed' || !originalPlan) return originalPlan;
     
     let startDate = new Date(startDateStr);
-    let currentDate = new Date();
+    let currentDate = targetDateObj ? new Date(targetDateObj) : new Date();
     let diffTime = currentDate.getTime() - startDate.getTime();
     let weeksPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
     if (weeksPassed < 0) weeksPassed = 0;
@@ -1254,6 +1254,11 @@ function renderWeeklyPlan() {
         }
     } else if (!isAdmin && publishedPlanMeta && publishedPlanMeta.startDate) {
         planDateText = `<div style="text-align: center; margin-bottom: 10px; font-weight: 700; color: var(--primary);">Yürürlüğe Girme Tarihi: ${formatDateShort(publishedPlanMeta.startDate)}</div>`;
+    }
+    
+    if (window.customPrintDateText) {
+        planDateText = window.customPrintDateText;
+        window.customPrintDateText = null; // reset it
     }
 
     let html = `
@@ -1655,8 +1660,62 @@ async function savePlanChanges(successMsg) {
     }
 }
 
-window.openPrintTab = () => {
+window.openPrintTab = async () => {
+    let p = allNobetPlans[viewingPlanId];
+    if (isAdmin && p && p.status === 'published' && (nobetSettings.dutyType === 'weekly' || nobetSettings.dutyType === 'monthly')) {
+        const { value: targetDateStr } = await Swal.fire({
+            title: 'Yazdırma Tarihi Seçimi',
+            html: `Hangi haftanın planını yazdırmak istersiniz?<br><br><small>Seçtiğiniz tarihteki dönüşüm düzeni ve nöbet sayıları hesaplanacaktır.</small>`,
+            input: 'date',
+            inputValue: new Date().toISOString().split('T')[0],
+            showCancelButton: true,
+            confirmButtonText: 'Devam Et',
+            cancelButtonText: 'İptal'
+        });
+        
+        if (!targetDateStr) return; // Cancelled
+        
+        // Re-calculate based on selected date
+        let targetDateObj = new Date(targetDateStr);
+        currentWeekPlan = applyDynamicRotation(p.data, p.startDate, nobetSettings.dutyType, targetDateObj);
+        
+        // Update the banner date format based on duty type
+        let formatDateShort = (dStr) => {
+            if (!dStr) return "";
+            let d = new Date(dStr);
+            let day = String(d.getDate()).padStart(2, '0');
+            let month = String(d.getMonth()+1).padStart(2, '0');
+            let year = d.getFullYear();
+            return `${day}.${month}.${year}`;
+        };
+        
+        let cycleWeeks = nobetSettings.dutyType === 'monthly' ? 4 : 1;
+        let diffTime = targetDateObj.getTime() - new Date(p.startDate).getTime();
+        let weeksPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+        if (weeksPassed < 0) weeksPassed = 0;
+        
+        let cyclesPassed = Math.floor(weeksPassed / cycleWeeks);
+        let currentCycleStart = new Date(p.startDate);
+        currentCycleStart.setDate(currentCycleStart.getDate() + (cyclesPassed * cycleWeeks * 7));
+        
+        let currentCycleEnd = new Date(currentCycleStart.getTime());
+        currentCycleEnd.setDate(currentCycleEnd.getDate() + ((cycleWeeks - 1) * 7) + 4); // Friday of last week
+        
+        window.customPrintDateText = `<div style="text-align: center; margin-bottom: 10px; font-weight: 700; color: var(--primary);">Yürürlüğe Girme Tarihi: ${formatDateShort(currentCycleStart)} - ${formatDateShort(currentCycleEnd)}</div>`;
+        
+        renderWeeklyPlan();
+        
+        // Small delay to let UI update before extracting HTML
+        await new Promise(r => setTimeout(r, 100));
+    }
+    
     let printContent = document.getElementById('printablePlanArea').innerHTML;
+    
+    // If we changed the date for printing, revert it back to today's view for the live dashboard
+    if (isAdmin && p && p.status === 'published' && (nobetSettings.dutyType === 'weekly' || nobetSettings.dutyType === 'monthly')) {
+        currentWeekPlan = applyDynamicRotation(p.data, p.startDate, nobetSettings.dutyType);
+        renderWeeklyPlan();
+    }
     
     let win = window.open('', '_blank');
     if(!win) {
