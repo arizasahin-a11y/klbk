@@ -818,6 +818,39 @@ window.saveTeacherSettings = async function() {
 };
 
 window.generatePlan = async function() {
+    let typeName = nobetSettings.dutyType === 'fixed' ? 'Sabit (Değişmez)' : (nobetSettings.dutyType === 'monthly' ? 'Dönüşümlü (Aylık)' : 'Dönüşümlü (Haftalık)');
+    let durationName = nobetSettings.dutyDuration === 'half' ? 'Yarım Gün' : 'Tam Gün';
+    let basePlanName = nobetSettings.planName || 'Yeni Plan';
+    
+    const { value: formValues, isConfirmed } = await Swal.fire({
+        title: 'Yeni Plan Oluştur',
+        html: `
+            <div style="text-align:left; font-size: 14px; margin-bottom:15px; background: #f8fafc; padding:10px; border-radius:6px; border:1px solid #e2e8f0;">
+                <b>Aktif Ayarlar:</b><br>
+                Nöbet Tipi: ${typeName}<br>
+                Süre: ${durationName}<br>
+                Nöbet Sayısı: ${nobetSettings.dutyCount || 1}
+            </div>
+            <div style="text-align: left;">
+                <label style="font-weight: bold; font-size:14px;">Plan Adı (Tarih eklenecek):</label>
+                <input id="swal-plan-name" class="swal2-input" value="${basePlanName}" style="margin-top: 5px; width: 90%; font-size:15px;">
+            </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-bolt"></i> Oluştur',
+        cancelButtonText: 'İptal',
+        preConfirm: () => {
+            return document.getElementById('swal-plan-name').value.trim() || 'Adsız Plan';
+        }
+    });
+
+    if (!isConfirmed) return;
+    
+    let now = new Date();
+    let timeStr = String(now.getDate()).padStart(2,'0') + '.' + String(now.getMonth()+1).padStart(2,'0') + '.' + now.getFullYear() + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    window._tempFinalPlanName = formValues + ' - ' + timeStr;
+
     Swal.fire({
         title: 'Plan Oluşturuluyor...',
         text: 'Ders yükleri ve ayarlar hesaba katılıyor',
@@ -1062,11 +1095,12 @@ window.generatePlan = async function() {
         
         const newPlanId = 'plan_' + Date.now();
         const planObj = {
-            planName: nobetSettings.planName || 'Adsız Plan',
+            planName: window._tempFinalPlanName || 'Adsız Plan',
             data: newPlan,
             status: 'draft',
             createdAt: new Date().toISOString()
         };
+        window._tempFinalPlanName = null;
         allNobetPlans[newPlanId] = planObj;
         viewingPlanId = newPlanId;
         currentWeekPlan = newPlan;
