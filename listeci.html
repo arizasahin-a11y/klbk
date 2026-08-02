@@ -1193,11 +1193,11 @@
 </a>
 
     <!-- Column Layout Modal -->
-    <div id="columnLayoutModal" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
-                <h3><i class="fa-solid fa-table-columns"></i> Sütun Düzeni</h3>
-                <button class="btn" style="background: transparent; color: var(--gray-500); border: none; font-size: 1.5rem; cursor: pointer;" onclick="closeColumnModal()">&times;</button>
+    <div id="columnLayoutModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 1rem;">
+        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 2rem; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--gray-200); padding-bottom: 1rem;">
+                <h3 style="margin: 0; color: var(--dark);"><i class="fa-solid fa-table-columns" style="color: var(--primary); margin-right: 8px;"></i> Sütun Düzeni</h3>
+                <button class="btn" style="background: transparent; color: var(--gray-500); border: none; font-size: 1.5rem; cursor: pointer; padding: 0;" onclick="closeColumnModal()">&times;</button>
             </div>
             
             <div class="form-group">
@@ -1216,7 +1216,7 @@
             </div>
 
             <div style="text-align: right; margin-top: 20px;">
-                <button class="btn-primary" style="padding: 0.5rem 2rem;" onclick="confirmColumnLayout()">Oluştur</button>
+                <button class="btn-primary" style="padding: 0.5rem 2rem; width: auto;" onclick="confirmColumnLayout()">Oluştur</button>
             </div>
         </div>
     </div>
