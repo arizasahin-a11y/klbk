@@ -1235,38 +1235,11 @@ function renderWeeklyPlan() {
         let pB = infoB ? infoB.priority : 99;
         if(pA !== pB) return pA - pB;
         return a.localeCompare(b);
-    });
-    
-    let planDateText = "";
-    let formatDateShort = (dStr) => {
-        if (!dStr) return "";
-        let d = new Date(dStr);
-        let day = String(d.getDate()).padStart(2, '0');
-        let month = String(d.getMonth()+1).padStart(2, '0');
-        let year = d.getFullYear();
-        return `${day}.${month}.${year}`;
-    };
-
-    if (isAdmin && viewingPlanId && allNobetPlans[viewingPlanId]) {
-        let p = allNobetPlans[viewingPlanId];
-        if (p.status === 'published' && p.startDate) {
-            planDateText = `<div style="text-align: center; margin-bottom: 10px; font-weight: 700; color: var(--primary);">Yürürlüğe Girme Tarihi: ${formatDateShort(p.startDate)}</div>`;
-        }
-    } else if (!isAdmin && publishedPlanMeta && publishedPlanMeta.startDate) {
-        planDateText = `<div style="text-align: center; margin-bottom: 10px; font-weight: 700; color: var(--primary);">Yürürlüğe Girme Tarihi: ${formatDateShort(publishedPlanMeta.startDate)}</div>`;
-    }
-    
-    if (window.customPrintDateText) {
-        planDateText = window.customPrintDateText;
-        window.customPrintDateText = null; // reset it
-    }
-
     let html = `
     <div style="text-align:right; margin-bottom:10px;">
         <button onclick="window.openPrintTab()" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;"><i class="fa-solid fa-print"></i> PDF Yap / Yazdır</button>
     </div>
     <div style="overflow-x: auto; margin-top: 20px;" id="printablePlanArea">
-        ${planDateText}
         <table style="width: 100%; border-collapse: collapse; min-width: 800px; text-align: center; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
             <thead>
                 <tr style="background: var(--primary); color: white;">
@@ -1680,6 +1653,7 @@ window.openPrintTab = async () => {
         currentWeekPlan = applyDynamicRotation(p.data, p.startDate, nobetSettings.dutyType, targetDateObj);
         
         // Update the banner date format based on duty type
+        // Update the banner date format based on duty type
         let formatDateShort = (dStr) => {
             if (!dStr) return "";
             let d = new Date(dStr);
@@ -1701,7 +1675,13 @@ window.openPrintTab = async () => {
         let currentCycleEnd = new Date(currentCycleStart.getTime());
         currentCycleEnd.setDate(currentCycleEnd.getDate() + ((cycleWeeks - 1) * 7) + 4); // Friday of last week
         
-        window.customPrintDateText = `<div style="text-align: center; margin-bottom: 10px; font-weight: 700; color: var(--primary);">Yürürlüğe Girme Tarihi: ${formatDateShort(currentCycleStart)} - ${formatDateShort(currentCycleEnd)}</div>`;
+        window.customPrintDateText = " "; // Hide any inner header
+        
+        // Official Header and Footer values
+        window.tempPrintHeaderData = {
+            start: formatDateShort(currentCycleStart),
+            end: formatDateShort(currentCycleEnd)
+        };
         
         renderWeeklyPlan();
         
@@ -1716,6 +1696,37 @@ window.openPrintTab = async () => {
         currentWeekPlan = applyDynamicRotation(p.data, p.startDate, nobetSettings.dutyType);
         renderWeeklyPlan();
     }
+    
+    // Fallback if tempPrintHeaderData was not set (e.g. fixed plan)
+    if (!window.tempPrintHeaderData) {
+        let pInfo = allNobetPlans[viewingPlanId] || publishedPlanMeta;
+        let pStartDate = pInfo && pInfo.startDate ? new Date(pInfo.startDate) : new Date();
+        let pStartStr = String(pStartDate.getDate()).padStart(2,'0') + "." + String(pStartDate.getMonth()+1).padStart(2,'0') + "." + pStartDate.getFullYear();
+        window.tempPrintHeaderData = { start: pStartStr, end: '...' };
+    }
+    
+    let sName = localStorage.getItem('klbk_schoolName') || localStorage.getItem('schoolName') || 'OKUL';
+    let mudurObj = Object.values(klbkUsers).find(u => u.role === 'mudur');
+    let mudurName = mudurObj ? mudurObj.name : '.......................';
+    
+    let officialHeader = `
+        <div style="text-align: center; margin-bottom: 25px;">
+            <h2 style="margin: 0; font-size: 16pt;">${sName.toUpperCase()} MÜDÜRLÜĞÜNE</h2>
+        </div>
+        <p style="text-align: justify; font-size: 12pt; margin-bottom: 15px; line-height: 1.5;">
+            Okulumuzda <b>${window.tempPrintHeaderData.start}</b> Pazartesi - <b>${window.tempPrintHeaderData.end}</b> Cuma günleri arasında uygulanacak nöbetçi öğretmen çizelgesi aşağıdadır.<br>
+            Bilgilerinizi rica ederim.
+        </p>
+    `;
+    let officialFooter = `
+        <div style="margin-top: 40px; text-align: center; float: right; width: 250px;">
+            <div style="margin-bottom: 50px;">${window.tempPrintHeaderData.start}</div>
+            <div style="font-weight: bold; text-decoration: underline;">${mudurName}</div>
+            <div>Okul Müdürü</div>
+        </div>
+        <div style="clear: both;"></div>
+    `;
+    window.tempPrintHeaderData = null; // reset
     
     let win = window.open('', '_blank');
     if(!win) {
@@ -1788,7 +1799,9 @@ window.openPrintTab = async () => {
                 <button class="btn-print" onclick="window.print()">Yazdır</button>
             </div>
             <div class="a4-container">
+                ${officialHeader}
                 ${printContent}
+                ${officialFooter}
             </div>
         </body>
         </html>
