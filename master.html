@@ -214,6 +214,41 @@
             outline: none;
         }
 
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .master-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+                padding: 15px;
+            }
+            .master-header > div:last-child {
+                width: 100%;
+                justify-content: flex-start;
+                flex-wrap: wrap;
+            }
+            .app-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            .app-controls {
+                width: 100%;
+                justify-content: flex-end;
+                flex-wrap: wrap;
+            }
+            .teacher-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .role-selector {
+                width: 100%;
+            }
+            .role-selector select {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
