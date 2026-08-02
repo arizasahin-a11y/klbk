@@ -86,7 +86,7 @@ async function checkSession() {
         const token = sessionStorage.getItem('klbk_session_token') || localStorage.getItem('klbk_session_token');
         
         currentUser = {
-            username: sessionStorage.getItem('klbk_username') || localStorage.getItem('klbk_username'),
+            username: sessionStorage.getItem('klbk_currentUser') || localStorage.getItem('klbk_currentUser') || sessionStorage.getItem('klbk_username') || localStorage.getItem('klbk_username'),
             name: username,
             role: role,
             token: token
