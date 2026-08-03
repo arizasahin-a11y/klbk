@@ -157,10 +157,17 @@
                 </div>
                 <div class="form-group">
                     <label>Olaya Karışan Öğrenciler (Varsa)</label>
-                    <div class="input-wrapper" style="width: 100%;">
-                        <select id="incStudents" class="select2-students" multiple="multiple" style="width: 100%;">
-                            <!-- Loaded via JS -->
-                        </select>
+                    <div style="display: flex; gap: 10px; width: 100%; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 120px;">
+                            <select id="incClassSelect" class="form-select-custom" style="width: 100%; height: 38px;">
+                                <option value="">-- Sınıf Seç --</option>
+                            </select>
+                        </div>
+                        <div style="flex: 2; min-width: 200px;">
+                            <select id="incStudents" class="select2-students" multiple="multiple" style="width: 100%;">
+                                <!-- Loaded via JS -->
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group">

@@ -442,9 +442,6 @@ function populateTeacherDropdowns() {
 }
 
 function populateStudentDropdown() {
-    let html = '';
-    
-    // Group students by class
     let classGroups = {};
     studentsList.forEach(s => {
         let cName = s.class || 'Bilinmiyor';
@@ -452,7 +449,6 @@ function populateStudentDropdown() {
         classGroups[cName].push(s);
     });
 
-    // Sort class names numerically then alphabetically
     let sortedClasses = Object.keys(classGroups).sort((a, b) => {
         const numA = parseInt(a.match(/\d+/)) || 0;
         const numB = parseInt(b.match(/\d+/)) || 0;
@@ -460,31 +456,48 @@ function populateStudentDropdown() {
         return a.localeCompare(b);
     });
 
+    let classHtml = '<option value="">-- Sınıf Seç --</option>';
     sortedClasses.forEach(cName => {
-        html += `<optgroup label="${cName}">`;
-        
-        // Sort students within class by student number
-        let studentsInClass = classGroups[cName];
-        studentsInClass.sort((a, b) => {
-            const noA = parseInt(a.no) || 0;
-            const noB = parseInt(b.no) || 0;
-            return noA - noB;
-        });
-
-        studentsInClass.forEach(s => {
-            const displayName = `${s.name || ''} ${s.surname || ''}`.trim();
-            const idVal = `${cName} - ${s.no} - ${displayName}`;
-            const textVal = `${s.no} - ${displayName}`;
-            html += `<option value="${idVal}">${textVal}</option>`;
-        });
-        
-        html += `</optgroup>`;
+        classHtml += `<option value="${cName}">${cName}</option>`;
     });
 
-    $('#incStudents').html(html);
+    $('#incClassSelect').html(classHtml);
     $('.select2-students').select2({
-        placeholder: '-- Öğrenci Seç (Arama Yapabilirsiniz) --',
+        placeholder: '-- Önce Sınıf Seçin --',
         allowClear: true
+    });
+
+    $('#incClassSelect').off('change').on('change', function() {
+        const selectedClass = $(this).val();
+        let studentHtml = '';
+        
+        if (selectedClass && classGroups[selectedClass]) {
+            let studentsInClass = classGroups[selectedClass];
+            studentsInClass.sort((a, b) => {
+                const noA = parseInt(a.no) || 0;
+                const noB = parseInt(b.no) || 0;
+                return noA - noB;
+            });
+
+            studentsInClass.forEach(s => {
+                const displayName = `${s.name || ''} ${s.surname || ''}`.trim();
+                const idVal = `${selectedClass} - ${s.no} - ${displayName}`;
+                const textVal = `${s.no} - ${displayName}`;
+                studentHtml += `<option value="${idVal}">${textVal}</option>`;
+            });
+            
+            $('.select2-students').select2({
+                placeholder: '-- Öğrenci Seç (Arama Yapabilirsiniz) --',
+                allowClear: true
+            });
+        } else {
+            $('.select2-students').select2({
+                placeholder: '-- Önce Sınıf Seçin --',
+                allowClear: true
+            });
+        }
+        
+        $('#incStudents').html(studentHtml).val(null).trigger('change');
     });
 }
 
@@ -1886,7 +1899,8 @@ window.hideIncidentForm = function() {
     $('#incidentSection').slideUp();
     $('#incidentForm')[0].reset();
     $('#incTeachers').val(null).trigger('change');
-    $('#incStudents').val(null).trigger('change');
+    $('#incClassSelect').val('');
+    $('#incStudents').html('').val(null).trigger('change');
     $('#editIncidentId').val('');
 };
 
@@ -1914,11 +1928,20 @@ async function submitIncident() {
     
     Swal.fire({title:'Gönderiliyor...', didOpen:()=>Swal.showLoading()});
     try {
-        await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/incidents/${incidentId}.json`, {
+        const res = await fetch('/api/updateNobet', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(incidentData)
+            body: JSON.stringify({
+                path: `incidents/${incidentId}`,
+                data: incidentData
+            })
         });
+        
+        if (!res.ok) {
+            const errBody = await res.text();
+            throw new Error(errBody || 'Sunucu hatası');
+        }
+
         Swal.fire('Başarılı', editId ? 'Tutanak güncellendi.' : 'Tutanak kaydedildi.', 'success');
         hideIncidentForm();
         
@@ -1980,9 +2003,16 @@ window.editTeacherIncident = function(id, incJsonStr) {
         
         if (inc.students) {
             let stdArr = inc.students.split(',').map(s => s.trim());
-            $('#incStudents').val(stdArr).trigger('change');
+            // Pre-fill the dropdown correctly if they belong to a class
+            // To be safe, we just throw all these specific students in as options so they display correctly
+            let studentHtml = '';
+            stdArr.forEach(s => {
+                studentHtml += `<option value="${s}" selected>${s}</option>`;
+            });
+            $('#incClassSelect').val('');
+            $('#incStudents').html(studentHtml).val(stdArr).trigger('change');
         } else {
-            $('#incStudents').val(null).trigger('change');
+            $('#incStudents').html('').val(null).trigger('change');
         }
         
         if (inc.involvedTeachers && Array.isArray(inc.involvedTeachers)) {
