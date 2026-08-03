@@ -120,6 +120,26 @@
                 <div id="teacherWeeklyPlanContainer" style="margin-top: 40px; border-top: 2px solid var(--gray-200); padding-top: 20px;">
                     <!-- Weekly plan will be rendered here for teachers -->
                 </div>
+                
+                <!-- NEW: Geçmiş Tutanaklarım -->
+                <div id="teacherIncidentsContainer" style="margin-top: 40px; border-top: 2px solid var(--gray-200); padding-top: 20px; display: none;">
+                    <h3 style="color: var(--primary-dark); margin-bottom: 15px; text-align: left;"><i class="fa-solid fa-clock-rotate-left"></i> Geçmiş Tutanaklarım</h3>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Tarih / Saat</th>
+                                    <th>Öğrenciler</th>
+                                    <th>Açıklama</th>
+                                    <th>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacherIncidentsTableBody">
+                                <!-- Loaded via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -127,6 +147,7 @@
         <div id="incidentSection" class="panel-card glass-panel" style="display: none;">
             <h2 class="panel-title"><i class="fa-solid fa-file-signature"></i> Olay / Tutanak Bildirimi</h2>
             <form id="incidentForm">
+                <input type="hidden" id="editIncidentId" value="">
                 <div class="form-group">
                     <label>Olay Saati</label>
                     <div class="input-wrapper">

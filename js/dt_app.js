@@ -335,7 +335,11 @@ async function loadInitialData() {
         populateTeacherDropdowns();
         updateAdminSettingsUI();
         updateTeacherViewUI();
-        if(isAdmin) loadIncidents();
+        if(isAdmin) {
+            loadIncidents();
+        } else {
+            loadTeacherIncidents();
+        }
 
         Swal.close();
     } catch(e) {
@@ -438,18 +442,50 @@ function populateTeacherDropdowns() {
 }
 
 function populateStudentDropdown() {
-    let options = '<option value="">-- Öğrenci Seç --</option>';
-    let stdArr = studentsList.map(s => {
-        return { id: (s.class || '') + ' - ' + (s.name || ''), text: (s.class || '') + ' - ' + (s.name || '') };
-    });
-    stdArr.sort((a,b) => a.text.localeCompare(b.text));
+    let html = '';
     
-    stdArr.forEach(s => {
-        options += `<option value="${s.id}">${s.text}</option>`;
+    // Group students by class
+    let classGroups = {};
+    studentsList.forEach(s => {
+        let cName = s.class || 'Bilinmiyor';
+        if (!classGroups[cName]) classGroups[cName] = [];
+        classGroups[cName].push(s);
     });
 
-    $('#incStudents').html(options);
-    $('.select2-students').select2();
+    // Sort class names numerically then alphabetically
+    let sortedClasses = Object.keys(classGroups).sort((a, b) => {
+        const numA = parseInt(a.match(/\d+/)) || 0;
+        const numB = parseInt(b.match(/\d+/)) || 0;
+        if (numA !== numB) return numA - numB;
+        return a.localeCompare(b);
+    });
+
+    sortedClasses.forEach(cName => {
+        html += `<optgroup label="${cName}">`;
+        
+        // Sort students within class by student number
+        let studentsInClass = classGroups[cName];
+        studentsInClass.sort((a, b) => {
+            const noA = parseInt(a.no) || 0;
+            const noB = parseInt(b.no) || 0;
+            return noA - noB;
+        });
+
+        studentsInClass.forEach(s => {
+            const displayName = `${s.name || ''} ${s.surname || ''}`.trim();
+            const idVal = `${cName} - ${s.no} - ${displayName}`;
+            const textVal = `${s.no} - ${displayName}`;
+            html += `<option value="${idVal}">${textVal}</option>`;
+        });
+        
+        html += `</optgroup>`;
+    });
+
+    $('#incStudents').html(html);
+    $('.select2-students').select2({
+        placeholder: '-- Öğrenci Seç (Arama Yapabilirsiniz) --',
+        allowClear: true
+    });
 }
 
 function updateAdminSettingsUI() {
@@ -1850,6 +1886,8 @@ window.hideIncidentForm = function() {
     $('#incidentSection').slideUp();
     $('#incidentForm')[0].reset();
     $('#incTeachers').val(null).trigger('change');
+    $('#incStudents').val(null).trigger('change');
+    $('#editIncidentId').val('');
 };
 
 async function submitIncident() {
@@ -1858,8 +1896,10 @@ async function submitIncident() {
     const studentsStr = students.join(', ');
     const teachers = $('#incTeachers').val() || [];
     const desc = $('#incDesc').val();
+    const editId = $('#editIncidentId').val();
     
     const today = new Date().toISOString().split('T')[0];
+    const incidentId = editId ? editId : Date.now().toString();
     
     const incidentData = {
         date: today,
@@ -1869,23 +1909,98 @@ async function submitIncident() {
         students: studentsStr,
         involvedTeachers: teachers,
         description: desc,
-        timestamp: Date.now()
+        timestamp: editId ? parseInt(editId) : Date.now()
     };
     
     Swal.fire({title:'Gönderiliyor...', didOpen:()=>Swal.showLoading()});
     try {
-        await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/incidents/${Date.now()}.json`, {
+        await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/incidents/${incidentId}.json`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(incidentData)
         });
-        Swal.fire('Başarılı', 'Tutanak kaydedildi.', 'success');
+        Swal.fire('Başarılı', editId ? 'Tutanak güncellendi.' : 'Tutanak kaydedildi.', 'success');
         hideIncidentForm();
-        if(isAdmin) loadIncidents();
+        
+        if (isAdmin) loadIncidents();
+        loadTeacherIncidents();
     } catch(e) {
         Swal.fire('Hata', 'Gönderilemedi: ' + e.message, 'error');
     }
 }
+
+async function loadTeacherIncidents() {
+    if (!currentUser) return;
+    try {
+        const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/incidents.json`);
+        const data = await res.json();
+        
+        let html = '';
+        if (data) {
+            let myIncidents = Object.entries(data).filter(([id, inc]) => inc.reporterId === currentUser.username);
+            
+            // Sort by timestamp desc
+            myIncidents.sort((a,b) => b[1].timestamp - a[1].timestamp);
+            
+            if (myIncidents.length > 0) {
+                myIncidents.forEach(([id, inc]) => {
+                    let incJson = JSON.stringify(inc).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                    html += `
+                        <tr>
+                            <td>${inc.date || ''} <br> <small style="color:var(--gray-500);">${inc.time || ''}</small></td>
+                            <td>${inc.students || '-'}</td>
+                            <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${inc.description || ''}">${inc.description || '-'}</td>
+                            <td>
+                                <button class="btn btn-primary btn-sm" onclick="editTeacherIncident('${id}', '${incJson}')">
+                                    <i class="fa-solid fa-pen"></i> Düzenle
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                $('#teacherIncidentsContainer').show();
+            } else {
+                $('#teacherIncidentsContainer').hide();
+            }
+        } else {
+            $('#teacherIncidentsContainer').hide();
+        }
+        $('#teacherIncidentsTableBody').html(html);
+    } catch(e) {
+        console.error("Geçmiş tutanaklar yüklenemedi:", e);
+    }
+}
+
+window.editTeacherIncident = function(id, incJsonStr) {
+    try {
+        const inc = JSON.parse(incJsonStr.replace(/&quot;/g, '"').replace(/&#39;/g, "'"));
+        $('#editIncidentId').val(id);
+        $('#incTime').val(inc.time || '');
+        $('#incDesc').val(inc.description || '');
+        
+        if (inc.students) {
+            let stdArr = inc.students.split(',').map(s => s.trim());
+            $('#incStudents').val(stdArr).trigger('change');
+        } else {
+            $('#incStudents').val(null).trigger('change');
+        }
+        
+        if (inc.involvedTeachers && Array.isArray(inc.involvedTeachers)) {
+            $('#incTeachers').val(inc.involvedTeachers).trigger('change');
+        } else {
+            $('#incTeachers').val(null).trigger('change');
+        }
+        
+        showIncidentForm();
+        
+        $('html, body').animate({
+            scrollTop: $("#incidentSection").offset().top - 50
+        }, 500);
+    } catch (e) {
+        console.error("Düzenleme hatası:", e);
+        Swal.fire('Hata', 'Tutanak verisi okunamadı.', 'error');
+    }
+};
 
 async function loadIncidents() {
     try {
