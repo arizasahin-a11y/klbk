@@ -1985,6 +1985,12 @@ async function loadTeacherIncidents() {
             if (myIncidents.length > 0) {
                 myIncidents.forEach(([id, inc]) => {
                     let incJson = JSON.stringify(inc).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                    
+                    let tNames = (inc.involvedTeachers || []).map(uid => klbkUsers[uid]?.name || uid).join(', ');
+                    let printInc = { ...inc };
+                    printInc.involvedTeachers = tNames;
+                    let printIncJson = JSON.stringify(printInc).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+
                     html += `
                         <tr>
                             <td>${formatDateTR(inc.date) || ''} <br> <small style="color:var(--gray-500);">${inc.time || ''}</small></td>
@@ -1994,7 +2000,7 @@ async function loadTeacherIncidents() {
                                 <button class="btn btn-primary btn-sm" onclick="editTeacherIncident('${id}', '${incJson}')">
                                     <i class="fa-solid fa-pen"></i> Düzenle
                                 </button>
-                                <button class="btn btn-secondary btn-sm" onclick="printIncident('${incJson}')" style="margin-left: 5px; background: #6b7280; border-color: #6b7280; color: white;">
+                                <button class="btn btn-secondary btn-sm" onclick="printIncident('${printIncJson}')" style="margin-left: 5px; background: #6b7280; border-color: #6b7280; color: white;">
                                     <i class="fa-solid fa-print"></i> Yazdır
                                 </button>
                             </td>

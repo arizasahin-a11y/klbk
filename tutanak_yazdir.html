@@ -135,20 +135,13 @@
                 <div class="label">Olaya Karışan Öğrenciler:</div>
                 <div class="value" id="valStudents"></div>
             </div>
-            <div class="row">
-                <div class="label">İlgili Diğer Öğretmenler:</div>
-                <div class="value" id="valTeachers"></div>
-            </div>
 
             <div style="margin-top: 30px; font-weight: bold;">Olay Açıklaması:</div>
             <div class="description-box" id="valDesc"></div>
 
-            <div class="signatures">
-                <div class="signature-box">
-                    <strong>Tutanak Sahibi</strong><br><br><br>
-                    <span id="sigReporter"></span><br>
-                    İmza
-                </div>
+            <div style="margin-top: 50px; font-weight: bold; text-align: center; font-size: 14pt;">TUTANAĞI TUTANLAR</div>
+            <div class="signatures" id="signaturesContainer" style="margin-top: 30px; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px;">
+                <!-- Loaded via JS -->
             </div>
         </div>
     </div>
@@ -171,12 +164,33 @@
                     document.getElementById('docDate').textContent = "Tarih: " + formatDateTR(inc.date);
                     document.getElementById('valTime').textContent = inc.time || '';
                     document.getElementById('valReporter').textContent = inc.reporterName || '';
-                    document.getElementById('sigReporter').textContent = inc.reporterName || '';
                     document.getElementById('valStudents').textContent = inc.students || 'Yok';
-                    
-                    // Teachers might be an array of names (if resolved from admin list) or just UIDs.
-                    document.getElementById('valTeachers').textContent = inc.involvedTeachers ? (Array.isArray(inc.involvedTeachers) ? inc.involvedTeachers.join(', ') : inc.involvedTeachers) : 'Yok';
                     document.getElementById('valDesc').textContent = inc.description || '';
+
+                    let sigsHtml = `
+                        <div class="signature-box">
+                            <span style="font-weight:bold;">${inc.reporterName || ''}</span><br>
+                            Öğretmen<br><br><br>
+                            İmza
+                        </div>
+                    `;
+
+                    if (inc.involvedTeachers && inc.involvedTeachers !== 'Yok') {
+                        let tArr = Array.isArray(inc.involvedTeachers) ? inc.involvedTeachers : inc.involvedTeachers.split(', ');
+                        tArr.forEach(tName => {
+                            if (tName.trim() !== '') {
+                                sigsHtml += `
+                                    <div class="signature-box">
+                                        <span style="font-weight:bold;">${tName.trim()}</span><br>
+                                        Öğretmen<br><br><br>
+                                        İmza
+                                    </div>
+                                `;
+                            }
+                        });
+                    }
+
+                    document.getElementById('signaturesContainer').innerHTML = sigsHtml;
                 } catch (e) {
                     alert("Veri okunamadı.");
                 }
