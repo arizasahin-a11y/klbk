@@ -1952,6 +1952,23 @@ async function submitIncident() {
     }
 }
 
+function formatDateTR(dateStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+    return dateStr;
+}
+
+window.printIncident = function(incJsonStr) {
+    try {
+        localStorage.setItem('printIncidentData', incJsonStr.replace(/&quot;/g, '"').replace(/&#39;/g, "'"));
+        window.open('tutanak_yazdir.html', '_blank');
+    } catch(e) {
+        console.error(e);
+        Swal.fire('Hata', 'Yazdırma işlemi başlatılamadı.', 'error');
+    }
+};
+
 async function loadTeacherIncidents() {
     if (!currentUser) return;
     try {
@@ -1970,12 +1987,15 @@ async function loadTeacherIncidents() {
                     let incJson = JSON.stringify(inc).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
                     html += `
                         <tr>
-                            <td>${inc.date || ''} <br> <small style="color:var(--gray-500);">${inc.time || ''}</small></td>
+                            <td>${formatDateTR(inc.date) || ''} <br> <small style="color:var(--gray-500);">${inc.time || ''}</small></td>
                             <td>${inc.students || '-'}</td>
                             <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${inc.description || ''}">${inc.description || '-'}</td>
                             <td>
                                 <button class="btn btn-primary btn-sm" onclick="editTeacherIncident('${id}', '${incJson}')">
                                     <i class="fa-solid fa-pen"></i> Düzenle
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="printIncident('${incJson}')" style="margin-left: 5px; background: #6b7280; border-color: #6b7280; color: white;">
+                                    <i class="fa-solid fa-print"></i> Yazdır
                                 </button>
                             </td>
                         </tr>
@@ -2043,11 +2063,22 @@ async function loadIncidents() {
                 keys.forEach(k => {
                     const inc = data[k];
                     let tNames = (inc.involvedTeachers || []).map(uid => klbkUsers[uid]?.name || uid).join(', ');
+                    
+                    // Create a modified copy for printing so it has resolved names
+                    let printInc = { ...inc };
+                    printInc.involvedTeachers = tNames;
+                    let incJson = JSON.stringify(printInc).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+
                     html += `
                         <div class="item-row" style="flex-direction:column; align-items:flex-start; gap:10px;">
-                            <div style="width:100%; display:flex; justify-content:space-between; border-bottom:1px solid var(--gray-200); padding-bottom:5px;">
-                                <strong style="color:var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> ${inc.date} - ${inc.time}</strong>
-                                <small style="color:var(--gray-500);">Bildiren: ${inc.reporterName}</small>
+                            <div style="width:100%; display:flex; justify-content:space-between; border-bottom:1px solid var(--gray-200); padding-bottom:5px; align-items:center;">
+                                <strong style="color:var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> ${formatDateTR(inc.date)} - ${inc.time}</strong>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <small style="color:var(--gray-500);">Bildiren: ${inc.reporterName}</small>
+                                    <button class="btn btn-sm" onclick="printIncident('${incJson}')" style="background: #6b7280; color: white; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px;">
+                                        <i class="fa-solid fa-print"></i> Yazdır
+                                    </button>
+                                </div>
                             </div>
                             <div style="font-size:0.9rem;">
                                 <strong>Öğrenciler:</strong> ${inc.students}<br>

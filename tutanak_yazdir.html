@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tutanak / Olay Bildirimi</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            background: #e5e7eb;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            padding: 20mm;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid black;
+            padding-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 18pt;
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+        }
+
+        .header p {
+            font-size: 12pt;
+            margin: 0;
+        }
+
+        .content {
+            font-size: 12pt;
+            line-height: 1.6;
+        }
+
+        .row {
+            margin-bottom: 15px;
+            display: flex;
+        }
+
+        .label {
+            font-weight: bold;
+            width: 170px;
+            flex-shrink: 0;
+        }
+
+        .value {
+            flex-grow: 1;
+            border-bottom: 1px dotted #999;
+        }
+
+        .description-box {
+            margin-top: 20px;
+            border: 1px solid black;
+            padding: 15px;
+            min-height: 150px;
+            white-space: pre-wrap;
+        }
+
+        .signatures {
+            margin-top: 50px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .signature-box {
+            text-align: center;
+            width: 200px;
+        }
+
+        .actions {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            font-family: 'Segoe UI', sans-serif;
+            font-weight: bold;
+        }
+
+        .btn-print { background-color: #2563eb; color: white; }
+        .btn-pdf { background-color: #dc2626; color: white; }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .a4-page { box-shadow: none; width: 100%; min-height: auto; padding: 10mm; }
+            .actions { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="actions">
+        <button class="btn-print" onclick="window.print()">Yazdır</button>
+        <button class="btn-pdf" onclick="savePdf()">PDF Kaydet</button>
+    </div>
+
+    <div class="a4-page" id="document-content">
+        <div class="header">
+            <h1>OLAY / TUTANAK BİLDİRİMİ</h1>
+            <p id="docDate" style="text-align: right;"></p>
+        </div>
+
+        <div class="content">
+            <div class="row">
+                <div class="label">Olay Saati:</div>
+                <div class="value" id="valTime"></div>
+            </div>
+            <div class="row">
+                <div class="label">Bildiren Öğretmen:</div>
+                <div class="value" id="valReporter"></div>
+            </div>
+            <div class="row">
+                <div class="label">Olaya Karışan Öğrenciler:</div>
+                <div class="value" id="valStudents"></div>
+            </div>
+            <div class="row">
+                <div class="label">İlgili Diğer Öğretmenler:</div>
+                <div class="value" id="valTeachers"></div>
+            </div>
+
+            <div style="margin-top: 30px; font-weight: bold;">Olay Açıklaması:</div>
+            <div class="description-box" id="valDesc"></div>
+
+            <div class="signatures">
+                <div class="signature-box">
+                    <strong>Tutanak Sahibi</strong><br><br><br>
+                    <span id="sigReporter"></span><br>
+                    İmza
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function formatDateTR(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+            return dateStr;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const dataStr = localStorage.getItem('printIncidentData');
+            if (dataStr) {
+                try {
+                    const inc = JSON.parse(dataStr);
+                    // Also need klbkUsers if we want to resolve teacher names nicely, but we stored it from the admin panel if we passed it.
+                    // If reporterName is provided, we use it directly. Admin panel passes it.
+                    document.getElementById('docDate').textContent = "Tarih: " + formatDateTR(inc.date);
+                    document.getElementById('valTime').textContent = inc.time || '';
+                    document.getElementById('valReporter').textContent = inc.reporterName || '';
+                    document.getElementById('sigReporter').textContent = inc.reporterName || '';
+                    document.getElementById('valStudents').textContent = inc.students || 'Yok';
+                    
+                    // Teachers might be an array of names (if resolved from admin list) or just UIDs.
+                    document.getElementById('valTeachers').textContent = inc.involvedTeachers ? (Array.isArray(inc.involvedTeachers) ? inc.involvedTeachers.join(', ') : inc.involvedTeachers) : 'Yok';
+                    document.getElementById('valDesc').textContent = inc.description || '';
+                } catch (e) {
+                    alert("Veri okunamadı.");
+                }
+            } else {
+                alert("Yazdırılacak tutanak bulunamadı.");
+            }
+        });
+
+        function savePdf() {
+            const element = document.getElementById('document-content');
+            const dateStr = document.getElementById('docDate').textContent.replace('Tarih: ', '').trim();
+            const opt = {
+                margin:       [10, 10, 10, 10],
+                filename:     `Tutanak_${dateStr}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+</html>
