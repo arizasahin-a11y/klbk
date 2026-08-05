@@ -2,6 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>Tutanak / Olay Bildirimi</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
@@ -102,10 +103,27 @@
         .btn-print { background-color: #2563eb; color: white; }
         .btn-pdf { background-color: #dc2626; color: white; }
 
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .a4-page { width: 100%; min-height: auto; padding: 15px; }
+            .header h1 { font-size: 14pt; }
+            .content { font-size: 11pt; }
+            .row { flex-direction: column; gap: 3px; }
+            .label { width: 100%; }
+            .value { border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+            .description-box { min-height: 100px; padding: 10px; }
+            .signature-box { width: 150px; }
+            .actions { flex-direction: column; }
+            .actions button { width: 100%; }
+        }
+
         @media print {
             body { background: white; padding: 0; }
             .a4-page { box-shadow: none; width: 100%; min-height: auto; padding: 10mm; }
             .actions { display: none; }
+            .row { flex-direction: row; }
+            .label { width: 170px; }
         }
     </style>
 </head>
