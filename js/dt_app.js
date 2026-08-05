@@ -1662,7 +1662,6 @@ function updateTeacherDutyDashboardUI() {
     
     if (!publishedPlanMeta) {
         container.html(`<div style="padding: 30px;"><i class="fa-solid fa-calendar-xmark" style="font-size: 3rem; color: var(--gray-400); margin-bottom:15px;"></i><h3>Aktif Nöbet Planı Yok</h3></div>`);
-        incidentBtn.hide();
         return;
     }
     
@@ -1670,12 +1669,10 @@ function updateTeacherDutyDashboardUI() {
     
     if (!dutyInfo || dutyInfo.exempt) {
         container.html(`<div style="padding: 30px;"><i class="fa-solid fa-mug-hot" style="font-size: 3rem; color: var(--gray-400); margin-bottom:15px;"></i><h3>Nöbetten Muafsınız</h3><p style="color:var(--gray-500);">Nöbet göreviniz bulunmamaktadır.</p></div>`);
-        incidentBtn.hide();
         return;
     }
     if (dutyInfo.notInPlan || dutyInfo.notFound) {
         container.html(`<div style="padding: 30px;"><i class="fa-solid fa-mug-hot" style="font-size: 3rem; color: var(--gray-400); margin-bottom:15px;"></i><h3>Şu an nöbetçi değilsiniz</h3><p style="color:var(--gray-500);">Bu plan periyodunda nöbetiniz bulunmuyor.</p></div>`);
-        incidentBtn.hide();
         return;
     }
     
