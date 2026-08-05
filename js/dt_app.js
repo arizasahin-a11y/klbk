@@ -1712,7 +1712,6 @@ function updateTeacherDutyDashboardUI() {
             let html = '';
             
             if (isToday) {
-                incidentBtn.show();
                 if (now < dutyStart) {
                     let diff = dutyStart.getTime() - now.getTime();
                     html = renderStateHtml('Bugün nöbetçisiniz, Kolay Gelsin', dutyInfo.locationName, formatCountdown(diff), dutyInfo.partners, 'Nöbet Başlıyor:');
@@ -1720,11 +1719,9 @@ function updateTeacherDutyDashboardUI() {
                     let diff = dutyEnd.getTime() - now.getTime();
                     html = renderStateHtml('Nöbetiniz Başladı', dutyInfo.locationName, formatCountdown(diff), dutyInfo.partners, 'Nöbet Bitiyor:');
                 } else {
-                    html = renderPostDutyHtml(dateFormatted, dutyInfo.locationName); // Actually this needs next duty
-                    incidentBtn.hide(); // Hide after duty? Usually keep it just in case, but let's hide for simplicity or let it stay. Let's hide.
+                    html = renderPostDutyHtml(dateFormatted, dutyInfo.locationName);
                 }
             } else {
-                incidentBtn.hide();
                 let diff = dutyStart.getTime() - now.getTime();
                 html = `<div style="padding: 20px;">
                     <i class="fa-solid fa-mug-hot" style="font-size: 3rem; color: var(--gray-400); margin-bottom: 15px;"></i>
