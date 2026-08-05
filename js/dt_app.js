@@ -1824,8 +1824,16 @@ function renderTeacherWeeklyPlan() {
         return a.localeCompare(b);
     });
     
+    const trMonths = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+    let planTitle = 'Nöbet Çizelgesi';
+    if (dates.length >= 2) {
+        let startD = new Date(dates[0]);
+        let endD = new Date(dates[dates.length - 1]);
+        planTitle = `${startD.getDate()} ${trMonths[startD.getMonth()]} - ${endD.getDate()} ${trMonths[endD.getMonth()]} Arası Nöbet Çizelgesi`;
+    }
+
     let html = `
-    <h3 style="margin-bottom:15px; color:var(--primary-dark); text-align:left; border-bottom:1px solid var(--gray-200); padding-bottom:10px;"><i class="fa-solid fa-table-list"></i> Genel Nöbet Planı</h3>
+    <h3 style="margin-bottom:15px; color:var(--primary-dark); text-align:left; border-bottom:1px solid var(--gray-200); padding-bottom:10px;"><i class="fa-solid fa-table-list"></i> ${planTitle}</h3>
     <div style="overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse; min-width: 800px; text-align: center; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
             <thead>
@@ -1902,6 +1910,8 @@ window.hideIncidentForm = function() {
     $('#incClassSelect').val('');
     $('#incStudents').html('').val(null).trigger('change');
     $('#editIncidentId').val('');
+    $('#selectedStudentsList').hide();
+    $('#selectedStudentsUl').html('');
 };
 
 async function submitIncident() {
@@ -1983,7 +1993,8 @@ async function loadTeacherIncidents() {
             myIncidents.sort((a,b) => b[1].timestamp - a[1].timestamp);
             
             if (myIncidents.length > 0) {
-                myIncidents.forEach(([id, inc]) => {
+                let totalCount = myIncidents.length;
+                myIncidents.forEach(([id, inc], idx) => {
                     let incJson = JSON.stringify(inc).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
                     
                     let tNames = (inc.involvedTeachers || []).map(uid => klbkUsers[uid]?.name || uid).join(', ');
@@ -1991,17 +2002,21 @@ async function loadTeacherIncidents() {
                     printInc.involvedTeachers = tNames;
                     let printIncJson = JSON.stringify(printInc).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
 
+                    let tutanakName = `Tutanak ${totalCount - idx}`;
+
                     html += `
                         <tr>
-                            <td>${formatDateTR(inc.date) || ''} <br> <small style="color:var(--gray-500);">${inc.time || ''}</small></td>
-                            <td>${inc.students || '-'}</td>
-                            <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${inc.description || ''}">${inc.description || '-'}</td>
+                            <td>${formatDateTR(inc.date) || ''}</td>
+                            <td><strong>${tutanakName}</strong></td>
                             <td>
                                 <button class="btn btn-primary btn-sm" onclick="editTeacherIncident('${id}', '${incJson}')">
                                     <i class="fa-solid fa-pen"></i> Düzenle
                                 </button>
-                                <button class="btn btn-secondary btn-sm" onclick="printIncident('${printIncJson}')" style="margin-left: 5px; background: #6b7280; border-color: #6b7280; color: white;">
-                                    <i class="fa-solid fa-print"></i> Yazdır
+                                <button class="btn btn-secondary btn-sm" onclick="printIncident('${printIncJson}')" style="margin-left: 3px; background: #6b7280; border-color: #6b7280; color: white;">
+                                    <i class="fa-solid fa-print"></i>
+                                </button>
+                                <button class="btn btn-sm" onclick="deleteIncident('${id}')" style="margin-left: 3px; background: #ef4444; border-color: #ef4444; color: white;">
+                                    <i class="fa-solid fa-trash"></i>
                                 </button>
                             </td>
                         </tr>
@@ -2066,23 +2081,28 @@ async function loadIncidents() {
             if(data) {
                 let html = '';
                 const keys = Object.keys(data).sort().reverse(); // newest first
-                keys.forEach(k => {
+                let totalCount = keys.length;
+                keys.forEach((k, idx) => {
                     const inc = data[k];
                     let tNames = (inc.involvedTeachers || []).map(uid => klbkUsers[uid]?.name || uid).join(', ');
                     
-                    // Create a modified copy for printing so it has resolved names
                     let printInc = { ...inc };
                     printInc.involvedTeachers = tNames;
                     let incJson = JSON.stringify(printInc).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
 
+                    let tutanakName = `Tutanak ${totalCount - idx}`;
+
                     html += `
                         <div class="item-row" style="flex-direction:column; align-items:flex-start; gap:10px;">
                             <div style="width:100%; display:flex; justify-content:space-between; border-bottom:1px solid var(--gray-200); padding-bottom:5px; align-items:center;">
-                                <strong style="color:var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> ${formatDateTR(inc.date)} - ${inc.time}</strong>
-                                <div style="display: flex; gap: 10px; align-items: center;">
+                                <strong style="color:var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> ${tutanakName} — ${formatDateTR(inc.date)}</strong>
+                                <div style="display: flex; gap: 6px; align-items: center;">
                                     <small style="color:var(--gray-500);">Bildiren: ${inc.reporterName}</small>
                                     <button class="btn btn-sm" onclick="printIncident('${incJson}')" style="background: #6b7280; color: white; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px;">
-                                        <i class="fa-solid fa-print"></i> Yazdır
+                                        <i class="fa-solid fa-print"></i>
+                                    </button>
+                                    <button class="btn btn-sm" onclick="deleteIncident('${k}')" style="background: #ef4444; color: white; padding: 4px 8px; font-size: 0.8rem; border-radius: 4px;">
+                                        <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </div>
                             </div>
@@ -2101,6 +2121,59 @@ async function loadIncidents() {
         console.error('Tutanaklar yüklenirken hata', e);
     }
 }
+
+window.deleteIncident = async function(incidentId) {
+    const { isConfirmed } = await Swal.fire({
+        title: 'Emin misiniz?',
+        text: 'Bu tutanak kalıcı olarak silinecektir.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Evet, Sil',
+        cancelButtonText: 'İptal'
+    });
+    
+    if (!isConfirmed) return;
+    
+    Swal.fire({title:'Siliniyor...', didOpen:()=>Swal.showLoading()});
+    try {
+        const res = await fetch('/api/updateNobet', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: `incidents/${incidentId}` })
+        });
+        
+        if (!res.ok) throw new Error('Sunucu hatası');
+        
+        Swal.fire('Silindi', 'Tutanak başarıyla silindi.', 'success');
+        if (isAdmin) loadIncidents();
+        loadTeacherIncidents();
+    } catch(e) {
+        Swal.fire('Hata', 'Silinemedi: ' + e.message, 'error');
+    }
+};
+
+// Live selected students display
+$(document).on('change', '#incStudents', function() {
+    const selected = $(this).val() || [];
+    const container = $('#selectedStudentsList');
+    const ul = $('#selectedStudentsUl');
+    
+    if (selected.length > 0) {
+        let html = '';
+        selected.forEach((s, i) => {
+            html += `<li style="background: var(--primary-light, #e0e7ff); color: var(--primary-dark, #1e3a8a); padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">
+                <i class="fa-solid fa-user-graduate" style="font-size: 0.7rem;"></i> ${s}
+            </li>`;
+        });
+        ul.html(html);
+        container.show();
+    } else {
+        ul.html('');
+        container.hide();
+    }
+});
 
 // --- Interactive Table Features ---
 window.changeAdminDuty = async (dateStr, currentUid) => {

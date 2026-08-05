@@ -128,9 +128,8 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Tarih / Saat</th>
-                                    <th>Öğrenciler</th>
-                                    <th>Açıklama</th>
+                                    <th>Tarih</th>
+                                    <th>Tutanak</th>
                                     <th>İşlem</th>
                                 </tr>
                             </thead>
@@ -168,6 +167,10 @@
                                 <!-- Loaded via JS -->
                             </select>
                         </div>
+                    </div>
+                    <div id="selectedStudentsList" style="margin-top: 10px; display: none;">
+                        <small style="color: var(--gray-500); font-weight: 600;">Seçilen Öğrenciler:</small>
+                        <ul id="selectedStudentsUl" style="list-style: none; padding: 0; margin: 5px 0 0 0; display: flex; flex-wrap: wrap; gap: 6px;"></ul>
                     </div>
                 </div>
                 <div class="form-group">
