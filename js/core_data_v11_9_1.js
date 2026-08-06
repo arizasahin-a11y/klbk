@@ -1763,9 +1763,13 @@ window.quickAddUnplannedHoliday = async function() {
     if (!role && typeof klbkUsers !== 'undefined' && window.currentUser && klbkUsers[window.currentUser.username]) {
         role = klbkUsers[window.currentUser.username].role;
     }
-    role = (role || '').toLowerCase().trim();
-    const adminRoles = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'];
-    if (!adminRoles.includes(role)) {
+    const roleStr = (role || '').toLowerCase().trim();
+    const isAdmin = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'].includes(roleStr) || 
+                    roleStr.includes('müdür') || 
+                    roleStr.includes('idareci') || 
+                    roleStr.includes('mudur');
+    
+    if (!isAdmin) {
         Swal.fire('Yetkisiz', 'Bu işlemi yalnızca idareciler yapabilir.', 'error');
         return;
     }
@@ -1830,9 +1834,13 @@ window.renderQuickHolidayButton = function(containerId, retries = 0) {
         return;
     }
     
-    role = (role || '').toLowerCase().trim();
-    const adminRoles = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'];
-    if (adminRoles.includes(role)) {
+    const roleStr = (role || '').toLowerCase().trim();
+    const isAdmin = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'].includes(roleStr) || 
+                    roleStr.includes('müdür') || 
+                    roleStr.includes('idareci') || 
+                    roleStr.includes('mudur');
+                    
+    if (isAdmin) {
         const container = document.getElementById(containerId);
         if (container) {
             // Check if already added
