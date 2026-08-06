@@ -1918,11 +1918,33 @@ function renderTeacherWeeklyPlan() {
         planTitle = `${startD.getDate()} ${trMonths[startD.getMonth()]} - ${endD.getDate()} ${trMonths[endD.getMonth()]} Arası Nöbet Çizelgesi`;
     }
 
-    // Nav buttons
-    let totalPlans = Object.values(allNobetPlans || {}).filter(p => p && p.data).length;
-    let navHtml = `<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
-        <h3 style="margin:0; color:var(--primary-dark);"><i class="fa-solid fa-table-list"></i> ${planTitle}</h3>
-        <div style="display:flex; gap:6px;">
+    // Nav buttons - determine current plan index for display
+    let planList2 = Object.entries(allNobetPlans || {})
+        .filter(([, p]) => p && p.data && typeof p.data === 'object')
+        .map(([id, p]) => ({ id, plan: p, firstDate: Object.keys(p.data).sort()[0] || '0000-00-00' }))
+        .sort((a, b) => a.firstDate.localeCompare(b.firstDate));
+    let totalPlans = planList2.length;
+    let now2 = new Date();
+    let isSat2 = now2.getDay() === 6;
+    let ref2 = new Date(now2); if(isSat2) ref2.setDate(ref2.getDate() + 2);
+    let refStr2 = ref2.toISOString().split('T')[0];
+    let baseIdx2 = planList2.findIndex(({plan}) => { let dd=Object.keys(plan.data).sort(); return dd.length && refStr2>=dd[0] && refStr2<=dd[dd.length-1]; });
+    if(baseIdx2 < 0) { baseIdx2 = planList2.filter(p=>p.firstDate<=refStr2).length-1; if(baseIdx2<0) baseIdx2=0; }
+    let currentPlanIdx = Math.max(0, Math.min(totalPlans-1, baseIdx2 + _teacherWeekOffset)); // 0-based
+
+    // Date badge label
+    let startD2 = dates.length ? new Date(dates[0]) : null;
+    let endD2 = dates.length ? new Date(dates[dates.length-1]) : null;
+    let fmt = d => `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+    let dateBadge = (startD2 && endD2) ? `<span style="font-size:0.85rem; font-weight:500; color:var(--gray-600); margin-left:8px; background:rgba(245,158,11,0.1); padding:3px 10px; border-radius:20px; border:1px solid var(--primary-light);">${fmt(startD2)} &ndash; ${fmt(endD2)}</span>` : '';
+    let weekBadge = totalPlans > 1 ? `<span style="font-size:0.8rem; color:var(--gray-500); margin-left:6px;">(${currentPlanIdx+1} / ${totalPlans}. plan)</span>` : '';
+
+    let navHtml = `<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+            <h3 style="margin:0; color:var(--primary-dark);"><i class="fa-solid fa-table-list"></i> ${planTitle}</h3>
+            ${dateBadge}${weekBadge}
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
             <button id="prevWeekBtn" onclick="window.teacherPrevWeek()" title="Önceki Hafta"
                 style="background:${_teacherWeekOffset <= 0 ? 'var(--gray-200)' : 'white'}; border:2px solid var(--gray-300); border-radius:50%; width:36px; height:36px; cursor:${_teacherWeekOffset <= 0 ? 'not-allowed' : 'pointer'}; font-size:1.1rem; color:var(--primary-dark); display:flex; align-items:center; justify-content:center; transition:all 0.2s;"
                 ${_teacherWeekOffset <= 0 ? 'disabled' : ''}>
@@ -1944,7 +1966,9 @@ function renderTeacherWeeklyPlan() {
                     <th style="padding: 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">Nöbet Yeri</th>`;
     
     for(let i=0; i<5; i++) {
-        html += `<th style="padding: 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">${dayNames[i] || ''}</th>`;
+        let colDate = dates[i] ? new Date(dates[i]) : null;
+        let colDateStr = colDate ? `<br><span style="font-size:0.78rem; font-weight:400; opacity:0.85;">${String(colDate.getDate()).padStart(2,'0')}.${String(colDate.getMonth()+1).padStart(2,'0')}</span>` : '';
+        html += `<th style="padding: 12px 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">${dayNames[i] || ''}${colDateStr}</th>`;
     }
     
     html += `</tr>
