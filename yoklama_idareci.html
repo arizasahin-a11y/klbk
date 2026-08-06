@@ -1386,7 +1386,7 @@
             const eokulBox = document.getElementById('eokulAssistantBox');
             const emptyState = document.getElementById('sinifEmptyState');
             const wrapper = document.getElementById('sinifTableWrapper');
-            const tableBody = document.getElementById('sinifReportTableBody');
+            const tableBody = document.getElementById('sinifTableBody');
 
             if (dateVal) {
                 const holidayName = typeof getHolidayInfo === 'function' ? getHolidayInfo(dateVal) : false;
@@ -1394,8 +1394,9 @@
                     emptyState.classList.add('hidden');
                     wrapper.classList.remove('hidden');
                     eokulBox.classList.add('hidden');
-                    tableBody.innerHTML = `<tr><td colspan="9" style="padding:40px; color:#b45309; text-align:center; font-weight:bold; font-size:1.1rem;"><i class="fa-solid fa-umbrella-beach" style="font-size:2rem; margin-bottom:10px;"></i><br>Bugün ${holidayName}, Tatilsiniz.<br><span style="font-size:0.9rem; opacity:0.8; font-weight:normal;">Bu tarihte yoklama alınamaz/görüntülenemez.</span></td></tr>`;
-                    document.getElementById('sinifReportSummary').innerHTML = '';
+                    if (tableBody) {
+                        tableBody.innerHTML = `<tr><td colspan="9" style="padding:40px; color:#b45309; text-align:center; font-weight:bold; font-size:1.1rem;"><i class="fa-solid fa-umbrella-beach" style="font-size:2rem; margin-bottom:10px;"></i><br>Bugün ${holidayName}, Tatilsiniz.<br><span style="font-size:0.9rem; opacity:0.8; font-weight:normal;">Bu tarihte yoklama alınamaz/görüntülenemez.</span></td></tr>`;
+                    }
                     return;
                 }
             }
