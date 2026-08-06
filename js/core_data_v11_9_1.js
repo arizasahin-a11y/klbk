@@ -1849,7 +1849,7 @@ window.renderQuickHolidayButton = function(containerId, retries = 0) {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'btn quick-holiday-btn';
-            btn.style.cssText = 'background: #ef4444; color: white; border: none; border-radius: 6px; padding: 6px 12px; font-size: 0.85rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 4px rgba(239,68,68,0.3); margin-left: auto;';
+            btn.style.cssText = 'background: #ef4444; color: white; border: none; border-radius: 6px; padding: 6px 12px; font-size: 0.85rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 4px rgba(239,68,68,0.3);';
             btn.innerHTML = '<i class="fa-solid fa-snowflake"></i> Tatil Ekle';
             btn.onclick = window.quickAddUnplannedHoliday;
             
@@ -1858,7 +1858,7 @@ window.renderQuickHolidayButton = function(containerId, retries = 0) {
                 container.style.display = 'flex';
                 container.style.alignItems = 'center';
             }
-            container.appendChild(btn);
+            container.prepend(btn);
         }
     }
 };
