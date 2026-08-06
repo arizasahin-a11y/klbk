@@ -1096,7 +1096,7 @@
                 classrooms.forEach(c => {
                     if (c && c.name) classes.add(c.name.trim());
                 });
-                allStudents.forEach(s => { if (s.class) classes.add(s.class.trim()); });
+                allStudents.forEach(s => { if (s && s.class) classes.add(s.class.trim()); });
                 classList = Array.from(classes).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true, sensitivity: 'base' }));
 
                 // Populate Class Select Dropdowns
