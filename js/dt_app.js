@@ -230,6 +230,10 @@ async function loadInitialData() {
     Swal.fire({ title: 'Veriler Yükleniyor...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
     
     try {
+        if (typeof DataManager !== 'undefined' && typeof DataManager.initCloud === 'function') {
+            await DataManager.initCloud();
+        }
+        
         // Fetch Users (for teacher lists) - API handles token
         const usersRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json?_=${Date.now()}`);
         if(usersRes.ok) {
