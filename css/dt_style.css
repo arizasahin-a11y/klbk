@@ -1,4 +1,4 @@
-﻿/* css/dt_style.css */
+/* css/dt_style.css */
 :root {
     --primary: #f59e0b;
     --primary-dark: #d97706;
@@ -690,4 +690,16 @@ input:checked + .toggle-slider:before {
     border: 2px solid var(--white);
     border-radius: 8px;
     background: rgba(255,255,255,0.8);
+}
+
+/* Geçmiş tutanaklar tablosu - işlem butonları sağa yanaşık */
+#teacherIncidentsTableBody td:last-child {
+    text-align: right;
+    white-space: nowrap;
+}
+#teacherIncidentsTableBody td:last-child > div {
+    display: inline-flex !important;
+    gap: 6px;
+    justify-content: flex-end;
+    float: right;
 }

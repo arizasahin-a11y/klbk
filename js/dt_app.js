@@ -1830,18 +1830,69 @@ function formatCountdown(ms) {
     return `${String(d).padStart(2,'0')}:${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
+// --- Week Navigation State ---
+let _teacherWeekOffset = 0; // 0 = current/auto week
+
+// Returns the plan data to display based on current day + offset.
+// On Saturday (day=6) offset=0 → show NEXT week's plan (next Monday).
+function _getPlanForOffset(offset) {
+    if (!allNobetPlans || Object.keys(allNobetPlans).length === 0) return currentWeekPlan;
+    
+    // Collect all published/usable plans sorted by their first date
+    let planList = Object.entries(allNobetPlans)
+        .filter(([, p]) => p && p.data && typeof p.data === 'object')
+        .map(([id, p]) => {
+            let dates = Object.keys(p.data).sort();
+            return { id, plan: p, firstDate: dates[0] || '0000-00-00' };
+        })
+        .sort((a, b) => a.firstDate.localeCompare(b.firstDate));
+
+    if (planList.length === 0) return currentWeekPlan;
+
+    // Determine base index: find plan whose dates bracket "today" (or next Mon if Saturday)
+    let now = new Date();
+    let isSaturday = now.getDay() === 6;
+    let refDate = new Date(now);
+    if (isSaturday) refDate.setDate(refDate.getDate() + 2); // jump to Monday
+    let refStr = refDate.toISOString().split('T')[0];
+
+    // Find which plan contains refDate
+    let baseIdx = planList.findIndex(({ plan }) => {
+        let dates = Object.keys(plan.data).sort();
+        if (dates.length === 0) return false;
+        return refStr >= dates[0] && refStr <= dates[dates.length - 1];
+    });
+    if (baseIdx < 0) {
+        // Fall back: nearest plan before refDate
+        baseIdx = planList.filter(p => p.firstDate <= refStr).length - 1;
+        if (baseIdx < 0) baseIdx = 0;
+    }
+
+    let targetIdx = Math.max(0, Math.min(planList.length - 1, baseIdx + offset));
+    let targetPlan = planList[targetIdx];
+    
+    // Apply rotation if needed
+    let p = targetPlan.plan;
+    let activeDutyType = p.dutyType || nobetSettings.dutyType || 'weekly';
+    if (p.status === 'published' && p.startDate && activeDutyType !== 'fixed') {
+        return applyDynamicRotation(p.data, p.startDate, activeDutyType);
+    }
+    return p.data;
+}
+
 function renderTeacherWeeklyPlan() {
-    if(!currentWeekPlan || Object.keys(currentWeekPlan).length === 0) {
-        $('#teacherWeeklyPlanContainer').html('');
+    let planData = _getPlanForOffset(_teacherWeekOffset);
+    if(!planData || Object.keys(planData).length === 0) {
+        $('#teacherWeeklyPlanContainer').html('<p style="color:var(--gray-500); padding:10px;">Plan bulunamadı.</p>');
         return;
     }
     
-    let dates = Object.keys(currentWeekPlan).sort();
+    let dates = Object.keys(planData).sort();
     const dayNames = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
     
     let allShifts = [];
     dates.forEach(d => {
-        for(let shiftId in currentWeekPlan[d]) {
+        for(let shiftId in planData[d]) {
             if(!allShifts.includes(shiftId)) allShifts.push(shiftId);
         }
     });
@@ -1867,8 +1918,25 @@ function renderTeacherWeeklyPlan() {
         planTitle = `${startD.getDate()} ${trMonths[startD.getMonth()]} - ${endD.getDate()} ${trMonths[endD.getMonth()]} Arası Nöbet Çizelgesi`;
     }
 
-    let html = `
-    <h3 style="margin-bottom:15px; color:var(--primary-dark); text-align:left; border-bottom:1px solid var(--gray-200); padding-bottom:10px;"><i class="fa-solid fa-table-list"></i> ${planTitle}</h3>
+    // Nav buttons
+    let totalPlans = Object.values(allNobetPlans || {}).filter(p => p && p.data).length;
+    let navHtml = `<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+        <h3 style="margin:0; color:var(--primary-dark);"><i class="fa-solid fa-table-list"></i> ${planTitle}</h3>
+        <div style="display:flex; gap:6px;">
+            <button id="prevWeekBtn" onclick="window.teacherPrevWeek()" title="Önceki Hafta"
+                style="background:${_teacherWeekOffset <= 0 ? 'var(--gray-200)' : 'white'}; border:2px solid var(--gray-300); border-radius:50%; width:36px; height:36px; cursor:${_teacherWeekOffset <= 0 ? 'not-allowed' : 'pointer'}; font-size:1.1rem; color:var(--primary-dark); display:flex; align-items:center; justify-content:center; transition:all 0.2s;"
+                ${_teacherWeekOffset <= 0 ? 'disabled' : ''}>
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <button id="nextWeekBtn" onclick="window.teacherNextWeek()" title="Sonraki Hafta"
+                style="background:${_teacherWeekOffset >= totalPlans - 1 ? 'var(--gray-200)' : 'white'}; border:2px solid var(--gray-300); border-radius:50%; width:36px; height:36px; cursor:${_teacherWeekOffset >= totalPlans - 1 ? 'not-allowed' : 'pointer'}; font-size:1.1rem; color:var(--primary-dark); display:flex; align-items:center; justify-content:center; transition:all 0.2s;"
+                ${_teacherWeekOffset >= totalPlans - 1 ? 'disabled' : ''}>
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>`;
+
+    let html = navHtml + `
     <div style="overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse; min-width: 800px; text-align: center; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
             <thead>
@@ -1893,8 +1961,8 @@ function renderTeacherWeeklyPlan() {
         for(let i=0; i<5; i++) {
             let dateStr = dates[i];
             let teachersList = '';
-            if(dateStr && currentWeekPlan[dateStr] && currentWeekPlan[dateStr][shiftId]) {
-                teachersList = currentWeekPlan[dateStr][shiftId].map(uid => {
+            if(dateStr && planData[dateStr] && planData[dateStr][shiftId]) {
+                teachersList = planData[dateStr][shiftId].map(uid => {
                     let name = klbkUsers[uid]?.name || uid;
                     
                     let countStr = "";
@@ -1930,6 +1998,14 @@ function renderTeacherWeeklyPlan() {
     
     $('#teacherWeeklyPlanContainer').html(html);
 }
+
+window.teacherPrevWeek = function() {
+    if (_teacherWeekOffset > 0) { _teacherWeekOffset--; renderTeacherWeeklyPlan(); }
+};
+window.teacherNextWeek = function() {
+    let totalPlans = Object.values(allNobetPlans || {}).filter(p => p && p.data).length;
+    if (_teacherWeekOffset < totalPlans - 1) { _teacherWeekOffset++; renderTeacherWeeklyPlan(); }
+};
 
 window.updateTeacherViewUI = updateTeacherDutyDashboardUI;
 
