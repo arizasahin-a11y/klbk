@@ -143,6 +143,7 @@ const DataManager = {
     // Initialize Cloud Data (Must be called on page load)
     initCloud: async function () {
         const key = this._getStorageKey();
+        let explicitEmptyCloud = false;
         try {
             const encodedKey = encodeURIComponent(key);
             const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/${encodedKey}.json?t=${Date.now()}`);
@@ -162,6 +163,8 @@ const DataManager = {
                     console.log("%c CLOUD SUCCESS: Loaded data for " + key, "background: #22c55e; color: white; padding: 2px 5px;");
                     this._migrateDateFormats(); 
                     return;
+                } else {
+                    explicitEmptyCloud = true;
                 }
             }
         } catch (e) {
@@ -185,6 +188,13 @@ const DataManager = {
 
         // Final fallback: Initial state
         this._memoryData = JSON.parse(JSON.stringify(initialState));
+        if (explicitEmptyCloud) {
+            this._isCloudLoaded = true;
+            console.log("Cloud explicitly reported empty data. Safe to start fresh.");
+        } else {
+            console.error("Network/Auth failed and no local backup! Locking saves to prevent data wipe.");
+            if (typeof Swal !== 'undefined') Swal.fire('Bağlantı Hatası', 'Sunucuya bağlanılamadı. Veri kaybını önlemek için sistem salt okunur modda açıldı.', 'warning');
+        }
     },
 
     // Sync Memory Data to Cloud
