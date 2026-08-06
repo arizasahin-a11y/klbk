@@ -1120,6 +1120,43 @@ window.generatePlan = async function() {
         const adminRoles = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'];
         const realAdminRoles = ['idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi']; // exclude master/admin sys accounts
 
+        const schoolSettings = (typeof DataManager !== 'undefined' && DataManager.getSchoolSettings) ? DataManager.getSchoolSettings() : null;
+        const holidays = schoolSettings ? (schoolSettings.holidays || {}) : {};
+
+        const isHoliday = (dateObj) => {
+            if (!holidays) return false;
+            let dStr = dateObj.toISOString().split('T')[0];
+            let dObj = new Date(dStr);
+
+            let month = dObj.getMonth() + 1;
+            let day = dObj.getDate();
+            if (month === 1 && day === 1) return true;
+            if (month === 4 && day === 23) return true;
+            if (month === 5 && day === 1) return true;
+            if (month === 5 && day === 19) return true;
+            if (month === 7 && day === 15) return true;
+            if (month === 8 && day === 30) return true;
+            if (month === 10 && day === 29) return true;
+
+            const checkRange = (start, end) => {
+                if (!start || !end) return false;
+                return dStr >= start && dStr <= end;
+            };
+
+            if (checkRange(holidays.term1_start, holidays.term1_end)) return true;
+            if (checkRange(holidays.semester_start, holidays.semester_end)) return true;
+            if (checkRange(holidays.term2_start, holidays.term2_end)) return true;
+            if (checkRange(holidays.ramadan_start, holidays.ramadan_end)) return true;
+            if (checkRange(holidays.kurban_start, holidays.kurban_end)) return true;
+
+            if (holidays.unplanned && Array.isArray(holidays.unplanned)) {
+                for (let u of holidays.unplanned) {
+                    if (u.date === dStr) return true;
+                }
+            }
+            return false;
+        };
+
         let eligibleTeachersList = Object.keys(klbkUsers).filter(uid => {
             let role = (klbkUsers[uid].role || '').toLowerCase().trim();
             let isSystemAccount = uid.startsWith('admin') || uid.startsWith('master') || uid.startsWith('device_assign') || uid.startsWith('@');
@@ -1142,6 +1179,13 @@ window.generatePlan = async function() {
         const days = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
         let dayDate = new Date(nextMonday);
         
+        let holidayFlags = [];
+        let tempDate = new Date(dayDate);
+        for (let i = 0; i < 5; i++) {
+            holidayFlags[i] = isHoliday(tempDate);
+            tempDate.setDate(tempDate.getDate() + 1);
+        }
+
         const shortDays = { 'Pazartesi': 'Pa', 'Salı': 'Sa', 'Çarşamba': 'Ça', 'Perşembe': 'Pe', 'Cuma': 'Cu' };
         
         const scoreDayForTeacher = (uid, dayName) => {
@@ -1197,7 +1241,7 @@ window.generatePlan = async function() {
         let teachersWithAvail = eligibleTeachersList.map(uid => {
             let availCount = 0;
             for(let i=0; i<5; i++) {
-                if(scoreDayForTeacher(uid, days[i]) > -90000) availCount++;
+                if(!holidayFlags[i] && scoreDayForTeacher(uid, days[i]) > -90000) availCount++;
             }
             return { uid, availCount };
         });
@@ -1211,6 +1255,7 @@ window.generatePlan = async function() {
                 
                 // Try to find a valid day under the daily cap
                 for(let i=0; i<5; i++) {
+                    if (holidayFlags[i]) continue;
                     let d = days[i];
                     if(teacherAssignments[uid].includes(d)) continue; 
                     let score = scoreDayForTeacher(uid, d);
@@ -1228,6 +1273,7 @@ window.generatePlan = async function() {
                 if(!bestDay) {
                     let minCount = 9999;
                     for(let i=0; i<5; i++) {
+                        if (holidayFlags[i]) continue;
                         let d = days[i];
                         if(teacherAssignments[uid].includes(d)) continue;
                         let score = scoreDayForTeacher(uid, d);
@@ -1250,6 +1296,7 @@ window.generatePlan = async function() {
                 if(!bestDay) {
                     let minCount = 9999;
                     for(let i=0; i<5; i++) {
+                        if (holidayFlags[i]) continue;
                         let d = days[i];
                         if(teacherAssignments[uid].includes(d)) continue;
                         if(dayCounts[d] < minCount) {
@@ -1271,6 +1318,12 @@ window.generatePlan = async function() {
             let dateStr = dayDate.toISOString().split('T')[0];
             let dayName = days[i];
             newPlan[dateStr] = {};
+
+            if (holidayFlags[i]) {
+                newPlan[dateStr]['_isHoliday'] = true;
+                dayDate.setDate(dayDate.getDate() + 1);
+                continue;
+            }
 
             // 1. Assign Admins
             if(targetAdminCount > 0 && eligibleAdminsList.length > 0) {
@@ -1513,7 +1566,7 @@ function renderWeeklyPlan() {
     let allShifts = [];
     dates.forEach(d => {
         for(let shiftId in currentWeekPlan[d]) {
-            if(!allShifts.includes(shiftId)) allShifts.push(shiftId);
+            if(shiftId !== '_isHoliday' && !allShifts.includes(shiftId)) allShifts.push(shiftId);
         }
     });
     
@@ -1603,7 +1656,11 @@ function renderWeeklyPlan() {
                     return name + countStr;
                 }).join('<br>');
             }
-            html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">${teachersList || '<span style="color:var(--gray-400);">-</span>'}</td>`;
+            if (currentWeekPlan[dateStr] && currentWeekPlan[dateStr]['_isHoliday']) {
+                html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: #b45309; background: rgba(245,158,11,0.15); font-weight:600;">Tatil</td>`;
+            } else {
+                html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">${teachersList || '<span style="color:var(--gray-400);">-</span>'}</td>`;
+            }
         }
         
         html += `</tr>`;
@@ -1889,7 +1946,7 @@ function renderTeacherWeeklyPlan() {
     let allShifts = [];
     dates.forEach(d => {
         for (let shiftId in planData[d]) {
-            if (!allShifts.includes(shiftId)) allShifts.push(shiftId);
+            if (shiftId !== '_isHoliday' && !allShifts.includes(shiftId)) allShifts.push(shiftId);
         }
     });
 
@@ -1986,7 +2043,11 @@ function renderTeacherWeeklyPlan() {
                     return `<span style="${highlightStyle}">${name}${countStr}</span>`;
                 }).join('<br>');
             }
-            html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">${teachersList || '<span style="color:var(--gray-400);">-</span>'}</td>`;
+            if (planData[dateStr] && planData[dateStr]['_isHoliday']) {
+                html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: #b45309; background: rgba(245,158,11,0.15); font-weight:600;">Tatil</td>`;
+            } else {
+                html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">${teachersList || '<span style="color:var(--gray-400);">-</span>'}</td>`;
+            }
         }
 
         html += `</tr>`;

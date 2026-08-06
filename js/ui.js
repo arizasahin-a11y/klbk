@@ -545,7 +545,42 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (dailyLessons && parseInt(dailyLessons) > 0 && typeof window.updateLessonSchedule === 'function') {
             window.updateLessonSchedule(dailyLessons, school.lessonTimes || {});
         }
+
+        // Holidays
+        const h = school.holidays || {};
+        setVal('h_term1_start', h.term1_start || '');
+        setVal('h_term1_end', h.term1_end || '');
+        setVal('h_semester_start', h.semester_start || '');
+        setVal('h_semester_end', h.semester_end || '');
+        setVal('h_term2_start', h.term2_start || '');
+        setVal('h_term2_end', h.term2_end || '');
+        setVal('h_ramadan_start', h.ramadan_start || '');
+        setVal('h_ramadan_end', h.ramadan_end || '');
+        setVal('h_kurban_start', h.kurban_start || '');
+        setVal('h_kurban_end', h.kurban_end || '');
+        
+        const unpCont = document.getElementById('unplannedHolidaysContainer');
+        if (unpCont) {
+            unpCont.innerHTML = '';
+            if (h.unplanned && Array.isArray(h.unplanned)) {
+                h.unplanned.forEach(u => window.addUnplannedHolidayRow(u.date, u.desc));
+            }
+        }
     }
+
+    window.addUnplannedHolidayRow = function(date = '', desc = '') {
+        const container = document.getElementById('unplannedHolidaysContainer');
+        if (!container) return;
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.gap = '10px';
+        div.innerHTML = `
+            <input type="date" class="unplanned-date" value="${date}" style="flex:1; padding:0.4rem; border:1px solid #ccc; border-radius:5px;" required>
+            <input type="text" class="unplanned-desc" value="${desc}" placeholder="Örn: Kar Tatili" style="flex:2; padding:0.4rem; border:1px solid #ccc; border-radius:5px;" required>
+            <button type="button" class="btn" style="background:#ef4444; color:white; border:none; border-radius:5px; cursor:pointer; padding:0.4rem 0.8rem;" onclick="this.parentElement.remove()"><i class="fa-solid fa-trash"></i></button>
+        `;
+        container.appendChild(div);
+    };
 
     loadSchoolSettings();
 
@@ -686,6 +721,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
+        // Collect Unplanned Holidays
+        const unplanned = [];
+        document.querySelectorAll('#unplannedHolidaysContainer > div').forEach(div => {
+            const date = div.querySelector('.unplanned-date').value;
+            const desc = div.querySelector('.unplanned-desc').value;
+            if(date) unplanned.push({ date, desc });
+        });
+
+        const holidays = {
+            term1_start: document.getElementById('h_term1_start')?.value || '',
+            term1_end: document.getElementById('h_term1_end')?.value || '',
+            semester_start: document.getElementById('h_semester_start')?.value || '',
+            semester_end: document.getElementById('h_semester_end')?.value || '',
+            term2_start: document.getElementById('h_term2_start')?.value || '',
+            term2_end: document.getElementById('h_term2_end')?.value || '',
+            ramadan_start: document.getElementById('h_ramadan_start')?.value || '',
+            ramadan_end: document.getElementById('h_ramadan_end')?.value || '',
+            kurban_start: document.getElementById('h_kurban_start')?.value || '',
+            kurban_end: document.getElementById('h_kurban_end')?.value || '',
+            unplanned: unplanned
+        };
+
         const currentSchool = DataManager.getSchoolSettings();
         const settings = {
             ...currentSchool,
@@ -700,6 +757,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             subjects: subjectsArr,
             dailyLessons: dailyLessons,
             lessonTimes: lessonTimes,
+            holidays: holidays,
             pdfHeaderDesign: document.getElementById('pdfHeaderDesign') ? document.getElementById('pdfHeaderDesign').value : '1'
         };
 
