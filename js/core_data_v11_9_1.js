@@ -71,6 +71,7 @@ const DataManager = {
     firebaseDatabaseUrl: "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app", 
     gasStorageUrl: "https://script.google.com/macros/s/AKfycbz6K2I5ylOxaDR_QbT2XnPA6wh2HrquAgM3mrbVZ4x-3nPqVf4KXJMTnGCWlPj2lvBZyQ/exec",
     _memoryData: null,
+    _isCloudLoaded: false,
 
     // Helper to format teacher names as "Proper SURNAME" (e.g., Ali Rıza ŞAHİN)
     formatTeacherName: function (name) {
@@ -156,6 +157,7 @@ const DataManager = {
                     }
 
                     this._memoryData = data;
+                    this._isCloudLoaded = true;
                     localStorage.setItem(key, JSON.stringify(data)); // Sync cloud to local
                     console.log("%c CLOUD SUCCESS: Loaded data for " + key, "background: #22c55e; color: white; padding: 2px 5px;");
                     this._migrateDateFormats(); 
@@ -172,6 +174,7 @@ const DataManager = {
         if (local) {
             try {
                 this._memoryData = JSON.parse(local);
+                this._isCloudLoaded = true;
                 console.log("Offline mode: Loaded data from local storage for:", key);
                 this._migrateDateFormats();
                 return;
@@ -437,6 +440,11 @@ const DataManager = {
 
     // Internal Method: Save Full Data Store (Updates Memory & Triggers Sync)
     _saveData: function (data) {
+        if (!this._isCloudLoaded) {
+            console.error("CRITICAL ERROR: Attempted to save data before cloud was fully loaded! Blocking save to prevent data wipe.");
+            if (typeof Swal !== 'undefined') Swal.fire('Hata', 'Veritabanı tam yüklenmeden kayıt yapılamaz!', 'error');
+            return;
+        }
         // Always sanitize before storing anywhere (memory, local, or cloud)
         // to ensure consistency across all storage layers.
         const cleanData = this._deepSanitizeKeys(data);
