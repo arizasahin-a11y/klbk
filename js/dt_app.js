@@ -20,6 +20,9 @@ let viewingPlanId = null;
 let studentsList = [];
 
 $(document).ready(function() {
+    if (typeof window.renderQuickHolidayButton === 'function') {
+        window.renderQuickHolidayButton('dtHeaderButtons');
+    }
     // Password toggle
     $('#togglePassword').on('click', function() {
         const input = $('#password');
