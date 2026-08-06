@@ -1807,8 +1807,7 @@
                 const holidayName = typeof getHolidayInfo === 'function' ? getHolidayInfo(selectedDateVal) : false;
                 if (holidayName) {
                     emptyState.innerHTML = `<i class="fa-solid fa-umbrella-beach" style="font-size: 3rem; margin-bottom: 1rem; color: #f59e0b; opacity: 0.8;"></i><br>
-                    <span style="color:#b45309; font-weight:bold; font-size:1.2rem;">${holidayName}</span><br>
-                    Bugün tatil olduğu için yoklama alınamaz veya işlem yapılamaz.`;
+                    <span style="color:#b45309; font-weight:bold; font-size:1.2rem;">Bugün ${holidayName}, Tatilsiniz.</span>`;
                     emptyState.classList.remove('hidden');
                     studentListContainer.classList.add('hidden');
                     const btn = document.getElementById('btnPinSubject');
