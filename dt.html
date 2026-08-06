@@ -128,9 +128,9 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Tarih</th>
-                                    <th>Tutanak</th>
-                                    <th>İşlem</th>
+                                    <th style="width: 35%;">Tarih</th>
+                                    <th style="width: 35%;">Tutanak</th>
+                                    <th style="width: 30%; text-align: right;">İşlem</th>
                                 </tr>
                             </thead>
                             <tbody id="teacherIncidentsTableBody">
@@ -168,9 +168,10 @@
                             </select>
                         </div>
                     </div>
-                    <div id="selectedStudentsList" style="margin-top: 10px; display: none;">
-                        <small style="color: var(--gray-500); font-weight: 600;">Seçilen Öğrenciler:</small>
-                        <ul id="selectedStudentsUl" style="list-style: none; padding: 0; margin: 5px 0 0 0; display: flex; flex-wrap: wrap; gap: 6px;"></ul>
+                    <!-- Seçilen öğrenciler listesi -->
+                    <div id="selectedStudentsList" style="display:none; margin-top: 8px; background: rgba(255,255,255,0.6); border: 1px solid var(--gray-200); border-radius: 8px; padding: 8px 12px;">
+                        <p style="font-size: 12px; color: var(--gray-500); margin: 0 0 6px 0; font-weight: 600;">Seçilen Öğrenciler:</p>
+                        <ul id="selectedStudentsUl" style="list-style: none; padding: 0; margin: 0; font-size: 13px;"></ul>
                     </div>
                 </div>
                 <div class="form-group">

@@ -627,6 +627,106 @@ input:checked + .toggle-slider:before {
     text-decoration: none;
 }
 .sticky-home-btn:hover {
+
+/* MOBILE & TABLET RESPONSIVE DESIGN */
+@media (max-width: 992px) {
+    .dashboard-container {
+        padding: 15px;
+    }
+    .header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+        padding: 15px;
+    }
+    .header-title {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .tabs {
+        flex-wrap: wrap;
+        gap: 5px;
+        justify-content: center;
+    }
+    .tab-btn {
+        flex: 1 1 calc(50% - 10px);
+        text-align: center;
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+    .panel-card {
+        padding: 15px;
+    }
+}
+
+@media (max-width: 768px) {
+    .login-card {
+        padding: 20px;
+        margin: 15px;
+        width: calc(100% - 30px);
+    }
+    .tab-btn {
+        flex: 1 1 100%;
+    }
+    
+    div[style*="font-size: 2.5rem"], div[style*="font-size: 2.2rem"] {
+        font-size: 1.5rem !important;
+        padding: 10px !important;
+        letter-spacing: 1px !important;
+    }
+    
+    i[style*="font-size: 3rem"] {
+        font-size: 2rem !important;
+    }
+    
+    div[style*="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; background: rgba(255,255,255,0.6)"] {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    select#planArchiveSelect {
+        max-width: 100% !important;
+    }
+    
+    table {
+        min-width: 100% !important; 
+    }
+    th, td {
+        padding: 8px !important;
+        font-size: 0.85rem !important;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 20px auto;
+        padding: 15px;
+    }
+    .modal-actions {
+        flex-direction: column;
+    }
+    .modal-actions .btn {
+        width: 100%;
+    }
+}
+
+.sticky-home-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 55px;
+    height: 55px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 1000;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+.sticky-home-btn:hover {
     transform: scale(1.1);
     background: var(--primary-dark);
     color: white;
@@ -639,4 +739,15 @@ input:checked + .toggle-slider:before {
         height: 45px;
         font-size: 1.2rem;
     }
+}
+
+/* Öğrenci select2 dropdown'ında seçilen chip'leri gizle */
+#incStudents + .select2-container .select2-selection__choice {
+    display: none !important;
+}
+#incStudents + .select2-container .select2-selection--multiple {
+    min-height: 38px;
+    border: 2px solid var(--white);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.8);
 }

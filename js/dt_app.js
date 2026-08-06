@@ -498,7 +498,48 @@ function populateStudentDropdown() {
         }
         
         $('#incStudents').html(studentHtml).val(null).trigger('change');
+        // Sınıf değişince seçilen liste de temizlenir
+        _clearStudentList();
     });
+
+    // Öğrenci seçilince listeye ekle
+    $('#incStudents').off('select2:select select2:unselect').on('select2:select', function(e) {
+        const val = e.params.data.id;
+        const text = e.params.data.text;
+        _addStudentToList(val, text);
+    }).on('select2:unselect', function(e) {
+        const val = e.params.data.id;
+        _removeStudentFromList(val);
+    });
+}
+
+function _clearStudentList() {
+    $('#selectedStudentsUl').html('');
+    $('#selectedStudentsList').hide();
+}
+
+function _addStudentToList(val, text) {
+    // Zaten varsa ekleme
+    if ($('#selectedStudentsUl').find(`[data-val="${CSS.escape(val)}"]`).length) return;
+    const li = $(`<li data-val="${val}" style="display:flex; align-items:center; justify-content:space-between; padding:3px 0; border-bottom:1px solid rgba(0,0,0,0.05);">
+        <span>${text}</span>
+        <button type="button" title="Kaldır" style="background:none; border:none; cursor:pointer; color:#ef4444; font-size:14px; padding:0 4px; line-height:1;">&#10005;</button>
+    </li>`);
+    li.find('button').on('click', function() {
+        // Dropdown seçiminden de kaldır
+        const currentVals = $('#incStudents').val() || [];
+        const newVals = currentVals.filter(v => v !== val);
+        $('#incStudents').val(newVals).trigger('change');
+        li.remove();
+        if ($('#selectedStudentsUl li').length === 0) $('#selectedStudentsList').hide();
+    });
+    $('#selectedStudentsUl').append(li);
+    $('#selectedStudentsList').show();
+}
+
+function _removeStudentFromList(val) {
+    $(`#selectedStudentsUl [data-val="${CSS.escape(val)}"]`).remove();
+    if ($('#selectedStudentsUl li').length === 0) $('#selectedStudentsList').hide();
 }
 
 function updateAdminSettingsUI() {
@@ -1904,8 +1945,7 @@ window.hideIncidentForm = function() {
     $('#incClassSelect').val('');
     $('#incStudents').html('').val(null).trigger('change');
     $('#editIncidentId').val('');
-    $('#selectedStudentsList').hide();
-    $('#selectedStudentsUl').html('');
+    _clearStudentList();
 };
 
 async function submitIncident() {
@@ -2002,16 +2042,18 @@ async function loadTeacherIncidents() {
                         <tr>
                             <td>${formatDateTR(inc.date) || ''}</td>
                             <td><strong>${tutanakName}</strong></td>
-                            <td>
-                                <button class="btn btn-primary btn-sm" onclick="editTeacherIncident('${id}', '${incJson}')">
-                                    <i class="fa-solid fa-pen"></i> Düzenle
-                                </button>
-                                <button class="btn btn-secondary btn-sm" onclick="printIncident('${printIncJson}')" style="margin-left: 3px; background: #6b7280; border-color: #6b7280; color: white;">
-                                    <i class="fa-solid fa-print"></i>
-                                </button>
-                                <button class="btn btn-sm" onclick="deleteIncident('${id}')" style="margin-left: 3px; background: #ef4444; border-color: #ef4444; color: white;">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
+                            <td style="text-align: right;">
+                                <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
+                                    <button class="btn btn-primary btn-sm" onclick="editTeacherIncident('${id}', '${incJson}')">
+                                        <i class="fa-solid fa-pen"></i> Düzenle
+                                    </button>
+                                    <button class="btn btn-sm" onclick="printIncident('${printIncJson}')" style="background: #6b7280; border-color: #6b7280; color: white;">
+                                        <i class="fa-solid fa-print"></i>
+                                    </button>
+                                    <button class="btn btn-sm" onclick="deleteIncident('${id}')" style="background: #ef4444; border-color: #ef4444; color: white;">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     `;
@@ -2046,8 +2088,12 @@ window.editTeacherIncident = function(id, incJsonStr) {
             });
             $('#incClassSelect').val('');
             $('#incStudents').html(studentHtml).val(stdArr).trigger('change');
+            // Listeyi doldur
+            _clearStudentList();
+            stdArr.forEach(s => _addStudentToList(s, s));
         } else {
             $('#incStudents').html('').val(null).trigger('change');
+            _clearStudentList();
         }
         
         if (inc.involvedTeachers && Array.isArray(inc.involvedTeachers)) {
@@ -2148,21 +2194,7 @@ window.deleteIncident = async function(incidentId) {
     }
 };
 
-// Live selected students display
-$(document).on('change', '#incStudents', function() {
-    const selected = $(this).val() || [];
-    const container = $('#selectedStudentsList');
-    const ul = $('#selectedStudentsUl');
-    
-    if (selected.length > 0) {
-        let html = '';
-        selected.forEach((s, i) => {
-            html += `<li style="background: var(--primary-light, #e0e7ff); color: var(--primary-dark, #1e3a8a); padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">
-                <i class="fa-solid fa-user-graduate" style="font-size: 0.7rem;"></i> ${s}
-            </li>`;
-        });
-        ul.html(html);
-        container.show();
+
     } else {
         ul.html('');
         container.hide();
