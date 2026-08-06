@@ -1719,3 +1719,125 @@ const DataManager = {
 };
 
 window.DataManager = DataManager;
+
+window.getHolidayInfo = function(dateObj) {
+    const schoolSettings = (typeof DataManager !== 'undefined' && DataManager.getSchoolSettings) ? DataManager.getSchoolSettings() : null;
+    const holidays = schoolSettings ? (schoolSettings.holidays || {}) : {};
+    
+    if (!dateObj || !holidays) return false;
+    let dStr = typeof dateObj === 'string' ? dateObj : dateObj.toISOString().split('T')[0];
+    let dObj = new Date(dStr);
+
+    let month = dObj.getMonth() + 1;
+    let day = dObj.getDate();
+    
+    if (month === 1 && day === 1) return "Yılbaşı";
+    if (month === 4 && day === 23) return "Ulusal Egemenlik ve Çocuk Bayramı";
+    if (month === 5 && day === 1) return "Emek ve Dayanışma Günü";
+    if (month === 5 && day === 19) return "Atatürk'ü Anma, Gençlik ve Spor Bayramı";
+    if (month === 7 && day === 15) return "Demokrasi ve Milli Birlik Günü";
+    if (month === 8 && day === 30) return "Zafer Bayramı";
+    if (month === 10 && day === 29) return "Cumhuriyet Bayramı";
+
+    const checkRange = (start, end) => {
+        if (!start || !end) return false;
+        return dStr >= start && dStr <= end;
+    };
+
+    if (checkRange(holidays.term1_start, holidays.term1_end)) return "1. Dönem Ara Tatili";
+    if (checkRange(holidays.semester_start, holidays.semester_end)) return "Sömestr Tatili";
+    if (checkRange(holidays.term2_start, holidays.term2_end)) return "2. Dönem Ara Tatili";
+    if (checkRange(holidays.ramadan_start, holidays.ramadan_end)) return "Ramazan Bayramı";
+    if (checkRange(holidays.kurban_start, holidays.kurban_end)) return "Kurban Bayramı";
+
+    if (holidays.unplanned && Array.isArray(holidays.unplanned)) {
+        for (let u of holidays.unplanned) {
+            if (u.date === dStr) return u.desc || "İdari/Plansız Tatil";
+        }
+    }
+    return false;
+};
+
+window.quickAddUnplannedHoliday = async function() {
+    const currentUser = (typeof klbkUsers !== 'undefined' && window.currentUser) ? klbkUsers[window.currentUser.username] : null;
+    if (!currentUser) return;
+    const role = (currentUser.role || '').toLowerCase();
+    const adminRoles = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'];
+    if (!adminRoles.includes(role)) {
+        Swal.fire('Yetkisiz', 'Bu işlemi yalnızca idareciler yapabilir.', 'error');
+        return;
+    }
+
+    const { value: formValues } = await Swal.fire({
+        title: 'Hızlı Tatil Ekle',
+        html: `
+            <div style="text-align:left; margin-bottom:10px;">
+                <label style="font-weight:bold; font-size:14px;">Tatil Tarihi:</label>
+                <input type="date" id="swal-hol-date" class="swal2-input" style="width: 90%; margin-top:5px; font-size:15px;" required>
+            </div>
+            <div style="text-align:left;">
+                <label style="font-weight:bold; font-size:14px;">Açıklama / Adı:</label>
+                <input type="text" id="swal-hol-desc" class="swal2-input" placeholder="Örn: Kar Tatili" style="width: 90%; margin-top:5px; font-size:15px;" required>
+            </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-save"></i> Kaydet',
+        cancelButtonText: 'İptal',
+        preConfirm: () => {
+            const date = document.getElementById('swal-hol-date').value;
+            const desc = document.getElementById('swal-hol-desc').value.trim();
+            if (!date || !desc) {
+                Swal.showValidationMessage('Lütfen tarih ve açıklama giriniz.');
+                return false;
+            }
+            return { date, desc };
+        }
+    });
+
+    if (formValues) {
+        let school = DataManager.getSchoolSettings();
+        if (!school.holidays) school.holidays = {};
+        if (!school.holidays.unplanned) school.holidays.unplanned = [];
+        
+        const exists = school.holidays.unplanned.find(u => u.date === formValues.date);
+        if (exists) {
+            exists.desc = formValues.desc;
+        } else {
+            school.holidays.unplanned.push(formValues);
+        }
+        
+        DataManager.saveSchoolSettings(school);
+        Swal.fire('Başarılı', 'Tatil eklendi. Sayfa yenileniyor...', 'success').then(() => {
+            location.reload();
+        });
+    }
+};
+
+window.renderQuickHolidayButton = function(containerId) {
+    const currentUser = (typeof klbkUsers !== 'undefined' && window.currentUser) ? klbkUsers[window.currentUser.username] : null;
+    if (!currentUser) return;
+    const role = (currentUser.role || '').toLowerCase();
+    const adminRoles = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'];
+    if (adminRoles.includes(role)) {
+        const container = document.getElementById(containerId);
+        if (container) {
+            // Check if already added
+            if (container.querySelector('.quick-holiday-btn')) return;
+            
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn quick-holiday-btn';
+            btn.style.cssText = 'background: #ef4444; color: white; border: none; border-radius: 6px; padding: 6px 12px; font-size: 0.85rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 4px rgba(239,68,68,0.3); margin-left: auto;';
+            btn.innerHTML = '<i class="fa-solid fa-snowflake"></i> Tatil Ekle';
+            btn.onclick = window.quickAddUnplannedHoliday;
+            
+            // Adjust container to flex if not already
+            if (getComputedStyle(container).display !== 'flex') {
+                container.style.display = 'flex';
+                container.style.alignItems = 'center';
+            }
+            container.appendChild(btn);
+        }
+    }
+};

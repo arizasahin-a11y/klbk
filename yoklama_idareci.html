@@ -491,7 +491,7 @@
         </div>
 
         <!-- Tab Selection Menu -->
-        <div class="tab-menu">
+        <div class="tab-menu" id="adminTabContainer">
             <button class="tab-btn active" id="btnTabSinif" onclick="switchTab('sinif')">
                 <i class="fa-solid fa-table-cells"></i> Sınıf Bazlı Takip
             </button>
@@ -1009,7 +1009,11 @@
         let genelSortAsc = true;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // 1. Auth Validation
+            if (typeof window.renderQuickHolidayButton === 'function') {
+                window.renderQuickHolidayButton('adminTabContainer');
+            }
+            
+            // Validate Logindation
             const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || sessionStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true';
             const rawRole = sessionStorage.getItem('klbk_role') || '';
             const role = rawRole.toLowerCase().trim();
@@ -1376,10 +1380,22 @@
         function runSinifReport() {
             const dateVal = document.getElementById('sinifFilterDate').value;
             const classVal = document.getElementById('sinifFilterClass').value;
-            
+            const eokulBox = document.getElementById('eokulAssistantBox');
             const emptyState = document.getElementById('sinifEmptyState');
             const wrapper = document.getElementById('sinifTableWrapper');
-            const eokulBox = document.getElementById('eokulAssistantBox');
+            const tableBody = document.getElementById('sinifReportTableBody');
+
+            if (dateVal) {
+                const holidayName = typeof getHolidayInfo === 'function' ? getHolidayInfo(dateVal) : false;
+                if (holidayName) {
+                    emptyState.classList.add('hidden');
+                    wrapper.classList.remove('hidden');
+                    eokulBox.classList.add('hidden');
+                    tableBody.innerHTML = `<tr><td colspan="9" style="padding:40px; color:#b45309; text-align:center; font-weight:bold; font-size:1.1rem;"><i class="fa-solid fa-umbrella-beach" style="font-size:2rem; margin-bottom:10px;"></i><br>${holidayName} (Tatil)<br><span style="font-size:0.9rem; opacity:0.8; font-weight:normal;">Bu tarihte yoklama alınamaz/görüntülenemez.</span></td></tr>`;
+                    document.getElementById('sinifReportSummary').innerHTML = '';
+                    return;
+                }
+            }
 
             if (!dateVal || !classVal) {
                 emptyState.classList.remove('hidden');

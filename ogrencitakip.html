@@ -832,8 +832,8 @@
 
             <!-- Control Panel Card -->
             <div class="control-panel glass-panel">
-                <h3 style="font-weight: 800; font-size: 1.15rem; margin-bottom: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-sliders"></i> Ders ve Sınıf Bilgileri
+                <h3 style="font-weight: 800; font-size: 1.15rem; margin-bottom: 1.25rem; color: var(--primary); display: flex; align-items: center; justify-content: space-between; gap: 8px;" id="dersVeSinifHeader">
+                    <span><i class="fa-solid fa-sliders"></i> Ders ve Sınıf Bilgileri</span>
                 </h3>
                 
                 <div class="grid-controls">
@@ -1280,6 +1280,9 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
+            if (typeof window.renderQuickHolidayButton === 'function') {
+                window.renderQuickHolidayButton('dersVeSinifHeader');
+            }
             // 1. Auth Validation
             const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || sessionStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true';
             const role = sessionStorage.getItem('klbk_role') || '';
@@ -1782,6 +1785,20 @@
             const hourVal = document.getElementById('lessonHour').value;
             
             if (selectedDateVal) {
+                const holidayName = typeof getHolidayInfo === 'function' ? getHolidayInfo(selectedDateVal) : false;
+                if (holidayName) {
+                    emptyState.innerHTML = `<i class="fa-solid fa-umbrella-beach" style="font-size: 3rem; margin-bottom: 1rem; color: #f59e0b; opacity: 0.8;"></i><br>
+                    <span style="color:#b45309; font-weight:bold; font-size:1.2rem;">${holidayName}</span><br>
+                    Bugün tatil olduğu için takip verisi işlenemez.`;
+                    emptyState.classList.remove('hidden');
+                    studentListContainer.classList.add('hidden');
+                    const btn = document.getElementById('btnPinSubject');
+                    if(btn) btn.style.display = 'none';
+                    const actionBtn = document.getElementById('actionButtons');
+                    if(actionBtn) actionBtn.classList.add('hidden');
+                    return;
+                }
+
                 const now = getTRTime();
                 const yyyy = now.getFullYear();
                 const mm = String(now.getMonth() + 1).padStart(2, '0');

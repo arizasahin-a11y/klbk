@@ -239,6 +239,9 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            if (typeof window.renderQuickHolidayButton === 'function') {
+                window.renderQuickHolidayButton('oeypHeaderButtons');
+            }
             const isLogged = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || 
                            sessionStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true' || 
                            sessionStorage.getItem('klbk_teacher_token') === 'true';
@@ -308,7 +311,7 @@
                 </div>
             </div>
             
-            <div style="display: flex; align-items: center; gap: 4px;">
+            <div style="display: flex; align-items: center; gap: 4px;" id="oeypHeaderButtons">
                 <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer;" onclick="logoutOEYP()">
                     <i class="fa-solid fa-right-from-bracket"></i> Çıkış
                 </button>
@@ -1791,6 +1794,13 @@
             if (!currentUpcomingData) return;
             const { activity, dateString } = currentUpcomingData;
             
+            const holidayName = typeof getHolidayInfo === 'function' ? getHolidayInfo(dateString) : false;
+            if (holidayName) {
+                Swal.fire('İşlem Engellendi', `Bu tarih ${holidayName} (Tatil) gününe denk geldiği için faaliyet durumu değiştirilemez.`, 'error');
+                updateUpcomingUI(); // Revert UI
+                return;
+            }
+            
             if (!activity.statusHistory) activity.statusHistory = {};
             activity.statusHistory[dateString] = val;
             
@@ -1811,6 +1821,12 @@
         function openAttendanceModal() {
             if (!currentUpcomingData) return;
             const { activity, dateString } = currentUpcomingData;
+            
+            const holidayName = typeof getHolidayInfo === 'function' ? getHolidayInfo(dateString) : false;
+            if (holidayName) {
+                Swal.fire('İşlem Engellendi', `Bu tarih ${holidayName} (Tatil) gününe denk geldiği için yoklama alınamaz.`, 'error');
+                return;
+            }
             
             if (!activity.students || activity.students.length === 0) {
                 Swal.fire('Uyarı', 'Bu çalışmaya kayıtlı öğrenci bulunmuyor.', 'warning');
