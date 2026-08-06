@@ -1820,6 +1820,56 @@ window.quickAddUnplannedHoliday = async function() {
     }
 };
 
+window.manageUnplannedHolidays = async function(e) {
+    if (e) e.preventDefault();
+    
+    let school = DataManager.getSchoolSettings();
+    let unplanned = (school.holidays && school.holidays.unplanned) ? school.holidays.unplanned : [];
+    
+    if (unplanned.length === 0) {
+        Swal.fire('Bilgi', 'Eklenmiş özel tatil bulunmuyor.', 'info');
+        return;
+    }
+    
+    // Format dates to DD.MM.YYYY
+    let htmlContent = '<div style="max-height:300px; overflow-y:auto; text-align:left;">';
+    unplanned.forEach((hol, idx) => {
+        let parts = hol.date.split('-');
+        let displayDate = parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : hol.date;
+        htmlContent += `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #e2e8f0;">
+                <div>
+                    <strong style="color:#1e293b;">${displayDate}</strong><br>
+                    <span style="font-size:0.9em; color:#64748b;">${hol.desc}</span>
+                </div>
+                <button onclick="window.deleteUnplannedHoliday(${idx})" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;" title="Sil">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+        `;
+    });
+    htmlContent += '</div>';
+
+    Swal.fire({
+        title: 'Eklenen Tatiller',
+        html: htmlContent,
+        showConfirmButton: true,
+        confirmButtonText: 'Kapat'
+    });
+};
+
+window.deleteUnplannedHoliday = function(idx) {
+    let school = DataManager.getSchoolSettings();
+    if (school.holidays && school.holidays.unplanned) {
+        let deleted = school.holidays.unplanned.splice(idx, 1);
+        DataManager.saveSchoolSettings(school);
+        Swal.fire('Silindi', 'Tatil silindi.', 'success').then(() => {
+            window.manageUnplannedHolidays(); // Reload modal if they want to delete more, or just reload page
+            location.reload();
+        });
+    }
+};
+
 window.renderQuickHolidayButton = function(containerId, retries = 0) {
     let role = sessionStorage.getItem('klbk_role');
     if (!role && typeof klbkUsers !== 'undefined' && window.currentUser && klbkUsers[window.currentUser.username]) {
@@ -1851,7 +1901,9 @@ window.renderQuickHolidayButton = function(containerId, retries = 0) {
             btn.className = 'btn quick-holiday-btn';
             btn.style.cssText = 'background: #ef4444; color: white; border: none; border-radius: 6px; padding: 6px 12px; font-size: 0.85rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 4px rgba(239,68,68,0.3);';
             btn.innerHTML = '<i class="fa-solid fa-snowflake"></i> Tatil Ekle';
+            btn.title = "Sol tık: Ekle | Sağ tık: Yönet";
             btn.onclick = window.quickAddUnplannedHoliday;
+            btn.oncontextmenu = window.manageUnplannedHolidays;
             
             // Adjust container to flex if not already
             if (getComputedStyle(container).display !== 'flex') {
