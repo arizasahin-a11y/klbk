@@ -1626,42 +1626,44 @@ function renderWeeklyPlan() {
                     
         for(let i=0; i<5; i++) {
             let dateStr = dates[i];
-            let teachersList = '';
-            if(dateStr && currentWeekPlan[dateStr] && currentWeekPlan[dateStr][shiftId]) {
-                teachersList = currentWeekPlan[dateStr][shiftId].map(uid => {
-                    let name = klbkUsers[uid]?.name || uid;
-                    let countStr = "";
-                    if (window.rotationTally && window.rotationTally[dateStr] && window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid]) {
-                        countStr = ` <span style="font-size:0.85em; opacity:0.8;">(${window.rotationTally[dateStr][shiftId][uid]})</span>`;
-                    }
-                    let isFixed = false;
-                    if (teacherData && teacherData[uid] && teacherData[uid].fixedLoc) {
-                        let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
-                        if (teacherData[uid].fixedLoc === shiftId || teacherData[uid].fixedLoc === baseShift) {
-                            isFixed = true;
-                        }
-                    }
-                    
-                    let baseStyle = isFixed ? "font-weight:900; color:#111827;" : "";
-
-                    if (isAdmin) {
-                        let safeUid = uid.replace(/'/g, "\\'");
-                        let safeDate = dateStr.replace(/'/g, "\\'");
-                        if (shiftId === '_admin_duty') {
-                            return `<span style="cursor:pointer; text-decoration:underline; color:var(--primary); ${baseStyle}" onclick="window.changeAdminDuty('${safeDate}', '${safeUid}')">${name}${countStr}</span>`;
-                        } else {
-                            let cleanUid = uid.replace(/[^a-zA-Z0-9]/g, '');
-                            return `<span style="cursor:pointer; display:inline-block; ${baseStyle}" oncontextmenu="window.selectTeacherForSwap('${safeDate}', '${safeUid}', event)" onclick="window.handleTeacherClick('${safeDate}', '${safeUid}', event)" id="span_swap_${dateStr}_${cleanUid}">${name}${countStr}</span>`;
-                        }
-                    } else if (isFixed) {
-                        return `<span style="${baseStyle}">${name}${countStr}</span>`;
-                    }
-                    return name + countStr;
-                }).join('<br>');
-            }
-            if (currentWeekPlan[dateStr] && currentWeekPlan[dateStr]['_isHoliday']) {
-                html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: #b45309; background: rgba(245,158,11,0.15); font-weight:600;">Tatil</td>`;
+            let holidayName = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(dateStr) : false;
+            
+            if (holidayName || (currentWeekPlan[dateStr] && currentWeekPlan[dateStr]['_isHoliday'])) {
+                html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: #b45309; background: rgba(245,158,11,0.15); font-weight:600; text-align:center;">${holidayName || 'Tatil'}</td>`;
             } else {
+                let teachersList = '';
+                if(dateStr && currentWeekPlan[dateStr] && currentWeekPlan[dateStr][shiftId]) {
+                    teachersList = currentWeekPlan[dateStr][shiftId].map(uid => {
+                        let name = klbkUsers[uid]?.name || uid;
+                        let countStr = "";
+                        if (window.rotationTally && window.rotationTally[dateStr] && window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid]) {
+                            countStr = ` <span style="font-size:0.85em; opacity:0.8;">(${window.rotationTally[dateStr][shiftId][uid]})</span>`;
+                        }
+                        let isFixed = false;
+                        if (teacherData && teacherData[uid] && teacherData[uid].fixedLoc) {
+                            let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                            if (teacherData[uid].fixedLoc === shiftId || teacherData[uid].fixedLoc === baseShift) {
+                                isFixed = true;
+                            }
+                        }
+                        
+                        let baseStyle = isFixed ? "font-weight:900; color:#111827;" : "";
+
+                        if (isAdmin) {
+                            let safeUid = uid.replace(/'/g, "\\'");
+                            let safeDate = dateStr.replace(/'/g, "\\'");
+                            if (shiftId === '_admin_duty') {
+                                return `<span style="cursor:pointer; text-decoration:underline; color:var(--primary); ${baseStyle}" onclick="window.changeAdminDuty('${safeDate}', '${safeUid}')">${name}${countStr}</span>`;
+                            } else {
+                                let cleanUid = uid.replace(/[^a-zA-Z0-9]/g, '');
+                                return `<span style="cursor:pointer; display:inline-block; ${baseStyle}" oncontextmenu="window.selectTeacherForSwap('${safeDate}', '${safeUid}', event)" onclick="window.handleTeacherClick('${safeDate}', '${safeUid}', event)" id="span_swap_${dateStr}_${cleanUid}">${name}${countStr}</span>`;
+                            }
+                        } else if (isFixed) {
+                            return `<span style="${baseStyle}">${name}${countStr}</span>`;
+                        }
+                        return name + countStr;
+                    }).join('<br>');
+                }
                 html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">${teachersList || '<span style="color:var(--gray-400);">-</span>'}</td>`;
             }
         }
@@ -1718,6 +1720,12 @@ function determineNextDuty(teacherUid) {
         
         let matchingOrigDateStr = originalDates.find(dStr => new Date(dStr).getDay() === dayOfWeek);
         if(!matchingOrigDateStr) continue;
+        
+        // Skip dynamically determined holidays
+        let checkDateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if (typeof window.getHolidayInfo === 'function' && window.getHolidayInfo(checkDateStr)) {
+            continue;
+        }
         
         let virtualPlan = dutyType === 'fixed' ? p.data : applyDynamicRotation(p.data, p.startDate, dutyType, d);
         let dayPlan = virtualPlan[matchingOrigDateStr];
