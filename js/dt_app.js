@@ -2194,13 +2194,6 @@ window.deleteIncident = async function(incidentId) {
     }
 };
 
-
-    } else {
-        ul.html('');
-        container.hide();
-    }
-});
-
 // --- Interactive Table Features ---
 window.changeAdminDuty = async (dateStr, currentUid) => {
     if (!isAdmin) return;
