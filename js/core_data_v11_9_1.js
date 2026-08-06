@@ -1759,9 +1759,11 @@ window.getHolidayInfo = function(dateObj) {
 };
 
 window.quickAddUnplannedHoliday = async function() {
-    const currentUser = (typeof klbkUsers !== 'undefined' && window.currentUser) ? klbkUsers[window.currentUser.username] : null;
-    if (!currentUser) return;
-    const role = (currentUser.role || '').toLowerCase();
+    let role = sessionStorage.getItem('klbk_role');
+    if (!role && typeof klbkUsers !== 'undefined' && window.currentUser && klbkUsers[window.currentUser.username]) {
+        role = klbkUsers[window.currentUser.username].role;
+    }
+    role = (role || '').toLowerCase().trim();
     const adminRoles = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'];
     if (!adminRoles.includes(role)) {
         Swal.fire('Yetkisiz', 'Bu işlemi yalnızca idareciler yapabilir.', 'error');
@@ -1814,10 +1816,21 @@ window.quickAddUnplannedHoliday = async function() {
     }
 };
 
-window.renderQuickHolidayButton = function(containerId) {
-    const currentUser = (typeof klbkUsers !== 'undefined' && window.currentUser) ? klbkUsers[window.currentUser.username] : null;
-    if (!currentUser) return;
-    const role = (currentUser.role || '').toLowerCase();
+window.renderQuickHolidayButton = function(containerId, retries = 0) {
+    let role = sessionStorage.getItem('klbk_role');
+    if (!role && typeof klbkUsers !== 'undefined' && window.currentUser && klbkUsers[window.currentUser.username]) {
+        role = klbkUsers[window.currentUser.username].role;
+    }
+    
+    if (!role) {
+        if (retries < 10) {
+            // Try again in 500ms in case auth isn't fully loaded yet
+            setTimeout(() => window.renderQuickHolidayButton(containerId, retries + 1), 500);
+        }
+        return;
+    }
+    
+    role = (role || '').toLowerCase().trim();
     const adminRoles = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'];
     if (adminRoles.includes(role)) {
         const container = document.getElementById(containerId);
