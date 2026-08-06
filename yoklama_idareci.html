@@ -1092,10 +1092,6 @@
                 
                 // Get all unique classes
                 const classes = new Set();
-                const classrooms = typeof DataManager.getClassrooms === 'function' ? DataManager.getClassrooms() : [];
-                classrooms.forEach(c => {
-                    if (c && c.name) classes.add(c.name.trim());
-                });
                 allStudents.forEach(s => { if (s && s.class) classes.add(s.class.trim()); });
                 classList = Array.from(classes).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true, sensitivity: 'base' }));
 
