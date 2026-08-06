@@ -1520,6 +1520,8 @@
         }
 
         function checkAndAutoDetectClass() {
+            if (typeof DataManager !== 'undefined' && !DataManager._isCloudLoaded) return;
+            
             if (!activeTeacherObject || !activeTeacherObject.schedule) {
                 loadStudentList();
                 return;
@@ -1794,6 +1796,8 @@
         // =====================================================
 
         function loadStudentList(isSubjectChange = false) {
+            if (typeof DataManager !== 'undefined' && !DataManager._isCloudLoaded) return;
+
             const classVal = document.getElementById('classSelect').value;
             const subjectVal = document.getElementById('subjectSelect').value;
             const emptyState = document.getElementById('emptyState');
