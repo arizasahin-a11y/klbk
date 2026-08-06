@@ -1092,6 +1092,9 @@
                 
                 // Get all unique classes
                 const classes = new Set();
+                if (schoolData && schoolData.classes && Array.isArray(schoolData.classes)) {
+                    schoolData.classes.forEach(c => classes.add(c.trim()));
+                }
                 allStudents.forEach(s => { if (s.class) classes.add(s.class.trim()); });
                 classList = Array.from(classes).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true, sensitivity: 'base' }));
 
