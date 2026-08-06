@@ -1759,7 +1759,7 @@ window.getHolidayInfo = function(dateObj) {
 };
 
 window.quickAddUnplannedHoliday = async function() {
-    let role = sessionStorage.getItem('klbk_role');
+    let role = sessionStorage.getItem('klbk_role') || localStorage.getItem('klbk_role');
     if (!role && typeof klbkUsers !== 'undefined' && window.currentUser && klbkUsers[window.currentUser.username]) {
         role = klbkUsers[window.currentUser.username].role;
     }
@@ -1871,7 +1871,7 @@ window.deleteUnplannedHoliday = function(idx) {
 };
 
 window.renderQuickHolidayButton = function(containerId, retries = 0) {
-    let role = sessionStorage.getItem('klbk_role');
+    let role = sessionStorage.getItem('klbk_role') || localStorage.getItem('klbk_role');
     if (!role && typeof klbkUsers !== 'undefined' && window.currentUser && klbkUsers[window.currentUser.username]) {
         role = klbkUsers[window.currentUser.username].role;
     }

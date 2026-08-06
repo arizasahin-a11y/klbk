@@ -103,6 +103,10 @@ async function checkSession() {
 
         buildTabs();
         await loadInitialData();
+        
+        if (typeof window.renderQuickHolidayButton === 'function') {
+            window.renderQuickHolidayButton('dtHeaderButtons');
+        }
     } else {
         $('#dashboardSection').hide();
         $('#loginSection').show();
