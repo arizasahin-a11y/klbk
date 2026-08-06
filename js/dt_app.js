@@ -2030,33 +2030,37 @@ function renderTeacherWeeklyPlan() {
 
         for (let i = 0; i < 5; i++) {
             let dateStr = dates[i];
-            let teachersList = '';
-            if (dateStr && planData[dateStr] && planData[dateStr][shiftId]) {
-                teachersList = planData[dateStr][shiftId].map(uid => {
-                    let name = klbkUsers[uid]?.name || uid;
-
-                    let countStr = '';
-                    if (window.rotationTally && window.rotationTally[dateStr] && window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid]) {
-                        countStr = ` <span style="font-size:0.85em; opacity:0.8;">(${window.rotationTally[dateStr][shiftId][uid]})</span>`;
-                    }
-
-                    let isFixed = false;
-                    if (teacherData && teacherData[uid] && teacherData[uid].fixedLoc) {
-                        let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
-                        if (teacherData[uid].fixedLoc === shiftId || teacherData[uid].fixedLoc === baseShift) isFixed = true;
-                    }
-
-                    let highlightStyle = isFixed ? 'font-weight: 900; color: #111827;' : '';
-                    if (uid === currentUser.username) {
-                        highlightStyle = 'color: #39ff14; font-weight: 900; font-size: 1.15em; background: var(--gray-900); padding: 4px 8px; border-radius: 6px; display:inline-block; margin:2px; box-shadow: 0 0 8px rgba(57,255,20,0.4);';
-                    }
-
-                    return `<span style="${highlightStyle}">${name}${countStr}</span>`;
-                }).join('<br>');
-            }
-            if (planData[dateStr] && planData[dateStr]['_isHoliday']) {
-                html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: #b45309; background: rgba(245,158,11,0.15); font-weight:600;">Tatil</td>`;
+            let colDate = displayDates[i];
+            let checkDateStr = colDate ? `${colDate.getFullYear()}-${String(colDate.getMonth()+1).padStart(2,'0')}-${String(colDate.getDate()).padStart(2,'0')}` : null;
+            let holidayName = (checkDateStr && typeof window.getHolidayInfo === 'function') ? window.getHolidayInfo(checkDateStr) : false;
+            
+            if (holidayName || (planData[dateStr] && planData[dateStr]['_isHoliday'])) {
+                html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: #b45309; background: rgba(245,158,11,0.15); font-weight:600; text-align:center;">${holidayName || 'Tatil'}</td>`;
             } else {
+                let teachersList = '';
+                if (dateStr && planData[dateStr] && planData[dateStr][shiftId]) {
+                    teachersList = planData[dateStr][shiftId].map(uid => {
+                        let name = klbkUsers[uid]?.name || uid;
+
+                        let countStr = '';
+                        if (window.rotationTally && window.rotationTally[dateStr] && window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid]) {
+                            countStr = ` <span style="font-size:0.85em; opacity:0.8;">(${window.rotationTally[dateStr][shiftId][uid]})</span>`;
+                        }
+
+                        let isFixed = false;
+                        if (teacherData && teacherData[uid] && teacherData[uid].fixedLoc) {
+                            let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                            if (teacherData[uid].fixedLoc === shiftId || teacherData[uid].fixedLoc === baseShift) isFixed = true;
+                        }
+
+                        let highlightStyle = isFixed ? 'font-weight: 900; color: #111827;' : '';
+                        if (uid === currentUser.username) {
+                            highlightStyle = 'color: #39ff14; font-weight: 900; font-size: 1.15em; background: var(--gray-900); padding: 4px 8px; border-radius: 6px; display:inline-block; margin:2px; box-shadow: 0 0 8px rgba(57,255,20,0.4);';
+                        }
+
+                        return `<span style="${highlightStyle}">${name}${countStr}</span>`;
+                    }).join('<br>');
+                }
                 html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">${teachersList || '<span style="color:var(--gray-400);">-</span>'}</td>`;
             }
         }
