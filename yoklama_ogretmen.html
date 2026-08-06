@@ -1374,15 +1374,19 @@
             });
 
             try {
-                // Fetch all users to get active teacher's schedule
-                const usersRes = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
-                if (usersRes.ok) {
-                    teachersDb = await usersRes.json();
+                // Fetch users and initialize DataManager in parallel for faster loading
+                const usersPromise = fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`)
+                    .then(res => res.ok ? res.json() : null)
+                    .catch(e => { console.error("Error fetching users:", e); return null; });
+                    
+                const dataManagerPromise = DataManager.initCloud();
+
+                const [usersData] = await Promise.all([usersPromise, dataManagerPromise]);
+                
+                if (usersData) {
+                    teachersDb = usersData;
                     activeTeacherObject = teachersDb[activeTeacherUsername];
                 }
-
-                // Initialize DataManager
-                await DataManager.initCloud();
                 schoolData = DataManager.getSchoolSettings();
                 allStudents = DataManager.getStudents();
 
