@@ -911,7 +911,7 @@ const DataManager = {
     _migrateDateFormats: function () {
         if (!this._memoryData || !this._memoryData.examSessions) return;
         let changed = false;
-        this._memoryData.examSessions.forEach(ses => {
+        Object.values(this._memoryData.examSessions).forEach(ses => {
             if (ses && ses.date && typeof ses.date === 'string') {
                 // If it's YYYY-MM-DD (Standard HTML Date Input)
                 if (ses.date.includes('-')) {
