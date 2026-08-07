@@ -650,6 +650,7 @@ DataManager._getStorageKey = function () {
             document.getElementById('loginView').classList.remove('hidden');
             document.getElementById('resultsView').classList.add('hidden');
             document.getElementById('rulesView').classList.add('hidden');
+            if (document.getElementById('dutyView')) document.getElementById('dutyView').classList.add('hidden');
             document.getElementById('studentNo').value = '';
             openSessions.clear();
             document.body.classList.add('login-body');
@@ -2731,9 +2732,10 @@ DataManager._getStorageKey = function () {
             let teachersList = getTeachersForDate(closestDate, teacherPlan, teacherSettings, teacherUsers);
             
             if (teachersList.length > 0) {
+                let teacherHeadingText = (closestDate === todayStr) ? "Bugün Nöbetçi Olan Öğretmenler" : "O Günkü Nöbetçi Öğretmenler";
                 dutyTeachersHtml = `
                     <div style="margin-top:20px; background:white; padding:20px; border-radius:12px; border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
-                        <h3 style="margin:0 0 10px 0; color:var(--dark); font-size:1.1rem;"><i class="fa-solid fa-chalkboard-user" style="color:#ef4444;"></i> O Günkü Nöbetçi Öğretmenler</h3>
+                        <h3 style="margin:0 0 10px 0; color:var(--dark); font-size:1.1rem;"><i class="fa-solid fa-chalkboard-user" style="color:#ef4444;"></i> ${teacherHeadingText}</h3>
                         <ul style="margin:0; padding-left:20px; color:var(--gray-600); line-height:1.6;">
                             ${teachersList.map(t => `<li>${t}</li>`).join('')}
                         </ul>
