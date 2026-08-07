@@ -2764,10 +2764,15 @@ DataManager._getStorageKey = function () {
             window.studentScheduleState.sortedDates = Object.keys(window.studentScheduleState.dateGroups).sort((a,b) => new Date(a) - new Date(b));
             
             // Yaklaşan Nöbet Kartı
+            let isToday = (closestDate === todayStr);
+            let closestHtmlHeading = isToday ? "BUGÜN NÖBETÇİSİNİZ" : "En Yakın Nöbetiniz";
+            let dateColor = isToday ? "#ef4444" : "white";
+            let dateShadow = isToday ? "text-shadow: 2px 2px 0px #fff, -2px -2px 0px #fff, 2px -2px 0px #fff, -2px 2px 0px #fff;" : "";
+            
             let closestHtml = `
                 <div style="background:linear-gradient(135deg, #4f46e5, #3b82f6); padding:25px; border-radius:16px; color:white; box-shadow:var(--shadow-md);">
-                    <div style="font-size:0.9rem; text-transform:uppercase; font-weight:700; letter-spacing:1px; opacity:0.8;">En Yakın Nöbetiniz</div>
-                    <div style="font-size:2.5rem; font-weight:900; margin:10px 0;">${formattedClosestDate}</div>
+                    <div style="font-size:0.9rem; text-transform:uppercase; font-weight:700; letter-spacing:1px; opacity:0.8;">${closestHtmlHeading}</div>
+                    <div style="font-size:2.5rem; font-weight:900; margin:10px 0; color:${dateColor}; ${dateShadow}">${formattedClosestDate}</div>
                     <div style="font-size:1.2rem; font-weight:600; display:flex; align-items:center; gap:10px;">
                         <i class="fa-solid fa-location-dot"></i> ${closestDuty.locName}
                     </div>
