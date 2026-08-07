@@ -2772,11 +2772,18 @@ DataManager._getStorageKey = function () {
             let dateShadow = isToday ? "text-shadow: 2px 2px 0px #fff, -2px -2px 0px #fff, 2px -2px 0px #fff, -2px 2px 0px #fff;" : "";
             
             let closestHtml = `
-                <div style="background:linear-gradient(135deg, #4f46e5, #3b82f6); padding:25px; border-radius:16px; color:white; box-shadow:var(--shadow-md);">
-                    <div style="font-size:0.9rem; text-transform:uppercase; font-weight:700; letter-spacing:1px; opacity:0.8;">${closestHtmlHeading}</div>
-                    <div style="font-size:2.5rem; font-weight:900; margin:10px 0; color:${dateColor}; ${dateShadow}">${formattedClosestDate}</div>
-                    <div style="font-size:1.2rem; font-weight:600; display:flex; align-items:center; gap:10px;">
-                        <i class="fa-solid fa-location-dot"></i> ${closestDuty.locName}
+                <div style="background:linear-gradient(135deg, #4f46e5, #3b82f6); padding:25px; border-radius:16px; color:white; box-shadow:var(--shadow-md); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div>
+                        <div style="font-size:0.9rem; text-transform:uppercase; font-weight:700; letter-spacing:1px; opacity:0.8;">${closestHtmlHeading}</div>
+                        <div style="font-size:2.5rem; font-weight:900; margin:10px 0; color:${dateColor}; ${dateShadow}">${formattedClosestDate}</div>
+                        <div style="font-size:1.2rem; font-weight:600; display:flex; align-items:center; gap:10px;">
+                            <i class="fa-solid fa-location-dot"></i> ${closestDuty.locName}
+                        </div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); text-align: right;">
+                        <div style="font-size: 1.1rem; font-weight: 800; margin-bottom: 5px;"><i class="fa-solid fa-user-graduate" style="margin-right:5px; opacity:0.8;"></i> ${closestDuty.name}</div>
+                        <div style="font-size: 0.95rem; font-weight: 600; opacity: 0.9; margin-bottom: 3px;">Sınıf: ${closestDuty.className}</div>
+                        <div style="font-size: 0.95rem; font-weight: 600; opacity: 0.9;">Okul No: ${closestDuty.number}</div>
                     </div>
                 </div>
             `;
