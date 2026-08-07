@@ -641,6 +641,11 @@ const DataManager = {
             data.students.push(studentObj);
         }
         this._saveData(data);
+        
+        // Nöbet planını geleceğe yönelik otomatik güncelle
+        if (typeof window.autoUpdateStudentDuties === 'function') {
+            window.autoUpdateStudentDuties(true);
+        }
     },
 
     bulkImportStudents: function (studentList, mode) {
@@ -715,6 +720,12 @@ const DataManager = {
         }
 
         this._saveData(data);
+        
+        // Nöbet planını geleceğe yönelik otomatik güncelle
+        if (typeof window.autoUpdateStudentDuties === 'function') {
+            window.autoUpdateStudentDuties(true);
+        }
+        
         return stats;
     },
 
@@ -1776,6 +1787,160 @@ window.getHolidayInfo = function(dateObj) {
     }
     return false;
 };
+
+window.autoUpdateStudentDuties = function(triggerSave = true) {
+    try {
+        let db = typeof DataManager !== 'undefined' ? DataManager._getData() : null;
+        if (!db || !db.school || !db.school.studentDuties) return;
+        
+        let duties = db.school.studentDuties;
+        let dutyLocations = duties.locations || [];
+        let selectedClasses = duties.selectedClasses || [];
+        let globalRule = duties.globalRule || 'sirayla';
+        let plan = duties.plan || [];
+        let exemptStudents = duties.exemptStudents || [];
+        
+        if (dutyLocations.length === 0 || selectedClasses.length === 0) return;
+        
+        let allStudents = typeof DataManager !== 'undefined' ? DataManager.getStudents() : [];
+        if (!allStudents || allStudents.length === 0) return;
+        
+        let shiftedPlan = typeof window.shiftStudentPlanDates === 'function' ? window.shiftStudentPlanDates(plan) : plan;
+        
+        let todayStr = new Date().toISOString().split('T')[0];
+        
+        let studentStats = {}; 
+        selectedClasses.forEach(c => {
+            allStudents.filter(s => s.class === c).forEach(s => {
+                let id = c + '-' + (s.number || s.no || s.name || '-').toString().trim();
+                studentStats[id] = 0;
+            });
+        });
+        
+        let pastPlanRaw = [];
+        for (let i = 0; i < plan.length; i++) {
+            let p = plan[i];
+            let shiftedDate = shiftedPlan[i] ? shiftedPlan[i].date : p.date;
+            
+            if (shiftedDate < todayStr) {
+                pastPlanRaw.push(p);
+                let id = p.class + '-' + String(p.number).trim();
+                if (studentStats[id] !== undefined) {
+                    studentStats[id]++;
+                } else {
+                    studentStats[id] = 1;
+                }
+            }
+        }
+        
+        let workingDays = [];
+        let d = new Date(); 
+        let maxLookAhead = 365;
+        while(maxLookAhead > 0) {
+            let dayOfWeek = d.getDay();
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) { 
+                let dStr = d.toISOString().split('T')[0];
+                let isHoliday = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(dStr) : false;
+                if (!isHoliday) {
+                    workingDays.push(dStr);
+                }
+            }
+            d.setDate(d.getDate() + 1);
+            maxLookAhead--;
+        }
+        
+        let studentsByClass = {};
+        selectedClasses.forEach(c => {
+            studentsByClass[c] = allStudents.filter(s => s.class === c).sort((a,b) => parseInt(a.no || a.number) - parseInt(b.no || b.number));
+        });
+
+        const isValidGender = (student, genderPref) => {
+            if (genderPref === 'Farketmez') return true;
+            let genderVal = student.cinsiyet || student.Cinsiyet || student['Cinsiyeti'] || student['CİNSİYETİ'] || student.gender || student.cns || student.extra1 || '';
+            let sg = String(genderVal).toLowerCase().trim();
+            if (!sg) return true; 
+            if (genderPref === 'Kız') return (sg === 'kız' || sg === 'k' || sg === 'kiz' || sg.includes('female') || sg.includes('kadın') || sg.includes('kadin'));
+            if (genderPref === 'Erkek') return (sg === 'erkek' || sg === 'e' || sg.includes('male'));
+            return true; 
+        };
+        
+        let futurePlan = [];
+        workingDays.forEach(dateStr => {
+            let assignedToday = new Set(); 
+            let classAssignmentsToday = {}; 
+            selectedClasses.forEach(c => classAssignmentsToday[c] = 0);
+            
+            dutyLocations.forEach(loc => {
+                for (let i = 0; i < loc.count; i++) {
+                    let candidateStudents = [];
+                    selectedClasses.forEach(c => {
+                        if(studentsByClass[c]) {
+                            studentsByClass[c].forEach(s => {
+                                let num = (s.number || s.no || s.name || '-').toString().trim();
+                                let id = c + '-' + num;
+                                if (exemptStudents && exemptStudents.includes(id)) return;
+                                
+                                if (!assignedToday.has(id) && isValidGender(s, loc.gender)) {
+                                    candidateStudents.push({
+                                        student: s,
+                                        id: id,
+                                        class: c,
+                                        count: studentStats[id] || 0,
+                                        classOrder: selectedClasses.indexOf(c),
+                                        number: parseInt(num)
+                                    });
+                                }
+                            });
+                        }
+                    });
+                    
+                    if (candidateStudents.length === 0) return;
+                    
+                    candidateStudents.sort((a, b) => {
+                        if (a.count !== b.count) return a.count - b.count;
+                        if (globalRule === 'sirayla') {
+                            if (a.classOrder !== b.classOrder) return a.classOrder - b.classOrder;
+                            return a.number - b.number;
+                        } else {
+                            let aClassCount = classAssignmentsToday[a.class] || 0;
+                            let bClassCount = classAssignmentsToday[b.class] || 0;
+                            if (aClassCount !== bClassCount) return aClassCount - bClassCount;
+                            if (a.classOrder !== b.classOrder) return a.classOrder - b.classOrder;
+                            return a.number - b.number;
+                        }
+                    });
+                    
+                    let selected = candidateStudents[0];
+                    futurePlan.push({
+                        date: dateStr, 
+                        locId: loc.id,
+                        locName: loc.name,
+                        class: selected.class,
+                        name: selected.student.name + ' ' + (selected.student.surname || ''),
+                        number: selected.number
+                    });
+                    
+                    assignedToday.add(selected.id);
+                    if (studentStats[selected.id] !== undefined) studentStats[selected.id]++;
+                    if (classAssignmentsToday[selected.class] !== undefined) classAssignmentsToday[selected.class]++;
+                }
+            });
+        });
+        
+        db.school.studentDuties.plan = pastPlanRaw.concat(futurePlan);
+        db.school.studentDuties.updatedAt = Date.now();
+        
+        if (triggerSave) {
+            // Sadece memory'i update etme, storage'a da yaz (Eğer sonsuz döngü tehlikesi yoksa)
+            DataManager._memoryData = db;
+            DataManager._syncToCloud(db); 
+            // _saveData çağırırsak recursive addStudent / update hooklara girebilir, bu yüzden manuel sync ediyoruz.
+        }
+    } catch(e) {
+        console.error("Auto update student duties failed:", e);
+    }
+};
+
 
 window.shiftStudentPlanDates = function(plan) {
     if (!plan || !Array.isArray(plan) || plan.length === 0) return plan;

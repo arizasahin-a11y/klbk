@@ -199,155 +199,60 @@ window.generatePlan = function() {
         return;
     }
 
-    // Seçilen sınıflardaki öğrencileri filtrele ve cinsiyete göre hazırla
-    // Note: Öğrenci objesinde cinsiyet 'cinsiyet' veya 'gender' olabilir. (E-Okul genelde 'cinsiyet' kullanır: 'Kız', 'Erkek')
-    let studentsByClass = {};
-    selectedClasses.forEach(c => {
-        studentsByClass[c] = allStudents.filter(s => s.class === c).sort((a,b) => parseInt(a.number) - parseInt(b.number));
-    });
-
-    // Son 1 yılı hesapla (Sadece hafta içi ve tatil olmayan günler)
-    let workingDays = [];
-    let d = new Date(); 
-    
-    // 1 Yıllık plan üret ve sayfala
-    let maxLookAhead = 365;
-    while(maxLookAhead > 0) {
-        let dayOfWeek = d.getDay();
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Hafta sonu değilse
-            let dStr = d.toISOString().split('T')[0];
-            // getHolidayInfo(dStr) true dönerse tatildir.
-            let isHoliday = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(dStr) : false;
-            if (!isHoliday) {
-                workingDays.push(dStr);
-            }
-        }
-        d.setDate(d.getDate() + 1);
-        maxLookAhead--;
-    }
-
-    const globalRule = document.getElementById('globalRule').value;
-
-    generatedPlan = [];
-    
-    // Global öğrenci nöbet sayacı (Ay boyunca kimin kaç nöbet tuttuğunu takip eder)
-    let studentStats = {}; 
-    selectedClasses.forEach(c => {
-        if(studentsByClass[c]) {
-            studentsByClass[c].forEach(s => {
-                let id = c + '-' + (s.number || s.no || s.name || '-').toString().trim();
-                studentStats[id] = 0;
-            });
-        }
-    });
-
-    // Günlere göre planı oluştur
-    workingDays.forEach(dateStr => {
-        let assignedToday = new Set(); // O gün nöbet yazılan öğrenciler
-        let classAssignmentsToday = {}; // O gün hangi sınıftan kaç kişi nöbetçi oldu (Eşit kuralı için)
-        selectedClasses.forEach(c => classAssignmentsToday[c] = 0);
-
-        dutyLocations.forEach(loc => {
-            for (let i = 0; i < loc.count; i++) {
-                
-                // Bu lokasyon için bugünkü adayları belirle
-                let candidateStudents = [];
-                selectedClasses.forEach(c => {
-                    if(studentsByClass[c]) {
-                        studentsByClass[c].forEach(s => {
-                            let id = c + '-' + (s.number || s.no || s.name || '-').toString().trim();
-                            // MUAF KONTROLÜ
-                            if (window.exemptStudents && window.exemptStudents.includes(id)) return;
-
-                            if (!assignedToday.has(id) && isValidGender(s, loc.gender)) {
-                                candidateStudents.push({
-                                    student: s,
-                                    id: id,
-                                    class: c,
-                                    count: studentStats[id] || 0,
-                                    classOrder: selectedClasses.indexOf(c),
-                                    number: parseInt(s.number || s.no || '9999')
-                                });
-                            }
-                        });
-                    }
-                });
-
-                if (candidateStudents.length === 0) {
-                    console.warn(`${dateStr} günü ${loc.name} için boşta uygun öğrenci bulunamadı!`);
-                    continue; // Bu lokasyonun bu kontenjanını boş geç
-                }
-
-                // Adayları kurala göre sırala
-                candidateStudents.sort((a, b) => {
-                    // 1. ÖNCELİK: Nöbet Sayısı (En az nöbet tutan öncelikli)
-                    if (a.count !== b.count) return a.count - b.count;
-
-                    if (globalRule === 'sirayla') {
-                        // SIRAYLA KURALI
-                        // 2. Sınıf Sırası (Önce 9A, sonra 9B...)
-                        if (a.classOrder !== b.classOrder) return a.classOrder - b.classOrder;
-                        // 3. Öğrenci Numarası
-                        return a.number - b.number;
-                    } else {
-                        // EŞİT KURALI
-                        // 2. Bugün o sınıftan kaç kişi nöbetçi oldu? (En az olan öncelikli)
-                        let aClassCount = classAssignmentsToday[a.class] || 0;
-                        let bClassCount = classAssignmentsToday[b.class] || 0;
-                        if (aClassCount !== bClassCount) return aClassCount - bClassCount;
-                        // 3. Sınıf Sırası (Tie-breaker)
-                        if (a.classOrder !== b.classOrder) return a.classOrder - b.classOrder;
-                        // 4. Öğrenci Numarası
-                        return a.number - b.number;
-                    }
-                });
-
-                // En iyi adayı seç
-                let bestCandidate = candidateStudents[0];
-                
-                // Planı kaydet ve sayaçları güncelle
-                assignedToday.add(bestCandidate.id);
-                studentStats[bestCandidate.id]++;
-                classAssignmentsToday[bestCandidate.class]++;
-
-                generatedPlan.push({
-                    date: dateStr,
-                    locName: loc.name,
-                    className: bestCandidate.student.class,
-                    number: bestCandidate.student.number || bestCandidate.student.no || '-',
-                    name: bestCandidate.student.name + ' ' + (bestCandidate.student.surname || '')
-                });
-            }
-        });
-    });
-
-    // Tarihe göre sırala
-    generatedPlan.sort((a,b) => a.date.localeCompare(b.date));
-
-    // Planı 20 günlük (yaklaşık 1 aylık) parçalara (chunk) böl
-    let uniqueDates = [...new Set(generatedPlan.map(p => p.date))];
-    window.planChunks = [];
-    for(let i=0; i<uniqueDates.length; i+=20) {
-        window.planChunks.push(uniqueDates.slice(i, i+20));
-    }
-    window.currentChunkIndex = 0;
-
-    renderPlan();
-    if(typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
-    
-    $('#resultsPanel').show();
-    $('#btnSavePlan').show();
-    $('#topSaveBtn').show(); // Üstteki yeni kaydet butonu
-
     Swal.fire({
-        toast: true,
-        position: 'top-end',
-        icon: 'success',
-        title: 'Plan başarıyla oluşturuldu!',
-        showConfirmButton: false,
-        timer: 2000
+        title: 'Plan Oluşturuluyor...',
+        html: 'Geçmiş veriler korunarak, bugünden itibaren 1 yıllık plan hesaplanıyor.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+            setTimeout(() => {
+                let db = DataManager._getData();
+                if (!db.school) db.school = {};
+                if (!db.school.studentDuties) db.school.studentDuties = {};
+                
+                db.school.studentDuties.selectedClasses = selectedClasses;
+                db.school.studentDuties.globalRule = document.getElementById('globalRule').value;
+                db.school.studentDuties.locations = dutyLocations;
+                db.school.studentDuties.exemptStudents = window.exemptStudents || [];
+                
+                if (typeof window.autoUpdateStudentDuties === 'function') {
+                    window.autoUpdateStudentDuties(false);
+                } else {
+                    Swal.fire('Hata', 'Güncelleme motoru bulunamadı.', 'error');
+                    return;
+                }
+                
+                let updatedDb = DataManager._getData();
+                generatedPlan = updatedDb.school.studentDuties.plan || [];
+                
+                let uniqueDates = [...new Set(generatedPlan.map(p => p.date))];
+                window.planChunks = [];
+                for(let i=0; i<uniqueDates.length; i+=20) {
+                    window.planChunks.push(uniqueDates.slice(i, i+20));
+                }
+                window.currentChunkIndex = 0;
+                
+                Swal.close();
+                renderPlan();
+                
+                if(typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
+                $('#resultsPanel').show();
+                $('#btnSavePlan').show();
+                $('#topSaveBtn').show();
+                
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Gelecek planı oluşturuldu (Geçmiş nöbetler korundu). Kaydet butonuna basmayı unutmayın.',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            }, 500);
+        }
     });
 };
+
 
 function isValidGender(student, genderPref) {
     if (genderPref === 'Farketmez') return true;
@@ -774,6 +679,13 @@ window.savePlan = async function() {
         let db = DataManager._getData();
         if (!db.school) db.school = {};
         db.school.studentDuties = saveData;
+        
+        // Kaydetmeden hemen önce geleceği güncelle (muafiyet/lokasyon değiştiyse yansısın)
+        if (typeof window.autoUpdateStudentDuties === 'function') {
+            window.autoUpdateStudentDuties(false);
+            generatedPlan = db.school.studentDuties.plan || [];
+        }
+        
         DataManager._saveData(db);
 
         Swal.fire({
