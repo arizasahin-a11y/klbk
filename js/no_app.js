@@ -5,7 +5,6 @@ let allStudents = [];
 let classList = [];
 let dutyLocations = []; // { id, name, count, gender, rule }
 let generatedPlan = []; // { date, locName, class, no, name }
-window.currentViewMonth = new Date().toISOString().slice(0, 7); // e.g. "2026-08"
 const FIREBASE_DB_URL = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
 
 $(document).ready(async function() {
@@ -200,9 +199,9 @@ window.generatePlan = function() {
     let workingDays = [];
     let d = new Date(); 
     
-    // 1 Yıllık (365 gün) plan süreci
-    let maxLookAhead = 365;
-    while(maxLookAhead > 0) {
+    // 30 Günlük (Yaklaşık 1 Ay) plan süreci
+    let maxLookAhead = 30;
+    while(workingDays.length < 22 && maxLookAhead > 0) {
         let dayOfWeek = d.getDay();
         if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Hafta sonu değilse
             let dStr = d.toISOString().split('T')[0];
@@ -345,15 +344,6 @@ function isValidGender(student, genderPref) {
     return true; 
 }
 
-window.changeMonth = function(delta) {
-    let [year, month] = currentViewMonth.split('-').map(Number);
-    month += delta;
-    if (month > 12) { month = 1; year++; }
-    if (month < 1) { month = 12; year--; }
-    currentViewMonth = `${year}-${month.toString().padStart(2, '0')}`;
-    renderPlan();
-};
-
 function renderPlan() {
     let tbody = document.querySelector('#planTable tbody');
     tbody.innerHTML = '';
@@ -363,23 +353,21 @@ function renderPlan() {
         return;
     }
 
-    // Ay ismini güncelle
-    let [year, month] = currentViewMonth.split('-');
-    let monthNames = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
-    document.getElementById('currentMonthLabel').innerText = `${monthNames[parseInt(month)-1]} ${year}`;
+    // Tarih formatlama fonksiyonu
+    const formatDateTR = (dateStr) => {
+        let [y, m, d] = dateStr.split('-');
+        let monthNames = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+        return `${parseInt(d)} ${monthNames[parseInt(m)-1]}`;
+    };
 
-    // Sadece seçili ayın verilerini filtrele
-    let filteredPlan = generatedPlan.filter(p => p.date.startsWith(currentViewMonth));
+    // Başlığı güncelle (Örn: 7 Ağustos - 5 Eylül Tarihleri Arası Nöbet Listesi)
+    let firstDate = generatedPlan[0].date;
+    let lastDate = generatedPlan[generatedPlan.length - 1].date;
+    document.getElementById('planDateRangeLabel').innerText = `${formatDateTR(firstDate)} - ${formatDateTR(lastDate)} Tarihleri Arası Nöbet Listesi`;
 
-    if (filteredPlan.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 20px; color: var(--gray-500);">Bu ay için oluşturulmuş bir nöbet bulunmuyor.</td></tr>`;
-        $('#resultsPanel').show();
-        return;
-    }
-
-    // Tarihe göre grupla (sadece filtrelenenler)
+    // Tarihe göre grupla
     let grouped = {};
-    filteredPlan.forEach(p => {
+    generatedPlan.forEach(p => {
         if (!grouped[p.date]) grouped[p.date] = [];
         grouped[p.date].push(p);
     });
