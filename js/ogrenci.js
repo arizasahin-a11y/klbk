@@ -2557,11 +2557,11 @@ DataManager._getStorageKey = function () {
             }, 100);
         }
         
-        function getTeachersForDate(targetDateStr, db) {
-            if (!db || !db.dt_data || !db.dt_data.plan || !db.dt_data.plan.data) return [];
+        function getTeachersForDate(targetDateStr, teacherPlan, teacherSettings, users) {
+            if (!teacherPlan || !teacherPlan.data) return [];
             
-            let p = db.dt_data.plan;
-            let settings = db.dt_data.settings || {};
+            let p = teacherPlan;
+            let settings = teacherSettings || {};
             let dutyType = p.dutyType || settings.dutyType || 'fixed';
             
             let startDateStr = p.startDate;
@@ -2610,7 +2610,7 @@ DataManager._getStorageKey = function () {
             let dynamicSlots = [];
             let slotMap = [];
             
-            let users = db.users || {};
+            users = users || {};
             
             for (let shiftId of shiftIds) {
                 let teachersInLoc = baseDayData[shiftId] || [];
@@ -2675,7 +2675,7 @@ DataManager._getStorageKey = function () {
             return result;
         }
 
-        function renderStudentDutyView(studentNo, db) {
+        async function renderStudentDutyView(studentNo, db) {
             const container = document.getElementById('dutyContentContainer');
             const plan = db.school.studentDuties.plan || [];
             const myDuties = plan.filter(p => String(p.number) === String(studentNo));
@@ -2683,6 +2683,19 @@ DataManager._getStorageKey = function () {
             if (myDuties.length === 0) {
                 container.innerHTML = '<div style="padding:30px; text-align:center; color:var(--gray-500);"><i class="fa-solid fa-circle-exclamation fa-3x" style="color:var(--warning); margin-bottom:15px;"></i><br>Size atanmış bir nöbet görevi bulunmuyor.</div>';
                 return;
+            }
+            
+            // Öğretmen nöbet verilerini çek
+            let teacherPlan = null;
+            let teacherSettings = {};
+            try {
+                let resPlan = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_nobet/publishedPlan.json`);
+                if (resPlan.ok) teacherPlan = await resPlan.json();
+                
+                let resSettings = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_nobet/settings.json`);
+                if (resSettings.ok) teacherSettings = await resSettings.json();
+            } catch(e) {
+                console.error("Öğretmen nöbet verileri çekilemedi:", e);
             }
             
             // myDuties tarihe göre sırala
@@ -2699,7 +2712,7 @@ DataManager._getStorageKey = function () {
             
             // O günkü Nöbetçi Öğretmenler
             let dutyTeachersHtml = '';
-            let teachersList = getTeachersForDate(closestDate, db);
+            let teachersList = getTeachersForDate(closestDate, teacherPlan, teacherSettings, db.users);
             
             if (teachersList.length > 0) {
                 dutyTeachersHtml = `
@@ -2834,11 +2847,7 @@ DataManager._getStorageKey = function () {
                                         locStr += `<div style="margin-bottom:6px;"><strong style="color:var(--primary);">${l}:</strong> ${locObj[l].join(', ')}</div>`;
                                     }
                                     
-                                    // Öğretmenleri Ekle
-                                    let teachersList = getTeachersForDate(dateStr, state.db);
-                                    if(teachersList.length > 0) {
-                                        locStr += `<div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--gray-200);"><strong style="color:#ef4444;"><i class="fa-solid fa-chalkboard-user"></i> Nöbetçi Öğretmenler:</strong> <span style="color:var(--gray-600);">${teachersList.join(', ')}</span></div>`;
-                                    }
+                                    // Öğretmenleri Ekle - İptal edildi (Kullanıcı çizelgede istemiyor)
                                     
                                     return `
                                     <tr style="border-bottom:1px solid var(--gray-100); ${isPast ? 'opacity:0.6;' : ''} ${isToday ? 'background:rgba(239, 68, 68, 0.05);' : ''}">
