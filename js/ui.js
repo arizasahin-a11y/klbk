@@ -915,10 +915,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 // Validate Class string a bit more
                                 if (stdClass.match(/^\d+\s*[\/\-]?[A-ZÇĞİÖŞÜ]$/) || stdClass.match(/^\d+$/)) {
                                     let normalizedClass = stdClass.replace(/[\/\-\s]+/g, '');
-                                    parsedStudents.push({
+                                    let stdObj = {
                                         no, name, class: normalizedClass,
                                         status: 'Aktif'
-                                    });
+                                    };
+                                    let rawCins = String(row[3] || '').trim().toUpperCase();
+                                    if (rawCins.startsWith('K')) stdObj.extra1 = 'K';
+                                    else if (rawCins.startsWith('E')) stdObj.extra1 = 'E';
+                                    
+                                    parsedStudents.push(stdObj);
                                     detectedMode = 'simple';
                                     continue;
                                 }
@@ -958,7 +963,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 if (adIdx !== -1) colAd = adIdx;
                                 let soyadIdx = row.findIndex(c => { let v = String(c || '').trim().replace(/[\n]+/g, '').toUpperCase(); return v === 'SOYADI' || v === 'SOYAD'; });
                                 if (soyadIdx !== -1) colSoyad = soyadIdx;
-                                let cinsiyetIdx = row.findIndex(c => { let v = String(c || '').trim().replace(/[\n]+/g, '').toUpperCase(); return v === 'CİNSİYET' || v === 'CİNSİYETİ' || v === 'CINSIYET'; });
+                                let cinsiyetIdx = row.findIndex(c => { 
+                                    let v = String(c || '').trim().replace(/[\s\.\n]+/g, '').toUpperCase(); 
+                                    return v.includes('CİNSİYET') || v.includes('CINSIYET') || v === 'CİNS' || v === 'CINS'; 
+                                });
                                 if (cinsiyetIdx !== -1) colCinsiyet = cinsiyetIdx;
                                 continue;
                             }
@@ -980,17 +988,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 }
                                 if (stdNo && (stdAd || stdSoyad)) {
                                     let fullName = (stdAd + " " + stdSoyad).replace(/\s+/g, ' ').trim();
-                                    let stdCinsiyet = '';
+                                    let newStdObj = {
+                                        no: stdNo, name: fullName, class: currentClass,
+                                        status: 'Aktif'
+                                    };
                                     if (colCinsiyet !== -1) {
                                         let cVal = String(row[colCinsiyet] || '').trim().toUpperCase();
-                                        if (cVal.startsWith('K')) stdCinsiyet = 'K';
-                                        else if (cVal.startsWith('E')) stdCinsiyet = 'E';
+                                        if (cVal.startsWith('K')) newStdObj.extra1 = 'K';
+                                        else if (cVal.startsWith('E')) newStdObj.extra1 = 'E';
                                     }
-                                    parsedStudents.push({
-                                        no: stdNo, name: fullName, class: currentClass,
-                                        extra1: stdCinsiyet,
-                                        status: 'Aktif'
-                                    });
+                                    parsedStudents.push(newStdObj);
                                 }
                             } else if (String(row[colSNo]).trim()) {
                                 // Non-numeric S.No means maybe end of class or some footer
