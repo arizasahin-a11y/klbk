@@ -2860,7 +2860,7 @@ DataManager._getStorageKey = function () {
                             <thead>
                                 <tr style="background:var(--gray-50); border-bottom:2px solid var(--gray-200);">
                                     <th style="padding:12px; text-align:left; color:var(--gray-600); font-weight:600;">Tarih</th>
-                                    <th style="padding:12px; text-align:left; color:var(--gray-600); font-weight:600;">Nöbet Yerleri ve Öğrenciler / Öğretmenler</th>
+                                    <th style="padding:12px; text-align:left; color:var(--gray-600); font-weight:600;">Nöbet Yerleri ve Öğrenciler</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -2877,7 +2877,7 @@ DataManager._getStorageKey = function () {
                                     state.dateGroups[dateStr].forEach(p => {
                                         if(!locObj[p.locName]) locObj[p.locName] = [];
                                         let meBadge = (String(p.number) === String(state.studentNo)) ? ' <span style="color:white; background:var(--primary); padding:1px 4px; border-radius:4px; font-size:0.7rem;">SİZ</span>' : '';
-                                        locObj[p.locName].push(`${p.name} (${p.className})${meBadge}`);
+                                        locObj[p.locName].push(`${p.name} (${p.className} - ${p.number})${meBadge}`);
                                     });
                                     
                                     for(let l in locObj) {
