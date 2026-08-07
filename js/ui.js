@@ -996,6 +996,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                                         let cVal = String(row[colCinsiyet] || '').trim().toUpperCase();
                                         if (cVal.startsWith('K')) newStdObj.extra1 = 'K';
                                         else if (cVal.startsWith('E')) newStdObj.extra1 = 'E';
+                                    } else {
+                                        // Bulletproof fallback: search for gender in the row after the name
+                                        let startScan = Math.max(colAd, colSoyad, colOgrNo, colSNo) + 1;
+                                        for (let j = startScan; j < row.length; j++) {
+                                            let gVal = String(row[j] || '').trim().replace(/[\.\s]+/g, '').toUpperCase();
+                                            if (gVal === 'KIZ' || gVal === 'K') {
+                                                newStdObj.extra1 = 'K';
+                                                colCinsiyet = j; // Remember the column for subsequent rows
+                                                break;
+                                            } else if (gVal === 'ERKEK' || gVal === 'E') {
+                                                newStdObj.extra1 = 'E';
+                                                colCinsiyet = j; // Remember the column for subsequent rows
+                                                break;
+                                            }
+                                        }
                                     }
                                     parsedStudents.push(newStdObj);
                                 }
