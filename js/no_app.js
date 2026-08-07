@@ -8,6 +8,7 @@ let generatedPlan = []; // { date, locName, class, no, name }
 window.currentChunkIndex = 0;
 window.planChunks = [];
 window.exemptStudents = []; // Store exempt IDs
+window.swapSource = null; // Store first selected student for manual swap
 const FIREBASE_DB_URL = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
 
 $(document).ready(async function() {
@@ -424,7 +425,10 @@ function renderPlan() {
         let dayRows = grouped[dateStr];
         
         dayRows.forEach((p, index) => {
-            let html = '<tr>';
+            let html = `<tr style="cursor:pointer; transition:0.2s;" class="plan-row"
+                            oncontextmenu="window.handleRowRightClick(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}')"
+                            onclick="window.handleRowClick(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}')">`;
+            
             if (index === 0) {
                 html += `<td rowspan="${dayRows.length}" style="vertical-align: middle; background: #f8fafc; border-right: 1px solid #e2e8f0; font-size: 15px;"><strong>${displayDate}</strong></td>`;
             }
@@ -439,6 +443,72 @@ function renderPlan() {
         });
     });
 }
+
+// --- Manuel Yer Değiştirme (Swap) İşlemleri ---
+window.handleRowRightClick = function(event, date, locName, className, number) {
+    event.preventDefault();
+    window.swapSource = { date, locName, className, number };
+    
+    // Tüm satırların rengini sıfırla
+    document.querySelectorAll('.plan-row').forEach(el => el.style.background = '');
+    // Tıklanan satırı turuncu/sarı yap
+    let tr = event.currentTarget;
+    if (tr) tr.style.background = 'rgba(245, 158, 11, 0.2)'; 
+    
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'info',
+        title: 'İlk kişi seçildi. Değiştireceğiniz ikinci kişiye sol tıklayın.',
+        showConfirmButton: false,
+        timer: 3000
+    });
+};
+
+window.handleRowClick = function(event, date, locName, className, number) {
+    if (!window.swapSource) return; // Değişim modu açık değilse normal tıklama (şu an boş)
+    
+    // Kendisine tıklandıysa iptal et
+    if (window.swapSource.date === date && window.swapSource.locName === locName && window.swapSource.className === className && String(window.swapSource.number) === String(number)) {
+        window.swapSource = null;
+        document.querySelectorAll('.plan-row').forEach(el => el.style.background = '');
+        Swal.fire({ toast:true, position:'top-end', icon:'info', title:'Yer değiştirme iptal edildi.', showConfirmButton:false, timer:1500 });
+        return;
+    }
+
+    let p1Data = window.swapSource;
+    let p2Data = { date, locName, className, number };
+    
+    let idx1 = generatedPlan.findIndex(p => p.date === p1Data.date && p.locName === p1Data.locName && p.className === p1Data.className && String(p.number) === String(p1Data.number));
+    let idx2 = generatedPlan.findIndex(p => p.date === p2Data.date && p.locName === p2Data.locName && p.className === p2Data.className && String(p.number) === String(p2Data.number));
+    
+    if (idx1 !== -1 && idx2 !== -1) {
+        let p1 = generatedPlan[idx1];
+        let p2 = generatedPlan[idx2];
+        
+        let tempClass = p1.className;
+        let tempNum = p1.number;
+        let tempName = p1.name;
+        
+        p1.className = p2.className;
+        p1.number = p2.number;
+        p1.name = p2.name;
+        
+        p2.className = tempClass;
+        p2.number = tempNum;
+        p2.name = tempName;
+        
+        p1.note = "<span style='color:#f59e0b;'><i class='fa-solid fa-right-left'></i> Manuel Değiştirildi</span>";
+        p2.note = "<span style='color:#f59e0b;'><i class='fa-solid fa-right-left'></i> Manuel Değiştirildi</span>";
+        
+        window.swapSource = null;
+        window.savePlan();
+        renderPlan();
+        if(typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
+        
+        Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Kişiler yer değiştirdi.', showConfirmButton:false, timer:2000 });
+    }
+};
 
 // --- Muaf Öğrenci İşlemleri ---
 window.updateExemptClassDropdown = function() {
