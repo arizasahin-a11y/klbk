@@ -2576,8 +2576,8 @@ DataManager._getStorageKey = function () {
             let closestDuty = myDuties.find(p => p.date >= todayStr) || myDuties[myDuties.length - 1]; // Eğer gelecek nöbet yoksa en sonuncuyu göster
             let closestDate = closestDuty.date;
             
-            // Nöbet arkadaşları (Aynı gün, aynı yer, BENDEN FARKLI kişiler)
-            let partners = plan.filter(p => p.date === closestDate && p.locName === closestDuty.locName && String(p.number) !== String(studentNo));
+            // Nöbet arkadaşları (Aynı gün nöbetçi olan TÜM öğrenciler)
+            let partners = plan.filter(p => p.date === closestDate && String(p.number) !== String(studentNo));
             
             // O günkü Nöbetçi Öğretmenler
             let dutyTeachersHtml = '';
@@ -2605,33 +2605,50 @@ DataManager._getStorageKey = function () {
             let [y,m,d] = closestDate.split('-');
             let formattedClosestDate = `${d}.${m}.${y}`;
             
-            // Öğrencinin son 30 ve gelecek tüm planlarını gösterelim
+            // Okulun Tüm Nöbet Çizelgesi
+            let dateGroups = {};
+            plan.forEach(p => {
+                if(!dateGroups[p.date]) dateGroups[p.date] = [];
+                dateGroups[p.date].push(p);
+            });
+            let sortedDates = Object.keys(dateGroups).sort((a,b) => new Date(a) - new Date(b));
+            
             let scheduleHtml = `
                 <div style="margin-top:20px; background:white; padding:20px; border-radius:12px; border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
-                    <h3 style="margin:0 0 15px 0; color:var(--dark); font-size:1.1rem;"><i class="fa-regular fa-calendar-days" style="color:var(--primary);"></i> Nöbet Çizelgeniz</h3>
+                    <h3 style="margin:0 0 15px 0; color:var(--dark); font-size:1.1rem;"><i class="fa-regular fa-calendar-days" style="color:var(--primary);"></i> Okul Nöbet Çizelgesi</h3>
                     <div style="overflow-x:auto;">
-                        <table style="width:100%; border-collapse:collapse; min-width:300px;">
+                        <table style="width:100%; border-collapse:collapse; min-width:300px; font-size:0.9rem;">
                             <thead>
                                 <tr style="background:var(--gray-50); border-bottom:2px solid var(--gray-200);">
                                     <th style="padding:12px; text-align:left; color:var(--gray-600); font-weight:600;">Tarih</th>
-                                    <th style="padding:12px; text-align:left; color:var(--gray-600); font-weight:600;">Görev Yeri</th>
-                                    <th style="padding:12px; text-align:left; color:var(--gray-600); font-weight:600;">Durum</th>
+                                    <th style="padding:12px; text-align:left; color:var(--gray-600); font-weight:600;">Nöbet Yerleri ve Öğrenciler</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${myDuties.map(p => {
-                                    let [py,pm,pd] = p.date.split('-');
-                                    let isPast = p.date < todayStr;
-                                    let isToday = p.date === todayStr;
+                                ${sortedDates.map(dateStr => {
+                                    let [py,pm,pd] = dateStr.split('-');
+                                    let isPast = dateStr < todayStr;
+                                    let isToday = dateStr === todayStr;
                                     let badge = '';
                                     if(isToday) badge = '<span style="background:#ef4444; color:white; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:bold; margin-left:8px;">BUGÜN</span>';
                                     else if(isPast) badge = '<span style="color:var(--gray-400); font-size:0.8rem; margin-left:8px;">(Geçmiş)</span>';
                                     
+                                    let locStr = '';
+                                    let locObj = {};
+                                    dateGroups[dateStr].forEach(p => {
+                                        if(!locObj[p.locName]) locObj[p.locName] = [];
+                                        let meBadge = (String(p.number) === String(studentNo)) ? ' <span style="color:white; background:var(--primary); padding:1px 4px; border-radius:4px; font-size:0.7rem;">SİZ</span>' : '';
+                                        locObj[p.locName].push(`${p.name} (${p.className})${meBadge}`);
+                                    });
+                                    
+                                    for(let l in locObj) {
+                                        locStr += `<div style="margin-bottom:6px;"><strong style="color:var(--primary);">${l}:</strong> ${locObj[l].join(', ')}</div>`;
+                                    }
+                                    
                                     return `
                                     <tr style="border-bottom:1px solid var(--gray-100); ${isPast ? 'opacity:0.6;' : ''} ${isToday ? 'background:rgba(239, 68, 68, 0.05);' : ''}">
-                                        <td style="padding:12px; color:var(--dark); font-weight:600;">${pd}.${pm}.${py} ${badge}</td>
-                                        <td style="padding:12px; color:var(--primary); font-weight:600;">${p.locName}</td>
-                                        <td style="padding:12px; font-size:0.85rem;">${p.note || '-'}</td>
+                                        <td style="padding:12px; color:var(--dark); font-weight:600; vertical-align:top; width:130px;">${pd}.${pm}.${py} ${badge}</td>
+                                        <td style="padding:12px;">${locStr}</td>
                                     </tr>
                                     `;
                                 }).join('')}
@@ -2655,18 +2672,29 @@ DataManager._getStorageKey = function () {
             // Nöbet Arkadaşları Kartı
             let partnersHtml = '';
             if (partners.length > 0) {
+                let locGroups = {};
+                partners.forEach(pt => {
+                    if(!locGroups[pt.locName]) locGroups[pt.locName] = [];
+                    locGroups[pt.locName].push(`<strong>${pt.name}</strong> (${pt.className} - ${pt.number})`);
+                });
+                
+                let pList = '';
+                for (let l in locGroups) {
+                    pList += `<div style="margin-top:10px;"><strong style="color:var(--primary); font-size:0.9rem;">${l}</strong><ul style="margin:5px 0 0 0; padding-left:20px; color:var(--gray-600); line-height:1.6;">`;
+                    locGroups[l].forEach(ptHtml => pList += `<li>${ptHtml}</li>`);
+                    pList += `</ul></div>`;
+                }
+
                 partnersHtml = `
                     <div style="margin-top:20px; background:white; padding:20px; border-radius:12px; border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
-                        <h3 style="margin:0 0 10px 0; color:var(--dark); font-size:1.1rem;"><i class="fa-solid fa-users" style="color:var(--secondary);"></i> Nöbet Arkadaşlarınız</h3>
-                        <ul style="margin:0; padding-left:20px; color:var(--gray-600); line-height:1.6;">
-                            ${partners.map(pt => `<li><strong>${pt.name}</strong> (${pt.className} - ${pt.number})</li>`).join('')}
-                        </ul>
+                        <h3 style="margin:0 0 10px 0; color:var(--dark); font-size:1.1rem;"><i class="fa-solid fa-users" style="color:var(--secondary);"></i> O Gün Nöbetçi Olan Diğer Öğrenciler</h3>
+                        ${pList}
                     </div>
                 `;
             } else {
                 partnersHtml = `
                     <div style="margin-top:20px; background:white; padding:15px; border-radius:12px; border:1px solid var(--gray-200); color:var(--gray-500); font-size:0.95rem;">
-                        <i class="fa-solid fa-info-circle"></i> Bu görev yerinde yalnız nöbetçisiniz.
+                        <i class="fa-solid fa-info-circle"></i> O gün okulda başka nöbetçi öğrenci bulunmuyor.
                     </div>
                 `;
             }
