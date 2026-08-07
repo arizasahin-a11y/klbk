@@ -2557,6 +2557,124 @@ DataManager._getStorageKey = function () {
             }, 100);
         }
         
+        function getTeachersForDate(targetDateStr, db) {
+            if (!db || !db.dt_data || !db.dt_data.plan || !db.dt_data.plan.data) return [];
+            
+            let p = db.dt_data.plan;
+            let settings = db.dt_data.settings || {};
+            let dutyType = p.dutyType || settings.dutyType || 'fixed';
+            
+            let startDateStr = p.startDate;
+            if (!startDateStr) return [];
+            
+            let startDate = new Date(startDateStr);
+            let targetDate = new Date(targetDateStr);
+            
+            let dayOfWeek = targetDate.getDay();
+            if (dayOfWeek === 0 || dayOfWeek === 6) return []; // Weekend
+            
+            let baseDateStr = null;
+            for (let d of Object.keys(p.data)) {
+                let dObj = new Date(d);
+                if (dObj.getDay() === dayOfWeek) {
+                    baseDateStr = d;
+                    break;
+                }
+            }
+            if (!baseDateStr) return [];
+            
+            let baseDayData = p.data[baseDateStr];
+            if (!baseDayData) return [];
+            
+            let diffTime = targetDate.getTime() - startDate.getTime();
+            let weeksPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+            if (weeksPassed < 0) weeksPassed = 0;
+            
+            let cycleWeeks = dutyType === 'monthly' ? 4 : 1;
+            let cyclesPassed = Math.floor(weeksPassed / cycleWeeks);
+            
+            let dir = settings.rotationDir || 'asc';
+            
+            let shiftIds = Object.keys(baseDayData).filter(id => id !== '_admin_duty' && !id.startsWith('fixed_'));
+            
+            let locations = settings.locations || [];
+            shiftIds.sort((a, b) => {
+                let locIdA = a.replace('_dilim1', '').replace('_dilim2', '');
+                let locIdB = b.replace('_dilim1', '').replace('_dilim2', '');
+                let pA = locations.find(l => l.id === locIdA)?.priority || 99;
+                let pB = locations.find(l => l.id === locIdB)?.priority || 99;
+                if(pA !== pB) return pA - pB;
+                return a.localeCompare(b);
+            });
+            
+            let dynamicSlots = [];
+            let slotMap = [];
+            
+            let users = db.users || {};
+            
+            for (let shiftId of shiftIds) {
+                let teachersInLoc = baseDayData[shiftId] || [];
+                for (let i = 0; i < teachersInLoc.length; i++) {
+                    let uname = teachersInLoc[i];
+                    let isFixed = false;
+                    if (users[uname] && users[uname].fixedLoc) {
+                        let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                        if (users[uname].fixedLoc === shiftId || users[uname].fixedLoc === baseShift) {
+                            isFixed = true;
+                        }
+                    }
+                    if (!isFixed) {
+                        dynamicSlots.push(uname);
+                        slotMap.push({ shiftId, index: i });
+                    }
+                }
+            }
+            
+            let currentSlots = [...dynamicSlots];
+            if (cyclesPassed > 0 && dutyType !== 'fixed') {
+                let s = (cyclesPassed * (dir === 'desc' ? -1 : 1)) % dynamicSlots.length;
+                if (s < 0) s += dynamicSlots.length;
+                currentSlots = [...dynamicSlots.slice(dynamicSlots.length - s), ...dynamicSlots.slice(0, dynamicSlots.length - s)];
+            }
+            
+            let finalDayData = JSON.parse(JSON.stringify(baseDayData));
+            
+            if (dutyType !== 'fixed') {
+                for (let i = 0; i < currentSlots.length; i++) {
+                    let { shiftId, index } = slotMap[i];
+                    finalDayData[shiftId][index] = currentSlots[i];
+                }
+            }
+            
+            let result = [];
+            for (let shiftId in finalDayData) {
+                if (shiftId === '_isHoliday') continue;
+                
+                let teachers = finalDayData[shiftId] || [];
+                let locName = shiftId;
+                if (shiftId === '_admin_duty') {
+                    locName = "Nöbetçi İdareci";
+                } else if (shiftId.startsWith('fixed_')) {
+                    locName = "Sabit Görev";
+                } else {
+                    let isDilim1 = shiftId.includes('_dilim1');
+                    let isDilim2 = shiftId.includes('_dilim2');
+                    let locId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                    let locInfo = locations.find(l => l.id === locId);
+                    locName = locInfo ? locInfo.name : locId;
+                    if(isDilim1) locName += " (1. Dilim)";
+                    if(isDilim2) locName += " (2. Dilim)";
+                }
+                
+                teachers.forEach(t => {
+                    let realName = users[t] ? (users[t].name || t) : t;
+                    result.push(`${realName} (${locName})`);
+                });
+            }
+            
+            return result;
+        }
+
         function renderStudentDutyView(studentNo, db) {
             const container = document.getElementById('dutyContentContainer');
             const plan = db.school.studentDuties.plan || [];
@@ -2581,24 +2699,17 @@ DataManager._getStorageKey = function () {
             
             // O günkü Nöbetçi Öğretmenler
             let dutyTeachersHtml = '';
-            let ds = db.school.duties ? db.school.duties[closestDate] : null;
-            if (ds) {
-                let teachersList = [];
-                for (let k in ds) {
-                    if (ds[k].teachers && ds[k].teachers.length > 0) {
-                        ds[k].teachers.forEach(t => teachersList.push(`${t} (${ds[k].name})`));
-                    }
-                }
-                if (teachersList.length > 0) {
-                    dutyTeachersHtml = `
-                        <div style="margin-top:20px; background:white; padding:20px; border-radius:12px; border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
-                            <h3 style="margin:0 0 10px 0; color:var(--dark); font-size:1.1rem;"><i class="fa-solid fa-chalkboard-user" style="color:#ef4444;"></i> O Günkü Nöbetçi Öğretmenler</h3>
-                            <ul style="margin:0; padding-left:20px; color:var(--gray-600); line-height:1.6;">
-                                ${teachersList.map(t => `<li>${t}</li>`).join('')}
-                            </ul>
-                        </div>
-                    `;
-                }
+            let teachersList = getTeachersForDate(closestDate, db);
+            
+            if (teachersList.length > 0) {
+                dutyTeachersHtml = `
+                    <div style="margin-top:20px; background:white; padding:20px; border-radius:12px; border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
+                        <h3 style="margin:0 0 10px 0; color:var(--dark); font-size:1.1rem;"><i class="fa-solid fa-chalkboard-user" style="color:#ef4444;"></i> O Günkü Nöbetçi Öğretmenler</h3>
+                        <ul style="margin:0; padding-left:20px; color:var(--gray-600); line-height:1.6;">
+                            ${teachersList.map(t => `<li>${t}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
             }
             
             // Tarihi formatla
@@ -2724,17 +2835,9 @@ DataManager._getStorageKey = function () {
                                     }
                                     
                                     // Öğretmenleri Ekle
-                                    let ds = state.db.school.duties ? state.db.school.duties[dateStr] : null;
-                                    if(ds) {
-                                        let teachersList = [];
-                                        for (let k in ds) {
-                                            if (ds[k].teachers && ds[k].teachers.length > 0) {
-                                                ds[k].teachers.forEach(t => teachersList.push(`${t}`));
-                                            }
-                                        }
-                                        if (teachersList.length > 0) {
-                                            locStr += `<div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--gray-200);"><strong style="color:#ef4444;"><i class="fa-solid fa-chalkboard-user"></i> Nöbetçi Öğretmenler:</strong> <span style="color:var(--gray-600);">${teachersList.join(', ')}</span></div>`;
-                                        }
+                                    let teachersList = getTeachersForDate(dateStr, state.db);
+                                    if(teachersList.length > 0) {
+                                        locStr += `<div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--gray-200);"><strong style="color:#ef4444;"><i class="fa-solid fa-chalkboard-user"></i> Nöbetçi Öğretmenler:</strong> <span style="color:var(--gray-600);">${teachersList.join(', ')}</span></div>`;
                                     }
                                     
                                     return `
