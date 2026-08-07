@@ -1857,7 +1857,7 @@ function updateTeacherDutyDashboardUI() {
 
                 sDutiesHtml = `
                     <div style="padding: 15px; background: rgba(79, 70, 229, 0.05); border-radius: 8px; text-align:left; font-size:0.95rem; color:var(--gray-700); height:100%;">
-                        <strong style="color:#4f46e5;"><i class="fa-solid fa-user-graduate"></i> O Gün Nöbetçi Öğrenciler:</strong>
+                        <strong style="color:#4f46e5;"><i class="fa-solid fa-user-graduate"></i> Bugün Nöbetçi Öğrenciler:</strong>
                         <div style="margin-top:12px; max-height:200px; overflow-y:auto; padding-right:5px;">
                             ${studentsHtml}
                         </div>
