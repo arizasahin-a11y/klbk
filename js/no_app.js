@@ -331,7 +331,7 @@ function isValidGender(student, genderPref) {
     let sg = String(genderVal).toLowerCase().trim();
     
     if (genderPref === 'Kız') {
-        return (sg === 'kız' || sg === 'k' || sg === 'kiz' || sg.includes('female'));
+        return (sg === 'kız' || sg === 'k' || sg === 'kiz' || sg.includes('female') || sg.includes('kadın') || sg.includes('kadin'));
     }
     
     if (genderPref === 'Erkek') {
@@ -345,21 +345,32 @@ function renderPlan() {
     const tbody = $('#planTableBody');
     tbody.empty();
     
+    // Tarihe göre grupla
+    let grouped = {};
     generatedPlan.forEach(p => {
-        // Tarih formatını güzelleştir
-        let parts = p.date.split('-');
-        let displayDate = parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : p.date;
+        if (!grouped[p.date]) grouped[p.date] = [];
+        grouped[p.date].push(p);
+    });
+
+    Object.keys(grouped).sort().forEach(dateStr => {
+        let parts = dateStr.split('-');
+        let displayDate = parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : dateStr;
+        let dayRows = grouped[dateStr];
         
-        let html = `
-            <tr>
-                <td><strong>${displayDate}</strong></td>
+        dayRows.forEach((p, index) => {
+            let html = '<tr>';
+            if (index === 0) {
+                html += `<td rowspan="${dayRows.length}" style="vertical-align: middle; background: #f8fafc; border-right: 1px solid #e2e8f0; font-size: 15px;"><strong>${displayDate}</strong></td>`;
+            }
+            
+            html += `
                 <td><span style="background:rgba(79,70,229,0.1); color:#4f46e5; padding:4px 8px; border-radius:6px; font-weight:600; font-size:13px;">${p.locName}</span></td>
                 <td>${p.className}</td>
                 <td>${p.number}</td>
                 <td>${p.name}</td>
-            </tr>
-        `;
-        tbody.append(html);
+            </tr>`;
+            tbody.append(html);
+        });
     });
 }
 
