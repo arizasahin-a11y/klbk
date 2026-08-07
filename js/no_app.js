@@ -330,6 +330,8 @@ function isValidGender(student, genderPref) {
     let genderVal = student.cinsiyet || student.Cinsiyet || student['Cinsiyeti'] || student['CİNSİYETİ'] || student.gender || student.cns || '';
     let sg = String(genderVal).toLowerCase().trim();
     
+    if (!sg) return true; // Eğer veritabanında cinsiyet verisi tamamen eksikse, sistemi çökertmemek için herkesi dahil et.
+    
     if (genderPref === 'Kız') {
         return (sg === 'kız' || sg === 'k' || sg === 'kiz' || sg.includes('female') || sg.includes('kadın') || sg.includes('kadin'));
     }
