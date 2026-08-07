@@ -195,13 +195,13 @@ window.generatePlan = function() {
         studentsByClass[c] = allStudents.filter(s => s.class === c).sort((a,b) => parseInt(a.number) - parseInt(b.number));
     });
 
-    // Son 1 ayı hesapla (Sadece hafta içi ve tatil olmayan günler)
+    // Son 1 yılı hesapla (Sadece hafta içi ve tatil olmayan günler)
     let workingDays = [];
-    let d = new Date(); // Today
+    let d = new Date(); 
     
-    // Güvenlik: Sonsuz döngüyü engellemek için maks 100 gün ileri bak
-    let maxLookAhead = 100;
-    while(workingDays.length < 20 && maxLookAhead > 0) { // Yaklaşık 1 ay (20 iş günü)
+    // 1 Yıllık (365 gün) plan süreci
+    let maxLookAhead = 365;
+    while(maxLookAhead > 0) {
         let dayOfWeek = d.getDay();
         if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Hafta sonu değilse
             let dStr = d.toISOString().split('T')[0];
@@ -344,13 +344,41 @@ function isValidGender(student, genderPref) {
     return true; 
 }
 
+window.changeMonth = function(delta) {
+    let [year, month] = currentViewMonth.split('-').map(Number);
+    month += delta;
+    if (month > 12) { month = 1; year++; }
+    if (month < 1) { month = 12; year--; }
+    currentViewMonth = `${year}-${month.toString().padStart(2, '0')}`;
+    renderPlan();
+};
+
 function renderPlan() {
-    const tbody = $('#planTableBody');
-    tbody.empty();
-    
-    // Tarihe göre grupla
+    let tbody = document.querySelector('#planTable tbody');
+    tbody.innerHTML = '';
+
+    if (generatedPlan.length === 0) {
+        $('#resultsPanel').hide();
+        return;
+    }
+
+    // Ay ismini güncelle
+    let [year, month] = currentViewMonth.split('-');
+    let monthNames = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+    document.getElementById('currentMonthLabel').innerText = `${monthNames[parseInt(month)-1]} ${year}`;
+
+    // Sadece seçili ayın verilerini filtrele
+    let filteredPlan = generatedPlan.filter(p => p.date.startsWith(currentViewMonth));
+
+    if (filteredPlan.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 20px; color: var(--gray-500);">Bu ay için oluşturulmuş bir nöbet bulunmuyor.</td></tr>`;
+        $('#resultsPanel').show();
+        return;
+    }
+
+    // Tarihe göre grupla (sadece filtrelenenler)
     let grouped = {};
-    generatedPlan.forEach(p => {
+    filteredPlan.forEach(p => {
         if (!grouped[p.date]) grouped[p.date] = [];
         grouped[p.date].push(p);
     });
@@ -372,7 +400,7 @@ function renderPlan() {
                 <td>${p.number}</td>
                 <td>${p.name}</td>
             </tr>`;
-            tbody.append(html);
+            tbody.insertAdjacentHTML('beforeend', html);
         });
     });
 }
