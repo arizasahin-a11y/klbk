@@ -992,10 +992,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                                         no: stdNo, name: fullName, class: currentClass,
                                         status: 'Aktif'
                                     };
-                                    if (colCinsiyet !== -1) {
-                                        let cVal = String(row[colCinsiyet] || '').trim().toUpperCase();
-                                        if (cVal.startsWith('K')) newStdObj.extra1 = 'K';
-                                        else if (cVal.startsWith('E')) newStdObj.extra1 = 'E';
+                                    let cVal = colCinsiyet !== -1 ? String(row[colCinsiyet] || '').trim().toUpperCase() : '';
+                                    if (cVal.startsWith('K')) {
+                                        newStdObj.extra1 = 'K';
+                                    } else if (cVal.startsWith('E')) {
+                                        newStdObj.extra1 = 'E';
                                     } else {
                                         // Bulletproof fallback: search for gender in the row after the name
                                         let startScan = Math.max(colAd, colSoyad, colOgrNo, colSNo) + 1;
