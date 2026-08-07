@@ -331,11 +331,6 @@ function renderPlan() {
 }
 
 // --- Kayıt İşlemleri ---
-function getDbPath() {
-    const storeKey = DataManager._getStorageKey();
-    return `${FIREBASE_DB_URL}/app_store/${encodeURIComponent(storeKey)}_student_duties.json`;
-}
-
 window.savePlan = async function() {
     const selectedClasses = $('#classSelect').val() || [];
     const saveData = {
@@ -347,17 +342,14 @@ window.savePlan = async function() {
 
     try {
         Swal.fire({ title: 'Kaydediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-        const res = await fetch(getDbPath(), {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(saveData)
-        });
+        
+        // DataManager üzerinden kaydet (Token ve Güvenlik kurallarından geçmek için)
+        let db = DataManager._getData();
+        if (!db.school) db.school = {};
+        db.school.studentDuties = saveData;
+        DataManager._saveData(db);
 
-        if (res.ok) {
-            Swal.fire('Başarılı', 'Nöbet planı ve ayarları Firebase\'e kaydedildi.', 'success');
-        } else {
-            throw new Error('Server returned ' + res.status);
-        }
+        Swal.fire('Başarılı', 'Nöbet planı ve ayarları Firebase\'e kaydedildi.', 'success');
     } catch (e) {
         console.error(e);
         Swal.fire('Hata', 'Kaydedilirken bir sorun oluştu.', 'error');
@@ -366,19 +358,17 @@ window.savePlan = async function() {
 
 async function loadSavedData() {
     try {
-        const res = await fetch(getDbPath() + `?t=${Date.now()}`);
-        if (res.ok) {
-            const data = await res.json();
-            if (data) {
-                if (data.locations) dutyLocations = data.locations;
-                if (data.selectedClasses) {
-                    $('#classSelect').val(data.selectedClasses).trigger('change');
-                }
-                if (data.plan && data.plan.length > 0) {
-                    generatedPlan = data.plan;
-                    renderPlan();
-                    $('#resultsPanel').show();
-                }
+        let db = DataManager._getData();
+        if (db && db.school && db.school.studentDuties) {
+            const data = db.school.studentDuties;
+            if (data.locations) dutyLocations = data.locations;
+            if (data.selectedClasses) {
+                $('#classSelect').val(data.selectedClasses).trigger('change');
+            }
+            if (data.plan && data.plan.length > 0) {
+                generatedPlan = data.plan;
+                renderPlan();
+                $('#resultsPanel').show();
             }
         }
     } catch (e) {
