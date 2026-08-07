@@ -2805,7 +2805,21 @@ DataManager._getStorageKey = function () {
                 `;
             }
 
-            container.innerHTML = closestHtml + partnersHtml + dutyTeachersHtml + `<div id="studentScheduleContainer"></div>`;
+            let sideBySideHtml = '';
+            if (partnersHtml || dutyTeachersHtml) {
+                // Her iki html parçasındaki margin-top:20px'i kaldıralım (regex kullanarak ilkini bulup değiştiriyoruz)
+                let pClean = partnersHtml.replace('margin-top:20px;', 'margin-top:0; height:100%; box-sizing:border-box;');
+                let tClean = dutyTeachersHtml.replace('margin-top:20px;', 'margin-top:0; height:100%; box-sizing:border-box;');
+                
+                sideBySideHtml = `
+                    <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-top: 20px; align-items: stretch;">
+                        ${partnersHtml ? `<div style="flex: 1; min-width: 300px; display: flex; flex-direction: column;">${pClean}</div>` : ''}
+                        ${dutyTeachersHtml ? `<div style="flex: 1; min-width: 300px; display: flex; flex-direction: column;">${tClean}</div>` : ''}
+                    </div>
+                `;
+            }
+
+            container.innerHTML = closestHtml + sideBySideHtml + `<div id="studentScheduleContainer"></div>`;
             renderStudentScheduleTable();
         }
 
