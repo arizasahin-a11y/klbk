@@ -149,19 +149,18 @@ function renderLocations() {
         let genderIcon = loc.gender === 'Kız' ? '<i class="fa-solid fa-person-dress" style="color:#ec4899;"></i>' : 
                          loc.gender === 'Erkek' ? '<i class="fa-solid fa-person" style="color:#3b82f6;"></i>' : 
                          '<i class="fa-solid fa-users" style="color:#8b5cf6;"></i>';
-                         
+
         let html = `
-            <div class="loc-card">
-                <div class="loc-card-header">
-                    <h4 style="margin:0; font-size:1rem;">${loc.name}</h4>
-                    <span class="badge ${loc.gender === 'Farketmez' ? 'badge-primary' : (loc.gender==='Kız'?'badge-pink':'badge-blue')}">
-                        ${loc.gender}
+            <div class="location-card">
+                <div class="location-info">
+                    <span class="location-title" style="font-weight: 700; color: var(--gray-800);">${loc.name}</span>
+                    <span class="location-meta" style="display: flex; gap: 10px; font-size: 0.85rem; color: var(--gray-600); margin-top: 5px;">
+                        <span><i class="fa-solid fa-users" style="width:16px;"></i> ${loc.count} Nöbetçi / Gün</span>
+                        <span>|</span>
+                        <span>${genderIcon} ${loc.gender}</span>
                     </span>
                 </div>
-                <div class="loc-card-body" style="font-size:0.85rem; color:var(--gray-600); margin-top:8px;">
-                    <div><i class="fa-solid fa-users" style="width:16px;"></i> ${loc.count} Nöbetçi / Gün</div>
-                </div>
-                <button class="btn-icon" onclick="window.removeLocation('${loc.id}')" title="Sil">
+                <button class="btn-icon" onclick="window.removeLocation('${loc.id}')" title="Sil" style="color: #ef4444; background: rgba(239, 68, 68, 0.1); border-radius: 8px; border: none; padding: 10px; cursor: pointer; transition: 0.2s;">
                     <i class="fa-solid fa-trash"></i>
                 </button>
             </div>
