@@ -2605,58 +2605,21 @@ DataManager._getStorageKey = function () {
             let [y,m,d] = closestDate.split('-');
             let formattedClosestDate = `${d}.${m}.${y}`;
             
-            // Okulun Tüm Nöbet Çizelgesi
-            let dateGroups = {};
-            plan.forEach(p => {
-                if(!dateGroups[p.date]) dateGroups[p.date] = [];
-                dateGroups[p.date].push(p);
-            });
-            let sortedDates = Object.keys(dateGroups).sort((a,b) => new Date(a) - new Date(b));
+            // Okulun Tüm Nöbet Çizelgesi - State Kurulumu
+            window.studentScheduleState = {
+                dateGroups: {},
+                sortedDates: [],
+                todayStr: todayStr,
+                studentNo: studentNo,
+                db: db,
+                page: 0
+            };
             
-            let scheduleHtml = `
-                <div style="margin-top:20px; background:white; padding:20px; border-radius:12px; border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
-                    <h3 style="margin:0 0 15px 0; color:var(--dark); font-size:1.1rem;"><i class="fa-regular fa-calendar-days" style="color:var(--primary);"></i> Okul Nöbet Çizelgesi</h3>
-                    <div style="overflow-x:auto;">
-                        <table style="width:100%; border-collapse:collapse; min-width:300px; font-size:0.9rem;">
-                            <thead>
-                                <tr style="background:var(--gray-50); border-bottom:2px solid var(--gray-200);">
-                                    <th style="padding:12px; text-align:left; color:var(--gray-600); font-weight:600;">Tarih</th>
-                                    <th style="padding:12px; text-align:left; color:var(--gray-600); font-weight:600;">Nöbet Yerleri ve Öğrenciler</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${sortedDates.map(dateStr => {
-                                    let [py,pm,pd] = dateStr.split('-');
-                                    let isPast = dateStr < todayStr;
-                                    let isToday = dateStr === todayStr;
-                                    let badge = '';
-                                    if(isToday) badge = '<span style="background:#ef4444; color:white; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:bold; margin-left:8px;">BUGÜN</span>';
-                                    else if(isPast) badge = '<span style="color:var(--gray-400); font-size:0.8rem; margin-left:8px;">(Geçmiş)</span>';
-                                    
-                                    let locStr = '';
-                                    let locObj = {};
-                                    dateGroups[dateStr].forEach(p => {
-                                        if(!locObj[p.locName]) locObj[p.locName] = [];
-                                        let meBadge = (String(p.number) === String(studentNo)) ? ' <span style="color:white; background:var(--primary); padding:1px 4px; border-radius:4px; font-size:0.7rem;">SİZ</span>' : '';
-                                        locObj[p.locName].push(`${p.name} (${p.className})${meBadge}`);
-                                    });
-                                    
-                                    for(let l in locObj) {
-                                        locStr += `<div style="margin-bottom:6px;"><strong style="color:var(--primary);">${l}:</strong> ${locObj[l].join(', ')}</div>`;
-                                    }
-                                    
-                                    return `
-                                    <tr style="border-bottom:1px solid var(--gray-100); ${isPast ? 'opacity:0.6;' : ''} ${isToday ? 'background:rgba(239, 68, 68, 0.05);' : ''}">
-                                        <td style="padding:12px; color:var(--dark); font-weight:600; vertical-align:top; width:130px;">${pd}.${pm}.${py} ${badge}</td>
-                                        <td style="padding:12px;">${locStr}</td>
-                                    </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
+            plan.forEach(p => {
+                if(!window.studentScheduleState.dateGroups[p.date]) window.studentScheduleState.dateGroups[p.date] = [];
+                window.studentScheduleState.dateGroups[p.date].push(p);
+            });
+            window.studentScheduleState.sortedDates = Object.keys(window.studentScheduleState.dateGroups).sort((a,b) => new Date(a) - new Date(b));
             
             // Yaklaşan Nöbet Kartı
             let closestHtml = `
@@ -2699,7 +2662,93 @@ DataManager._getStorageKey = function () {
                 `;
             }
 
-            container.innerHTML = closestHtml + partnersHtml + dutyTeachersHtml + scheduleHtml;
+            container.innerHTML = closestHtml + partnersHtml + dutyTeachersHtml + `<div id="studentScheduleContainer"></div>`;
+            renderStudentScheduleTable();
+        }
+
+        window.changeStudentSchedulePage = function(dir) {
+            window.studentScheduleState.page += dir;
+            renderStudentScheduleTable();
+        }
+
+        function renderStudentScheduleTable() {
+            const container = document.getElementById('studentScheduleContainer');
+            if(!container) return;
+            
+            const state = window.studentScheduleState;
+            const itemsPerPage = 30;
+            const startIndex = state.page * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedDates = state.sortedDates.slice(startIndex, endIndex);
+            const totalPages = Math.ceil(state.sortedDates.length / itemsPerPage);
+            
+            let scheduleHtml = `
+                <div style="margin-top:20px; background:white; padding:20px; border-radius:12px; border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                        <h3 style="margin:0; color:var(--dark); font-size:1.1rem;"><i class="fa-regular fa-calendar-days" style="color:var(--primary);"></i> Okul Nöbet Çizelgesi</h3>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <button onclick="changeStudentSchedulePage(-1)" ${state.page === 0 ? 'disabled' : ''} style="background:var(--gray-100); border:1px solid var(--gray-300); padding:5px 15px; border-radius:6px; cursor:${state.page === 0 ? 'not-allowed' : 'pointer'}; opacity:${state.page === 0 ? '0.5' : '1'}; color:var(--dark); font-weight:bold;"><i class="fa-solid fa-chevron-left"></i> Önceki</button>
+                            <span style="font-size:0.85rem; color:var(--gray-600); font-weight:bold;">${state.page + 1} / ${totalPages || 1}</span>
+                            <button onclick="changeStudentSchedulePage(1)" ${endIndex >= state.sortedDates.length ? 'disabled' : ''} style="background:var(--gray-100); border:1px solid var(--gray-300); padding:5px 15px; border-radius:6px; cursor:${endIndex >= state.sortedDates.length ? 'not-allowed' : 'pointer'}; opacity:${endIndex >= state.sortedDates.length ? '0.5' : '1'}; color:var(--dark); font-weight:bold;">Sonraki <i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; min-width:300px; font-size:0.9rem;">
+                            <thead>
+                                <tr style="background:var(--gray-50); border-bottom:2px solid var(--gray-200);">
+                                    <th style="padding:12px; text-align:left; color:var(--gray-600); font-weight:600;">Tarih</th>
+                                    <th style="padding:12px; text-align:left; color:var(--gray-600); font-weight:600;">Nöbet Yerleri ve Öğrenciler / Öğretmenler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${paginatedDates.map(dateStr => {
+                                    let [py,pm,pd] = dateStr.split('-');
+                                    let isPast = dateStr < state.todayStr;
+                                    let isToday = dateStr === state.todayStr;
+                                    let badge = '';
+                                    if(isToday) badge = '<span style="background:#ef4444; color:white; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:bold; margin-left:8px; display:inline-block; margin-top:5px;">BUGÜN</span>';
+                                    else if(isPast) badge = '<span style="color:var(--gray-400); font-size:0.8rem; display:block; margin-top:5px;">(Geçmiş)</span>';
+                                    
+                                    let locStr = '';
+                                    let locObj = {};
+                                    state.dateGroups[dateStr].forEach(p => {
+                                        if(!locObj[p.locName]) locObj[p.locName] = [];
+                                        let meBadge = (String(p.number) === String(state.studentNo)) ? ' <span style="color:white; background:var(--primary); padding:1px 4px; border-radius:4px; font-size:0.7rem;">SİZ</span>' : '';
+                                        locObj[p.locName].push(`${p.name} (${p.className})${meBadge}`);
+                                    });
+                                    
+                                    for(let l in locObj) {
+                                        locStr += `<div style="margin-bottom:6px;"><strong style="color:var(--primary);">${l}:</strong> ${locObj[l].join(', ')}</div>`;
+                                    }
+                                    
+                                    // Öğretmenleri Ekle
+                                    let ds = state.db.school.duties ? state.db.school.duties[dateStr] : null;
+                                    if(ds) {
+                                        let teachersList = [];
+                                        for (let k in ds) {
+                                            if (ds[k].teachers && ds[k].teachers.length > 0) {
+                                                ds[k].teachers.forEach(t => teachersList.push(`${t}`));
+                                            }
+                                        }
+                                        if (teachersList.length > 0) {
+                                            locStr += `<div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--gray-200);"><strong style="color:#ef4444;"><i class="fa-solid fa-chalkboard-user"></i> Nöbetçi Öğretmenler:</strong> <span style="color:var(--gray-600);">${teachersList.join(', ')}</span></div>`;
+                                        }
+                                    }
+                                    
+                                    return `
+                                    <tr style="border-bottom:1px solid var(--gray-100); ${isPast ? 'opacity:0.6;' : ''} ${isToday ? 'background:rgba(239, 68, 68, 0.05);' : ''}">
+                                        <td style="padding:12px; color:var(--dark); font-weight:600; vertical-align:top; width:130px;">${pd}.${pm}.${py} ${badge}</td>
+                                        <td style="padding:12px;">${locStr}</td>
+                                    </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = scheduleHtml;
         }
 
         // Script sonunda çalıştır
