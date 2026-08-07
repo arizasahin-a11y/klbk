@@ -5,6 +5,8 @@ let allStudents = [];
 let classList = [];
 let dutyLocations = []; // { id, name, count, gender, rule }
 let generatedPlan = []; // { date, locName, class, no, name }
+window.currentChunkIndex = 0;
+window.planChunks = [];
 const FIREBASE_DB_URL = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
 
 $(document).ready(async function() {
@@ -199,9 +201,9 @@ window.generatePlan = function() {
     let workingDays = [];
     let d = new Date(); 
     
-    // 30 Günlük (Yaklaşık 1 Ay) plan süreci
-    let maxLookAhead = 30;
-    while(workingDays.length < 22 && maxLookAhead > 0) {
+    // 1 Yıllık plan üret ve sayfala
+    let maxLookAhead = 365;
+    while(maxLookAhead > 0) {
         let dayOfWeek = d.getDay();
         if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Hafta sonu değilse
             let dStr = d.toISOString().split('T')[0];
@@ -310,9 +312,18 @@ window.generatePlan = function() {
     // Tarihe göre sırala
     generatedPlan.sort((a,b) => a.date.localeCompare(b.date));
 
+    // Planı 20 günlük (yaklaşık 1 aylık) parçalara (chunk) böl
+    let uniqueDates = [...new Set(generatedPlan.map(p => p.date))];
+    window.planChunks = [];
+    for(let i=0; i<uniqueDates.length; i+=20) {
+        window.planChunks.push(uniqueDates.slice(i, i+20));
+    }
+    window.currentChunkIndex = 0;
+
     renderPlan();
     $('#resultsPanel').show();
     $('#btnSavePlan').show();
+    $('#topSaveBtn').show(); // Üstteki yeni kaydet butonu
 
     Swal.fire({
         toast: true,
@@ -344,14 +355,27 @@ function isValidGender(student, genderPref) {
     return true; 
 }
 
+window.changeChunk = function(delta) {
+    if (window.planChunks.length === 0) return;
+    let newIndex = window.currentChunkIndex + delta;
+    if (newIndex >= 0 && newIndex < window.planChunks.length) {
+        window.currentChunkIndex = newIndex;
+        renderPlan();
+    }
+};
+
 function renderPlan() {
     let tbody = document.querySelector('#planTable tbody');
     tbody.innerHTML = '';
 
-    if (generatedPlan.length === 0) {
+    if (generatedPlan.length === 0 || window.planChunks.length === 0) {
         $('#resultsPanel').hide();
+        $('#topSaveBtn').hide();
         return;
     }
+
+    let currentChunkDates = window.planChunks[window.currentChunkIndex];
+    let filteredPlan = generatedPlan.filter(p => currentChunkDates.includes(p.date));
 
     // Tarih formatlama fonksiyonu
     const formatDateTR = (dateStr) => {
@@ -361,13 +385,13 @@ function renderPlan() {
     };
 
     // Başlığı güncelle (Örn: 7 Ağustos - 5 Eylül Tarihleri Arası Nöbet Listesi)
-    let firstDate = generatedPlan[0].date;
-    let lastDate = generatedPlan[generatedPlan.length - 1].date;
-    document.getElementById('planDateRangeLabel').innerText = `${formatDateTR(firstDate)} - ${formatDateTR(lastDate)} Tarihleri Arası Nöbet Listesi`;
+    let firstDate = currentChunkDates[0];
+    let lastDate = currentChunkDates[currentChunkDates.length - 1];
+    document.getElementById('currentChunkLabel').innerText = `${formatDateTR(firstDate)} - ${formatDateTR(lastDate)} Tarihleri Arası`;
 
     // Tarihe göre grupla
     let grouped = {};
-    generatedPlan.forEach(p => {
+    filteredPlan.forEach(p => {
         if (!grouped[p.date]) grouped[p.date] = [];
         grouped[p.date].push(p);
     });
@@ -436,8 +460,17 @@ async function loadSavedData() {
             }
             if (data.plan && data.plan.length > 0) {
                 generatedPlan = data.plan;
+                // Kayıtlı planı chunk'lara ayır
+                let uniqueDates = [...new Set(generatedPlan.map(p => p.date))];
+                window.planChunks = [];
+                for(let i=0; i<uniqueDates.length; i+=20) {
+                    window.planChunks.push(uniqueDates.slice(i, i+20));
+                }
+                window.currentChunkIndex = 0;
+                
                 renderPlan();
                 $('#resultsPanel').show();
+                $('#topSaveBtn').show();
             }
         }
     } catch (e) {
