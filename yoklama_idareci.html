@@ -1100,7 +1100,33 @@
 
                 // Load attendance databases
                 const dbData = DataManager._getData();
-                attendanceDb = dbData.attendance || {};
+                attendanceDb = JSON.parse(JSON.stringify(dbData.attendance || {})); // Deep copy to prevent modifying the actual saved DB via reference if not intended
+                
+                // --- DİNAMİK NÖBETÇİ ENJEKSİYONU ---
+                if (dbData.school && dbData.school.studentDuties && dbData.school.studentDuties.plan) {
+                    let rawPlan = dbData.school.studentDuties.plan;
+                    let plan = typeof window.shiftStudentPlanDates === 'function' ? window.shiftStudentPlanDates(rawPlan) : rawPlan;
+                    plan.forEach(p => {
+                        let d = p.date;
+                        let sNo = String(p.number);
+                        if (attendanceDb[d]) {
+                            for (let h in attendanceDb[d]) {
+                                for (let c in attendanceDb[d][h]) {
+                                    if (c === p.class) { 
+                                        let record = attendanceDb[d][h][c];
+                                        if (record && record.records) {
+                                            let curr = record.records[sNo];
+                                            if (curr !== 'GELMEDİ') {
+                                                record.records[sNo] = 'NÖBETÇİ';
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                // ------------------------------------
 
                 // Compute overall stats
                 computeOverallStats();

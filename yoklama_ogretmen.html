@@ -1970,10 +1970,36 @@
                 document.getElementById('lastSaveDisplay').textContent = 'Kaydedilmedi';
             }
 
+            // 1. Bugünün nöbetçi numaralarını topla
+            let todayDutyNos = new Set();
+            if (dbData.school && dbData.school.studentDuties && dbData.school.studentDuties.plan) {
+                let rawPlan = dbData.school.studentDuties.plan;
+                let plan = typeof window.shiftStudentPlanDates === 'function' ? window.shiftStudentPlanDates(rawPlan) : rawPlan;
+                plan.forEach(p => {
+                    if (p.date === dateVal) {
+                        todayDutyNos.add(String(p.number));
+                    }
+                });
+            }
+
             // For students that don't have a record, set to 'GELDİ' by default
+            // Ayrıca nöbetçi listesine göre 'NÖBETÇİ' durumunu dinamik güncelle
             activeClassStudents.forEach(s => {
-                if (!attendanceMap[s.no]) {
-                    attendanceMap[s.no] = 'GELDİ';
+                let sNo = String(s.no);
+                
+                if (todayDutyNos.has(sNo)) {
+                    // Öğrenci devamsız (GELMEDİ) olarak işaretlenmemişse otomatik NÖBETÇİ yap
+                    if (attendanceMap[s.no] !== 'GELMEDİ') {
+                        attendanceMap[s.no] = 'NÖBETÇİ';
+                    }
+                } else {
+                    // Nöbetçi listesinde yoksa, ama eskiden NÖBETÇİ kalmışsa (nöbeti iptal olmuşsa) GELDİ yap
+                    if (attendanceMap[s.no] === 'NÖBETÇİ') {
+                        attendanceMap[s.no] = 'GELDİ';
+                    } else if (!attendanceMap[s.no]) {
+                        // Hiç kaydı yoksa varsayılan olarak GELDİ
+                        attendanceMap[s.no] = 'GELDİ';
+                    }
                 }
             });
 
