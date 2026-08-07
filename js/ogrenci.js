@@ -2465,3 +2465,150 @@ DataManager._getStorageKey = function () {
         function getExamEndTime(dateStr, timeStr, duration) {
             return DataManager.getSessionEndDateTime(dateStr, timeStr, duration);
         }
+
+        // --- Öğrenci Nöbet Görüntüleme Sistemi ---
+        function initDutyCheck() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const dutyNo = urlParams.get('dutyCheck');
+            if (!dutyNo) return;
+            
+            // Eğer parametre varsa, sınav UI'ını gizle, nöbet UI'ını göster
+            const loginView = document.getElementById('loginView');
+            const resultsView = document.getElementById('resultsView');
+            const rulesView = document.getElementById('rulesView');
+            const dutyView = document.getElementById('dutyView');
+            
+            if(loginView) loginView.classList.add('hidden');
+            if(resultsView) resultsView.classList.add('hidden');
+            if(rulesView) rulesView.classList.add('hidden');
+            if(dutyView) dutyView.classList.remove('hidden');
+            
+            // Verinin yüklenmesini bekle
+            const checkInt = setInterval(() => {
+                const db = DataManager._getData();
+                if (db && db.school && db.school.studentDuties) {
+                    clearInterval(checkInt);
+                    renderStudentDutyView(dutyNo, db);
+                }
+            }, 100);
+        }
+        
+        function renderStudentDutyView(studentNo, db) {
+            const container = document.getElementById('dutyContentContainer');
+            const plan = db.school.studentDuties.plan || [];
+            const myDuties = plan.filter(p => String(p.number) === String(studentNo));
+            
+            if (myDuties.length === 0) {
+                container.innerHTML = '<div style="padding:30px; text-align:center; color:var(--gray-500);"><i class="fa-solid fa-circle-exclamation fa-3x" style="color:var(--warning); margin-bottom:15px;"></i><br>Size atanmış bir nöbet görevi bulunmuyor.</div>';
+                return;
+            }
+            
+            // myDuties tarihe göre sırala
+            myDuties.sort((a,b) => new Date(a.date) - new Date(b.date));
+            
+            const todayStr = new Date().toISOString().split('T')[0];
+            
+            // En yakın nöbeti bul (bugün veya bugünden sonraki ilk nöbet)
+            let closestDuty = myDuties.find(p => p.date >= todayStr) || myDuties[myDuties.length - 1]; // Eğer gelecek nöbet yoksa en sonuncuyu göster
+            let closestDate = closestDuty.date;
+            
+            // Nöbet arkadaşları (Aynı gün, aynı yer, BENDEN FARKLI kişiler)
+            let partners = plan.filter(p => p.date === closestDate && p.locName === closestDuty.locName && String(p.number) !== String(studentNo));
+            
+            // O günkü Nöbetçi Öğretmenler
+            let dutyTeachersHtml = '';
+            let ds = db.school.duties ? db.school.duties[closestDate] : null;
+            if (ds) {
+                let teachersList = [];
+                for (let k in ds) {
+                    if (ds[k].teachers && ds[k].teachers.length > 0) {
+                        ds[k].teachers.forEach(t => teachersList.push(`${t} (${ds[k].name})`));
+                    }
+                }
+                if (teachersList.length > 0) {
+                    dutyTeachersHtml = `
+                        <div style="margin-top:20px; background:white; padding:20px; border-radius:12px; border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
+                            <h3 style="margin:0 0 10px 0; color:var(--dark); font-size:1.1rem;"><i class="fa-solid fa-chalkboard-user" style="color:#ef4444;"></i> O Günkü Nöbetçi Öğretmenler</h3>
+                            <ul style="margin:0; padding-left:20px; color:var(--gray-600); line-height:1.6;">
+                                ${teachersList.map(t => `<li>${t}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Tarihi formatla
+            let [y,m,d] = closestDate.split('-');
+            let formattedClosestDate = `${d}.${m}.${y}`;
+            
+            // Öğrencinin son 30 ve gelecek tüm planlarını gösterelim
+            let scheduleHtml = `
+                <div style="margin-top:20px; background:white; padding:20px; border-radius:12px; border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
+                    <h3 style="margin:0 0 15px 0; color:var(--dark); font-size:1.1rem;"><i class="fa-regular fa-calendar-days" style="color:var(--primary);"></i> Nöbet Çizelgeniz</h3>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; min-width:300px;">
+                            <thead>
+                                <tr style="background:var(--gray-50); border-bottom:2px solid var(--gray-200);">
+                                    <th style="padding:12px; text-align:left; color:var(--gray-600); font-weight:600;">Tarih</th>
+                                    <th style="padding:12px; text-align:left; color:var(--gray-600); font-weight:600;">Görev Yeri</th>
+                                    <th style="padding:12px; text-align:left; color:var(--gray-600); font-weight:600;">Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${myDuties.map(p => {
+                                    let [py,pm,pd] = p.date.split('-');
+                                    let isPast = p.date < todayStr;
+                                    let isToday = p.date === todayStr;
+                                    let badge = '';
+                                    if(isToday) badge = '<span style="background:#ef4444; color:white; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:bold; margin-left:8px;">BUGÜN</span>';
+                                    else if(isPast) badge = '<span style="color:var(--gray-400); font-size:0.8rem; margin-left:8px;">(Geçmiş)</span>';
+                                    
+                                    return `
+                                    <tr style="border-bottom:1px solid var(--gray-100); ${isPast ? 'opacity:0.6;' : ''} ${isToday ? 'background:rgba(239, 68, 68, 0.05);' : ''}">
+                                        <td style="padding:12px; color:var(--dark); font-weight:600;">${pd}.${pm}.${py} ${badge}</td>
+                                        <td style="padding:12px; color:var(--primary); font-weight:600;">${p.locName}</td>
+                                        <td style="padding:12px; font-size:0.85rem;">${p.note || '-'}</td>
+                                    </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            // Yaklaşan Nöbet Kartı
+            let closestHtml = `
+                <div style="background:linear-gradient(135deg, #4f46e5, #3b82f6); padding:25px; border-radius:16px; color:white; box-shadow:var(--shadow-md);">
+                    <div style="font-size:0.9rem; text-transform:uppercase; font-weight:700; letter-spacing:1px; opacity:0.8;">En Yakın Nöbetiniz</div>
+                    <div style="font-size:2.5rem; font-weight:900; margin:10px 0;">${formattedClosestDate}</div>
+                    <div style="font-size:1.2rem; font-weight:600; display:flex; align-items:center; gap:10px;">
+                        <i class="fa-solid fa-location-dot"></i> ${closestDuty.locName}
+                    </div>
+                </div>
+            `;
+            
+            // Nöbet Arkadaşları Kartı
+            let partnersHtml = '';
+            if (partners.length > 0) {
+                partnersHtml = `
+                    <div style="margin-top:20px; background:white; padding:20px; border-radius:12px; border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
+                        <h3 style="margin:0 0 10px 0; color:var(--dark); font-size:1.1rem;"><i class="fa-solid fa-users" style="color:var(--secondary);"></i> Nöbet Arkadaşlarınız</h3>
+                        <ul style="margin:0; padding-left:20px; color:var(--gray-600); line-height:1.6;">
+                            ${partners.map(pt => `<li><strong>${pt.name}</strong> (${pt.className} - ${pt.number})</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            } else {
+                partnersHtml = `
+                    <div style="margin-top:20px; background:white; padding:15px; border-radius:12px; border:1px solid var(--gray-200); color:var(--gray-500); font-size:0.95rem;">
+                        <i class="fa-solid fa-info-circle"></i> Bu görev yerinde yalnız nöbetçisiniz.
+                    </div>
+                `;
+            }
+
+            container.innerHTML = closestHtml + partnersHtml + dutyTeachersHtml + scheduleHtml;
+        }
+
+        // Script sonunda çalıştır
+        initDutyCheck();

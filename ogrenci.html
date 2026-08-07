@@ -644,6 +644,24 @@
         </div>
     </div>
 
+    <!-- Öğrenci Nöbet Görüntüleme Ekranı -->
+    <div id="dutyView" class="hidden">
+        <div class="student-top-banner">
+            <div>
+                <div style="font-size: 0.8rem; opacity: 0.9; font-weight: 700; text-transform: uppercase;">Nöbet Sistemi</div>
+                <h2 style="margin:0; font-weight: 900; font-size: 1.5rem; line-height: 1.2;">Nöbet Görevleriniz</h2>
+            </div>
+            <button class="btn" onclick="window.location.href='enter.html'"
+                style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem; border-radius: 10px; font-weight: 600;">
+                <i class="fa-solid fa-right-from-bracket"></i> Çıkış
+            </button>
+        </div>
+        
+        <div class="query-container" style="margin-top: 0;" id="dutyContentContainer">
+            <!-- Nöbet detayları buraya JavaScript ile eklenecek -->
+        </div>
+    </div>
+
     <!-- PDF Modification Libraries (defer: sayfa render'ı engellemez) -->
     <script defer src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
     <script defer src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js"></script>
@@ -651,7 +669,7 @@
     <script defer src="js/pdf_engine_v11_9_1.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/core_data_v11_9_1.js"></script>
-    <script src="js/ogrenci.js?v=11.7" defer></script>
+    <script src="js/ogrenci.js?v=11.8" defer></script>
 
 
 

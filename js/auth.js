@@ -274,6 +274,78 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let username = usernameInput.value.trim();
             const password = passwordInput.value;
+            
+            // --- Öğrenci Nöbet Kontrol Sistemi (n + numara) ---
+            if (username.toLowerCase().startsWith('n') && !isNaN(username.substring(1))) {
+                const studentNo = username.substring(1);
+                const btn = loginForm.querySelector('button[type="submit"]');
+                const originalHtml = btn.innerHTML;
+                
+                try {
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Nöbet Kontrolü...';
+                    btn.disabled = true;
+                    
+                    const dbUrl = `${firebaseDatabaseUrl}/app_store/klbk_data_admin.json`;
+                    const res = await fetch(dbUrl);
+                    const db = await res.json();
+                    
+                    if (!db || !db.school || !db.school.studentDuties || !db.school.studentDuties.plan) {
+                        Swal.fire('Bilgi', 'Size tanımlanmış bir nöbet görevi yok.', 'info');
+                        btn.innerHTML = originalHtml;
+                        btn.disabled = false;
+                        return;
+                    }
+                    
+                    const plan = db.school.studentDuties.plan;
+                    const myDuties = plan.filter(p => String(p.number) === String(studentNo));
+                    
+                    if (myDuties.length === 0) {
+                        Swal.fire('Bilgi', 'Size tanımlanmış bir nöbet görevi yok.', 'info');
+                        btn.innerHTML = originalHtml;
+                        btn.disabled = false;
+                        return;
+                    }
+                    
+                    // Nöbeti var, kuralları göster
+                    let lessonTimes = db.school.lessonTimes || {};
+                    let firstStart = lessonTimes['1_start'] || '08:30';
+                    let [sh, sm] = firstStart.split(':').map(Number);
+                    let ruleTime = new Date();
+                    ruleTime.setHours(sh, sm, 0, 0);
+                    ruleTime.setMinutes(ruleTime.getMinutes() - 10);
+                    let ruleTimeStr = String(ruleTime.getHours()).padStart(2, '0') + ':' + String(ruleTime.getMinutes()).padStart(2, '0');
+                    
+                    const rulesHtml = `
+                        <div style="text-align: left; font-size: 15px; line-height: 1.6; color: var(--gray-700);">
+                            <p><strong>1)</strong> Nöbet görevi ders başlamadan 10 dakika önce başlar. Bu yüzden en geç saat <strong>${ruleTimeStr}</strong>'da/de görev yerinizde olmanız gerekmektedir.</p>
+                            <p><strong>2)</strong> Eğer nöbetinize gelemeyecekseniz idarecilere veya nöbetçi olduğunuz günün nöbetçi öğretmenlerine haber veriniz.</p>
+                            <p><strong>3)</strong> Nöbet yerinden izinsiz ayrılmayınız. Nöbetiniz bitmeden okuldan ayrılmayınız.</p>
+                        </div>
+                    `;
+                    
+                    Swal.fire({
+                        title: 'Nöbet Kuralları',
+                        html: rulesHtml,
+                        icon: 'info',
+                        confirmButtonText: 'Kabul Ediyorum',
+                        confirmButtonColor: '#4f46e5',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = `ogrenci.html?dutyCheck=${studentNo}`;
+                        }
+                    });
+                    
+                } catch(err) {
+                    console.error(err);
+                    Swal.fire('Hata', 'Nöbet kontrolü sırasında bir hata oluştu.', 'error');
+                } finally {
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                }
+                return; // Normal girişi iptal et
+            }
 
             // Loading state
             const btn = loginForm.querySelector('button[type="submit"]');
