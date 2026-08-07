@@ -863,7 +863,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const parsedStudents = [];
                     let currentClass = null;
                     let findingHeaders = false;
-                    let colSNo = -1, colOgrNo = -1, colAd = -1, colSoyad = -1;
+                    let colSNo = -1, colOgrNo = -1, colAd = -1, colSoyad = -1, colCinsiyet = -1;
                     let detectedMode = null; // 'e-okul' or 'simple'
 
                     for (let i = 0; i < jsonArr.length; i++) {
@@ -899,7 +899,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             currentClass = cMatchStr;
                             findingHeaders = true;
                             detectedMode = 'e-okul';
-                            colSNo = -1; colOgrNo = -1; colAd = -1; colSoyad = -1;
+                            colSNo = -1; colOgrNo = -1; colAd = -1; colSoyad = -1; colCinsiyet = -1;
                             continue;
                         }
 
@@ -958,6 +958,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 if (adIdx !== -1) colAd = adIdx;
                                 let soyadIdx = row.findIndex(c => { let v = String(c || '').trim().replace(/[\n]+/g, '').toUpperCase(); return v === 'SOYADI' || v === 'SOYAD'; });
                                 if (soyadIdx !== -1) colSoyad = soyadIdx;
+                                let cinsiyetIdx = row.findIndex(c => { let v = String(c || '').trim().replace(/[\n]+/g, '').toUpperCase(); return v === 'CİNSİYET' || v === 'CİNSİYETİ' || v === 'CINSIYET'; });
+                                if (cinsiyetIdx !== -1) colCinsiyet = cinsiyetIdx;
                                 continue;
                             }
                         }
@@ -978,8 +980,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 }
                                 if (stdNo && (stdAd || stdSoyad)) {
                                     let fullName = (stdAd + " " + stdSoyad).replace(/\s+/g, ' ').trim();
+                                    let stdCinsiyet = '';
+                                    if (colCinsiyet !== -1) {
+                                        let cVal = String(row[colCinsiyet] || '').trim().toUpperCase();
+                                        if (cVal.startsWith('K')) stdCinsiyet = 'K';
+                                        else if (cVal.startsWith('E')) stdCinsiyet = 'E';
+                                    }
                                     parsedStudents.push({
                                         no: stdNo, name: fullName, class: currentClass,
+                                        extra1: stdCinsiyet,
                                         status: 'Aktif'
                                     });
                                 }
