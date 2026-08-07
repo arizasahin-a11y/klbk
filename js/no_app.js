@@ -361,6 +361,15 @@ window.changeChunk = function(delta) {
     if (newIndex >= 0 && newIndex < window.planChunks.length) {
         window.currentChunkIndex = newIndex;
         renderPlan();
+    } else {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'info',
+            title: delta > 0 ? 'Listenin sonundasınız. Daha fazlası için yeni plan oluşturun.' : 'Listenin başındasınız.',
+            showConfirmButton: false,
+            timer: 2000
+        });
     }
 };
 
