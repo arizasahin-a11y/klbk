@@ -225,7 +225,7 @@ window.generatePlan = function() {
     selectedClasses.forEach(c => {
         if(studentsByClass[c]) {
             studentsByClass[c].forEach(s => {
-                let id = c + '-' + (s.number || s.no || Math.random());
+                let id = c + '-' + (s.number || s.no || s.name || '-').toString().trim();
                 studentStats[id] = 0;
             });
         }
@@ -245,13 +245,13 @@ window.generatePlan = function() {
                 selectedClasses.forEach(c => {
                     if(studentsByClass[c]) {
                         studentsByClass[c].forEach(s => {
-                            let id = c + '-' + (s.number || s.no || '-');
+                            let id = c + '-' + (s.number || s.no || s.name || '-').toString().trim();
                             if (!assignedToday.has(id) && isValidGender(s, loc.gender)) {
                                 candidateStudents.push({
                                     student: s,
                                     id: id,
                                     class: c,
-                                    count: studentStats[id],
+                                    count: studentStats[id] || 0,
                                     classOrder: selectedClasses.indexOf(c),
                                     number: parseInt(s.number || s.no || '9999')
                                 });
