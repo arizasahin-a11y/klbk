@@ -227,20 +227,18 @@ window.generatePlan = function() {
 
     generatedPlan = [];
     
-    // Her lokasyon için ayrı bir öğrenci sayacı/pointer tutalım
+    // Her lokasyon için öğrenci havuzlarını (sıralı veya harmanlanmış) önceden oluşturalım
+    let locPools = {}; 
     dutyLocations.forEach(loc => {
-        // Lokasyon kuralına göre öğrencileri sıraya dizelim
         let eligibleStudents = [];
         let classesToUse = [...selectedClasses];
 
         if (loc.rule === 'sirayla') {
-            // Sınıfları sırayla uç uca ekle
             classesToUse.forEach(c => {
                 let sList = studentsByClass[c].filter(s => isValidGender(s, loc.gender));
                 eligibleStudents = eligibleStudents.concat(sList);
             });
         } else {
-            // Eşit: Her sınıftan 1'er 1'er alıp harmanla (Round Robin)
             let pointers = {};
             classesToUse.forEach(c => pointers[c] = 0);
             let hasMore = true;
@@ -256,26 +254,55 @@ window.generatePlan = function() {
                 });
             }
         }
+        locPools[loc.id] = { pool: eligibleStudents, idx: 0 };
+    });
 
-        if (eligibleStudents.length === 0) {
-            console.warn(`${loc.name} için uygun öğrenci bulunamadı.`);
-            return;
-        }
+    // Günlere dağıt (Her gün için tüm lokasyonları dönerek aynı gün aynı öğrencinin çıkmasını engelleriz)
+    workingDays.forEach(dateStr => {
+        let assignedToday = new Set(); // O gün nöbet yazılan öğrenciler
 
-        // Günlere dağıt
-        let studentIdx = 0;
-        workingDays.forEach(dateStr => {
-            for (let i = 0; i < loc.count; i++) {
-                let s = eligibleStudents[studentIdx % eligibleStudents.length];
-                generatedPlan.push({
-                    date: dateStr,
-                    locName: loc.name,
-                    className: s.class,
-                    number: s.number || s.no || '-',
-                    name: s.name + ' ' + (s.surname || '')
-                });
-                studentIdx++;
+        dutyLocations.forEach(loc => {
+            let poolObj = locPools[loc.id];
+            let pool = poolObj.pool;
+            let currentIdx = poolObj.idx;
+
+            if (pool.length === 0) {
+                console.warn(`${loc.name} için uygun öğrenci bulunamadı.`);
+                return;
             }
+
+            for (let i = 0; i < loc.count; i++) {
+                // Sonraki müsait öğrenciyi bul
+                let startSearchIdx = currentIdx;
+                let foundStudent = null;
+                
+                do {
+                    let candidate = pool[currentIdx % pool.length];
+                    currentIdx++;
+                    
+                    // Bu öğrenci bugün nöbetçi mi?
+                    let studentUniqueId = candidate.class + '-' + candidate.number;
+                    if (!assignedToday.has(studentUniqueId)) {
+                        foundStudent = candidate;
+                        assignedToday.add(studentUniqueId);
+                        break;
+                    }
+                } while ((currentIdx % pool.length) !== (startSearchIdx % pool.length)); // Havuzda tam bir tur atana kadar
+
+                if (foundStudent) {
+                    generatedPlan.push({
+                        date: dateStr,
+                        locName: loc.name,
+                        className: foundStudent.class,
+                        number: foundStudent.number || foundStudent.no || '-',
+                        name: foundStudent.name + ' ' + (foundStudent.surname || '')
+                    });
+                } else {
+                    console.warn(`${dateStr} günü ${loc.name} için boşta farklı bir öğrenci bulunamadı!`);
+                }
+            }
+            // Yarınki nöbet için kaldığı yeri kaydet
+            poolObj.idx = currentIdx;
         });
     });
 
@@ -298,14 +325,20 @@ window.generatePlan = function() {
 
 function isValidGender(student, genderPref) {
     if (genderPref === 'Farketmez') return true;
-    let sg = (student.cinsiyet || student.gender || '').toLowerCase();
-    if (genderPref === 'Kız' && (sg.includes('kız') || sg === 'k' || sg.includes('female'))) return true;
-    if (genderPref === 'Erkek' && (sg.includes('erkek') || sg === 'e' || sg.includes('male'))) return true;
     
-    // Eğer veritabanında cinsiyet bilgisi yoksa, maalesef cinsiyet kuralı işletilemez, o yüzden varsayılan olarak true yapıyoruz.
-    // Ancak e-okuldan çekilen veride cinsiyet mutlaka olur.
-    if (!sg) return true; 
-    return false;
+    // Veritabanındaki farklı sütun isimlerini kapsa
+    let genderVal = student.cinsiyet || student.Cinsiyet || student['Cinsiyeti'] || student['CİNSİYETİ'] || student.gender || student.cns || '';
+    let sg = String(genderVal).toLowerCase().trim();
+    
+    if (genderPref === 'Kız') {
+        return (sg === 'kız' || sg === 'k' || sg === 'kiz' || sg.includes('female'));
+    }
+    
+    if (genderPref === 'Erkek') {
+        return (sg === 'erkek' || sg === 'e' || sg.includes('male'));
+    }
+    
+    return true; 
 }
 
 function renderPlan() {
