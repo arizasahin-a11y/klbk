@@ -489,6 +489,9 @@ window.addExemptStudent = function() {
         window.exemptStudents.push(id);
         if(typeof window.renderExemptStudentsList === 'function') window.renderExemptStudentsList();
         window.updateExemptStudentDropdown(); // Listeyi güncelle ki eklenen gitsin
+        if (generatedPlan && generatedPlan.length > 0) {
+            window.generatePlan();
+        }
         window.savePlan();
     }
 };
@@ -497,6 +500,9 @@ window.removeExemptStudent = function(id) {
     window.exemptStudents = window.exemptStudents.filter(e => e !== id);
     if(typeof window.renderExemptStudentsList === 'function') window.renderExemptStudentsList();
     window.updateExemptStudentDropdown(); // Sınıf seçiliyse öğrenci geri gelsin
+    if (generatedPlan && generatedPlan.length > 0) {
+        window.generatePlan();
+    }
     window.savePlan();
 };
 
@@ -667,10 +673,24 @@ window.savePlan = async function() {
         db.school.studentDuties = saveData;
         DataManager._saveData(db);
 
-        Swal.fire('Başarılı', 'Nöbet planı ve ayarları Firebase\'e kaydedildi.', 'success');
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Değişiklikler kaydedildi',
+            showConfirmButton: false,
+            timer: 1500
+        });
     } catch (e) {
         console.error(e);
-        Swal.fire('Hata', 'Kaydedilirken bir sorun oluştu.', 'error');
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'error',
+            title: 'Kaydedilirken hata oluştu',
+            showConfirmButton: false,
+            timer: 2000
+        });
     }
 };
 
