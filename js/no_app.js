@@ -353,7 +353,7 @@ function isValidGender(student, genderPref) {
     if (genderPref === 'Farketmez') return true;
     
     // Veritabanındaki farklı sütun isimlerini kapsa
-    let genderVal = student.cinsiyet || student.Cinsiyet || student['Cinsiyeti'] || student['CİNSİYETİ'] || student.gender || student.cns || '';
+    let genderVal = student.cinsiyet || student.Cinsiyet || student['Cinsiyeti'] || student['CİNSİYETİ'] || student.gender || student.cns || student.extra1 || '';
     let sg = String(genderVal).toLowerCase().trim();
     
     if (!sg) return true; // Eğer veritabanında cinsiyet verisi tamamen eksikse, sistemi çökertmemek için herkesi dahil et.
