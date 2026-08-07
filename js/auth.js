@@ -318,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const rulesHtml = `
                         <div style="text-align: left; font-size: 15px; line-height: 1.6; color: var(--gray-700);">
                             <p><strong>1)</strong> Nöbet görevi ders başlamadan 10 dakika önce başlar. Bu yüzden en geç saat <strong>${ruleTimeStr}</strong>'da/de görev yerinizde olmanız gerekmektedir.</p>
-                            <p><strong>2)</strong> Eğer nöbetinize gelemeyecekseniz idarecilere veya nöbetçi olduğunuz günün nöbetçi öğretmenlerine haber veriniz.</p>
+                            <p><strong>2)</strong> Nöbetinize gelemeyecekseniz idarecilere veya nöbetçi olduğunuz günün nöbetçi öğretmenlerine, ya da idareci ve öğretmenlere haber vermesi için sınıf başkanınıza ya da sınıf arkadaşlarınıza haber veriniz.</p>
                             <p><strong>3)</strong> Nöbet yerinden izinsiz ayrılmayınız. Nöbetiniz bitmeden okuldan ayrılmayınız.</p>
                         </div>
                     `;
