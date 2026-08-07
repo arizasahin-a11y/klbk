@@ -2688,12 +2688,28 @@ DataManager._getStorageKey = function () {
             // Öğretmen nöbet verilerini çek
             let teacherPlan = null;
             let teacherSettings = {};
+            let teacherUsers = db.users || {};
+            
             try {
                 let resPlan = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_nobet/publishedPlan.json`);
                 if (resPlan.ok) teacherPlan = await resPlan.json();
                 
                 let resSettings = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_nobet/settings.json`);
-                if (resSettings.ok) teacherSettings = await resSettings.json();
+                if (resSettings.ok) {
+                    let rawSettings = await resSettings.json();
+                    if (rawSettings && rawSettings.global) {
+                        if (typeof rawSettings.global === 'string') {
+                            teacherSettings = JSON.parse(rawSettings.global);
+                        } else {
+                            teacherSettings = rawSettings.global;
+                        }
+                    }
+                }
+                
+                let resUsers = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`);
+                if (resUsers.ok) {
+                    teacherUsers = await resUsers.json();
+                }
             } catch(e) {
                 console.error("Öğretmen nöbet verileri çekilemedi:", e);
             }
@@ -2712,7 +2728,7 @@ DataManager._getStorageKey = function () {
             
             // O günkü Nöbetçi Öğretmenler
             let dutyTeachersHtml = '';
-            let teachersList = getTeachersForDate(closestDate, teacherPlan, teacherSettings, db.users);
+            let teachersList = getTeachersForDate(closestDate, teacherPlan, teacherSettings, teacherUsers);
             
             if (teachersList.length > 0) {
                 dutyTeachersHtml = `
