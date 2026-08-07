@@ -395,9 +395,73 @@ DataManager._getStorageKey = function () {
         async function queryExams(isAutoLogin = false) {
             try {
                 const noInput = document.getElementById('studentNo');
-                const no = noInput.value.trim();
-                const studentNo = noInput.value.trim();
+                const studentNo = noInput.value.trim().toLowerCase();
                 if (!studentNo) return;
+                
+                // --- Öğrenci Nöbet Kontrol Sistemi (n + numara) ---
+                if (studentNo.startsWith('n') && !isNaN(studentNo.substring(1))) {
+                    const dutyNo = studentNo.substring(1);
+                    const db = DataManager._getData();
+                    
+                    if (!db || !db.school || !db.school.studentDuties || !db.school.studentDuties.plan) {
+                        Swal.fire('Bilgi', 'Size tanımlanmış bir nöbet görevi yok.', 'info');
+                        return;
+                    }
+                    
+                    const plan = db.school.studentDuties.plan;
+                    const myDuties = plan.filter(p => String(p.number) === String(dutyNo));
+                    
+                    if (myDuties.length === 0) {
+                        Swal.fire('Bilgi', 'Size tanımlanmış bir nöbet görevi yok.', 'info');
+                        return;
+                    }
+                    
+                    // Nöbeti var, kuralları göster
+                    let lessonTimes = db.school.lessonTimes || {};
+                    let firstStart = lessonTimes['1_start'] || '08:30';
+                    let [sh, sm] = firstStart.split(':').map(Number);
+                    let ruleTime = new Date();
+                    ruleTime.setHours(sh, sm, 0, 0);
+                    ruleTime.setMinutes(ruleTime.getMinutes() - 10);
+                    let ruleTimeStr = String(ruleTime.getHours()).padStart(2, '0') + ':' + String(ruleTime.getMinutes()).padStart(2, '0');
+                    
+                    const rulesHtml = `
+                        <div style="text-align: left; font-size: 15px; line-height: 1.6; color: var(--gray-700);">
+                            <p><strong>1)</strong> Nöbet görevi ders başlamadan 10 dakika önce başlar. Bu yüzden en geç saat <strong>${ruleTimeStr}</strong>'da/de görev yerinizde olmanız gerekmektedir.</p>
+                            <p><strong>2)</strong> Eğer nöbetinize gelemeyecekseniz idarecilere veya nöbetçi olduğunuz günün nöbetçi öğretmenlerine haber veriniz.</p>
+                            <p><strong>3)</strong> Nöbet yerinden izinsiz ayrılmayınız. Nöbetiniz bitmeden okuldan ayrılmayınız.</p>
+                        </div>
+                    `;
+                    
+                    Swal.fire({
+                        title: 'Nöbet Kuralları',
+                        html: rulesHtml,
+                        icon: 'info',
+                        confirmButtonText: 'Kabul Ediyorum',
+                        confirmButtonColor: '#4f46e5',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // UI geçişini yap
+                            const loginView = document.getElementById('loginView');
+                            const resultsView = document.getElementById('resultsView');
+                            const rulesView = document.getElementById('rulesView');
+                            const dutyView = document.getElementById('dutyView');
+                            
+                            if(loginView) loginView.classList.add('hidden');
+                            if(resultsView) resultsView.classList.add('hidden');
+                            if(rulesView) rulesView.classList.add('hidden');
+                            if(dutyView) dutyView.classList.remove('hidden');
+                            
+                            renderStudentDutyView(dutyNo, db);
+                        }
+                    });
+                    
+                    return; // Sınav sorgusunu iptal et
+                }
+                
+                const no = noInput.value.trim();
                 
                 // --- Cihaz Eşleştirme Modu (00000) ---
                 if (studentNo === '00000') {
