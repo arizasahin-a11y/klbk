@@ -15,6 +15,7 @@ const allHtmlFiles = [
     { id: "html_index", title: "Ana Giriş", desc: "Sistem Ana Giriş Sayfası", url: "/index.html", icon: "fa-right-to-bracket" },
     { id: "html_listeci", title: "Listeci (Barkod & Liste)", desc: "Öğrenci Barkod ve Liste Okuma Ekranı", url: "/listeci.html", icon: "fa-barcode" },
     { id: "html_listeci_print", title: "Listeci Yazdır", desc: "Liste yazdırma ekranı", url: "/listeci_print.html", icon: "fa-print" },
+    { id: "html_no", title: "Nöbetçi Öğrenci", desc: "Öğrenci Nöbet Planlama", url: "/no.html", icon: "fa-user-shield" },
     { id: "html_oeovvb", title: "OEOVVB", desc: "Öğretmen Eylem Veritabanı", url: "/oeovvb.html", icon: "fa-database" },
     { id: "html_oeyp", title: "OEYP", desc: "Öğretmen Eylem Yönetim Paneli", url: "/oeyp.html", icon: "fa-tasks" },
     { id: "html_ogrenci", title: "Öğrenci Sınav Sorgu Sayfası", desc: "Öğrenciler İçin Sınav Yeri Bakma Sayfası", url: "/ogrenci.html", icon: "fa-user-graduate" },

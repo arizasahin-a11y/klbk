@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Öğrenci Nöbet Planlama | KLBK</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Select2 CSS for searchable dropdowns -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/no_style.css">
+    
+    <!-- Auth Check -->
+    <script>
+        if (sessionStorage.getItem('klbk_isLoggedIn') !== 'true' && localStorage.getItem('klbk_isLoggedIn') !== 'true') {
+            sessionStorage.setItem('klbk_intended_url', window.location.pathname);
+            window.location.href = '/enter.html';
+        }
+    </script>
+    <script src="js/app_permissions.js"></script>
+</head>
+<body>
+    <!-- Background Animations -->
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+    <div class="bg-shape shape-3"></div>
+
+    <!-- Floating Home Button -->
+    <a href="enter.html" class="floating-home" title="Ana Sayfa">
+        <i class="fa-solid fa-home"></i>
+    </a>
+
+    <!-- MAIN APP SECTION -->
+    <div id="appSection">
+        <!-- Header -->
+        <header class="app-header glass-panel">
+            <div class="header-title">
+                <div class="logo-icon" style="width: 45px; height: 45px; font-size: 18px; border-radius: 12px;">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <h1>Okul Nöbetçi Öğrenci Planlama</h1>
+            </div>
+            <div class="user-profile">
+                <div class="user-info">
+                    <span id="currentUserName" style="font-weight: 600; display: block; text-align: right;">Kullanıcı Adı</span>
+                    <span id="currentUserRole" style="font-size: 12px; color: #64748b; text-align: right; display: block;">Rol</span>
+                </div>
+                <button class="btn-logout" id="btnLogout" onclick="window.logout()">
+                    <i class="fa-solid fa-right-from-bracket"></i> Çıkış
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            
+            <div class="panel-section glass-panel">
+                <div class="panel-header">
+                    <h2>Plan Detayları</h2>
+                </div>
+                
+                <div class="control-grid">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="classSelect">Nöbetçiler (Sınıflar)</label>
+                        <select id="classSelect" class="form-control" multiple="multiple" style="width: 100%;">
+                            <!-- Loaded via JS -->
+                        </select>
+                        <small style="color: #64748b; font-size: 12px; display: block; margin-top: 5px;">Nöbetçi seçilecek sınıfları belirleyin.</small>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-start; padding-top: 28px;">
+                        <button type="button" class="btn-action" onclick="window.openAddLocationModal()">
+                            <i class="fa-solid fa-plus"></i> Nöbet Yeri Ekle
+                        </button>
+                    </div>
+                </div>
+
+                <div id="locationsContainer" class="locations-list" style="display: none;">
+                    <!-- Locations populated here -->
+                </div>
+
+                <div style="margin-top: 25px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 20px;">
+                    <button type="button" class="btn-generate" onclick="window.generatePlan()">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Nöbet Planı Yap
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Panel -->
+            <div id="resultsPanel" class="panel-section glass-panel" style="display: none;">
+                <div class="panel-header">
+                    <h2>Nöbet Çizelgesi (Önümüzdeki 1 Ay)</h2>
+                    <button class="btn-action" onclick="window.savePlan()" id="btnSavePlan" style="display: none;">
+                        <i class="fa-solid fa-floppy-disk"></i> Planı Kaydet
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table id="planTable">
+                        <thead>
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Nöbet Yeri</th>
+                                <th>Sınıf</th>
+                                <th>Öğrenci No</th>
+                                <th>Adı Soyadı</th>
+                            </tr>
+                        </thead>
+                        <tbody id="planTableBody">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Core App Scripts -->
+    <script src="js/auth.js"></script>
+    <script src="js/core_data_v11_9_1.js"></script>
+    <script src="js/no_app.js"></script>
+</body>
+</html>
