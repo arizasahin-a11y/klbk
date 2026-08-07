@@ -433,7 +433,7 @@ function renderPlan() {
                 <td><span style="background:rgba(79,70,229,0.1); color:#4f46e5; padding:4px 8px; border-radius:6px; font-weight:600; font-size:13px;">${p.locName}</span></td>
                 <td>${p.className}</td>
                 <td>${p.number}</td>
-                <td>${p.name} ${p.note ? `<br><span style="color:#ef4444; font-size:11px;">${p.note}</span>` : ''}</td>
+                <td>${p.name} ${p.note ? `<br><span style="font-size:11px;">${p.note}</span>` : ''}</td>
             </tr>`;
             tbody.insertAdjacentHTML('beforeend', html);
         });
@@ -521,9 +521,13 @@ window.renderExemptStudentsList = function() {
         let c = parts[0];
         let numOrName = parts.slice(1).join('-');
         
+        let studentObj = allStudents.find(s => s.class === c && (String(s.number) === String(numOrName) || String(s.no) === String(numOrName) || s.name === numOrName));
+        let fullName = studentObj ? `${studentObj.name} ${studentObj.surname || ''}`.trim() : '';
+        let displayName = fullName ? `${numOrName} - ${fullName}` : numOrName;
+        
         let html = `
             <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; padding:8px 12px; border-radius:6px; border:1px solid rgba(0,0,0,0.05);">
-                <span style="font-size:0.85rem; font-weight:600;"><span style="color:#ef4444;">${c}</span> - Öğrenci No/Ad: ${numOrName}</span>
+                <span style="font-size:0.85rem; font-weight:600;"><span style="color:#ef4444;">${c}</span> - Öğrenci No/Ad: ${displayName}</span>
                 <button class="btn-icon" style="color:#ef4444; cursor:pointer; background:none; border:none;" title="Muafiyeti Kaldır" onclick="window.removeExemptStudent('${id}')"><i class="fa-solid fa-trash"></i></button>
             </div>
         `;
@@ -569,8 +573,8 @@ window.renderTodayDuties = function() {
                 <div style="font-size: 0.8rem; font-weight: 700; color: #4f46e5; margin-bottom: 5px;">${p.locName}</div>
                 <div style="font-weight: 700; color: var(--gray-800);">${p.name}</div>
                 <div style="font-size: 0.85rem; color: var(--gray-600);"><i class="fa-solid fa-graduation-cap"></i> ${p.className} - No: ${p.number}</div>
-                ${p.note ? `<div style="font-size:0.75rem; color:#ef4444; margin-top:5px; font-weight:600;">${p.note}</div>` : ''}
-                <div style="font-size:0.7rem; color:var(--gray-500); margin-top:10px; text-align:right;"><i class="fa-solid fa-hand-pointer"></i> Gelmedi İşaretle</div>
+                ${p.note ? `<div style="font-size:0.75rem; margin-top:5px; font-weight:600;">${p.note}</div>` : ''}
+                <div style="font-size:0.7rem; color:var(--gray-500); margin-top:10px; text-align:right;"><i class="fa-solid fa-hand-pointer"></i> Yoklama için tıkla</div>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', html);
@@ -581,18 +585,47 @@ window.showAbsentOptions = function(event, date, locName, className, number) {
     if(event) event.preventDefault(); 
     
     Swal.fire({
-        title: 'Öğrenci Gelmedi mi?',
-        text: 'Bu öğrenciyi gelmedi olarak işaretlerseniz, planda aynı nöbet yerindeki BİR SONRAKİ GÜNÜN nöbetçisi ile (sadece kişiler) yer değiştirilecek ve telafi etmesi sağlanacak.',
-        icon: 'warning',
+        title: 'Öğrenci Yoklaması',
+        text: 'Lütfen öğrencinin durumunu seçin.',
+        icon: 'question',
         showCancelButton: true,
+        showDenyButton: true,
         confirmButtonColor: '#ef4444',
+        denyButtonColor: '#10b981',
         cancelButtonColor: '#6b7280',
-        confirmButtonText: '<i class="fa-solid fa-user-xmark"></i> Gelmedi İşaretle (Değiştir)',
+        confirmButtonText: '<i class="fa-solid fa-user-xmark"></i> Gelmedi (Değiştir)',
+        denyButtonText: '<i class="fa-solid fa-user-check"></i> Geldi',
         cancelButtonText: 'İptal'
     }).then((result) => {
         if (result.isConfirmed) {
             window.markAbsentAndSwap(date, locName, className, number);
+        } else if (result.isDenied) {
+            window.markPresent(date, locName, className, number);
         }
+    });
+};
+
+window.markPresent = function(date, locName, className, number) {
+    let currentIdx = generatedPlan.findIndex(p => p.date === date && p.locName === locName && p.className === className && String(p.number) === String(number));
+    
+    if (currentIdx === -1) {
+        Swal.fire('Hata', 'Nöbetçi planda bulunamadı.', 'error');
+        return;
+    }
+    
+    generatedPlan[currentIdx].note = "<span style='color:#10b981;'><i class='fa-solid fa-check'></i> Nöbetini Tuttu</span>";
+    
+    window.savePlan();
+    renderPlan();
+    if(typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
+    
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Geldi olarak işaretlendi.',
+        showConfirmButton: false,
+        timer: 1500
     });
 };
 
@@ -634,8 +667,8 @@ window.markAbsentAndSwap = function(date, locName, className, number) {
     p2.name = tempName;
     
     // Not ekle
-    p1.note = "(Gelmediği için değişti)";
-    p2.note = "(Gelmediği için değişti)";
+    p1.note = "<span style='color:#ef4444;'>(Gelmediği için değişti)</span>";
+    p2.note = "<span style='color:#ef4444;'>(Gelmediği için değişti)</span>";
     
     window.savePlan();
     renderPlan();
