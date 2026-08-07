@@ -5,6 +5,7 @@ let allStudents = [];
 let classList = [];
 let dutyLocations = []; // { id, name, count, gender, rule }
 let generatedPlan = []; // { date, locName, class, no, name }
+window.currentViewMonth = new Date().toISOString().slice(0, 7); // e.g. "2026-08"
 const FIREBASE_DB_URL = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
 
 $(document).ready(async function() {
