@@ -227,82 +227,91 @@ window.generatePlan = function() {
 
     generatedPlan = [];
     
-    // Her lokasyon için öğrenci havuzlarını (sıralı veya harmanlanmış) önceden oluşturalım
-    let locPools = {}; 
-    dutyLocations.forEach(loc => {
-        let eligibleStudents = [];
-        let classesToUse = [...selectedClasses];
-
-        if (loc.rule === 'sirayla') {
-            classesToUse.forEach(c => {
-                let sList = studentsByClass[c].filter(s => isValidGender(s, loc.gender));
-                eligibleStudents = eligibleStudents.concat(sList);
+    // Global öğrenci nöbet sayacı (Ay boyunca kimin kaç nöbet tuttuğunu takip eder)
+    let studentStats = {}; 
+    selectedClasses.forEach(c => {
+        if(studentsByClass[c]) {
+            studentsByClass[c].forEach(s => {
+                let id = c + '-' + (s.number || s.no || Math.random());
+                studentStats[id] = 0;
             });
-        } else {
-            let pointers = {};
-            classesToUse.forEach(c => pointers[c] = 0);
-            let hasMore = true;
-            while(hasMore) {
-                hasMore = false;
-                classesToUse.forEach(c => {
-                    let sList = studentsByClass[c].filter(s => isValidGender(s, loc.gender));
-                    if (pointers[c] < sList.length) {
-                        eligibleStudents.push(sList[pointers[c]]);
-                        pointers[c]++;
-                        hasMore = true;
-                    }
-                });
-            }
         }
-        locPools[loc.id] = { pool: eligibleStudents, idx: 0 };
     });
 
-    // Günlere dağıt (Her gün için tüm lokasyonları dönerek aynı gün aynı öğrencinin çıkmasını engelleriz)
+    // Günlere göre planı oluştur
     workingDays.forEach(dateStr => {
         let assignedToday = new Set(); // O gün nöbet yazılan öğrenciler
+        let classAssignmentsToday = {}; // O gün hangi sınıftan kaç kişi nöbetçi oldu (Eşit kuralı için)
+        selectedClasses.forEach(c => classAssignmentsToday[c] = 0);
 
         dutyLocations.forEach(loc => {
-            let poolObj = locPools[loc.id];
-            let pool = poolObj.pool;
-            let currentIdx = poolObj.idx;
-
-            if (pool.length === 0) {
-                console.warn(`${loc.name} için uygun öğrenci bulunamadı.`);
-                return;
-            }
-
             for (let i = 0; i < loc.count; i++) {
-                // Sonraki müsait öğrenciyi bul
-                let startSearchIdx = currentIdx;
-                let foundStudent = null;
                 
-                do {
-                    let candidate = pool[currentIdx % pool.length];
-                    currentIdx++;
-                    
-                    // Bu öğrenci bugün nöbetçi mi?
-                    let studentUniqueId = candidate.class + '-' + candidate.number;
-                    if (!assignedToday.has(studentUniqueId)) {
-                        foundStudent = candidate;
-                        assignedToday.add(studentUniqueId);
-                        break;
+                // Bu lokasyon için bugünkü adayları belirle
+                let candidateStudents = [];
+                selectedClasses.forEach(c => {
+                    if(studentsByClass[c]) {
+                        studentsByClass[c].forEach(s => {
+                            let id = c + '-' + (s.number || s.no || '-');
+                            if (!assignedToday.has(id) && isValidGender(s, loc.gender)) {
+                                candidateStudents.push({
+                                    student: s,
+                                    id: id,
+                                    class: c,
+                                    count: studentStats[id],
+                                    classOrder: selectedClasses.indexOf(c),
+                                    number: parseInt(s.number || s.no || '9999')
+                                });
+                            }
+                        });
                     }
-                } while ((currentIdx % pool.length) !== (startSearchIdx % pool.length)); // Havuzda tam bir tur atana kadar
+                });
 
-                if (foundStudent) {
-                    generatedPlan.push({
-                        date: dateStr,
-                        locName: loc.name,
-                        className: foundStudent.class,
-                        number: foundStudent.number || foundStudent.no || '-',
-                        name: foundStudent.name + ' ' + (foundStudent.surname || '')
-                    });
-                } else {
-                    console.warn(`${dateStr} günü ${loc.name} için boşta farklı bir öğrenci bulunamadı!`);
+                if (candidateStudents.length === 0) {
+                    console.warn(`${dateStr} günü ${loc.name} için boşta uygun öğrenci bulunamadı!`);
+                    continue; // Bu lokasyonun bu kontenjanını boş geç
                 }
+
+                // Adayları kurala göre sırala
+                candidateStudents.sort((a, b) => {
+                    // 1. ÖNCELİK: Nöbet Sayısı (En az nöbet tutan öncelikli)
+                    if (a.count !== b.count) return a.count - b.count;
+
+                    if (loc.rule === 'sirayla') {
+                        // SIRAYLA KURALI
+                        // 2. Sınıf Sırası (Önce 9A, sonra 9B...)
+                        if (a.classOrder !== b.classOrder) return a.classOrder - b.classOrder;
+                        // 3. Öğrenci Numarası
+                        return a.number - b.number;
+                    } else {
+                        // EŞİT KURALI
+                        // 2. Bugün o sınıftan kaç kişi nöbetçi oldu? (En az olan öncelikli)
+                        let aClassCount = classAssignmentsToday[a.class] || 0;
+                        let bClassCount = classAssignmentsToday[b.class] || 0;
+                        if (aClassCount !== bClassCount) return aClassCount - bClassCount;
+                        // 3. Sınıf Sırası (Tie-breaker)
+                        if (a.classOrder !== b.classOrder) return a.classOrder - b.classOrder;
+                        // 4. Öğrenci Numarası
+                        return a.number - b.number;
+                    }
+                });
+
+                // En iyi adayı seç
+                let bestCandidate = candidateStudents[0];
+                
+                // Planı kaydet ve sayaçları güncelle
+                assignedToday.add(bestCandidate.id);
+                studentStats[bestCandidate.id]++;
+                classAssignmentsToday[bestCandidate.class]++;
+
+                generatedPlan.push({
+                    date: dateStr,
+                    locName: loc.name,
+                    className: bestCandidate.student.class,
+                    number: bestCandidate.student.number || bestCandidate.student.no || '-',
+                    name: bestCandidate.student.name + ' ' + (bestCandidate.student.surname || '')
+                });
             }
-            // Yarınki nöbet için kaldığı yeri kaydet
-            poolObj.idx = currentIdx;
         });
     });
 
