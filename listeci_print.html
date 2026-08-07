@@ -345,8 +345,12 @@
                         const formattedName = formatName(s.name, s.surname);
                         const nameTd = `<td class="col-ad">${formattedName}</td>`;
                         
+                        let rowBg = '';
+                        if (s.extra1 === 'K') rowBg = 'background-color: rgba(253, 232, 232, 0.8) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;';
+                        else if (s.extra1 === 'E') rowBg = 'background-color: rgba(225, 239, 254, 0.8) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;';
+
                         rowsHtml += `
-                            <tr>
+                            <tr style="${rowBg}">
                                 <td class="col-sira">${startIndex + i}</td>
                                 ${sinifTd}
                                 ${alanTd}
