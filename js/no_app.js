@@ -114,13 +114,6 @@ window.openAddLocationModal = function() {
                         <option value="Erkek">Sadece Erkek</option>
                     </select>
                 </div>
-                <div>
-                    <label style="font-weight:600; font-size:14px;">Öğrenci Seçim Kuralı</label>
-                    <select id="locRule" class="swal2-select" style="margin:5px 0 0 0; width:100%; display:flex;">
-                        <option value="sirayla">Sınıflar sırayla (örn: önce 9A bitene kadar)</option>
-                        <option value="esit">Her sınıftan eşit sayıda nöbetçi al</option>
-                    </select>
-                </div>
             </div>
         `,
         showCancelButton: true,
@@ -130,11 +123,10 @@ window.openAddLocationModal = function() {
             const name = document.getElementById('locName').value.trim();
             const count = parseInt(document.getElementById('locCount').value);
             const gender = document.getElementById('locGender').value;
-            const rule = document.getElementById('locRule').value;
             
             if (!name) return Swal.showValidationMessage("Yer adı girin.");
             if (isNaN(count) || count < 1) return Swal.showValidationMessage("Geçerli bir nöbetçi sayısı girin.");
-            return { id: Date.now().toString(), name, count, gender, rule };
+            return { id: Date.now().toString(), name, count, gender };
         }
     }).then((res) => {
         if (res.isConfirmed) {
@@ -158,17 +150,16 @@ function renderLocations() {
                          loc.gender === 'Erkek' ? '<i class="fa-solid fa-person" style="color:#3b82f6;"></i>' : 
                          '<i class="fa-solid fa-users" style="color:#8b5cf6;"></i>';
                          
-        let ruleText = loc.rule === 'sirayla' ? 'Sınıflar sırayla' : 'Her sınıftan eşit';
-
         let html = `
-            <div class="location-card">
-                <div class="location-info">
-                    <span class="location-title">${loc.name}</span>
-                    <span class="location-meta">
-                        <i class="fa-solid fa-user-clock"></i> ${loc.count} Nöbetçi | 
-                        ${genderIcon} ${loc.gender} | 
-                        <i class="fa-solid fa-scale-balanced"></i> ${ruleText}
+            <div class="loc-card">
+                <div class="loc-card-header">
+                    <h4 style="margin:0; font-size:1rem;">${loc.name}</h4>
+                    <span class="badge ${loc.gender === 'Farketmez' ? 'badge-primary' : (loc.gender==='Kız'?'badge-pink':'badge-blue')}">
+                        ${loc.gender}
                     </span>
+                </div>
+                <div class="loc-card-body" style="font-size:0.85rem; color:var(--gray-600); margin-top:8px;">
+                    <div><i class="fa-solid fa-users" style="width:16px;"></i> ${loc.count} Nöbetçi / Gün</div>
                 </div>
                 <button class="btn-icon" onclick="window.removeLocation('${loc.id}')" title="Sil">
                     <i class="fa-solid fa-trash"></i>
@@ -225,6 +216,8 @@ window.generatePlan = function() {
         maxLookAhead--;
     }
 
+    const globalRule = document.getElementById('globalRule').value;
+
     generatedPlan = [];
     
     // Global öğrenci nöbet sayacı (Ay boyunca kimin kaç nöbet tuttuğunu takip eder)
@@ -277,7 +270,7 @@ window.generatePlan = function() {
                     // 1. ÖNCELİK: Nöbet Sayısı (En az nöbet tutan öncelikli)
                     if (a.count !== b.count) return a.count - b.count;
 
-                    if (loc.rule === 'sirayla') {
+                    if (globalRule === 'sirayla') {
                         // SIRAYLA KURALI
                         // 2. Sınıf Sırası (Önce 9A, sonra 9B...)
                         if (a.classOrder !== b.classOrder) return a.classOrder - b.classOrder;
@@ -388,9 +381,11 @@ function renderPlan() {
 // --- Kayıt İşlemleri ---
 window.savePlan = async function() {
     const selectedClasses = $('#classSelect').val() || [];
+    const globalRule = document.getElementById('globalRule').value;
     const saveData = {
         locations: dutyLocations,
         selectedClasses: selectedClasses,
+        globalRule: globalRule,
         plan: generatedPlan,
         updatedAt: Date.now()
     };
@@ -419,6 +414,9 @@ async function loadSavedData() {
             if (data.locations) dutyLocations = data.locations;
             if (data.selectedClasses) {
                 $('#classSelect').val(data.selectedClasses).trigger('change');
+            }
+            if (data.globalRule) {
+                document.getElementById('globalRule').value = data.globalRule;
             }
             if (data.plan && data.plan.length > 0) {
                 generatedPlan = data.plan;

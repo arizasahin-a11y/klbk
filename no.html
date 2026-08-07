@@ -71,16 +71,25 @@
                     <h2>Plan Detayları</h2>
                 </div>
                 
+                <!-- Sınıf Seçimi -->
+                <div class="filter-group" style="margin-top: 15px;">
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 8px;">Nöbetçi seçilecek sınıflar</label>
+                    <select id="classSelect" class="form-control" multiple="multiple" style="width: 100%;"></select>
+                </div>
+
+                <!-- Genel Öğrenci Seçim Kuralı -->
+                <div class="filter-group" style="margin-top: 15px;">
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: var(--gray-600); margin-bottom: 8px;">Öğrenci Seçim Kuralı</label>
+                    <select id="globalRule" class="form-control" style="width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; font-size: 0.9rem;">
+                        <option value="sirayla">Sınıflar sırayla (örn: önce 9A bitene kadar)</option>
+                        <option value="esit">Her sınıftan eşit sayıda nöbetçi al</option>
+                    </select>
+                </div>
+
+                <hr style="border:0; border-top:1px solid var(--gray-200); margin:20px 0;">
+                
                 <div class="control-grid">
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label for="classSelect">Nöbetçiler (Sınıflar)</label>
-                        <select id="classSelect" class="form-control" multiple="multiple" style="width: 100%;">
-                            <!-- Loaded via JS -->
-                        </select>
-                        <small style="color: #64748b; font-size: 12px; display: block; margin-top: 5px;">Nöbetçi seçilecek sınıfları belirleyin.</small>
-                    </div>
-                    
-                    <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-start; padding-top: 28px;">
+                    <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-start; padding-top: 0px;">
                         <button type="button" class="btn-action" onclick="window.openAddLocationModal()">
                             <i class="fa-solid fa-plus"></i> Nöbet Yeri Ekle
                         </button>
@@ -135,6 +144,6 @@
     <!-- Core App Scripts -->
     <script src="js/auth.js"></script>
     <script src="js/core_data_v11_9_1.js"></script>
-    <script src="js/no_app.js?v=3"></script>
+    <script src="js/no_app.js?v=4"></script>
 </body>
 </html>
