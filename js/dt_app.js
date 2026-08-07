@@ -1824,22 +1824,62 @@ function updateTeacherDutyDashboardUI() {
         const days = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
         let dateFormatted = String(dutyDate.getDate()).padStart(2,'0') + '.' + String(dutyDate.getMonth()+1).padStart(2,'0') + '.' + dutyDate.getFullYear() + ' ' + days[dutyDate.getDay()];
         
+        let y = dutyDate.getFullYear();
+        let m = String(dutyDate.getMonth()+1).padStart(2,'0');
+        let d = String(dutyDate.getDate()).padStart(2,'0');
+        let targetDateStr = `${y}-${m}-${d}`;
+        
         function renderUI() {
             let now = new Date();
             let html = '';
             
+            // Öğrencileri getir
+            let db = DataManager._getData();
+            let sPlan = (db && db.school && db.school.studentDuties && db.school.studentDuties.plan) ? db.school.studentDuties.plan : [];
+            let todaysPlan = sPlan.filter(p => p.date === targetDateStr);
+            let sDutiesHtml = '';
+            if (todaysPlan.length > 0) {
+                let studentsHtml = todaysPlan.map(p => `
+                    <div style="background: rgba(255,255,255,0.7); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; cursor: pointer; transition: 0.2s;"
+                         onmouseover="this.style.background='rgba(255,255,255,1)'" onmouseout="this.style.background='rgba(255,255,255,0.7)'"
+                         oncontextmenu="window.dtShowStudentOptions(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}', true)"
+                         onclick="window.dtShowStudentOptions(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}', false)">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="font-size:0.75rem; color:#4f46e5; font-weight:700;">${p.locName}</div>
+                                <div style="font-weight:600; color:var(--dark); font-size:0.9rem;">${p.name}</div>
+                                <div style="font-size:0.75rem; color:var(--gray-600);">${p.className} - Öğrenci No: ${p.number}</div>
+                            </div>
+                            ${p.note ? `<div style="font-size:0.7rem; font-weight:600; max-width:90px; text-align:right;">${p.note}</div>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+
+                sDutiesHtml = `
+                    <div style="padding: 15px; background: rgba(79, 70, 229, 0.05); border-radius: 8px; text-align:left; font-size:0.95rem; color:var(--gray-700); height:100%;">
+                        <strong style="color:#4f46e5;"><i class="fa-solid fa-user-graduate"></i> O Gün Nöbetçi Öğrenciler:</strong>
+                        <div style="margin-top:12px; max-height:200px; overflow-y:auto; padding-right:5px;">
+                            ${studentsHtml}
+                        </div>
+                    </div>
+                `;
+            }
+            
             if (isToday) {
                 if (now < dutyStart) {
                     let diff = dutyStart.getTime() - now.getTime();
-                    html = renderStateHtml('Bugün nöbetçisiniz, Kolay Gelsin', dutyInfo.locationName, formatCountdown(diff), dutyInfo.partners, 'Nöbet Başlıyor:');
+                    html = renderStateHtml('Bugün nöbetçisiniz, Kolay Gelsin', dutyInfo.locationName, formatCountdown(diff), dutyInfo.partners, 'Nöbet Başlıyor:', sDutiesHtml);
                 } else if (now >= dutyStart && now <= dutyEnd) {
                     let diff = dutyEnd.getTime() - now.getTime();
-                    html = renderStateHtml('Nöbetiniz Başladı', dutyInfo.locationName, formatCountdown(diff), dutyInfo.partners, 'Nöbet Bitiyor:');
+                    html = renderStateHtml('Nöbetiniz Başladı', dutyInfo.locationName, formatCountdown(diff), dutyInfo.partners, 'Nöbet Bitiyor:', sDutiesHtml);
                 } else {
                     html = renderPostDutyHtml(dateFormatted, dutyInfo.locationName);
                 }
             } else {
                 let diff = dutyStart.getTime() - now.getTime();
+                
+                let pList = dutyInfo.partners.length > 0 ? `<div style="padding: 15px; background: rgba(0,0,0,0.03); border-radius: 8px; text-align:left; font-size:0.95rem; color:var(--gray-700); height:100%;"><strong style="color:var(--dark);"><i class="fa-solid fa-users"></i> Nöbet Arkadaşlarınız:</strong><br><div style="margin-top:8px; line-height:1.6;">${dutyInfo.partners.join('<br>')}</div></div>` : '';
+                
                 html = `<div style="padding: 20px;">
                     <i class="fa-solid fa-mug-hot" style="font-size: 3rem; color: var(--gray-400); margin-bottom: 15px;"></i>
                     <h2 style="margin:0 0 10px 0;">Şu an nöbetçi değilsiniz</h2>
@@ -1851,7 +1891,13 @@ function updateTeacherDutyDashboardUI() {
                     <div style="margin-top: 20px; font-size: 2.2rem; font-weight: 900; font-family: 'Courier New', Courier, monospace; letter-spacing: 2px; color: #39ff14; text-shadow: 0 0 10px rgba(57, 255, 20, 0.5); background: var(--gray-900); padding: 15px 20px; border-radius: 8px; display: inline-block;">
                         <i class="fa-solid fa-hourglass-half" style="color: #fff; font-size: 1.5rem; vertical-align: middle;"></i> Kalan Süre: <span style="vertical-align: middle;">${formatCountdown(diff)}</span>
                     </div>
-                    ${dutyInfo.partners.length > 0 ? `<div style="margin-top:20px; text-align:left; font-size:0.9rem; color:var(--gray-600);"><strong style="color:var(--dark);">Nöbet Arkadaşlarınız:</strong><br>${dutyInfo.partners.join('<br>')}</div>` : ''}
+                    
+                    ${(pList || sDutiesHtml) ? `
+                    <div style="display:flex; flex-wrap:wrap; gap:15px; margin-top:20px;">
+                        ${pList ? `<div style="flex:1; min-width:250px;">${pList}</div>` : ''}
+                        ${sDutiesHtml ? `<div style="flex:1; min-width:250px;">${sDutiesHtml}</div>` : ''}
+                    </div>` : ''}
+                    
                 </div>`;
             }
             container.html(html);
@@ -1865,8 +1911,153 @@ function updateTeacherDutyDashboardUI() {
     });
 }
 
-function renderStateHtml(title, location, countdown, partners, countdownLabel) {
-    let pList = partners.length > 0 ? `<div style="margin-top:20px; padding: 15px; background: rgba(255,255,255,0.5); border-radius: 8px; text-align:left; font-size:0.95rem; color:var(--gray-700);"><strong style="color:var(--dark);"><i class="fa-solid fa-users"></i> Nöbet Arkadaşlarınız:</strong><br><div style="margin-top:8px; line-height: 1.6;">${partners.join('<br>')}</div></div>` : '';
+window.dtShowStudentOptions = function(event, date, locName, className, number, isLongPress) {
+    if(event) event.preventDefault(); 
+    
+    if (isLongPress) {
+        // İleri tarihli o nöbet yerindeki öğrencileri bul
+        let db = DataManager._getData();
+        let plan = (db && db.school && db.school.studentDuties && db.school.studentDuties.plan) ? db.school.studentDuties.plan : [];
+        
+        let futureStudents = plan.filter(p => p.locName === locName && p.date > date);
+        if (futureStudents.length === 0) {
+            Swal.fire('Bilgi', 'Bu nöbet yerinde ileri tarihli başka bir nöbetçi bulunmuyor.', 'info');
+            return;
+        }
+        
+        let optionsHtml = '<select id="futureStudentSelect" class="swal2-select" style="width:100%; margin-top:15px; font-size:14px;">';
+        futureStudents.forEach((p, index) => {
+            let [y,m,d] = p.date.split('-');
+            let fDate = `${d}.${m}.${y}`;
+            optionsHtml += `<option value="${index}">${fDate} - ${p.name} (${p.className} / ${p.number})</option>`;
+        });
+        optionsHtml += '</select>';
+        
+        Swal.fire({
+            title: 'Nöbet Değişimi',
+            html: `İleriki tarihlerdeki bir öğrenciyle manuel değişim yapın:<br>${optionsHtml}`,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fa-solid fa-right-left"></i> Değiştir',
+            cancelButtonText: 'İptal',
+            preConfirm: () => {
+                return document.getElementById('futureStudentSelect').value;
+            }
+        }).then((result) => {
+            if (result.isConfirmed && result.value !== undefined) {
+                let targetP = futureStudents[result.value];
+                window.dtManualSwap(date, locName, className, number, targetP);
+            }
+        });
+        
+    } else {
+        Swal.fire({
+            title: 'Öğrenci Yoklaması',
+            text: 'Lütfen öğrencinin durumunu seçin.',
+            icon: 'question',
+            showCancelButton: true,
+            showDenyButton: true,
+            confirmButtonColor: '#ef4444',
+            denyButtonColor: '#10b981',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: '<i class="fa-solid fa-user-xmark"></i> Gelmedi (Değiştir)',
+            denyButtonText: '<i class="fa-solid fa-user-check"></i> Geldi',
+            cancelButtonText: 'İptal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.dtMarkAbsentAndSwap(date, locName, className, number);
+            } else if (result.isDenied) {
+                window.dtMarkPresent(date, locName, className, number);
+            }
+        });
+    }
+};
+
+window.dtMarkPresent = function(date, locName, className, number) {
+    let db = DataManager._getData();
+    let plan = db.school.studentDuties.plan;
+    let currentIdx = plan.findIndex(p => p.date === date && p.locName === locName && p.className === className && String(p.number) === String(number));
+    
+    if (currentIdx === -1) return;
+    
+    plan[currentIdx].note = "<span style='color:#10b981;'><i class='fa-solid fa-check'></i> Nöbetini Tuttu</span>";
+    DataManager._saveData(db);
+    Swal.fire({toast: true, position: 'top-end', icon: 'success', title: 'Geldi olarak işaretlendi.', showConfirmButton: false, timer: 1500});
+};
+
+window.dtMarkAbsentAndSwap = function(date, locName, className, number) {
+    let db = DataManager._getData();
+    let plan = db.school.studentDuties.plan;
+    let currentIdx = plan.findIndex(p => p.date === date && p.locName === locName && p.className === className && String(p.number) === String(number));
+    
+    if (currentIdx === -1) return;
+    
+    let nextIdx = -1;
+    for(let i = currentIdx + 1; i < plan.length; i++) {
+        if (plan[i].locName === locName) {
+            nextIdx = i;
+            break;
+        }
+    }
+    
+    if (nextIdx === -1) {
+        Swal.fire('Bilgi', 'Sıradaki başka nöbetçi kalmamış.', 'info');
+        return;
+    }
+    
+    let p1 = plan[currentIdx];
+    let p2 = plan[nextIdx];
+    
+    let tempClass = p1.className;
+    let tempNum = p1.number;
+    let tempName = p1.name;
+    
+    p1.className = p2.className;
+    p1.number = p2.number;
+    p1.name = p2.name;
+    
+    p2.className = tempClass;
+    p2.number = tempNum;
+    p2.name = tempName;
+    
+    p1.note = "<span style='color:#ef4444;'>(Gelmediği için değişti)</span>";
+    p2.note = "<span style='color:#ef4444;'>(Gelmediği için değişti)</span>";
+    
+    DataManager._saveData(db);
+    Swal.fire({toast: true, position: 'top-end', icon: 'success', title: 'Öğrenciler yer değiştirdi.', showConfirmButton: false, timer: 2000});
+};
+
+window.dtManualSwap = function(date, locName, className, number, targetP) {
+    let db = DataManager._getData();
+    let plan = db.school.studentDuties.plan;
+    let idx1 = plan.findIndex(p => p.date === date && p.locName === locName && p.className === className && String(p.number) === String(number));
+    let idx2 = plan.findIndex(p => p.date === targetP.date && p.locName === targetP.locName && p.className === targetP.className && String(p.number) === String(targetP.number));
+    
+    if (idx1 !== -1 && idx2 !== -1) {
+        let p1 = plan[idx1];
+        let p2 = plan[idx2];
+        
+        let tempClass = p1.className;
+        let tempNum = p1.number;
+        let tempName = p1.name;
+        
+        p1.className = p2.className;
+        p1.number = p2.number;
+        p1.name = p2.name;
+        
+        p2.className = tempClass;
+        p2.number = tempNum;
+        p2.name = tempName;
+        
+        p1.note = "<span style='color:#f59e0b;'><i class='fa-solid fa-right-left'></i> Manuel Değiştirildi</span>";
+        p2.note = "<span style='color:#f59e0b;'><i class='fa-solid fa-right-left'></i> Manuel Değiştirildi</span>";
+        
+        DataManager._saveData(db);
+        Swal.fire({toast:true, position:'top-end', icon:'success', title:'Kişiler yer değiştirdi.', showConfirmButton:false, timer:2000});
+    }
+};
+
+function renderStateHtml(title, location, countdown, partners, countdownLabel, sDutiesHtml = '') {
+    let pList = partners.length > 0 ? `<div style="padding: 15px; background: rgba(0,0,0,0.03); border-radius: 8px; text-align:left; font-size:0.95rem; color:var(--gray-700); height:100%;"><strong style="color:var(--dark);"><i class="fa-solid fa-users"></i> Nöbet Arkadaşlarınız:</strong><br><div style="margin-top:8px; line-height: 1.6;">${partners.join('<br>')}</div></div>` : '';
     return `
         <div style="padding: 10px;">
             <div style="width: 70px; height: 70px; background: var(--primary-light); color: var(--primary-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 15px;">
@@ -1881,7 +2072,13 @@ function renderStateHtml(title, location, countdown, partners, countdownLabel) {
                     ${countdown}
                 </div>
             </div>
-            ${pList}
+            
+            ${(pList || sDutiesHtml) ? `
+            <div style="display:flex; flex-wrap:wrap; gap:15px; margin-top:20px;">
+                ${pList ? `<div style="flex:1; min-width:250px;">${pList}</div>` : ''}
+                ${sDutiesHtml ? `<div style="flex:1; min-width:250px;">${sDutiesHtml}</div>` : ''}
+            </div>` : ''}
+            
         </div>
     `;
 }
