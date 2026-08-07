@@ -817,7 +817,8 @@ async function loadSavedData() {
             if(typeof window.renderExemptStudentsList === 'function') window.renderExemptStudentsList();
 
             if (data.plan && data.plan.length > 0) {
-                generatedPlan = data.plan;
+                let p = typeof window.shiftStudentPlanDates === 'function' ? window.shiftStudentPlanDates(data.plan) : data.plan;
+                generatedPlan = p;
                 // Kayıtlı planı chunk'lara ayır
                 let uniqueDates = [...new Set(generatedPlan.map(p => p.date))];
                 window.planChunks = [];

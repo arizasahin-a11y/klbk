@@ -1776,6 +1776,41 @@ window.getHolidayInfo = function(dateObj) {
     return false;
 };
 
+window.shiftStudentPlanDates = function(plan) {
+    if (!plan || !Array.isArray(plan) || plan.length === 0) return plan;
+    
+    let uniqueDates = [...new Set(plan.map(p => p.date))].sort();
+    if (uniqueDates.length === 0) return plan;
+    
+    let mapping = {};
+    let currentCalcDate = new Date(uniqueDates[0] + "T00:00:00Z");
+    
+    for (let i = 0; i < uniqueDates.length; i++) {
+        let origDate = uniqueDates[i];
+        
+        while (true) {
+            let dStr = currentCalcDate.toISOString().split('T')[0];
+            let getUtcDay = currentCalcDate.getUTCDay();
+            let isWeekend = (getUtcDay === 0 || getUtcDay === 6);
+            let isHoliday = (typeof window.getHolidayInfo === 'function') ? window.getHolidayInfo(dStr) : false;
+            
+            if (!isWeekend && !isHoliday) {
+                mapping[origDate] = dStr;
+                currentCalcDate.setUTCDate(currentCalcDate.getUTCDate() + 1);
+                break;
+            }
+            currentCalcDate.setUTCDate(currentCalcDate.getUTCDate() + 1);
+        }
+    }
+    
+    return plan.map(p => {
+        return {
+            ...p,
+            date: mapping[p.date]
+        };
+    });
+};
+
 window.quickAddUnplannedHoliday = async function() {
     let role = sessionStorage.getItem('klbk_role') || localStorage.getItem('klbk_role');
     if (!role && typeof klbkUsers !== 'undefined' && window.currentUser && klbkUsers[window.currentUser.username]) {

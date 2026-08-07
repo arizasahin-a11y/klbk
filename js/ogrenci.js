@@ -408,7 +408,8 @@ DataManager._getStorageKey = function () {
                         return;
                     }
                     
-                    const plan = db.school.studentDuties.plan;
+                    const rawPlan = db.school.studentDuties.plan;
+                    const plan = typeof window.shiftStudentPlanDates === 'function' ? window.shiftStudentPlanDates(rawPlan) : rawPlan;
                     const myDuties = plan.filter(p => String(p.number) === String(dutyNo));
                     
                     if (myDuties.length === 0) {
@@ -2678,7 +2679,8 @@ DataManager._getStorageKey = function () {
 
         async function renderStudentDutyView(studentNo, db) {
             const container = document.getElementById('dutyContentContainer');
-            const plan = db.school.studentDuties.plan || [];
+            const rawPlan = db.school.studentDuties.plan || [];
+            const plan = typeof window.shiftStudentPlanDates === 'function' ? window.shiftStudentPlanDates(rawPlan) : rawPlan;
             const myDuties = plan.filter(p => String(p.number) === String(studentNo));
             
             if (myDuties.length === 0) {

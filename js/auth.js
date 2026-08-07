@@ -296,7 +296,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         return;
                     }
                     
-                    const plan = db.school.studentDuties.plan;
+                    const rawPlan = db.school.studentDuties.plan;
+                    const plan = typeof window.shiftStudentPlanDates === 'function' ? window.shiftStudentPlanDates(rawPlan) : rawPlan;
                     const myDuties = plan.filter(p => String(p.number) === String(studentNo));
                     
                     if (myDuties.length === 0) {
