@@ -2634,6 +2634,7 @@ DataManager._getStorageKey = function () {
             
             // Nöbet Arkadaşları Kartı
             let partnersHtml = '';
+            let dayText = (closestDate === todayStr) ? "Bugün" : "O Gün";
             if (partners.length > 0) {
                 let locGroups = {};
                 partners.forEach(pt => {
@@ -2650,14 +2651,14 @@ DataManager._getStorageKey = function () {
 
                 partnersHtml = `
                     <div style="margin-top:20px; background:white; padding:20px; border-radius:12px; border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
-                        <h3 style="margin:0 0 10px 0; color:var(--dark); font-size:1.1rem;"><i class="fa-solid fa-users" style="color:var(--secondary);"></i> O Gün Nöbetçi Olan Diğer Öğrenciler</h3>
+                        <h3 style="margin:0 0 10px 0; color:var(--dark); font-size:1.1rem;"><i class="fa-solid fa-users" style="color:var(--secondary);"></i> ${dayText} Nöbetçi Olan Diğer Öğrenciler</h3>
                         ${pList}
                     </div>
                 `;
             } else {
                 partnersHtml = `
                     <div style="margin-top:20px; background:white; padding:15px; border-radius:12px; border:1px solid var(--gray-200); color:var(--gray-500); font-size:0.95rem;">
-                        <i class="fa-solid fa-info-circle"></i> O gün okulda başka nöbetçi öğrenci bulunmuyor.
+                        <i class="fa-solid fa-info-circle"></i> ${dayText} okulda başka nöbetçi öğrenci bulunmuyor.
                     </div>
                 `;
             }
