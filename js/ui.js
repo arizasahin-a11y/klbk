@@ -554,6 +554,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         setVal('h_semester_end', h.semester_end || '');
         setVal('h_term2_start', h.term2_start || '');
         setVal('h_term2_end', h.term2_end || '');
+        setVal('h_summer_start', h.summer_start || '');
+        setVal('h_summer_end', h.summer_end || '');
         setVal('h_ramadan_start', h.ramadan_start || '');
         setVal('h_ramadan_end', h.ramadan_end || '');
         setVal('h_kurban_start', h.kurban_start || '');
@@ -736,6 +738,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             semester_end: document.getElementById('h_semester_end')?.value || '',
             term2_start: document.getElementById('h_term2_start')?.value || '',
             term2_end: document.getElementById('h_term2_end')?.value || '',
+            summer_start: document.getElementById('h_summer_start')?.value || '',
+            summer_end: document.getElementById('h_summer_end')?.value || '',
             ramadan_start: document.getElementById('h_ramadan_start')?.value || '',
             ramadan_end: document.getElementById('h_ramadan_end')?.value || '',
             kurban_start: document.getElementById('h_kurban_start')?.value || '',

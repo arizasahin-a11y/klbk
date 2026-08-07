@@ -1157,6 +1157,7 @@ window.generatePlan = async function() {
             if (checkRange(holidays.term1_start, holidays.term1_end)) return true;
             if (checkRange(holidays.semester_start, holidays.semester_end)) return true;
             if (checkRange(holidays.term2_start, holidays.term2_end)) return true;
+            if (checkRange(holidays.summer_start, holidays.summer_end)) return true;
             if (checkRange(holidays.ramadan_start, holidays.ramadan_end)) return true;
             if (checkRange(holidays.kurban_start, holidays.kurban_end)) return true;
 

@@ -1765,6 +1765,7 @@ window.getHolidayInfo = function(dateObj) {
     if (checkRange(holidays.term1_start, holidays.term1_end)) return "1. Dönem Ara Tatili";
     if (checkRange(holidays.semester_start, holidays.semester_end)) return "Sömestr Tatili";
     if (checkRange(holidays.term2_start, holidays.term2_end)) return "2. Dönem Ara Tatili";
+    if (checkRange(holidays.summer_start, holidays.summer_end)) return "Yaz Tatili";
     if (checkRange(holidays.ramadan_start, holidays.ramadan_end)) return "Ramazan Bayramı";
     if (checkRange(holidays.kurban_start, holidays.kurban_end)) return "Kurban Bayramı";
 
