@@ -66,6 +66,16 @@
         <!-- Main Content -->
         <main class="main-content">
             
+            <!-- Bugünkü Nöbetçiler Paneli -->
+            <div class="panel-section glass-panel" id="todayDutiesPanel" style="display: none; margin-bottom: 20px; border: 2px solid var(--primary-color);">
+                <div class="panel-header">
+                    <h2><i class="fa-solid fa-calendar-day" style="color: var(--primary-color);"></i> Bugünkü Nöbetçiler (<span id="todayDateLabel"></span>)</h2>
+                </div>
+                <div id="todayDutiesContainer" style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px;">
+                    <!-- Today's duties will be populated here -->
+                </div>
+            </div>
+            
             <div class="panel-section glass-panel">
                 <div class="panel-header">
                     <h2>Plan Detayları</h2>
@@ -84,6 +94,29 @@
                         <option value="sirayla">Sınıflar sırayla (örn: önce 9A bitene kadar)</option>
                         <option value="esit">Her sınıftan eşit sayıda nöbetçi al</option>
                     </select>
+                </div>
+
+                <!-- Nöbetten Muaf Öğrenciler -->
+                <div class="filter-group" style="margin-top: 15px; background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); padding: 15px; border-radius: 12px;">
+                    <label style="display:block; font-size: 0.85rem; font-weight: 600; color: #ef4444; margin-bottom: 12px;">
+                        <i class="fa-solid fa-ban"></i> Nöbetten Muaf Öğrenciler
+                    </label>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <select id="exemptClassSelect" class="form-control" style="flex: 1;" onchange="window.updateExemptStudentDropdown()">
+                            <option value="">-- Sınıf Seçin --</option>
+                        </select>
+                        <select id="exemptStudentSelect" class="form-control" style="flex: 2;" disabled>
+                            <option value="">-- Önce Sınıf Seçin --</option>
+                        </select>
+                        <button class="btn-action" style="background: #ef4444; color: white; border: none; border-radius: 8px; padding: 0 15px; cursor: pointer;" onclick="window.addExemptStudent()">
+                            <i class="fa-solid fa-plus"></i> Ekle
+                        </button>
+                    </div>
+
+                    <div id="exemptStudentsList" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Muaf öğrenciler buraya eklenecek -->
+                    </div>
                 </div>
 
                 <hr style="border:0; border-top:1px solid var(--gray-200); margin:20px 0;">
