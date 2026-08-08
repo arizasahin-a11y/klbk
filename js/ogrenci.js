@@ -2765,14 +2765,14 @@ DataManager._getStorageKey = function () {
             });
             window.studentScheduleState.sortedDates = Object.keys(window.studentScheduleState.dateGroups).sort((a,b) => new Date(a) - new Date(b));
             
-            let bestPage = 0;
+            let startIndex = 0;
             let targetDateIndex = window.studentScheduleState.sortedDates.findIndex(d => d >= todayStr);
             if (targetDateIndex !== -1) {
-                bestPage = Math.floor(targetDateIndex / 30);
+                startIndex = targetDateIndex;
             } else if (window.studentScheduleState.sortedDates.length > 0) {
-                bestPage = Math.floor((window.studentScheduleState.sortedDates.length - 1) / 30);
+                startIndex = Math.max(0, window.studentScheduleState.sortedDates.length - 30);
             }
-            window.studentScheduleState.page = bestPage;
+            window.studentScheduleState.startIndex = startIndex;
             
             // Yaklaşan Nöbet Kartı
             let isToday = (closestDate === todayStr);
@@ -2847,7 +2847,11 @@ DataManager._getStorageKey = function () {
         }
 
         window.changeStudentSchedulePage = function(dir) {
-            window.studentScheduleState.page += dir;
+            const itemsPerPage = 30;
+            let newStartIndex = window.studentScheduleState.startIndex + (dir * itemsPerPage);
+            if (newStartIndex < 0) newStartIndex = 0;
+            if (newStartIndex >= window.studentScheduleState.sortedDates.length) return;
+            window.studentScheduleState.startIndex = newStartIndex;
             renderStudentScheduleTable();
         }
 
@@ -2857,19 +2861,21 @@ DataManager._getStorageKey = function () {
             
             const state = window.studentScheduleState;
             const itemsPerPage = 30;
-            const startIndex = state.page * itemsPerPage;
+            const startIndex = state.startIndex !== undefined ? state.startIndex : 0;
             const endIndex = startIndex + itemsPerPage;
             const paginatedDates = state.sortedDates.slice(startIndex, endIndex);
-            const totalPages = Math.ceil(state.sortedDates.length / itemsPerPage);
+            
+            const canGoBack = startIndex > 0;
+            const canGoForward = endIndex < state.sortedDates.length;
             
             let scheduleHtml = `
                 <div style="margin-top:20px; background:white; padding:20px; border-radius:12px; border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
                         <h3 style="margin:0; color:var(--dark); font-size:1.1rem;"><i class="fa-regular fa-calendar-days" style="color:var(--primary);"></i> Okul Nöbet Çizelgesi</h3>
                         <div style="display:flex; gap:10px; align-items:center;">
-                            <button onclick="changeStudentSchedulePage(-1)" ${state.page === 0 ? 'disabled' : ''} style="background:var(--gray-100); border:1px solid var(--gray-300); padding:5px 15px; border-radius:6px; cursor:${state.page === 0 ? 'not-allowed' : 'pointer'}; opacity:${state.page === 0 ? '0.5' : '1'}; color:var(--dark); font-weight:bold;"><i class="fa-solid fa-chevron-left"></i> Önceki</button>
-                            <span style="font-size:0.85rem; color:var(--gray-600); font-weight:bold;">${state.page + 1} / ${totalPages || 1}</span>
-                            <button onclick="changeStudentSchedulePage(1)" ${endIndex >= state.sortedDates.length ? 'disabled' : ''} style="background:var(--gray-100); border:1px solid var(--gray-300); padding:5px 15px; border-radius:6px; cursor:${endIndex >= state.sortedDates.length ? 'not-allowed' : 'pointer'}; opacity:${endIndex >= state.sortedDates.length ? '0.5' : '1'}; color:var(--dark); font-weight:bold;">Sonraki <i class="fa-solid fa-chevron-right"></i></button>
+                            <button onclick="changeStudentSchedulePage(-1)" ${!canGoBack ? 'disabled' : ''} style="background:var(--gray-100); border:1px solid var(--gray-300); padding:5px 15px; border-radius:6px; cursor:${!canGoBack ? 'not-allowed' : 'pointer'}; opacity:${!canGoBack ? '0.5' : '1'}; color:var(--dark); font-weight:bold;"><i class="fa-solid fa-chevron-left"></i> Önceki</button>
+                            <span style="font-size:0.85rem; color:var(--gray-600); font-weight:bold;">Görünüm: ${startIndex + 1}-${Math.min(endIndex, state.sortedDates.length)} / ${state.sortedDates.length}</span>
+                            <button onclick="changeStudentSchedulePage(1)" ${!canGoForward ? 'disabled' : ''} style="background:var(--gray-100); border:1px solid var(--gray-300); padding:5px 15px; border-radius:6px; cursor:${!canGoForward ? 'not-allowed' : 'pointer'}; opacity:${!canGoForward ? '0.5' : '1'}; color:var(--dark); font-weight:bold;">Sonraki <i class="fa-solid fa-chevron-right"></i></button>
                         </div>
                     </div>
                     

@@ -226,23 +226,18 @@ window.generatePlan = function() {
                 generatedPlan = updatedDb.school.studentDuties.plan || [];
                 
                 let uniqueDates = [...new Set(generatedPlan.map(p => p.date))];
-                window.planChunks = [];
-                for(let i=0; i<uniqueDates.length; i+=20) {
-                    window.planChunks.push(uniqueDates.slice(i, i+20));
-                }
+                window.uniqueDates = uniqueDates;
+                
                 let todayStr = new Date().toISOString().split('T')[0];
-                let targetDate = uniqueDates.find(d => d >= todayStr);
-                window.currentChunkIndex = 0;
-                if (targetDate) {
-                    for (let i = 0; i < window.planChunks.length; i++) {
-                        if (window.planChunks[i].includes(targetDate)) {
-                            window.currentChunkIndex = i;
-                            break;
-                        }
-                    }
-                } else if (window.planChunks.length > 0) {
-                    window.currentChunkIndex = window.planChunks.length - 1;
+                let targetDateIndex = uniqueDates.findIndex(d => d >= todayStr);
+                
+                let startIndex = 0;
+                if (targetDateIndex !== -1) {
+                    startIndex = targetDateIndex;
+                } else if (uniqueDates.length > 0) {
+                    startIndex = Math.max(0, uniqueDates.length - 20);
                 }
+                window.currentChunkStartIndex = startIndex;
                 
                 Swal.close();
                 renderPlan();
@@ -287,10 +282,14 @@ function isValidGender(student, genderPref) {
 }
 
 window.changeChunk = function(delta) {
-    if (window.planChunks.length === 0) return;
-    let newIndex = window.currentChunkIndex + delta;
-    if (newIndex >= 0 && newIndex < window.planChunks.length) {
-        window.currentChunkIndex = newIndex;
+    if (!window.uniqueDates || window.uniqueDates.length === 0) return;
+    
+    let itemsPerChunk = 20;
+    let newIndex = window.currentChunkStartIndex + (delta * itemsPerChunk);
+    
+    if (newIndex < 0) newIndex = 0;
+    if (newIndex < window.uniqueDates.length) {
+        window.currentChunkStartIndex = newIndex;
         renderPlan();
     } else {
         Swal.fire({
@@ -308,13 +307,13 @@ function renderPlan() {
     let tbody = document.querySelector('#planTable tbody');
     tbody.innerHTML = '';
 
-    if (generatedPlan.length === 0 || window.planChunks.length === 0) {
+    if (generatedPlan.length === 0 || !window.uniqueDates || window.uniqueDates.length === 0) {
         $('#resultsPanel').hide();
         $('#topSaveBtn').hide();
         return;
     }
 
-    let currentChunkDates = window.planChunks[window.currentChunkIndex];
+    let currentChunkDates = window.uniqueDates.slice(window.currentChunkStartIndex, window.currentChunkStartIndex + 20);
     let filteredPlan = generatedPlan.filter(p => currentChunkDates.includes(p.date));
 
     // Tarih formatlama fonksiyonu
@@ -745,23 +744,18 @@ async function loadSavedData() {
                 generatedPlan = p;
                 // Kayıtlı planı chunk'lara ayır
                 let uniqueDates = [...new Set(generatedPlan.map(p => p.date))];
-                window.planChunks = [];
-                for(let i=0; i<uniqueDates.length; i+=20) {
-                    window.planChunks.push(uniqueDates.slice(i, i+20));
-                }
+                window.uniqueDates = uniqueDates;
+                
                 let todayStr = new Date().toISOString().split('T')[0];
-                let targetDate = uniqueDates.find(d => d >= todayStr);
-                window.currentChunkIndex = 0;
-                if (targetDate) {
-                    for (let i = 0; i < window.planChunks.length; i++) {
-                        if (window.planChunks[i].includes(targetDate)) {
-                            window.currentChunkIndex = i;
-                            break;
-                        }
-                    }
-                } else if (window.planChunks.length > 0) {
-                    window.currentChunkIndex = window.planChunks.length - 1;
+                let targetDateIndex = uniqueDates.findIndex(d => d >= todayStr);
+                
+                let startIndex = 0;
+                if (targetDateIndex !== -1) {
+                    startIndex = targetDateIndex;
+                } else if (uniqueDates.length > 0) {
+                    startIndex = Math.max(0, uniqueDates.length - 20);
                 }
+                window.currentChunkStartIndex = startIndex;
                 
                 renderPlan();
                 if(typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
