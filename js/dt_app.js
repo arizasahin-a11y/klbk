@@ -2614,6 +2614,12 @@ window.selectTeacherForSwap = (dateStr, uid, e) => {
     e.preventDefault();
     if (!isAdmin) return;
     
+    // Aynı kişiye tekrar sağ tıklanırsa seçimi kaldır
+    if (window.selectedSwapTeacher && window.selectedSwapTeacher.uid === uid && window.selectedSwapTeacher.dateStr === dateStr) {
+        window.cancelTeacherSwap();
+        return;
+    }
+    
     if (window.selectedSwapTeacher) {
         let cleanOldUid = window.selectedSwapTeacher.uid.replace(/[^a-zA-Z0-9]/g, '');
         $(`#span_swap_${window.selectedSwapTeacher.dateStr}_${cleanOldUid}`).css({background: 'transparent', padding: '0'});
@@ -2631,9 +2637,31 @@ window.selectTeacherForSwap = (dateStr, uid, e) => {
         timer: 3000,
         timerProgressBar: true,
         icon: 'info',
-        title: `${tName} seçildi. Takas etmek istediğiniz diğer öğretmene tıklayın.`
+        title: `${tName} seçildi. Takas için hedefe sol tıklayın (İptal: ESC / Sağ tık)`
     });
 };
+
+window.cancelTeacherSwap = () => {
+    if (window.selectedSwapTeacher) {
+        let cleanOldUid = window.selectedSwapTeacher.uid.replace(/[^a-zA-Z0-9]/g, '');
+        $(`#span_swap_${window.selectedSwapTeacher.dateStr}_${cleanOldUid}`).css({background: 'transparent', padding: '0'});
+        window.selectedSwapTeacher = null;
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000,
+            icon: 'info',
+            title: `Takas seçimi iptal edildi.`
+        });
+    }
+};
+
+$(document).on('keyup', function(e) {
+    if (e.key === "Escape") {
+        window.cancelTeacherSwap();
+    }
+});
 
 window.handleTeacherClick = (dateStr, uid, e) => {
     if (!isAdmin) return;
