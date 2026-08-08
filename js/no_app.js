@@ -368,20 +368,24 @@ function renderPlan() {
         let displayDate = parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : dateStr;
         let dayRows = grouped[dateStr];
         
+        let isPast = dateStr < todayStr;
+        let pastStyle = isPast ? 'opacity: 0.6; filter: grayscale(50%);' : '';
+        let pastBadge = isPast ? '<br><span style="font-size:11px; color:var(--gray-500); font-weight:normal;">(Geçmiş)</span>' : '';
+        
         dayRows.forEach((p, index) => {
-            let html = `<tr style="cursor:pointer; transition:0.2s;" class="plan-row"
+            let html = `<tr style="cursor:pointer; transition:0.2s; ${pastStyle}" class="plan-row"
                             oncontextmenu="window.handleRowRightClick(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}')"
                             onclick="window.handleRowClick(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}')">`;
             
             if (index === 0) {
-                html += `<td rowspan="${dayRows.length}" style="vertical-align: middle; background: #f8fafc; border-right: 1px solid #e2e8f0; font-size: 15px;"><strong>${displayDate}</strong></td>`;
+                html += `<td rowspan="${dayRows.length}" style="vertical-align: middle; background: ${isPast ? '#f3f4f6' : '#f8fafc'}; border-right: 1px solid #e2e8f0; font-size: 15px; color: ${isPast ? '#9ca3af' : '#1e293b'};"><strong>${displayDate}</strong>${pastBadge}</td>`;
             }
             
             html += `
-                <td><span style="background:rgba(79,70,229,0.1); color:#4f46e5; padding:4px 8px; border-radius:6px; font-weight:600; font-size:13px;">${p.locName}</span></td>
-                <td>${p.className}</td>
-                <td>${p.number}</td>
-                <td>${p.name} ${p.note ? `<br><span style="font-size:11px;">${p.note}</span>` : ''}</td>
+                <td style="color:${isPast ? '#9ca3af' : 'inherit'}"><span style="background:${isPast ? 'rgba(0,0,0,0.05)' : 'rgba(79,70,229,0.1)'}; color:${isPast ? '#9ca3af' : '#4f46e5'}; padding:4px 8px; border-radius:6px; font-weight:600; font-size:13px;">${p.locName}</span></td>
+                <td style="color:${isPast ? '#9ca3af' : 'inherit'}">${p.className}</td>
+                <td style="color:${isPast ? '#9ca3af' : 'inherit'}">${p.number}</td>
+                <td style="color:${isPast ? '#9ca3af' : 'inherit'}">${p.name} ${p.note ? `<br><span style="font-size:11px;">${p.note}</span>` : ''}</td>
             </tr>`;
             tbody.insertAdjacentHTML('beforeend', html);
         });
