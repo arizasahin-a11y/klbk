@@ -2765,6 +2765,15 @@ DataManager._getStorageKey = function () {
             });
             window.studentScheduleState.sortedDates = Object.keys(window.studentScheduleState.dateGroups).sort((a,b) => new Date(a) - new Date(b));
             
+            let bestPage = 0;
+            let targetDateIndex = window.studentScheduleState.sortedDates.findIndex(d => d >= todayStr);
+            if (targetDateIndex !== -1) {
+                bestPage = Math.floor(targetDateIndex / 30);
+            } else if (window.studentScheduleState.sortedDates.length > 0) {
+                bestPage = Math.floor((window.studentScheduleState.sortedDates.length - 1) / 30);
+            }
+            window.studentScheduleState.page = bestPage;
+            
             // Yaklaşan Nöbet Kartı
             let isToday = (closestDate === todayStr);
             let closestHtmlHeading = isToday ? "BUGÜN NÖBETÇİSİNİZ" : "En Yakın Nöbetiniz";

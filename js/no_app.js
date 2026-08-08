@@ -230,7 +230,19 @@ window.generatePlan = function() {
                 for(let i=0; i<uniqueDates.length; i+=20) {
                     window.planChunks.push(uniqueDates.slice(i, i+20));
                 }
+                let todayStr = new Date().toISOString().split('T')[0];
+                let targetDate = uniqueDates.find(d => d >= todayStr);
                 window.currentChunkIndex = 0;
+                if (targetDate) {
+                    for (let i = 0; i < window.planChunks.length; i++) {
+                        if (window.planChunks[i].includes(targetDate)) {
+                            window.currentChunkIndex = i;
+                            break;
+                        }
+                    }
+                } else if (window.planChunks.length > 0) {
+                    window.currentChunkIndex = window.planChunks.length - 1;
+                }
                 
                 Swal.close();
                 renderPlan();
@@ -737,7 +749,19 @@ async function loadSavedData() {
                 for(let i=0; i<uniqueDates.length; i+=20) {
                     window.planChunks.push(uniqueDates.slice(i, i+20));
                 }
+                let todayStr = new Date().toISOString().split('T')[0];
+                let targetDate = uniqueDates.find(d => d >= todayStr);
                 window.currentChunkIndex = 0;
+                if (targetDate) {
+                    for (let i = 0; i < window.planChunks.length; i++) {
+                        if (window.planChunks[i].includes(targetDate)) {
+                            window.currentChunkIndex = i;
+                            break;
+                        }
+                    }
+                } else if (window.planChunks.length > 0) {
+                    window.currentChunkIndex = window.planChunks.length - 1;
+                }
                 
                 renderPlan();
                 if(typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
