@@ -394,7 +394,10 @@ function populateTeacherDropdowns() {
             
             if(t.exempt) {
                 color = 'red';
-                statusListHtml += `<li style="color: red; padding: 3px 0; border-bottom: 1px dashed var(--gray-200);"><i class="fa-solid fa-ban"></i> ${t.text} (Nöbetten Muaf)</li>`;
+                statusListHtml += `<li style="display:flex; justify-content:space-between; align-items:center; color: red; padding: 5px 0; border-bottom: 1px dashed var(--gray-200);">
+                    <span><i class="fa-solid fa-ban"></i> ${t.text} (Nöbetten Muaf)</span>
+                    <button class="btn-icon" style="color:var(--danger); background:none; border:none; cursor:pointer;" onclick="window.removeTeacherCondition('${t.id}')" title="Muafiyeti Kaldır"><i class="fa-solid fa-trash"></i></button>
+                </li>`;
             } else if(t.fixedLoc) {
                 color = 'green';
                 let locName = t.fixedLoc;
@@ -404,7 +407,10 @@ function populateTeacherDropdowns() {
                     if(locObj) locName = locObj.name;
                 }
                 displayText += ` (${locName})`;
-                statusListHtml += `<li style="color: green; padding: 3px 0; border-bottom: 1px dashed var(--gray-200);"><i class="fa-solid fa-thumbtack"></i> ${t.text} (Sabit Yeri: ${locName})</li>`;
+                statusListHtml += `<li style="display:flex; justify-content:space-between; align-items:center; color: green; padding: 5px 0; border-bottom: 1px dashed var(--gray-200);">
+                    <span><i class="fa-solid fa-thumbtack"></i> ${t.text} (Sabit Yeri: ${locName})</span>
+                    <button class="btn-icon" style="color:var(--danger); background:none; border:none; cursor:pointer;" onclick="window.removeTeacherCondition('${t.id}')" title="Sabit Yeri Kaldır"><i class="fa-solid fa-trash"></i></button>
+                </li>`;
             }
             
             options += `<option value="${t.id}" data-color="${color}">${displayText}</option>`;
@@ -1055,6 +1061,41 @@ window.saveTeacherSettings = async function() {
         Swal.fire('Başarılı', 'Öğretmen ayarları kaydedildi.', 'success');
     } catch(e) {
         Swal.fire('Hata', 'Ayarlar kaydedilirken hata oluştu: ' + e.message, 'error');
+    }
+};
+
+window.removeTeacherCondition = async function(uid) {
+    if(!teacherData[uid]) return;
+    
+    Swal.fire({title:'Kaldırılıyor...', didOpen:()=>Swal.showLoading()});
+    try {
+        const res = await fetch('/api/updateNobet', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                path: `settings/teachers/${uid}`,
+                data: null
+            })
+        });
+        
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'API Error');
+        }
+
+        delete teacherData[uid];
+        populateTeacherDropdowns();
+        
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            title: 'Özel durum kaldırıldı',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    } catch(e) {
+        Swal.fire('Hata', 'Kaldırılırken hata oluştu: ' + e.message, 'error');
     }
 };
 
