@@ -285,13 +285,29 @@ window.changeChunk = function(delta) {
     if (!window.uniqueDates || window.uniqueDates.length === 0) return;
     
     let itemsPerChunk = 20;
-    let newIndex = window.currentChunkStartIndex + (delta * itemsPerChunk);
+    let todayStr = new Date().toISOString().split('T')[0];
+    let anchorIndex = window.uniqueDates.findIndex(d => d >= todayStr);
+    let anchor = anchorIndex !== -1 ? anchorIndex : window.uniqueDates.length;
     
-    if (newIndex < 0) newIndex = 0;
-    if (newIndex < window.uniqueDates.length) {
-        window.currentChunkStartIndex = newIndex;
-        renderPlan();
+    if (delta < 0) {
+        if (window.currentChunkStartIndex === anchor) {
+            let pastCount = anchor;
+            let remainder = pastCount % itemsPerChunk;
+            let step = remainder === 0 ? itemsPerChunk : remainder;
+            window.currentChunkStartIndex = Math.max(0, anchor - step);
+        } else {
+            window.currentChunkStartIndex -= itemsPerChunk;
+        }
+        if (window.currentChunkStartIndex < 0) window.currentChunkStartIndex = 0;
     } else {
+        if (window.currentChunkStartIndex < anchor && window.currentChunkStartIndex + itemsPerChunk >= anchor) {
+            window.currentChunkStartIndex = anchor;
+        } else {
+            window.currentChunkStartIndex += itemsPerChunk;
+        }
+    }
+    
+    if (window.currentChunkStartIndex >= window.uniqueDates.length) {
         Swal.fire({
             toast: true,
             position: 'top-end',
@@ -300,7 +316,9 @@ window.changeChunk = function(delta) {
             showConfirmButton: false,
             timer: 2000
         });
+        return;
     }
+    renderPlan();
 };
 
 function renderPlan() {
@@ -313,7 +331,17 @@ function renderPlan() {
         return;
     }
 
-    let currentChunkDates = window.uniqueDates.slice(window.currentChunkStartIndex, window.currentChunkStartIndex + 20);
+    let itemsPerChunk = 20;
+    let todayStr = new Date().toISOString().split('T')[0];
+    let anchorIndex = window.uniqueDates.findIndex(d => d >= todayStr);
+    let anchor = anchorIndex !== -1 ? anchorIndex : window.uniqueDates.length;
+    
+    let endIndex = window.currentChunkStartIndex + itemsPerChunk;
+    if (window.currentChunkStartIndex < anchor && endIndex > anchor) {
+        endIndex = anchor;
+    }
+    
+    let currentChunkDates = window.uniqueDates.slice(window.currentChunkStartIndex, endIndex);
     let filteredPlan = generatedPlan.filter(p => currentChunkDates.includes(p.date));
 
     // Tarih formatlama fonksiyonu

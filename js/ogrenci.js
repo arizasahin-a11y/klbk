@@ -2848,10 +2848,28 @@ DataManager._getStorageKey = function () {
 
         window.changeStudentSchedulePage = function(dir) {
             const itemsPerPage = 30;
-            let newStartIndex = window.studentScheduleState.startIndex + (dir * itemsPerPage);
-            if (newStartIndex < 0) newStartIndex = 0;
-            if (newStartIndex >= window.studentScheduleState.sortedDates.length) return;
-            window.studentScheduleState.startIndex = newStartIndex;
+            const state = window.studentScheduleState;
+            const anchorIndex = state.sortedDates.findIndex(d => d >= state.todayStr);
+            const anchor = anchorIndex !== -1 ? anchorIndex : state.sortedDates.length;
+            
+            if (dir < 0) {
+                if (state.startIndex === anchor) {
+                    let pastCount = anchor;
+                    let remainder = pastCount % itemsPerPage;
+                    let step = remainder === 0 ? itemsPerPage : remainder;
+                    state.startIndex = Math.max(0, anchor - step);
+                } else {
+                    state.startIndex -= itemsPerPage;
+                }
+                if (state.startIndex < 0) state.startIndex = 0;
+            } else {
+                if (state.startIndex < anchor && state.startIndex + itemsPerPage >= anchor) {
+                    state.startIndex = anchor;
+                } else {
+                    state.startIndex += itemsPerPage;
+                }
+            }
+            if (state.startIndex >= state.sortedDates.length) return;
             renderStudentScheduleTable();
         }
 
@@ -2862,7 +2880,15 @@ DataManager._getStorageKey = function () {
             const state = window.studentScheduleState;
             const itemsPerPage = 30;
             const startIndex = state.startIndex !== undefined ? state.startIndex : 0;
-            const endIndex = startIndex + itemsPerPage;
+            
+            const anchorIndex = state.sortedDates.findIndex(d => d >= state.todayStr);
+            const anchor = anchorIndex !== -1 ? anchorIndex : state.sortedDates.length;
+            
+            let endIndex = startIndex + itemsPerPage;
+            if (startIndex < anchor && endIndex > anchor) {
+                endIndex = anchor; // Geçmiş sayfasında geleceği gösterme
+            }
+            
             const paginatedDates = state.sortedDates.slice(startIndex, endIndex);
             
             const canGoBack = startIndex > 0;
