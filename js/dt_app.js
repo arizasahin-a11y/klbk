@@ -1770,6 +1770,122 @@ function determineNextDuty(teacherUid) {
     return { notFound: true };
 }
 
+function renderAdminGlobalDutyDashboard(container) {
+    if (!publishedPlanMeta || !publishedPlanMeta.data) {
+        container.html(`<div style="padding: 30px;"><i class="fa-solid fa-calendar-xmark" style="font-size: 3rem; color: var(--gray-400); margin-bottom:15px;"></i><h3>Aktif Nöbet Planı Yok</h3></div>`);
+        return;
+    }
+    
+    let p = publishedPlanMeta;
+    let dutyType = p.dutyType || nobetSettings.dutyType || 'weekly';
+    let originalDates = Object.keys(p.data).sort();
+    
+    let checkDate = new Date();
+    let foundDate = null;
+    let matchingOrigDateStr = null;
+    let virtualPlanForDay = null;
+    let isToday = false;
+    
+    for(let i=0; i<60; i++) {
+        let d = new Date(checkDate);
+        d.setDate(d.getDate() + i);
+        let dayOfWeek = d.getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+        
+        let mOrig = originalDates.find(dStr => new Date(dStr).getDay() === dayOfWeek);
+        if(!mOrig) continue;
+        
+        let checkDateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if (typeof window.getHolidayInfo === 'function' && window.getHolidayInfo(checkDateStr)) continue;
+        
+        foundDate = d;
+        matchingOrigDateStr = mOrig;
+        virtualPlanForDay = dutyType === 'fixed' ? p.data : applyDynamicRotation(p.data, p.startDate, dutyType, d);
+        if (i === 0) isToday = true;
+        break;
+    }
+    
+    if (!foundDate) {
+        container.html(`<div style="padding: 30px;"><i class="fa-solid fa-calendar-xmark" style="font-size: 3rem; color: var(--gray-400); margin-bottom:15px;"></i><h3>Yakın Zamanda Nöbet Günü Yok</h3></div>`);
+        return;
+    }
+    
+    let targetDateStr = `${foundDate.getFullYear()}-${String(foundDate.getMonth()+1).padStart(2,'0')}-${String(foundDate.getDate()).padStart(2,'0')}`;
+    const days = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+    let dateFormatted = String(foundDate.getDate()).padStart(2,'0') + '.' + String(foundDate.getMonth()+1).padStart(2,'0') + '.' + foundDate.getFullYear() + ' ' + days[foundDate.getDay()];
+    let headingTitle = isToday ? "Bugünkü Nöbetçiler" : "En Yakın Nöbet Günü";
+    
+    let dayPlan = virtualPlanForDay[matchingOrigDateStr] || {};
+    let dutyTeachers = [];
+    let adminsHtml = ''; 
+    for(let shiftId in dayPlan) {
+        let shiftData = dayPlan[shiftId];
+        let tList = Array.isArray(shiftData) ? shiftData : (shiftData ? [shiftData] : []);
+        tList.forEach(t => {
+            if (t && klbkUsers[t]) {
+                if (shiftId === '_admin_duty') {
+                    adminsHtml += `<div style="padding:8px 0; border-bottom:1px solid #eee;"><i class="fa-solid fa-user-tie" style="color:#ef4444; width:20px;"></i> <b>${klbkUsers[t].name || t}</b> (İdareci)</div>`;
+                } else {
+                    dutyTeachers.push(`<div style="padding:8px 0; border-bottom:1px solid #eee;"><i class="fa-solid fa-chalkboard-user" style="color:#3b82f6; width:20px;"></i> <b>${klbkUsers[t].name || t}</b> - <span style="font-size:0.85em; color:var(--gray-600);">${getDutyLocationName(shiftId)}</span></div>`);
+                }
+            }
+        });
+    }
+    
+    let db = DataManager._getData();
+    let sPlan = (db && db.school && db.school.studentDuties && db.school.studentDuties.plan) ? db.school.studentDuties.plan : [];
+    let shiftedPlan = typeof window.shiftStudentPlanDates === 'function' ? window.shiftStudentPlanDates(sPlan) : sPlan;
+    
+    let todaysStudents = [];
+    for(let i=0; i<sPlan.length; i++){
+        let p = sPlan[i];
+        let pDate = shiftedPlan[i] ? shiftedPlan[i].date : p.date;
+        if(pDate === targetDateStr) todaysStudents.push(p);
+    }
+    
+    let studentsHtml = '';
+    if (todaysStudents.length > 0) {
+        let list = todaysStudents.map(p => `
+            <div style="background: rgba(255,255,255,0.7); border-radius: 6px; padding: 6px 10px; margin-bottom: 6px; font-size: 0.9rem; border: 1px solid #eee;">
+                <div style="display:flex; justify-content:space-between;">
+                    <span style="font-weight:600; color:var(--dark);">${p.name}</span>
+                    <span style="color:#4f46e5; font-size:0.8rem; font-weight:700;">${p.locName}</span>
+                </div>
+                <div style="font-size:0.8rem; color:var(--gray-600);">${p.className} - No: ${p.number}</div>
+            </div>
+        `).join('');
+        studentsHtml = `
+            <div style="padding: 15px; background: rgba(79, 70, 229, 0.05); border-radius: 8px; text-align:left; max-height: 250px; overflow-y:auto; border: 1px solid rgba(79, 70, 229, 0.1);">
+                <strong style="color:#4f46e5; display:block; margin-bottom:10px;"><i class="fa-solid fa-user-graduate"></i> Nöbetçi Öğrenciler (${todaysStudents.length})</strong>
+                ${list}
+            </div>
+        `;
+    } else {
+        studentsHtml = `<div style="padding: 15px; background: rgba(79, 70, 229, 0.05); border-radius: 8px; text-align:left; border: 1px solid rgba(79, 70, 229, 0.1);"><strong style="color:#4f46e5;"><i class="fa-solid fa-user-graduate"></i> Öğrenci nöbet listesi bulunamadı.</strong></div>`;
+    }
+    
+    let teachersHtml = `
+        <div style="padding: 15px; background: #fff; border: 1px solid #eee; border-radius: 8px; text-align:left; max-height: 250px; overflow-y:auto; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+            <strong style="color:#3b82f6; display:block; margin-bottom:10px;"><i class="fa-solid fa-chalkboard-user"></i> Nöbetçi Öğretmenler (${dutyTeachers.length})</strong>
+            ${adminsHtml}
+            ${dutyTeachers.join('')}
+        </div>
+    `;
+    
+    let html = `
+        <div style="padding: 10px;">
+            <h2 style="margin:0 0 5px 0; color:var(--dark); font-size: 1.4rem;">${headingTitle}</h2>
+            <div style="font-size: 1.2rem; color: var(--primary); font-weight: bold; margin-bottom: 20px;">${dateFormatted}</div>
+            <div style="display:flex; flex-wrap:wrap; gap:20px;">
+                <div style="flex:1; min-width:280px;">${teachersHtml}</div>
+                <div style="flex:1; min-width:280px;">${studentsHtml}</div>
+            </div>
+        </div>
+    `;
+    
+    container.html(html);
+}
+
 function updateTeacherDutyDashboardUI() {
     if(isAdmin) renderWeeklyPlan();
     
@@ -1777,6 +1893,11 @@ function updateTeacherDutyDashboardUI() {
     
     const container = $('#teacherDutyDashboardContainer');
     const incidentBtn = $('#teacherIncidentBtnContainer');
+    
+    if (isAdmin) {
+        renderAdminGlobalDutyDashboard(container);
+        return;
+    }
     
     if (!publishedPlanMeta) {
         container.html(`<div style="padding: 30px;"><i class="fa-solid fa-calendar-xmark" style="font-size: 3rem; color: var(--gray-400); margin-bottom:15px;"></i><h3>Aktif Nöbet Planı Yok</h3></div>`);
