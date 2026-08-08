@@ -1846,7 +1846,10 @@ function renderAdminGlobalDutyDashboard(container) {
     let studentsHtml = '';
     if (todaysStudents.length > 0) {
         let list = todaysStudents.map(p => `
-            <div style="background: rgba(255,255,255,0.7); border-radius: 6px; padding: 6px 10px; margin-bottom: 6px; font-size: 0.9rem; border: 1px solid #eee;">
+            <div style="background: rgba(255,255,255,0.7); border-radius: 6px; padding: 6px 10px; margin-bottom: 6px; font-size: 0.9rem; border: 1px solid #eee; cursor: pointer; transition: 0.2s;"
+                 onmouseover="this.style.background='rgba(255,255,255,1)'" onmouseout="this.style.background='rgba(255,255,255,0.7)'"
+                 oncontextmenu="window.dtShowStudentOptions(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}', true)"
+                 onclick="window.dtShowStudentOptions(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}', false)">
                 <div style="display:flex; justify-content:space-between;">
                     <span style="font-weight:600; color:var(--dark);">${p.name}</span>
                     <span style="color:#4f46e5; font-size:0.8rem; font-weight:700;">${p.locName}</span>
