@@ -777,6 +777,33 @@ window.openDutyRulesModal = function(event) {
 
 // --- Kayıt İşlemleri ---
 window.savePlan = async function() {
+    let todayStr = new Date().toISOString().split('T')[0];
+    
+    // Uygulama tarihi sor
+    let { value: selectedDateStr } = await Swal.fire({
+        title: 'Plan Uygulama Tarihi',
+        html: `
+            <div style="font-size:0.9rem; color:var(--gray-600); margin-bottom:15px; text-align:left;">
+                Oluşturduğunuz yeni nöbet listesi hangi tarihten itibaren geçerli olsun?<br><br>
+                <small><b>Not:</b> Seçtiğiniz tarihten önceki günler için eski nöbet planınız korunacaktır.</small>
+            </div>
+            <input type="date" id="applyDateInput" class="swal2-input" style="width: 80%;" value="${todayStr}">
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Kaydet',
+        cancelButtonText: 'İptal',
+        confirmButtonColor: 'var(--primary)',
+        preConfirm: () => {
+            const val = document.getElementById('applyDateInput').value;
+            if (!val) {
+                Swal.showValidationMessage('Lütfen geçerli bir tarih seçin');
+            }
+            return val;
+        }
+    });
+
+    if (!selectedDateStr) return; // Kullanıcı iptal etti
+
     const selectedClasses = $('#classSelect').val() || [];
     const globalRule = document.getElementById('globalRule').value;
     const saveData = {
@@ -785,6 +812,7 @@ window.savePlan = async function() {
         globalRule: globalRule,
         plan: generatedPlan,
         exemptStudents: window.exemptStudents || [],
+        lockedUntilDate: selectedDateStr,
         updatedAt: Date.now()
     };
 
@@ -796,7 +824,7 @@ window.savePlan = async function() {
         if (!db.school) db.school = {};
         db.school.studentDuties = saveData;
         
-        // Kaydetmeden hemen önce geleceği güncelle (muafiyet/lokasyon değiştiyse yansısın)
+        // Kaydetmeden hemen önce geleceği güncelle (muafiyet/lokasyon değiştiyse yansısın ve seçilen tarihten itibaren oluştursun)
         if (typeof window.autoUpdateStudentDuties === 'function') {
             window.autoUpdateStudentDuties(false);
             generatedPlan = db.school.studentDuties.plan || [];

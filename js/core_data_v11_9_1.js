@@ -1808,6 +1808,10 @@ window.autoUpdateStudentDuties = function(triggerSave = true) {
         let shiftedPlan = typeof window.shiftStudentPlanDates === 'function' ? window.shiftStudentPlanDates(plan) : plan;
         
         let todayStr = new Date().toISOString().split('T')[0];
+        let startDateStr = todayStr;
+        if (duties.lockedUntilDate && duties.lockedUntilDate > todayStr) {
+            startDateStr = duties.lockedUntilDate;
+        }
         
         let studentStats = {}; 
         selectedClasses.forEach(c => {
@@ -1822,7 +1826,7 @@ window.autoUpdateStudentDuties = function(triggerSave = true) {
             let p = plan[i];
             let shiftedDate = shiftedPlan[i] ? shiftedPlan[i].date : p.date;
             
-            if (shiftedDate < todayStr) {
+            if (shiftedDate < startDateStr) {
                 pastPlanRaw.push(p);
                 let id = p.class + '-' + String(p.number).trim();
                 if (studentStats[id] !== undefined) {
@@ -1834,7 +1838,7 @@ window.autoUpdateStudentDuties = function(triggerSave = true) {
         }
         
         let workingDays = [];
-        let d = new Date(); 
+        let d = new Date(startDateStr); 
         let maxLookAhead = 365;
         while(maxLookAhead > 0) {
             let dayOfWeek = d.getDay();
