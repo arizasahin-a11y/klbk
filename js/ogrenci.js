@@ -2843,7 +2843,7 @@ DataManager._getStorageKey = function () {
             }
 
             let rulesHtml = '';
-            let currentRules = state.db.school?.studentDuties?.rules || '';
+            let currentRules = window.studentScheduleState.db.school?.studentDuties?.rules || '';
             if (currentRules.trim() !== '') {
                 let formattedRules = currentRules.replace(/\n/g, '<br>');
                 rulesHtml = `
