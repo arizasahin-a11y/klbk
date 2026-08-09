@@ -2910,7 +2910,20 @@ DataManager._getStorageKey = function () {
                                 </tr>
                             </thead>
                             <tbody>
-                                ${paginatedDates.map(dateStr => {
+                                ${paginatedDates.map((dateStr, index) => {
+                                    let extraHtml = '';
+                                    let globalIndex = startIndex + index;
+                                    if (globalIndex > 0) {
+                                        let prevDateStr = state.sortedDates[globalIndex - 1];
+                                        let currDate = new Date(dateStr);
+                                        let prevDate = new Date(prevDateStr);
+                                        let diffTime = currDate.getTime() - prevDate.getTime();
+                                        let diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+                                        if (diffDays > 1) {
+                                            extraHtml = `<tr style="border-top: 4px solid #10b981;"><td colspan="2" style="padding:0; height:0;"></td></tr>`;
+                                        }
+                                    }
+                                    
                                     let [py,pm,pd] = dateStr.split('-');
                                     let isPast = dateStr < state.todayStr;
                                     let isToday = dateStr === state.todayStr;
@@ -2930,9 +2943,7 @@ DataManager._getStorageKey = function () {
                                         locStr += `<div style="margin-bottom:6px;"><strong style="color:var(--primary);">${l}:</strong> ${locObj[l].join(', ')}</div>`;
                                     }
                                     
-                                    // Öğretmenleri Ekle - İptal edildi (Kullanıcı çizelgede istemiyor)
-                                    
-                                    return `
+                                    return extraHtml + `
                                     <tr style="border-bottom:1px solid var(--gray-100); ${isPast ? 'opacity:0.6;' : ''} ${isToday ? 'background:rgba(239, 68, 68, 0.05);' : ''}">
                                         <td style="padding:12px; color:var(--dark); font-weight:600; vertical-align:top; width:130px;">${pd}.${pm}.${py} ${badge}</td>
                                         <td style="padding:12px;">${locStr}</td>
