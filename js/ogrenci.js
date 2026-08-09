@@ -2791,7 +2791,7 @@ DataManager._getStorageKey = function () {
                     </div>
                     <div style="background: rgba(255,255,255,0.1); padding: 15px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); text-align: right;">
                         <div style="font-size: 1.1rem; font-weight: 800; margin-bottom: 5px;"><i class="fa-solid fa-user-graduate" style="margin-right:5px; opacity:0.8;"></i> ${closestDuty.name}</div>
-                        <div style="font-size: 0.95rem; font-weight: 600; opacity: 0.9; margin-bottom: 3px;">Sınıf: ${closestDuty.className}</div>
+                        <div style="font-size: 0.95rem; font-weight: 600; opacity: 0.9; margin-bottom: 3px;">Sınıf: ${closestDuty.className || closestDuty.class || ''}</div>
                         <div style="font-size: 0.95rem; font-weight: 600; opacity: 0.9;">Okul No: ${closestDuty.number}</div>
                     </div>
                 </div>
@@ -2804,7 +2804,7 @@ DataManager._getStorageKey = function () {
                 let locGroups = {};
                 partners.forEach(pt => {
                     if(!locGroups[pt.locName]) locGroups[pt.locName] = [];
-                    locGroups[pt.locName].push(`<strong>${pt.name}</strong> (${pt.className} - ${pt.number})`);
+                    locGroups[pt.locName].push(`<strong>${pt.name}</strong> (${pt.className || pt.class || ''} - ${pt.number})`);
                 });
                 
                 let pList = '';
@@ -2927,7 +2927,7 @@ DataManager._getStorageKey = function () {
                                     state.dateGroups[dateStr].forEach(p => {
                                         if(!locObj[p.locName]) locObj[p.locName] = [];
                                         let meBadge = (String(p.number) === String(state.studentNo)) ? ' <span style="color:white; background:var(--primary); padding:1px 4px; border-radius:4px; font-size:0.7rem;">SİZ</span>' : '';
-                                        locObj[p.locName].push(`${p.name} (${p.className} - ${p.number})${meBadge}`);
+                                        locObj[p.locName].push(`${p.name} (${p.className || p.class || ''} - ${p.number})${meBadge}`);
                                     });
                                     
                                     for(let l in locObj) {

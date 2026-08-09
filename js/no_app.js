@@ -381,9 +381,10 @@ function renderPlan() {
                 html += `<td rowspan="${dayRows.length}" style="vertical-align: middle; background: ${isPast ? '#f3f4f6' : '#f8fafc'}; border-right: 1px solid #e2e8f0; font-size: 15px; color: ${isPast ? '#9ca3af' : '#1e293b'};"><strong>${displayDate}</strong>${pastBadge}</td>`;
             }
             
+            let displayClass = p.className || p.class || 'Bilinmiyor';
             html += `
                 <td style="color:${isPast ? '#9ca3af' : 'inherit'}"><span style="background:${isPast ? 'rgba(0,0,0,0.05)' : 'rgba(79,70,229,0.1)'}; color:${isPast ? '#9ca3af' : '#4f46e5'}; padding:4px 8px; border-radius:6px; font-weight:600; font-size:13px;">${p.locName}</span></td>
-                <td style="color:${isPast ? '#9ca3af' : 'inherit'}">${p.className}</td>
+                <td style="color:${isPast ? '#9ca3af' : 'inherit'}">${displayClass}</td>
                 <td style="color:${isPast ? '#9ca3af' : 'inherit'}">${p.number}</td>
                 <td style="color:${isPast ? '#9ca3af' : 'inherit'}">${p.name} ${p.note ? `<br><span style="font-size:11px;">${p.note}</span>` : ''}</td>
             </tr>`;
@@ -590,7 +591,7 @@ window.renderTodayDuties = function() {
                  onclick="window.showAbsentOptions(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}')">
                 <div style="font-size: 0.8rem; font-weight: 700; color: #4f46e5; margin-bottom: 5px;">${p.locName}</div>
                 <div style="font-weight: 700; color: var(--gray-800);">${p.name}</div>
-                <div style="font-size: 0.85rem; color: var(--gray-600);"><i class="fa-solid fa-graduation-cap"></i> ${p.className} - No: ${p.number}</div>
+                <div style="font-size: 0.85rem; color: var(--gray-600);"><i class="fa-solid fa-graduation-cap"></i> ${p.className || p.class || 'Bilinmiyor'} - No: ${p.number}</div>
                 ${p.note ? `<div style="font-size:0.75rem; margin-top:5px; font-weight:600;">${p.note}</div>` : ''}
                 <div style="font-size:0.7rem; color:var(--gray-500); margin-top:10px; text-align:right;"><i class="fa-solid fa-hand-pointer"></i> Yoklama için tıkla</div>
             </div>
@@ -699,6 +700,38 @@ window.markAbsentAndSwap = function(date, locName, className, number) {
         title: 'Öğrenciler yer değiştirdi.',
         showConfirmButton: false,
         timer: 2000
+    });
+};
+
+window.clearPastDuties = async function() {
+    Swal.fire({
+        title: 'Geçmiş Nöbetleri Sil',
+        text: 'Bugünden önceki tüm nöbet kayıtları kalıcı olarak silinecektir. Emin misiniz?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Evet, Sil',
+        cancelButtonText: 'İptal'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            let todayStr = new Date().toISOString().split('T')[0];
+            let originalLength = generatedPlan.length;
+            generatedPlan = generatedPlan.filter(p => p.date >= todayStr);
+            
+            if (generatedPlan.length === originalLength) {
+                Swal.fire('Bilgi', 'Silinecek geçmiş nöbet kaydı bulunamadı.', 'info');
+                return;
+            }
+            
+            let uniqueDates = [...new Set(generatedPlan.map(p => p.date))];
+            window.uniqueDates = uniqueDates;
+            window.currentChunkStartIndex = 0;
+            
+            await window.savePlan();
+            renderPlan();
+            Swal.fire('Silindi!', 'Geçmiş nöbet kayıtları başarıyla silindi.', 'success');
+        }
     });
 };
 
