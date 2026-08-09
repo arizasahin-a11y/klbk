@@ -735,6 +735,46 @@ window.clearPastDuties = async function() {
     });
 };
 
+window.openDutyRulesModal = function(event) {
+    event.preventDefault();
+    let db = DataManager._getData();
+    let currentRules = db.school?.studentDuties?.rules || '';
+
+    Swal.fire({
+        title: 'Öğrenci Nöbet Kuralları',
+        html: `
+            <div style="text-align: left; font-size: 0.9rem; color: var(--gray-600); margin-bottom: 10px;">
+                Buraya yazacağınız kurallar, öğrencilerin nöbet ekranında en üstte gösterilecektir. Boş bırakırsanız gizlenir.
+            </div>
+            <textarea id="dutyRulesInput" class="swal2-textarea" style="width: 100%; height: 150px; font-size: 0.95rem; line-height: 1.5; padding: 10px; border-radius: 8px; border: 1px solid var(--gray-300); box-sizing: border-box;" placeholder="Örn: 1. Nöbet yerini izinsiz terk etmeyiniz.\n2. Yaka kartınızı mutlaka takınız...">${currentRules}</textarea>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Kaydet',
+        cancelButtonText: 'İptal',
+        confirmButtonColor: 'var(--primary)',
+        preConfirm: () => {
+            return document.getElementById('dutyRulesInput').value;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            let rules = result.value.trim();
+            if (!db.school) db.school = {};
+            if (!db.school.studentDuties) db.school.studentDuties = {};
+            db.school.studentDuties.rules = rules;
+            DataManager._saveData(db);
+            
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'Kurallar kaydedildi.',
+                showConfirmButton: false,
+                timer: 1500
+            });
+        }
+    });
+};
+
 // --- Kayıt İşlemleri ---
 window.savePlan = async function() {
     const selectedClasses = $('#classSelect').val() || [];

@@ -2842,7 +2842,21 @@ DataManager._getStorageKey = function () {
                 `;
             }
 
-            container.innerHTML = closestHtml + sideBySideHtml + `<div id="studentScheduleContainer"></div>`;
+            let rulesHtml = '';
+            let currentRules = state.db.school?.studentDuties?.rules || '';
+            if (currentRules.trim() !== '') {
+                let formattedRules = currentRules.replace(/\n/g, '<br>');
+                rulesHtml = `
+                    <div style="margin-top:20px; background:rgba(79, 70, 229, 0.05); padding:20px; border-radius:12px; border:1px solid rgba(79, 70, 229, 0.2); box-shadow:var(--shadow-sm);">
+                        <h3 style="margin:0 0 10px 0; color:var(--primary); font-size:1.1rem;"><i class="fa-solid fa-clipboard-list"></i> Öğrenci Nöbet Kuralları</h3>
+                        <div style="color:var(--gray-800); font-size:0.95rem; line-height:1.6;">
+                            ${formattedRules}
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = rulesHtml + closestHtml + sideBySideHtml + `<div id="studentScheduleContainer"></div>`;
             renderStudentScheduleTable();
         }
 
