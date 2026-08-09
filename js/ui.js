@@ -635,21 +635,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // --- Backup / Import Functions ---
-    window.backupAllData = function () {
+    window.backupAllData = async function () {
         document.getElementById('schoolGearMenu').classList.add('hidden');
-        const key = DataManager._getStorageKey();
-        const data = DataManager._getData();
-        const json = JSON.stringify(data, null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        const now = new Date();
-        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
-        a.href = url;
-        a.download = `klbk_yedek_${dateStr}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        Swal.fire({ icon: 'success', title: 'Yedek Al\u0131nd\u0131!', text: 'T\u00fcm veriler JSON dosyas\u0131 olarak indirildi.', timer: 2000, showConfirmButton: false });
+        Swal.fire({ title: 'Buluttan İndiriliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        
+        try {
+            let dbUrl = '';
+            const key = DataManager._getStorageKey();
+            const encodedKey = encodeURIComponent(key);
+            
+            if (window._cloudSyncManager && window._cloudSyncManager.firebaseDatabaseUrl) {
+                 dbUrl = `${window._cloudSyncManager.firebaseDatabaseUrl}/app_store/${encodedKey}.json?t=${Date.now()}`;
+            } else {
+                 dbUrl = `https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/${encodedKey}.json?t=${Date.now()}`;
+            }
+            
+            const res = await fetch(dbUrl);
+            if (!res.ok) throw new Error('Ağ hatası');
+            const data = await res.json();
+            
+            if (!data) {
+                 Swal.fire('Hata', 'Firebase bulutunda indirilecek veri bulunamadı.', 'error');
+                 return;
+            }
+
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+            a.href = url;
+            a.download = `klbk_firebase_yedek_${dateStr}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            Swal.fire({ icon: 'success', title: 'İndirildi!', text: 'Tüm bulut (Firebase) verileri JSON dosyası olarak indirildi.', timer: 2000, showConfirmButton: false });
+        } catch(e) {
+            console.error(e);
+            Swal.fire('Hata', 'Veriler Firebase\'den indirilirken bir sorun oluştu.', 'error');
+        }
     };
 
     window.importBackupData = function () {
@@ -666,35 +691,56 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const parsed = JSON.parse(evt.target.result);
                     if (!parsed.school && !parsed.students) throw new Error('Invalid');
                     Swal.fire({
-                        title: 'Yede\u011fi G\u00fcncelle',
-                        html: 'Bu i\u015flem mevcut verilerin \u00fczerine yazar. Emin misiniz?',
+                        title: 'Firebase\'e Geri Yükle',
+                        html: 'Bu işlem <b style="color:red">BULUTTAKİ (Firebase)</b> mevcut verilerin üzerine yazar ve geri alınamaz. Emin misiniz?',
                         icon: 'warning',
                         showCancelButton: true,
-                        confirmButtonText: 'Evet, Y\u00fckle',
-                        cancelButtonText: '\u0130ptal',
-                        confirmButtonColor: '#6366f1'
-                    }).then(res => {
+                        confirmButtonText: 'Evet, Buluta Yükle',
+                        cancelButtonText: 'İptal',
+                        confirmButtonColor: '#ef4444'
+                    }).then(async res => {
                         if (res.isConfirmed) {
-                            DataManager._saveData(parsed);
+                            Swal.fire({title: 'Buluta Yükleniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
                             
-                            // Fully refresh all UI components with the new data
-                            loadSchoolSettings();
-                            if (typeof updateDashboardStats === 'function') updateDashboardStats();
-                            if (typeof updateClassesList === 'function') updateClassesList();
-                            
-                            Swal.fire({ 
-                                icon: 'success', 
-                                title: 'Yüklendi!', 
-                                text: 'Veriler başarıyla geri yüklendi. Sistem güncelleniyor...', 
-                                timer: 1500, 
-                                showConfirmButton: false 
-                            }).then(() => {
-                                location.reload();
-                            });
+                            try {
+                                let dbUrl = '';
+                                const key = DataManager._getStorageKey();
+                                const encodedKey = encodeURIComponent(key);
+                                
+                                if (window._cloudSyncManager && window._cloudSyncManager.firebaseDatabaseUrl) {
+                                    dbUrl = `${window._cloudSyncManager.firebaseDatabaseUrl}/app_store/${encodedKey}.json`;
+                                } else {
+                                    dbUrl = `https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/${encodedKey}.json`;
+                                }
+                                
+                                const putRes = await fetch(dbUrl, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(parsed)
+                                });
+                                
+                                if (!putRes.ok) throw new Error('Buluta yazılamadı');
+                                
+                                // Yerel veriyi de güncelle
+                                localStorage.setItem(key, JSON.stringify(parsed));
+                                
+                                Swal.fire({ 
+                                    icon: 'success', 
+                                    title: 'Başarılı!', 
+                                    text: 'Veriler Firebase bulutuna başarıyla yüklendi. Sistem güncelleniyor...', 
+                                    timer: 1500, 
+                                    showConfirmButton: false 
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } catch(uploadErr) {
+                                console.error(uploadErr);
+                                Swal.fire('Hata', 'Firebase yükleme işlemi başarısız oldu.', 'error');
+                            }
                         }
                     });
                 } catch (err) {
-                    Swal.fire({ icon: 'error', title: 'Hata', text: 'Ge\u00e7ersiz yedek dosyas\u0131.' });
+                    Swal.fire({ icon: 'error', title: 'Hata', text: 'Geçersiz yedek dosyası.' });
                 }
             };
             reader.readAsText(file);
