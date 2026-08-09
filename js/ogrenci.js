@@ -418,19 +418,15 @@ DataManager._getStorageKey = function () {
                     }
                     
                     // Nöbeti var, kuralları göster
-                    let lessonTimes = db.school.lessonTimes || {};
-                    let firstStart = lessonTimes['1_start'] || '08:30';
-                    let [sh, sm] = firstStart.split(':').map(Number);
-                    let ruleTime = new Date();
-                    ruleTime.setHours(sh, sm, 0, 0);
-                    ruleTime.setMinutes(ruleTime.getMinutes() - 10);
-                    let ruleTimeStr = String(ruleTime.getHours()).padStart(2, '0') + ':' + String(ruleTime.getMinutes()).padStart(2, '0');
+                    let currentRules = db.school?.studentDuties?.rules || '';
+                    if (currentRules.trim() === '') {
+                        currentRules = "Nöbet görevinizde başarılar dileriz. Lütfen görev yerinizde zamanında olunuz.";
+                    }
                     
+                    let formattedRules = currentRules.replace(/\n/g, '<br>');
                     const rulesHtml = `
                         <div style="text-align: left; font-size: 15px; line-height: 1.6; color: var(--gray-700);">
-                            <p><strong>1)</strong> Nöbet görevi ders başlamadan 10 dakika önce başlar. Bu yüzden en geç saat <strong>${ruleTimeStr}</strong>'da/de görev yerinizde olmanız gerekmektedir.</p>
-                            <p><strong>2)</strong> Nöbetinize gelemeyecekseniz idarecilere veya nöbetçi olduğunuz günün nöbetçi öğretmenlerine, ya da idareci ve öğretmenlere haber vermesi için sınıf başkanınıza ya da sınıf arkadaşlarınıza haber veriniz.</p>
-                            <p><strong>3)</strong> Nöbet yerinden izinsiz ayrılmayınız. Nöbetiniz bitmeden okuldan ayrılmayınız.</p>
+                            ${formattedRules}
                         </div>
                     `;
                     
@@ -2842,21 +2838,7 @@ DataManager._getStorageKey = function () {
                 `;
             }
 
-            let rulesHtml = '';
-            let currentRules = window.studentScheduleState.db.school?.studentDuties?.rules || '';
-            if (currentRules.trim() !== '') {
-                let formattedRules = currentRules.replace(/\n/g, '<br>');
-                rulesHtml = `
-                    <div style="margin-top:20px; background:rgba(79, 70, 229, 0.05); padding:20px; border-radius:12px; border:1px solid rgba(79, 70, 229, 0.2); box-shadow:var(--shadow-sm);">
-                        <h3 style="margin:0 0 10px 0; color:var(--primary); font-size:1.1rem;"><i class="fa-solid fa-clipboard-list"></i> Öğrenci Nöbet Kuralları</h3>
-                        <div style="color:var(--gray-800); font-size:0.95rem; line-height:1.6;">
-                            ${formattedRules}
-                        </div>
-                    </div>
-                `;
-            }
-
-            container.innerHTML = rulesHtml + closestHtml + sideBySideHtml + `<div id="studentScheduleContainer"></div>`;
+            container.innerHTML = closestHtml + sideBySideHtml + `<div id="studentScheduleContainer"></div>`;
             renderStudentScheduleTable();
         }
 
