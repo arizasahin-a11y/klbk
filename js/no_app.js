@@ -804,12 +804,16 @@ window.savePlan = async function() {
 
     if (!selectedDateStr) return; // Kullanıcı iptal etti
 
+    let db = DataManager._getData();
+    let existingRules = db.school?.studentDuties?.rules || '';
+
     const selectedClasses = $('#classSelect').val() || [];
     const globalRule = document.getElementById('globalRule').value;
     const saveData = {
         locations: dutyLocations,
         selectedClasses: selectedClasses,
         globalRule: globalRule,
+        rules: existingRules,
         plan: generatedPlan,
         exemptStudents: window.exemptStudents || [],
         lockedUntilDate: selectedDateStr,
@@ -819,8 +823,6 @@ window.savePlan = async function() {
     try {
         Swal.fire({ title: 'Kaydediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
         
-        // DataManager üzerinden kaydet (Token ve Güvenlik kurallarından geçmek için)
-        let db = DataManager._getData();
         if (!db.school) db.school = {};
         db.school.studentDuties = saveData;
         
