@@ -33,9 +33,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                             isAuthRehber = true;
                         }
                         
-                        if (teacherData.class || teacherData.sinif) {
+                        const clsRaw = teacherData.class || teacherData.sinif || teacherData.sinifRehberlik || teacherData.rehberlikSinif || teacherData.sube || teacherData.assignedClass || '';
+                        if (clsRaw) {
                             isAuthSinif = true;
-                            authAssignedClass = (teacherData.class || teacherData.sinif).trim();
+                            authAssignedClass = String(clsRaw).trim();
                         }
                     }
                 }

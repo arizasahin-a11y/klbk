@@ -38,9 +38,10 @@ async function initReport() {
                     const branchRaw = teacherData.branch || teacherData.brans || '';
                     const branch = String(branchRaw).toLowerCase();
                     if (branch.includes('rehber')) isAuthRehber = true;
-                    if (teacherData.class || teacherData.sinif) {
+                    const clsRaw = teacherData.class || teacherData.sinif || teacherData.sinifRehberlik || teacherData.rehberlikSinif || teacherData.sube || teacherData.assignedClass || '';
+                    if (clsRaw) {
                         isAuthSinif = true;
-                        authAssignedClass = (teacherData.class || teacherData.sinif).trim();
+                        authAssignedClass = String(clsRaw).trim();
                     }
                 }
             }
