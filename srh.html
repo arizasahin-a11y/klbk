@@ -331,6 +331,58 @@
         </div>
     </div>
 
+    <!-- Publish Class Selection Modal -->
+    <div class="modal-overlay" id="publishClassModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Yayınlanacak Sınıfları Seçin</h3>
+                <button class="close-modal" onclick="closePublishModal()">&times;</button>
+            </div>
+            <p style="color:var(--gray-500); font-size:0.9rem; margin-top:-10px; margin-bottom:15px;">
+                Bu uygulama seçtiğiniz sınıflardaki öğrencilerin ekranında görünecektir. Tüm sınıfları seçmek için hepsini işaretleyebilirsiniz.
+            </p>
+            <div style="margin-bottom:10px;">
+                <label style="cursor:pointer; font-weight:bold; display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" id="selectAllClassesCb" onclick="toggleAllClasses(this)" style="width:18px; height:18px;"> Tümünü Seç
+                </label>
+            </div>
+            <div id="publishClassesList" style="display:flex; flex-wrap:wrap; gap:10px; max-height: 300px; overflow-y: auto; padding: 10px; border: 1px solid var(--gray-200); border-radius: 8px; margin-bottom: 20px;">
+                <!-- Classes will be listed here -->
+            </div>
+            <div style="text-align: right;">
+                <button class="btn btn-primary" onclick="confirmPublish()"><i class="fa-solid fa-paper-plane"></i> Yayınla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Modal -->
+    <div class="modal-overlay" id="srhResultsModal">
+        <div class="modal-content" style="max-width: 900px; width: 95%;">
+            <div class="modal-header">
+                <h3 id="resultsModalTitle">Uygulama Sonuçları</h3>
+                <button class="close-modal" onclick="closeResultsModal()">&times;</button>
+            </div>
+            
+            <!-- Tabs -->
+            <div style="display: flex; gap: 10px; border-bottom: 2px solid var(--gray-200); margin-bottom: 20px;">
+                <button id="tabFilledBtn" class="btn" onclick="switchResultTab('filled')" style="background: none; border: none; border-bottom: 3px solid var(--primary); border-radius: 0; padding: 10px 20px; font-weight: bold; color: var(--primary);">Dolduranlar</button>
+                <button id="tabNotFilledBtn" class="btn" onclick="switchResultTab('notFilled')" style="background: none; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 10px 20px; font-weight: bold; color: var(--gray-500);">Doldurmayanlar</button>
+            </div>
+
+            <!-- Tab Content: Filled -->
+            <div id="tabFilledContent" style="max-height: 60vh; overflow-y: auto;">
+                <div id="filledAccordionContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+
+            <!-- Tab Content: Not Filled -->
+            <div id="tabNotFilledContent" style="display: none; max-height: 60vh; overflow-y: auto;">
+                <div id="notFilledAccordionContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals end -->
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/core_data_v11_9_1.js?v=12.0"></script>

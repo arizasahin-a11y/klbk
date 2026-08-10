@@ -95,6 +95,9 @@ function renderApplications() {
                 <button class="btn-action ${app.status === 'published' ? '' : 'btn-success'}" onclick="togglePublish('${id}')">
                     ${app.status === 'published' ? '<i class="fa-solid fa-eye-slash"></i> Yayından Kaldır' : '<i class="fa-solid fa-bullhorn"></i> Yayınla'}
                 </button>
+                <button class="btn-action btn-info" style="background:#e0f2fe; color:#0369a1;" onclick="viewResults('${id}')" title="Sonuçları Gör">
+                    <i class="fa-solid fa-square-poll-vertical"></i> Sonuçlar
+                </button>
                 <button class="btn-action btn-warning" onclick="toggleArchive('${id}')">
                     ${app.status === 'archived' ? '<i class="fa-solid fa-box-open"></i> Arşivden Çıkar' : '<i class="fa-solid fa-box-archive"></i> Arşive Al'}
                 </button>
@@ -272,15 +275,245 @@ async function saveAllToFirebase() {
     }
 }
 
+let currentPublishAppId = null;
+
 function togglePublish(id) {
     if (srhApplications[id]) {
         if (srhApplications[id].status === 'published') {
             srhApplications[id].status = 'draft';
+            saveAllToFirebase();
         } else {
-            srhApplications[id].status = 'published';
+            // Sınıf seçme modalını aç
+            currentPublishAppId = id;
+            openPublishModal();
         }
-        saveAllToFirebase();
     }
+}
+
+function openPublishModal() {
+    const listContainer = document.getElementById('publishClassesList');
+    listContainer.innerHTML = '';
+    document.getElementById('selectAllClassesCb').checked = false;
+
+    // Sınıfları çek
+    const students = DataManager._getData()?.school?.students || [];
+    const classesSet = new Set();
+    students.forEach(s => {
+        if (s.class) classesSet.add(s.class.trim());
+    });
+    
+    let allClasses = Array.from(classesSet).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }));
+    
+    if (allClasses.length === 0) {
+        listContainer.innerHTML = '<div style="color:var(--gray-500);">Kayıtlı sınıf bulunamadı. Lütfen Master Ayarlarından öğrenci listesini yükleyin.</div>';
+    } else {
+        allClasses.forEach(cls => {
+            listContainer.innerHTML += `
+                <label style="display:flex; align-items:center; gap:5px; background:var(--gray-50); padding:8px 12px; border-radius:8px; border:1px solid var(--gray-200); cursor:pointer;">
+                    <input type="checkbox" class="class-publish-cb" value="${cls}" style="width:16px; height:16px;">
+                    <span style="font-weight:600;">${cls}</span>
+                </label>
+            `;
+        });
+    }
+
+    document.getElementById('publishClassModal').style.display = 'flex';
+}
+
+function closePublishModal() {
+    document.getElementById('publishClassModal').style.display = 'none';
+}
+
+function toggleAllClasses(cb) {
+    const checkboxes = document.querySelectorAll('.class-publish-cb');
+    checkboxes.forEach(c => c.checked = cb.checked);
+}
+
+function confirmPublish() {
+    if (!currentPublishAppId) return;
+    
+    const checkboxes = document.querySelectorAll('.class-publish-cb:checked');
+    const selectedClasses = Array.from(checkboxes).map(c => c.value);
+    
+    if (selectedClasses.length === 0) {
+        Swal.fire('Uyarı', 'Lütfen en az bir sınıf seçin.', 'warning');
+        return;
+    }
+    
+    srhApplications[currentPublishAppId].status = 'published';
+    srhApplications[currentPublishAppId].publishedClasses = selectedClasses;
+    
+    closePublishModal();
+    saveAllToFirebase();
+}
+
+let currentResultsData = null;
+let currentAppForResults = null;
+
+async function viewResults(id) {
+    const app = srhApplications[id];
+    if (!app) return;
+    
+    currentAppForResults = app;
+    document.getElementById('resultsModalTitle').innerText = app.name + " Sonuçları";
+    
+    Swal.fire({ title: 'Sonuçlar Çekiliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    
+    try {
+        const url = `${FIREBASE_DB_URL_SRH}/app_store/srh_answers/${id}.json?_=` + Date.now();
+        const res = await fetch(url);
+        currentResultsData = res.ok ? (await res.json() || {}) : {};
+        
+        Swal.close();
+        renderResults();
+        document.getElementById('srhResultsModal').style.display = 'flex';
+        switchResultTab('filled'); // Varsayılan olarak dolduranlar açık olsun
+    } catch (err) {
+        console.error("Sonuçları çekerken hata:", err);
+        Swal.fire('Hata', 'Sonuçlar alınamadı.', 'error');
+    }
+}
+
+function closeResultsModal() {
+    document.getElementById('srhResultsModal').style.display = 'none';
+}
+
+function switchResultTab(tabName) {
+    document.getElementById('tabFilledContent').style.display = tabName === 'filled' ? 'block' : 'none';
+    document.getElementById('tabNotFilledContent').style.display = tabName === 'notFilled' ? 'block' : 'none';
+    
+    document.getElementById('tabFilledBtn').style.borderBottomColor = tabName === 'filled' ? 'var(--primary)' : 'transparent';
+    document.getElementById('tabFilledBtn').style.color = tabName === 'filled' ? 'var(--primary)' : 'var(--gray-500)';
+    
+    document.getElementById('tabNotFilledBtn').style.borderBottomColor = tabName === 'notFilled' ? 'var(--primary)' : 'transparent';
+    document.getElementById('tabNotFilledBtn').style.color = tabName === 'notFilled' ? 'var(--primary)' : 'var(--gray-500)';
+}
+
+function renderResults() {
+    const filledContainer = document.getElementById('filledAccordionContainer');
+    const notFilledContainer = document.getElementById('notFilledAccordionContainer');
+    filledContainer.innerHTML = '';
+    notFilledContainer.innerHTML = '';
+    
+    const students = DataManager._getData()?.school?.students || [];
+    if (students.length === 0) {
+        filledContainer.innerHTML = '<p>Öğrenci verisi bulunamadı.</p>';
+        notFilledContainer.innerHTML = '<p>Öğrenci verisi bulunamadı.</p>';
+        return;
+    }
+    
+    // Yayınlanan sınıfları bul (Eğer önceden yayınlandıysa ve publishedClasses yoksa tüm sınıflar olarak varsayılabilir)
+    const pubClasses = currentAppForResults.publishedClasses || [];
+    let targetStudents = students;
+    if (pubClasses.length > 0) {
+        targetStudents = students.filter(s => pubClasses.includes((s.class || '').trim()));
+    }
+    
+    // Sınıf bazlı gruplama
+    const classGroups = {};
+    pubClasses.forEach(c => classGroups[c] = { filled: [], notFilled: [] }); // En azından yayınlanan sınıfları başlat
+    
+    targetStudents.forEach(s => {
+        const cls = (s.class || '').trim();
+        if (!classGroups[cls]) classGroups[cls] = { filled: [], notFilled: [] };
+        
+        if (currentResultsData[s.no]) {
+            classGroups[cls].filled.push({ student: s, answers: currentResultsData[s.no] });
+        } else {
+            classGroups[cls].notFilled.push(s);
+        }
+    });
+    
+    const sortedClasses = Object.keys(classGroups).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }));
+    
+    if (sortedClasses.length === 0) {
+        filledContainer.innerHTML = '<p>Gösterilecek veri yok.</p>';
+        notFilledContainer.innerHTML = '<p>Gösterilecek veri yok.</p>';
+        return;
+    }
+    
+    sortedClasses.forEach(cls => {
+        const group = classGroups[cls];
+        
+        // --- Dolduranlar Akordiyonu ---
+        if (group.filled.length > 0) {
+            const filledAcc = document.createElement('div');
+            filledAcc.style.cssText = 'border: 1px solid var(--gray-200); border-radius: 8px; overflow: hidden;';
+            
+            let studentsHtml = '';
+            group.filled.sort((a,b) => parseInt(a.student.no) - parseInt(b.student.no)).forEach(item => {
+                const s = item.student;
+                const ans = item.answers;
+                const dateStr = ans.timestamp ? new Date(ans.timestamp).toLocaleString('tr-TR') : 'Bilinmeyen Tarih';
+                
+                let ansDetails = '';
+                if (ans.answers && Array.isArray(ans.answers)) {
+                    ans.answers.forEach(a => {
+                        const q = currentAppForResults.questions[a.questionIndex];
+                        let ansText = a.answer;
+                        if (ansText === true) ansText = "Evet/İşaretlendi";
+                        if (ansText === false) ansText = "Hayır/İşaretlenmedi";
+                        if (ansText === null || ansText === "") ansText = "Cevap Yok";
+                        
+                        ansDetails += `
+                            <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed var(--gray-200);">
+                                <div style="font-weight:600; font-size:0.9rem;">${a.questionIndex + 1}. ${q ? q.text : 'Soru bulunamadı'}</div>
+                                <div style="color:var(--primary); font-size:0.9rem; margin-top:3px;"><i class="fa-solid fa-arrow-turn-down fa-rotate-270" style="margin-right:5px; opacity:0.5;"></i>${ansText}</div>
+                            </div>
+                        `;
+                    });
+                }
+                
+                studentsHtml += `
+                    <div style="padding: 10px 15px; border-bottom: 1px solid var(--gray-100);">
+                        <div style="display:flex; justify-content:space-between; cursor:pointer;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">
+                            <strong style="color:var(--dark);">${s.no} - ${s.name} ${s.surname}</strong>
+                            <span style="font-size:0.8rem; color:var(--gray-500);">${dateStr} <i class="fa-solid fa-chevron-down" style="margin-left:5px;"></i></span>
+                        </div>
+                        <div style="display:none; margin-top:10px; background:var(--gray-50); padding:10px; border-radius:6px;">
+                            ${ansDetails || 'Detay bulunamadı.'}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            filledAcc.innerHTML = `
+                <div style="background:var(--gray-50); padding:12px 15px; font-weight:bold; cursor:pointer; display:flex; justify-content:space-between;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">
+                    <span>${cls} Sınıfı</span>
+                    <span style="background:var(--primary); color:white; padding:2px 8px; border-radius:12px; font-size:0.8rem;">${group.filled.length} Öğrenci</span>
+                </div>
+                <div style="display:none; background:white;">${studentsHtml}</div>
+            `;
+            filledContainer.appendChild(filledAcc);
+        }
+        
+        // --- Doldurmayanlar Akordiyonu ---
+        if (group.notFilled.length > 0) {
+            const notFilledAcc = document.createElement('div');
+            notFilledAcc.style.cssText = 'border: 1px solid var(--gray-200); border-radius: 8px; overflow: hidden;';
+            
+            let nfStudentsHtml = '';
+            group.notFilled.sort((a,b) => parseInt(a.no) - parseInt(b.no)).forEach(s => {
+                nfStudentsHtml += `
+                    <div style="padding: 8px 15px; border-bottom: 1px solid var(--gray-100); color:var(--dark);">
+                        ${s.no} - ${s.name} ${s.surname}
+                    </div>
+                `;
+            });
+            
+            notFilledAcc.innerHTML = `
+                <div style="background:var(--gray-50); padding:12px 15px; font-weight:bold; cursor:pointer; display:flex; justify-content:space-between;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">
+                    <span>${cls} Sınıfı</span>
+                    <span style="background:#ef4444; color:white; padding:2px 8px; border-radius:12px; font-size:0.8rem;">${group.notFilled.length} Öğrenci</span>
+                </div>
+                <div style="display:none; background:white;">${nfStudentsHtml}</div>
+            `;
+            notFilledContainer.appendChild(notFilledAcc);
+        }
+    });
+    
+    if (filledContainer.children.length === 0) filledContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--gray-500);">Bu uygulamayı henüz çözen öğrenci bulunmuyor.</div>';
+    if (notFilledContainer.children.length === 0) notFilledContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--gray-500);">Tüm öğrenciler uygulamayı çözmüş!</div>';
 }
 
 function toggleArchive(id) {

@@ -424,7 +424,11 @@ DataManager._getStorageKey = function () {
                         const res = await fetch("https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/srh_data.json?_=" + Date.now());
                         const data = res.ok ? await res.json() : {};
                         
-                        const publishedApps = Object.entries(data || {}).filter(([id, app]) => app.status === 'published');
+                        const publishedApps = Object.entries(data || {}).filter(([id, app]) => {
+                            if (app.status !== 'published') return false;
+                            if (!app.publishedClasses || app.publishedClasses.length === 0) return true; // Sınıf kısıtlaması yoksa herkese
+                            return app.publishedClasses.includes((studentObj.class || '').trim());
+                        });
                         
                         if (publishedApps.length === 0) {
                             Swal.fire('Bilgi', 'Şu an size tanımlı bir çalışma yok.', 'info');
