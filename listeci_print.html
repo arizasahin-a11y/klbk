@@ -497,45 +497,20 @@
         }
 
         function downloadPDF() {
-            const element = document.getElementById('pdfContent');
-            const configStr = localStorage.getItem('listeciConfig');
-            let filename = 'Liste.pdf';
-            if (configStr) {
-                const config = JSON.parse(configStr);
-                const listType = config.listType || 'normal';
-                
-                if (listType === 'karma_club') {
-                    filename = `${config.karmaClubTitle || 'Karma_Listesi'}.pdf`.replace(/\s+/g, '_');
-                } else if (listType === 'empty_template') {
-                    filename = `${config.emptyTemplateTitle || 'Bos_Liste'}.pdf`.replace(/\s+/g, '_');
-                } else {
-                    let classNamesText = config.classes.length > 3 ? "KARMA" : config.classes.map(k => k.replace('|_ALL_', '_Tumu').replace('|', '_')).join('_');
-                    filename = `${classNamesText}_${config.titleSuffix || 'Liste'}.pdf`.replace(/\s+/g, '_');
-                }
-            }
-
-            const opt = {
-                margin:       0,
-                filename:     filename,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
             Swal.fire({
-                title: 'PDF Hazırlanıyor',
-                text: 'Lütfen bekleyin...',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
+                title: 'Yüksek Kaliteli PDF',
+                html: `
+                    <p style="text-align:left; margin-bottom:10px;">PDF'nin kalitesini artırmak ve önizlemeyle <b>birebir aynı</b> görünmesini (çerçeveler ve yan yazılar bozulmadan) sağlamak için tarayıcının yerleşik PDF altyapısına geçildi.</p>
+                    <p style="text-align:left; color:#d33; font-weight:bold;">Açılacak ekranda <b>Yazıcı / Hedef</b> kısmından "PDF Olarak Kaydet" seçeneğini seçin.</p>
+                `,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-file-pdf"></i> PDF Olarak Kaydet',
+                cancelButtonText: 'İptal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.print();
                 }
-            });
-
-            html2pdf().set(opt).from(element).save().then(() => {
-                Swal.close();
-            }).catch(err => {
-                Swal.fire('Hata', 'PDF oluşturulurken bir hata oluştu.', 'error');
-                console.error(err);
             });
         }
 
