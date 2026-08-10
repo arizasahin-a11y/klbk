@@ -419,7 +419,6 @@
                 let hasAlan = false;
                 if (listType === 'empty_template') {
                     hasAlan = showAlanInEmptyTemplate;
-                    studentList = []; // Force empty
                 } else if (listType === 'karma_club') {
                     hasAlan = false; // Usually not needed, but we check if any selected has it
                     hasAlan = studentList.some(s => s.alan || s.track || s.field || s.group);
