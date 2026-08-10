@@ -88,14 +88,14 @@ function generateReport() {
         // -- HEADER --
         const thead = document.createElement('thead');
         
-        let numRowHtml = `<tr><th></th><th></th><th></th>`;
+        let numRowHtml = `<tr class="num-row"><th></th><th></th><th></th>`;
         questions.forEach((q, i) => {
             numRowHtml += `<th>${i+1}</th>`;
         });
         numRowHtml += `</tr>`;
         
         let headerRowHtml = `
-            <tr>
+            <tr class="header-row">
                 <th style="vertical-align: middle;">SIRA</th>
                 <th style="vertical-align: middle;">OKUL NUMARASI</th>
                 <th style="vertical-align: middle;">ADI SOYADI</th>

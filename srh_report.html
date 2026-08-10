@@ -68,7 +68,7 @@
             background: white;
             width: 297mm; /* A4 Landscape width */
             min-height: 210mm; /* A4 Landscape height */
-            padding: 10mm 15mm;
+            padding: 5mm 5mm;
             box-sizing: border-box;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             position: relative;
@@ -105,20 +105,29 @@
             background: var(--bg-light);
             font-weight: 600;
             vertical-align: bottom;
-            height: 180px; /* Dikey metin için alan */
+        }
+        
+        .num-row th {
+            height: 15px; /* Sadece 3 basamaklı numaranın sığacağı kadar pay */
+            vertical-align: middle;
+        }
+
+        .header-row th {
+            height: 160px; /* Dikey metin (soru) satırı için alan */
         }
         
         .vertical-text {
             writing-mode: vertical-rl;
             transform: rotate(180deg);
-            white-space: nowrap;
-            max-height: 170px;
-            text-overflow: ellipsis;
+            white-space: normal; /* İki satıra geçmeye izin ver */
+            max-height: 155px;
+            width: 30px; /* Sütunu genişletip iki satır sığmasını sağladık */
+            line-height: 1.1;
             overflow: hidden;
             display: inline-block;
             text-align: left;
             padding-top: 5px;
-            font-size: 0.70rem;
+            font-size: 0.65rem;
         }
 
         .center { text-align: center; font-weight: bold; }
@@ -140,7 +149,7 @@
                 margin: 0; 
                 width: 100%; 
                 min-height: auto; 
-                padding: 10mm;
+                padding: 5mm;
             }
             @page {
                 size: A4 landscape;
