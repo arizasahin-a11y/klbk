@@ -114,6 +114,8 @@
 
         .header-row th {
             height: 160px; /* Dikey metin (soru) satırı için alan */
+            text-align: center; /* Sütun içindeki yazıyı ortala */
+            vertical-align: middle;
         }
         
         .vertical-text {
@@ -125,7 +127,8 @@
             line-height: 1.1;
             overflow: hidden;
             display: inline-block;
-            text-align: left;
+            text-align: left; /* Bu dikeyde olduğundan aslında dikey hizalamadır */
+            margin: auto;
             padding-top: 5px;
             font-size: 0.65rem;
         }

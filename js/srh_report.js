@@ -118,7 +118,17 @@ function generateReport() {
             const ansObj = answersData[no] ? answersData[no].answers : null;
             const isFilled = !!ansObj;
 
-            const fullName = `${s.name || ''} ${s.surname || ''}`.trim();
+            let fullName = `${s.name || ''} ${s.surname || ''}`.trim();
+            const nameParts = fullName.split(/\s+/);
+            if (nameParts.length > 2) {
+                const first = nameParts[0];
+                const last = nameParts[nameParts.length - 1];
+                let middle = '';
+                for (let i = 1; i < nameParts.length - 1; i++) {
+                    middle += nameParts[i].charAt(0).toUpperCase() + '. ';
+                }
+                fullName = `${first} ${middle}${last}`;
+            }
             
             let rowHtml = `
                 <td class="center">${index + 1}</td>
@@ -197,10 +207,11 @@ function exportToExcel() {
             for(let i=0; i<qCount; i++) wscols.push({wpx: 30});
             ws['!cols'] = wscols;
 
-            XLSX.utils.book_append_sheet(wb, ws, clsTitle);
+            XLSX.utils.book_append_sheet(wb, ws, clsTitle.substring(0, 31)); // Sheet name max 31 chars
         });
 
-        XLSX.writeFile(wb, `${appData.name}_Rapor.xlsx`);
+        let safeName = (appData.name || 'Rapor').replace(/[^a-z0-9ğüşöçİĞÜŞÖÇ]/gi, '_');
+        XLSX.writeFile(wb, `${safeName}.xlsx`);
     } catch (err) {
         console.error(err);
         Swal.fire('Hata', 'Excel oluşturulurken bir sorun oluştu.', 'error');
