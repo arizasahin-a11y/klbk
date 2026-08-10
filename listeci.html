@@ -268,6 +268,39 @@
                 border-radius: 0;
             }
         }
+        /* Zarif SweetAlert Modalları */
+        div:where(.swal2-container) div:where(.swal2-popup) {
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            width: 24em; /* Make it slightly smaller than default 32em */
+            max-width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            font-family: 'Roboto', sans-serif;
+        }
+        div:where(.swal2-container) .swal2-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        div:where(.swal2-container) .swal2-html-container {
+            font-size: 0.95rem;
+            color: var(--gray-500);
+        }
+        div:where(.swal2-container) .swal2-actions {
+            gap: 10px;
+        }
+        div:where(.swal2-container) button:where(.swal2-styled) {
+            border-radius: 8px;
+            padding: 0.5rem 1.2rem;
+            font-weight: 500;
+        }
+        .swal2-confirm {
+            background-color: var(--primary) !important;
+        }
+        .swal2-cancel {
+            background-color: var(--gray-200) !important;
+            color: var(--dark) !important;
+        }
     </style>
     <script>
         (function() {
