@@ -5309,6 +5309,7 @@ const getClassTeacherForSok = window.getClassTeacherForSok;
                                 gorev: 'Okul Rehberlik'
                             });
                         }
+                        }
                     }
 
                     const clsAgendas = activeAgendaList.filter(item => {
@@ -5321,7 +5322,6 @@ const getClassTeacherForSok = window.getClassTeacherForSok;
                             }
                         }
                         return true;
-                        }
                     }).map(item => cleanAgendaItemText(item));
 
                     const donemVal = (donemEl && (donemEl.value === '1. Dönem' || donemEl.value === '2. Dönem')) ? donemEl.value : ((new Date().getMonth() + 1 >= 9 || new Date().getMonth() + 1 === 1) ? '1. Dönem' : '2. Dönem');
