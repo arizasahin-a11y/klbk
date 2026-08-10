@@ -591,8 +591,9 @@ function confirmPublish() {
     saveAllToFirebase();
 }
 
-let currentResultsData = null;
 let currentAppForResults = null;
+let currentResultsData = null;
+let currentTargetStudents = [];
 
 async function loadResultsForApp(appId) {
     // Senkronize et (Dolduranlar ve Doldurmayanlar tabındaki select'leri aynı yap)
@@ -684,6 +685,7 @@ async function renderResults() {
     if (pubClasses.length > 0) {
         targetStudents = students.filter(s => pubClasses.includes((s.class || s.sinif || '').trim()));
     }
+    currentTargetStudents = targetStudents;
     
     if (targetStudents.length === 0) {
         filledContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--gray-500);">Bu sınıflara kayıtlı öğrenci bulunamadı.</div>';
@@ -886,7 +888,7 @@ function exportResultsToExcel(type) {
     
     const dataToExport = [];
     
-    targetStudents.forEach(s => {
+    currentTargetStudents.forEach(s => {
         const studentNo = String(s.no || s.number || '');
         const hasFilled = currentResultsData && currentResultsData[studentNo];
         

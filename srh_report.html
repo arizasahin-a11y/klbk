@@ -86,26 +86,27 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.50rem;
+            font-size: 0.60rem;
             table-layout: auto;
         }
         
         /* İlk 3 sütun genişliği */
-        th:nth-child(1), td:nth-child(1) { width: 12px; text-align: center; padding: 1px; } /* Sıra */
-        th:nth-child(2), td:nth-child(2) { width: 30px; text-align: center; padding: 1px; } /* No */
-        th:nth-child(3), td:nth-child(3) { width: 70px; padding: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* Ad Soyad */
+        th:nth-child(1), td:nth-child(1) { width: 20px; text-align: center; padding: 2px; } /* Sıra */
+        th:nth-child(2), td:nth-child(2) { width: 35px; text-align: center; padding: 2px; } /* No */
+        th:nth-child(3), td:nth-child(3) { width: 100px; padding: 2px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* Ad Soyad */
         
         /* Geri kalan soru sütunları */
         th:nth-child(n+4), td:nth-child(n+4) {
-            width: 15px; /* Mümkün olduğunca daraltıldı */
+            width: 18px; 
             text-align: center;
             padding: 1px;
         }
 
         th, td {
             border: 1px solid #94a3b8;
-            padding: 1px 2px;
+            padding: 2px 2px;
             word-wrap: break-word;
+            height: 20px; /* Satır yüksekliğini artırdık */
         }
 
         th {
@@ -120,23 +121,27 @@
         }
 
         .header-row th {
-            height: 125px;
+            height: 140px;
             text-align: center;
             vertical-align: middle;
-            padding: 0; /* Boşluklar sıfırlandı ki tam ortaya otursun */
+            padding: 0; 
+        }
+
+        .header-row th:nth-child(1), .header-row th:nth-child(2), .header-row th:nth-child(3) {
+            vertical-align: middle;
         }
         
         .vertical-text {
             writing-mode: vertical-rl;
             transform: rotate(180deg);
             white-space: normal;
-            max-height: 120px;
-            line-height: 1; /* Satır aralığını daralttık */
+            max-height: 135px;
+            line-height: 1; 
             overflow: hidden;
-            display: block; /* Tam alanı kaplasın ve margin ile ortalansın */
-            text-align: center; /* İçindeki yazıları sağdan-soldan dengeli ortala */
+            display: block; 
+            text-align: center; 
             margin: 0 auto;
-            font-size: 0.45rem; /* Sığması için çok daha küçültüldü */
+            font-size: 0.55rem; 
         }
 
         .center { text-align: center; font-weight: bold; }
