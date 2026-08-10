@@ -22,7 +22,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const authQuery = token ? `?auth=${token}` : '';
             
             try {
-                const res = await fetch(`${FIREBASE_DB_URL_SRH}/school/teachers/${currentUser}.json${authQuery}`);
+                const encodedUser = encodeURIComponent(currentUser);
+                const res = await fetch(`${FIREBASE_DB_URL_SRH}/app_store/klbk_users/${encodedUser}.json${authQuery}`);
                 if (res.ok) {
                     const teacherData = await res.json();
                     if (teacherData) {

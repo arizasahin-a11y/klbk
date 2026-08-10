@@ -30,7 +30,8 @@ async function initReport() {
 
         if (!isAuthAdmin) {
             const currentUser = sessionStorage.getItem('klbk_currentUser') || localStorage.getItem('klbk_currentUser');
-            const resAuth = await fetch(`${FIREBASE_DB_URL_SRH}/school/teachers/${currentUser}.json?auth=${token}`);
+            const encodedUser = encodeURIComponent(currentUser);
+            const resAuth = await fetch(`${FIREBASE_DB_URL_SRH}/app_store/klbk_users/${encodedUser}.json?auth=${token}`);
             if (resAuth.ok) {
                 const teacherData = await resAuth.json();
                 if (teacherData) {
