@@ -99,13 +99,13 @@ function renderApplications() {
         };
 
         row.innerHTML = `
-            <div style="position:relative; z-index:50;">
+            <div style="position:relative; z-index:10;">
                 <h4 style="margin:0; font-size:1.1rem; color:var(--dark);">${app.name} ${statusBadge}</h4>
                 <p style="margin:5px 0 0 0; font-size:0.85rem; color:var(--gray-500);">
                     Tip: ${typeLabels[app.type]} | Soru Sayısı: ${app.questions ? app.questions.length : 0}
                 </p>
             </div>
-            <div style="display:flex; gap:10px; position:relative; z-index:9999;">
+            <div style="display:flex; gap:10px; position:relative; z-index:10;">
                 <button class="btn-action ${app.status === 'published' ? '' : 'btn-success'}" onclick="togglePublish('${id}')">
                     ${app.status === 'published' ? '<i class="fa-solid fa-eye-slash"></i> Yayından Kaldır' : '<i class="fa-solid fa-bullhorn"></i> Yayınla'}
                 </button>
