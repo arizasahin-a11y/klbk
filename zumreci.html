@@ -3650,6 +3650,7 @@ const getClassTeacherForSok = window.getClassTeacherForSok;
                 const kurumTd = isIlOrIlce ? `<td><span class="badge-info">${p.kurum || ''}</span></td>` : '';
 
                 let rawGorev = p.gorev || 'Öğretmen';
+                rawGorev = rawGorev.replace(/Öğrt\./gi, '').trim();
                 if (isBaskanCell) {
                     if (!rawGorev.includes('(ZÜMRE BAŞKANI)')) {
                         rawGorev = rawGorev.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/\s*-\s*Zümre Başkanı/gi, '').replace(/Zümre Başkanı/gi, '').trim();
