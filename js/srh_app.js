@@ -163,18 +163,20 @@ function editApp(id) {
     
     // Convert questions back to text
     let questionsText = '';
-    if (app.type === 'coktan_secmeli') {
-        app.questions.forEach(q => {
-            questionsText += q.text + '\n';
-            if (q.options) {
-                q.options.forEach(opt => questionsText += opt + '\n');
-            }
-            questionsText += '\n'; // separator
-        });
-    } else {
-        app.questions.forEach(q => {
-            questionsText += q.text + '\n';
-        });
+    if (app.questions) {
+        if (app.type === 'coktan_secmeli') {
+            app.questions.forEach(q => {
+                questionsText += q.text + '\n';
+                if (q.options) {
+                    q.options.forEach(opt => questionsText += opt.label + ') ' + opt.text + '\n');
+                }
+                questionsText += '\n'; // separator
+            });
+        } else {
+            app.questions.forEach(q => {
+                questionsText += q.text + '\n';
+            });
+        }
     }
     document.getElementById('appQuestionsTextarea').value = questionsText.trim();
     
@@ -300,18 +302,39 @@ async function saveApplication() {
     });
     
     try {
-        const res = await fetch(`${FIREBASE_DB_URL_SRH}/app_store/srh_data.json`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(srhApplications)
-        });
-        
-        if (res.ok) {
-            closeAddAppModal2();
-            renderApplications();
-            Swal.fire('Başarılı', 'Uygulama başarıyla kaydedildi.', 'success');
+        const token = sessionStorage.getItem('klbk_sessionToken') || localStorage.getItem('klbk_sessionToken');
+        if (token) {
+            const res = await fetch(`/api/updateSrhData`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify(srhApplications)
+            });
+            
+            if (res.ok) {
+                closeAddAppModal2();
+                renderApplications();
+                Swal.fire('Başarılı', 'Uygulama başarıyla kaydedildi.', 'success');
+            } else {
+                throw new Error("HTTP " + res.status);
+            }
         } else {
-            throw new Error("HTTP " + res.status);
+            // Fallback for local testing if token doesn't exist, though it will fail if rules require auth
+            const res = await fetch(`${FIREBASE_DB_URL_SRH}/app_store/srh_data.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(srhApplications)
+            });
+            
+            if (res.ok) {
+                closeAddAppModal2();
+                renderApplications();
+                Swal.fire('Başarılı', 'Uygulama başarıyla kaydedildi.', 'success');
+            } else {
+                throw new Error("HTTP " + res.status);
+            }
         }
     } catch (err) {
         console.error("Kaydetme hatası:", err);
@@ -329,17 +352,36 @@ async function saveAllToFirebase() {
     });
     
     try {
-        const res = await fetch(`${FIREBASE_DB_URL_SRH}/app_store/srh_data.json`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(srhApplications)
-        });
-        
-        if (res.ok) {
-            renderApplications();
-            Swal.fire('Başarılı', 'İşlem başarılı.', 'success');
+        const token = sessionStorage.getItem('klbk_sessionToken') || localStorage.getItem('klbk_sessionToken');
+        if (token) {
+            const res = await fetch(`/api/updateSrhData`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify(srhApplications)
+            });
+            
+            if (res.ok) {
+                renderApplications();
+                Swal.fire('Başarılı', 'İşlem başarılı.', 'success');
+            } else {
+                throw new Error("HTTP " + res.status);
+            }
         } else {
-            throw new Error("HTTP " + res.status);
+            const res = await fetch(`${FIREBASE_DB_URL_SRH}/app_store/srh_data.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(srhApplications)
+            });
+            
+            if (res.ok) {
+                renderApplications();
+                Swal.fire('Başarılı', 'İşlem başarılı.', 'success');
+            } else {
+                throw new Error("HTTP " + res.status);
+            }
         }
     } catch (err) {
         console.error("Güncelleme hatası:", err);
@@ -371,7 +413,7 @@ function openPublishModal() {
     const students = DataManager._getData()?.school?.students || [];
     const classesSet = new Set();
     students.forEach(s => {
-        if (s.class) classesSet.add(s.class.trim());
+        if (s.class) classesSet.add(String(s.class).trim());
     });
     
     let allClasses = Array.from(classesSet).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }));
