@@ -77,12 +77,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     btn.style.display = 'none';
                 }
             });
-            // Ayrıca "Ayarlar" sekmesi varsa (tabBtn_ayarlar) onu da gizleyelim mi?
-            const ayarlarBtn = document.getElementById('tabBtn_ayarlar');
-            if (ayarlarBtn) ayarlarBtn.style.display = 'none';
         }
 
         document.getElementById('portalSection').style.display = 'block';
+        if (typeof switchMainTab === 'function') {
+            switchMainTab('ayarlar');
+        }
+        
         const userName = sessionStorage.getItem('klbk_name') || localStorage.getItem('klbk_name') || 'Kullanıcı';
         document.getElementById('portalUserName').innerText = userName;
 
@@ -778,9 +779,17 @@ async function renderResults() {
         const cls = (s.class || s.sinif || '').trim();
         if (!classGroups[cls]) classGroups[cls] = { filled: [], notFilled: [] };
         
-        const studentNo = String(s.no || s.number || '');
-        if (currentResultsData && currentResultsData[studentNo]) {
-            classGroups[cls].filled.push({ student: s, answers: currentResultsData[studentNo] });
+        const possibleIds = [s.uid, s.id, s.tc, s.no, s.number].filter(Boolean).map(String);
+        let foundAnswers = null;
+        for (const pid of possibleIds) {
+            if (currentResultsData && currentResultsData[pid]) {
+                foundAnswers = currentResultsData[pid];
+                break;
+            }
+        }
+        
+        if (foundAnswers) {
+            classGroups[cls].filled.push({ student: s, answers: foundAnswers });
         } else {
             classGroups[cls].notFilled.push(s);
         }
