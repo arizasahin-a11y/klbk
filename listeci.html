@@ -329,20 +329,7 @@
         </div>
 
         <div class="glass-panel">
-            <div class="form-group">
-                <label><i class="fa-solid fa-table-columns"></i> Sütun Düzeni</label>
-                <select id="columnPreset" class="form-select-custom" onchange="toggleCustomColumns()">
-                    <option value="16">Dar Sütun (16 Sütun)</option>
-                    <option value="8">Geniş Sütun (8 Sütun)</option>
-                    <option value="custom">Özel Sütun Sayısı Belirle...</option>
-                </select>
-                <small style="color: var(--gray-500); margin-top: 5px; display: block;">Öğrenci bilgilerinin yanına eklenecek boş tablo sütunlarının sayısını seçin (Tüm liste türleri için geçerlidir).</small>
-            </div>
 
-            <div class="form-group" id="customColumnGroup" style="display: none;">
-                <label><i class="fa-solid fa-pen"></i> Özel Boş Sütun Sayısı</label>
-                <input type="number" id="blankColumns" class="form-select-custom" value="16" min="0" max="30">
-            </div>
 
             <!-- Accordion: Normal Sınıf Listeleri -->
             <div class="accordion-item active" style="border-left: 4px solid var(--primary);">
@@ -903,18 +890,12 @@
             updateClassDropdownText();
         }
 
-        function generateList(listType) {
+        async function generateList(listType) {
             const selectedClasses = Array.from(document.querySelectorAll('.class-checkbox:checked')).map(cb => cb.value);
             
             if (listType === 'normal' && selectedClasses.length === 0) {
                 Swal.fire('Uyarı', 'Lütfen yukarıdaki menüden en az bir sınıf seçin.', 'warning');
                 return;
-            }
-
-            let blankCols = parseInt(document.getElementById('blankColumns').value) || 0;
-            const preset = document.getElementById('columnPreset').value;
-            if (preset !== 'custom') {
-                blankCols = parseInt(preset);
             }
             
             if (listType === 'karma_club' && selectedStudentsSet.size === 0) {
@@ -929,11 +910,62 @@
                     return;
                 }
             }
+            
+            let checkedLists = [];
+            if (listType === 'saved_custom_lists') {
+                checkedLists = Array.from(document.querySelectorAll('.saved-list-checkbox:checked')).map(cb => {
+                    return JSON.parse(decodeURIComponent(cb.value));
+                });
+                
+                if (checkedLists.length === 0) {
+                    Swal.fire('Uyarı', 'Lütfen yazdırmak için en az bir kayıtlı liste seçin.', 'warning');
+                    return;
+                }
+            }
+
+            const { value: blankColsResult, isConfirmed } = await Swal.fire({
+                title: 'Sütun Düzeni',
+                html: `
+                    <div style="text-align: left; margin-bottom: 15px;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 5px;">Sütun Düzeni</label>
+                        <select id="swalColumnPreset" class="form-select-custom" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1;" onchange="
+                            if(this.value === 'custom') {
+                                document.getElementById('swalCustomGroup').style.display = 'block';
+                            } else {
+                                document.getElementById('swalCustomGroup').style.display = 'none';
+                                document.getElementById('swalBlankColumns').value = this.value;
+                            }
+                        ">
+                            <option value="16">Dar Sütun (16 Sütun)</option>
+                            <option value="8">Geniş Sütun (8 Sütun)</option>
+                            <option value="custom">Özel Sütun Sayısı Belirle...</option>
+                        </select>
+                        <small style="color: #64748b; margin-top: 5px; display: block;">Öğrenci bilgilerinin yanına eklenecek boş tablo sütunlarının sayısını seçin.</small>
+                    </div>
+                    <div id="swalCustomGroup" style="display: none; text-align: left;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 5px;">Özel Boş Sütun Sayısı</label>
+                        <input type="number" id="swalBlankColumns" class="form-select-custom" value="16" min="0" max="30" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Oluştur',
+                cancelButtonText: 'İptal',
+                preConfirm: () => {
+                    const preset = document.getElementById('swalColumnPreset').value;
+                    let cols = parseInt(document.getElementById('swalBlankColumns').value) || 0;
+                    if (preset !== 'custom') cols = parseInt(preset);
+                    return cols;
+                }
+            });
+
+            if (!isConfirmed) {
+                return;
+            }
 
             const config = {
                 classes: selectedClasses,
                 titleSuffix: document.getElementById('titleSuffix') ? document.getElementById('titleSuffix').value.trim() : '',
-                blankColumns: blankCols,
+                blankColumns: blankColsResult,
                 listType: listType,
                 emptyTemplateTitle: document.getElementById('emptyTemplateTitle') ? document.getElementById('emptyTemplateTitle').value.trim() : 'Boş Liste',
                 showAlanInEmptyTemplate: document.getElementById('showAlanInEmptyTemplate') ? document.getElementById('showAlanInEmptyTemplate').checked : false,
@@ -942,15 +974,6 @@
             };
 
             if (listType === 'saved_custom_lists') {
-                const checkedLists = Array.from(document.querySelectorAll('.saved-list-checkbox:checked')).map(cb => {
-                    return JSON.parse(decodeURIComponent(cb.value));
-                });
-                
-                if (checkedLists.length === 0) {
-                    Swal.fire('Uyarı', 'Lütfen yazdırmak için en az bir kayıtlı liste seçin.', 'warning');
-                    return;
-                }
-                
                 config.savedLists = checkedLists;
             }
 
