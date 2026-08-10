@@ -1444,16 +1444,7 @@
                 confirmButtonColor: '#ef4444'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    sessionStorage.removeItem('klbk_isLoggedIn');
-                    sessionStorage.removeItem('klbk_currentUser');
-                    sessionStorage.removeItem('klbk_role');
-                    sessionStorage.removeItem('klbk_name');
-                    sessionStorage.removeItem('klbk_guestMode');
-                    
-                    localStorage.removeItem('klbk_isLoggedIn');
-                    localStorage.removeItem('klbk_currentUser');
-
-                    window.location.href = window.location.pathname;
+                    window.location.href = 'enter.html?logout=true';
                 }
             });
         }

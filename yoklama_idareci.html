@@ -998,10 +998,7 @@
         function logoutIdareci() {
             sessionStorage.clear();
             localStorage.removeItem('klbk_currentUser');
-            localStorage.removeItem('klbk_isLoggedIn');
-            localStorage.removeItem('klbk_persistent_session');
-            localStorage.removeItem('klbk_storeKey');
-            window.location.href = 'enter.html';
+            window.location.href = 'enter.html?logout=true';
         }
 
         // Sorting configuration for general tab

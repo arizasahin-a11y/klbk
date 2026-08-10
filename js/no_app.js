@@ -94,13 +94,7 @@ $(document).ready(async function() {
 });
 
 window.logout = function() {
-    sessionStorage.removeItem('klbk_isLoggedIn');
-    sessionStorage.removeItem('klbk_currentUser');
-    sessionStorage.removeItem('klbk_role');
-    localStorage.removeItem('klbk_isLoggedIn');
-    localStorage.removeItem('klbk_currentUser');
-    localStorage.removeItem('klbk_role');
-    window.location.href = 'enter.html';
+    window.location.href = 'enter.html?logout=true';
 };
 
 // --- Nöbet Yeri İşlemleri ---

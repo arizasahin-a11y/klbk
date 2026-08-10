@@ -114,10 +114,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('logoutBtn').addEventListener('click', () => {
         sessionStorage.clear();
             localStorage.removeItem('klbk_currentUser');
-            localStorage.removeItem('klbk_isLoggedIn');
-            localStorage.removeItem('klbk_persistent_session');
-            localStorage.removeItem('klbk_storeKey');
-            window.location.href = 'enter.html';
+            window.location.href = 'enter.html?logout=true';
     });
 
     // --- Global Reset Rules Action ---
