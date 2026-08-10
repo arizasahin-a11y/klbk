@@ -448,39 +448,42 @@ async function openPublishModal() {
     document.getElementById('publishClassModal').style.display = 'flex';
 
     try {
-        const res = await fetch(`${FIREBASE_DB_URL_SRH}/school/students.json`);
-        if (!res.ok) throw new Error("Ağ hatası");
-        const students = await res.json();
-        
-        const classesSet = new Set();
-        if (students) {
-            if (Array.isArray(students)) {
-                students.forEach(s => {
-                    if (s && s.class) classesSet.add(String(s.class).trim());
-                    if (s && s.sinif) classesSet.add(String(s.sinif).trim());
-                });
+        if (typeof DataManager !== 'undefined') {
+            await DataManager.initCloud();
+            const students = DataManager.getStudents();
+            
+            const classesSet = new Set();
+            if (students) {
+                if (Array.isArray(students)) {
+                    students.forEach(s => {
+                        if (s && s.class) classesSet.add(String(s.class).trim());
+                        if (s && s.sinif) classesSet.add(String(s.sinif).trim());
+                    });
+                } else {
+                    Object.values(students).forEach(s => {
+                        if (s && s.class) classesSet.add(String(s.class).trim());
+                        if (s && s.sinif) classesSet.add(String(s.sinif).trim());
+                    });
+                }
+            }
+            
+            let allClasses = Array.from(classesSet).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }));
+            
+            if (allClasses.length === 0) {
+                listContainer.innerHTML = '<div style="color:var(--gray-500);">Kayıtlı sınıf bulunamadı. Lütfen Master Ayarlarından öğrenci listesini yükleyin.</div>';
             } else {
-                Object.values(students).forEach(s => {
-                    if (s && s.class) classesSet.add(String(s.class).trim());
-                    if (s && s.sinif) classesSet.add(String(s.sinif).trim());
+                listContainer.innerHTML = '';
+                allClasses.forEach(cls => {
+                    listContainer.innerHTML += `
+                        <label style="display:flex; align-items:center; gap:5px; background:var(--gray-50); padding:8px 12px; border-radius:8px; border:1px solid var(--gray-200); cursor:pointer;">
+                            <input type="checkbox" class="class-publish-cb" value="${cls}" style="width:16px; height:16px;">
+                            <span style="font-weight:600;">${cls}</span>
+                        </label>
+                    `;
                 });
             }
-        }
-        
-        let allClasses = Array.from(classesSet).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }));
-        
-        if (allClasses.length === 0) {
-            listContainer.innerHTML = '<div style="color:var(--gray-500);">Kayıtlı sınıf bulunamadı. Lütfen Master Ayarlarından öğrenci listesini yükleyin.</div>';
         } else {
-            listContainer.innerHTML = '';
-            allClasses.forEach(cls => {
-                listContainer.innerHTML += `
-                    <label style="display:flex; align-items:center; gap:5px; background:var(--gray-50); padding:8px 12px; border-radius:8px; border:1px solid var(--gray-200); cursor:pointer;">
-                        <input type="checkbox" class="class-publish-cb" value="${cls}" style="width:16px; height:16px;">
-                        <span style="font-weight:600;">${cls}</span>
-                    </label>
-                `;
-            });
+            throw new Error("DataManager bulunamadı.");
         }
     } catch (err) {
         listContainer.innerHTML = '<div style="color:red; text-align:center;">Sınıflar yüklenirken hata oluştu.</div>';
