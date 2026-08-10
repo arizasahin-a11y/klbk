@@ -4497,7 +4497,7 @@ const getClassTeacherForSok = window.getClassTeacherForSok;
                     return `${sinifAdi ? sinifAdi + ' ' : ''}Sınıf Öğretmeni (ZÜMRE BAŞKANI)`;
                 } else {
                     let b = cell.gorev || cell.branch || '';
-                    b = b.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/\s*-\s*Zümre Başkanı/gi, '').replace(/Zümre Başkanı/gi, '').trim();
+                    b = b.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/\s*-\s*Zümre Başkanı/gi, '').replace(/Zümre Başkanı/gi, '').replace(/Öğrt\./gi, '').trim();
                     if (!b || b === 'Öğretmen') {
                         const u = findTeacherInDatabase(cell);
                         if (u && u.branch) b = Array.isArray(u.branch) ? u.branch.join(', ') : u.branch;
@@ -4510,7 +4510,7 @@ const getClassTeacherForSok = window.getClassTeacherForSok;
             if (isBaskan) {
                 let bc = (branchClean || '').replace(/Öğretmeni|Öğretmenleri|Öğretmen|Zümresi|Toplantısı/gi, '').trim();
                 if (!bc && cell.branch) bc = cell.branch.replace(/Öğretmeni|Öğretmenleri|Öğretmen|Zümresi|Toplantısı/gi, '').trim();
-                if (!bc && cell.gorev) bc = cell.gorev.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/Öğretmeni|Öğretmenleri|Öğretmen|Zümresi|Toplantısı|Başkanı/gi, '').trim();
+                if (!bc && cell.gorev) bc = cell.gorev.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/Öğretmeni|Öğretmenleri|Öğretmen|Zümresi|Toplantısı|Başkanı/gi, '').replace(/Öğrt\./gi, '').trim();
                 if (bc && /[,;]/.test(bc)) bc = bc.split(/[,;]/)[0].trim();
                 if (bc && !/öğretmen/i.test(bc)) bc += ' Öğretmeni';
                 return bc ? bc + ' (ZÜMRE BAŞKANI)' : 'Zümre Başkanı';
@@ -4521,7 +4521,7 @@ const getClassTeacherForSok = window.getClassTeacherForSok;
             }
 
             let rawBranch = cell.gorev || cell.branch || '';
-            rawBranch = rawBranch.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/\s*-\s*Zümre Başkanı/gi, '').replace(/Zümre Başkanı/gi, '').trim();
+            rawBranch = rawBranch.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/\s*-\s*Zümre Başkanı/gi, '').replace(/Zümre Başkanı/gi, '').replace(/Öğrt\./gi, '').trim();
             if (!rawBranch || rawBranch === 'Öğretmen') {
                 const u = findTeacherInDatabase(cell);
                 if (u && u.branch) {
