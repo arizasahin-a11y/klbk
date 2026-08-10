@@ -928,7 +928,7 @@ function deleteApp(id) {
 
 async function checkAppCompletion(appId, targetClasses = []) {
     try {
-        const token = typeof DataManager !== 'undefined' && DataManager._getAuthToken ? DataManager._getAuthToken() : '';
+        const token = sessionStorage.getItem('klbk_sessionToken') || localStorage.getItem('klbk_sessionToken') || (typeof DataManager !== 'undefined' && DataManager._getAuthToken ? DataManager._getAuthToken() : '');
         const authQuery = token ? `?auth=${token}` : '';
         const FIREBASE_DB_URL = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
         
