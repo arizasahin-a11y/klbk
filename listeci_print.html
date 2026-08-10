@@ -147,26 +147,17 @@
         }
         .col-blank { width: auto; /* let it distribute evenly */ }
 
-        .rotated-header-container {
-            width: 20px;
-            height: 90px;
-            position: relative;
+        .rotated-header {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            white-space: nowrap;
+            display: inline-block;
             margin: 0 auto;
         }
-        .rotated-header {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-90deg);
-            white-space: nowrap;
-            font-weight: bold;
-            color: #000;
-        }
 
-        .print-table th:has(.rotated-header-container) {
+        .print-table th:has(.rotated-header) {
             text-align: center;
             vertical-align: middle;
-            padding: 0;
         }
 
         /* Print Media Queries */
@@ -281,7 +272,7 @@
             const classesToFetch = config.classes || [];
             const titleSuffix = config.titleSuffix || '';
             const blankColumnsCount = config.blankColumns || 1;
-            let listType = config.listType || 'normal';
+            const listType = config.listType || 'normal';
             const emptyTemplateTitle = config.emptyTemplateTitle || 'Boş Liste';
             const showAlanInEmptyTemplate = config.showAlanInEmptyTemplate || false;
             const karmaClubTitle = config.karmaClubTitle || 'Karma Öğrenci Listesi';
@@ -381,8 +372,8 @@
                     }
                 }
 
-                const alanTh = showAlan ? `<th rowspan="2" class="col-alan"><div class="rotated-header-container"><div class="rotated-header">ALAN</div></div></th>` : '';
-                const sinifTh = showSinif ? `<th rowspan="2" class="col-sinif"><div class="rotated-header-container"><div class="rotated-header">SINIFI</div></div></th>` : '';
+                const alanTh = showAlan ? `<th rowspan="2" class="col-alan"><div class="rotated-header">ALAN</div></th>` : '';
+                const sinifTh = showSinif ? `<th rowspan="2" class="col-sinif"><div class="rotated-header">SINIFI</div></th>` : '';
                 const nameTh = `<th rowspan="2" class="col-ad">ÖĞRENCİNİN ADI SOYADI</th>`;
                 
                 let blankHeadersRow2 = '';
@@ -404,10 +395,10 @@
                             <table class="print-table">
                                 <thead>
                                     <tr class="header-row-1">
-                                        <th rowspan="2" class="col-sira"><div class="rotated-header-container"><div class="rotated-header">SIRA</div></div></th>
+                                        <th rowspan="2" class="col-sira"><div class="rotated-header">SIRA</div></th>
                                         ${sinifTh}
                                         ${alanTh}
-                                        <th rowspan="2" class="col-okulno"><div class="rotated-header-container"><div class="rotated-header">NUMARA</div></div></th>
+                                        <th rowspan="2" class="col-okulno"><div class="rotated-header">NUMARA</div></th>
                                         ${nameTh}
                                         ${blankHeadersRow1}
                                     </tr>
@@ -473,21 +464,6 @@
             } else if (listType === 'empty_template') {
                 pagesHtml = processStudentList(emptyTemplateTitle, []);
                 document.title = emptyTemplateTitle;
-            } else if (listType === 'saved_custom_lists') {
-                const savedLists = config.savedLists || [];
-                const originalListType = listType;
-                
-                savedLists.forEach(listData => {
-                    const selectedSet = new Set(listData.students);
-                    const karmaList = allDataStudents.filter(s => selectedSet.has(`${s.class}_${s.no}`));
-                    
-                    // Geçici olarak karma_club gibi davranmasını sağla (sınıf sütunu vs için)
-                    listType = 'karma_club';
-                    pagesHtml += processStudentList(listData.title, karmaList);
-                    listType = originalListType;
-                });
-                
-                document.title = "Kayitli_Listeler";
             } else {
                 classesToFetch.forEach(key => {
                     let students = classGroups[key] ? [...classGroups[key]] : [];
@@ -527,8 +503,8 @@
             const opt = {
                 margin:       0,
                 filename:     filename,
-                image:        { type: 'jpeg', quality: 1.0 },
-                html2canvas:  { scale: 3, useCORS: true },
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
@@ -538,15 +514,14 @@
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
-                    setTimeout(() => {
-                        html2pdf().set(opt).from(element).save().then(() => {
-                            Swal.close();
-                        }).catch(err => {
-                            Swal.fire('Hata', 'PDF oluşturulurken bir hata oluştu.', 'error');
-                            console.error(err);
-                        });
-                    }, 100);
                 }
+            });
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                Swal.close();
+            }).catch(err => {
+                Swal.fire('Hata', 'PDF oluşturulurken bir hata oluştu.', 'error');
+                console.error(err);
             });
         }
 
