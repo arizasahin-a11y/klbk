@@ -141,8 +141,9 @@
             width: 200px; 
             max-width: 200px;
             font-weight: bold; 
-            text-align: left; 
-            padding-left: 5px;
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
         }
         .col-blank { width: auto; /* let it distribute evenly */ }
 
@@ -418,6 +419,7 @@
                 let hasAlan = false;
                 if (listType === 'empty_template') {
                     hasAlan = showAlanInEmptyTemplate;
+                    studentList = []; // Force empty
                 } else if (listType === 'karma_club') {
                     hasAlan = false; // Usually not needed, but we check if any selected has it
                     hasAlan = studentList.some(s => s.alan || s.track || s.field || s.group);
@@ -597,3 +599,5 @@
     </script>
 </body>
 </html>
+
+<!-- Force cache update -->
