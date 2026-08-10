@@ -147,17 +147,26 @@
         }
         .col-blank { width: auto; /* let it distribute evenly */ }
 
-        .rotated-header {
-            writing-mode: vertical-rl;
-            transform: rotate(180deg);
-            white-space: nowrap;
-            display: inline-block;
+        .rotated-header-container {
+            width: 20px;
+            height: 90px;
+            position: relative;
             margin: 0 auto;
         }
+        .rotated-header {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-90deg);
+            white-space: nowrap;
+            font-weight: bold;
+            color: #000;
+        }
 
-        .print-table th:has(.rotated-header) {
+        .print-table th:has(.rotated-header-container) {
             text-align: center;
             vertical-align: middle;
+            padding: 0;
         }
 
         /* Print Media Queries */
@@ -372,8 +381,8 @@
                     }
                 }
 
-                const alanTh = showAlan ? `<th rowspan="2" class="col-alan"><div class="rotated-header">ALAN</div></th>` : '';
-                const sinifTh = showSinif ? `<th rowspan="2" class="col-sinif"><div class="rotated-header">SINIFI</div></th>` : '';
+                const alanTh = showAlan ? `<th rowspan="2" class="col-alan"><div class="rotated-header-container"><div class="rotated-header">ALAN</div></div></th>` : '';
+                const sinifTh = showSinif ? `<th rowspan="2" class="col-sinif"><div class="rotated-header-container"><div class="rotated-header">SINIFI</div></div></th>` : '';
                 const nameTh = `<th rowspan="2" class="col-ad">ÖĞRENCİNİN ADI SOYADI</th>`;
                 
                 let blankHeadersRow2 = '';
@@ -395,10 +404,10 @@
                             <table class="print-table">
                                 <thead>
                                     <tr class="header-row-1">
-                                        <th rowspan="2" class="col-sira"><div class="rotated-header">SIRA</div></th>
+                                        <th rowspan="2" class="col-sira"><div class="rotated-header-container"><div class="rotated-header">SIRA</div></div></th>
                                         ${sinifTh}
                                         ${alanTh}
-                                        <th rowspan="2" class="col-okulno"><div class="rotated-header">NUMARA</div></th>
+                                        <th rowspan="2" class="col-okulno"><div class="rotated-header-container"><div class="rotated-header">NUMARA</div></div></th>
                                         ${nameTh}
                                         ${blankHeadersRow1}
                                     </tr>
