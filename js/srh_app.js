@@ -173,6 +173,8 @@ function openAddAppModal() {
     currentEditAppId = null;
     document.getElementById('appNameInput').value = '';
     document.getElementById('appTypeSelect').value = 'coktan_secmeli';
+    const btnNext = document.getElementById('btnStep1Next');
+    if (btnNext) btnNext.innerHTML = 'Oluştur <i class="fa-solid fa-arrow-right"></i>';
     document.getElementById('addAppModal1').style.display = 'flex';
 }
 
@@ -203,6 +205,9 @@ function editApp(id) {
             }
         }
         document.getElementById('appQuestionsTextarea').value = questionsText.trim();
+        
+        const btnNext = document.getElementById('btnStep1Next');
+        if (btnNext) btnNext.innerHTML = 'İleri (Soruları Düzenle) <i class="fa-solid fa-arrow-right"></i>';
         
         document.getElementById('addAppModal1').style.display = 'flex';
     } catch (err) {
@@ -441,13 +446,34 @@ function togglePublish(id) {
     }
 }
 
-function openPublishModal() {
+async function openPublishModal() {
     const listContainer = document.getElementById('publishClassesList');
     listContainer.innerHTML = '';
     document.getElementById('selectAllClassesCb').checked = false;
 
     // Sınıfları çek
-    const students = DataManager._getData()?.school?.students || [];
+    let students = DataManager._getData()?.school?.students || [];
+    
+    if (students.length === 0) {
+        Swal.fire({
+            title: 'Sınıflar Yükleniyor...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+        try {
+            const storeKey = sessionStorage.getItem('klbk_storeKey') || 'klbk_data_admin';
+            const res = await fetch(`${FIREBASE_DB_URL_SRH}/app_store/${storeKey}/school/students.json`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data) students = data;
+            }
+        } catch (e) {
+            console.error('Sınıflar yüklenemedi:', e);
+        }
+        Swal.close();
+    }
+    
+    // Sınıfları benzersiz olarak topla
     const classesSet = new Set();
     students.forEach(s => {
         if (s.class) classesSet.add(String(s.class).trim());
