@@ -401,14 +401,36 @@ DataManager._getStorageKey = function () {
                 // --- Rehberlik ve Sosyal Uygulamalar Kontrol Sistemi (r + numara) ---
                 if (studentNo.startsWith('r') && !isNaN(studentNo.substring(1))) {
                     const srhNo = studentNo.substring(1);
-                    const db = DataManager._getData();
-                    
-                    if (!db || !db.school || !db.school.students) {
+
+                    // DataManager._getData() returns { students: [...], ... } NOT { school: { students: [...] } }
+                    // Also fallback to Firebase fetch if DataManager hasn't loaded yet
+                    let students = null;
+                    try {
+                        const db = (typeof DataManager !== 'undefined') ? DataManager._getData() : null;
+                        if (db && db.students && db.students.length > 0) {
+                            students = db.students;
+                        } else {
+                            // Fallback: fetch directly from Firebase
+                            Swal.fire({ title: 'Yükleniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                            const fbRes = await fetch('https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/school/students.json?_=' + Date.now());
+                            if (fbRes.ok) {
+                                const fbData = await fbRes.json();
+                                if (fbData) {
+                                    students = Array.isArray(fbData) ? fbData : Object.values(fbData);
+                                }
+                            }
+                            Swal.close();
+                        }
+                    } catch(e) {
+                        Swal.close();
+                        console.error('Öğrenci verisi alınamadı:', e);
+                    }
+
+                    if (!students || students.length === 0) {
                         Swal.fire('Hata', 'Öğrenci veritabanı bulunamadı.', 'error');
                         return;
                     }
                     
-                    const students = db.school.students;
                     const studentObj = students.find(s => String(s.no) === String(srhNo));
                     
                     if (!studentObj) {
