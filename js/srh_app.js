@@ -625,15 +625,40 @@ async function loadResultsForApp(appId) {
     }
 }
 
-function renderResults() {
+async function renderResults() {
     const filledContainer = document.getElementById('filledAccordionContainer');
     const notFilledContainer = document.getElementById('notFilledAccordionContainer');
+    filledContainer.innerHTML = '<div style="padding:10px; color:var(--gray-500);">Öğrenciler yükleniyor...</div>';
+    notFilledContainer.innerHTML = '<div style="padding:10px; color:var(--gray-500);">Öğrenciler yükleniyor...</div>';
+
+    // Öğrenci listesi: DataManager veya doğrudan Firebase'den çek
+    let students = [];
+    try {
+        if (typeof DataManager !== 'undefined') {
+            const dm = DataManager.getStudents ? DataManager.getStudents() : null;
+            if (dm && dm.length > 0) {
+                students = dm;
+            }
+        }
+        if (students.length === 0) {
+            // Fallback: doğrudan Firebase'den çek
+            const sRes = await fetch(`${FIREBASE_DB_URL_SRH}/school/students.json?_=` + Date.now());
+            if (sRes.ok) {
+                const sData = await sRes.json();
+                if (sData) {
+                    students = Array.isArray(sData) ? sData : Object.values(sData);
+                }
+            }
+        }
+    } catch(e) {
+        console.error('Öğrenci listesi alınamadı:', e);
+    }
+
     filledContainer.innerHTML = '';
     notFilledContainer.innerHTML = '';
-    
-    const students = DataManager.getStudents() || [];
+
     if (students.length === 0) {
-        filledContainer.innerHTML = '<p>Öğrenci verisi bulunamadı.</p>';
+        filledContainer.innerHTML = '<p>Öğrenci verisi bulunamadı. Lütfen Master Ayarlarından öğrenci listesini yükleyin.</p>';
         notFilledContainer.innerHTML = '<p>Öğrenci verisi bulunamadı.</p>';
         return;
     }
@@ -642,19 +667,25 @@ function renderResults() {
     const pubClasses = currentAppForResults.publishedClasses || [];
     let targetStudents = students;
     if (pubClasses.length > 0) {
-        targetStudents = students.filter(s => pubClasses.includes((s.class || '').trim()));
+        targetStudents = students.filter(s => pubClasses.includes((s.class || s.sinif || '').trim()));
     }
     
+    if (targetStudents.length === 0) {
+        filledContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--gray-500);">Bu sınıflara kayıtlı öğrenci bulunamadı.</div>';
+        notFilledContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--gray-500);">Bu sınıflara kayıtlı öğrenci bulunamadı.</div>';
+        return;
+    }
+
     // Sınıf bazlı gruplama
     const classGroups = {};
-    pubClasses.forEach(c => classGroups[c] = { filled: [], notFilled: [] });
     
     targetStudents.forEach(s => {
-        const cls = (s.class || '').trim();
+        const cls = (s.class || s.sinif || '').trim();
         if (!classGroups[cls]) classGroups[cls] = { filled: [], notFilled: [] };
         
-        if (currentResultsData[s.no]) {
-            classGroups[cls].filled.push({ student: s, answers: currentResultsData[s.no] });
+        const studentNo = String(s.no || s.number || '');
+        if (currentResultsData && currentResultsData[studentNo]) {
+            classGroups[cls].filled.push({ student: s, answers: currentResultsData[studentNo] });
         } else {
             classGroups[cls].notFilled.push(s);
         }
@@ -700,10 +731,11 @@ function renderResults() {
                     });
                 }
                 
+                const fullName = `${s.name || ''} ${s.surname || ''}`.trim();
                 studentsHtml += `
                     <div style="padding: 10px 15px; border-bottom: 1px solid var(--gray-100);">
                         <div style="display:flex; justify-content:space-between; cursor:pointer;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">
-                            <strong style="color:var(--dark);">${s.no} - ${s.name} ${s.surname}</strong>
+                            <strong style="color:var(--dark);">${s.no} - ${fullName}</strong>
                             <span style="font-size:0.8rem; color:var(--gray-500);">${dateStr} <i class="fa-solid fa-chevron-down" style="margin-left:5px;"></i></span>
                         </div>
                         <div style="display:none; margin-top:10px; background:var(--gray-50); padding:10px; border-radius:6px;">
@@ -730,9 +762,10 @@ function renderResults() {
             
             let nfStudentsHtml = '';
             group.notFilled.sort((a,b) => parseInt(a.no) - parseInt(b.no)).forEach(s => {
+                const fullName = `${s.name || ''} ${s.surname || ''}`.trim();
                 nfStudentsHtml += `
                     <div style="padding: 8px 15px; border-bottom: 1px solid var(--gray-100); color:var(--dark);">
-                        ${s.no} - ${s.name} ${s.surname}
+                        ${s.no} - ${fullName}
                     </div>
                 `;
             });
@@ -751,6 +784,9 @@ function renderResults() {
     if (filledContainer.children.length === 0) filledContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--gray-500);">Bu uygulamayı henüz çözen öğrenci bulunmuyor.</div>';
     if (notFilledContainer.children.length === 0) notFilledContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--gray-500);">Tüm öğrenciler uygulamayı çözmüş!</div>';
 }
+
+
+
 
 function toggleArchive(id) {
     if (srhApplications[id]) {

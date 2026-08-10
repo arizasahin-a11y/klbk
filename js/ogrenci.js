@@ -3073,6 +3073,9 @@ DataManager._getStorageKey = function () {
         }
 
         // --- SRH (Rehberlik ve Sosyal Uygulamalar) Functions ---
+        // Tamamlanan uygulamaları takip etmek için Set
+        window.completedSrhApps = window.completedSrhApps || new Set();
+
         function renderSrhAppsList() {
             const container = document.getElementById('srhAppsListContainer');
             container.innerHTML = '';
@@ -3093,12 +3096,17 @@ DataManager._getStorageKey = function () {
                 card.style.cssText = 'background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-sm);';
                 card.innerHTML = `
                     <div>
-                        <h4 style="margin: 0; font-size: 1.1rem; color: var(--dark);">${app.name}</h4>
+                        <h4 style="margin: 0; font-size: 1.1rem; color: var(--dark);">${app.name}
+                            ${window.completedSrhApps.has(id)
+                                ? '<span style="background:#d1fae5; color:#065f46; padding:2px 10px; border-radius:20px; font-size:0.78rem; font-weight:700; margin-left:8px;"><i class="fa-solid fa-circle-check"></i> TAMAMLANDI</span>'
+                                : '<span style="background:#fee2e2; color:#991b1b; padding:2px 10px; border-radius:20px; font-size:0.78rem; font-weight:700; margin-left:8px;"><i class="fa-solid fa-circle-xmark"></i> TAMAMLANMADI</span>'
+                            }
+                        </h4>
                         ${app.description ? `<p style="margin: 4px 0 4px 0; font-size: 0.9rem; color: var(--gray-600);">${app.description}</p>` : ''}
                         <p style="margin: 5px 0 0 0; font-size: 0.85rem; color: var(--gray-500);">Tip: ${typeLabels[app.type]} | Soru Sayısı: ${app.questions ? app.questions.length : 0}</p>
                     </div>
                     <button class="btn btn-primary" onclick="openSrhApp('${id}')" style="padding: 0.5rem 1rem; border-radius: 8px;">
-                        Çalışmayı Aç <i class="fa-solid fa-arrow-right"></i>
+                        ${window.completedSrhApps.has(id) ? 'Tekrar Aç <i class="fa-solid fa-rotate-right"></i>' : 'Çalışmayı Aç <i class="fa-solid fa-arrow-right"></i>'}
                     </button>
                 `;
                 container.appendChild(card);
@@ -3254,8 +3262,10 @@ DataManager._getStorageKey = function () {
                 });
                 
                 if (res.ok) {
+                    window.completedSrhApps.add(appId);
                     Swal.fire('Başarılı', 'Cevaplarınız başarıyla kaydedildi!', 'success').then(() => {
                         backToSrhList();
+                        renderSrhAppsList(); // Rozeti güncelle
                     });
                 } else {
                     throw new Error("HTTP " + res.status);
