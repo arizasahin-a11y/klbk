@@ -482,7 +482,7 @@
             } else {
                 // Mevcut kullanıcılara yeni eklenen modülleri otomatik enjekte et
                 const existingIds = new Set(portalLinks.map(l => l.id));
-                const newFeatures = ['html_no']; // Buraya gelecekte eklenecek yeni zorunlu modüller yazılabilir
+                const newFeatures = ['html_no', 'html_srh']; // Buraya gelecekte eklenecek yeni zorunlu modüller yazılabilir
                 allHtmlFiles.forEach(hf => {
                     if (newFeatures.includes(hf.id) && !existingIds.has(hf.id)) {
                         portalLinks.push(hf);
