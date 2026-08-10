@@ -938,11 +938,24 @@ async function checkAppCompletion(appId, targetClasses = []) {
             });
         }
         
+        if (typeof isAuthAdmin !== 'undefined' && typeof isAuthSinif !== 'undefined' && typeof authAssignedClass !== 'undefined') {
+            if (!isAuthAdmin && isAuthSinif && typeof isAuthRehber !== 'undefined' && !isAuthRehber) {
+                filteredStudents = filteredStudents.filter(s => {
+                    const sCls = (s.class || s.sinif || '').trim();
+                    return sCls === authAssignedClass;
+                });
+            }
+        }
+        
         const ansRes = await fetch(`${FIREBASE_DB_URL}/app_store/srh_answers/${appId}.json${authQuery}`);
         const ansData = await ansRes.json() || {};
         
         const totalStudents = filteredStudents.length;
-        const answeredCount = Object.keys(ansData).length;
+        let answeredCount = 0;
+        filteredStudents.forEach(s => {
+            const sId = s.uid || s.id || s.tc || s.no;
+            if (ansData[sId]) answeredCount++;
+        });
         
         const badgeSpan = document.getElementById(`comp-badge-${appId}`);
         if (!badgeSpan) return;
