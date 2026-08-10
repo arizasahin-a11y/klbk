@@ -881,8 +881,8 @@ async function renderResults() {
         }
     });
     
-    if (filledContainer.children.length === 0) filledContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--gray-500);">Bu uygulamayı henüz çözen öğrenci bulunmuyor.</div>';
-    if (notFilledContainer.children.length === 0) notFilledContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--gray-500);">Tüm öğrenciler uygulamayı çözmüş!</div>';
+    if (filledContainer.children.length === 0) filledContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--gray-500);">Bu uygulamayı henüz yapan öğrenci bulunmuyor.</div>';
+    if (notFilledContainer.children.length === 0) notFilledContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--gray-500);">Tüm öğrenciler uygulamayı yapmış!</div>';
 }
 
 
