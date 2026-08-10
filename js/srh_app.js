@@ -934,9 +934,22 @@ async function checkAppCompletion(appId, targetClasses = []) {
         
         let students = typeof DataManager !== 'undefined' && DataManager.getStudents ? DataManager.getStudents() : null;
         if (!students || students.length === 0) {
-            const sRes = await fetch(`${FIREBASE_DB_URL}/school/students.json${authQuery}`);
-            const sData = await sRes.json();
-            students = Array.isArray(sData) ? sData : Object.values(sData || {});
+            if (window.globalStudentsCache) {
+                students = window.globalStudentsCache;
+            } else {
+                if (!window.globalStudentsPromise) {
+                    window.globalStudentsPromise = fetch(`${FIREBASE_DB_URL}/app_store/klbk_data_admin/students.json${authQuery}`)
+                        .then(res => res.ok ? res.json() : null)
+                        .catch(err => { console.warn("Öğrenciler alınamadı", err); return null; });
+                }
+                const sData = await window.globalStudentsPromise;
+                if (sData) {
+                    students = Array.isArray(sData) ? sData : Object.values(sData);
+                    window.globalStudentsCache = students;
+                } else {
+                    students = [];
+                }
+            }
         }
         
         let filteredStudents = students;
