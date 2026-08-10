@@ -836,3 +836,93 @@ function deleteApp(id) {
         }
     });
 }
+
+async function checkAppCompletion(appId) {
+    try {
+        const token = typeof DataManager !== 'undefined' && DataManager._getAuthToken ? DataManager._getAuthToken() : '';
+        const authQuery = token ? `?auth=${token}` : '';
+        const FIREBASE_DB_URL = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
+        
+        let students = typeof DataManager !== 'undefined' && DataManager.getStudents ? DataManager.getStudents() : null;
+        if (!students || students.length === 0) {
+            const sRes = await fetch(`${FIREBASE_DB_URL}/school/students.json${authQuery}`);
+            const sData = await sRes.json();
+            students = Array.isArray(sData) ? sData : Object.values(sData || {});
+        }
+        
+        const ansRes = await fetch(`${FIREBASE_DB_URL}/app_store/srh_answers/${appId}.json${authQuery}`);
+        const ansData = await ansRes.json() || {};
+        
+        const totalStudents = students.length;
+        const answeredCount = Object.keys(ansData).length;
+        
+        const badgeSpan = document.getElementById(`comp-badge-${appId}`);
+        if (!badgeSpan) return;
+        
+        if (totalStudents > 0 && answeredCount >= totalStudents) {
+            badgeSpan.innerHTML = '<span style="background:#d1fae5; color:#065f46; padding:3px 8px; border-radius:12px; font-weight:bold;"><i class="fa-solid fa-circle-check"></i> TAMAMLANDI</span>';
+            badgeSpan.style.opacity = '1';
+        } else {
+            badgeSpan.innerHTML = `<span style="background:#fee2e2; color:#b91c1c; padding:3px 8px; border-radius:12px; font-weight:bold;"><i class="fa-solid fa-circle-xmark"></i> TAMAMLANMADI (${answeredCount}/${totalStudents})</span>`;
+            badgeSpan.style.opacity = '1';
+        }
+    } catch (err) {
+        console.error(err);
+        const badgeSpan = document.getElementById(`comp-badge-${appId}`);
+        if (badgeSpan) badgeSpan.innerHTML = '';
+    }
+}
+
+function exportResultsToExcel(type) {
+    if (!currentAppForResults) {
+        Swal.fire('Hata', 'Lütfen önce bir uygulama seçin.', 'error');
+        return;
+    }
+    
+    if (typeof XLSX === 'undefined') {
+        Swal.fire('Hata', 'Excel kütüphanesi yüklenemedi. Lütfen sayfayı yenileyin.', 'error');
+        return;
+    }
+    
+    const dataToExport = [];
+    
+    targetStudents.forEach(s => {
+        const studentNo = String(s.no || s.number || '');
+        const hasFilled = currentResultsData && currentResultsData[studentNo];
+        
+        if (type === 'filled' && hasFilled) {
+            dataToExport.push({
+                'Sınıf': s.class || s.sinif || '',
+                'Okul Numarası': s.no,
+                'Adı Soyadı': `${s.name || ''} ${s.surname || ''}`.trim()
+            });
+        } else if (type === 'notFilled' && !hasFilled) {
+            dataToExport.push({
+                'Sınıf': s.class || s.sinif || '',
+                'Okul Numarası': s.no,
+                'Adı Soyadı': `${s.name || ''} ${s.surname || ''}`.trim()
+            });
+        }
+    });
+    
+    if (dataToExport.length === 0) {
+        Swal.fire('Bilgi', 'Dışa aktarılacak öğrenci bulunamadı.', 'info');
+        return;
+    }
+    
+    dataToExport.sort((a, b) => {
+        if (a['Sınıf'] !== b['Sınıf']) return String(a['Sınıf']).localeCompare(String(b['Sınıf']), 'tr', { numeric: true });
+        return parseInt(a['Okul Numarası']) - parseInt(b['Okul Numarası']);
+    });
+    
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wscols = [ {wpx: 60}, {wpx: 100}, {wpx: 180} ];
+    ws['!cols'] = wscols;
+    
+    const wb = XLSX.utils.book_new();
+    const sheetName = type === 'filled' ? 'Dolduranlar' : 'Doldurmayanlar';
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    
+    let safeName = (currentAppForResults.name || 'Uygulama').replace(/[^a-z0-9ğüşöçİĞÜŞÖÇ]/gi, '_');
+    XLSX.writeFile(wb, `${safeName}_${sheetName}.xlsx`);
+}

@@ -298,22 +298,28 @@
 
         <!-- 2. Dolduranlar Tab -->
         <div id="tabContent_dolduranlar" class="app-panel" style="display: none;">
-            <div style="margin-bottom: 20px;">
-                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Uygulama Seçin:</label>
-                <select id="selectAppFilled" class="form-control" style="width: 100%; padding: 10px; border: 1px solid var(--gray-300); border-radius: 8px;" onchange="loadResultsForApp(this.value)">
-                    <option value="">-- Lütfen bir uygulama seçin --</option>
-                </select>
+            <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: flex-end;">
+                <div style="flex: 1;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 5px;">Uygulama Seçin:</label>
+                    <select id="selectAppFilled" class="form-control" style="width: 100%; padding: 10px; border: 1px solid var(--gray-300); border-radius: 8px;" onchange="loadResultsForApp(this.value)">
+                        <option value="">-- Lütfen bir uygulama seçin --</option>
+                    </select>
+                </div>
+                <button class="btn" style="background:#16a34a; color:white; padding:10px 15px; border-radius:8px; height: 42px; cursor: pointer; border:none;" onclick="exportResultsToExcel('filled')" title="Excel Olarak İndir"><i class="fa-solid fa-file-excel"></i></button>
             </div>
             <div id="filledAccordionContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
         </div>
 
         <!-- 3. Doldurmayanlar Tab -->
         <div id="tabContent_doldurmayanlar" class="app-panel" style="display: none;">
-            <div style="margin-bottom: 20px;">
-                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Uygulama Seçin:</label>
-                <select id="selectAppNotFilled" class="form-control" style="width: 100%; padding: 10px; border: 1px solid var(--gray-300); border-radius: 8px;" onchange="loadResultsForApp(this.value)">
-                    <option value="">-- Lütfen bir uygulama seçin --</option>
-                </select>
+            <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: flex-end;">
+                <div style="flex: 1;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 5px;">Uygulama Seçin:</label>
+                    <select id="selectAppNotFilled" class="form-control" style="width: 100%; padding: 10px; border: 1px solid var(--gray-300); border-radius: 8px;" onchange="loadResultsForApp(this.value)">
+                        <option value="">-- Lütfen bir uygulama seçin --</option>
+                    </select>
+                </div>
+                <button class="btn" style="background:#16a34a; color:white; padding:10px 15px; border-radius:8px; height: 42px; cursor: pointer; border:none;" onclick="exportResultsToExcel('notFilled')" title="Excel Olarak İndir"><i class="fa-solid fa-file-excel"></i></button>
             </div>
             <div id="notFilledAccordionContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
         </div>
@@ -406,8 +412,9 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script src="js/core_data_v11_9_1.js?v=12.0"></script>
     <script src="js/auth.js?v=2.6" defer></script>
-    <script src="js/srh_app.js?v=3.10"></script>
+    <script src="js/srh_app.js?v=3.11"></script>
 </body>
 </html>
