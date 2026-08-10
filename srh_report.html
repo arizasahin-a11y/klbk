@@ -97,7 +97,7 @@
         
         /* Geri kalan soru sütunları */
         th:nth-child(n+4), td:nth-child(n+4) {
-            width: 28px;
+            width: 22px; /* Geri daraltıldı */
             text-align: center;
         }
 
@@ -119,23 +119,23 @@
         }
 
         .header-row th {
-            height: 160px; /* Dikey metin (soru) satırı için alan */
-            text-align: center; /* Sütun içindeki yazıyı ortala */
-            vertical-align: bottom;
-            padding-bottom: 5px;
+            height: 155px;
+            text-align: center;
+            vertical-align: middle;
+            padding: 0; /* Boşluklar sıfırlandı ki tam ortaya otursun */
         }
         
         .vertical-text {
             writing-mode: vertical-rl;
             transform: rotate(180deg);
-            white-space: normal; /* İki satıra geçmeye izin ver */
-            max-height: 155px;
-            line-height: 1.1;
+            white-space: normal;
+            max-height: 150px;
+            line-height: 1; /* Satır aralığını daralttık */
             overflow: hidden;
-            display: inline-block;
-            text-align: left; /* Yukarı/Aşağı hizalama (rotate olduğu için) */
+            display: block; /* Tam alanı kaplasın ve margin ile ortalansın */
+            text-align: center; /* İçindeki yazıları sağdan-soldan dengeli ortala */
             margin: 0 auto;
-            font-size: 0.65rem;
+            font-size: 0.55rem; /* Sığması için çok daha küçültüldü */
         }
 
         .center { text-align: center; font-weight: bold; }

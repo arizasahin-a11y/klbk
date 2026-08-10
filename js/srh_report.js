@@ -207,7 +207,8 @@ function exportToExcel() {
             for(let i=0; i<qCount; i++) wscols.push({wpx: 30});
             ws['!cols'] = wscols;
 
-            XLSX.utils.book_append_sheet(wb, ws, clsTitle.substring(0, 31)); // Sheet name max 31 chars
+            let safeSheetName = clsTitle.replace(/[\[\]\*\?\:\/\\]/g, '_').substring(0, 31);
+            XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
         });
 
         let safeName = (appData.name || 'Rapor').replace(/[^a-z0-9ğüşöçİĞÜŞÖÇ]/gi, '_');
