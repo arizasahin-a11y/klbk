@@ -279,7 +279,6 @@
             } catch(e) {}
         })();
     </script>
-    <script src="js/app_permissions.js"></script>
 </head>
 <body>
 
@@ -330,8 +329,23 @@
         </div>
 
         <div class="glass-panel">
+            <div class="form-group">
+                <label><i class="fa-solid fa-table-columns"></i> Sütun Düzeni</label>
+                <select id="columnPreset" class="form-select-custom" onchange="toggleCustomColumns()">
+                    <option value="16">Dar Sütun (16 Sütun)</option>
+                    <option value="8">Geniş Sütun (8 Sütun)</option>
+                    <option value="custom">Özel Sütun Sayısı Belirle...</option>
+                </select>
+                <small style="color: var(--gray-500); margin-top: 5px; display: block;">Öğrenci bilgilerinin yanına eklenecek boş tablo sütunlarının sayısını seçin (Tüm liste türleri için geçerlidir).</small>
+            </div>
+
+            <div class="form-group" id="customColumnGroup" style="display: none;">
+                <label><i class="fa-solid fa-pen"></i> Özel Boş Sütun Sayısı</label>
+                <input type="number" id="blankColumns" class="form-select-custom" value="16" min="0" max="30">
+            </div>
+
             <!-- Accordion: Normal Sınıf Listeleri -->
-            <div class="accordion-item" style="border-left: 4px solid var(--primary);">
+            <div class="accordion-item active" style="border-left: 4px solid var(--primary);">
                 <div class="accordion-header" onclick="toggleAccordion(this)">
                     <h3><i class="fa-solid fa-list-ol" style="color: var(--primary);"></i> Normal Sınıf Listeleri</h3>
                     <i class="fa-solid fa-chevron-down accordion-icon"></i>
@@ -363,7 +377,7 @@
                         <label style="font-size: 0.9rem;">Başlık Eki (Opsiyonel)</label>
                         <input type="text" id="titleSuffix" class="form-select-custom" placeholder="Örn: FİZİK NOTLARI (Sınıf adının yanına eklenir)">
                     </div>
-                    <button class="btn-primary" style="width: 100%;" onclick="openColumnModal('normal')">
+                    <button class="btn-primary" style="width: 100%;" onclick="generateList('normal')">
                         <i class="fa-solid fa-file-pdf"></i> Sınıf Listelerini Oluştur
                     </button>
                 </div>
@@ -388,7 +402,7 @@
                         <button class="btn-primary" style="background: #0ea5e9; flex: 1;" onclick="saveKarmaList()">
                             <i class="fa-solid fa-save"></i> Kaydet
                         </button>
-                        <button class="btn-primary" style="flex: 2;" onclick="openColumnModal('karma_club')">
+                        <button class="btn-primary" style="flex: 2;" onclick="generateList('karma_club')">
                             <i class="fa-solid fa-file-pdf"></i> Karma Listeyi Oluştur
                         </button>
                     </div>
@@ -408,7 +422,7 @@
                         <!-- List of saved lists will be injected here -->
                     </div>
 
-                    <button class="btn-primary" style="background: #f59e0b; width: 100%;" onclick="openColumnModal('saved_custom_lists')">
+                    <button class="btn-primary" style="background: #f59e0b; width: 100%;" onclick="generateList('saved_custom_lists')">
                         <i class="fa-solid fa-print"></i> Seçili Listeleri Oluştur
                     </button>
                 </div>
@@ -430,7 +444,7 @@
                         <input type="checkbox" id="showAlanInEmptyTemplate" class="class-checkbox">
                         <span>Alan Sütunu Görünsün</span>
                     </label>
-                    <button class="btn-primary" style="background: #10b981; width: 100%;" onclick="openColumnModal('empty_template')">
+                    <button class="btn-primary" style="background: #10b981; width: 100%;" onclick="generateList('empty_template')">
                         <i class="fa-solid fa-file-pdf"></i> Boş Şablon Çıkart
                     </button>
                 </div>
@@ -824,7 +838,10 @@
         function logout() {
             sessionStorage.clear();
             localStorage.removeItem('klbk_currentUser');
-            window.location.href = 'enter.html?logout=true';
+            localStorage.removeItem('klbk_isLoggedIn');
+            localStorage.removeItem('klbk_persistent_session');
+            localStorage.removeItem('klbk_storeKey');
+            window.location.href = 'enter.html';
         }
 
         function loadClasses() {
@@ -884,51 +901,6 @@
         function deselectAllClasses() {
             document.querySelectorAll('.class-checkbox').forEach(cb => cb.checked = false);
             updateClassDropdownText();
-        }
-
-        let pendingListType = null;
-
-        function openColumnModal(listType) {
-            const selectedClasses = Array.from(document.querySelectorAll('.class-checkbox:checked')).map(cb => cb.value);
-            
-            if (listType === 'normal' && selectedClasses.length === 0) {
-                Swal.fire('Uyarı', 'Lütfen yukarıdaki menüden en az bir sınıf seçin.', 'warning');
-                return;
-            }
-            if (listType === 'karma_club' && selectedStudentsSet.size === 0) {
-                Swal.fire('Uyarı', 'Lütfen karma liste için "Öğrencileri Seç" butonundan en az bir öğrenci seçin.', 'warning');
-                return;
-            }
-            if (listType === 'empty_template') {
-                const emptyTemplateTitle = document.getElementById('emptyTemplateTitle').value.trim();
-                if (!emptyTemplateTitle) {
-                    Swal.fire('Uyarı', 'Lütfen Boş Liste Şablonu için bir başlık girin.', 'warning');
-                    return;
-                }
-            }
-            if (listType === 'saved_custom_lists') {
-                const checkedLists = Array.from(document.querySelectorAll('.saved-list-checkbox:checked'));
-                if (checkedLists.length === 0) {
-                    Swal.fire('Uyarı', 'Lütfen yazdırmak için en az bir liste seçin.', 'warning');
-                    return;
-                }
-            }
-
-            pendingListType = listType;
-            document.getElementById('columnLayoutModal').style.display = 'flex';
-        }
-
-        function closeColumnModal() {
-            document.getElementById('columnLayoutModal').style.display = 'none';
-            pendingListType = null;
-        }
-
-        function confirmColumnLayout() {
-            if (!pendingListType) return;
-            document.getElementById('columnLayoutModal').style.display = 'none';
-            const type = pendingListType;
-            pendingListType = null;
-            generateList(type);
         }
 
         function generateList(listType) {
@@ -1188,34 +1160,5 @@
 <a href="enter.html" style="position: fixed; bottom: 20px; left: 20px; background: #2563eb; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 9999; text-decoration: none; font-size: 1.2rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" title="Ana Sayfaya Dön (Portal)">
     <i class="fa-solid fa-home"></i>
 </a>
-
-    <!-- Column Layout Modal -->
-    <div id="columnLayoutModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 1rem;">
-        <div class="glass-panel" style="width: 100%; max-width: 500px; padding: 2rem; position: relative;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--gray-200); padding-bottom: 1rem;">
-                <h3 style="margin: 0; color: var(--dark);"><i class="fa-solid fa-table-columns" style="color: var(--primary); margin-right: 8px;"></i> Sütun Düzeni</h3>
-                <button class="btn" style="background: transparent; color: var(--gray-500); border: none; font-size: 1.5rem; cursor: pointer; padding: 0;" onclick="closeColumnModal()">&times;</button>
-            </div>
-            
-            <div class="form-group">
-                <label>Sütun Düzenini Seçin</label>
-                <select id="columnPreset" class="form-select-custom" onchange="toggleCustomColumns()">
-                    <option value="16" selected>Dar Sütun (16 Sütun)</option>
-                    <option value="8">Geniş Sütun (8 Sütun)</option>
-                    <option value="custom">Özel Sütun Sayısı Belirle...</option>
-                </select>
-                <small style="color: var(--gray-500); margin-top: 5px; display: block;">Öğrenci bilgilerinin yanına eklenecek boş tablo sütunlarının sayısını seçin.</small>
-            </div>
-
-            <div class="form-group" id="customColumnGroup" style="display: none;">
-                <label><i class="fa-solid fa-pen"></i> Özel Boş Sütun Sayısı</label>
-                <input type="number" id="blankColumns" class="form-select-custom" value="16" min="0" max="30">
-            </div>
-
-            <div style="text-align: right; margin-top: 20px;">
-                <button class="btn-primary" style="padding: 0.5rem 2rem; width: auto;" onclick="confirmColumnLayout()">Oluştur</button>
-            </div>
-        </div>
-    </div>
 </body>
 </html>
