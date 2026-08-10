@@ -5216,12 +5216,16 @@ const getClassTeacherForSok = window.getClassTeacherForSok;
                     const normCls = cleanClassStr(cls);
 
                     let clsParticipants = [];
-                    participantsList.forEach(p => {
-                        const r = (p.role || p.gorev || '').toLowerCase();
-                        if (r.includes('idareci') || r.includes('müdür') || r.includes('rehberlik') || r.includes('genel')) {
-                            clsParticipants.push({ ...p, isBaskan: false, id: 'sok_' + (p.id || Date.now()) + '_' + idx });
-                        }
-                    });
+                    if (editingPlanId && selectedClassesToSave.length === 1) {
+                        clsParticipants = [...participantsList];
+                    } else {
+                        participantsList.forEach(p => {
+                            const r = (p.role || p.gorev || '').toLowerCase();
+                            if (r.includes('idareci') || r.includes('müdür') || r.includes('rehberlik') || r.includes('genel')) {
+                                clsParticipants.push({ ...p, isBaskan: false, id: 'sok_' + (p.id || Date.now()) + '_' + idx });
+                            }
+                        });
+                    }
                     if (typeof schoolTeachersList !== 'undefined' && Array.isArray(schoolTeachersList)) {
                         schoolTeachersList.forEach(t => {
                             let rawClsMatch = false;
@@ -5249,35 +5253,37 @@ const getClassTeacherForSok = window.getClassTeacherForSok;
                             }
                         });
                     }
-                    if (clsParticipants.length === 0) clsParticipants = [...participantsList];
+                    if (clsParticipants.length === 0 && !(editingPlanId && selectedClassesToSave.length === 1)) clsParticipants = [...participantsList];
 
-                    // Sınıf Öğretmenini belirle ve Zümre Başkanı olarak ata
-                    const getClsTeachSave = (typeof window.getClassTeacherForSok === 'function') ? window.getClassTeacherForSok : ((typeof getClassTeacherForSok === 'function') ? getClassTeacherForSok : null);
-                    const ctNameSave = getClsTeachSave ? getClsTeachSave(cls) : null;
-                    clsParticipants.forEach(p => { p.isBaskan = false; });
-                    if (ctNameSave) {
-                        let ctPart = clsParticipants.find(p => p.name && p.name.toLocaleUpperCase('tr-TR').trim() === ctNameSave.toLocaleUpperCase('tr-TR').trim());
-                        if (!ctPart) {
-                            ctPart = clsParticipants.find(p => p.name && (p.name.toLocaleUpperCase('tr-TR').includes(ctNameSave.toLocaleUpperCase('tr-TR').trim()) || ctNameSave.toLocaleUpperCase('tr-TR').trim().includes(p.name.toLocaleUpperCase('tr-TR'))));
+                    if (!editingPlanId || selectedClassesToSave.length !== 1) {
+                        // Sınıf Öğretmenini belirle ve Zümre Başkanı olarak ata
+                        const getClsTeachSave = (typeof window.getClassTeacherForSok === 'function') ? window.getClassTeacherForSok : ((typeof getClassTeacherForSok === 'function') ? getClassTeacherForSok : null);
+                        const ctNameSave = getClsTeachSave ? getClsTeachSave(cls) : null;
+                        clsParticipants.forEach(p => { p.isBaskan = false; });
+                        if (ctNameSave) {
+                            let ctPart = clsParticipants.find(p => p.name && p.name.toLocaleUpperCase('tr-TR').trim() === ctNameSave.toLocaleUpperCase('tr-TR').trim());
+                            if (!ctPart) {
+                                ctPart = clsParticipants.find(p => p.name && (p.name.toLocaleUpperCase('tr-TR').includes(ctNameSave.toLocaleUpperCase('tr-TR').trim()) || ctNameSave.toLocaleUpperCase('tr-TR').trim().includes(p.name.toLocaleUpperCase('tr-TR'))));
+                            }
+                            if (ctPart) {
+                                ctPart.isBaskan = true;
+                                let g = ctPart.gorev || 'Öğretmen';
+                                g = g.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/\s*-\s*Zümre Başkanı/gi, '').replace(/Zümre Başkanı/gi, '').trim();
+                                if (!g) g = 'Öğretmen';
+                                ctPart.gorev = `${g} (ZÜMRE BAŞKANI)`;
+                            } else {
+                                clsParticipants.unshift({
+                                    id: 'sok_baskan_' + Date.now() + '_' + idx,
+                                    name: ctNameSave,
+                                    kurum: schoolName,
+                                    gorev: `${cls} Sınıf Öğretmeni (ZÜMRE BAŞKANI)`,
+                                    isBaskan: true
+                                });
+                            }
                         }
-                        if (ctPart) {
-                            ctPart.isBaskan = true;
-                            let g = ctPart.gorev || 'Öğretmen';
-                            g = g.replace(/\s*\(\s*ZÜMRE BAŞKANI\s*\)/gi, '').replace(/\s*-\s*Zümre Başkanı/gi, '').replace(/Zümre Başkanı/gi, '').trim();
-                            if (!g) g = 'Öğretmen';
-                            ctPart.gorev = `${g} (ZÜMRE BAŞKANI)`;
-                        } else {
-                            clsParticipants.unshift({
-                                id: 'sok_baskan_' + Date.now() + '_' + idx,
-                                name: ctNameSave,
-                                kurum: schoolName,
-                                gorev: `${cls} Sınıf Öğretmeni (ZÜMRE BAŞKANI)`,
-                                isBaskan: true
-                            });
-                        }
-                    }
 
-                    if (!clsParticipants.some(p => (p.gorev || '').toLowerCase().includes('rehberlik') || (p.role || '').toLowerCase().includes('rehberlik'))) {
+                        if (!clsParticipants.some(p => (p.gorev || '').toLowerCase().includes('rehberlik') || (p.role || '').toLowerCase().includes('rehberlik'))) {
+
                         const rehberlikOgretmenleri = (typeof schoolTeachersList !== 'undefined' ? schoolTeachersList : []).filter(t => {
                             const r = (t.role || '').toLowerCase();
                             const b = (t.branch || '').toLowerCase();
@@ -5315,6 +5321,7 @@ const getClassTeacherForSok = window.getClassTeacherForSok;
                             }
                         }
                         return true;
+                        }
                     }).map(item => cleanAgendaItemText(item));
 
                     const donemVal = (donemEl && (donemEl.value === '1. Dönem' || donemEl.value === '2. Dönem')) ? donemEl.value : ((new Date().getMonth() + 1 >= 9 || new Date().getMonth() + 1 === 1) ? '1. Dönem' : '2. Dönem');
