@@ -33,11 +33,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                             isAuthRehber = true;
                         }
                         
-                        const clsRaw = teacherData.class || teacherData.sinif || teacherData.sinifRehberlik || teacherData.rehberlikSinif || teacherData.sube || teacherData.assignedClass || '';
-                        if (clsRaw) {
-                            isAuthSinif = true;
-                            authAssignedClass = String(clsRaw).trim();
-                        }
+                        try {
+                            const mapRes = await fetch(`${FIREBASE_DB_URL_SRH}/app_store/klbk_data_admin/classTeacherMappings.json${authQuery}`);
+                            if (mapRes.ok) {
+                                const mappings = await mapRes.json();
+                                if (mappings) {
+                                    const tNameRef = (teacherData.name || currentUser).toLocaleUpperCase('tr-TR').trim();
+                                    for (const [cls, tName] of Object.entries(mappings)) {
+                                        if (tName && tName.toLocaleUpperCase('tr-TR').trim() === tNameRef) {
+                                            isAuthSinif = true;
+                                            authAssignedClass = cls;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (e) { console.warn("Sınıf atamaları alınamadı", e); }
                     }
                 }
             } catch (err) {
