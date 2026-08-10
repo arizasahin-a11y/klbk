@@ -27,7 +27,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (res.ok) {
                     const teacherData = await res.json();
                     if (teacherData) {
-                        const branch = (teacherData.branch || teacherData.brans || '').toLowerCase();
+                        const branchRaw = teacherData.branch || teacherData.brans || '';
+                        const branch = String(branchRaw).toLowerCase();
                         if (branch.includes('rehber')) {
                             isAuthRehber = true;
                         }

@@ -35,7 +35,8 @@ async function initReport() {
             if (resAuth.ok) {
                 const teacherData = await resAuth.json();
                 if (teacherData) {
-                    const branch = (teacherData.branch || teacherData.brans || '').toLowerCase();
+                    const branchRaw = teacherData.branch || teacherData.brans || '';
+                    const branch = String(branchRaw).toLowerCase();
                     if (branch.includes('rehber')) isAuthRehber = true;
                     if (teacherData.class || teacherData.sinif) {
                         isAuthSinif = true;
