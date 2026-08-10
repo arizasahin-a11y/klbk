@@ -3213,7 +3213,7 @@ DataManager._getStorageKey = function () {
             });
         }
         
-        function openSrhApp(appId) {
+        async function openSrhApp(appId) {
             const appEntry = window.publishedSrhApps.find(([id, _]) => id === appId);
             if (!appEntry) return;
             
@@ -3229,7 +3229,24 @@ DataManager._getStorageKey = function () {
             document.getElementById('srhStudentClassDisplay').innerText = `Sınıf: ${studentObj.class} | No: ${studentObj.no}`;
             document.getElementById('srhAppTitleDisplay').innerText = app.name;
             
-            renderSrhQuestions(app);
+            // Öğrenci daha önce tamamladıysa eski cevapları Firebase'den çek
+            let previousAnswers = null;
+            if (window.completedSrhApps && window.completedSrhApps.has(appId)) {
+                try {
+                    Swal.fire({ title: 'Yükleniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                    const r = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/srh_answers/${appId}/${studentObj.no}.json?_=` + Date.now());
+                    if (r.ok) {
+                        const d = await r.json();
+                        if (d && d.answers) previousAnswers = d.answers;
+                    }
+                    Swal.close();
+                } catch(e) {
+                    Swal.close();
+                    console.warn('Eski cevaplar yüklenemedi:', e);
+                }
+            }
+            
+            renderSrhQuestions(app, previousAnswers);
         }
         
         function backToSrhList() {
@@ -3237,7 +3254,7 @@ DataManager._getStorageKey = function () {
             document.getElementById('srhListView').classList.remove('hidden');
         }
         
-        function renderSrhQuestions(app) {
+        function renderSrhQuestions(app, previousAnswers = null) {
             const container = document.getElementById('srhQuestionsContainer');
             container.innerHTML = '';
             
@@ -3264,9 +3281,11 @@ DataManager._getStorageKey = function () {
                     qHtml += '<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">';
                     if (q.options) {
                         q.options.forEach((opt, oIndex) => {
+                            const prevAnswer = previousAnswers ? (previousAnswers.find(a => a.questionIndex === index) || {}).answer : null;
+                            const isChecked = prevAnswer === opt.label ? 'checked' : '';
                             qHtml += `
                                 <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px; border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.background='white'" onmouseout="this.style.background='transparent'">
-                                    <input type="radio" name="q_${index}" value="${opt.label}" style="width: 18px; height: 18px;">
+                                    <input type="radio" name="q_${index}" value="${opt.label}" ${isChecked} style="width: 18px; height: 18px;">
                                     <span style="font-weight: 600; color: var(--primary);">${opt.label})</span> <span>${opt.text}</span>
                                 </label>
                             `;
@@ -3274,17 +3293,18 @@ DataManager._getStorageKey = function () {
                     }
                     qHtml += '</div>';
                 } else if (app.type === 'kisa_cevap') {
+                    const prevAnswer = previousAnswers ? (previousAnswers.find(a => a.questionIndex === index) || {}).answer : '';
                     qHtml += `
                         <div style="margin-top: 15px;">
-                            <textarea id="q_${index}" rows="3" style="width: 100%; padding: 10px; border: 1px solid var(--gray-300); border-radius: 8px; font-family: inherit;" placeholder="Cevabınızı buraya yazınız..."></textarea>
+                            <textarea id="q_${index}" rows="3" style="width: 100%; padding: 10px; border: 1px solid var(--gray-300); border-radius: 8px; font-family: inherit;" placeholder="Cevabınızı buraya yazınız...">${prevAnswer || ''}</textarea>
                         </div>
                     `;
                 } else if (app.type === 'tik_atma') {
-                    // Soru solunda checkbox olsun denmişti, ama tasarımı daha iyi göstermek için soruyu checkbox'ın label'ı gibi yapabiliriz
-                    // Mevcut tasarımı koruyarak altına bir onay kutusu koyalım
+                    const prevAnswer = previousAnswers ? (previousAnswers.find(a => a.questionIndex === index) || {}).answer : false;
+                    const isChecked = prevAnswer === true ? 'checked' : '';
                     qHtml = `
                         <label style="display: flex; align-items: flex-start; gap: 15px; cursor: pointer;">
-                            <input type="checkbox" id="q_${index}" style="width: 22px; height: 22px; margin-top: 2px;">
+                            <input type="checkbox" id="q_${index}" ${isChecked} style="width: 22px; height: 22px; margin-top: 2px;">
                             <span style="color: var(--dark); font-size: 1.05rem; font-weight: 500;">${index + 1}. ${q.text}</span>
                         </label>
                     `;
