@@ -589,6 +589,21 @@ DataManager._getStorageKey = function () {
                         return;
                     }
                     
+                    if (isAutoLogin) {
+                        const loginView = document.getElementById('loginView');
+                        const resultsView = document.getElementById('resultsView');
+                        const rulesView = document.getElementById('rulesView');
+                        const dutyView = document.getElementById('dutyView');
+                        
+                        if(loginView) loginView.classList.add('hidden');
+                        if(resultsView) resultsView.classList.add('hidden');
+                        if(rulesView) rulesView.classList.add('hidden');
+                        if(dutyView) dutyView.classList.remove('hidden');
+                        
+                        renderStudentDutyView(dutyNo, db);
+                        return;
+                    }
+                    
                     // Nöbeti var, kuralları göster
                     let currentRules = db.school?.studentDuties?.rules || '';
                     if (currentRules.trim() === '') {
@@ -622,6 +637,7 @@ DataManager._getStorageKey = function () {
                         allowEscapeKey: false
                     }).then((result) => {
                         if (result.isConfirmed) {
+                            localStorage.setItem('klbk_student_session', 'n' + dutyNo);
                             // UI geçişini yap
                             const loginView = document.getElementById('loginView');
                             const resultsView = document.getElementById('resultsView');
