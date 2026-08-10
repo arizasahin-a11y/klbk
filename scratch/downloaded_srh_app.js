@@ -99,13 +99,13 @@ function renderApplications() {
         };
 
         row.innerHTML = `
-            <div style="position:relative; z-index:50;">
+            <div>
                 <h4 style="margin:0; font-size:1.1rem; color:var(--dark);">${app.name} ${statusBadge}</h4>
                 <p style="margin:5px 0 0 0; font-size:0.85rem; color:var(--gray-500);">
                     Tip: ${typeLabels[app.type]} | Soru Sayısı: ${app.questions ? app.questions.length : 0}
                 </p>
             </div>
-            <div style="display:flex; gap:10px; position:relative; z-index:9999;">
+            <div style="display:flex; gap:10px;">
                 <button class="btn-action ${app.status === 'published' ? '' : 'btn-success'}" onclick="togglePublish('${id}')">
                     ${app.status === 'published' ? '<i class="fa-solid fa-eye-slash"></i> Yayından Kaldır' : '<i class="fa-solid fa-bullhorn"></i> Yayınla'}
                 </button>
@@ -173,47 +173,37 @@ function openAddAppModal() {
     currentEditAppId = null;
     document.getElementById('appNameInput').value = '';
     document.getElementById('appTypeSelect').value = 'coktan_secmeli';
-    const titleObj = document.querySelector('#addAppModal1 h3');
-    if (titleObj) titleObj.innerHTML = 'Yeni Uygulama Oluştur (Adım 1/2)';
     document.getElementById('addAppModal1').style.display = 'flex';
 }
 
 function editApp(id) {
-    try {
-        const app = srhApplications[id];
-        if (!app) return;
-        currentEditAppId = id;
-        
-        document.getElementById('appNameInput').value = app.name || '';
-        document.getElementById('appTypeSelect').value = app.type || 'coktan_secmeli';
-        
-        const titleObj = document.querySelector('#addAppModal1 h3');
-        if (titleObj) titleObj.innerHTML = 'Uygulamayı Düzenle (Adım 1/2) - Sorular İçin İleriye Tıklayın';
-        
-        // Soruları text area için hazırla
-        const qTextArea = document.getElementById('appQuestionsTextarea');
-        if (app.questions && app.questions.length > 0) {
-            const textLines = app.questions.map(q => {
-                if (app.type === 'coktan_secmeli' && q.options) {
-                    let line = q.text;
-                    const letters = ['A', 'B', 'C', 'D', 'E'];
-                    q.options.forEach((opt, idx) => {
-                        line += ` ${letters[idx]}) ${opt.text}`;
-                    });
-                    return line;
+    const app = srhApplications[id];
+    if (!app) return;
+    
+    currentEditAppId = id;
+    document.getElementById('appNameInput').value = app.name;
+    document.getElementById('appTypeSelect').value = app.type;
+    
+    // Convert questions back to text
+    let questionsText = '';
+    if (app.questions) {
+        if (app.type === 'coktan_secmeli') {
+            app.questions.forEach(q => {
+                questionsText += q.text + '\n';
+                if (q.options) {
+                    q.options.forEach(opt => questionsText += opt.label + ') ' + opt.text + '\n');
                 }
-                return q.text;
+                questionsText += '\n'; // separator
             });
-            qTextArea.value = textLines.join('\n\n');
         } else {
-            qTextArea.value = '';
+            app.questions.forEach(q => {
+                questionsText += q.text + '\n';
+            });
         }
-
-        document.getElementById('addAppModal1').style.display = 'flex';
-    } catch (err) {
-        Swal.fire('Düzenle Hatası', String(err), 'error');
-        console.error(err);
     }
+    document.getElementById('appQuestionsTextarea').value = questionsText.trim();
+    
+    document.getElementById('addAppModal1').style.display = 'flex';
 }
 
 function closeAddAppModal1() {
@@ -234,11 +224,7 @@ function goToStep2() {
     tempAppData = { name, type };
     
     document.getElementById('step2AppNameTitle').innerText = name;
-    
-    // Yalnızca yeni uygulama ekleniyorsa (düzenleme değilse) temizle
-    if (!currentEditAppId) {
-        document.getElementById('appQuestionsTextarea').value = '';
-    }
+    document.getElementById('appQuestionsTextarea').value = '';
     
     closeAddAppModal1();
     document.getElementById('addAppModal2').style.display = 'flex';
@@ -254,59 +240,42 @@ function backToStep1() {
 }
 
 function parseQuestions(rawText, type) {
-    const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    const lines = rawText.split('\\n').map(l => l.trim()).filter(l => l.length > 0);
     const questions = [];
     
     if (type === 'kisa_cevap' || type === 'tik_atma') {
+        // Each line is a question
         lines.forEach(line => {
             questions.push({ text: line });
         });
     } else if (type === 'coktan_secmeli') {
+        // Need to parse options
         let currentQuestion = null;
         
+        // Regex to match A) B) a) b) A- B- A. B.
+        const optionRegex = /^([a-eA-E])\\s*[\\)\\-\\.](.*)/;
+        
         lines.forEach(line => {
-            // A) veya A- ile başlayan standart yeni satır şıkları
-            const optionMatch = line.match(/^([a-eA-E])\s*[\)\-\.](.*)/);
-            
-            if (optionMatch && currentQuestion) {
-                if (!currentQuestion.options) currentQuestion.options = [];
-                currentQuestion.options.push({
-                    label: optionMatch[1].toUpperCase(),
-                    text: optionMatch[2].trim()
-                });
-            } else {
-                // Aynı satırda birden fazla şık (A) ... B) ... C) ...) varsa
-                // Örnek: "1. Soru metni A) Şık1 B) Şık2 C) Şık3"
-                if (/A\s*[\)\-\.]/i.test(line) && /B\s*[\)\-\.]/i.test(line)) {
-                    // Soru metnini ilk şıktan öncesi olarak alalım
-                    const firstOptionIdx = line.search(/[a-eA-E]\s*[\)\-\.]/);
-                    let qText = line.substring(0, firstOptionIdx).trim();
-                    if (!qText) qText = "Soru"; // Boşsa
-                    
-                    currentQuestion = { text: qText, options: [] };
-                    
-                    let optionsText = line.substring(firstOptionIdx);
-                    // A) Şık1 B) Şık2 ...
-                    let matches = [...optionsText.matchAll(/([a-eA-E])\s*[\)\-\.]\s*(.*?)(?=(?:[a-eA-E]\s*[\)\-\.])|$)/g)];
-                    
-                    matches.forEach(m => {
-                        currentQuestion.options.push({
-                            label: m[1].toUpperCase(),
-                            text: m[2].trim()
-                        });
+            const match = line.match(optionRegex);
+            if (match) {
+                // It's an option
+                if (currentQuestion) {
+                    if (!currentQuestion.options) currentQuestion.options = [];
+                    currentQuestion.options.push({
+                        label: match[1].toUpperCase(),
+                        text: match[2].trim()
                     });
-                    questions.push(currentQuestion);
-                    currentQuestion = null; // Kapattık
-                } else {
-                    // Normal yeni soru satırı
-                    if (currentQuestion) {
-                        questions.push(currentQuestion);
-                    }
-                    currentQuestion = { text: line, options: [] };
                 }
+            } else {
+                // It's a question (or a new question starting)
+                if (currentQuestion) {
+                    questions.push(currentQuestion);
+                }
+                currentQuestion = { text: line, options: [] };
             }
         });
         
+        // Push the last question
         if (currentQuestion) {
             questions.push(currentQuestion);
         }
@@ -446,71 +415,46 @@ async function saveAllToFirebase() {
 let currentPublishAppId = null;
 
 function togglePublish(id) {
-    try {
-        if (srhApplications[id]) {
-            if (srhApplications[id].status === 'published') {
-                srhApplications[id].status = 'draft';
-                saveAllToFirebase();
-            } else {
-                // Sınıf seçme modalını aç
-                currentPublishAppId = id;
-                openPublishModal();
-            }
+    if (srhApplications[id]) {
+        if (srhApplications[id].status === 'published') {
+            srhApplications[id].status = 'draft';
+            saveAllToFirebase();
+        } else {
+            // Sınıf seçme modalını aç
+            currentPublishAppId = id;
+            openPublishModal();
         }
-    } catch (err) {
-        Swal.fire('Yayınla Hatası', String(err), 'error');
-        console.error(err);
     }
 }
 
-async function openPublishModal() {
+function openPublishModal() {
     const listContainer = document.getElementById('publishClassesList');
-    listContainer.innerHTML = '<div style="color:var(--gray-500); text-align:center;">Sınıflar yükleniyor...</div>';
+    listContainer.innerHTML = '';
     document.getElementById('selectAllClassesCb').checked = false;
-    document.getElementById('publishClassModal').style.display = 'flex';
 
-    try {
-        if (typeof DataManager !== 'undefined') {
-            await DataManager.initCloud();
-            const students = DataManager.getStudents();
-            
-            const classesSet = new Set();
-            if (students) {
-                if (Array.isArray(students)) {
-                    students.forEach(s => {
-                        if (s && s.class) classesSet.add(String(s.class).trim());
-                        if (s && s.sinif) classesSet.add(String(s.sinif).trim());
-                    });
-                } else {
-                    Object.values(students).forEach(s => {
-                        if (s && s.class) classesSet.add(String(s.class).trim());
-                        if (s && s.sinif) classesSet.add(String(s.sinif).trim());
-                    });
-                }
-            }
-            
-            let allClasses = Array.from(classesSet).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }));
-            
-            if (allClasses.length === 0) {
-                listContainer.innerHTML = '<div style="color:var(--gray-500);">Kayıtlı sınıf bulunamadı. Lütfen Master Ayarlarından öğrenci listesini yükleyin.</div>';
-            } else {
-                listContainer.innerHTML = '';
-                allClasses.forEach(cls => {
-                    listContainer.innerHTML += `
-                        <label style="display:flex; align-items:center; gap:5px; background:var(--gray-50); padding:8px 12px; border-radius:8px; border:1px solid var(--gray-200); cursor:pointer;">
-                            <input type="checkbox" class="class-publish-cb" value="${cls}" style="width:16px; height:16px;">
-                            <span style="font-weight:600;">${cls}</span>
-                        </label>
-                    `;
-                });
-            }
-        } else {
-            throw new Error("DataManager bulunamadı.");
-        }
-    } catch (err) {
-        listContainer.innerHTML = '<div style="color:red; text-align:center;">Sınıflar yüklenirken hata oluştu.</div>';
-        console.error("Sınıflar yüklenemedi:", err);
+    // Sınıfları çek
+    const students = DataManager._getData()?.school?.students || [];
+    const classesSet = new Set();
+    students.forEach(s => {
+        if (s.class) classesSet.add(String(s.class).trim());
+    });
+    
+    let allClasses = Array.from(classesSet).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }));
+    
+    if (allClasses.length === 0) {
+        listContainer.innerHTML = '<div style="color:var(--gray-500);">Kayıtlı sınıf bulunamadı. Lütfen Master Ayarlarından öğrenci listesini yükleyin.</div>';
+    } else {
+        allClasses.forEach(cls => {
+            listContainer.innerHTML += `
+                <label style="display:flex; align-items:center; gap:5px; background:var(--gray-50); padding:8px 12px; border-radius:8px; border:1px solid var(--gray-200); cursor:pointer;">
+                    <input type="checkbox" class="class-publish-cb" value="${cls}" style="width:16px; height:16px;">
+                    <span style="font-weight:600;">${cls}</span>
+                </label>
+            `;
+        });
     }
+
+    document.getElementById('publishClassModal').style.display = 'flex';
 }
 
 function closePublishModal() {
@@ -583,7 +527,7 @@ function renderResults() {
     filledContainer.innerHTML = '';
     notFilledContainer.innerHTML = '';
     
-    const students = DataManager.getStudents() || [];
+    const students = DataManager._getData()?.school?.students || [];
     if (students.length === 0) {
         filledContainer.innerHTML = '<p>Öğrenci verisi bulunamadı.</p>';
         notFilledContainer.innerHTML = '<p>Öğrenci verisi bulunamadı.</p>';
