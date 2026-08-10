@@ -115,7 +115,7 @@
             border-collapse: collapse;
             table-layout: fixed;
             font-size: 10pt; /* smaller font size */
-            border: 2px solid #000;
+            border: 3px double #000;
         }
 
         .print-table th, .print-table td {
@@ -137,15 +137,27 @@
         .col-sinif { width: 40px; text-align: center !important; font-weight: bold; }
         .col-alan { width: 35px; text-align: center !important; }
         .col-okulno { width: 45px; text-align: center !important; }
-        .col-isim { 
+        .col-ad { 
             width: 200px; 
             max-width: 200px;
             font-weight: bold; 
-            white-space: nowrap; 
-            overflow: hidden; 
-            text-overflow: ellipsis; 
+            text-align: left; 
+            padding-left: 5px;
         }
         .col-blank { width: auto; /* let it distribute evenly */ }
+
+        .rotated-header {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            white-space: nowrap;
+            display: inline-block;
+            margin: 0 auto;
+        }
+
+        .print-table th:has(.rotated-header) {
+            text-align: center;
+            vertical-align: middle;
+        }
 
         /* Print Media Queries */
         @media print {
@@ -329,7 +341,7 @@
                         const alanTd = showAlan ? `<td class="col-alan">${alanVal}</td>` : '';
                         const sinifTd = showSinif ? `<td class="col-sinif">${s.class || ''}</td>` : '';
                         const formattedName = formatName(s.name, s.surname);
-                        const nameTd = `<td class="col-isim">${formattedName}</td>`;
+                        const nameTd = `<td class="col-ad">${formattedName}</td>`;
                         
                         rowsHtml += `
                             <tr>
@@ -345,7 +357,7 @@
                         // Empty row
                         const alanTd = showAlan ? `<td class="col-alan"></td>` : '';
                         const sinifTd = showSinif ? `<td class="col-sinif"></td>` : '';
-                        const nameTd = `<td class="col-isim"></td>`;
+                        const nameTd = `<td class="col-ad"></td>`;
                         rowsHtml += `
                             <tr>
                                 <td class="col-sira">${startIndex + i}</td>
@@ -359,9 +371,9 @@
                     }
                 }
 
-                const alanTh = showAlan ? `<th rowspan="2" class="col-alan" style="text-align: center; vertical-align: middle;">Alan</th>` : '';
-                const sinifTh = showSinif ? `<th rowspan="2" class="col-sinif" style="text-align: center; vertical-align: middle;">Sınıf</th>` : '';
-                const nameTh = `<th rowspan="2" class="col-isim" style="vertical-align: middle;">ÖĞRENCİNİN ADI SOYADI</th>`;
+                const alanTh = showAlan ? `<th rowspan="2" class="col-alan"><div class="rotated-header">ALAN</div></th>` : '';
+                const sinifTh = showSinif ? `<th rowspan="2" class="col-sinif"><div class="rotated-header">SINIFI</div></th>` : '';
+                const nameTh = `<th rowspan="2" class="col-ad">ÖĞRENCİNİN ADI SOYADI</th>`;
                 
                 let blankHeadersRow2 = '';
                 if (blankColumnsCount > 0) {
@@ -382,10 +394,10 @@
                             <table class="print-table">
                                 <thead>
                                     <tr class="header-row-1">
-                                        <th rowspan="2" class="col-sira" style="text-align: center; vertical-align: middle;">Sıra</th>
+                                        <th rowspan="2" class="col-sira"><div class="rotated-header">SIRA</div></th>
                                         ${sinifTh}
                                         ${alanTh}
-                                        <th rowspan="2" class="col-okulno" style="text-align: center; vertical-align: middle;">No</th>
+                                        <th rowspan="2" class="col-okulno"><div class="rotated-header">NUMARA</div></th>
                                         ${nameTh}
                                         ${blankHeadersRow1}
                                     </tr>
@@ -497,7 +509,7 @@
                 } else if (listType === 'empty_template') {
                     filename = `${config.emptyTemplateTitle || 'Bos_Liste'}.pdf`.replace(/\s+/g, '_');
                 } else {
-                    let classNamesText = (config.classes && config.classes.length > 3) ? "KARMA" : (config.classes ? config.classes.map(k => k.replace('|_ALL_', '_Tumu').replace('|', '_')).join('_') : "Liste");
+                    let classNamesText = config.classes.length > 3 ? "KARMA" : config.classes.map(k => k.replace('|_ALL_', '_Tumu').replace('|', '_')).join('_');
                     filename = `${classNamesText}_${config.titleSuffix || 'Liste'}.pdf`.replace(/\s+/g, '_');
                 }
             }
@@ -510,7 +522,21 @@
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            html2pdf().set(opt).from(element).save();
+            Swal.fire({
+                title: 'PDF Hazırlanıyor',
+                text: 'Lütfen bekleyin...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                Swal.close();
+            }).catch(err => {
+                Swal.fire('Hata', 'PDF oluşturulurken bir hata oluştu.', 'error');
+                console.error(err);
+            });
         }
 
         function downloadExcel() {
@@ -572,5 +598,3 @@
     </script>
 </body>
 </html>
-
-<!-- Force cache update -->
