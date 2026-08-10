@@ -87,19 +87,20 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.60rem;
-            table-layout: auto;
+            table-layout: fixed;
         }
         
         /* İlk 3 sütun genişliği */
-        th:nth-child(1), td:nth-child(1) { width: 20px; text-align: center; padding: 2px; } /* Sıra */
+        th:nth-child(1), td:nth-child(1) { width: 15px; text-align: center; padding: 2px; } /* Sıra */
         th:nth-child(2), td:nth-child(2) { width: 35px; text-align: center; padding: 2px; } /* No */
-        th:nth-child(3), td:nth-child(3) { width: 100px; padding: 2px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* Ad Soyad */
+        th:nth-child(3), td:nth-child(3) { width: 90px; padding: 2px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* Ad Soyad */
         
-        /* Geri kalan soru sütunları */
+        /* Geri kalan soru sütunları eşit olacak */
         th:nth-child(n+4), td:nth-child(n+4) {
-            width: 18px; 
+            /* width vermiyoruz, table-layout: fixed sayesinde kalan alan eşit dağılır */
             text-align: center;
             padding: 1px;
+            overflow: hidden;
         }
 
         th, td {
