@@ -3165,21 +3165,21 @@ DataManager._getStorageKey = function () {
             app.questions.forEach((q, index) => {
                 let answerValue = null;
                 if (app.type === 'coktan_secmeli') {
-                    const selected = document.querySelector(\`input[name="q_\${index}"]:checked\`);
+                    const selected = document.querySelector(`input[name="q_${index}"]:checked`);
                     if (selected) {
                         answerValue = selected.value;
                     } else {
                         isComplete = false;
                     }
                 } else if (app.type === 'kisa_cevap') {
-                    const txt = document.getElementById(\`q_\${index}\`).value.trim();
+                    const txt = document.getElementById(`q_${index}`).value.trim();
                     if (txt) {
                         answerValue = txt;
                     } else {
                         isComplete = false;
                     }
                 } else if (app.type === 'tik_atma') {
-                    answerValue = document.getElementById(\`q_\${index}\`).checked;
+                    answerValue = document.getElementById(`q_${index}`).checked;
                 }
                 
                 answers.push({
@@ -3202,7 +3202,7 @@ DataManager._getStorageKey = function () {
             
             const payload = {
                 studentNo: studentObj.no,
-                studentName: \`\${studentObj.name} \${studentObj.surname}\`,
+                studentName: `${studentObj.name} ${studentObj.surname}`,
                 studentClass: studentObj.class,
                 answers: answers,
                 timestamp: new Date().toISOString()
@@ -3212,7 +3212,7 @@ DataManager._getStorageKey = function () {
             
             try {
                 // Her öğrencinin cevabını kendi numarası ve app_id altında saklıyoruz (upsert)
-                const url = \`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/srh_answers/\${appId}/\${studentObj.no}.json\`;
+                const url = `https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/srh_answers/${appId}/${studentObj.no}.json`;
                 const res = await fetch(url, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
