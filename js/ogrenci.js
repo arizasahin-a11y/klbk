@@ -423,6 +423,16 @@ DataManager._getStorageKey = function () {
                         currentRules = "Nöbet görevinizde başarılar dileriz. Lütfen görev yerinizde zamanında olunuz.";
                     }
                     
+                    let lessonTimes = db.school.lessonTimes || {};
+                    let firstStart = lessonTimes['1_start'] || '08:30';
+                    let [sh, sm] = firstStart.split(':').map(Number);
+                    let ruleTime = new Date();
+                    ruleTime.setHours(sh, sm, 0, 0);
+                    ruleTime.setMinutes(ruleTime.getMinutes() - 10);
+                    let ruleTimeStr = String(ruleTime.getHours()).padStart(2, '0') + ':' + String(ruleTime.getMinutes()).padStart(2, '0');
+                    
+                    currentRules = currentRules.replace(/\[SAAT\]/g, ruleTimeStr);
+                    
                     let formattedRules = currentRules.replace(/\n/g, '<br>');
                     const rulesHtml = `
                         <div style="text-align: left; font-size: 15px; line-height: 1.6; color: var(--gray-700);">

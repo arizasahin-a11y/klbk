@@ -744,9 +744,10 @@ window.openDutyRulesModal = function(event) {
         title: 'Öğrenci Nöbet Kuralları',
         html: `
             <div style="text-align: left; font-size: 0.9rem; color: var(--gray-600); margin-bottom: 10px;">
-                Buraya yazacağınız kurallar, öğrencilerin nöbet ekranında en üstte gösterilecektir. Boş bırakırsanız gizlenir.
+                Buraya yazacağınız kurallar, öğrencilerin nöbet ekranında en üstte gösterilecektir. Boş bırakırsanız gizlenir.<br><br>
+                <small><b>İpucu:</b> Metin içinde <b>[SAAT]</b> yazarsanız, sistem oraya otomatik olarak okulun ilk ders başlama saatinden tam 10 dakika öncesini (Örn: 08:20) yazacaktır.</small>
             </div>
-            <textarea id="dutyRulesInput" class="swal2-textarea" style="width: 100%; height: 150px; font-size: 0.95rem; line-height: 1.5; padding: 10px; border-radius: 8px; border: 1px solid var(--gray-300); box-sizing: border-box;" placeholder="Örn: 1. Nöbet yerini izinsiz terk etmeyiniz.\n2. Yaka kartınızı mutlaka takınız...">${currentRules}</textarea>
+            <textarea id="dutyRulesInput" class="swal2-textarea" style="width: 100%; height: 150px; font-size: 0.95rem; line-height: 1.5; padding: 10px; border-radius: 8px; border: 1px solid var(--gray-300); box-sizing: border-box;" placeholder="Örn: 1. Nöbet yerini izinsiz terk etmeyiniz...\n2. Görev yerinizde saat [SAAT]'te olunuz.">${currentRules}</textarea>
         `,
         showCancelButton: true,
         confirmButtonText: 'Kaydet',
