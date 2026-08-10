@@ -271,8 +271,15 @@
             </div>
         </div>
 
-        <!-- App Panel -->
-        <div class="app-panel">
+        <!-- Portal Tabs -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--gray-200);">
+            <button class="btn" onclick="switchMainTab('ayarlar')" id="tabBtn_ayarlar" style="background: none; border: none; border-bottom: 3px solid var(--primary); border-radius: 0; padding: 10px 20px; font-weight: bold; color: var(--primary);">Ayarlar</button>
+            <button class="btn" onclick="switchMainTab('dolduranlar')" id="tabBtn_dolduranlar" style="background: none; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 10px 20px; font-weight: bold; color: var(--gray-500);">Dolduranlar</button>
+            <button class="btn" onclick="switchMainTab('doldurmayanlar')" id="tabBtn_doldurmayanlar" style="background: none; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 10px 20px; font-weight: bold; color: var(--gray-500);">Doldurmayanlar</button>
+        </div>
+
+        <!-- 1. Ayarlar Tab -->
+        <div id="tabContent_ayarlar" class="app-panel">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="margin:0; font-weight:700;"><i class="fa-solid fa-clipboard-list" style="color:var(--primary); margin-right:8px;"></i> Uygulamalar Listesi</h3>
                 <button class="btn btn-primary" onclick="openAddAppModal()">
@@ -283,6 +290,28 @@
             <div id="appsListContainer" class="app-list-container">
                 <div style="text-align:center; padding:2rem; color:var(--gray-400);">Yükleniyor...</div>
             </div>
+        </div>
+
+        <!-- 2. Dolduranlar Tab -->
+        <div id="tabContent_dolduranlar" class="app-panel" style="display: none;">
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Uygulama Seçin:</label>
+                <select id="selectAppFilled" class="form-control" style="width: 100%; padding: 10px; border: 1px solid var(--gray-300); border-radius: 8px;" onchange="loadResultsForApp(this.value)">
+                    <option value="">-- Lütfen bir uygulama seçin --</option>
+                </select>
+            </div>
+            <div id="filledAccordionContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+
+        <!-- 3. Doldurmayanlar Tab -->
+        <div id="tabContent_doldurmayanlar" class="app-panel" style="display: none;">
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Uygulama Seçin:</label>
+                <select id="selectAppNotFilled" class="form-control" style="width: 100%; padding: 10px; border: 1px solid var(--gray-300); border-radius: 8px;" onchange="loadResultsForApp(this.value)">
+                    <option value="">-- Lütfen bir uygulama seçin --</option>
+                </select>
+            </div>
+            <div id="notFilledAccordionContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
         </div>
     </div>
 
@@ -351,32 +380,6 @@
             </div>
             <div style="text-align: right;">
                 <button class="btn btn-primary" onclick="confirmPublish()"><i class="fa-solid fa-paper-plane"></i> Yayınla</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Results Modal -->
-    <div class="modal-overlay" id="srhResultsModal">
-        <div class="modal-content" style="max-width: 900px; width: 95%;">
-            <div class="modal-header">
-                <h3 id="resultsModalTitle">Uygulama Sonuçları</h3>
-                <button class="close-modal" onclick="closeResultsModal()">&times;</button>
-            </div>
-            
-            <!-- Tabs -->
-            <div style="display: flex; gap: 10px; border-bottom: 2px solid var(--gray-200); margin-bottom: 20px;">
-                <button id="tabFilledBtn" class="btn" onclick="switchResultTab('filled')" style="background: none; border: none; border-bottom: 3px solid var(--primary); border-radius: 0; padding: 10px 20px; font-weight: bold; color: var(--primary);">Dolduranlar</button>
-                <button id="tabNotFilledBtn" class="btn" onclick="switchResultTab('notFilled')" style="background: none; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 10px 20px; font-weight: bold; color: var(--gray-500);">Doldurmayanlar</button>
-            </div>
-
-            <!-- Tab Content: Filled -->
-            <div id="tabFilledContent" style="max-height: 60vh; overflow-y: auto;">
-                <div id="filledAccordionContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
-            </div>
-
-            <!-- Tab Content: Not Filled -->
-            <div id="tabNotFilledContent" style="display: none; max-height: 60vh; overflow-y: auto;">
-                <div id="notFilledAccordionContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
             </div>
         </div>
     </div>

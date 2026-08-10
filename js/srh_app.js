@@ -58,6 +58,14 @@ function renderApplications() {
     const container = document.getElementById('appsListContainer');
     container.innerHTML = '';
     
+    const selectFilled = document.getElementById('selectAppFilled');
+    const selectNotFilled = document.getElementById('selectAppNotFilled');
+    const prevFilledVal = selectFilled.value;
+    const prevNotFilledVal = selectNotFilled.value;
+    
+    selectFilled.innerHTML = '<option value="">-- Lütfen bir uygulama seçin --</option>';
+    selectNotFilled.innerHTML = '<option value="">-- Lütfen bir uygulama seçin --</option>';
+    
     const apps = Object.entries(srhApplications);
     
     if (apps.length === 0) {
@@ -95,8 +103,8 @@ function renderApplications() {
                 <button class="btn-action ${app.status === 'published' ? '' : 'btn-success'}" onclick="togglePublish('${id}')">
                     ${app.status === 'published' ? '<i class="fa-solid fa-eye-slash"></i> Yayından Kaldır' : '<i class="fa-solid fa-bullhorn"></i> Yayınla'}
                 </button>
-                <button class="btn-action btn-info" style="background:#e0f2fe; color:#0369a1;" onclick="viewResults('${id}')" title="Sonuçları Gör">
-                    <i class="fa-solid fa-square-poll-vertical"></i> Sonuçlar
+                <button class="btn-action btn-info" style="background:#e0f2fe; color:#0369a1;" onclick="editApp('${id}')" title="Düzenle">
+                    <i class="fa-solid fa-pen"></i> Düzenle
                 </button>
                 <button class="btn-action btn-warning" onclick="toggleArchive('${id}')">
                     ${app.status === 'archived' ? '<i class="fa-solid fa-box-open"></i> Arşivden Çıkar' : '<i class="fa-solid fa-box-archive"></i> Arşive Al'}
@@ -107,12 +115,69 @@ function renderApplications() {
             </div>
         `;
         container.appendChild(row);
+        
+        if (app.status === 'published' || app.status === 'archived') {
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.innerText = app.name;
+            selectFilled.appendChild(opt.cloneNode(true));
+            selectNotFilled.appendChild(opt);
+        }
     });
+    
+    if (prevFilledVal) selectFilled.value = prevFilledVal;
+    if (prevNotFilledVal) selectNotFilled.value = prevNotFilledVal;
 }
 
+function switchMainTab(tabName) {
+    document.getElementById('tabContent_ayarlar').style.display = tabName === 'ayarlar' ? 'block' : 'none';
+    document.getElementById('tabContent_dolduranlar').style.display = tabName === 'dolduranlar' ? 'block' : 'none';
+    document.getElementById('tabContent_doldurmayanlar').style.display = tabName === 'doldurmayanlar' ? 'block' : 'none';
+    
+    document.getElementById('tabBtn_ayarlar').style.borderBottomColor = tabName === 'ayarlar' ? 'var(--primary)' : 'transparent';
+    document.getElementById('tabBtn_ayarlar').style.color = tabName === 'ayarlar' ? 'var(--primary)' : 'var(--gray-500)';
+    
+    document.getElementById('tabBtn_dolduranlar').style.borderBottomColor = tabName === 'dolduranlar' ? 'var(--primary)' : 'transparent';
+    document.getElementById('tabBtn_dolduranlar').style.color = tabName === 'dolduranlar' ? 'var(--primary)' : 'var(--gray-500)';
+    
+    document.getElementById('tabBtn_doldurmayanlar').style.borderBottomColor = tabName === 'doldurmayanlar' ? 'var(--primary)' : 'transparent';
+    document.getElementById('tabBtn_doldurmayanlar').style.color = tabName === 'doldurmayanlar' ? 'var(--primary)' : 'var(--gray-500)';
+}
+
+let currentEditAppId = null;
+
 function openAddAppModal() {
+    currentEditAppId = null;
     document.getElementById('appNameInput').value = '';
     document.getElementById('appTypeSelect').value = 'coktan_secmeli';
+    document.getElementById('addAppModal1').style.display = 'flex';
+}
+
+function editApp(id) {
+    const app = srhApplications[id];
+    if (!app) return;
+    
+    currentEditAppId = id;
+    document.getElementById('appNameInput').value = app.name;
+    document.getElementById('appTypeSelect').value = app.type;
+    
+    // Convert questions back to text
+    let questionsText = '';
+    if (app.type === 'coktan_secmeli') {
+        app.questions.forEach(q => {
+            questionsText += q.text + '\n';
+            if (q.options) {
+                q.options.forEach(opt => questionsText += opt + '\n');
+            }
+            questionsText += '\n'; // separator
+        });
+    } else {
+        app.questions.forEach(q => {
+            questionsText += q.text + '\n';
+        });
+    }
+    document.getElementById('appQuestionsTextarea').value = questionsText.trim();
+    
     document.getElementById('addAppModal1').style.display = 'flex';
 }
 
@@ -208,16 +273,23 @@ async function saveApplication() {
         return;
     }
     
-    const appId = 'app_' + Date.now();
-    const newApp = {
-        name: tempAppData.name,
-        type: tempAppData.type,
-        questions: parsedQuestions,
-        status: 'draft',
-        createdAt: new Date().toISOString()
-    };
-    
-    srhApplications[appId] = newApp;
+    if (currentEditAppId) {
+        // Edit mode
+        srhApplications[currentEditAppId].name = tempAppData.name;
+        srhApplications[currentEditAppId].type = tempAppData.type;
+        srhApplications[currentEditAppId].questions = parsedQuestions;
+    } else {
+        // Create mode
+        const appId = 'app_' + Date.now();
+        const newApp = {
+            name: tempAppData.name,
+            type: tempAppData.type,
+            questions: parsedQuestions,
+            status: 'draft',
+            createdAt: new Date().toISOString()
+        };
+        srhApplications[appId] = newApp;
+    }
     
     Swal.fire({
         title: 'Kaydediliyor...',
@@ -350,43 +422,38 @@ function confirmPublish() {
 let currentResultsData = null;
 let currentAppForResults = null;
 
-async function viewResults(id) {
-    const app = srhApplications[id];
+async function loadResultsForApp(appId) {
+    // Senkronize et (Dolduranlar ve Doldurmayanlar tabındaki select'leri aynı yap)
+    document.getElementById('selectAppFilled').value = appId;
+    document.getElementById('selectAppNotFilled').value = appId;
+
+    const filledContainer = document.getElementById('filledAccordionContainer');
+    const notFilledContainer = document.getElementById('notFilledAccordionContainer');
+    filledContainer.innerHTML = '';
+    notFilledContainer.innerHTML = '';
+
+    if (!appId) {
+        return; // Seçim temizlendiyse boş bırak
+    }
+
+    const app = srhApplications[appId];
     if (!app) return;
     
     currentAppForResults = app;
-    document.getElementById('resultsModalTitle').innerText = app.name + " Sonuçları";
     
     Swal.fire({ title: 'Sonuçlar Çekiliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     
     try {
-        const url = `${FIREBASE_DB_URL_SRH}/app_store/srh_answers/${id}.json?_=` + Date.now();
+        const url = `${FIREBASE_DB_URL_SRH}/app_store/srh_answers/${appId}.json?_=` + Date.now();
         const res = await fetch(url);
         currentResultsData = res.ok ? (await res.json() || {}) : {};
         
         Swal.close();
         renderResults();
-        document.getElementById('srhResultsModal').style.display = 'flex';
-        switchResultTab('filled'); // Varsayılan olarak dolduranlar açık olsun
     } catch (err) {
         console.error("Sonuçları çekerken hata:", err);
         Swal.fire('Hata', 'Sonuçlar alınamadı.', 'error');
     }
-}
-
-function closeResultsModal() {
-    document.getElementById('srhResultsModal').style.display = 'none';
-}
-
-function switchResultTab(tabName) {
-    document.getElementById('tabFilledContent').style.display = tabName === 'filled' ? 'block' : 'none';
-    document.getElementById('tabNotFilledContent').style.display = tabName === 'notFilled' ? 'block' : 'none';
-    
-    document.getElementById('tabFilledBtn').style.borderBottomColor = tabName === 'filled' ? 'var(--primary)' : 'transparent';
-    document.getElementById('tabFilledBtn').style.color = tabName === 'filled' ? 'var(--primary)' : 'var(--gray-500)';
-    
-    document.getElementById('tabNotFilledBtn').style.borderBottomColor = tabName === 'notFilled' ? 'var(--primary)' : 'transparent';
-    document.getElementById('tabNotFilledBtn').style.color = tabName === 'notFilled' ? 'var(--primary)' : 'var(--gray-500)';
 }
 
 function renderResults() {
@@ -402,7 +469,7 @@ function renderResults() {
         return;
     }
     
-    // Yayınlanan sınıfları bul (Eğer önceden yayınlandıysa ve publishedClasses yoksa tüm sınıflar olarak varsayılabilir)
+    // Yayınlanan sınıfları bul
     const pubClasses = currentAppForResults.publishedClasses || [];
     let targetStudents = students;
     if (pubClasses.length > 0) {
@@ -411,7 +478,7 @@ function renderResults() {
     
     // Sınıf bazlı gruplama
     const classGroups = {};
-    pubClasses.forEach(c => classGroups[c] = { filled: [], notFilled: [] }); // En azından yayınlanan sınıfları başlat
+    pubClasses.forEach(c => classGroups[c] = { filled: [], notFilled: [] });
     
     targetStudents.forEach(s => {
         const cls = (s.class || '').trim();
