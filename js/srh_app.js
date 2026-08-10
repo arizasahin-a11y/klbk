@@ -208,6 +208,9 @@ function renderApplications() {
             selectFilled.appendChild(opt.cloneNode(true));
             selectNotFilled.appendChild(opt);
         }
+        
+        // Calculate and show completion badge asynchronously
+        setTimeout(() => checkAppCompletion(id, app.targetClasses || []), 0);
     });
     
     if (activeAppsCount === 0) {
@@ -914,7 +917,7 @@ function deleteApp(id) {
     });
 }
 
-async function checkAppCompletion(appId) {
+async function checkAppCompletion(appId, targetClasses = []) {
     try {
         const token = typeof DataManager !== 'undefined' && DataManager._getAuthToken ? DataManager._getAuthToken() : '';
         const authQuery = token ? `?auth=${token}` : '';
@@ -927,10 +930,18 @@ async function checkAppCompletion(appId) {
             students = Array.isArray(sData) ? sData : Object.values(sData || {});
         }
         
+        let filteredStudents = students;
+        if (targetClasses && targetClasses.length > 0) {
+            filteredStudents = students.filter(s => {
+                const sCls = (s.class || s.sinif || '').trim();
+                return targetClasses.includes(sCls);
+            });
+        }
+        
         const ansRes = await fetch(`${FIREBASE_DB_URL}/app_store/srh_answers/${appId}.json${authQuery}`);
         const ansData = await ansRes.json() || {};
         
-        const totalStudents = students.length;
+        const totalStudents = filteredStudents.length;
         const answeredCount = Object.keys(ansData).length;
         
         const badgeSpan = document.getElementById(`comp-badge-${appId}`);
