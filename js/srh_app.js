@@ -172,6 +172,7 @@ let currentEditAppId = null;
 function openAddAppModal() {
     currentEditAppId = null;
     document.getElementById('appNameInput').value = '';
+    document.getElementById('appDescriptionInput').value = '';
     document.getElementById('appTypeSelect').value = 'coktan_secmeli';
     const titleObj = document.querySelector('#addAppModal1 h3');
     if (titleObj) titleObj.innerHTML = 'Yeni Uygulama Oluştur (Adım 1/2)';
@@ -185,6 +186,7 @@ function editApp(id) {
         currentEditAppId = id;
         
         document.getElementById('appNameInput').value = app.name || '';
+        document.getElementById('appDescriptionInput').value = app.description || '';
         document.getElementById('appTypeSelect').value = app.type || 'coktan_secmeli';
         
         const titleObj = document.querySelector('#addAppModal1 h3');
@@ -224,6 +226,7 @@ let tempAppData = {};
 
 function goToStep2() {
     const name = document.getElementById('appNameInput').value.trim();
+    const description = document.getElementById('appDescriptionInput').value.trim();
     const type = document.getElementById('appTypeSelect').value;
     
     if (!name) {
@@ -231,7 +234,7 @@ function goToStep2() {
         return;
     }
     
-    tempAppData = { name, type };
+    tempAppData = { name, description, type };
     
     document.getElementById('step2AppNameTitle').innerText = name;
     
@@ -254,66 +257,109 @@ function backToStep1() {
 }
 
 function parseQuestions(rawText, type) {
-    const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    // Split into blocks separated by blank lines, OR treat each non-empty line as a unit
+    // First try block-based splitting (paragraphs separated by blank lines)
+    const blocks = rawText.split(/\r?\n\s*\r?\n/).map(b => b.trim()).filter(b => b.length > 0);
     const questions = [];
-    
+
     if (type === 'kisa_cevap' || type === 'tik_atma') {
+        // Each line = one question
+        const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
         lines.forEach(line => {
             questions.push({ text: line });
         });
-    } else if (type === 'coktan_secmeli') {
-        let currentQuestion = null;
-        
-        lines.forEach(line => {
-            // A) veya A- ile başlayan standart yeni satır şıkları
-            const optionMatch = line.match(/^([a-eA-E])\s*[\)\-\.](.*)/);
-            
-            if (optionMatch && currentQuestion) {
-                if (!currentQuestion.options) currentQuestion.options = [];
-                currentQuestion.options.push({
-                    label: optionMatch[1].toUpperCase(),
-                    text: optionMatch[2].trim()
-                });
-            } else {
-                // Aynı satırda birden fazla şık (A) ... B) ... C) ...) varsa
-                // Örnek: "1. Soru metni A) Şık1 B) Şık2 C) Şık3"
-                if (/A\s*[\)\-\.]/i.test(line) && /B\s*[\)\-\.]/i.test(line)) {
-                    // Soru metnini ilk şıktan öncesi olarak alalım
-                    const firstOptionIdx = line.search(/[a-eA-E]\s*[\)\-\.]/);
-                    let qText = line.substring(0, firstOptionIdx).trim();
-                    if (!qText) qText = "Soru"; // Boşsa
-                    
-                    currentQuestion = { text: qText, options: [] };
-                    
-                    let optionsText = line.substring(firstOptionIdx);
-                    // A) Şık1 B) Şık2 ...
-                    let matches = [...optionsText.matchAll(/([a-eA-E])\s*[\)\-\.]\s*(.*?)(?=(?:[a-eA-E]\s*[\)\-\.])|$)/g)];
-                    
-                    matches.forEach(m => {
-                        currentQuestion.options.push({
-                            label: m[1].toUpperCase(),
-                            text: m[2].trim()
-                        });
-                    });
-                    questions.push(currentQuestion);
-                    currentQuestion = null; // Kapattık
-                } else {
-                    // Normal yeni soru satırı
-                    if (currentQuestion) {
-                        questions.push(currentQuestion);
-                    }
-                    currentQuestion = { text: line, options: [] };
+        return questions;
+    }
+
+    // coktan_secmeli: process block by block
+    // A block can be:
+    //   - A single line with inline options: "Soru metni A) Şık1 B) Şık2 C) Şık3"
+    //   - A multi-line block: first line = question, rest = options (A) ..., B) ...)
+    //   - A line starting with a number like "1. Soru metni" followed by option lines
+    blocks.forEach(block => {
+        const lines = block.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length === 0) return;
+
+        // Check if first line has inline options (contains both A) and B))
+        const firstLine = lines[0];
+        const hasInlineOptions = /[A-Ea-e]\s*[\)\.]\s*.+[A-Ea-e]\s*[\)\.]/i.test(firstLine);
+
+        if (hasInlineOptions) {
+            // Inline: "Soru metni A) Şık1 B) Şık2 C) Şık3"
+            const firstOptionIdx = firstLine.search(/\b[A-Ea-e]\s*[\)\.]/);
+            let qText = firstLine.substring(0, firstOptionIdx).trim();
+            // Remove leading number like "1." or "1)"
+            qText = qText.replace(/^\d+[\.\)]\s*/, '').trim();
+            if (!qText) qText = 'Soru';
+
+            const optionsText = firstLine.substring(firstOptionIdx);
+            const matches = [...optionsText.matchAll(/([A-Ea-e])\s*[\)\.]\s*(.*?)(?=\s*[A-Ea-e]\s*[\)\.]|$)/g)];
+            const options = matches.map(m => ({ label: m[1].toUpperCase(), text: m[2].trim() })).filter(o => o.text);
+
+            questions.push({ text: qText, options });
+        } else {
+            // Multi-line block: first line(s) = question text, rest = option lines
+            let qTextLines = [];
+            let optionLines = [];
+            let inOptions = false;
+
+            lines.forEach(line => {
+                const optionMatch = line.match(/^([A-Ea-e])\s*[\)\.]\s*(.*)/);
+                if (optionMatch) {
+                    inOptions = true;
+                    optionLines.push({ label: optionMatch[1].toUpperCase(), text: optionMatch[2].trim() });
+                } else if (!inOptions) {
+                    qTextLines.push(line);
                 }
-            }
-        });
-        
-        if (currentQuestion) {
-            questions.push(currentQuestion);
+            });
+
+            let qText = qTextLines.join(' ').trim();
+            // Remove leading number like "1." or "1)"
+            qText = qText.replace(/^\d+[\.\)]\s*/, '').trim();
+            if (!qText) qText = 'Soru';
+
+            questions.push({ text: qText, options: optionLines });
+        }
+    });
+
+    // If blocks approach gave only 1 question but the raw text looks like many lines,
+    // fall back to line-by-line parsing (no blank line separators)
+    if (questions.length <= 1 && type === 'coktan_secmeli') {
+        const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length > 1) {
+            questions.length = 0;
+            let currentQuestion = null;
+            lines.forEach(line => {
+                const optionMatch = line.match(/^([A-Ea-e])\s*[\)\.]\s*(.*)/);
+                if (optionMatch && currentQuestion) {
+                    currentQuestion.options.push({ label: optionMatch[1].toUpperCase(), text: optionMatch[2].trim() });
+                } else {
+                    // Check inline options
+                    const hasInline = /[A-Ea-e]\s*[\)\.]\s*.+[A-Ea-e]\s*[\)\.]/i.test(line);
+                    if (hasInline) {
+                        if (currentQuestion) questions.push(currentQuestion);
+                        const firstOptionIdx = line.search(/\b[A-Ea-e]\s*[\)\.]/);
+                        let qText = line.substring(0, firstOptionIdx).trim().replace(/^\d+[\.\)]\s*/, '').trim() || 'Soru';
+                        const optionsText = line.substring(firstOptionIdx);
+                        const matches = [...optionsText.matchAll(/([A-Ea-e])\s*[\)\.]\s*(.*?)(?=\s*[A-Ea-e]\s*[\)\.]|$)/g)];
+                        const options = matches.map(m => ({ label: m[1].toUpperCase(), text: m[2].trim() })).filter(o => o.text);
+                        currentQuestion = { text: qText, options };
+                        questions.push(currentQuestion);
+                        currentQuestion = null;
+                    } else {
+                        if (currentQuestion) questions.push(currentQuestion);
+                        let qText = line.replace(/^\d+[\.\)]\s*/, '').trim();
+                        currentQuestion = { text: qText, options: [] };
+                    }
+                }
+            });
+            if (currentQuestion) questions.push(currentQuestion);
         }
     }
-    
+
     return questions;
 }
+
 
 async function saveApplication() {
     const rawText = document.getElementById('appQuestionsTextarea').value;
@@ -332,6 +378,7 @@ async function saveApplication() {
     if (currentEditAppId) {
         // Edit mode
         srhApplications[currentEditAppId].name = tempAppData.name;
+        srhApplications[currentEditAppId].description = tempAppData.description || '';
         srhApplications[currentEditAppId].type = tempAppData.type;
         srhApplications[currentEditAppId].questions = parsedQuestions;
     } else {
@@ -339,6 +386,7 @@ async function saveApplication() {
         const appId = 'app_' + Date.now();
         const newApp = {
             name: tempAppData.name,
+            description: tempAppData.description || '',
             type: tempAppData.type,
             questions: parsedQuestions,
             status: 'draft',

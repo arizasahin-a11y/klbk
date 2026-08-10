@@ -464,7 +464,7 @@ DataManager._getStorageKey = function () {
                         if(loginView) loginView.classList.add('hidden');
                         document.getElementById('srhListView').classList.remove('hidden');
                         
-                        document.getElementById('srhStudentNameListDisplay').innerText = `${studentObj.name} ${studentObj.surname}`;
+                        document.getElementById('srhStudentNameListDisplay').innerText = `${studentObj.name || ''} ${studentObj.surname || ''}`.trim();
                         document.getElementById('srhStudentClassListDisplay').innerText = `Sınıf: ${studentObj.class} | No: ${studentObj.no}`;
                         
                         window.publishedSrhApps = publishedApps;
@@ -3094,6 +3094,7 @@ DataManager._getStorageKey = function () {
                 card.innerHTML = `
                     <div>
                         <h4 style="margin: 0; font-size: 1.1rem; color: var(--dark);">${app.name}</h4>
+                        ${app.description ? `<p style="margin: 4px 0 4px 0; font-size: 0.9rem; color: var(--gray-600);">${app.description}</p>` : ''}
                         <p style="margin: 5px 0 0 0; font-size: 0.85rem; color: var(--gray-500);">Tip: ${typeLabels[app.type]} | Soru Sayısı: ${app.questions ? app.questions.length : 0}</p>
                     </div>
                     <button class="btn btn-primary" onclick="openSrhApp('${id}')" style="padding: 0.5rem 1rem; border-radius: 8px;">
@@ -3116,7 +3117,7 @@ DataManager._getStorageKey = function () {
             document.getElementById('srhView').classList.remove('hidden');
             
             const studentObj = window.currentSrhStudent;
-            document.getElementById('srhStudentNameDisplay').innerText = `${studentObj.name} ${studentObj.surname}`;
+            document.getElementById('srhStudentNameDisplay').innerText = `${studentObj.name || ''} ${studentObj.surname || ''}`.trim();
             document.getElementById('srhStudentClassDisplay').innerText = `Sınıf: ${studentObj.class} | No: ${studentObj.no}`;
             document.getElementById('srhAppTitleDisplay').innerText = app.name;
             
@@ -3132,8 +3133,16 @@ DataManager._getStorageKey = function () {
             const container = document.getElementById('srhQuestionsContainer');
             container.innerHTML = '';
             
+            // Descriptionı soruların üstünde göster
+            if (app.description) {
+                const descDiv = document.createElement('div');
+                descDiv.style.cssText = 'background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 10px;';
+                descDiv.innerHTML = `<p style="margin:0; color:#1e40af; font-size:0.97rem; line-height:1.6;">${app.description.replace(/\n/g, '<br>')}</p>`;
+                container.appendChild(descDiv);
+            }
+            
             if (!app.questions || app.questions.length === 0) {
-                container.innerHTML = '<p>Soru bulunamadı.</p>';
+                container.innerHTML += '<p>Soru bulunamadı.</p>';
                 return;
             }
             
