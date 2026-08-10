@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sınıf Risk Haritası Raporu</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --dark: #1e293b;
+            --border: #cbd5e1;
+            --bg-light: #f8fafc;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #e2e8f0;
+            color: var(--dark);
+        }
+        
+        .toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 10px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+        .toolbar h2 { margin: 0; font-size: 1.2rem; }
+        .toolbar-actions { display: flex; gap: 10px; }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+        .btn-print { background: var(--primary); color: white; }
+        .btn-excel { background: #16a34a; color: white; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .report-container {
+            margin-top: 70px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .page {
+            background: white;
+            width: 297mm; /* A4 Landscape width */
+            min-height: 210mm; /* A4 Landscape height */
+            padding: 10mm 15mm;
+            box-sizing: border-box;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            position: relative;
+            page-break-after: always;
+        }
+
+        h3.class-title {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.70rem;
+            table-layout: fixed;
+        }
+        
+        /* İlk 3 sütun genişliği */
+        th:nth-child(1), td:nth-child(1) { width: 30px; text-align: center; } /* Sıra */
+        th:nth-child(2), td:nth-child(2) { width: 55px; text-align: center; } /* No */
+        th:nth-child(3), td:nth-child(3) { width: 140px; } /* Ad Soyad */
+
+        th, td {
+            border: 1px solid #94a3b8;
+            padding: 2px 4px;
+            word-wrap: break-word;
+        }
+
+        th {
+            background: var(--bg-light);
+            font-weight: 600;
+            vertical-align: bottom;
+            height: 180px; /* Dikey metin için alan */
+        }
+        
+        .vertical-text {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            white-space: nowrap;
+            max-height: 170px;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            display: inline-block;
+            text-align: left;
+            padding-top: 5px;
+            font-size: 0.70rem;
+        }
+
+        .center { text-align: center; font-weight: bold; }
+        
+        .total-row {
+            font-weight: bold;
+            background: var(--bg-light);
+            font-size: 0.8rem;
+        }
+        
+        .total-val { color: #dc2626; text-align: center; }
+
+        @media print {
+            body { background: white; margin: 0; padding: 0; }
+            .toolbar { display: none; }
+            .report-container { margin: 0; padding: 0; align-items: flex-start; display: block; }
+            .page { 
+                box-shadow: none; 
+                margin: 0; 
+                width: 100%; 
+                min-height: auto; 
+                padding: 10mm;
+            }
+            @page {
+                size: A4 landscape;
+                margin: 0mm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <h2 id="toolbarTitle">Yükleniyor...</h2>
+        <div class="toolbar-actions">
+            <button class="btn btn-excel" onclick="exportToExcel()"><i class="fa-solid fa-file-excel"></i> Excel İndir</button>
+            <button class="btn btn-print" onclick="window.print()"><i class="fa-solid fa-print"></i> Yazdır / PDF Yap</button>
+        </div>
+    </div>
+
+    <div class="report-container" id="reportContainer">
+        <div style="margin-top: 50px; text-align: center; color: var(--gray-500);">
+            <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+            <p>Veriler çekiliyor ve rapor oluşturuluyor...</p>
+        </div>
+    </div>
+
+    <script src="js/core_data_v11_9_1.js?v=12.0"></script>
+    <script src="js/srh_report.js?v=1.0"></script>
+</body>
+</html>

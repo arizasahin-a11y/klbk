@@ -115,8 +115,11 @@ function renderApplications() {
                 <button class="btn-action btn-warning" onclick="toggleArchive('${id}')">
                     ${app.status === 'archived' ? '<i class="fa-solid fa-box-open"></i> Arşivden Çıkar' : '<i class="fa-solid fa-box-archive"></i> Arşive Al'}
                 </button>
-                <button class="btn-action" style="background:#fee2e2; color:#b91c1c;" onclick="deleteApp('${id}')">
+                <button class="btn-action" style="background:#fee2e2; color:#b91c1c;" onclick="deleteApp('${id}')" title="Sil">
                     <i class="fa-solid fa-trash"></i>
+                </button>
+                <button class="btn-action" style="background:#f3e8ff; color:#7e22ce;" onclick="window.open('srh_report.html?appId=${id}', '_blank')" title="Yazdır / Rapor Al">
+                    <i class="fa-solid fa-print"></i>
                 </button>
             </div>
         `;
@@ -757,9 +760,14 @@ async function renderResults() {
                 `;
             });
             
+            let completedBadge = '';
+            if (group.notFilled.length === 0) {
+                completedBadge = '<span style="background:#d1fae5; color:#065f46; padding:3px 10px; border-radius:20px; font-size:0.75rem; margin-left:10px; vertical-align:middle;"><i class="fa-solid fa-circle-check"></i> TAMAMLANDI</span>';
+            }
+
             filledAcc.innerHTML = `
-                <div style="background:var(--gray-50); padding:12px 15px; font-weight:bold; cursor:pointer; display:flex; justify-content:space-between;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">
-                    <span>${cls} Sınıfı</span>
+                <div style="background:var(--gray-50); padding:12px 15px; font-weight:bold; cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">
+                    <span>${cls} Sınıfı ${completedBadge}</span>
                     <span style="background:var(--primary); color:white; padding:2px 8px; border-radius:12px; font-size:0.8rem;">${group.filled.length} Öğrenci</span>
                 </div>
                 <div style="display:none; background:white;">${studentsHtml}</div>
