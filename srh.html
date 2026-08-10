@@ -276,6 +276,7 @@
             <button class="btn" onclick="switchMainTab('ayarlar')" id="tabBtn_ayarlar" style="background: none; border: none; border-bottom: 3px solid var(--primary); border-radius: 0; padding: 10px 20px; font-weight: bold; color: var(--primary);">Ayarlar</button>
             <button class="btn" onclick="switchMainTab('dolduranlar')" id="tabBtn_dolduranlar" style="background: none; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 10px 20px; font-weight: bold; color: var(--gray-500);">Dolduranlar</button>
             <button class="btn" onclick="switchMainTab('doldurmayanlar')" id="tabBtn_doldurmayanlar" style="background: none; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 10px 20px; font-weight: bold; color: var(--gray-500);">Doldurmayanlar</button>
+            <button class="btn" onclick="switchMainTab('arsiv')" id="tabBtn_arsiv" style="background: none; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 10px 20px; font-weight: bold; color: var(--gray-500);">Arşiv</button>
         </div>
 
         <!-- 1. Ayarlar Tab -->
@@ -312,6 +313,16 @@
                 </select>
             </div>
             <div id="notFilledAccordionContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+
+        <!-- 4. Arşiv Tab -->
+        <div id="tabContent_arsiv" class="app-panel" style="display: none;">
+            <div style="margin-bottom: 20px;">
+                <h3 style="margin:0; font-weight:700;"><i class="fa-solid fa-box-archive" style="color:var(--gray-500); margin-right:8px;"></i> Arşivlenen Uygulamalar</h3>
+            </div>
+            <div id="archivedAppsListContainer" class="app-list-container">
+                <div style="text-align:center; padding:2rem; color:var(--gray-400);">Arşivde uygulama bulunamadı.</div>
+            </div>
         </div>
     </div>
 
@@ -390,6 +401,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/core_data_v11_9_1.js?v=12.0"></script>
     <script src="js/auth.js?v=2.6" defer></script>
-    <script src="js/srh_app.js"></script>
+    <script src="js/srh_app.js?v=3.1"></script>
 </body>
 </html>

@@ -56,7 +56,9 @@ async function loadApplications() {
 
 function renderApplications() {
     const container = document.getElementById('appsListContainer');
+    const archivedContainer = document.getElementById('archivedAppsListContainer');
     container.innerHTML = '';
+    archivedContainer.innerHTML = '';
     
     const selectFilled = document.getElementById('selectAppFilled');
     const selectNotFilled = document.getElementById('selectAppNotFilled');
@@ -68,8 +70,12 @@ function renderApplications() {
     
     const apps = Object.entries(srhApplications);
     
+    let activeAppsCount = 0;
+    let archivedAppsCount = 0;
+    
     if (apps.length === 0) {
         container.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--gray-400);">Kayıtlı uygulama bulunamadı.</div>';
+        archivedContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--gray-400);">Arşivde uygulama bulunamadı.</div>';
         return;
     }
 
@@ -114,7 +120,13 @@ function renderApplications() {
                 </button>
             </div>
         `;
-        container.appendChild(row);
+        if (app.status === 'archived') {
+            archivedContainer.appendChild(row);
+            archivedAppsCount++;
+        } else {
+            container.appendChild(row);
+            activeAppsCount++;
+        }
         
         if (app.status === 'published' || app.status === 'archived') {
             const opt = document.createElement('option');
@@ -125,6 +137,13 @@ function renderApplications() {
         }
     });
     
+    if (activeAppsCount === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--gray-400);">Kayıtlı uygulama bulunamadı.</div>';
+    }
+    if (archivedAppsCount === 0) {
+        archivedContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--gray-400);">Arşivde uygulama bulunamadı.</div>';
+    }
+    
     if (prevFilledVal) selectFilled.value = prevFilledVal;
     if (prevNotFilledVal) selectNotFilled.value = prevNotFilledVal;
 }
@@ -133,6 +152,7 @@ function switchMainTab(tabName) {
     document.getElementById('tabContent_ayarlar').style.display = tabName === 'ayarlar' ? 'block' : 'none';
     document.getElementById('tabContent_dolduranlar').style.display = tabName === 'dolduranlar' ? 'block' : 'none';
     document.getElementById('tabContent_doldurmayanlar').style.display = tabName === 'doldurmayanlar' ? 'block' : 'none';
+    document.getElementById('tabContent_arsiv').style.display = tabName === 'arsiv' ? 'block' : 'none';
     
     document.getElementById('tabBtn_ayarlar').style.borderBottomColor = tabName === 'ayarlar' ? 'var(--primary)' : 'transparent';
     document.getElementById('tabBtn_ayarlar').style.color = tabName === 'ayarlar' ? 'var(--primary)' : 'var(--gray-500)';
@@ -142,6 +162,9 @@ function switchMainTab(tabName) {
     
     document.getElementById('tabBtn_doldurmayanlar').style.borderBottomColor = tabName === 'doldurmayanlar' ? 'var(--primary)' : 'transparent';
     document.getElementById('tabBtn_doldurmayanlar').style.color = tabName === 'doldurmayanlar' ? 'var(--primary)' : 'var(--gray-500)';
+    
+    document.getElementById('tabBtn_arsiv').style.borderBottomColor = tabName === 'arsiv' ? 'var(--primary)' : 'transparent';
+    document.getElementById('tabBtn_arsiv').style.color = tabName === 'arsiv' ? 'var(--primary)' : 'var(--gray-500)';
 }
 
 let currentEditAppId = null;
