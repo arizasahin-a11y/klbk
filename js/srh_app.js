@@ -173,8 +173,6 @@ function openAddAppModal() {
     currentEditAppId = null;
     document.getElementById('appNameInput').value = '';
     document.getElementById('appTypeSelect').value = 'coktan_secmeli';
-    const btnNext = document.getElementById('btnStep1Next');
-    if (btnNext) btnNext.innerHTML = 'Oluştur <i class="fa-solid fa-arrow-right"></i>';
     document.getElementById('addAppModal1').style.display = 'flex';
 }
 
@@ -205,9 +203,6 @@ function editApp(id) {
             }
         }
         document.getElementById('appQuestionsTextarea').value = questionsText.trim();
-        
-        const btnNext = document.getElementById('btnStep1Next');
-        if (btnNext) btnNext.innerHTML = 'İleri (Soruları Düzenle) <i class="fa-solid fa-arrow-right"></i>';
         
         document.getElementById('addAppModal1').style.display = 'flex';
     } catch (err) {
@@ -448,53 +443,49 @@ function togglePublish(id) {
 
 async function openPublishModal() {
     const listContainer = document.getElementById('publishClassesList');
-    listContainer.innerHTML = '';
+    listContainer.innerHTML = '<div style="color:var(--gray-500); text-align:center;">Sınıflar yükleniyor...</div>';
     document.getElementById('selectAllClassesCb').checked = false;
-
-    // Sınıfları çek
-    let students = DataManager._getData()?.school?.students || [];
-    
-    if (students.length === 0) {
-        Swal.fire({
-            title: 'Sınıflar Yükleniyor...',
-            allowOutsideClick: false,
-            didOpen: () => Swal.showLoading()
-        });
-        try {
-            const storeKey = sessionStorage.getItem('klbk_storeKey') || 'klbk_data_admin';
-            const res = await fetch(`${FIREBASE_DB_URL_SRH}/app_store/${storeKey}/school/students.json`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data) students = data;
-            }
-        } catch (e) {
-            console.error('Sınıflar yüklenemedi:', e);
-        }
-        Swal.close();
-    }
-    
-    // Sınıfları benzersiz olarak topla
-    const classesSet = new Set();
-    students.forEach(s => {
-        if (s.class) classesSet.add(String(s.class).trim());
-    });
-    
-    let allClasses = Array.from(classesSet).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }));
-    
-    if (allClasses.length === 0) {
-        listContainer.innerHTML = '<div style="color:var(--gray-500);">Kayıtlı sınıf bulunamadı. Lütfen Master Ayarlarından öğrenci listesini yükleyin.</div>';
-    } else {
-        allClasses.forEach(cls => {
-            listContainer.innerHTML += `
-                <label style="display:flex; align-items:center; gap:5px; background:var(--gray-50); padding:8px 12px; border-radius:8px; border:1px solid var(--gray-200); cursor:pointer;">
-                    <input type="checkbox" class="class-publish-cb" value="${cls}" style="width:16px; height:16px;">
-                    <span style="font-weight:600;">${cls}</span>
-                </label>
-            `;
-        });
-    }
-
     document.getElementById('publishClassModal').style.display = 'flex';
+
+    try {
+        const res = await fetch(`${FIREBASE_DB_URL_SRH}/school/students.json`);
+        if (!res.ok) throw new Error("Ağ hatası");
+        const students = await res.json();
+        
+        const classesSet = new Set();
+        if (students) {
+            if (Array.isArray(students)) {
+                students.forEach(s => {
+                    if (s && s.class) classesSet.add(String(s.class).trim());
+                    if (s && s.sinif) classesSet.add(String(s.sinif).trim());
+                });
+            } else {
+                Object.values(students).forEach(s => {
+                    if (s && s.class) classesSet.add(String(s.class).trim());
+                    if (s && s.sinif) classesSet.add(String(s.sinif).trim());
+                });
+            }
+        }
+        
+        let allClasses = Array.from(classesSet).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }));
+        
+        if (allClasses.length === 0) {
+            listContainer.innerHTML = '<div style="color:var(--gray-500);">Kayıtlı sınıf bulunamadı. Lütfen Master Ayarlarından öğrenci listesini yükleyin.</div>';
+        } else {
+            listContainer.innerHTML = '';
+            allClasses.forEach(cls => {
+                listContainer.innerHTML += `
+                    <label style="display:flex; align-items:center; gap:5px; background:var(--gray-50); padding:8px 12px; border-radius:8px; border:1px solid var(--gray-200); cursor:pointer;">
+                        <input type="checkbox" class="class-publish-cb" value="${cls}" style="width:16px; height:16px;">
+                        <span style="font-weight:600;">${cls}</span>
+                    </label>
+                `;
+            });
+        }
+    } catch (err) {
+        listContainer.innerHTML = '<div style="color:red; text-align:center;">Sınıflar yüklenirken hata oluştu.</div>';
+        console.error("Sınıflar yüklenemedi:", err);
+    }
 }
 
 function closePublishModal() {
