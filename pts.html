@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Proje Faaliyeti Raporlama Sistemi | PFDS</title>
@@ -13,7 +15,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- SheetJS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="js/app_permissions.js"></script>
+    <script defer src="js/app_permissions.js"></script>
+
+    <style>
+        :root {
+            --primary: #8b5cf6 !important;
+            --primary-hover: #7c3aed !important;
+        }
+    </style>
 </head>
 <body>
     <div class="container no-print">
@@ -680,11 +689,11 @@
         </div>
     </div>
 
-    <script src="js/pts_db_data.js?v=2026.04.30.1"></script>
+    <script defer src="js/pts_db_data.js?v=2026.04.30.1"></script>
     <!-- Firebase SDK (Compat Version for traditional non-module environments) -->
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
-    <script src="js/pts_app.js?v=2026.05.09.401"></script>
+    <script defer src="js/pts_app.js?v=2026.05.09.401"></script>
 
 </body>
 </html>

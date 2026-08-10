@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>Faaliyet Liderleri | PFDS</title>
@@ -167,7 +169,14 @@
             } catch(e) {}
         })();
     </script>
-    <script src="js/app_permissions.js"></script>
+    <script defer src="js/app_permissions.js"></script>
+
+    <style>
+        :root {
+            --primary: #e11d48 !important;
+            --primary-hover: #be123c !important;
+        }
+    </style>
 </head>
 <body>
     <body>
@@ -354,7 +363,7 @@
         </div>
     </div>
 
-    <script src="js/pts_db_data.js?v=2026.04.30.1"></script>
+    <script defer src="js/pts_db_data.js?v=2026.04.30.1"></script>
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
     
