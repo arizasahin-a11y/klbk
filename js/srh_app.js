@@ -613,7 +613,13 @@ async function loadResultsForApp(appId) {
     Swal.fire({ title: 'Sonuçlar Çekiliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     
     try {
-        const url = `${FIREBASE_DB_URL_SRH}/app_store/srh_answers/${appId}.json?_=` + Date.now();
+        let authQuery = '';
+        if (typeof DataManager !== 'undefined' && DataManager._getAuthToken) {
+            const token = DataManager._getAuthToken();
+            if (token) authQuery = `&auth=${token}`;
+        }
+        
+        const url = `${FIREBASE_DB_URL_SRH}/app_store/srh_answers/${appId}.json?_=` + Date.now() + authQuery;
         const res = await fetch(url);
         currentResultsData = res.ok ? (await res.json() || {}) : {};
         
@@ -634,15 +640,21 @@ async function renderResults() {
     // Öğrenci listesi: DataManager veya doğrudan Firebase'den çek
     let students = [];
     try {
+        let authQuery = '';
         if (typeof DataManager !== 'undefined') {
+            await DataManager.initCloud(); // DataManager'ı hazırla
             const dm = DataManager.getStudents ? DataManager.getStudents() : null;
             if (dm && dm.length > 0) {
                 students = dm;
             }
+            if (DataManager._getAuthToken) {
+                const token = DataManager._getAuthToken();
+                if (token) authQuery = `&auth=${token}`;
+            }
         }
         if (students.length === 0) {
-            // Fallback: doğrudan Firebase'den çek
-            const sRes = await fetch(`${FIREBASE_DB_URL_SRH}/school/students.json?_=` + Date.now());
+            // Fallback: doğrudan Firebase'den çek (Auth eklenmiş)
+            const sRes = await fetch(`${FIREBASE_DB_URL_SRH}/school/students.json?_=` + Date.now() + authQuery);
             if (sRes.ok) {
                 const sData = await sRes.json();
                 if (sData) {
