@@ -94,6 +94,12 @@
         th:nth-child(1), td:nth-child(1) { width: 30px; text-align: center; } /* Sıra */
         th:nth-child(2), td:nth-child(2) { width: 55px; text-align: center; } /* No */
         th:nth-child(3), td:nth-child(3) { width: 140px; } /* Ad Soyad */
+        
+        /* Geri kalan soru sütunları */
+        th:nth-child(n+4), td:nth-child(n+4) {
+            width: 28px;
+            text-align: center;
+        }
 
         th, td {
             border: 1px solid #94a3b8;
@@ -115,7 +121,8 @@
         .header-row th {
             height: 160px; /* Dikey metin (soru) satırı için alan */
             text-align: center; /* Sütun içindeki yazıyı ortala */
-            vertical-align: middle;
+            vertical-align: bottom;
+            padding-bottom: 5px;
         }
         
         .vertical-text {
@@ -123,13 +130,11 @@
             transform: rotate(180deg);
             white-space: normal; /* İki satıra geçmeye izin ver */
             max-height: 155px;
-            width: 30px; /* Sütunu genişletip iki satır sığmasını sağladık */
             line-height: 1.1;
             overflow: hidden;
             display: inline-block;
-            text-align: left; /* Bu dikeyde olduğundan aslında dikey hizalamadır */
-            margin: auto;
-            padding-top: 5px;
+            text-align: left; /* Yukarı/Aşağı hizalama (rotate olduğu için) */
+            margin: 0 auto;
             font-size: 0.65rem;
         }
 
