@@ -485,7 +485,7 @@ const DataManager = {
     _updateMasterSchoolName: async function (newName) {
         const storeKey = this._getStorageKey();
         try {
-            const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/klbk_users.json`);
+            const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/klbk_users.json?_t=${Date.now()}`, { cache: 'no-store' });
             if (res.ok) {
                 const usersDb = await res.json();
                 if (usersDb) {
@@ -1411,7 +1411,7 @@ const DataManager = {
     // --- Görevli & Yedek Öğretmen Engine ---
     getSchoolTeachers: async function () {
         try {
-            const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/klbk_users.json`);
+            const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/klbk_users.json?_t=${Date.now()}`, { cache: 'no-store' });
             if (res.ok) {
                 const usersDb = await res.json();
                 if (!usersDb) return {};
