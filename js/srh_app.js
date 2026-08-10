@@ -1,23 +1,71 @@
 const FIREBASE_DB_URL_SRH = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
 let srhApplications = {};
 
-document.addEventListener('DOMContentLoaded', () => {
+let isAuthAdmin = false;
+let isAuthRehber = false;
+let isAuthSinif = false;
+let authAssignedClass = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
     // Check if user is logged in
     const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || localStorage.getItem('klbk_isLoggedIn') === 'true';
     
     if (isLoggedIn) {
-        const role = (sessionStorage.getItem('klbk_role') || localStorage.getItem('klbk_role') || '').toLowerCase().trim();
-        const isAdmin = role === 'admin' || role === 'master' || role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi';
+        Swal.fire({ title: 'Yetkiler Kontrol Ediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
         
-        if (!isAdmin) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Yetkisiz Erişim',
-                text: 'Bu sayfaya sadece idareciler erişebilir.'
-            }).then(() => {
-                window.location.href = 'enter.html';
+        const role = (sessionStorage.getItem('klbk_role') || localStorage.getItem('klbk_role') || '').toLowerCase().trim();
+        isAuthAdmin = role === 'admin' || role === 'master' || role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi';
+        
+        if (!isAuthAdmin) {
+            const currentUser = sessionStorage.getItem('klbk_currentUser') || localStorage.getItem('klbk_currentUser');
+            const token = sessionStorage.getItem('klbk_sessionToken') || (typeof DataManager !== 'undefined' && DataManager._getAuthToken ? DataManager._getAuthToken() : '');
+            const authQuery = token ? `?auth=${token}` : '';
+            
+            try {
+                const res = await fetch(`${FIREBASE_DB_URL_SRH}/school/teachers/${currentUser}.json${authQuery}`);
+                if (res.ok) {
+                    const teacherData = await res.json();
+                    if (teacherData) {
+                        const branch = (teacherData.branch || teacherData.brans || '').toLowerCase();
+                        if (branch.includes('rehber')) {
+                            isAuthRehber = true;
+                        }
+                        
+                        if (teacherData.class || teacherData.sinif) {
+                            isAuthSinif = true;
+                            authAssignedClass = (teacherData.class || teacherData.sinif).trim();
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Öğretmen yetkileri alınamadı", err);
+            }
+            
+            if (!isAuthRehber && !isAuthSinif) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Yetkisiz Erişim',
+                    text: 'Bu sayfaya sadece İdareciler, Rehber Öğretmenler ve Sınıf Öğretmenleri girebilir.'
+                }).then(() => {
+                    window.location.href = 'enter.html';
+                });
+                return;
+            }
+        }
+        
+        Swal.close();
+
+        // Admin değilse "Uygulama Ekle" butonunu gizle
+        if (!isAuthAdmin) {
+            const addBtns = document.querySelectorAll('button');
+            addBtns.forEach(btn => {
+                if (btn.innerText.includes('Uygulama Ekle') || (btn.getAttribute('onclick') || '').includes('openAddAppModal')) {
+                    btn.style.display = 'none';
+                }
             });
-            return;
+            // Ayrıca "Ayarlar" sekmesi varsa (tabBtn_ayarlar) onu da gizleyelim mi?
+            const ayarlarBtn = document.getElementById('tabBtn_ayarlar');
+            if (ayarlarBtn) ayarlarBtn.style.display = 'none';
         }
 
         document.getElementById('portalSection').style.display = 'block';
@@ -98,14 +146,10 @@ function renderApplications() {
             'tik_atma': 'Tik Atma'
         };
 
-        row.innerHTML = `
-            <div style="position:relative; z-index:10;">
-                <h4 style="margin:0; font-size:1.1rem; color:var(--dark);">${app.name} ${statusBadge}</h4>
-                <p style="margin:5px 0 0 0; font-size:0.85rem; color:var(--gray-500);">
-                    Tip: ${typeLabels[app.type]} | Soru Sayısı: ${app.questions ? app.questions.length : 0}
-                </p>
-            </div>
-            <div style="display:flex; gap:10px; position:relative; z-index:10;">
+
+        let actionsHtml = '';
+        if (isAuthAdmin) {
+            actionsHtml = `
                 <button class="btn-action ${app.status === 'published' ? '' : 'btn-success'}" onclick="togglePublish('${id}')">
                     ${app.status === 'published' ? '<i class="fa-solid fa-eye-slash"></i> Yayından Kaldır' : '<i class="fa-solid fa-bullhorn"></i> Yayınla'}
                 </button>
@@ -118,8 +162,20 @@ function renderApplications() {
                 <button class="btn-action" style="background:#fee2e2; color:#b91c1c;" onclick="deleteApp('${id}')" title="Sil">
                     <i class="fa-solid fa-trash"></i>
                 </button>
+            `;
+        }
+
+        row.innerHTML = `
+            <div style="position:relative; z-index:10;">
+                <h4 style="margin:0; font-size:1.1rem; color:var(--dark);">${app.name} <span id="comp-badge-${id}" style="opacity:0; transition:opacity 0.3s; margin-left:10px; font-size:0.8rem;"></span> ${statusBadge}</h4>
+                <p style="margin:5px 0 0 0; font-size:0.85rem; color:var(--gray-500);">
+                    Tip: ${typeLabels[app.type]} | Soru Sayısı: ${app.questions ? app.questions.length : 0}
+                </p>
+            </div>
+            <div style="display:flex; gap:10px; position:relative; z-index:10; align-items:center;">
+                ${actionsHtml}
                 <button class="btn-action" style="background:#f3e8ff; color:#7e22ce;" onclick="window.open('srh_report.html?appId=${id}', '_blank')" title="Yazdır / Rapor Al">
-                    <i class="fa-solid fa-print"></i>
+                    <i class="fa-solid fa-print"></i> Rapor
                 </button>
             </div>
         `;
@@ -685,6 +741,11 @@ async function renderResults() {
     if (pubClasses.length > 0) {
         targetStudents = students.filter(s => pubClasses.includes((s.class || s.sinif || '').trim()));
     }
+    
+    if (!isAuthAdmin && !isAuthRehber && isAuthSinif && authAssignedClass) {
+        targetStudents = targetStudents.filter(s => (s.class || s.sinif || '').trim() === authAssignedClass);
+    }
+    
     currentTargetStudents = targetStudents;
     
     if (targetStudents.length === 0) {

@@ -20,6 +20,36 @@ async function initReport() {
         const token = DataManager._getAuthToken ? DataManager._getAuthToken() : '';
         const authQuery = token ? `&auth=${token}` : '';
 
+        // --- AUTH CHECK ---
+        const role = (sessionStorage.getItem('klbk_role') || localStorage.getItem('klbk_role') || '').toLowerCase().trim();
+        const isAuthAdmin = role === 'admin' || role === 'master' || role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi';
+        
+        let isAuthRehber = false;
+        let isAuthSinif = false;
+        let authAssignedClass = null;
+
+        if (!isAuthAdmin) {
+            const currentUser = sessionStorage.getItem('klbk_currentUser') || localStorage.getItem('klbk_currentUser');
+            const resAuth = await fetch(`${FIREBASE_DB_URL_SRH}/school/teachers/${currentUser}.json?auth=${token}`);
+            if (resAuth.ok) {
+                const teacherData = await resAuth.json();
+                if (teacherData) {
+                    const branch = (teacherData.branch || teacherData.brans || '').toLowerCase();
+                    if (branch.includes('rehber')) isAuthRehber = true;
+                    if (teacherData.class || teacherData.sinif) {
+                        isAuthSinif = true;
+                        authAssignedClass = (teacherData.class || teacherData.sinif).trim();
+                    }
+                }
+            }
+
+            if (!isAuthRehber && !isAuthSinif) {
+                document.getElementById('reportContainer').innerHTML = `<div style="color:red; margin-top:50px; text-align:center;">Hata: Bu sayfaya erişim yetkiniz bulunmuyor.</div>`;
+                return;
+            }
+        }
+        // ------------------
+
         // 1. Uygulamanın verisini çek
         const appRes = await fetch(`${FIREBASE_DB_URL_SRH}/app_store/srh_data/${appId}.json?_=` + Date.now() + authQuery);
         appData = await appRes.json();
@@ -40,6 +70,11 @@ async function initReport() {
         // 3. Öğrenci cevaplarını çek
         const ansRes = await fetch(`${FIREBASE_DB_URL_SRH}/app_store/srh_answers/${appId}.json?_=` + Date.now() + authQuery);
         answersData = await ansRes.json() || {};
+
+        // 4. Yetki Kısıtlaması Uygula
+        if (!isAuthAdmin && !isAuthRehber && isAuthSinif && authAssignedClass) {
+            studentsData = studentsData.filter(s => (s.class || s.sinif || '').trim() === authAssignedClass);
+        }
 
         generateReport();
 
