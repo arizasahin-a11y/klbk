@@ -177,33 +177,38 @@ function openAddAppModal() {
 }
 
 function editApp(id) {
-    const app = srhApplications[id];
-    if (!app) return;
-    
-    currentEditAppId = id;
-    document.getElementById('appNameInput').value = app.name;
-    document.getElementById('appTypeSelect').value = app.type;
-    
-    // Convert questions back to text
-    let questionsText = '';
-    if (app.questions) {
-        if (app.type === 'coktan_secmeli') {
-            app.questions.forEach(q => {
-                questionsText += q.text + '\n';
-                if (q.options) {
-                    q.options.forEach(opt => questionsText += opt.label + ') ' + opt.text + '\n');
-                }
-                questionsText += '\n'; // separator
-            });
-        } else {
-            app.questions.forEach(q => {
-                questionsText += q.text + '\n';
-            });
+    try {
+        const app = srhApplications[id];
+        if (!app) return;
+        
+        currentEditAppId = id;
+        document.getElementById('appNameInput').value = app.name;
+        document.getElementById('appTypeSelect').value = app.type;
+        
+        // Convert questions back to text
+        let questionsText = '';
+        if (app.questions) {
+            if (app.type === 'coktan_secmeli') {
+                app.questions.forEach(q => {
+                    questionsText += q.text + '\n';
+                    if (q.options) {
+                        q.options.forEach(opt => questionsText += opt.label + ') ' + opt.text + '\n');
+                    }
+                    questionsText += '\n'; // separator
+                });
+            } else {
+                app.questions.forEach(q => {
+                    questionsText += q.text + '\n';
+                });
+            }
         }
+        document.getElementById('appQuestionsTextarea').value = questionsText.trim();
+        
+        document.getElementById('addAppModal1').style.display = 'flex';
+    } catch (err) {
+        Swal.fire('Düzenle Hatası', String(err), 'error');
+        console.error(err);
     }
-    document.getElementById('appQuestionsTextarea').value = questionsText.trim();
-    
-    document.getElementById('addAppModal1').style.display = 'flex';
 }
 
 function closeAddAppModal1() {
@@ -415,15 +420,20 @@ async function saveAllToFirebase() {
 let currentPublishAppId = null;
 
 function togglePublish(id) {
-    if (srhApplications[id]) {
-        if (srhApplications[id].status === 'published') {
-            srhApplications[id].status = 'draft';
-            saveAllToFirebase();
-        } else {
-            // Sınıf seçme modalını aç
-            currentPublishAppId = id;
-            openPublishModal();
+    try {
+        if (srhApplications[id]) {
+            if (srhApplications[id].status === 'published') {
+                srhApplications[id].status = 'draft';
+                saveAllToFirebase();
+            } else {
+                // Sınıf seçme modalını aç
+                currentPublishAppId = id;
+                openPublishModal();
+            }
         }
+    } catch (err) {
+        Swal.fire('Yayınla Hatası', String(err), 'error');
+        console.error(err);
     }
 }
 
