@@ -174,9 +174,9 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.removeItem('klbk_currentUser');
         localStorage.removeItem('klbk_isLoggedIn');
         localStorage.removeItem('klbk_persistent_session');
-        // Clean the URL to avoid loop
-        const newUrl = window.location.origin + window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
+        // Clean the URL and perform a hard redirect to prevent ghost sessions
+        window.location.href = 'enter.html';
+        return;
     }
 
     // Restore persistent session
