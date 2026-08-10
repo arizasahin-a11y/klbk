@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>Listeci</title>
@@ -15,7 +13,262 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script src="js/core_data_v11_9_1.js"></script>
 
-    
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #e0e7ff;
+            --dark: #1e293b;
+            --gray-500: #64748b;
+            --gray-200: #e2e8f0;
+            --radius-md: 12px;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 50%, #0284c7 100%);
+            min-height: 100vh;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            padding: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .form-select-custom {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+
+        .form-select-custom:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .custom-dropdown {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            transition: all 0.2s;
+            box-sizing: border-box;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .custom-dropdown:hover {
+            border-color: var(--primary);
+        }
+
+        .custom-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid var(--primary);
+            border-radius: var(--radius-md);
+            margin-top: 5px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .classes-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .class-checkbox-label {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--dark);
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .class-checkbox-label:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .class-checkbox-label input[type="checkbox"] {
+            accent-color: var(--primary);
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            flex-shrink: 0;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary:hover {
+            background: #4338ca;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        /* Accordion Styles */
+        .accordion-item {
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+            overflow: visible;
+            transition: box-shadow 0.3s ease;
+            background: white;
+        }
+
+        .accordion-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .accordion-item.active {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .accordion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+            border-radius: var(--radius-md);
+        }
+
+        .accordion-header:hover {
+            background: rgba(0,0,0,0.02);
+        }
+
+        .accordion-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .accordion-header .accordion-icon {
+            transition: transform 0.35s ease;
+            color: var(--gray-500);
+            font-size: 0.9rem;
+        }
+
+        .accordion-item.active .accordion-header .accordion-icon {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.3s ease;
+            padding: 0 1.5rem;
+        }
+
+        .accordion-item.active .accordion-content {
+            max-height: 1000px;
+            padding: 0 1.5rem 1.5rem;
+            overflow: visible;
+        }
+
+        .accordion-desc {
+            font-size: 0.9rem;
+            color: var(--gray-500);
+            margin: 0 0 1rem 0;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 600px) {
+            .glass-panel {
+                padding: 1.25rem;
+            }
+            .container {
+                margin: 1rem auto;
+            }
+            .btn-primary {
+                padding: 0.8rem 1rem;
+                font-size: 1rem;
+            }
+            .accordion-header {
+                padding: 1rem 1.25rem;
+            }
+            .accordion-header h3 {
+                font-size: 1rem;
+            }
+            .accordion-content {
+                padding: 0 1.25rem;
+            }
+            .accordion-item.active .accordion-content {
+                padding: 0 1.25rem 1.25rem;
+            }
+            #studentSelectorModal .glass-panel {
+                height: 100vh;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+        }
+    </style>
     <script>
         (function() {
             try {
@@ -26,14 +279,7 @@
             } catch(e) {}
         })();
     </script>
-    <script defer src="js/app_permissions.js"></script>
-
-    <style>
-        :root {
-            --primary: #1e3a8a !important;
-            --primary-hover: #1e40af !important;
-        }
-    </style>
+    <script src="js/app_permissions.js"></script>
 </head>
 <body>
 
