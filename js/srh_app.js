@@ -229,7 +229,11 @@ function goToStep2() {
     tempAppData = { name, type };
     
     document.getElementById('step2AppNameTitle').innerText = name;
-    document.getElementById('appQuestionsTextarea').value = '';
+    
+    // Yalnızca yeni uygulama ekleniyorsa (düzenleme değilse) temizle
+    if (!currentEditAppId) {
+        document.getElementById('appQuestionsTextarea').value = '';
+    }
     
     closeAddAppModal1();
     document.getElementById('addAppModal2').style.display = 'flex';
@@ -245,7 +249,7 @@ function backToStep1() {
 }
 
 function parseQuestions(rawText, type) {
-    const lines = rawText.split('\\n').map(l => l.trim()).filter(l => l.length > 0);
+    const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
     const questions = [];
     
     if (type === 'kisa_cevap' || type === 'tik_atma') {
