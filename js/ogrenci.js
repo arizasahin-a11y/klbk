@@ -3237,7 +3237,7 @@ DataManager._getStorageKey = function () {
             
             const payload = {
                 studentNo: studentObj.no,
-                studentName: `${studentObj.name} ${studentObj.surname}`,
+                studentName: `${studentObj.name || ''} ${studentObj.surname || ''}`.trim(),
                 studentClass: studentObj.class,
                 answers: answers,
                 timestamp: new Date().toISOString()
@@ -3246,12 +3246,11 @@ DataManager._getStorageKey = function () {
             Swal.fire({ title: 'Kaydediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             
             try {
-                // Her öğrencinin cevabını kendi numarası ve app_id altında saklıyoruz (upsert)
-                const url = `https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/srh_answers/${appId}/${studentObj.no}.json`;
-                const res = await fetch(url, {
+                // /api/saveSrhAnswer üzerinden kaydet (Firebase kuralları doğrudan yazmayı engeller)
+                const res = await fetch('/api/saveSrhAnswer', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ appId, studentNo: studentObj.no, payload })
                 });
                 
                 if (res.ok) {
