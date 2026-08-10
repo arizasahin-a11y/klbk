@@ -297,9 +297,77 @@ DataManager._getStorageKey = function () {
                 console.error("checkClassroomDisplay crashed:", err);
             }
 
+            // r-oturumu: öğrenci r2403 formatında giriş yapmışsa session geri yükle
+            try {
+                const srhSessionRaw = localStorage.getItem('klbk_srh_session');
+                if (srhSessionRaw) {
+                    const studentObj = JSON.parse(srhSessionRaw);
+                    if (studentObj && studentObj.no) {
+                        window.currentSrhStudent = studentObj;
+                        // Oturumu geri yükle ve ekranı göster
+                        (async () => {
+                            try {
+                                Swal.fire({ title: 'Yükleniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                                const res = await fetch("https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/srh_data.json?_=" + Date.now());
+                                const data = res.ok ? await res.json() : {};
+                                
+                                const publishedApps = Object.entries(data || {}).filter(([id, app]) => {
+                                    if (app.status !== 'published') return false;
+                                    if (!app.publishedClasses || app.publishedClasses.length === 0) return true;
+                                    return app.publishedClasses.includes((studentObj.class || '').trim());
+                                });
+
+                                Swal.close();
+
+                                if (publishedApps.length === 0) {
+                                    // Uygulama yoksa login'e dön ve session sil
+                                    localStorage.removeItem('klbk_srh_session');
+                                    localStorage.removeItem('klbk_student_session');
+                                    const lv = document.getElementById('loginView');
+                                    if (lv) lv.classList.remove('hidden');
+                                    return;
+                                }
+
+                                const loginView = document.getElementById('loginView');
+                                if (loginView) loginView.classList.add('hidden');
+                                document.getElementById('srhListView').classList.remove('hidden');
+
+                                document.getElementById('srhStudentNameListDisplay').innerText = `${studentObj.name || ''} ${studentObj.surname || ''}`.trim();
+                                document.getElementById('srhStudentClassListDisplay').innerText = `Sınıf: ${studentObj.class} | No: ${studentObj.no}`;
+
+                                window.publishedSrhApps = publishedApps;
+                                window.completedSrhApps = window.completedSrhApps || new Set();
+
+                                // Daha önce tamamlananları Firebase'den kontrol et
+                                const checks = publishedApps.map(async ([appId]) => {
+                                    const r = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/srh_answers/${appId}/${studentObj.no}.json?_=` + Date.now());
+                                    if (r.ok) {
+                                        const d = await r.json();
+                                        if (d && d.timestamp) window.completedSrhApps.add(appId);
+                                    }
+                                });
+                                await Promise.all(checks);
+
+                                renderSrhAppsList();
+                            } catch (e) {
+                                console.error('r-session restore failed:', e);
+                                localStorage.removeItem('klbk_srh_session');
+                                localStorage.removeItem('klbk_student_session');
+                                const lv = document.getElementById('loginView');
+                                if (lv) lv.classList.remove('hidden');
+                            }
+                        })();
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.error("r-session check crashed:", err);
+                localStorage.removeItem('klbk_srh_session');
+            }
+
             try {
                 const savedNo = localStorage.getItem('klbk_student_session');
-                if (savedNo) {
+                if (savedNo && !savedNo.startsWith('r')) {
                     document.getElementById('studentNo').value = savedNo;
                     queryExams(true);
                     return;
@@ -311,6 +379,7 @@ DataManager._getStorageKey = function () {
             const lv = document.getElementById('loginView');
             if(lv) lv.classList.remove('hidden');
         }
+
 
         function getNow() {
             if (trustedBaseTime === 0) return new Date();
@@ -459,6 +528,16 @@ DataManager._getStorageKey = function () {
                         
                         Swal.close();
                         
+                        // Oturumu localStorage'a kaydet (sayfa yenilenince geri dönmek için)
+                        window.currentSrhStudent = studentObj;
+                        localStorage.setItem('klbk_srh_session', JSON.stringify({
+                            no: studentObj.no,
+                            name: studentObj.name || '',
+                            surname: studentObj.surname || '',
+                            class: studentObj.class || studentObj.sinif || ''
+                        }));
+                        localStorage.setItem('klbk_student_session', 'r' + srhNo);
+                        
                         // Yönlendirme ve UI güncellemeleri
                         const loginView = document.getElementById('loginView');
                         if(loginView) loginView.classList.add('hidden');
@@ -468,6 +547,20 @@ DataManager._getStorageKey = function () {
                         document.getElementById('srhStudentClassListDisplay').innerText = `Sınıf: ${studentObj.class} | No: ${studentObj.no}`;
                         
                         window.publishedSrhApps = publishedApps;
+                        
+                        // Hangi uygulamaları zaten doldurduğunu Firebase'den kontrol et
+                        window.completedSrhApps = window.completedSrhApps || new Set();
+                        try {
+                            const completedChecks = publishedApps.map(async ([appId]) => {
+                                const r = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/srh_answers/${appId}/${studentObj.no}.json?_=` + Date.now());
+                                if (r.ok) {
+                                    const d = await r.json();
+                                    if (d && d.timestamp) window.completedSrhApps.add(appId);
+                                }
+                            });
+                            await Promise.all(completedChecks);
+                        } catch(e) { console.warn('Tamamlanma kontrolü başarısız:', e); }
+                        
                         renderSrhAppsList();
                         
                     } catch (e) {
@@ -730,17 +823,24 @@ DataManager._getStorageKey = function () {
         function logout() {
             localStorage.removeItem('klbk_student_session');
             localStorage.removeItem('klbk_persistent_session');
+            localStorage.removeItem('klbk_srh_session');
             currentStudent = null;
+            window.currentSrhStudent = null;
+            window.publishedSrhApps = null;
+            window.completedSrhApps = new Set();
             clearInterval(timerInterval);
             if (window.cloudSyncInterval) clearInterval(window.cloudSyncInterval);
             document.getElementById('loginView').classList.remove('hidden');
             document.getElementById('resultsView').classList.add('hidden');
             document.getElementById('rulesView').classList.add('hidden');
             if (document.getElementById('dutyView')) document.getElementById('dutyView').classList.add('hidden');
+            if (document.getElementById('srhListView')) document.getElementById('srhListView').classList.add('hidden');
+            if (document.getElementById('srhView')) document.getElementById('srhView').classList.add('hidden');
             document.getElementById('studentNo').value = '';
             openSessions.clear();
             document.body.classList.add('login-body');
         }
+
 
         function renderExams() {
             if (!currentStudent) return;
