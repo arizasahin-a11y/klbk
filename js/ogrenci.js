@@ -2776,6 +2776,30 @@ DataManager._getStorageKey = function () {
             let dateColor = isToday ? "#ef4444" : "white";
             let dateShadow = isToday ? "text-shadow: 2px 2px 0px #fff, -2px -2px 0px #fff, 2px -2px 0px #fff, -2px 2px 0px #fff;" : "";
             
+            let warningsHtml = '';
+            if (isToday) {
+                let db = window.studentScheduleState.db;
+                let lessonTimes = db.school?.lessonTimes || {};
+                let firstStart = lessonTimes['1_start'] || '08:30';
+                let [sh, sm] = firstStart.split(':').map(Number);
+                let now = new Date();
+                let lessonTime = new Date();
+                lessonTime.setHours(sh, sm, 0, 0);
+                
+                if (now < lessonTime) {
+                    warningsHtml = `
+                        <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 10px; justify-content: center; align-items: center;">
+                            <div style="background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.3); padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 0.95rem; text-align: center; width: 100%; max-width: 350px;">
+                                <i class="fa-solid fa-triangle-exclamation" style="margin-right: 5px; color: #fca5a5;"></i> Nöbete gelemeyecekseniz haber veriniz!
+                            </div>
+                            <div style="background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.3); padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 0.95rem; text-align: center; width: 100%; max-width: 350px;">
+                                <i class="fa-solid fa-bell" style="margin-right: 5px; color: #86efac;"></i> Nöbete başladığınızı haber veriniz!
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
             let closestHtml = `
                 <div style="background:linear-gradient(135deg, #4f46e5, #3b82f6); padding:25px; border-radius:16px; color:white; box-shadow:var(--shadow-md); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                     <div>
@@ -2785,6 +2809,7 @@ DataManager._getStorageKey = function () {
                             <i class="fa-solid fa-location-dot"></i> ${closestDuty.locName}
                         </div>
                     </div>
+                    ${warningsHtml}
                     <div style="background: rgba(255,255,255,0.1); padding: 15px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); text-align: right;">
                         <div style="font-size: 1.1rem; font-weight: 800; margin-bottom: 5px;"><i class="fa-solid fa-user-graduate" style="margin-right:5px; opacity:0.8;"></i> ${closestDuty.name}</div>
                         <div style="font-size: 0.95rem; font-weight: 600; opacity: 0.9; margin-bottom: 3px;">Sınıf: ${closestDuty.className || closestDuty.class || ''}</div>
