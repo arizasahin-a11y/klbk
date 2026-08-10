@@ -662,6 +662,58 @@
         </div>
     </div>
 
+    <!-- Rehberlik ve Sosyal Uygulamalar Liste Ekranı -->
+    <div id="srhListView" class="hidden">
+        <div class="student-top-banner">
+            <div>
+                <div style="font-size: 0.8rem; opacity: 0.9; font-weight: 700; text-transform: uppercase;">Öğrenci Sistemi</div>
+                <h2 id="srhStudentNameListDisplay" style="margin:0; font-weight: 900; font-size: 1.5rem; line-height: 1.2;"></h2>
+                <p id="srhStudentClassListDisplay" style="margin:0; opacity: 0.9; font-size: 0.95rem; font-weight: 600;"></p>
+                <h3 style="margin-top: 15px; font-size: 1.2rem; color: #fff;">REHBERLİK / OKUL UYGULAMALARI</h3>
+            </div>
+            <button class="btn" onclick="logout()"
+                style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem; border-radius: 10px; font-weight: 600;">
+                <i class="fa-solid fa-right-from-bracket"></i> Çıkış
+            </button>
+        </div>
+        <div class="query-container" style="margin-top: 0;">
+            <div id="srhAppsListContainer" style="display: flex; flex-direction: column; gap: 15px;"></div>
+        </div>
+    </div>
+
+    <!-- Rehberlik ve Sosyal Uygulamalar Soru Ekranı -->
+    <div id="srhView" class="hidden">
+        <div class="student-top-banner">
+            <div>
+                <div style="font-size: 0.8rem; opacity: 0.9; font-weight: 700; text-transform: uppercase;">Öğrenci Sistemi</div>
+                <h2 id="srhStudentNameDisplay" style="margin:0; font-weight: 900; font-size: 1.5rem; line-height: 1.2;"></h2>
+                <p id="srhStudentClassDisplay" style="margin:0; opacity: 0.9; font-size: 0.95rem; font-weight: 600;"></p>
+                <h3 id="srhAppTitleDisplay" style="margin-top: 15px; font-size: 1.2rem; color: #fff;"></h3>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" onclick="backToSrhList()"
+                    style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem; border-radius: 10px; font-weight: 600;">
+                    <i class="fa-solid fa-arrow-left"></i> Geri
+                </button>
+                <button class="btn" onclick="logout()"
+                    style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem; border-radius: 10px; font-weight: 600;">
+                    <i class="fa-solid fa-right-from-bracket"></i> Çıkış
+                </button>
+            </div>
+        </div>
+        <div class="query-container" style="margin-top: 0;">
+            <div class="glass-panel" style="padding: 2rem;">
+                <div id="srhQuestionsContainer" style="display: flex; flex-direction: column; gap: 20px;"></div>
+                <div style="margin-top: 2rem; text-align: center;">
+                    <button class="btn btn-primary" onclick="submitSrhAnswers()"
+                        style="font-size: 1.1rem; padding: 1rem 2rem; font-weight: 800; border-radius: 12px; box-shadow: 0 4px 15px rgba(79,70,229,0.3);">
+                        <i class="fa-solid fa-save" style="margin-right: 8px;"></i> KAYDET
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- PDF Modification Libraries (defer: sayfa render'ı engellemez) -->
     <script defer src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
     <script defer src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js"></script>

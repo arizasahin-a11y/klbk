@@ -398,6 +398,59 @@ DataManager._getStorageKey = function () {
                 const studentNo = noInput.value.trim().toLowerCase();
                 if (!studentNo) return;
                 
+                // --- Rehberlik ve Sosyal Uygulamalar Kontrol Sistemi (r + numara) ---
+                if (studentNo.startsWith('r') && !isNaN(studentNo.substring(1))) {
+                    const srhNo = studentNo.substring(1);
+                    const db = DataManager._getData();
+                    
+                    if (!db || !db.school || !db.school.students) {
+                        Swal.fire('Hata', 'Öğrenci veritabanı bulunamadı.', 'error');
+                        return;
+                    }
+                    
+                    const students = db.school.students;
+                    const studentObj = students.find(s => String(s.no) === String(srhNo));
+                    
+                    if (!studentObj) {
+                        Swal.fire('Hata', 'Kayıtlı öğrenci bulunamadı.', 'error');
+                        return;
+                    }
+                    
+                    window.currentSrhStudent = studentObj;
+                    
+                    // Fetch published apps
+                    Swal.fire({ title: 'Kontrol ediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                    try {
+                        const res = await fetch("https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/srh_data.json?_=" + Date.now());
+                        const data = res.ok ? await res.json() : {};
+                        
+                        const publishedApps = Object.entries(data || {}).filter(([id, app]) => app.status === 'published');
+                        
+                        if (publishedApps.length === 0) {
+                            Swal.fire('Bilgi', 'Şu an size tanımlı bir çalışma yok.', 'info');
+                            return;
+                        }
+                        
+                        Swal.close();
+                        
+                        // Yönlendirme ve UI güncellemeleri
+                        const loginView = document.getElementById('loginView');
+                        if(loginView) loginView.classList.add('hidden');
+                        document.getElementById('srhListView').classList.remove('hidden');
+                        
+                        document.getElementById('srhStudentNameListDisplay').innerText = `${studentObj.name} ${studentObj.surname}`;
+                        document.getElementById('srhStudentClassListDisplay').innerText = `Sınıf: ${studentObj.class} | No: ${studentObj.no}`;
+                        
+                        window.publishedSrhApps = publishedApps;
+                        renderSrhAppsList();
+                        
+                    } catch (e) {
+                        console.error(e);
+                        Swal.fire('Hata', 'Sunucuya bağlanılamadı.', 'error');
+                    }
+                    return;
+                }
+                
                 // --- Öğrenci Nöbet Kontrol Sistemi (n + numara) ---
                 if (studentNo.startsWith('n') && !isNaN(studentNo.substring(1))) {
                     const dutyNo = studentNo.substring(1);
@@ -2991,6 +3044,192 @@ DataManager._getStorageKey = function () {
                 </div>
             `;
             container.innerHTML = scheduleHtml;
+        }
+
+        // --- SRH (Rehberlik ve Sosyal Uygulamalar) Functions ---
+        function renderSrhAppsList() {
+            const container = document.getElementById('srhAppsListContainer');
+            container.innerHTML = '';
+            
+            if (!window.publishedSrhApps || window.publishedSrhApps.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color:var(--gray-500); padding:2rem;">Yayınlanmış çalışma bulunamadı.</div>';
+                return;
+            }
+            
+            window.publishedSrhApps.forEach(([id, app]) => {
+                const typeLabels = {
+                    'coktan_secmeli': 'Çoktan Seçmeli',
+                    'kisa_cevap': 'Kısa Cevap',
+                    'tik_atma': 'Tik Atma'
+                };
+                
+                const card = document.createElement('div');
+                card.style.cssText = 'background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-sm);';
+                card.innerHTML = `
+                    <div>
+                        <h4 style="margin: 0; font-size: 1.1rem; color: var(--dark);">${app.name}</h4>
+                        <p style="margin: 5px 0 0 0; font-size: 0.85rem; color: var(--gray-500);">Tip: ${typeLabels[app.type]} | Soru Sayısı: ${app.questions ? app.questions.length : 0}</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openSrhApp('${id}')" style="padding: 0.5rem 1rem; border-radius: 8px;">
+                        Çalışmayı Aç <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+        
+        function openSrhApp(appId) {
+            const appEntry = window.publishedSrhApps.find(([id, _]) => id === appId);
+            if (!appEntry) return;
+            
+            const [id, app] = appEntry;
+            window.currentSrhAppId = id;
+            window.currentSrhApp = app;
+            
+            document.getElementById('srhListView').classList.add('hidden');
+            document.getElementById('srhView').classList.remove('hidden');
+            
+            const studentObj = window.currentSrhStudent;
+            document.getElementById('srhStudentNameDisplay').innerText = `${studentObj.name} ${studentObj.surname}`;
+            document.getElementById('srhStudentClassDisplay').innerText = `Sınıf: ${studentObj.class} | No: ${studentObj.no}`;
+            document.getElementById('srhAppTitleDisplay').innerText = app.name;
+            
+            renderSrhQuestions(app);
+        }
+        
+        function backToSrhList() {
+            document.getElementById('srhView').classList.add('hidden');
+            document.getElementById('srhListView').classList.remove('hidden');
+        }
+        
+        function renderSrhQuestions(app) {
+            const container = document.getElementById('srhQuestionsContainer');
+            container.innerHTML = '';
+            
+            if (!app.questions || app.questions.length === 0) {
+                container.innerHTML = '<p>Soru bulunamadı.</p>';
+                return;
+            }
+            
+            app.questions.forEach((q, index) => {
+                const qDiv = document.createElement('div');
+                qDiv.style.cssText = 'background: var(--gray-50); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--gray-200); margin-bottom: 15px;';
+                
+                let qHtml = `<h4 style="margin-top: 0; color: var(--dark); font-size: 1.05rem;">${index + 1}. ${q.text}</h4>`;
+                
+                if (app.type === 'coktan_secmeli') {
+                    qHtml += '<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">';
+                    if (q.options) {
+                        q.options.forEach((opt, oIndex) => {
+                            qHtml += `
+                                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px; border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.background='white'" onmouseout="this.style.background='transparent'">
+                                    <input type="radio" name="q_${index}" value="${opt.label}" style="width: 18px; height: 18px;">
+                                    <span style="font-weight: 600; color: var(--primary);">${opt.label})</span> <span>${opt.text}</span>
+                                </label>
+                            `;
+                        });
+                    }
+                    qHtml += '</div>';
+                } else if (app.type === 'kisa_cevap') {
+                    qHtml += `
+                        <div style="margin-top: 15px;">
+                            <textarea id="q_${index}" rows="3" style="width: 100%; padding: 10px; border: 1px solid var(--gray-300); border-radius: 8px; font-family: inherit;" placeholder="Cevabınızı buraya yazınız..."></textarea>
+                        </div>
+                    `;
+                } else if (app.type === 'tik_atma') {
+                    // Soru solunda checkbox olsun denmişti, ama tasarımı daha iyi göstermek için soruyu checkbox'ın label'ı gibi yapabiliriz
+                    // Mevcut tasarımı koruyarak altına bir onay kutusu koyalım
+                    qHtml = `
+                        <label style="display: flex; align-items: flex-start; gap: 15px; cursor: pointer;">
+                            <input type="checkbox" id="q_${index}" style="width: 22px; height: 22px; margin-top: 2px;">
+                            <span style="color: var(--dark); font-size: 1.05rem; font-weight: 500;">${index + 1}. ${q.text}</span>
+                        </label>
+                    `;
+                }
+                
+                qDiv.innerHTML = qHtml;
+                container.appendChild(qDiv);
+            });
+        }
+        
+        async function submitSrhAnswers() {
+            const app = window.currentSrhApp;
+            const appId = window.currentSrhAppId;
+            const studentObj = window.currentSrhStudent;
+            
+            if (!app || !studentObj) return;
+            
+            const answers = [];
+            let isComplete = true;
+            
+            app.questions.forEach((q, index) => {
+                let answerValue = null;
+                if (app.type === 'coktan_secmeli') {
+                    const selected = document.querySelector(\`input[name="q_\${index}"]:checked\`);
+                    if (selected) {
+                        answerValue = selected.value;
+                    } else {
+                        isComplete = false;
+                    }
+                } else if (app.type === 'kisa_cevap') {
+                    const txt = document.getElementById(\`q_\${index}\`).value.trim();
+                    if (txt) {
+                        answerValue = txt;
+                    } else {
+                        isComplete = false;
+                    }
+                } else if (app.type === 'tik_atma') {
+                    answerValue = document.getElementById(\`q_\${index}\`).checked;
+                }
+                
+                answers.push({
+                    questionIndex: index,
+                    answer: answerValue
+                });
+            });
+            
+            if (!isComplete && app.type !== 'tik_atma') {
+                const confirm = await Swal.fire({
+                    title: 'Eksik Cevaplar Var',
+                    text: 'Tüm soruları cevaplamadınız. Yine de kaydetmek istiyor musunuz?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, Kaydet',
+                    cancelButtonText: 'İptal'
+                });
+                if (!confirm.isConfirmed) return;
+            }
+            
+            const payload = {
+                studentNo: studentObj.no,
+                studentName: \`\${studentObj.name} \${studentObj.surname}\`,
+                studentClass: studentObj.class,
+                answers: answers,
+                timestamp: new Date().toISOString()
+            };
+            
+            Swal.fire({ title: 'Kaydediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            
+            try {
+                // Her öğrencinin cevabını kendi numarası ve app_id altında saklıyoruz (upsert)
+                const url = \`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/srh_answers/\${appId}/\${studentObj.no}.json\`;
+                const res = await fetch(url, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (res.ok) {
+                    Swal.fire('Başarılı', 'Cevaplarınız başarıyla kaydedildi!', 'success').then(() => {
+                        backToSrhList();
+                    });
+                } else {
+                    throw new Error("HTTP " + res.status);
+                }
+            } catch (err) {
+                console.error("Kaydetme hatası:", err);
+                Swal.fire('Hata', 'Kaydedilirken bir hata oluştu.', 'error');
+            }
         }
 
         // Script sonunda çalıştır
