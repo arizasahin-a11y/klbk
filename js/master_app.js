@@ -25,7 +25,8 @@ const allHtmlFiles = [
     { id: "html_security_error", title: "Güvenlik Hatası", desc: "Yetki/Güvenlik Hatası Sayfası", url: "/security_error.html", icon: "fa-shield-halved" },
     { id: "html_yoklama_idareci", title: "Yoklama İdareci", desc: "İdareci Yoklama Yönetim Paneli", url: "/yoklama_idareci.html", icon: "fa-building-user" },
     { id: "html_yoklama_ogretmen", title: "Yoklama Ekranı", desc: "Öğretmen Yoklama Alma Sayfası", url: "/yoklama_ogretmen.html", icon: "fa-clipboard-list" },
-    { id: "html_zumreci", title: "Zümreci", desc: "Zümre Planlama ve Görüş İşleme", url: "/zumreci.html", icon: "fa-users-between-lines" }
+    { id: "html_zumreci", title: "Zümreci", desc: "Zümre Planlama ve Görüş İşleme", url: "/zumreci.html", icon: "fa-users-between-lines" },
+    { id: "html_srh", title: "Rehberlik ve Sosyal", desc: "Rehberlik ve Sosyal Uygulamalar Yönetimi", url: "/srh.html", icon: "fa-people-group" }
 ];
 
 // === SECURITY: Password Hashing with Web Crypto API ===

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Rehberlik ve Sosyal Uygulamalar</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        .portal-container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .portal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 20px 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        .portal-header h2 {
+            margin: 0;
+            color: var(--dark);
+            font-weight: 800;
+        }
+        
+        .portal-header p {
+            margin: 5px 0 0 0;
+            color: var(--gray-500);
+            font-size: 0.95rem;
+        }
+
+        .btn-logout-portal {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-logout-portal:hover {
+            background: #fca5a5;
+        }
+        
+        .btn-home-portal {
+            background: #e0e7ff;
+            color: #4338ca;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-home-portal:hover {
+            background: #c7d2fe;
+        }
+
+        .app-panel {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+        
+        .app-list-container {
+            margin-top: 20px;
+        }
+
+        .app-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--gray-200);
+            transition: background 0.2s;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .app-row:hover {
+            background: rgba(248, 250, 252, 0.8);
+        }
+
+        .btn-action {
+            background: #e0e7ff;
+            color: #4338ca;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        .btn-action:hover {
+            background: #c7d2fe;
+        }
+        .btn-success {
+            background: #d1fae5;
+            color: #059669;
+        }
+        .btn-success:hover { background: #a7f3d0; }
+        
+        .btn-warning {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        .btn-warning:hover { background: #fde68a; }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray-500);
+        }
+        .form-group-modal {
+            margin-bottom: 15px;
+        }
+        .form-group-modal label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group-modal input, .form-group-modal select, .form-group-modal textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-family: inherit;
+        }
+    </style>
+</head>
+<body class="login-body">
+    <!-- Background Animation Elements -->
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+    <div class="bg-shape shape-3"></div>
+
+    <!-- 1. LOGIN SECTION -->
+    <div id="loginSection" class="login-container" style="display: none;">
+        <div class="login-card glass-panel">
+            <div class="login-header">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-people-group"></i>
+                </div>
+                <h2>Rehberlik ve Sosyal</h2>
+                <h3 id="loginSchoolName" style="color: var(--primary); font-weight: 700; margin: 0.3rem 0 0 0; font-size: 1.1rem; display: none;"></h3>
+                <p>Yönetim paneline erişmek için giriş yapın</p>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="username">Kullanıcı Adı veya E-Posta</label>
+                    <div class="input-wrapper">
+                        <i class="fa-regular fa-user"></i>
+                        <input type="text" id="username" name="username" placeholder="Kullanıcı adı veya e-posta girin" required autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Şifre</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="password" name="password" placeholder="Şifrenizi girin" required>
+                        <button type="button" class="toggle-password" id="togglePassword">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-options">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="rememberMe">
+                        <span class="checkmark"></span>
+                        Beni Hatırla
+                    </label>
+                    <a href="#" class="forgot-link">Şifremi Unuttum</a>
+                </div>
+
+                <div id="loginMessage" class="message-box hidden"></div>
+
+                <button type="submit" class="btn btn-primary btn-block btn-lg">
+                    <span>Giriş Yap</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+            <div class="login-footer">
+                <p style="margin-top: 10px; color: var(--gray-400);"><a href="enter.html" style="color:var(--gray-500); text-decoration:none;"><i class="fa-solid fa-house"></i> Ana Sayfaya Dön</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. PORTAL SECTION -->
+    <div id="portalSection" class="portal-container" style="display: none;">
+        <div class="portal-header">
+            <div>
+                <h2 style="display: flex; align-items: center;">
+                    Hoş Geldiniz, <span id="portalUserName" style="color:var(--primary); margin-left: 5px;"></span>
+                </h2>
+                <p>Rehberlik ve Sosyal Uygulamalar Yönetimi</p>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <a href="enter.html" class="btn-home-portal">
+                    <i class="fa-solid fa-house"></i> Ana Sayfa
+                </a>
+                <button class="btn-logout-portal" onclick="window.location.href='?logout=true'">
+                    <i class="fa-solid fa-right-from-bracket"></i> Çıkış
+                </button>
+            </div>
+        </div>
+
+        <!-- App Panel -->
+        <div class="app-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin:0; font-weight:700;"><i class="fa-solid fa-clipboard-list" style="color:var(--primary); margin-right:8px;"></i> Uygulamalar Listesi</h3>
+                <button class="btn btn-primary" onclick="openAddAppModal()">
+                    <i class="fa-solid fa-plus"></i> Uygulama Ekle
+                </button>
+            </div>
+            
+            <div id="appsListContainer" class="app-list-container">
+                <div style="text-align:center; padding:2rem; color:var(--gray-400);">Yükleniyor...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add App Modal Step 1 -->
+    <div class="modal-overlay" id="addAppModal1">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Yeni Uygulama Ekle</h3>
+                <button class="close-modal" onclick="closeAddAppModal1()">&times;</button>
+            </div>
+            <div class="form-group-modal">
+                <label>Uygulama Adı</label>
+                <input type="text" id="appNameInput" placeholder="Örn: Memnuniyet Anketi">
+            </div>
+            <div class="form-group-modal">
+                <label>Doldurma Biçimi</label>
+                <select id="appTypeSelect">
+                    <option value="coktan_secmeli">Çoktan Seçmeli</option>
+                    <option value="kisa_cevap">Kısa Cevap</option>
+                    <option value="tik_atma">Tik Atma</option>
+                </select>
+            </div>
+            <div style="text-align: right; margin-top:20px;">
+                <button class="btn btn-primary" onclick="goToStep2()">Oluştur <i class="fa-solid fa-arrow-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add App Modal Step 2 -->
+    <div class="modal-overlay" id="addAppModal2">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 id="step2AppNameTitle">Uygulama Adı</h3>
+                <button class="close-modal" onclick="closeAddAppModal2()">&times;</button>
+            </div>
+            <p style="color:var(--gray-500); font-size:0.9rem; margin-top:-10px; margin-bottom:15px;">
+                Soruları aşağıya yapıştırın. (Kısa Cevap / Tik Atma için her satır bir sorudur. Çoktan seçmeli için A) B) C) gibi başlayan satırlar şık olarak algılanır).
+            </p>
+            <div class="form-group-modal">
+                <textarea id="appQuestionsTextarea" rows="15" placeholder="Soruları buraya yapıştırın..."></textarea>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:20px;">
+                <button class="btn btn-secondary" onclick="backToStep1()"><i class="fa-solid fa-arrow-left"></i> Geri</button>
+                <button class="btn btn-primary" onclick="saveApplication()"><i class="fa-solid fa-save"></i> Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/core_data_v11_9_1.js?v=12.0"></script>
+    <script src="js/auth.js?v=2.6" defer></script>
+    <script src="js/srh_app.js"></script>
+</body>
+</html>
