@@ -1498,12 +1498,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
 
             clsStudents.forEach(std => {
-                let rowBg = '';
-                if (std.extra1 === 'K') rowBg = 'background-color: rgba(253, 232, 232, 0.8); color: #111827;';
-                else if (std.extra1 === 'E') rowBg = 'background-color: rgba(225, 239, 254, 0.8); color: #111827;';
-                
                 html += `
-                    <tr style="border-bottom:1px solid rgba(0,0,0,0.05); ${rowBg}">
+                    <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
                         <td style="padding:0.75rem 0.5rem; font-weight:bold;">${std.no}</td>
                         <td style="padding:0.75rem 0.5rem; display:flex; align-items:center; gap:5px;">
                             ${std.name}
