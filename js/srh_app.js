@@ -180,30 +180,30 @@ function editApp(id) {
     try {
         const app = srhApplications[id];
         if (!app) return;
-        
         currentEditAppId = id;
-        document.getElementById('appNameInput').value = app.name;
-        document.getElementById('appTypeSelect').value = app.type;
         
-        // Convert questions back to text
-        let questionsText = '';
-        if (app.questions) {
-            if (app.type === 'coktan_secmeli') {
-                app.questions.forEach(q => {
-                    questionsText += q.text + '\n';
-                    if (q.options) {
-                        q.options.forEach(opt => questionsText += opt.label + ') ' + opt.text + '\n');
-                    }
-                    questionsText += '\n'; // separator
-                });
-            } else {
-                app.questions.forEach(q => {
-                    questionsText += q.text + '\n';
-                });
-            }
+        document.getElementById('appNameInput').value = app.name || '';
+        document.getElementById('appTypeSelect').value = app.type || 'coktan_secmeli';
+        
+        // Soruları text area için hazırla
+        const qTextArea = document.getElementById('appQuestionsTextarea');
+        if (app.questions && app.questions.length > 0) {
+            const textLines = app.questions.map(q => {
+                if (app.type === 'coktan_secmeli' && q.options) {
+                    let line = q.text;
+                    const letters = ['A', 'B', 'C', 'D', 'E'];
+                    q.options.forEach((opt, idx) => {
+                        line += ` ${letters[idx]}) ${opt.text}`;
+                    });
+                    return line;
+                }
+                return q.text;
+            });
+            qTextArea.value = textLines.join('\n\n');
+        } else {
+            qTextArea.value = '';
         }
-        document.getElementById('appQuestionsTextarea').value = questionsText.trim();
-        
+
         document.getElementById('addAppModal1').style.display = 'flex';
     } catch (err) {
         Swal.fire('Düzenle Hatası', String(err), 'error');
@@ -253,38 +253,55 @@ function parseQuestions(rawText, type) {
     const questions = [];
     
     if (type === 'kisa_cevap' || type === 'tik_atma') {
-        // Each line is a question
         lines.forEach(line => {
             questions.push({ text: line });
         });
     } else if (type === 'coktan_secmeli') {
-        // Need to parse options
         let currentQuestion = null;
         
-        // Regex to match A) B) a) b) A- B- A. B.
-        const optionRegex = /^([a-eA-E])\\s*[\\)\\-\\.](.*)/;
-        
         lines.forEach(line => {
-            const match = line.match(optionRegex);
-            if (match) {
-                // It's an option
-                if (currentQuestion) {
-                    if (!currentQuestion.options) currentQuestion.options = [];
-                    currentQuestion.options.push({
-                        label: match[1].toUpperCase(),
-                        text: match[2].trim()
-                    });
-                }
+            // A) veya A- ile başlayan standart yeni satır şıkları
+            const optionMatch = line.match(/^([a-eA-E])\s*[\)\-\.](.*)/);
+            
+            if (optionMatch && currentQuestion) {
+                if (!currentQuestion.options) currentQuestion.options = [];
+                currentQuestion.options.push({
+                    label: optionMatch[1].toUpperCase(),
+                    text: optionMatch[2].trim()
+                });
             } else {
-                // It's a question (or a new question starting)
-                if (currentQuestion) {
+                // Aynı satırda birden fazla şık (A) ... B) ... C) ...) varsa
+                // Örnek: "1. Soru metni A) Şık1 B) Şık2 C) Şık3"
+                if (/A\s*[\)\-\.]/i.test(line) && /B\s*[\)\-\.]/i.test(line)) {
+                    // Soru metnini ilk şıktan öncesi olarak alalım
+                    const firstOptionIdx = line.search(/[a-eA-E]\s*[\)\-\.]/);
+                    let qText = line.substring(0, firstOptionIdx).trim();
+                    if (!qText) qText = "Soru"; // Boşsa
+                    
+                    currentQuestion = { text: qText, options: [] };
+                    
+                    let optionsText = line.substring(firstOptionIdx);
+                    // A) Şık1 B) Şık2 ...
+                    let matches = [...optionsText.matchAll(/([a-eA-E])\s*[\)\-\.]\s*(.*?)(?=(?:[a-eA-E]\s*[\)\-\.])|$)/g)];
+                    
+                    matches.forEach(m => {
+                        currentQuestion.options.push({
+                            label: m[1].toUpperCase(),
+                            text: m[2].trim()
+                        });
+                    });
                     questions.push(currentQuestion);
+                    currentQuestion = null; // Kapattık
+                } else {
+                    // Normal yeni soru satırı
+                    if (currentQuestion) {
+                        questions.push(currentQuestion);
+                    }
+                    currentQuestion = { text: line, options: [] };
                 }
-                currentQuestion = { text: line, options: [] };
             }
         });
         
-        // Push the last question
         if (currentQuestion) {
             questions.push(currentQuestion);
         }
@@ -561,7 +578,7 @@ function renderResults() {
     filledContainer.innerHTML = '';
     notFilledContainer.innerHTML = '';
     
-    const students = DataManager._getData()?.school?.students || [];
+    const students = DataManager.getStudents() || [];
     if (students.length === 0) {
         filledContainer.innerHTML = '<p>Öğrenci verisi bulunamadı.</p>';
         notFilledContainer.innerHTML = '<p>Öğrenci verisi bulunamadı.</p>';
