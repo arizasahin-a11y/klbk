@@ -1,4 +1,4 @@
-DataManager._getStorageKey = function () {
+﻿DataManager._getStorageKey = function () {
             const urlParams = new URLSearchParams(window.location.search);
             const q = urlParams.get('school');
             
@@ -60,44 +60,17 @@ DataManager._getStorageKey = function () {
                 statusEl.style.color = 'var(--danger)';
                 trustedBaseTime = Date.now();
                 performanceAtSync = performance.now();
+            }            // Sadece cache'den okul ismini göster
+            const nameDisplay = document.getElementById('schoolNameDisplay');
+            if (nameDisplay) {
+                const cached = localStorage.getItem('klbk_lastSchoolName');
+                if (cached) nameDisplay.textContent = cached;
             }
-
-            try {
-                // Sync with Firebase Cloud
-                const statusEl2 = document.getElementById('timeSyncStatus');
-                statusEl2.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Sınav Verileri İndiriliyor...';
-                
-                console.log("Initializing Cloud Sync for Student portal...");
-                await DataManager.initCloud();
-                console.log("Cloud initialization completed. Data state:", !!DataManager._getData());
-                
-                statusEl2.classList.add('hidden');
-                
-                // Show the ACTUAL school name in the header
-                const schoolSettings = DataManager.getSchoolSettings();
-                const schoolName = schoolSettings ? (schoolSettings.name || schoolSettings.schoolName || '') : '';
-                const nameDisplay = document.getElementById('schoolNameDisplay');
-                if (nameDisplay) {
-                    if (schoolName) {
-                        nameDisplay.textContent = schoolName;
-                        localStorage.setItem('klbk_lastSchoolName', schoolName);
-                    } else {
-                        // Fallback to cached value
-                        const cached = localStorage.getItem('klbk_lastSchoolName');
-                        if (cached) nameDisplay.textContent = cached;
-                    }
-                }
-
-                // Final Check: If data was loaded but students array is empty, warn in console
-                const data = DataManager._getData();
-                if (!data || !data.students || data.students.length === 0) {
-                    console.warn("DİKKAT: Veri yüklendi ancak öğrenci listesi boş. StoreKey:", DataManager._getStorageKey());
-                }
-            } catch (err) {
-                console.error("Cloud init failed for student:", err);
-                const statusEl2 = document.getElementById('timeSyncStatus');
-                statusEl2.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Veri yükleme hatası: ${err.message}`;
-            } finally {
+            
+            // "Sınav verileri indiriliyor" metnini tamamen kaldırmak için
+            const statusEl2 = document.getElementById('timeSyncStatus');
+            if (statusEl2) statusEl2.classList.add('hidden');
+        } finally {
                 // Ensure body is visible after initial sync/check
                 document.body.style.visibility = 'visible';
                 // Check for persistent session after time sync
@@ -463,6 +436,22 @@ DataManager._getStorageKey = function () {
 
         async function queryExams(isAutoLogin = false) {
             try {
+                // Sınav / Nöbet sorgulanmadan önce veritabanı yüklenmediyse yükle
+                const dbCheck = (typeof DataManager !== 'undefined') ? DataManager._getData() : null;
+                if (!dbCheck || !dbCheck.school) {
+                    Swal.fire({ title: 'Sistem Yükleniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                    await DataManager.initCloud();
+                    
+                    const schoolSettings = DataManager.getSchoolSettings();
+                    const schoolName = schoolSettings ? (schoolSettings.name || schoolSettings.schoolName || '') : '';
+                    if (schoolName) {
+                        localStorage.setItem('klbk_lastSchoolName', schoolName);
+                        const nd = document.getElementById('schoolNameDisplay');
+                        if(nd) nd.textContent = schoolName;
+                    }
+                    Swal.close();
+                }
+
                 const noInput = document.getElementById('studentNo');
                 const studentNo = noInput.value.trim().toLowerCase();
                 if (!studentNo) return;
