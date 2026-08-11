@@ -435,8 +435,7 @@
         async function queryExams(isAutoLogin = false) {
             try {
                 // Sınav / Nöbet sorgulanmadan önce veritabanı yüklenmediyse yükle
-                const dbCheck = (typeof DataManager !== 'undefined') ? DataManager._getData() : null;
-                if (!dbCheck || !dbCheck.school) {
+                if (typeof DataManager !== 'undefined' && !DataManager._memoryData) {
                     Swal.fire({ title: 'Sistem Yükleniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
                     await DataManager.initCloud();
                     
