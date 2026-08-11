@@ -125,6 +125,13 @@
             text-align: left;
         }
 
+        /* Zebra Striping (Satırları ayırt etmek için bir beyaz bir gri) */
+        .print-table tbody tr:nth-child(even) {
+            background-color: #f1f5f9;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
         .print-table th {
             font-weight: bold;
             text-align: center;
