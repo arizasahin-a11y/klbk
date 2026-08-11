@@ -70,12 +70,10 @@
             // "Sınav verileri indiriliyor" metnini tamamen kaldırmak için
             const statusEl2 = document.getElementById('timeSyncStatus');
             if (statusEl2) statusEl2.classList.add('hidden');
-        } finally {
-                // Ensure body is visible after initial sync/check
-                document.body.style.visibility = 'visible';
-                // Check for persistent session after time sync
-                checkPersistentSession();
-            }
+                    // Ensure body is visible after initial sync/check
+            document.body.style.visibility = 'visible';
+            // Check for persistent session after time sync
+            checkPersistentSession();
         }
 
         function checkClassroomDisplay() {
