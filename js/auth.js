@@ -216,14 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // We don't reload here because enter.html's own script will show the portal UI
                     // since we just populated sessionStorage.
                 } else {
-                    let targetUrl = '/j2k5l0p8'; // Default (ogrenci)
-                    if (role === 'ogretmen') {
-                        targetUrl = '/h6t3y9w1';
-                    } else if (role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi') {
-                        targetUrl = '/yoklama_idareci.html';
-                    } else if (role === 'master' || role === 'admin' || role === 'dashboard') {
-                        targetUrl = '/enter.html';
-                    }
+                    let targetUrl = '/enter.html';
                     
                     // If we are already on the login page and have a session, 
                     // we only redirect if we didn't just come from that page (to allow 'Back' button)
@@ -511,41 +504,15 @@ document.addEventListener('DOMContentLoaded', () => {
                             } else {
                                 window.location.reload();
                             }
-                        } else if (role === 'ogretmen') {
-                            // Handle intended URL for other login points if applicable
+                        } else {
                             const intended = sessionStorage.getItem('klbk_intended_url');
-                            if (intended) {
-                                sessionStorage.removeItem('klbk_intended_url');
-                                window.location.href = intended;
-                            } else {
-                                window.location.href = '/h6t3y9w1';
-                            }
-                        } else if (role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi') {
-                            const intended = sessionStorage.getItem('klbk_intended_url');
-                            if (intended) {
-                                sessionStorage.removeItem('klbk_intended_url');
-                                window.location.href = intended;
-                            } else {
-                                window.location.href = '/yoklama_idareci.html';
-                            }
-                        } else if (role === 'master' || role === 'admin' || role === 'dashboard') {
-                            const intended = sessionStorage.getItem('klbk_intended_url');
-                            if (intended) {
+                            if (intended && intended !== '/enter.html' && intended !== '/index.html') {
                                 sessionStorage.removeItem('klbk_intended_url');
                                 window.location.href = intended;
                             } else {
                                 window.location.href = '/enter.html';
                             }
-                        } else {
-                            const intended = sessionStorage.getItem('klbk_intended_url');
-                            if (intended) {
-                                sessionStorage.removeItem('klbk_intended_url');
-                                window.location.href = intended;
-                            } else {
-                                window.location.href = '/j2k5l0p8';
-                            }
-                        }
-                    }, 1000);
+                        } }, 1000);
 
             } catch (err) {
                 console.error("Giriş sırasında hata:", err);
