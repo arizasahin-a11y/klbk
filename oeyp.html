@@ -627,7 +627,8 @@
                     const passHash = await hashPassword(password);
                     
                     if (userObj.password === password || userObj.password === passHash) {
-                        if (userObj.role !== 'ogretmen' && userObj.role !== 'idareci' && userObj.role !== 'admin' && userObj.role !== 'müdür yardımcısı' && userObj.role !== 'Müdür Yardımcısı' && userObj.role !== 'müdür' && userObj.role !== 'Müdür') {
+                        const validRoles = ['ogretmen', 'idareci', 'admin', 'mudur_yardimcisi', 'mudur', 'müdür yardımcısı', 'müdür'];
+                        if (!validRoles.includes((userObj.role || "").toLowerCase())) {
                              Swal.fire('Yetkisiz', 'Sadece yetkili personel giriş yapabilir.', 'error');
                              return;
                         }
@@ -710,10 +711,11 @@
                 if (teachersContainer) {
                     teachersContainer.innerHTML = '';
                     if (users) {
-                        const teachers = Object.values(users).filter(u => 
-                            (u.role === 'ogretmen' || u.role === 'idareci' || u.role === 'müdür yardımcısı' || u.role === 'Müdür Yardımcısı' || u.role === 'müdür' || u.role === 'Müdür') && 
-                            (u.schoolName === currentUser.schoolName || u.schoolName === sessionStorage.getItem('klbk_schoolName'))
-                        ).sort((a,b) => (a.name || a.username).localeCompare(b.name || b.username, 'tr'));
+                        const teachers = Object.values(users).filter(u => {
+                            const validRoles = ['ogretmen', 'idareci', 'mudur_yardimcisi', 'mudur', 'müdür yardımcısı', 'müdür'];
+                            const isAuthorized = validRoles.includes((u.role || "").toLowerCase());
+                            return isAuthorized && (u.schoolName === currentUser.schoolName || u.schoolName === sessionStorage.getItem('klbk_schoolName'));
+                        }).sort((a,b) => (a.name || a.username).localeCompare(b.name || b.username, 'tr'));
                         
                         teachers.forEach(t => {
                             const lbl = document.createElement('label');
@@ -1666,7 +1668,8 @@
         function renderUpcomingActivity() {
             if (upcomingActInterval) clearInterval(upcomingActInterval);
             
-            if (currentUser.role === 'admin' || currentUser.role === 'idareci' || currentUser.role === 'müdür yardımcısı' || currentUser.role === 'Müdür Yardımcısı' || currentUser.role === 'müdür' || currentUser.role === 'Müdür') {
+            const adminRoles = ['admin', 'idareci', 'mudur_yardimcisi', 'mudur', 'müdür yardımcısı', 'müdür'];
+            if (adminRoles.includes((currentUser.role || "").toLowerCase())) {
                 document.getElementById('upcomingActivityPanel').style.display = 'none';
                 return;
             }
