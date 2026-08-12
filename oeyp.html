@@ -840,6 +840,12 @@
             
             const locInput = document.getElementById('newActLocation');
             if(locInput) locInput.value = '';
+            
+            if(document.getElementById('newActScope')) document.getElementById('newActScope').value = 'Okul';
+            if(document.getElementById('newActProject')) document.getElementById('newActProject').value = '';
+            if(document.getElementById('newActStartDate')) document.getElementById('newActStartDate').value = '';
+            if(document.getElementById('newActEndDate')) document.getElementById('newActEndDate').value = '';
+            if(document.getElementById('newActRecurring')) document.getElementById('newActRecurring').value = 'Evet';
         }
 
         function loadStudentsForNewAct() {
@@ -1171,6 +1177,12 @@
                 if (defaultType) defaultType.checked = true;
                 if(document.getElementById('newActPurpose')) document.getElementById('newActPurpose').value = '';
                 
+                if(document.getElementById('newActScope')) document.getElementById('newActScope').value = 'Okul';
+                if(document.getElementById('newActProject')) document.getElementById('newActProject').value = '';
+                if(document.getElementById('newActStartDate')) document.getElementById('newActStartDate').value = '';
+                if(document.getElementById('newActEndDate')) document.getElementById('newActEndDate').value = '';
+                if(document.getElementById('newActRecurring')) document.getElementById('newActRecurring').value = 'Evet';
+                
                 newActStudents = [];
                 newActSchedules = [];
                 renderNewActStudents();
@@ -1234,6 +1246,13 @@
             if(document.getElementById('newActPurpose')) {
                 document.getElementById('newActPurpose').value = act.purpose || '';
             }
+            
+            // Scope, Project, Date, Recurring
+            if (document.getElementById('newActScope')) document.getElementById('newActScope').value = act.scope || 'Okul';
+            if (document.getElementById('newActProject')) document.getElementById('newActProject').value = act.project || '';
+            if (document.getElementById('newActStartDate')) document.getElementById('newActStartDate').value = act.startDate || '';
+            if (document.getElementById('newActEndDate')) document.getElementById('newActEndDate').value = act.endDate || '';
+            if (document.getElementById('newActRecurring')) document.getElementById('newActRecurring').value = act.recurring || 'Evet';
             
             // Schedules
             newActSchedules = act.schedules ? JSON.parse(JSON.stringify(act.schedules)) : [];
