@@ -1631,9 +1631,7 @@
                     `;
                 };
                 
-                if (pendingActs.length > 0) {
-                    adminSection.innerHTML += createCategory('Onay Bekleyen Çalışmalar', 'fa-solid fa-hourglass-half', '#eab308', pendingActs, true);
-                }
+                adminSection.innerHTML += createCategory('Onay Bekleyen Çalışmalar', 'fa-solid fa-hourglass-half', '#eab308', pendingActs, true);
                 adminSection.innerHTML += createCategory('Devam Eden Çalışmalar', 'fa-solid fa-spinner fa-spin', '#10b981', ongoingActs, false);
                 adminSection.innerHTML += createCategory('1 Hafta İçinde Yapılacak Çalışmalar', 'fa-regular fa-clock', '#f59e0b', upcomingActs, false);
                 adminSection.innerHTML += createCategory('Geçmiş Çalışmalar', 'fa-solid fa-clock-rotate-left', '#3b82f6', pastOccurrences, false);
