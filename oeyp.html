@@ -2155,7 +2155,7 @@
             });
             
             const sName = currentUser.schoolName || schoolData.name || '';
-            const mudurName = schoolData.managerName || schoolData.principalName || localStorage.getItem('schoolPrincipal') || '';
+            const mudurName = schoolData.managerName || schoolData.principal || schoolData.principalName || localStorage.getItem('schoolPrincipal') || '';
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
                 <html>
@@ -2307,10 +2307,7 @@
                                 <br><br>
                                 Öğrencimin okulumuzda ${act.teachers} gözetiminde düzenlenecek olan <b>${act.name}</b> (${act.type || 'Ders İçi'}) çalışmasına katılmasına ve ${schedulesText} bulunmasına izin veriyorum.
                                 <br><br>
-                                <b>Etkinliğin Amacı:</b> ${act.purpose || 'Belirtilmemiş'}<br>
-                                <b>Kapsam:</b> ${act.scope || 'Belirtilmemiş'}<br>
-                                ${act.project && act.project !== 'Yok' && act.project !== '' ? `<b>İlgili Proje:</b> ${act.project}<br>` : ''}
-                                <b>Tarih Aralığı:</b> ${act.startDate ? act.startDate.split('-').reverse().join('.') : '-'} - ${act.endDate ? act.endDate.split('-').reverse().join('.') : '-'}
+                                <b>Etkinliğin Amacı:</b> ${act.purpose || 'Belirtilmemiş'}
                             </div>
                             <div class="footer">
                                 <div>
