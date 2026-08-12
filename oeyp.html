@@ -764,15 +764,15 @@
                 if (teachersContainer) {
                     teachersContainer.innerHTML = '';
                         if (users) {
-                            const currentSchoolStr = (currentUser.schoolName || sessionStorage.getItem('klbk_schoolName') || '').toLowerCase().trim();
+                            const currentSchoolStr = (currentUser.schoolName || sessionStorage.getItem('klbk_schoolName') || '').toLocaleLowerCase('tr-TR').trim();
                             const schoolUsers = Object.values(users).filter(u => {
-                                const sName = (u.schoolName || '').toLowerCase().trim();
+                                const sName = (u.schoolName || '').toLocaleLowerCase('tr-TR').trim();
                                 return sName === currentSchoolStr;
                             });
                             
-                            const mudurObj = schoolUsers.find(t => t.role === 'mudur' || (t.branch && t.branch.toLowerCase().includes('müdür')) || (t.name && t.name.toLowerCase().includes('müdür')));
-                            if (mudurObj && mudurObj.name) {
-                                window.fetchedMudurName = mudurObj.name;
+                            const mudurObj = schoolUsers.find(t => (t.role || '').toLocaleLowerCase('tr-TR') === 'mudur' || (t.branch && t.branch.toLocaleLowerCase('tr-TR').includes('müdür')) || (t.name && t.name.toLocaleLowerCase('tr-TR').includes('müdür')));
+                            if (mudurObj) {
+                                window.fetchedMudurName = mudurObj.name || mudurObj.username;
                             }
 
                             const teachers = schoolUsers.filter(u => {
@@ -2109,13 +2109,19 @@
             });
         }
 
-        function printIdariIzin(id, event) {
+        async function printIdariIzin(id, event) {
             event.preventDefault();
             event.stopPropagation();
             document.getElementById('printDropdown_' + id).style.display = 'none';
             
             const act = schoolData.activities.find(a => a.id === id);
             if (!act) return;
+
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                Swal.fire('Hata', 'Açılır pencere engellendi. Lütfen tarayıcı ayarlarından izin verin.', 'error');
+                return;
+            }
             
             let schedulesRows = '';
             if (act.schedules && act.schedules.length > 0) {
@@ -2164,9 +2170,29 @@
                 teachersSignatures += `<div style="text-align:center;">İmza<br><br><br>${t}<br>(Sorumlu Öğretmen)</div>`;
             });
             
+            let dynamicMudur = window.fetchedMudurName || '';
+            try {
+                const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
+                const users = await res.json();
+                if (users) {
+                    const currentSchoolStr = (currentUser.schoolName || sessionStorage.getItem('klbk_schoolName') || '').toLocaleLowerCase('tr-TR').trim();
+                    const schoolUsers = Object.values(users).filter(u => {
+                        const sName = (u.schoolName || '').toLocaleLowerCase('tr-TR').trim();
+                        return sName === currentSchoolStr;
+                    });
+                    
+                    const mudurObj = schoolUsers.find(t => (t.role || '').toLocaleLowerCase('tr-TR') === 'mudur' || (t.branch && t.branch.toLocaleLowerCase('tr-TR').includes('müdür')) || (t.name && t.name.toLocaleLowerCase('tr-TR').includes('müdür')));
+                    if (mudurObj) {
+                        dynamicMudur = mudurObj.name || mudurObj.username;
+                        window.fetchedMudurName = dynamicMudur;
+                    }
+                }
+            } catch (e) {
+                console.error("Müdür bilgisi çekilemedi:", e);
+            }
+
             const sName = currentUser.schoolName || schoolData.name || '';
-            const mudurName = window.fetchedMudurName || schoolData.managerName || schoolData.principal || schoolData.principalName || localStorage.getItem('schoolPrincipal') || '';
-            const printWindow = window.open('', '_blank');
+            const mudurName = dynamicMudur || schoolData.managerName || schoolData.principal || schoolData.principalName || localStorage.getItem('schoolPrincipal') || '';
             printWindow.document.write(`
                 <html>
                 <head>
