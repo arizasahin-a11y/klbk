@@ -384,6 +384,26 @@
                                 </label>
                             </div>
                         </div>
+
+                        <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Kapsam</label>
+                                <select id="newActScope" class="form-select-custom" required>
+                                    <option value="Okul" selected>Okul</option>
+                                    <option value="İlçe">İlçe</option>
+                                    <option value="İl">İl</option>
+                                    <option value="Ülke">Ülke</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">İlgili Proje (İsteğe Bağlı)</label>
+                                <select id="newActProject" class="form-select-custom">
+                                    <option value="" selected>-- Seçiniz --</option>
+                                    <option value="Okul Gelişim">Okul Gelişim</option>
+                                    <option value="Okul Özel">Okul Özel</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Sorumlu Öğretmenler (Birden fazla seçebilirsiniz)</label>
@@ -456,7 +476,18 @@
                 <div style="background: rgba(248, 250, 252, 0.5); padding: 15px; border-radius: 8px; margin-bottom: 1.5rem;">
                     <h5 style="margin-top:0; margin-bottom:10px; font-size:0.95rem; color:#334155;">Çalışma Zamanları Ekle</h5>
                     
-                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 10px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Başlangıç Tarihi</label>
+                            <input type="date" id="newActStartDate" class="form-select-custom">
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Bitiş Tarihi</label>
+                            <input type="date" id="newActEndDate" class="form-select-custom">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; margin-bottom: 10px;">
                         <div class="form-group" style="margin-bottom:0;">
                             <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Çalışma Günleri (Birden fazla seçebilirsiniz)</label>
                             <div style="display:flex; flex-wrap:wrap; gap:10px;" id="newActDays">
@@ -468,6 +499,13 @@
                                 <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" value="Cumartesi" onchange="updateDefaultTimeFromCheckboxes()"> Cmt</label>
                                 <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" value="Pazar" onchange="updateDefaultTimeFromCheckboxes()"> Paz</label>
                             </div>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Tekrarlı</label>
+                            <select id="newActRecurring" class="form-select-custom">
+                                <option value="Evet" selected>Evet (Haftalık)</option>
+                                <option value="Hayır">Hayır (Bir Kez)</option>
+                            </select>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Çalışma Saatleri</label>
@@ -1027,6 +1065,12 @@
             
             const purpose = document.getElementById('newActPurpose') ? document.getElementById('newActPurpose').value.trim() : '';
 
+            const scope = document.getElementById('newActScope') ? document.getElementById('newActScope').value : 'Okul';
+            const project = document.getElementById('newActProject') ? document.getElementById('newActProject').value : '';
+            const startDate = document.getElementById('newActStartDate') ? document.getElementById('newActStartDate').value : '';
+            const endDate = document.getElementById('newActEndDate') ? document.getElementById('newActEndDate').value : '';
+            const recurring = document.getElementById('newActRecurring') ? document.getElementById('newActRecurring').value : 'Evet';
+
             if (!name || !teachers) {
                 Swal.fire('Eksik Bilgi', 'Lütfen etkinlik adı giriniz ve en az bir sorumlu öğretmen seçiniz.', 'warning');
                 return;
@@ -1059,12 +1103,18 @@
                     id: editingActivityId ? editingActivityId : ("act_" + Date.now() + "_" + Math.floor(Math.random()*1000)),
                     name: name,
                     type: type,
+                    scope: scope,
+                    project: project,
+                    startDate: startDate,
+                    endDate: endDate,
+                    recurring: recurring,
                     purpose: purpose,
                     teachers: teachers,
                     schedules: JSON.parse(JSON.stringify(newActSchedules)),
                     students: JSON.parse(JSON.stringify(newActStudents)),
                     createdBy: currentUser.username,
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    isApproved: (currentUser.role === 'admin' || currentUser.role === 'idareci') ? true : false
                 };
                 
                 if (!schoolData.activities) {
@@ -1330,6 +1380,12 @@
                 `;
             }
 
+            if (currentUser.role === 'admin' || currentUser.role === 'idareci') {
+                if (act.isApproved === false) {
+                    actionButtons += `<span style="cursor:pointer; color:#10b981; padding:4px 8px; border-radius:4px; background:rgba(16,185,129,0.1); margin-right:5px;" onclick="approveActivity('${act.id}', event)" title="Onayla"><i class="fa-solid fa-check"></i> Onayla</span>`;
+                }
+            }
+
             return `
                 <div class="accordion-item ${isActive ? 'active' : ''}" style="margin-bottom: 10px; border-radius: 8px; border: 1px solid #e2e8f0; overflow:hidden;">
                     <div class="accordion-header" onclick="toggleAccordion(this)" style="background: white; border-bottom: 1px solid #e2e8f0;">
@@ -1384,6 +1440,24 @@
             `;
         }
 
+        function approveActivity(id, e) {
+            if (e) e.stopPropagation();
+            if (!schoolData.activities) return;
+            const idx = schoolData.activities.findIndex(a => a.id === id);
+            if (idx !== -1) {
+                schoolData.activities[idx].isApproved = true;
+                DataManager.saveSchoolSettings({ activities: schoolData.activities });
+                renderActivities();
+                Swal.fire({
+                    title: 'Başarılı!',
+                    text: 'Çalışma onaylandı.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+        }
+
         function renderActivities() {
             let activities = schoolData.activities || [];
             
@@ -1400,7 +1474,8 @@
                     teacherSection.parentNode.insertBefore(newActPanel, teacherSection);
                 }
                 
-                activities = activities.filter(a => a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase())));
+                let pendingActs = activities.filter(a => a.isApproved === false && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
+                activities = activities.filter(a => a.isApproved !== false && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
                 
                 const listContainer = document.getElementById('activitiesList');
                 const emptyState = document.getElementById('emptyState');
@@ -1432,6 +1507,14 @@
                 emptyState.style.display = 'none';
                 listContainer.innerHTML = '';
                 
+                if (pendingActs.length > 0) {
+                    listContainer.innerHTML += `<div style="margin-top:20px; margin-bottom:10px; font-weight:bold; color:#eab308; background:rgba(234,179,8,0.1); padding:10px; border-radius:8px;"><i class="fa-solid fa-hourglass-half"></i> İdare Onayı Bekleyen Çalışmalarınız</div>`;
+                    pendingActs.slice().reverse().forEach((act, index) => {
+                        listContainer.innerHTML += getActivityHTML(act, false);
+                    });
+                    listContainer.innerHTML += `<div style="margin-top:20px; margin-bottom:10px; font-weight:bold; color:#4f46e5; border-bottom:1px solid #e2e8f0; padding-bottom:5px;"><i class="fa-solid fa-calendar-check"></i> Onaylı Çalışmalarınız</div>`;
+                }
+                
                 activities.slice().reverse().forEach((act, index) => {
                     listContainer.innerHTML += getActivityHTML(act, false);
                 });
@@ -1456,7 +1539,10 @@
                     adminSection.parentNode.appendChild(newActPanel);
                 }
                 
-                let reversedActs = [...activities].reverse();
+                let allReversedActs = [...activities].reverse();
+                let pendingActs = allReversedActs.filter(a => a.isApproved === false);
+                let reversedActs = allReversedActs.filter(a => a.isApproved !== false);
+                
                 let ongoingActs = [];
                 let upcomingActs = [];
                 let pastOccurrences = [];
@@ -1545,6 +1631,9 @@
                     `;
                 };
                 
+                if (pendingActs.length > 0) {
+                    adminSection.innerHTML += createCategory('Onay Bekleyen Çalışmalar', 'fa-solid fa-hourglass-half', '#eab308', pendingActs, true);
+                }
                 adminSection.innerHTML += createCategory('Devam Eden Çalışmalar', 'fa-solid fa-spinner fa-spin', '#10b981', ongoingActs, false);
                 adminSection.innerHTML += createCategory('1 Hafta İçinde Yapılacak Çalışmalar', 'fa-regular fa-clock', '#f59e0b', upcomingActs, false);
                 adminSection.innerHTML += createCategory('Geçmiş Çalışmalar', 'fa-solid fa-clock-rotate-left', '#3b82f6', pastOccurrences, false);
