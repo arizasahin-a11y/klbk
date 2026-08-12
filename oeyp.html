@@ -770,7 +770,11 @@
                                 return sName === currentSchoolStr;
                             });
                             
-                            const mudurObj = schoolUsers.find(t => (t.role || '').toLocaleLowerCase('tr-TR') === 'mudur' || (t.branch && t.branch.toLocaleLowerCase('tr-TR').includes('müdür')) || (t.name && t.name.toLocaleLowerCase('tr-TR').includes('müdür')));
+                            const mudurObj = schoolUsers.find(t => 
+    (typeof t.role === 'string' && t.role.toLocaleLowerCase('tr-TR') === 'mudur') || 
+    (typeof t.branch === 'string' && t.branch.toLocaleLowerCase('tr-TR').includes('müdür')) || 
+    (typeof t.name === 'string' && t.name.toLocaleLowerCase('tr-TR').includes('müdür'))
+);
                             if (mudurObj) {
                                 window.fetchedMudurName = mudurObj.name || mudurObj.username;
                             }
@@ -1401,9 +1405,13 @@
                             ${dropdownHtml}
                         </div>
                     </div>
-                    <span style="cursor:pointer; color:#3b82f6; padding:4px 8px; border-radius:4px; background:rgba(59,130,246,0.1); margin-right:2px;" onclick="editActivity('${act.id}', event)" title="Düzenle"><i class="fa-solid fa-pen"></i></span>
-                    <span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px;" onclick="deleteActivity('${act.id}', event)" title="Sil"><i class="fa-solid fa-trash"></i></span>
                 `;
+                if (!occOverride) {
+                    actionButtons += `
+                        <span style="cursor:pointer; color:#3b82f6; padding:4px 8px; border-radius:4px; background:rgba(59,130,246,0.1); margin-right:2px;" onclick="editActivity('${act.id}', event)" title="Düzenle"><i class="fa-solid fa-pen"></i></span>
+                        <span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px;" onclick="deleteActivity('${act.id}', event)" title="Sil"><i class="fa-solid fa-trash"></i></span>
+                    `;
+                }
             }
 
             if (currentUser.role === 'admin' || currentUser.role === 'idareci') {
@@ -2181,7 +2189,11 @@
                         return sName === currentSchoolStr;
                     });
                     
-                    const mudurObj = schoolUsers.find(t => (t.role || '').toLocaleLowerCase('tr-TR') === 'mudur' || (t.branch && t.branch.toLocaleLowerCase('tr-TR').includes('müdür')) || (t.name && t.name.toLocaleLowerCase('tr-TR').includes('müdür')));
+                    const mudurObj = schoolUsers.find(t => 
+    (typeof t.role === 'string' && t.role.toLocaleLowerCase('tr-TR') === 'mudur') || 
+    (typeof t.branch === 'string' && t.branch.toLocaleLowerCase('tr-TR').includes('müdür')) || 
+    (typeof t.name === 'string' && t.name.toLocaleLowerCase('tr-TR').includes('müdür'))
+);
                     if (mudurObj) {
                         dynamicMudur = mudurObj.name || mudurObj.username;
                         window.fetchedMudurName = dynamicMudur;
