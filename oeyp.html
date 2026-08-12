@@ -510,9 +510,9 @@
                         <div class="form-group" style="margin-bottom:0;">
                             <label style="font-weight: 600; color:#475569; display:block; margin-bottom:5px;">Çalışma Saatleri</label>
                             <div style="display:flex; gap:10px; align-items:center;">
-                                <input type="time" id="newActTimeStart" class="form-select-custom" style="flex:1;">
+                                <input type="time" id="newActTimeStart" class="form-select-custom" style="flex:1;" value="15:30">
                                 <span style="font-weight:bold; color:#94a3b8;">-</span>
-                                <input type="time" id="newActTimeEnd" class="form-select-custom" style="flex:1;">
+                                <input type="time" id="newActTimeEnd" class="form-select-custom" style="flex:1;" value="17:00">
                             </div>
                         </div>
                     </div>
@@ -835,8 +835,8 @@
             if (daysContainer) {
                 Array.from(daysContainer.querySelectorAll('input[type="checkbox"]')).forEach(cb => cb.checked = false);
             }
-            document.getElementById('newActTimeStart').value = '';
-            document.getElementById('newActTimeEnd').value = '';
+            document.getElementById('newActTimeStart').value = '15:30';
+            document.getElementById('newActTimeEnd').value = '17:00';
             
             const locInput = document.getElementById('newActLocation');
             if(locInput) locInput.value = '';
@@ -1052,8 +1052,8 @@
             });
             
             checkboxes.forEach(cb => cb.checked = false);
-            document.getElementById('newActTimeStart').value = '';
-            document.getElementById('newActTimeEnd').value = '';
+            document.getElementById('newActTimeStart').value = '15:30';
+            document.getElementById('newActTimeEnd').value = '17:00';
             document.getElementById('newActLocation').value = '';
             
             renderNewActSchedules();
