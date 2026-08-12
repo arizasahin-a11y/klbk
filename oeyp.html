@@ -763,14 +763,24 @@
                 const teachersContainer = document.getElementById('newActTeachersList');
                 if (teachersContainer) {
                     teachersContainer.innerHTML = '';
-                    if (users) {
-                        const teachers = Object.values(users).filter(u => {
-                            const validRoles = ['ogretmen', 'idareci', 'mudur_yardimcisi', 'mudur', 'müdür yardımcısı', 'müdür'];
-                            const isAuthorized = validRoles.includes((u.role || "").toLowerCase());
-                            return isAuthorized && (u.schoolName === currentUser.schoolName || u.schoolName === sessionStorage.getItem('klbk_schoolName'));
-                        }).sort((a,b) => (a.name || a.username).localeCompare(b.name || b.username, 'tr'));
-                        
-                        teachers.forEach(t => {
+                        if (users) {
+                            const currentSchoolStr = (currentUser.schoolName || sessionStorage.getItem('klbk_schoolName') || '').toLowerCase().trim();
+                            const schoolUsers = Object.values(users).filter(u => {
+                                const sName = (u.schoolName || '').toLowerCase().trim();
+                                return sName === currentSchoolStr;
+                            });
+                            
+                            const mudurObj = schoolUsers.find(t => t.role === 'mudur' || (t.branch && t.branch.toLowerCase().includes('müdür')) || (t.name && t.name.toLowerCase().includes('müdür')));
+                            if (mudurObj && mudurObj.name) {
+                                window.fetchedMudurName = mudurObj.name;
+                            }
+
+                            const teachers = schoolUsers.filter(u => {
+                                const validRoles = ['ogretmen', 'idareci', 'mudur_yardimcisi', 'mudur', 'müdür yardımcısı', 'müdür'];
+                                return validRoles.includes((u.role || "").toLowerCase());
+                            }).sort((a,b) => (a.name || a.username).localeCompare(b.name || b.username, 'tr'));
+                            
+                            teachers.forEach(t => {
                             const lbl = document.createElement('label');
                             lbl.style.cssText = "cursor:pointer; display:flex; align-items:center; gap:8px; font-size:0.9rem; margin:0;";
                             const cb = document.createElement('input');
@@ -2155,7 +2165,7 @@
             });
             
             const sName = currentUser.schoolName || schoolData.name || '';
-            const mudurName = schoolData.managerName || schoolData.principal || schoolData.principalName || localStorage.getItem('schoolPrincipal') || '';
+            const mudurName = window.fetchedMudurName || schoolData.managerName || schoolData.principal || schoolData.principalName || localStorage.getItem('schoolPrincipal') || '';
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
                 <html>
