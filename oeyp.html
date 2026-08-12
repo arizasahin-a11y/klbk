@@ -627,7 +627,7 @@
                     const passHash = await hashPassword(password);
                     
                     if (userObj.password === password || userObj.password === passHash) {
-                        if (userObj.role !== 'ogretmen' && userObj.role !== 'idareci' && userObj.role !== 'admin') {
+                        if (userObj.role !== 'ogretmen' && userObj.role !== 'idareci' && userObj.role !== 'admin' && userObj.role !== 'müdür yardımcısı' && userObj.role !== 'Müdür Yardımcısı' && userObj.role !== 'müdür' && userObj.role !== 'Müdür') {
                              Swal.fire('Yetkisiz', 'Sadece yetkili personel giriş yapabilir.', 'error');
                              return;
                         }
@@ -711,7 +711,7 @@
                     teachersContainer.innerHTML = '';
                     if (users) {
                         const teachers = Object.values(users).filter(u => 
-                            (u.role === 'ogretmen' || u.role === 'idareci') && 
+                            (u.role === 'ogretmen' || u.role === 'idareci' || u.role === 'müdür yardımcısı' || u.role === 'Müdür Yardımcısı' || u.role === 'müdür' || u.role === 'Müdür') && 
                             (u.schoolName === currentUser.schoolName || u.schoolName === sessionStorage.getItem('klbk_schoolName'))
                         ).sort((a,b) => (a.name || a.username).localeCompare(b.name || b.username, 'tr'));
                         
@@ -1666,7 +1666,7 @@
         function renderUpcomingActivity() {
             if (upcomingActInterval) clearInterval(upcomingActInterval);
             
-            if (currentUser.role === 'admin' || currentUser.role === 'idareci') {
+            if (currentUser.role === 'admin' || currentUser.role === 'idareci' || currentUser.role === 'müdür yardımcısı' || currentUser.role === 'Müdür Yardımcısı' || currentUser.role === 'müdür' || currentUser.role === 'Müdür') {
                 document.getElementById('upcomingActivityPanel').style.display = 'none';
                 return;
             }
