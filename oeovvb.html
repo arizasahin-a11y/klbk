@@ -455,7 +455,7 @@
             }
 
             // If not found, check inside activities
-            const activities = schoolData.activities || [];
+            const activities = schoolData.activities ? schoolData.activities.filter(a => a.isApproved !== false) : [];
             console.log("Total activities loaded:", activities.length);
             
             for (let act of activities) {
@@ -514,7 +514,7 @@
             // Find parentPhone from activities or student object
             let foundParentPhone = student.parentPhone ? String(student.parentPhone) : null;
             if (!foundParentPhone || foundParentPhone.length < 6) {
-                const activities = schoolData.activities || [];
+                const activities = schoolData.activities ? schoolData.activities.filter(a => a.isApproved !== false) : [];
                 for (let act of activities) {
                     if (act.students) {
                         const enrolled = act.students.find(s => s && s.no && normalizeNo(s.no) === targetNo);
@@ -581,7 +581,7 @@
             const dayMap = { 0: 'Pazar', 1: 'Pazartesi', 2: 'Salı', 3: 'Çarşamba', 4: 'Perşembe', 5: 'Cuma', 6: 'Cumartesi' };
             const todayName = dayMap[now.getDay()];
 
-            const activities = schoolData.activities || [];
+            const activities = schoolData.activities ? schoolData.activities.filter(a => a.isApproved !== false) : [];
             
             let todayActs = [];
             let pastActs = [];

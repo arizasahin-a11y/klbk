@@ -540,6 +540,21 @@
             </div>
         </div>
 
+        <!-- Teacher Pending Activities Section -->
+        <div id="teacherPendingActivitiesSection" class="glass-panel accordion-item" style="margin-bottom: 2rem; padding: 0; display:none;">
+            <div class="accordion-header" onclick="toggleAccordion(this)" style="border-radius: 12px 12px 0 0;">
+                <div style="font-weight: 800; font-size: 1.15rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-hourglass-half" style="color:#eab308;"></i> İdare Onayı Bekleyen Çalışmalarım
+                </div>
+                <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
+            </div>
+            <div class="accordion-body" style="border-radius: 0 0 12px 12px;">
+                <div id="teacherPendingActivitiesList">
+                    <!-- Pending items will be rendered here -->
+                </div>
+            </div>
+        </div>
+
         <!-- Activities Section -->
         <div id="teacherActivitiesSection" class="glass-panel accordion-item" style="margin-bottom: 2rem; padding: 0;">
             <div class="accordion-header" onclick="toggleAccordion(this)" style="border-radius: 12px 12px 0 0;">
@@ -1469,6 +1484,7 @@
             if (currentUser.role === 'ogretmen') {
                 teacherSection.style.display = 'block';
                 teacherPastSection.style.display = 'block';
+                const teacherPendingSection = document.getElementById('teacherPendingActivitiesSection');
                 adminSection.style.display = 'none';
                 if (newActPanel) {
                     teacherSection.parentNode.insertBefore(newActPanel, teacherSection);
@@ -1508,11 +1524,14 @@
                 listContainer.innerHTML = '';
                 
                 if (pendingActs.length > 0) {
-                    listContainer.innerHTML += `<div style="margin-top:20px; margin-bottom:10px; font-weight:bold; color:#eab308; background:rgba(234,179,8,0.1); padding:10px; border-radius:8px;"><i class="fa-solid fa-hourglass-half"></i> İdare Onayı Bekleyen Çalışmalarınız</div>`;
+                    teacherPendingSection.style.display = 'block';
+                    const pendingList = document.getElementById('teacherPendingActivitiesList');
+                    pendingList.innerHTML = '';
                     pendingActs.slice().reverse().forEach((act, index) => {
-                        listContainer.innerHTML += getActivityHTML(act, false);
+                        pendingList.innerHTML += getActivityHTML(act, false);
                     });
-                    listContainer.innerHTML += `<div style="margin-top:20px; margin-bottom:10px; font-weight:bold; color:#4f46e5; border-bottom:1px solid #e2e8f0; padding-bottom:5px;"><i class="fa-solid fa-calendar-check"></i> Onaylı Çalışmalarınız</div>`;
+                } else {
+                    teacherPendingSection.style.display = 'none';
                 }
                 
                 activities.slice().reverse().forEach((act, index) => {
@@ -1532,6 +1551,8 @@
             } else {
                 // Admin or Idareci
                 teacherSection.style.display = 'none';
+                const teacherPendingSection = document.getElementById('teacherPendingActivitiesSection');
+                if (teacherPendingSection) teacherPendingSection.style.display = 'none';
                 if (teacherPastSection) teacherPastSection.style.display = 'none';
                 adminSection.style.display = 'block';
                 adminSection.innerHTML = '';
@@ -1631,9 +1652,9 @@
                     `;
                 };
                 
-                adminSection.innerHTML += createCategory('Onay Bekleyen Çalışmalar', 'fa-solid fa-hourglass-half', '#eab308', pendingActs, true);
                 adminSection.innerHTML += createCategory('Devam Eden Çalışmalar', 'fa-solid fa-spinner fa-spin', '#10b981', ongoingActs, false);
                 adminSection.innerHTML += createCategory('1 Hafta İçinde Yapılacak Çalışmalar', 'fa-regular fa-clock', '#f59e0b', upcomingActs, false);
+                adminSection.innerHTML += createCategory('Onay Bekleyen Çalışmalar', 'fa-solid fa-hourglass-half', '#eab308', pendingActs, true);
                 adminSection.innerHTML += createCategory('Geçmiş Çalışmalar', 'fa-solid fa-clock-rotate-left', '#3b82f6', pastOccurrences, false);
                 adminSection.innerHTML += createCategory('Tüm Planlanmış Çalışmalar', 'fa-solid fa-list-check', '#6366f1', allActs, false);
             }
