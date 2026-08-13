@@ -1842,7 +1842,7 @@
             if (!schoolData.activities) return;
             
             const tName = currentUser.name || currentUser.username;
-            const myActs = schoolData.activities.filter(a => a.teachers && a.teachers.includes(tName));
+            const myActs = schoolData.activities.filter(a => a.isApproved !== false && a.teachers && a.teachers.includes(tName));
             
             let closestGlobal = null;
             
