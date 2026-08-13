@@ -30,10 +30,7 @@
         ".write": true
       },
       
-      "klbk_agenda_templates": {
-        ".read": true,
-        ".write": true
-      },
+      "klbk_agenda_templates": { ".read": true, ".write": true },`n      "klbk_teacher_links": { ".read": true, ".write": true },
       
       "$storeKey": {
         ".write": "!data.exists() || (newData.child('_sessionToken').exists() && root.child('app_store/active_sessions/' + newData.child('_sessionToken').val()).exists() && root.child('app_store/active_sessions/' + newData.child('_sessionToken').val() + '/storeKey').val() == $storeKey && root.child('app_store/active_sessions/' + newData.child('_sessionToken').val() + '/expiresAt').val() > now)"
@@ -41,3 +38,4 @@
     }
   }
 }
+

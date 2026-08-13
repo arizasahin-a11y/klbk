@@ -458,9 +458,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         localStorage.removeItem('klbk_persistent_session');
                     }
 
+                    // Clear stale tokens to prevent permission leaks across apps
+                    const intendedUrl = sessionStorage.getItem('klbk_intended_url');
+                    const lastRedirectUrl = sessionStorage.getItem('klbk_last_redirect');
+                    sessionStorage.clear();
+                    if (intendedUrl) sessionStorage.setItem('klbk_intended_url', intendedUrl);
+                    if (lastRedirectUrl) sessionStorage.setItem('klbk_last_redirect', lastRedirectUrl);
+
                     // Setup session
                     sessionStorage.setItem('klbk_isLoggedIn', 'true');
-            sessionStorage.setItem('klbk_faaliyet_isLoggedIn', 'true');
+                    sessionStorage.setItem('klbk_faaliyet_isLoggedIn', 'true');
                     sessionStorage.setItem('klbk_currentUser', username);
                     sessionStorage.setItem('klbk_name', formatTeacherName(userData.name || username));
                     sessionStorage.setItem('klbk_schoolName', userData.schoolName || '');

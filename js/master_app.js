@@ -7,27 +7,7 @@ let usersData = {};
 let currentEditingApp = null;
 let tempAssignments = {};
 
-const allHtmlFiles = [
-    { id: "html_404", title: "404 Sayfası", desc: "Sayfa bulunamadı hatası", url: "/404.html", icon: "fa-triangle-exclamation" },
-    { id: "html_dashboard", title: "Dashboard", desc: "Ana Yönetim Paneli", url: "/dashboard.html", icon: "fa-chart-line" },
-    { id: "html_dt", title: "Nöbet Planlama", desc: "Öğretmen Nöbet Çizelgesi ve İşlemleri", url: "/dt.html", icon: "fa-calendar-day" },
-    { id: "html_enter", title: "Portal Giriş", desc: "Okul İşleri Portalı", url: "/enter.html", icon: "fa-compass" },
-    { id: "html_index", title: "Ana Giriş", desc: "Sistem Ana Giriş Sayfası", url: "/index.html", icon: "fa-right-to-bracket" },
-    { id: "html_listeci", title: "Listeci (Barkod & Liste)", desc: "Öğrenci Barkod ve Liste Okuma Ekranı", url: "/listeci.html", icon: "fa-barcode" },
-    { id: "html_listeci_print", title: "Listeci Yazdır", desc: "Liste yazdırma ekranı", url: "/listeci_print.html", icon: "fa-print" },
-    { id: "html_no", title: "Nöbetçi Öğrenci", desc: "Öğrenci Nöbet Planlama", url: "/no.html", icon: "fa-user-shield" },
-    { id: "html_oeovvb", title: "OEOVVB", desc: "Öğretmen Eylem Veritabanı", url: "/oeovvb.html", icon: "fa-database" },
-    { id: "html_oeyp", title: "OEYP", desc: "Öğretmen Eylem Yönetim Paneli", url: "/oeyp.html", icon: "fa-tasks" },
-    { id: "html_ogrenci", title: "Öğrenci Sınav Sorgu Sayfası", desc: "Öğrenciler İçin Sınav Yeri Bakma Sayfası", url: "/ogrenci.html", icon: "fa-user-graduate" },
-    { id: "html_ogrencitakip", title: "Öğrenci Takip", desc: "Öğrenci Davranış Takip İstatistikleri", url: "/ogrencitakip.html", icon: "fa-chart-pie" },
-    { id: "html_ogretmen", title: "Öğretmen Sayfası", desc: "Öğretmen Ana Sayfası", url: "/ogretmen.html", icon: "fa-chalkboard-user" },
-    { id: "html_pts", title: "Proje Faaliyet Raporu (PTS)", desc: "OGP ve OÖP Faaliyet Değerlendirme & Raporlama", url: "/faaliyet_liderleri.html", icon: "fa-file-signature" },
-    { id: "html_security_error", title: "Güvenlik Hatası", desc: "Yetki/Güvenlik Hatası Sayfası", url: "/security_error.html", icon: "fa-shield-halved" },
-    { id: "html_yoklama_idareci", title: "Yoklama İdareci", desc: "İdareci Yoklama Yönetim Paneli", url: "/yoklama_idareci.html", icon: "fa-building-user" },
-    { id: "html_yoklama_ogretmen", title: "Yoklama Ekranı", desc: "Öğretmen Yoklama Alma Sayfası", url: "/yoklama_ogretmen.html", icon: "fa-clipboard-list" },
-    { id: "html_zumreci", title: "Zümreci", desc: "Zümre Planlama ve Görüş İşleme", url: "/zumreci.html", icon: "fa-users-between-lines" },
-    { id: "html_srh", title: "Rehberlik ve Sosyal", desc: "Rehberlik ve Sosyal Uygulamalar Yönetimi", url: "/srh.html", icon: "fa-people-group" }
-];
+let dbApps = [];
 
 // === SECURITY: Password Hashing with Web Crypto API ===
 async function hashPassword(password) {
@@ -79,9 +59,10 @@ async function initMasterApp() {
     Swal.fire({ title: 'Yükleniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
     try {
-        const [permRes, usersRes] = await Promise.all([
+        const [permRes, usersRes, linksRes] = await Promise.all([
             fetch(`${FIREBASE_DB_URL}/app_store/klbk_app_permissions.json?_=${Date.now()}`),
-            fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json?_=${Date.now()}`)
+            fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json?_=${Date.now()}`),
+            fetch(`${FIREBASE_DB_URL}/app_store/klbk_teacher_links.json?_=${Date.now()}`)
         ]);
 
         if (permRes.ok) {
@@ -92,6 +73,22 @@ async function initMasterApp() {
         if (usersRes.ok) {
             const data = await usersRes.json();
             usersData = data || {};
+        }
+
+        if (linksRes.ok) {
+            const data = await linksRes.json();
+            if (data) {
+                // Determine structure based on whether data has a "links" property or is an array directly
+                let parsedLinks = [];
+                if (data.links && Array.isArray(data.links)) {
+                    parsedLinks = data.links;
+                } else if (Array.isArray(data)) {
+                    parsedLinks = data;
+                } else if (typeof data === 'object') {
+                    parsedLinks = Object.values(data);
+                }
+                dbApps = parsedLinks.filter(l => l != null);
+            }
         }
 
         renderAppList();
@@ -107,7 +104,7 @@ function renderAppList() {
     const container = document.getElementById('appListContainer');
     container.innerHTML = '';
 
-    allHtmlFiles.forEach(app => {
+    dbApps.forEach(app => {
         // Create a Firebase-safe key from the URL (e.g., /dt.html -> dt_html)
         let dbKey = app.url;
         if (dbKey.startsWith('/')) dbKey = dbKey.substring(1);
