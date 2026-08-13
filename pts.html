@@ -685,6 +685,30 @@
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
     <script src="js/pts_app.js?v=2026.05.09.401"></script>
 
+
+<style>
+.loader-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.loader-wrapper.fade-out { opacity: 0; visibility: hidden; transition: opacity 0.5s ease, visibility 0.5s ease; }
+.loader-content { text-align: center; }
+.loader-heart { display: inline-block; position: relative; width: 64px; height: 64px; margin: 0 auto 1.5rem; transform: rotate(45deg); transform-origin: 32px 32px; }
+.loader-heart div { top: 23px; left: 19px; position: absolute; width: 26px; height: 26px; background: #f43f5e; animation: heart-anim 1.2s infinite cubic-bezier(0.215, 0.61, 0.355, 1); }
+.loader-heart div:after, .loader-heart div:before { content: " "; position: absolute; display: block; width: 26px; height: 26px; background: #f43f5e; border-radius: 50%; }
+.loader-heart div:before { left: -17px; border-radius: 50% 0 0 50%; }
+.loader-heart div:after { top: -17px; border-radius: 50% 50% 0 0; }
+@keyframes heart-anim { 0% { transform: scale(0.95); } 5% { transform: scale(1.1); } 39% { transform: scale(0.85); } 45% { transform: scale(1); } 60% { transform: scale(0.95); } 100% { transform: scale(0.9); } }
+.loader-content p { font-size: 1.1rem; font-weight: 600; color: #f43f5e; letter-spacing: 1px; text-transform: uppercase; font-family: sans-serif; margin: 0; }
+</style>
+<div id="appLoader" class="loader-wrapper"><div class="loader-content"><div class="loader-heart"><div></div></div><p>Sistem Hazırlanıyor...</p></div></div>
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    const loader = document.getElementById('appLoader');
+    if (loader) {
+        loader.classList.add('fade-out');
+        setTimeout(() => loader.remove(), 600);
+    }
+});
+</script>
+
 </body>
 </html>
 
