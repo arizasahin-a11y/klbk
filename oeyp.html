@@ -1451,9 +1451,11 @@
             }
 
             const adminRoles = ['admin', 'idareci', 'mudur_yardimcisi', 'mudur', 'müdür yardımcısı', 'müdür'];
-            if (adminRoles.includes((currentUser.role || "").toLowerCase())) {
-                if (act.isApproved === false) {
-                    actionButtons += `<span style="cursor:pointer; color:#10b981; padding:4px 8px; border-radius:4px; background:rgba(16,185,129,0.1); margin-right:5px;" onclick="approveActivity('${act.id}', event)" title="Onayla"><i class="fa-solid fa-check"></i> Onayla</span>`;
+            let isUserAdmin = adminRoles.includes(String(currentUser.role || "").trim().toLowerCase());
+            
+            if (isUserAdmin) {
+                if (act.isApproved === false || String(act.isApproved).toLowerCase() === 'false') {
+                    actionButtons += `<span style="cursor:pointer; color:#10b981; padding:4px 8px; border-radius:4px; background:rgba(16,185,129,0.1); margin-right:5px; position:relative; z-index:10;" onclick="approveActivity('${act.id}', event)" title="Onayla"><i class="fa-solid fa-check"></i> Onayla</span>`;
                 }
             }
 
@@ -1548,7 +1550,7 @@
                     teacherSection.parentNode.insertBefore(newActPanel, teacherSection);
                 }
                 
-                let pendingActs = activities.filter(a => a.isApproved === false && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
+                let pendingActs = activities.filter(a => (a.isApproved === false || String(a.isApproved).toLowerCase() === 'false') && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
                 activities = activities.filter(a => a.isApproved !== false && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
                 
                 const listContainer = document.getElementById('activitiesList');
@@ -1617,7 +1619,7 @@
                 }
                 
                 let allReversedActs = [...activities].reverse();
-                let pendingActs = allReversedActs.filter(a => a.isApproved === false);
+                let pendingActs = allReversedActs.filter(a => a.isApproved === false || String(a.isApproved).toLowerCase() === 'false');
                 let reversedActs = allReversedActs.filter(a => a.isApproved !== false);
                 
                 let ongoingActs = [];
