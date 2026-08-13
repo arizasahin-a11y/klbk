@@ -496,6 +496,52 @@ document.addEventListener('DOMContentLoaded', async () => {
         setVal('roomCount', school.roomCount || '');
         setVal('principalName', school.principal || '');
         setVal('vicePrincipalName', school.vicePrincipal || '');
+
+        if (!school.principal || !school.vicePrincipal) {
+            const dbUrl = (window.DataManager && window.DataManager.firebaseDatabaseUrl) 
+                ? window.DataManager.firebaseDatabaseUrl 
+                : "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
+            fetch(`${dbUrl}/app_store/klbk_users.json?_t=${Date.now()}`)
+                .then(res => res.json())
+                .then(users => {
+                    if (!users) return;
+                    let mudur = '';
+                    let mudurBasyardimcisi = '';
+                    let mudurYardimcilari = [];
+
+                    for (const key in users) {
+                        const u = users[key];
+                        if (!u || !u.name) continue;
+                        if (u.role === 'mudur' && !mudur) {
+                            mudur = u.name;
+                        } else if (u.role === 'mudur_basyardimcisi' && !mudurBasyardimcisi) {
+                            mudurBasyardimcisi = u.name;
+                        } else if (u.role === 'mudur_yardimcisi') {
+                            mudurYardimcilari.push(u.name);
+                        }
+                    }
+
+                    const pInput = document.getElementById('principalName');
+                    if (pInput && (!pInput.value || pInput.value.trim() === '') && mudur) {
+                        pInput.value = mudur;
+                    }
+                    
+                    const vInput = document.getElementById('vicePrincipalName');
+                    if (vInput && (!vInput.value || vInput.value.trim() === '')) {
+                        let vpList = [];
+                        if (mudurBasyardimcisi) {
+                            vpList.push(mudurBasyardimcisi + ' (Baş Yardımcı)');
+                        }
+                        if (mudurYardimcilari.length > 0) {
+                            vpList = vpList.concat(mudurYardimcilari);
+                        }
+                        if (vpList.length > 0) {
+                            vInput.value = vpList.join(', ');
+                        }
+                    }
+                })
+                .catch(err => console.error("Could not fetch users for roles", err));
+        }
         setVal('gradeLevels', school.gradeLevels ? school.gradeLevels.join(', ') : '');
         setVal('schoolSubjects', school.subjects ? school.subjects.join(', ') : '');
         setVal('pdfHeaderDesign', school.pdfHeaderDesign || '1');
