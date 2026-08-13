@@ -544,7 +544,7 @@
         <div id="teacherDraftActivitiesSection" class="glass-panel accordion-item" style="margin-bottom: 2rem; padding: 0; display:none;">
             <div class="accordion-header" onclick="toggleAccordion(this)" style="border-radius: 12px 12px 0 0;">
                 <div style="font-weight: 800; font-size: 1.15rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-file-pen" style="color:#6366f1;"></i> Taslak Çalışma Planlarım
+                    <i class="fa-solid fa-file-pen" style="color:#6366f1;"></i> Taslak Çalışma Planlarım <span id="draftCount" style="background:#f1f5f9; padding:2px 8px; border-radius:12px; font-size:0.8rem; color:#64748b;"></span>
                 </div>
                 <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
             </div>
@@ -1634,6 +1634,8 @@
                 
                 if (draftActs.length > 0) {
                     teacherDraftSection.style.display = 'block';
+                    const draftCountEl = document.getElementById('draftCount');
+                    if (draftCountEl) draftCountEl.textContent = draftActs.length;
                     const draftList = document.getElementById('teacherDraftActivitiesList');
                     draftList.innerHTML = '';
                     draftActs.slice().reverse().forEach((act, index) => {
