@@ -16,6 +16,15 @@
     <script src="js/app_permissions.js"></script>
 </head>
 <body>
+<style>
+.loader-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.loader-wrapper.fade-out { opacity: 0; visibility: hidden; transition: opacity 0.5s ease, visibility 0.5s ease; }
+.loader-content { text-align: center; }
+.loader-pulse { width: 60px; height: 60px; background-color: #4f46e5; border-radius: 100%; animation: pulse-anim 1s infinite ease-in-out; margin: 0 auto 1.5rem; }
+@keyframes pulse-anim { 0% { transform: scale(0); } 100% { transform: scale(1.0); opacity: 0; } }
+.loader-content p { font-size: 1.1rem; font-weight: 600; color: #4f46e5; letter-spacing: 1px; text-transform: uppercase; font-family: sans-serif; margin: 0; }
+</style>
+<div id="appLoader" class="loader-wrapper"><div class="loader-content"><div class="loader-pulse"></div><p>Sistem Hazırlanıyor...</p></div></div>
     <div class="container no-print">
         <header>
             <div class="title-group">
@@ -686,6 +695,16 @@
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
     <script src="js/pts_app.js?v=2026.05.09.401"></script>
 
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    const loader = document.getElementById('appLoader');
+    if (loader) {
+        loader.classList.add('fade-out');
+        setTimeout(() => loader.remove(), 600);
+    }
+});
+</script>
 </body>
 </html>
+
 

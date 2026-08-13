@@ -252,6 +252,15 @@
     </style>
 </head>
 <body>
+<style>
+.loader-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.loader-wrapper.fade-out { opacity: 0; visibility: hidden; transition: opacity 0.5s ease, visibility 0.5s ease; }
+.loader-content { text-align: center; }
+.loader-hourglass { width: 0; height: 0; margin: 0 auto 1.5rem; border: 30px solid #f43f5e; border-radius: 50%; border-color: #f43f5e transparent #f43f5e transparent; animation: hourglass-anim 1.2s infinite; }
+@keyframes hourglass-anim { 0% { transform: rotate(0); animation-timing-function: cubic-bezier(0.55, 0.055, 0.675, 0.19); } 50% { transform: rotate(900deg); animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1); } 100% { transform: rotate(1800deg); } }
+.loader-content p { font-size: 1.1rem; font-weight: 600; color: #f43f5e; letter-spacing: 1px; text-transform: uppercase; font-family: sans-serif; margin: 0; }
+</style>
+<div id="appLoader" class="loader-wrapper"><div class="loader-content"><div class="loader-hourglass"></div><p>Sistem Hazırlanıyor...</p></div></div>
 
     <!-- PIN Prompt Overlay (Shows by default) -->
     <div id="pinOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:var(--gray-900); z-index:9999; display:flex; align-items:center; justify-content:center; flex-direction:column;">
@@ -338,5 +347,15 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/master_app.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    const loader = document.getElementById('appLoader');
+    if (loader) {
+        loader.classList.add('fade-out');
+        setTimeout(() => loader.remove(), 600);
+    }
+});
+</script>
 </body>
 </html>
+

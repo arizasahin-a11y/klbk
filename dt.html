@@ -21,6 +21,18 @@
     <script src="js/app_permissions.js"></script>
 </head>
 <body>
+<style>
+.loader-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.loader-wrapper.fade-out { opacity: 0; visibility: hidden; transition: opacity 0.5s ease, visibility 0.5s ease; }
+.loader-content { text-align: center; }
+.loader-dots { display: flex; justify-content: center; gap: 8px; margin: 0 auto 1.5rem; }
+.loader-dots div { width: 15px; height: 15px; background-color: #0ea5e9; border-radius: 100%; animation: dots-anim 1.4s infinite ease-in-out both; }
+.loader-dots .bounce1 { animation-delay: -0.32s; }
+.loader-dots .bounce2 { animation-delay: -0.16s; }
+@keyframes dots-anim { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
+.loader-content p { font-size: 1.1rem; font-weight: 600; color: #0ea5e9; letter-spacing: 1px; text-transform: uppercase; font-family: sans-serif; margin: 0; }
+</style>
+<div id="appLoader" class="loader-wrapper"><div class="loader-content"><div class="loader-dots"><div class="bounce1"></div><div class="bounce2"></div><div></div></div><p>Sistem Hazırlanıyor...</p></div></div>
     <!-- Background Animations -->
     <div class="bg-shape shape-1"></div>
     <div class="bg-shape shape-2"></div>
@@ -376,5 +388,15 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/core_data_v11_9_1.js?v=11.7"></script>
     <script src="js/dt_app.js?v=5"></script>
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    const loader = document.getElementById('appLoader');
+    if (loader) {
+        loader.classList.add('fade-out');
+        setTimeout(() => loader.remove(), 600);
+    }
+});
+</script>
 </body>
 </html>
+
