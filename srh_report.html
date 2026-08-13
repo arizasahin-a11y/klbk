@@ -174,16 +174,7 @@
     </style>
 </head>
 <body>
-<style>
-.loader-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-.loader-wrapper.fade-out { opacity: 0; visibility: hidden; transition: opacity 0.5s ease, visibility 0.5s ease; }
-.loader-content { text-align: center; }
-.loader-dual-ring { display: inline-block; width: 64px; height: 64px; margin: 0 auto 1.5rem; }
-.loader-dual-ring:after { content: " "; display: block; width: 46px; height: 46px; margin: 8px; border-radius: 50%; border: 6px solid #d946ef; border-color: #d946ef transparent #d946ef transparent; animation: dual-ring-anim 1.2s linear infinite; }
-@keyframes dual-ring-anim { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-.loader-content p { font-size: 1.1rem; font-weight: 600; color: #d946ef; letter-spacing: 1px; text-transform: uppercase; font-family: sans-serif; margin: 0; }
-</style>
-<div id="appLoader" class="loader-wrapper"><div class="loader-content"><div class="loader-dual-ring"></div><p>Sistem Hazırlanıyor...</p></div></div>
+
     <div class="toolbar">
         <h2 id="toolbarTitle">Yükleniyor...</h2>
         <div class="toolbar-actions">
@@ -201,14 +192,6 @@
 
     <script src="js/core_data_v11_9_1.js?v=12.0"></script>
     <script src="js/srh_report.js?v=3.15"></script>
-<script>
-window.addEventListener('DOMContentLoaded', () => {
-    const loader = document.getElementById('appLoader');
-    if (loader) {
-        loader.classList.add('fade-out');
-        setTimeout(() => loader.remove(), 600);
-    }
-});
-</script>
+
 </body>
 </html>

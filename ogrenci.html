@@ -493,15 +493,7 @@
 </head>
 
 <body class="login-body" style="padding-top: 0 !important; ">
-<style>
-.loader-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-.loader-wrapper.fade-out { opacity: 0; visibility: hidden; transition: opacity 0.5s ease, visibility 0.5s ease; }
-.loader-content { text-align: center; }
-.loader-ring { width: 60px; height: 60px; border: 5px solid transparent; border-top-color: #10b981; border-bottom-color: #f59e0b; border-radius: 50%; animation: ring-anim 1.5s linear infinite; margin: 0 auto 1.5rem; }
-@keyframes ring-anim { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-.loader-content p { font-size: 1.1rem; font-weight: 600; color: #10b981; letter-spacing: 1px; text-transform: uppercase; font-family: sans-serif; margin: 0; }
-</style>
-<div id="appLoader" class="loader-wrapper"><div class="loader-content"><div class="loader-ring"></div><p>Sistem Hazırlanıyor...</p></div></div>
+
     <div class="bg-shape shape-1"></div>
     <div class="bg-shape shape-2"></div>
     <div class="bg-shape shape-3"></div>
@@ -742,19 +734,6 @@
     <script src="js/core_data_v11_9_1.js?v=12.0"></script>
     <script src="js/ogrenci.js?v=27"></script>
 
-
-
-
-
-<script>
-window.addEventListener('DOMContentLoaded', () => {
-    const loader = document.getElementById('appLoader');
-    if (loader) {
-        loader.classList.add('fade-out');
-        setTimeout(() => loader.remove(), 600);
-    }
-});
-</script>
 </body>
 
 </html>

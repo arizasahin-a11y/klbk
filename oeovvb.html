@@ -338,16 +338,7 @@
     <script src="js/app_permissions.js"></script>
 </head>
 <body>
-<style>
-.loader-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-.loader-wrapper.fade-out { opacity: 0; visibility: hidden; transition: opacity 0.5s ease, visibility 0.5s ease; }
-.loader-content { text-align: center; }
-.loader-circle { display: inline-block; transform: translateZ(1px); margin: 0 auto 1.5rem; }
-.loader-circle > div { display: inline-block; width: 50px; height: 50px; margin: 8px; border-radius: 50%; background: #3b82f6; animation: circle-anim 2.4s cubic-bezier(0, 0.2, 0.8, 1) infinite; }
-@keyframes circle-anim { 0%, 100% { animation-timing-function: cubic-bezier(0.5, 0, 1, 0.5); } 0% { transform: rotateY(0deg); } 50% { transform: rotateY(1800deg); animation-timing-function: cubic-bezier(0, 0.5, 0.5, 1); } 100% { transform: rotateY(3600deg); } }
-.loader-content p { font-size: 1.1rem; font-weight: 600; color: #3b82f6; letter-spacing: 1px; text-transform: uppercase; font-family: sans-serif; margin: 0; }
-</style>
-<div id="appLoader" class="loader-wrapper"><div class="loader-content"><div class="loader-circle"><div></div></div><p>Sistem Hazırlanıyor...</p></div></div>
+<p>Sistem Hazırlanıyor...</p></div></div>
 
     <div id="loadingOverlay" class="loading-overlay">
         <div class="spinner mb-4"></div>
@@ -481,8 +472,6 @@
             console.warn("Student NOT FOUND anywhere. targetNo:", tNo);
             return null;
         }
-
-
 
         function checkSession() {
             const savedNo = localStorage.getItem('oeovvb_student_no');
@@ -799,22 +788,10 @@
         }
     </script>
 
-
-
-
-
 <!-- Floating Home Button -->
 <a href="enter.html" style="position: fixed; bottom: 20px; left: 20px; background: #2563eb; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 9999; text-decoration: none; font-size: 1.2rem; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" title="Ana Sayfaya Dön (Portal)">
     <i class="fa-solid fa-home"></i>
 </a>
-<script>
-window.addEventListener('DOMContentLoaded', () => {
-    const loader = document.getElementById('appLoader');
-    if (loader) {
-        loader.classList.add('fade-out');
-        setTimeout(() => loader.remove(), 600);
-    }
-});
-</script>
+
 </body>
 </html>
