@@ -1450,7 +1450,8 @@
                 }
             }
 
-            if (currentUser.role === 'admin' || currentUser.role === 'idareci') {
+            const adminRoles = ['admin', 'idareci', 'mudur_yardimcisi', 'mudur', 'müdür yardımcısı', 'müdür'];
+            if (adminRoles.includes((currentUser.role || "").toLowerCase())) {
                 if (act.isApproved === false) {
                     actionButtons += `<span style="cursor:pointer; color:#10b981; padding:4px 8px; border-radius:4px; background:rgba(16,185,129,0.1); margin-right:5px;" onclick="approveActivity('${act.id}', event)" title="Onayla"><i class="fa-solid fa-check"></i> Onayla</span>`;
                 }
@@ -1573,12 +1574,14 @@
                     listContainer.style.display = 'none';
                     emptyState.style.display = 'block';
                     teacherPastSection.style.display = 'none';
-                    return;
+                } else {
+                    listContainer.style.display = 'block';
+                    emptyState.style.display = 'none';
+                    listContainer.innerHTML = '';
+                    activities.slice().reverse().forEach((act, index) => {
+                        listContainer.innerHTML += getActivityHTML(act, false);
+                    });
                 }
-
-                listContainer.style.display = 'block';
-                emptyState.style.display = 'none';
-                listContainer.innerHTML = '';
                 
                 if (pendingActs.length > 0) {
                     teacherPendingSection.style.display = 'block';
@@ -1590,10 +1593,6 @@
                 } else {
                     teacherPendingSection.style.display = 'none';
                 }
-                
-                activities.slice().reverse().forEach((act, index) => {
-                    listContainer.innerHTML += getActivityHTML(act, false);
-                });
 
                 const pastList = document.getElementById('teacherPastActivitiesList');
                 pastList.innerHTML = '';
