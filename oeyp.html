@@ -540,6 +540,21 @@
             </div>
         </div>
 
+        <!-- Teacher Draft Activities Section -->
+        <div id="teacherDraftActivitiesSection" class="glass-panel accordion-item" style="margin-bottom: 2rem; padding: 0; display:none;">
+            <div class="accordion-header" onclick="toggleAccordion(this)" style="border-radius: 12px 12px 0 0;">
+                <div style="font-weight: 800; font-size: 1.15rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-file-pen" style="color:#6366f1;"></i> Taslak Çalışma Planlarım
+                </div>
+                <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
+            </div>
+            <div class="accordion-body" style="border-radius: 0 0 12px 12px;">
+                <div id="teacherDraftActivitiesList">
+                    <!-- Draft items will be rendered here -->
+                </div>
+            </div>
+        </div>
+
         <!-- Teacher Pending Activities Section -->
         <div id="teacherPendingActivitiesSection" class="glass-panel accordion-item" style="margin-bottom: 2rem; padding: 0; display:none;">
             <div class="accordion-header" onclick="toggleAccordion(this)" style="border-radius: 12px 12px 0 0;">
@@ -1134,6 +1149,9 @@
             function proceedSaveActivity() {
                 Swal.fire({ title: 'Kaydediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
                 
+                const adminRoles = ['admin', 'idareci', 'mudur_yardimcisi', 'mudur', 'müdür yardımcısı', 'müdür'];
+                const isUserAdmin = adminRoles.includes(String(currentUser.role || "").trim().toLowerCase());
+                
                 const newAct = {
                     id: editingActivityId ? editingActivityId : ("act_" + Date.now() + "_" + Math.floor(Math.random()*1000)),
                     name: name,
@@ -1149,7 +1167,8 @@
                     students: JSON.parse(JSON.stringify(newActStudents)),
                     createdBy: currentUser.username,
                     createdAt: new Date().toISOString(),
-                    isApproved: (currentUser.role === 'admin' || currentUser.role === 'idareci') ? true : false
+                    isApproved: isUserAdmin ? true : false,
+                    isDraft: isUserAdmin ? false : true
                 };
                 
                 if (!schoolData.activities) {
@@ -1162,6 +1181,8 @@
                         newAct.createdAt = schoolData.activities[idx].createdAt; // preserve date
                         if (schoolData.activities[idx].statusHistory) newAct.statusHistory = schoolData.activities[idx].statusHistory;
                         if (schoolData.activities[idx].attendanceHistory) newAct.attendanceHistory = schoolData.activities[idx].attendanceHistory;
+                        if (typeof schoolData.activities[idx].isApproved !== 'undefined') newAct.isApproved = schoolData.activities[idx].isApproved;
+                        if (typeof schoolData.activities[idx].isDraft !== 'undefined') newAct.isDraft = schoolData.activities[idx].isDraft;
                         schoolData.activities[idx] = newAct;
                     } else {
                         schoolData.activities.push(newAct);
@@ -1443,6 +1464,9 @@
                     </div>
                 `;
                 if (!occOverride) {
+                    if (act.isDraft === true) {
+                        actionButtons += `<span style="cursor:pointer; color:#10b981; padding:4px 8px; border-radius:4px; background:rgba(16,185,129,0.1); margin-right:5px; position:relative; z-index:10;" onclick="sendForApproval('${act.id}', event)" title="Onaya Gönder"><i class="fa-solid fa-paper-plane"></i> Onaya Gönder</span>`;
+                    }
                     actionButtons += `
                         <span style="cursor:pointer; color:#3b82f6; padding:4px 8px; border-radius:4px; background:rgba(59,130,246,0.1); margin-right:2px;" onclick="editActivity('${act.id}', event)" title="Düzenle"><i class="fa-solid fa-pen"></i></span>
                         <span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px;" onclick="deleteActivity('${act.id}', event)" title="Sil"><i class="fa-solid fa-trash"></i></span>
@@ -1533,6 +1557,24 @@
             }
         }
 
+        function sendForApproval(id, e) {
+            if (e) e.stopPropagation();
+            if (!schoolData.activities) return;
+            const idx = schoolData.activities.findIndex(a => a.id === id);
+            if (idx !== -1) {
+                schoolData.activities[idx].isDraft = false;
+                DataManager.saveSchoolSettings({ activities: schoolData.activities });
+                renderActivities();
+                Swal.fire({
+                    title: 'Başarılı!',
+                    text: 'Çalışma idareci onayına gönderildi.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+        }
+
         function renderActivities() {
             let activities = schoolData.activities || [];
             
@@ -1544,14 +1586,16 @@
             if (currentUser.role === 'ogretmen') {
                 teacherSection.style.display = 'block';
                 teacherPastSection.style.display = 'block';
+                const teacherDraftSection = document.getElementById('teacherDraftActivitiesSection');
                 const teacherPendingSection = document.getElementById('teacherPendingActivitiesSection');
                 adminSection.style.display = 'none';
                 if (newActPanel) {
                     teacherSection.parentNode.insertBefore(newActPanel, teacherSection);
                 }
                 
-                let pendingActs = activities.filter(a => (a.isApproved === false || String(a.isApproved).toLowerCase() === 'false') && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
-                activities = activities.filter(a => a.isApproved !== false && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
+                let draftActs = activities.filter(a => a.isDraft === true && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
+                let pendingActs = activities.filter(a => a.isDraft !== true && (a.isApproved === false || String(a.isApproved).toLowerCase() === 'false') && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
+                activities = activities.filter(a => a.isApproved !== false && a.isDraft !== true && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
                 
                 const listContainer = document.getElementById('activitiesList');
                 const emptyState = document.getElementById('emptyState');
@@ -1585,6 +1629,17 @@
                     });
                 }
                 
+                if (draftActs.length > 0) {
+                    teacherDraftSection.style.display = 'block';
+                    const draftList = document.getElementById('teacherDraftActivitiesList');
+                    draftList.innerHTML = '';
+                    draftActs.slice().reverse().forEach((act, index) => {
+                        draftList.innerHTML += getActivityHTML(act, false);
+                    });
+                } else {
+                    teacherDraftSection.style.display = 'none';
+                }
+
                 if (pendingActs.length > 0) {
                     teacherPendingSection.style.display = 'block';
                     const pendingList = document.getElementById('teacherPendingActivitiesList');
@@ -1619,7 +1674,7 @@
                 }
                 
                 let allReversedActs = [...activities].reverse();
-                let pendingActs = allReversedActs.filter(a => a.isApproved === false || String(a.isApproved).toLowerCase() === 'false');
+                let pendingActs = allReversedActs.filter(a => a.isDraft !== true && (a.isApproved === false || String(a.isApproved).toLowerCase() === 'false'));
                 let reversedActs = allReversedActs.filter(a => a.isApproved !== false);
                 
                 let ongoingActs = [];
