@@ -1510,7 +1510,8 @@
             
             if (isUserAdmin) {
                 if (!occOverride && (act.isApproved === false || String(act.isApproved).toLowerCase() === 'false')) {
-                    actionButtons = `<span style="cursor:pointer; color:#10b981; padding:4px 8px; border-radius:4px; background:rgba(16,185,129,0.1); margin-right:5px; position:relative; z-index:10;" onclick="approveActivity('${act.id}', event)" title="Onayla"><i class="fa-solid fa-check"></i> Onayla</span>` + actionButtons;
+                    actionButtons = `<span style="cursor:pointer; color:#10b981; padding:4px 8px; border-radius:4px; background:rgba(16,185,129,0.1); margin-right:5px; position:relative; z-index:10;" onclick="approveActivity('${act.id}', event)" title="Onayla"><i class="fa-solid fa-check"></i> Onayla</span>` +
+                                    `<span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px; position:relative; z-index:10;" onclick="rejectActivity('${act.id}', event)" title="Reddet"><i class="fa-solid fa-times"></i> Reddet</span>` + actionButtons;
                 }
                 if (occOverride) {
                     actionButtons += `<span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px; position:relative; z-index:10;" onclick="deleteOccurrence('${act.id}', '${occOverride.dateString}', event)" title="Bu Kaydı Sil"><i class="fa-solid fa-trash"></i></span>`;
@@ -1584,6 +1585,25 @@
                 Swal.fire({
                     title: 'Başarılı!',
                     text: 'Çalışma onaylandı.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+        }
+
+        function rejectActivity(id, e) {
+            if (e) e.stopPropagation();
+            if (!schoolData.activities) return;
+            const idx = schoolData.activities.findIndex(a => a.id === id);
+            if (idx !== -1) {
+                schoolData.activities[idx].isApproved = false;
+                schoolData.activities[idx].isDraft = true;
+                DataManager.saveSchoolSettings({ activities: schoolData.activities });
+                renderActivities();
+                Swal.fire({
+                    title: 'Başarılı!',
+                    text: 'Çalışma reddedildi ve taslaklara geri gönderildi.',
                     icon: 'success',
                     timer: 1500,
                     showConfirmButton: false
