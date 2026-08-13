@@ -1596,15 +1596,16 @@
                     teacherSection.parentNode.insertBefore(newActPanel, teacherSection);
                 }
                 
-                let draftActs = activities.filter(a => a.isDraft === true && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
-                let pendingActs = activities.filter(a => a.isDraft !== true && (a.isApproved === false || String(a.isApproved).toLowerCase() === 'false') && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
-                activities = activities.filter(a => a.isApproved !== false && a.isDraft !== true && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
+                let draftActs = activities.filter(a => a.isDeleted !== true && a.isDraft === true && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
+                let pendingActs = activities.filter(a => a.isDeleted !== true && a.isDraft !== true && (a.isApproved === false || String(a.isApproved).toLowerCase() === 'false') && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
+                let activeActivities = activities.filter(a => a.isDeleted !== true && a.isApproved !== false && a.isDraft !== true && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
+                let allMyActivities = activities.filter(a => (a.isApproved !== false || a.isDeleted === true) && a.isDraft !== true && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
                 
                 const listContainer = document.getElementById('activitiesList');
                 const emptyState = document.getElementById('emptyState');
                 
                 let teacherPastOccurrences = [];
-                activities.forEach(act => {
+                allMyActivities.forEach(act => {
                     if (act.statusHistory) {
                         for (let dateStr in act.statusHistory) {
                             let s = (act.statusHistory[dateStr] || '').trim().toUpperCase();
@@ -1620,9 +1621,9 @@
                 teacherPastOccurrences.sort((a, b) => b.occOverride.dateString.localeCompare(a.occOverride.dateString));
 
                 const plannedCountEl = document.getElementById('plannedCount');
-                if (plannedCountEl) plannedCountEl.textContent = activities.length;
+                if (plannedCountEl) plannedCountEl.textContent = activeActivities.length;
 
-                if (!activities || activities.length === 0) {
+                if (!activeActivities || activeActivities.length === 0) {
                     listContainer.style.display = 'none';
                     emptyState.style.display = 'block';
                     teacherPastSection.style.display = 'none';
@@ -1630,7 +1631,7 @@
                     listContainer.style.display = 'block';
                     emptyState.style.display = 'none';
                     listContainer.innerHTML = '';
-                    activities.slice().reverse().forEach((act, index) => {
+                    activeActivities.slice().reverse().forEach((act, index) => {
                         listContainer.innerHTML += getActivityHTML(act, false);
                     });
                 }
@@ -1687,8 +1688,9 @@
                 }
                 
                 let allReversedActs = [...activities].reverse();
-                let pendingActs = allReversedActs.filter(a => a.isDraft !== true && (a.isApproved === false || String(a.isApproved).toLowerCase() === 'false'));
-                let reversedActs = allReversedActs.filter(a => a.isApproved !== false);
+                let pendingActs = allReversedActs.filter(a => a.isDeleted !== true && a.isDraft !== true && (a.isApproved === false || String(a.isApproved).toLowerCase() === 'false'));
+                let reversedActs = allReversedActs.filter(a => a.isDeleted !== true && a.isApproved !== false);
+                let allActsIncludingDeleted = allReversedActs.filter(a => a.isApproved !== false);
                 
                 let ongoingActs = [];
                 let upcomingActs = [];
@@ -1723,10 +1725,12 @@
                                     occOverride: { dateString: occ.dateString, scheduleStr: occ.scheduleStr, status: 'YAPILACAK' }
                                 });
                             }
-                        });
+                    });
                     }
-                    
-                    // Extract past occurrences
+                });
+                
+                // Extract past occurrences from ALL activities (including deleted)
+                allActsIncludingDeleted.forEach(act => {
                     if (act.statusHistory) {
                         for (let dateStr in act.statusHistory) {
                             let s = (act.statusHistory[dateStr] || '').trim().toUpperCase();
@@ -1913,7 +1917,7 @@
             if (!schoolData.activities) return;
             
             const tName = currentUser.name || currentUser.username;
-            const myActs = schoolData.activities.filter(a => a.isApproved !== false && a.teachers && a.teachers.includes(tName));
+            const myActs = schoolData.activities.filter(a => a.isDeleted !== true && a.isApproved !== false && a.teachers && a.teachers.includes(tName));
             
             let closestGlobal = null;
             
@@ -2159,9 +2163,28 @@
 
         function deleteActivity(id, event) {
             event.stopPropagation();
+            const act = schoolData.activities.find(a => a.id === id);
+            if (!act) return;
+            
+            // Check if this activity has past completed/cancelled occurrences
+            let hasPastOccurrences = false;
+            if (act.statusHistory) {
+                for (let dateStr in act.statusHistory) {
+                    let s = (act.statusHistory[dateStr] || '').trim().toUpperCase();
+                    if (s === 'YAPILDI' || s === 'İPTAL' || s === 'İPTAL EDİLDİ') {
+                        hasPastOccurrences = true;
+                        break;
+                    }
+                }
+            }
+            
+            const warningText = hasPastOccurrences 
+                ? 'Bu çalışmanın geçmişte yapılmış kayıtları var. Silme işlemi yapıldığında gelecek planlamalar kaldırılacak, ancak geçmiş kayıtlar korunacaktır.'
+                : 'Bu etkinliği/çalışmayı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.';
+            
             Swal.fire({
                 title: 'Emin misiniz?',
-                text: "Bu etkinliği/çalışmayı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
+                text: warningText,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
@@ -2170,10 +2193,20 @@
                 cancelButtonText: 'İptal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    schoolData.activities = schoolData.activities.filter(a => a.id !== id);
+                    if (hasPastOccurrences) {
+                        // Soft delete: mark as deleted, keep past records
+                        const idx = schoolData.activities.findIndex(a => a.id === id);
+                        if (idx !== -1) {
+                            schoolData.activities[idx].isDeleted = true;
+                            schoolData.activities[idx].deletedAt = new Date().toISOString();
+                        }
+                    } else {
+                        // Hard delete: no past records, remove entirely
+                        schoolData.activities = schoolData.activities.filter(a => a.id !== id);
+                    }
                     DataManager.saveSchoolSettings({ activities: schoolData.activities });
                     renderActivities();
-                    Swal.fire('Silindi!', 'Etkinlik başarıyla silindi.', 'success');
+                    Swal.fire('Silindi!', hasPastOccurrences ? 'Gelecek planlamalar kaldırıldı, geçmiş kayıtlar korundu.' : 'Etkinlik başarıyla silindi.', 'success');
                 }
             });
         }
