@@ -1453,7 +1453,13 @@
                     `;
                 }
 
-                actionButtons = `
+                if (!occOverride) {
+                    if (act.isDraft === true) {
+                        actionButtons += `<span style="cursor:pointer; color:#10b981; padding:4px 8px; border-radius:4px; background:rgba(16,185,129,0.1); margin-right:5px; position:relative; z-index:10;" onclick="sendForApproval('${act.id}', event)" title="Onaya Gönder"><i class="fa-solid fa-paper-plane"></i> Onaya Gönder</span>`;
+                    }
+                }
+
+                actionButtons += `
                     <div class="dropdown" style="position:relative; display:inline-block;">
                         <button class="btn" style="padding:4px 8px; font-size:0.85rem; background:rgba(16,185,129,0.1); color:#10b981; border:none;" onclick="toggleDropdown('${dropdownId}')">
                             <i class="fa-solid fa-print"></i> <i class="fa-solid fa-caret-down"></i>
@@ -1464,9 +1470,6 @@
                     </div>
                 `;
                 if (!occOverride) {
-                    if (act.isDraft === true) {
-                        actionButtons += `<span style="cursor:pointer; color:#10b981; padding:4px 8px; border-radius:4px; background:rgba(16,185,129,0.1); margin-right:5px; position:relative; z-index:10;" onclick="sendForApproval('${act.id}', event)" title="Onaya Gönder"><i class="fa-solid fa-paper-plane"></i> Onaya Gönder</span>`;
-                    }
                     actionButtons += `
                         <span style="cursor:pointer; color:#3b82f6; padding:4px 8px; border-radius:4px; background:rgba(59,130,246,0.1); margin-right:2px;" onclick="editActivity('${act.id}', event)" title="Düzenle"><i class="fa-solid fa-pen"></i></span>
                         <span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px;" onclick="deleteActivity('${act.id}', event)" title="Sil"><i class="fa-solid fa-trash"></i></span>
@@ -1767,7 +1770,9 @@
                 
                 adminSection.innerHTML += createCategory('Devam Eden Çalışmalar', 'fa-solid fa-spinner fa-spin', '#10b981', ongoingActs, false);
                 adminSection.innerHTML += createCategory('1 Hafta İçinde Yapılacak Çalışmalar', 'fa-regular fa-clock', '#f59e0b', upcomingActs, false);
-                adminSection.innerHTML += createCategory('Onay Bekleyen Çalışmalar', 'fa-solid fa-hourglass-half', '#eab308', pendingActs, true);
+                if (pendingActs.length > 0) {
+                    adminSection.innerHTML += createCategory('Onay Bekleyen Çalışmalar', 'fa-solid fa-hourglass-half', '#eab308', pendingActs, true);
+                }
                 adminSection.innerHTML += createCategory('Geçmiş Çalışmalar', 'fa-solid fa-clock-rotate-left', '#3b82f6', pastOccurrences, false);
                 adminSection.innerHTML += createCategory('Tüm Planlanmış Çalışmalar', 'fa-solid fa-list-check', '#6366f1', allActs, false);
             }
