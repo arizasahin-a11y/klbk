@@ -1481,8 +1481,11 @@
             let isUserAdmin = adminRoles.includes(String(currentUser.role || "").trim().toLowerCase());
             
             if (isUserAdmin) {
-                if (act.isApproved === false || String(act.isApproved).toLowerCase() === 'false') {
-                    actionButtons += `<span style="cursor:pointer; color:#10b981; padding:4px 8px; border-radius:4px; background:rgba(16,185,129,0.1); margin-right:5px; position:relative; z-index:10;" onclick="approveActivity('${act.id}', event)" title="Onayla"><i class="fa-solid fa-check"></i> Onayla</span>`;
+                if (!occOverride && (act.isApproved === false || String(act.isApproved).toLowerCase() === 'false')) {
+                    actionButtons = `<span style="cursor:pointer; color:#10b981; padding:4px 8px; border-radius:4px; background:rgba(16,185,129,0.1); margin-right:5px; position:relative; z-index:10;" onclick="approveActivity('${act.id}', event)" title="Onayla"><i class="fa-solid fa-check"></i> Onayla</span>` + actionButtons;
+                }
+                if (occOverride) {
+                    actionButtons += `<span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px; position:relative; z-index:10;" onclick="deleteOccurrence('${act.id}', '${occOverride.dateString}', event)" title="Bu Kaydı Sil"><i class="fa-solid fa-trash"></i></span>`;
                 }
             }
 
@@ -2207,6 +2210,35 @@
                     DataManager.saveSchoolSettings({ activities: schoolData.activities });
                     renderActivities();
                     Swal.fire('Silindi!', hasPastOccurrences ? 'Gelecek planlamalar kaldırıldı, geçmiş kayıtlar korundu.' : 'Etkinlik başarıyla silindi.', 'success');
+                }
+            });
+        }
+
+        function deleteOccurrence(actId, dateString, event) {
+            event.stopPropagation();
+            Swal.fire({
+                title: 'Kayıt Silinecek',
+                text: "Geçmişteki bu çalışmanın verileri tamamen silinecek. Emin misiniz?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const idx = schoolData.activities.findIndex(a => a.id === actId);
+                    if (idx !== -1) {
+                        if (schoolData.activities[idx].statusHistory) {
+                            delete schoolData.activities[idx].statusHistory[dateString];
+                        }
+                        if (schoolData.activities[idx].attendanceHistory) {
+                            delete schoolData.activities[idx].attendanceHistory[dateString];
+                        }
+                        DataManager.saveSchoolSettings({ activities: schoolData.activities });
+                        renderActivities();
+                        Swal.fire('Silindi!', 'Geçmiş kayıt başarıyla silindi.', 'success');
+                    }
                 }
             });
         }
