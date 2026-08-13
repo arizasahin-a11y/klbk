@@ -559,7 +559,7 @@
         <div id="teacherPendingActivitiesSection" class="glass-panel accordion-item" style="margin-bottom: 2rem; padding: 0; display:none;">
             <div class="accordion-header" onclick="toggleAccordion(this)" style="border-radius: 12px 12px 0 0;">
                 <div style="font-weight: 800; font-size: 1.15rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-hourglass-half" style="color:#eab308;"></i> İdare Onayı Bekleyen Çalışmalarım
+                    <i class="fa-solid fa-hourglass-half" style="color:#eab308;"></i> İdare Onayı Bekleyen Çalışmalarım <span id="pendingCount" style="background:#f1f5f9; padding:2px 8px; border-radius:12px; font-size:0.8rem; color:#64748b;"></span>
                 </div>
                 <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
             </div>
@@ -574,7 +574,7 @@
         <div id="teacherActivitiesSection" class="glass-panel accordion-item" style="margin-bottom: 2rem; padding: 0;">
             <div class="accordion-header" onclick="toggleAccordion(this)" style="border-radius: 12px 12px 0 0;">
                 <div style="font-weight: 800; font-size: 1.15rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-calendar-check" style="color:#4f46e5;"></i> Planlanmış Çalışmalarım
+                    <i class="fa-solid fa-calendar-check" style="color:#4f46e5;"></i> Planlanmış Çalışmalarım <span id="plannedCount" style="background:#f1f5f9; padding:2px 8px; border-radius:12px; font-size:0.8rem; color:#64748b;"></span>
                 </div>
                 <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
             </div>
@@ -593,7 +593,7 @@
         <div id="teacherPastActivitiesSection" class="glass-panel accordion-item" style="margin-bottom: 2rem; padding: 0; display:none;">
             <div class="accordion-header" onclick="toggleAccordion(this)" style="border-radius: 12px 12px 0 0;">
                 <div style="font-weight: 800; font-size: 1.15rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-clock-rotate-left" style="color:#3b82f6;"></i> Geçmiş Çalışmalar
+                    <i class="fa-solid fa-clock-rotate-left" style="color:#3b82f6;"></i> Geçmiş Çalışmalar <span id="pastCount" style="background:#f1f5f9; padding:2px 8px; border-radius:12px; font-size:0.8rem; color:#64748b;"></span>
                 </div>
                 <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
             </div>
@@ -1619,6 +1619,9 @@
                 });
                 teacherPastOccurrences.sort((a, b) => b.occOverride.dateString.localeCompare(a.occOverride.dateString));
 
+                const plannedCountEl = document.getElementById('plannedCount');
+                if (plannedCountEl) plannedCountEl.textContent = activities.length;
+
                 if (!activities || activities.length === 0) {
                     listContainer.style.display = 'none';
                     emptyState.style.display = 'block';
@@ -1647,6 +1650,8 @@
 
                 if (pendingActs.length > 0) {
                     teacherPendingSection.style.display = 'block';
+                    const pendingCountEl = document.getElementById('pendingCount');
+                    if (pendingCountEl) pendingCountEl.textContent = pendingActs.length;
                     const pendingList = document.getElementById('teacherPendingActivitiesList');
                     pendingList.innerHTML = '';
                     pendingActs.slice().reverse().forEach((act, index) => {
@@ -1658,6 +1663,9 @@
 
                 const pastList = document.getElementById('teacherPastActivitiesList');
                 pastList.innerHTML = '';
+                const pastCountEl = document.getElementById('pastCount');
+                if (pastCountEl) pastCountEl.textContent = teacherPastOccurrences.length;
+
                 if (teacherPastOccurrences.length > 0) {
                     teacherPastOccurrences.forEach((item, index) => {
                         pastList.innerHTML += getActivityHTML(item.act, false, item.occOverride);
