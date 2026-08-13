@@ -247,12 +247,25 @@
                            sessionStorage.getItem('klbk_teacher_token') === 'true';
             if (isLogged) {
                 let name = sessionStorage.getItem('klbk_name') || sessionStorage.getItem('klbk_currentUser') || 'Öğretmen';
+                let username = sessionStorage.getItem('klbk_currentUser');
                 let storedUser = sessionStorage.getItem('klbk_teacher_user');
                 if (storedUser) {
-                    try { currentUser = JSON.parse(storedUser); } catch(e) {}
+                    try { 
+                        currentUser = JSON.parse(storedUser); 
+                        // If the locally stored user doesn't match the globally logged in user, ignore it.
+                        if (username && currentUser.username !== username) {
+                            currentUser = null;
+                        }
+                    } catch(e) {}
                 }
                 if (!currentUser) {
-                    currentUser = { username: name, name: name };
+                    currentUser = { 
+                        username: username || name, 
+                        name: name,
+                        role: sessionStorage.getItem('klbk_role') || 'ogretmen',
+                        schoolName: sessionStorage.getItem('klbk_schoolName') || '',
+                        storeKey: sessionStorage.getItem('klbk_storeKey') || `klbk_data_${username}`
+                    };
                 }
                 if (typeof initializeApp === 'function') {
                     initializeApp();
@@ -268,6 +281,17 @@
     <script src="js/app_permissions.js"></script>
 </head>
 <body>
+<style>
+.loader-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.loader-wrapper.fade-out { opacity: 0; visibility: hidden; transition: opacity 0.5s ease, visibility 0.5s ease; }
+.loader-content { text-align: center; }
+.loader-ripple { display: inline-block; position: relative; width: 64px; height: 64px; margin: 0 auto 1.5rem; }
+.loader-ripple div { position: absolute; border: 4px solid #f97316; opacity: 1; border-radius: 50%; animation: ripple-anim 1s cubic-bezier(0, 0.2, 0.8, 1) infinite; }
+.loader-ripple div:nth-child(2) { animation-delay: -0.5s; }
+@keyframes ripple-anim { 0% { top: 28px; left: 28px; width: 0; height: 0; opacity: 1; } 100% { top: -1px; left: -1px; width: 58px; height: 58px; opacity: 0; } }
+.loader-content p { font-size: 1.1rem; font-weight: 600; color: #f97316; letter-spacing: 1px; text-transform: uppercase; font-family: sans-serif; margin: 0; }
+</style>
+<div id="appLoader" class="loader-wrapper"><div class="loader-content"><div class="loader-ripple"><div></div><div></div></div><p>Sistem Hazırlanıyor...</p></div></div>
 
     <!-- Login Panel -->
     <div id="loginPanel" style="display: flex; justify-content: center; align-items: center; min-height: 100vh;">
@@ -627,17 +651,31 @@
 
         // Auto-login check
         window.onload = async () => {
+            const isGlobalLogged = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || sessionStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true';
             const token = sessionStorage.getItem('klbk_teacher_token');
             const storedUser = sessionStorage.getItem('klbk_teacher_user');
             
             if (token && storedUser) {
                 try {
-                    currentUser = JSON.parse(storedUser);
-                    await initializeApp();
+                    const parsedUser = JSON.parse(storedUser);
+                    const globalUsername = sessionStorage.getItem('klbk_currentUser');
+                    // Check for stale tokens
+                    if (globalUsername && parsedUser.username !== globalUsername) {
+                        sessionStorage.removeItem('klbk_teacher_token');
+                        sessionStorage.removeItem('klbk_teacher_user');
+                        if (isGlobalLogged) await initializeApp();
+                        else showLoginSchoolNameFallback();
+                    } else {
+                        currentUser = parsedUser;
+                        await initializeApp();
+                    }
                 } catch(e) {
                     sessionStorage.removeItem('klbk_teacher_token');
-                    showLoginSchoolNameFallback();
+                    if (isGlobalLogged) await initializeApp();
+                    else showLoginSchoolNameFallback();
                 }
+            } else if (isGlobalLogged && currentUser) {
+                await initializeApp();
             } else {
                 showLoginSchoolNameFallback();
             }
@@ -2482,6 +2520,15 @@
                 
 
 
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    const loader = document.getElementById('appLoader');
+    if (loader) {
+        loader.classList.add('fade-out');
+        setTimeout(() => loader.remove(), 600);
+    }
+});
+</script>
 </body>
                 </html>
             `);
