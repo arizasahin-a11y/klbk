@@ -1602,6 +1602,7 @@
             if (idx !== -1) {
                 schoolData.activities[idx].isApproved = false;
                 schoolData.activities[idx].isDraft = true;
+                schoolData.activities[idx].rejectionCount = (schoolData.activities[idx].rejectionCount || 0) + 1;
                 DataManager.saveSchoolSettings({ activities: schoolData.activities });
                 renderActivities();
                 Swal.fire({
