@@ -448,6 +448,9 @@
             </div>
             
             <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;" id="idareciHeaderButtons">
+                <button class="btn" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: none; padding: 0.4rem 0.6rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: var(--transition);" onclick="archiveAttendances()" title="Yoklamaları Arşivle">
+                    <i class="fa-solid fa-box-archive"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Arşivle</span>
+                </button>
                 <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.4rem 0.6rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: var(--transition);" onclick="resetAttendances()" title="Tüm Yoklamaları Sıfırla">
                     <i class="fa-solid fa-arrows-rotate"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Sıfırla</span>
                 </button>
@@ -522,6 +525,9 @@
             </button>
             <button class="tab-btn" id="btnTabYazdir" onclick="switchTab('yazdir')">
                 <i class="fa-solid fa-print"></i> Yazdır
+            </button>
+            <button class="tab-btn" id="btnTabArsiv" onclick="switchTab('arsiv')">
+                <i class="fa-solid fa-box-archive"></i> Arşivler
             </button>
         </div>
 
@@ -909,6 +915,29 @@
             </div>
         </div>
 
+        <!-- TAB 8: Arşivler -->
+        <div id="tabArsiv" class="tab-content hidden">
+            <div class="glass-panel" style="padding: 1.5rem; margin-bottom: 2rem;">
+                <h3 style="margin-top:0; font-weight: 800; color: var(--primary);"><i class="fa-solid fa-box-archive"></i> Yoklama Arşivleri</h3>
+                <p style="color: var(--gray-500); font-size: 0.9rem; margin-bottom: 1.5rem;">Dönem sonlarında veya belirli tarihlerde aldığınız arşivleri buradan yönetebilirsiniz.</p>
+                
+                <div class="table-responsive">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Arşiv Adı</th>
+                                <th>Kayıt Tarihi</th>
+                                <th style="text-align: right;">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="arsivTableBody">
+                            <tr><td colspan="3" style="text-align:center; padding:2rem; color:var(--gray-400);">Arşiv bulunmamaktadır.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </div>
     <!-- XLSX Helper for exporting to Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -1063,6 +1092,123 @@
                         console.error(e);
                         Swal.fire('Hata', 'Sıfırlama işlemi başarısız oldu.', 'error');
                     }
+                }
+            }
+        }
+
+        async function archiveAttendances() {
+            const { value: archiveName } = await Swal.fire({
+                title: 'Yoklamaları Arşivle',
+                text: 'Mevcut tüm yoklama verilerini arşivlemek için bir isim girin (Örn: 14 Eylül 2026 - 25 Haziran 2027 Arası yoklamalar):',
+                input: 'text',
+                inputPlaceholder: 'Arşiv Adı',
+                showCancelButton: true,
+                confirmButtonText: 'Arşivle',
+                cancelButtonText: 'İptal',
+                inputValidator: (value) => {
+                    if (!value) return 'Lütfen arşiv için bir isim girin!';
+                }
+            });
+
+            if (archiveName) {
+                Swal.fire({ title: 'Arşivleniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                
+                try {
+                    const data = DataManager._getData();
+                    if (!data.archived_attendances) data.archived_attendances = {};
+                    
+                    data.archived_attendances[archiveName] = {
+                        dateArchived: new Date().toISOString(),
+                        attendanceData: data.attendance || {}
+                    };
+                    
+                    DataManager._saveData(data);
+                    
+                    Swal.fire({
+                        title: 'Başarılı!',
+                        text: 'Yoklama verileri başarıyla arşivlendi.',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        if(document.getElementById('btnTabArsiv').classList.contains('active')){
+                            renderArchiveList();
+                        }
+                    });
+                } catch(e) {
+                    console.error(e);
+                    Swal.fire('Hata', 'Arşivleme işlemi başarısız oldu.', 'error');
+                }
+            }
+        }
+
+        function renderArchiveList() {
+            const tbody = document.getElementById('arsivTableBody');
+            const data = DataManager._getData();
+            const archives = data.archived_attendances || {};
+            
+            if (Object.keys(archives).length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:2rem; color:var(--gray-400);">Arşiv bulunmamaktadır.</td></tr>';
+                return;
+            }
+
+            let html = '';
+            for (const [name, info] of Object.entries(archives)) {
+                const dateObj = new Date(info.dateArchived);
+                const dateStr = !isNaN(dateObj) ? dateObj.toLocaleString('tr-TR') : 'Bilinmiyor';
+                html += `<tr>
+                    <td style="font-weight: 700;">${name}</td>
+                    <td>${dateStr}</td>
+                    <td style="text-align: right;">
+                        <button class="btn btn-sm" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 6px 10px;" onclick="deleteArchive('${name}')" title="Arşivi Sil">
+                            <i class="fa-solid fa-trash-can"></i> Sil
+                        </button>
+                    </td>
+                </tr>`;
+            }
+            tbody.innerHTML = html;
+        }
+
+        async function deleteArchive(archiveName) {
+            const passwordMatch = await Swal.fire({
+                title: 'Arşivi Sil: ' + archiveName,
+                text: 'Lütfen silme şifresini giriniz:',
+                input: 'password',
+                inputAttributes: {
+                    autocapitalize: 'off'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Sil',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#ef4444'
+            });
+
+            if (passwordMatch.isConfirmed) {
+                if (passwordMatch.value === '12345') {
+                    Swal.fire({ title: 'Siliniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                    
+                    try {
+                        const data = DataManager._getData();
+                        if (data.archived_attendances && data.archived_attendances[archiveName]) {
+                            delete data.archived_attendances[archiveName];
+                            DataManager._saveData(data);
+                            
+                            Swal.fire({
+                                title: 'Başarılı!',
+                                text: 'Arşiv başarıyla silindi.',
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                renderArchiveList();
+                            });
+                        }
+                    } catch(e) {
+                        console.error(e);
+                        Swal.fire('Hata', 'Silme işlemi başarısız oldu.', 'error');
+                    }
+                } else {
+                    Swal.fire('Hata', 'Şifre yanlış. İşlem iptal edildi.', 'error');
                 }
             }
         }
@@ -1984,7 +2130,7 @@
 
         // --- Tab Switching Logic ---
         function switchTab(tabName) {
-            const tabs = ['sinif', 'ders', 'saat', 'aralik', 'genel', 'siralama', 'yazdir'];
+            const tabs = ['sinif', 'ders', 'saat', 'aralik', 'genel', 'siralama', 'yazdir', 'arsiv'];
             
             tabs.forEach(t => {
                 const content = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
@@ -1996,6 +2142,7 @@
                     content.classList.remove('hidden');
                     btn.className = 'tab-btn active';
                     if (t === 'siralama') runSiralamaReport();
+                    if (t === 'arsiv') renderArchiveList();
                 } else {
                     content.classList.add('hidden');
                     btn.className = 'tab-btn';
