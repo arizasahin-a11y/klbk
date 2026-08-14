@@ -689,10 +689,10 @@
                     didOpen: () => { Swal.showLoading(); }
                 });
                 
-                const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_teacher_links.json`, {
+                const res = await fetch('/api/updateLinks', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(portalLinks)
+                    body: JSON.stringify({ links: portalLinks })
                 });
 
                 if (!res.ok) {
