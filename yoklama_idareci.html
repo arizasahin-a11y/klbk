@@ -2402,7 +2402,11 @@
                     else if (missingCount > 4) fontSize = 11;
                 }
                 
-                html += `<td style="border: 1px solid black; border-bottom: 2px solid black; font-size: ${fontSize}px; line-height: 1.2; padding-top: 10px; text-align: center; vertical-align: top;">${absentText}</td>`;
+                html += `<td style="border: 1px solid black; border-bottom: 2px solid black; padding: 0; text-align: center; vertical-align: top; position: relative;">
+                            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; padding-top: 5px; font-size: ${fontSize}px; line-height: 1.2;">
+                                ${absentText}
+                            </div>
+                         </td>`;
             }
 
             html += `</tr>
@@ -2499,6 +2503,7 @@
                     }
                     .fis-wrapper-multi table {
                         flex: 1;
+                        min-height: 0;
                         /* height: 100% removed to prevent overflow */
                     }
                     .fis-wrapper-multi thead {
@@ -2511,16 +2516,16 @@
                         clear: right;
                     }
                     .wrapper-2li {
-                        height: 13.4cm;
+                        height: 14.5cm;
                     }
                     .wrapper-3lu {
-                        height: 8.9cm;
+                        height: 9.6cm;
                     }
                     .wrapper-4lu {
-                        height: 6.6cm;
+                        height: 7.2cm;
                     }
                     .wrapper-5li {
-                        height: 5.3cm;
+                        height: 5.7cm;
                     }
 
                     /* Scale fonts for 2li, 3lu, 4lu */
