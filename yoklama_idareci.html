@@ -1158,6 +1158,10 @@
                     <td style="font-weight: 700;">${name}</td>
                     <td>${dateStr}</td>
                     <td style="text-align: right;">
+                    <td style="text-align: right;">
+                        <button class="btn btn-sm" style="background: rgba(14, 165, 233, 0.1); color: var(--primary); border: none; padding: 6px 10px; margin-right: 5px;" onclick="viewArchive('${name}')" title="Arşivi İncele">
+                            <i class="fa-solid fa-eye"></i> İncele
+                        </button>
                         <button class="btn btn-sm" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 6px 10px;" onclick="deleteArchive('${name}')" title="Arşivi Sil">
                             <i class="fa-solid fa-trash-can"></i> Sil
                         </button>
@@ -1210,6 +1214,105 @@
                 }
             }
         }
+        
+        let activeArchiveName = null;
+        
+        function viewArchive(archiveName) {
+            const data = DataManager._getData();
+            if (data.archived_attendances && data.archived_attendances[archiveName]) {
+                // Load archive data into active memory
+                attendanceDb = JSON.parse(JSON.stringify(data.archived_attendances[archiveName].attendanceData || {}));
+                activeArchiveName = archiveName;
+                
+                // Show Banner
+                let banner = document.getElementById('archiveModeBanner');
+                if (!banner) {
+                    banner = document.createElement('div');
+                    banner.id = 'archiveModeBanner';
+                    banner.style.background = '#fef08a'; // yellow-200
+                    banner.style.color = '#854d0e'; // yellow-800
+                    banner.style.padding = '12px 20px';
+                    banner.style.marginBottom = '20px';
+                    banner.style.borderRadius = '8px';
+                    banner.style.display = 'flex';
+                    banner.style.justifyContent = 'space-between';
+                    banner.style.alignItems = 'center';
+                    banner.style.fontWeight = '700';
+                    banner.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                    
+                    const tabMenu = document.getElementById('adminTabContainer');
+                    tabMenu.parentNode.insertBefore(banner, tabMenu);
+                }
+                
+                banner.innerHTML = `
+                    <div><i class="fa-solid fa-triangle-exclamation" style="margin-right: 8px;"></i> DİKKAT: ŞU AN <strong>"${archiveName}"</strong> İSİMLİ ARŞİVİ İNCELİYORSUNUZ. YAPILAN DEĞİŞİKLİKLER KAYDEDİLMEZ.</div>
+                    <button class="btn btn-sm" style="background: #854d0e; color: white; border: none;" onclick="exitArchiveMode()">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i> Arşivden Çık
+                    </button>
+                `;
+                banner.style.display = 'flex';
+                
+                // Hide action buttons to prevent accidental data resets
+                const headerBtns = document.getElementById('idareciHeaderButtons');
+                if (headerBtns) {
+                    const archiveBtn = headerBtns.querySelector('.fa-box-archive')?.parentNode;
+                    const resetBtn = headerBtns.querySelector('.fa-arrows-rotate')?.parentNode;
+                    if (archiveBtn) archiveBtn.style.display = 'none';
+                    if (resetBtn) resetBtn.style.display = 'none';
+                }
+                
+                // Close accordion
+                const accordion = document.getElementById('archiveAccordion');
+                if (accordion) accordion.removeAttribute('open');
+                
+                // Re-calculate stats and refresh view
+                computeOverallStats();
+                switchTab('genel');
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Arşiv Modu',
+                    text: `Şu anda "${archiveName}" arşivini inceliyorsunuz. Normal görünüme dönmek için üstteki 'Arşivden Çık' butonunu kullanın.`,
+                    confirmButtonColor: '#0ea5e9'
+                });
+            }
+        }
+        
+        function exitArchiveMode() {
+            activeArchiveName = null;
+            
+            // Restore normal active data
+            const data = DataManager._getData();
+            attendanceDb = JSON.parse(JSON.stringify(data.attendance || {}));
+            
+            // Hide banner
+            const banner = document.getElementById('archiveModeBanner');
+            if (banner) banner.style.display = 'none';
+            
+            // Show action buttons again
+            const headerBtns = document.getElementById('idareciHeaderButtons');
+            if (headerBtns) {
+                const archiveBtn = headerBtns.querySelector('.fa-box-archive')?.parentNode;
+                const resetBtn = headerBtns.querySelector('.fa-arrows-rotate')?.parentNode;
+                if (archiveBtn) archiveBtn.style.display = 'inline-flex';
+                if (resetBtn) resetBtn.style.display = 'inline-flex';
+            }
+            
+            // Re-calculate stats and refresh view
+            computeOverallStats();
+            switchTab('genel');
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Normal Görünüm',
+                text: 'Arşiv modundan çıkıldı. Şu an aktif yoklama verilerini görüntülüyorsunuz.',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+
 
         // Sorting configuration for general tab
         let genelSortField = 'class';
