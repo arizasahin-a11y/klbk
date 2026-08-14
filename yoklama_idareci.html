@@ -1337,6 +1337,10 @@
 
                 // Compute overall stats
                 computeOverallStats();
+                
+                if (typeof renderArchiveList === 'function') {
+                    renderArchiveList();
+                }
 
                 Swal.close();
             } catch (e) {
@@ -3001,11 +3005,6 @@ window.addEventListener('DOMContentLoaded', () => {
     if (loader) {
         loader.classList.add('fade-out');
         setTimeout(() => loader.remove(), 600);
-    }
-    
-    // Arşiv listesini sayfa açılışında akordiona yükle
-    if (typeof renderArchiveList === 'function') {
-        renderArchiveList();
     }
 });
 </script>
