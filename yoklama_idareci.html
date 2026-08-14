@@ -2170,7 +2170,13 @@
                             pageChunks.push(`<div class="fis-wrapper-multi wrapper-5li" style="visibility: hidden;"></div>`);
                         }
                         const formatDateText = (d) => d.split('-').reverse().join('.');
-                        let classText = selectedClasses.length === 1 ? `${selectedClasses[0]} SINIFININ` : `SEÇİLEN SINIFLARIN`;
+                        let pageClasses = [];
+                        pageChunks.forEach(chunk => {
+                            let match = chunk.match(/<div class="print-title">(.*?) SINIFI/);
+                            if (match && match[1]) pageClasses.push(match[1]);
+                        });
+                        pageClasses = [...new Set(pageClasses)];
+                        let classText = pageClasses.length === 1 ? `${pageClasses[0]} SINIFININ` : (pageClasses.length > 0 ? `${pageClasses.join(', ')} SINIFLARININ` : `SEÇİLEN SINIFLARIN`);
                         let dateText = datesToPrint.length > 1 ? `${formatDateText(datesToPrint[0])} - ${formatDateText(datesToPrint[datesToPrint.length - 1])}` : `${formatDateText(datesToPrint[0])}`;
                         
                         pageChunks.push(`<div class="fis-wrapper-multi wrapper-5li" style="display: flex; align-items: center; justify-content: center; border: none; background: transparent;">
