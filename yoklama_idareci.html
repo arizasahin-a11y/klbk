@@ -876,7 +876,7 @@
                 <div class="grid-filters" style="margin-bottom: 1.5rem;">
                     <div class="form-group">
                         <label><i class="fa-solid fa-graduation-cap"></i> Sınıflar (Çoklu Seçim)</label>
-                        <div style="border: 2px solid var(--gray-200); border-radius: 8px; padding: 10px; max-height: 150px; overflow-y: auto; background: white;" id="printClassListContainer">
+                        <div style="border: 2px solid var(--gray-200); border-radius: 8px; padding: 10px; max-height: 150px; overflow-y: auto; background: white; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;" id="printClassListContainer">
                             <!-- JS ile doldurulacak -->
                         </div>
                         <button class="btn btn-sm" style="margin-top: 8px; font-size: 0.8rem; background: var(--gray-200); color: var(--dark);" onclick="toggleAllPrintClasses()">Tümünü Seç / Temizle</button>
@@ -1165,8 +1165,11 @@
                 printListContainer.innerHTML = '';
                 classList.forEach(cls => {
                     const div = document.createElement('div');
-                    div.style.marginBottom = '5px';
-                    div.innerHTML = `<label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" class="print-class-checkbox" value="${cls}"> <strong>${cls}</strong></label>`;
+                    div.style.padding = '4px 10px';
+                    div.style.background = '#f1f5f9';
+                    div.style.border = '1px solid #cbd5e1';
+                    div.style.borderRadius = '6px';
+                    div.innerHTML = `<label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin:0; font-size: 0.95rem;"><input type="checkbox" class="print-class-checkbox" value="${cls}"> <strong>${cls}</strong></label>`;
                     printListContainer.appendChild(div);
                 });
             }
