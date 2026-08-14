@@ -29,7 +29,7 @@
     </script>
     <style>
         :root {
-            --primary: #5b2c91;
+            --primary: #2563eb;
             --primary-hover: #4a2176;
             --accent: #ff6b6b;
             --geldi-color: #10b981;
@@ -39,7 +39,7 @@
         }
 
         body {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #e0e7ff 100%);
             min-height: 100vh;
         }
 
@@ -2135,8 +2135,7 @@
                 selectedClasses.forEach(cls => {
                     htmlStr += generateWeeklyPrintFis(cls, datesToPrint);
                 });
-                htmlStr += '
-</body></html>';
+                htmlStr += '</body></html>';
                 openPrintWindow(htmlStr, format);
                 return;
             }
