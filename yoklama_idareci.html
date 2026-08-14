@@ -1026,7 +1026,7 @@
             if (res.isConfirmed) {
                 const passwordMatch = await Swal.fire({
                     title: 'Güvenlik Doğrulaması',
-                    text: 'Lütfen kendi şifrenizi girin:',
+                    text: 'Lütfen silme şifresini giriniz:',
                     input: 'password',
                     inputAttributes: {
                         autocapitalize: 'off'
@@ -1047,7 +1047,13 @@
                             data.attendance = {};
                             DataManager._saveData(data);
                             
-                            Swal.fire('Başarılı!', 'Tüm yoklama verileri sıfırlandı.', 'success').then(() => {
+                            Swal.fire({
+                                title: 'Başarılı!',
+                                text: 'Tüm yoklama verileri sıfırlandı.',
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
                                 window.location.reload();
                             });
                         } else {
