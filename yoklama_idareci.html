@@ -448,6 +448,9 @@
             </div>
             
             <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;" id="idareciHeaderButtons">
+                <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.4rem 0.6rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: var(--transition);" onclick="resetAttendances()" title="Tüm Yoklamaları Sıfırla">
+                    <i class="fa-solid fa-trash-can"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Sıfırla</span>
+                </button>
                 <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: var(--gelmedi-color); border: none; padding: 0.4rem 0.6rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: var(--transition);" onclick="logoutIdareci()">
                     <i class="fa-solid fa-right-from-bracket"></i> <span style="display: none; @media (min-width: 480px) { display: inline; }">Çıkış</span>
                 </button>
@@ -1006,6 +1009,80 @@
             sessionStorage.clear();
             localStorage.removeItem('klbk_currentUser');
             window.location.href = 'enter.html?logout=true';
+        }
+
+        async function resetAttendances() {
+            const res = await Swal.fire({
+                title: 'Tüm Yoklamaları Sıfırla',
+                text: 'DİKKAT: Okuldaki tüm yoklama kayıtları (geçmiş ve bugün) silinecektir. Bu işlem geri alınamaz. Onaylıyor musunuz?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Evet, Hepsini Sil',
+                cancelButtonText: 'İptal'
+            });
+
+            if (res.isConfirmed) {
+                const passwordMatch = await Swal.fire({
+                    title: 'Güvenlik Doğrulaması',
+                    text: 'Lütfen kendi şifrenizi girin:',
+                    input: 'password',
+                    inputAttributes: {
+                        autocapitalize: 'off'
+                    },
+                    showCancelButton: true,
+                    confirmButtonText: 'Onayla',
+                    cancelButtonText: 'İptal'
+                });
+
+                if (passwordMatch.isConfirmed) {
+                    const pass = passwordMatch.value;
+                    const user = sessionStorage.getItem('klbk_currentUser');
+                    
+                    try {
+                        const usersRes = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
+                        const users = await usersRes.json();
+                        let isValid = false;
+                        
+                        // Look up the user same way as login
+                        let userObj = null;
+                        const userNorm = typeof normalizeTr === 'function' ? normalizeTr(user) : user.toLowerCase().trim();
+                        for (const [uname, data] of Object.entries(users)) {
+                            if (!data || typeof data !== 'object') continue;
+                            const unameNorm = typeof normalizeTr === 'function' ? normalizeTr(uname) : uname.toLowerCase().trim();
+                            if (unameNorm === userNorm || uname.toLowerCase() === user.toLowerCase()) {
+                                userObj = data;
+                                break;
+                            }
+                        }
+
+                        if (userObj && 'password' in userObj) {
+                            const passHash = await hashPassword(pass);
+                            if (userObj.password === pass || userObj.password === passHash) {
+                                isValid = true;
+                            }
+                        }
+
+                        if (isValid) {
+                            Swal.fire({ title: 'Siliniyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                            
+                            const data = DataManager._getData();
+                            data.attendance = {};
+                            DataManager._saveData(data);
+                            
+                            Swal.fire('Başarılı!', 'Tüm yoklama verileri sıfırlandı.', 'success').then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire('Hata', 'Şifre yanlış. İşlem iptal edildi.', 'error');
+                        }
+                    } catch(e) {
+                        console.error(e);
+                        Swal.fire('Hata', 'Sıfırlama işlemi başarısız oldu.', 'error');
+                    }
+                }
+            }
         }
 
         // Sorting configuration for general tab
