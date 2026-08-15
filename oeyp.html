@@ -1997,17 +1997,33 @@
                     let endD = new Date(d.getTime());
                     endD.setHours(endH, endM, 0, 0);
                     
-                    const dateString = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-                    
-                    if (!closest || d < closest.start) {
-                        closest = {
-                            activity: activity,
-                            start: d,
-                            end: endD,
-                            dateString: dateString,
-                            scheduleStr: `${dayStr} ${sch.time}`,
-                            location: sch.location || activity.location || ''
-                        };
+                    let weekOffset = 0;
+                    while (weekOffset < 10) {
+                        let testD = new Date(d.getTime());
+                        testD.setDate(testD.getDate() + (weekOffset * 7));
+                        let testEnd = new Date(endD.getTime());
+                        testEnd.setDate(testEnd.getDate() + (weekOffset * 7));
+                        
+                        const dateString = testD.getFullYear() + '-' + String(testD.getMonth()+1).padStart(2,'0') + '-' + String(testD.getDate()).padStart(2,'0');
+                        let status = activity.statusHistory ? activity.statusHistory[dateString] : null;
+                        status = (status || '').toUpperCase();
+                        
+                        if (status === 'YAPILDI' || status.includes('İPTAL') || status.includes('SİLİNMİŞTİR') || status.includes('SILINMIŞTIR')) {
+                            weekOffset++;
+                            continue;
+                        }
+                        
+                        if (!closest || testD < closest.start) {
+                            closest = {
+                                activity: activity,
+                                start: testD,
+                                end: testEnd,
+                                dateString: dateString,
+                                scheduleStr: `${dayStr} ${sch.time}`,
+                                location: sch.location || activity.location || ''
+                            };
+                        }
+                        break;
                     }
                 });
             });
