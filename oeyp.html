@@ -624,6 +624,20 @@
             </div>
         </div>
 
+        <div id="teacherCancelledActivitiesSection" class="glass-panel accordion-item" style="margin-bottom: 2rem; padding: 0; display:none;">
+            <div class="accordion-header" onclick="toggleAccordion(this)" style="border-radius: 12px 12px 0 0;">
+                <div style="font-weight: 800; font-size: 1.15rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-ban" style="color:#ef4444;"></i> İptal Edilen Çalışmalar <span id="cancelledCount" style="background:#f1f5f9; padding:2px 8px; border-radius:12px; font-size:0.8rem; color:#64748b;"></span>
+                </div>
+                <i class="fa-solid fa-chevron-down" style="transition: transform 0.3s; color:#64748b;"></i>
+            </div>
+            <div class="accordion-body" style="border-radius: 0 0 12px 12px;">
+                <div id="teacherCancelledActivitiesList">
+                    <!-- Cancelled occurrences will be rendered here -->
+                </div>
+            </div>
+        </div>
+
         <!-- Admin Activities Section -->
         <div id="adminActivitiesSection" style="display: none; margin-bottom: 2rem;">
             <!-- Categories will be generated here dynamically -->
@@ -1486,6 +1500,10 @@
             let actionButtons = '';
             if (isResponsible) {
                 let dropdownId = `printDropdown_${act.id}${occOverride ? '_' + occOverride.dateString : ''}`;
+                
+                if (occOverride && (occOverride.status.includes('İPTAL') || occOverride.status.includes('SİLİNMİŞTİR') || occOverride.status.includes('SILINMIŞTIR'))) {
+                    actionButtons += `<span style="cursor:pointer; color:#f59e0b; padding:4px 8px; border-radius:4px; background:rgba(245,158,11,0.1); margin-right:5px; position:relative; z-index:10;" onclick="readdOccurrence('${act.id}', '${occOverride.dateString}', event)" title="Takvime Yeniden Ekle"><i class="fa-solid fa-calendar-plus"></i> Yeniden Ekle</span>`;
+                }
                 let dropdownHtml = '';
                 if (occOverride) {
                     dropdownHtml = `<a href="#" style="color:#333; padding:12px 16px; text-decoration:none; display:block; font-size:0.85rem;" onclick="printYoklamaListesi('${act.id}', event, '${occOverride.dateString}')">Yoklama Listesi</a>`;
@@ -1698,11 +1716,17 @@
                 const emptyState = document.getElementById('emptyState');
                 
                 let teacherPastOccurrences = [];
+                let teacherCancelledOccurrences = [];
                 allMyActivities.forEach(act => {
                     if (act.statusHistory) {
                         for (let dateStr in act.statusHistory) {
                             let s = (act.statusHistory[dateStr] || '').trim().toUpperCase();
-                            if (s === 'YAPILDI' || s === 'İPTAL' || s === 'İPTAL EDİLDİ' || s.includes('SİLİNMİŞTİR') || s.includes('SILINMIŞTIR')) {
+                            if (s.includes('İPTAL') || s.includes('SİLİNMİŞTİR') || s.includes('SILINMIŞTIR')) {
+                                teacherCancelledOccurrences.push({
+                                    act: act,
+                                    occOverride: { dateString: dateStr, status: s }
+                                });
+                            } else if (s === 'YAPILDI') {
                                 teacherPastOccurrences.push({
                                     act: act,
                                     occOverride: { dateString: dateStr, status: s }
@@ -1712,6 +1736,7 @@
                     }
                 });
                 teacherPastOccurrences.sort((a, b) => b.occOverride.dateString.localeCompare(a.occOverride.dateString));
+                teacherCancelledOccurrences.sort((a, b) => b.occOverride.dateString.localeCompare(a.occOverride.dateString));
 
                 const plannedCountEl = document.getElementById('plannedCount');
                 if (plannedCountEl) plannedCountEl.textContent = activeActivities.length;
@@ -2402,6 +2427,29 @@
                         DataManager.saveSchoolSettings({ activities: schoolData.activities });
                         renderActivities();
                         Swal.fire('Başarılı', `${displayDate} tarihindeki çalışma iptal edildi.`, 'success');
+                    }
+                }
+            });
+        }
+
+        function readdOccurrence(actId, dateString, event) {
+            if (event) event.stopPropagation();
+            
+            Swal.fire({
+                title: 'Emin misiniz?',
+                text: `${dateString.split('-').reverse().join('.')} tarihindeki iptal edilen çalışmayı takvime yeniden eklemek istiyor musunuz?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Evet, Ekle',
+                cancelButtonText: 'Vazgeç'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const idx = schoolData.activities.findIndex(a => a.id === actId);
+                    if (idx > -1 && schoolData.activities[idx].statusHistory) {
+                        delete schoolData.activities[idx].statusHistory[dateString];
+                        DataManager.saveSchoolSettings({ activities: schoolData.activities });
+                        renderActivities();
+                        Swal.fire('Başarılı', 'Çalışma takvime yeniden eklendi.', 'success');
                     }
                 }
             });
