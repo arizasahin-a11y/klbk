@@ -167,11 +167,35 @@ export default async function handler(req, res) {
              return res.status(401).json({ error: 'Hatalı kullanıcı adı veya şifre.' });
         }
         
+        // Generate a secure session token
+        const sessionToken = crypto.randomUUID();
+        const expiresAt = Date.now() + (24 * 60 * 60 * 1000); // 24 hours validity
+        
+        const sessionData = {
+            username: actualUsername,
+            role: matchedUser.role || 'user',
+            storeKey: matchedUser.storeKey || `klbk_data_${actualUsername}`,
+            expiresAt: expiresAt,
+            createdAt: Date.now()
+        };
+
+        try {
+            const sessionUrl = `${firebaseDatabaseUrl}/app_store/active_sessions/${sessionToken}.json?auth=${firebaseSecret}`;
+            await fetch(sessionUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(sessionData)
+            });
+        } catch (e) {
+            console.error('Failed to store session token:', e);
+        }
+
         // Return user data 
         return res.status(200).json({ 
             success: true, 
             actualUsername, 
-            user: matchedUser
+            user: matchedUser,
+            token: sessionToken
         });
 
     } catch (error) {

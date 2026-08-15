@@ -450,17 +450,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     sessionStorage.setItem('klbk_loginTime', new Date().toISOString());
 
-                    // === SECURITY: Generate and store session token for Firebase write access ===
+                    // === SECURITY: Save server-generated session token ===
                     try {
-                        const storeKey = userData.storeKey || `klbk_data_${username}`;
-                        const sessionToken = await generateSessionToken(username, storeKey);
-                        sessionStorage.setItem('klbk_sessionToken', sessionToken);
-                        
-                        // Store token in Firebase for validation
-                        await storeSessionToken(username, sessionToken, storeKey, userData.role || 'ogretmen');
-                        console.log('✓ Session token generated and stored');
+                        const sessionToken = loginData.token;
+                        if (sessionToken) {
+                            sessionStorage.setItem('klbk_session_token', sessionToken);
+                            sessionStorage.setItem('klbk_sessionToken', sessionToken); // backward compatibility
+                            
+                            if (rememberMeCheckbox && rememberMeCheckbox.checked) {
+                                localStorage.setItem('klbk_session_token', sessionToken);
+                            }
+                            console.log('✓ Secure session token received and stored');
+                        }
                     } catch (e) {
-                        console.error('Session token generation failed:', e);
+                        console.error('Session token storage failed:', e);
                     }
 
                     // Redirect logic
