@@ -1690,6 +1690,8 @@
                 let draftActs = activities.filter(a => a.isDeleted !== true && a.isDraft === true && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
                 let pendingActs = activities.filter(a => a.isDeleted !== true && a.isDraft !== true && (a.isApproved === false || String(a.isApproved).toLowerCase() === 'false') && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
                 let activeActivities = activities.filter(a => a.isDeleted !== true && a.isApproved !== false && a.isDraft !== true && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
+                activeActivities = activeActivities.filter(a => getNextOccurrence(a) !== null);
+                activeActivities = activeActivities.filter(a => getNextOccurrence(a) !== null);
                 let allMyActivities = activities.filter(a => (a.isApproved !== false || a.isDeleted === true) && a.isDraft !== true && (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes((currentUser.name || currentUser.username).toLowerCase()))));
                 
                 const listContainer = document.getElementById('activitiesList');
@@ -1937,6 +1939,17 @@
                     
                     d.setDate(d.getDate() + dayDiff);
                     
+                    if (activity.endDate) {
+                        let eLimit = new Date(activity.endDate);
+                        eLimit.setHours(23,59,59,999);
+                        if (d > eLimit) return; // Skip if past end date
+                    }
+                    if (String(activity.recurring).toLowerCase() === 'hayır' && activity.startDate) {
+                        let sLimit = new Date(activity.startDate);
+                        sLimit.setDate(sLimit.getDate() + 7);
+                        if (d > sLimit) return;
+                    }
+                    
                     if (d <= maxDate) {
                         let endD = new Date(d.getTime());
                         endD.setHours(endH, endM, 0, 0);
@@ -1999,7 +2012,18 @@
                     
                     let weekOffset = 0;
                     while (weekOffset < 10) {
+                        if (String(activity.recurring).toLowerCase() === 'hayır' && weekOffset > 0) break;
+                        
                         let testD = new Date(d.getTime());
+                        
+                        if (activity.endDate) {
+                            let eLimit = new Date(activity.endDate);
+                            eLimit.setHours(23,59,59,999);
+                            let projected = new Date(testD.getTime());
+                            projected.setDate(projected.getDate() + (weekOffset * 7));
+                            if (projected > eLimit) break;
+                        }
+                        
                         testD.setDate(testD.getDate() + (weekOffset * 7));
                         let testEnd = new Date(endD.getTime());
                         testEnd.setDate(testEnd.getDate() + (weekOffset * 7));
@@ -2008,7 +2032,7 @@
                         let status = activity.statusHistory ? activity.statusHistory[dateString] : null;
                         status = (status || '').toUpperCase();
                         
-                        if (status === 'YAPILDI' || status.includes('İPTAL') || status.includes('SİLİNMİŞTİR') || status.includes('SILINMIŞTIR')) {
+                        if (status === 'YAPILDI' || status.includes('İPTAL') || status.includes('SİLİNMİŞTİR') || status.includes('SILINMIŞTIR') || status.includes('İDARE')) {
                             weekOffset++;
                             continue;
                         }
