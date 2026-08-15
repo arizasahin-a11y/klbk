@@ -1554,6 +1554,11 @@
                 if (occOverride) {
                     if (occOverride.status === 'YAPILACAK' || occOverride.status === 'YAPILIYOR') {
                         actionButtons += `<span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px; position:relative; z-index:10;" onclick="cancelUpcomingOccurrence('${act.id}', '${occOverride.dateString}', event)" title="Bu Tarihteki Çalışmayı İptal Et/Sil"><i class="fa-solid fa-trash"></i></span>`;
+                    } else if (occOverride.status.includes('İPTAL') || occOverride.status.includes('SİLİNMİŞTİR') || occOverride.status.includes('SILINMIŞTIR')) {
+                        if (!isResponsible) {
+                            actionButtons += `<span style="cursor:pointer; color:#f59e0b; padding:4px 8px; border-radius:4px; background:rgba(245,158,11,0.1); margin-right:5px; position:relative; z-index:10;" onclick="readdOccurrence('${act.id}', '${occOverride.dateString}', event)" title="Takvime Yeniden Ekle"><i class="fa-solid fa-calendar-plus"></i> Yeniden Ekle</span>`;
+                        }
+                        actionButtons += `<span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px; position:relative; z-index:10;" onclick="deleteOccurrence('${act.id}', '${occOverride.dateString}', event)" title="Bu Geçmiş Kaydı Sil"><i class="fa-solid fa-trash"></i></span>`;
                     } else {
                         actionButtons += `<span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px; position:relative; z-index:10;" onclick="deleteOccurrence('${act.id}', '${occOverride.dateString}', event)" title="Bu Geçmiş Kaydı Sil"><i class="fa-solid fa-trash"></i></span>`;
                     }
@@ -1792,6 +1797,23 @@
                     });
                 } else {
                     pastList.innerHTML = `<div style="text-align:center; padding: 2rem; color:#64748b;">Geçmiş çalışma bulunmuyor</div>`;
+                }
+
+                const cancelledList = document.getElementById('teacherCancelledActivitiesList');
+                if (cancelledList) {
+                    cancelledList.innerHTML = '';
+                    const cancelledCountEl = document.getElementById('cancelledCount');
+                    if (cancelledCountEl) cancelledCountEl.textContent = teacherCancelledOccurrences.length;
+
+                    const teacherCancelledSection = document.getElementById('teacherCancelledActivitiesSection');
+                    if (teacherCancelledOccurrences.length > 0) {
+                        teacherCancelledSection.style.display = 'block';
+                        teacherCancelledOccurrences.forEach(occ => {
+                            cancelledList.innerHTML += getActivityHTML(occ.act, false, occ.occOverride);
+                        });
+                    } else {
+                        teacherCancelledSection.style.display = 'none';
+                    }
                 }
 
             } else {
