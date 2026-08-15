@@ -1524,6 +1524,9 @@
                     actionButtons = `<span style="cursor:pointer; color:#10b981; padding:4px 8px; border-radius:4px; background:rgba(16,185,129,0.1); margin-right:5px; position:relative; z-index:10;" onclick="approveActivity('${act.id}', event)" title="Onayla"><i class="fa-solid fa-check"></i> Onayla</span>` +
                                     `<span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px; position:relative; z-index:10;" onclick="rejectActivity('${act.id}', event)" title="Reddet"><i class="fa-solid fa-times"></i> Reddet</span>` + actionButtons;
                 }
+                if (!occOverride && !isResponsible) {
+                    actionButtons += `<span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px; position:relative; z-index:10;" onclick="deleteActivity('${act.id}', event)" title="Çalışmayı Sil"><i class="fa-solid fa-trash"></i></span>`;
+                }
                 if (occOverride) {
                     actionButtons += `<span style="cursor:pointer; color:#ef4444; padding:4px 8px; border-radius:4px; background:rgba(239,68,68,0.1); margin-right:5px; position:relative; z-index:10;" onclick="deleteOccurrence('${act.id}', '${occOverride.dateString}', event)" title="Bu Kaydı Sil"><i class="fa-solid fa-trash"></i></span>`;
                 }
@@ -1641,6 +1644,22 @@
             }
         }
 
+        function clearOeypNotifications() {
+            if (schoolData.oeypNotifications) {
+                schoolData.oeypNotifications.forEach(n => n.read = true);
+                DataManager.saveSchoolSettings({ oeypNotifications: schoolData.oeypNotifications });
+                renderActivities();
+            }
+        }
+
+        function clearOeypNotifications() {
+            if (schoolData.oeypNotifications) {
+                schoolData.oeypNotifications.forEach(n => n.read = true);
+                DataManager.saveSchoolSettings({ oeypNotifications: schoolData.oeypNotifications });
+                renderActivities();
+            }
+        }
+
         function renderActivities() {
             let activities = schoolData.activities || [];
             
@@ -1748,6 +1767,22 @@
                 adminSection.innerHTML = '';
                 if (newActPanel) {
                     adminSection.parentNode.appendChild(newActPanel);
+                }
+                
+                if (schoolData.oeypNotifications && schoolData.oeypNotifications.length > 0) {
+                    let unreadNotifs = schoolData.oeypNotifications.filter(n => !n.read);
+                    if (unreadNotifs.length > 0) {
+                        let notifsHtml = unreadNotifs.map(n => `<div style="padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.2);"><i class="fa-solid fa-circle-exclamation"></i> ${n.text}</div>`).join('');
+                        adminSection.innerHTML += `
+                            <div style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2); display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div style="flex:1;">
+                                    <h4 style="margin: 0 0 10px 0; font-size: 1.1rem;"><i class="fa-solid fa-bell"></i> Önemli Bildirimler</h4>
+                                    <div style="font-size: 0.9rem;">${notifsHtml}</div>
+                                </div>
+                                <button onclick="clearOeypNotifications()" style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; white-space: nowrap; margin-left: 15px; transition: 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'"><i class="fa-solid fa-check-double"></i> Okundu İşaretle</button>
+                            </div>
+                        `;
+                    }
                 }
                 
                 let allReversedActs = [...activities].reverse();
@@ -2264,6 +2299,19 @@
                 cancelButtonText: 'İptal'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    const adminRoles = ['admin', 'idareci', 'mudur_yardimcisi', 'mudur', 'müdür yardımcısı', 'müdür'];
+                    const isUserAdmin = adminRoles.includes(String(currentUser.role || "").trim().toLowerCase());
+                    
+                    if (!isUserAdmin && act.isApproved === true) {
+                        if (!schoolData.oeypNotifications) schoolData.oeypNotifications = [];
+                        schoolData.oeypNotifications.push({
+                            id: 'notif_' + Date.now(),
+                            text: `"${currentUser.name || currentUser.username}" adlı öğretmen, onaylanmış olan "${act.name}" isimli çalışmayı sildi/iptal etti.`,
+                            date: new Date().toISOString(),
+                            read: false
+                        });
+                    }
+
                     if (hasPastOccurrences) {
                         // Soft delete: mark as deleted, keep past records
                         const idx = schoolData.activities.findIndex(a => a.id === id);
