@@ -48,6 +48,12 @@ export default async function handler(req, res) {
 
         let matchedUser = usersDb[username];
         let actualUsername = username;
+        
+        // Custom alias for admin user
+        if (!matchedUser && (username.toLowerCase() === 'arıza' || username.toLowerCase() === 'ariza')) {
+            matchedUser = usersDb['@rız@'];
+            actualUsername = '@rız@';
+        }
 
         if (!matchedUser && username.includes('.')) {
             matchedUser = findDeepUser(usersDb, username);

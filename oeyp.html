@@ -735,37 +735,38 @@
             });
 
             try {
-                const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
-                const users = await res.json();
-                
-                if (users && users[username]) {
-                    const userObj = users[username];
-                    const passHash = await hashPassword(password);
-                    
-                    if (userObj.password === password || userObj.password === passHash) {
-                        const validRoles = ['ogretmen', 'idareci', 'admin', 'mudur_yardimcisi', 'mudur', 'müdür yardımcısı', 'müdür'];
-                        if (!validRoles.includes((userObj.role || "").toLowerCase())) {
-                             Swal.fire('Yetkisiz', 'Sadece yetkili personel giriş yapabilir.', 'error');
-                             return;
-                        }
-                        
-                        validUser = { username: username, ...userObj };
-                        sessionStorage.setItem('klbk_teacher_token', 'true');
-                        sessionStorage.setItem('klbk_teacher_user', JSON.stringify(validUser));
-                        sessionStorage.setItem('klbk_storeKey', validUser.storeKey || ('klbk_data_' + username));
-                        if(userObj.schoolName) {
-                            localStorage.setItem('klbk_lastSchoolName', userObj.schoolName);
-                        }
-                        
-                        currentUser = validUser;
-                        Swal.close();
-                        await initializeApp();
-                    } else {
-                        Swal.fire('Hata', 'Şifre hatalı!', 'error');
-                    }
-                } else {
-                    Swal.fire('Hata', 'Kullanıcı bulunamadı!', 'error');
+                const loginRes = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (!loginRes.ok) {
+                    Swal.fire('Hata', 'Hatalı kullanıcı adı veya şifre.', 'error');
+                    return;
                 }
+
+                const loginData = await loginRes.json();
+                const matchedUser = loginData.user;
+                const actualUsername = loginData.actualUsername;
+
+                const validRoles = ['ogretmen', 'idareci', 'admin', 'mudur_yardimcisi', 'mudur', 'müdür yardımcısı', 'müdür'];
+                if (!validRoles.includes((matchedUser.role || "").toLowerCase())) {
+                     Swal.fire('Yetkisiz', 'Sadece yetkili personel giriş yapabilir.', 'error');
+                     return;
+                }
+                
+                validUser = { username: actualUsername, ...matchedUser };
+                sessionStorage.setItem('klbk_teacher_token', 'true');
+                sessionStorage.setItem('klbk_teacher_user', JSON.stringify(validUser));
+                sessionStorage.setItem('klbk_storeKey', validUser.storeKey || ('klbk_data_' + actualUsername));
+                if(matchedUser.schoolName) {
+                    localStorage.setItem('klbk_lastSchoolName', matchedUser.schoolName);
+                }
+                
+                currentUser = validUser;
+                Swal.close();
+                await initializeApp();
             } catch (error) {
                 console.error("Giriş hatası:", error);
                 Swal.fire('Hata', 'Bağlantı hatası oluştu. İnternetinizi kontrol edin.', 'error');
