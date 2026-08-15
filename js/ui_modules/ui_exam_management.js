@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         excludedStudents: [],
         selectedClassrooms: [],
         screenViewEnabled: true,
-        screenViewLimit: DataManager.getSchoolSettings()?.defaultTimes?.defaultScreenViewLimit || 8
+        screenViewLimit: 8
     };
 
     function resetWizard() {
