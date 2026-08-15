@@ -481,7 +481,7 @@
                                 <th style="padding:8px 10px; font-size:0.85rem;">Ö. Tel</th>
                                 <th style="padding:8px 10px; font-size:0.85rem;">V. Tel</th>
                                 <th style="padding:8px 10px; font-size:0.85rem; text-align:center;">Veli Onayı</th>
-                                <th style="padding:8px 10px; font-size:0.85rem; text-align:right;">İşlem</th>
+                                <th style="padding:8px 10px; font-size:0.85rem; text-align:center;">İşlem</th>
                             </tr>
                         </thead>
                         <tbody id="newActStudentsBody"></tbody>
@@ -1046,7 +1046,7 @@
                     <td style="padding:8px 10px; font-size:0.85rem;">${s.studentPhone || '-'}</td>
                     <td style="padding:8px 10px; font-size:0.85rem;">${s.parentPhone || '-'}</td>
                     <td style="padding:8px 10px; font-size:1rem; text-align:center;">${s.parentInformed ? '<span style="color:#10b981; font-weight:bold;">✔</span>' : '<span style="color:#ef4444; font-weight:bold;">!!</span>'}</td>
-                    <td style="padding:8px 10px; font-size:0.85rem; text-align:right;">
+                    <td style="padding:8px 10px; font-size:0.85rem; text-align:center;">
                         <button class="btn" style="padding:4px 8px; font-size:0.75rem; background:rgba(79,70,229,0.1); color:#4f46e5; margin-right:5px;" onclick="editNewActStudent('${s.no}')" title="Düzenle"><i class="fa-solid fa-pen"></i></button>
                         <button class="btn" style="padding:4px 8px; font-size:0.75rem; background:rgba(239,68,68,0.1); color:#ef4444;" onclick="removeNewActStudent('${s.no}')" title="Sil"><i class="fa-solid fa-trash"></i></button>
                     </td>
