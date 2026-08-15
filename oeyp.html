@@ -1855,7 +1855,7 @@
         function getAllOccurrencesWithinWeek(activity, maxDate) {
             if (!activity.schedules || activity.schedules.length === 0) return [];
             
-            const dayMap = { 'Pazar':0, 'Pazartesi':1, 'Salı':2, 'Çarşamba':3, 'Perşembe':4, 'Cuma':5, 'Cumartesi':6 };
+            const dayMap = { 'Pazar':0, 'Pazartesi':1, 'Sal\u0131':2, '\u00c7ar\u015famba':3, 'Per\u015fembe':4, 'Cuma':5, 'Cumartesi':6 };
             const now = new Date();
             let occurrences = [];
             
@@ -1913,7 +1913,7 @@
         function getNextOccurrence(activity) {
             if (!activity.schedules || activity.schedules.length === 0) return null;
             
-            const dayMap = { 'Pazar':0, 'Pazartesi':1, 'Salı':2, 'Çarşamba':3, 'Perşembe':4, 'Cuma':5, 'Cumartesi':6 };
+            const dayMap = { 'Pazar':0, 'Pazartesi':1, 'Sal\u0131':2, '\u00c7ar\u015famba':3, 'Per\u015fembe':4, 'Cuma':5, 'Cumartesi':6 };
             const now = new Date();
             let closest = null;
             
@@ -1976,8 +1976,13 @@
             
             if (!schoolData.activities) return;
             
-            const tName = currentUser.name || currentUser.username;
-            const myActs = schoolData.activities.filter(a => a.isDeleted !== true && a.isApproved !== false && a.teachers && a.teachers.includes(tName));
+            const tName = (currentUser.name || currentUser.username).toLowerCase();
+            const myActs = schoolData.activities.filter(a => 
+                a.isDeleted !== true && 
+                a.isApproved !== false && 
+                a.isDraft !== true && 
+                (a.createdBy === currentUser.username || (a.teachers && a.teachers.toLowerCase().includes(tName)))
+            );
             
             let closestGlobal = null;
             
