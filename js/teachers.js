@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let passStr = user.password || '---';
             if (passStr.length === 64 && /^[0-9a-f]{64}$/i.test(passStr)) {
-                passStr = '(Şifrelenmiş - Sıfırlayınız)';
+                passStr = '******';
             }
 
             html += `
