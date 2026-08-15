@@ -2228,7 +2228,7 @@
             activity.statusHistory[dateString] = val;
             
             DataManager.saveSchoolSettings({ activities: schoolData.activities });
-            updateUpcomingUI();
+            renderActivities();
             
             Swal.fire({
                 icon: 'success',
