@@ -81,45 +81,83 @@ export default async function handler(req, res) {
             return res.status(401).json({ error: 'Hatalı kullanıcı adı veya şifre.' });
         }
 
-        // Server-side password validation
+        // Security helpers
         const crypto = require('crypto');
-        const hashPassword = (pass) => {
+        
+        // Ensure secret is 32 bytes for AES-256
+        const ENCRYPTION_KEY = crypto.createHash('sha256').update(String(firebaseSecret)).digest('base64').substring(0, 32); 
+        const IV_LENGTH = 16;
+        
+        const encryptPassword = (text) => {
+            let iv = crypto.randomBytes(IV_LENGTH);
+            let cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+            let encrypted = cipher.update(text);
+            encrypted = Buffer.concat([encrypted, cipher.final()]);
+            return iv.toString('hex') + ':' + encrypted.toString('hex');
+        };
+
+        const decryptPassword = (text) => {
+            try {
+                let textParts = text.split(':');
+                if (textParts.length !== 2) return null;
+                let iv = Buffer.from(textParts[0], 'hex');
+                let encryptedText = Buffer.from(textParts[1], 'hex');
+                let decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+                let decrypted = decipher.update(encryptedText);
+                decrypted = Buffer.concat([decrypted, decipher.final()]);
+                return decrypted.toString();
+            } catch (e) {
+                return null;
+            }
+        };
+
+        const hashPasswordLegacy = (pass) => {
             return crypto.createHash('sha256').update(pass).digest('hex');
         };
 
-        const isHashedPassword = (pass) => {
-            return pass && /^[a-f0-9]{64}$/i.test(pass);
-        };
+        const isAesEncrypted = (pass) => pass && typeof pass === 'string' && pass.includes(':') && pass.split(':')[0].length === 32;
+        const isHashedPassword = (pass) => pass && typeof pass === 'string' && /^[a-f0-9]{64}$/i.test(pass);
 
         const submittedPassword = password;
         let passwordIsValid = false;
+        let needsAesMigration = false;
 
         if (matchedUser.password) {
-            if (isHashedPassword(matchedUser.password)) {
-                // Database has hashed password
-                const hashedSubmitted = hashPassword(submittedPassword);
+            if (isAesEncrypted(matchedUser.password)) {
+                // New AES encrypted password
+                const decrypted = decryptPassword(matchedUser.password);
+                if (decrypted === submittedPassword) {
+                    passwordIsValid = true;
+                }
+            } else if (isHashedPassword(matchedUser.password)) {
+                // Legacy SHA-256 password
+                const hashedSubmitted = hashPasswordLegacy(submittedPassword);
                 if (hashedSubmitted === matchedUser.password) {
                     passwordIsValid = true;
+                    needsAesMigration = true;
                 }
             } else {
-                // Database has plaintext password (legacy)
+                // Legacy Plaintext password
                 if (submittedPassword === matchedUser.password) {
                     passwordIsValid = true;
-                    // Migrate password to hash server-side
-                    const newHash = hashPassword(submittedPassword);
-                    try {
-                        const patchUrl = `${firebaseDatabaseUrl}/app_store/klbk_users/${encodeURIComponent(actualUsername)}.json?auth=${firebaseSecret}`;
-                        await fetch(patchUrl, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ password: newHash })
-                        });
-                        matchedUser.password = newHash; // Update memory object returned to client
-                        console.log(`✓ Password migrated to hash on server for: ${actualUsername}`);
-                    } catch (e) {
-                        console.error('Password migration failed on server:', e);
-                    }
+                    needsAesMigration = true;
                 }
+            }
+        }
+
+        if (passwordIsValid && needsAesMigration) {
+            const newAesHash = encryptPassword(submittedPassword);
+            try {
+                const patchUrl = `${firebaseDatabaseUrl}/app_store/klbk_users/${encodeURIComponent(actualUsername)}.json?auth=${firebaseSecret}`;
+                await fetch(patchUrl, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: newAesHash })
+                });
+                matchedUser.password = newAesHash;
+                console.log(`✓ Password migrated to AES on server for: ${actualUsername}`);
+            } catch (e) {
+                console.error('Password migration to AES failed:', e);
             }
         }
 

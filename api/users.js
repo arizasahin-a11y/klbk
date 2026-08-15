@@ -43,19 +43,50 @@ export default async function handler(req, res) {
         
         const usersDb = await usersRes.json();
         
-        // SECURITY: Strip out all passwords before returning to the client
+        const role = (sessionData.role || '').toLowerCase();
+        const isAdmin = role === 'admin' || role === 'master' || role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi';
+
+        const crypto = require('crypto');
+        const ENCRYPTION_KEY = crypto.createHash('sha256').update(String(firebaseSecret)).digest('base64').substring(0, 32); 
+        
+        const decryptPassword = (text) => {
+            try {
+                let textParts = text.split(':');
+                if (textParts.length !== 2) return null;
+                let iv = Buffer.from(textParts[0], 'hex');
+                let encryptedText = Buffer.from(textParts[1], 'hex');
+                let decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+                let decrypted = decipher.update(encryptedText);
+                decrypted = Buffer.concat([decrypted, decipher.final()]);
+                return decrypted.toString();
+            } catch (e) {
+                return null;
+            }
+        };
+
+        const isAesEncrypted = (pass) => pass && typeof pass === 'string' && pass.includes(':') && pass.split(':')[0].length === 32;
+
+        // SECURITY: Process passwords based on role
         if (usersDb) {
-            const stripPasswords = (obj) => {
+            const processPasswords = (obj) => {
                 for (let key in obj) {
                     if (obj[key] && typeof obj[key] === 'object') {
                         if ('password' in obj[key]) {
-                            delete obj[key].password;
+                            if (!isAdmin) {
+                                delete obj[key].password; // Strip passwords for non-admins
+                            } else {
+                                // Decrypt passwords for admins
+                                if (isAesEncrypted(obj[key].password)) {
+                                    const decrypted = decryptPassword(obj[key].password);
+                                    if (decrypted) obj[key].password = decrypted;
+                                }
+                            }
                         }
-                        stripPasswords(obj[key]);
+                        processPasswords(obj[key]);
                     }
                 }
             };
-            stripPasswords(usersDb);
+            processPasswords(usersDb);
         }
 
         return res.status(200).json(usersDb);

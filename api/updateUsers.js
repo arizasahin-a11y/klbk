@@ -49,6 +49,35 @@ export default async function handler(req, res) {
         const currentUsersRes = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json?auth=${firebaseSecret}`);
         const currentUsersDb = await currentUsersRes.json() || {};
 
+        const crypto = require('crypto');
+        const ENCRYPTION_KEY = crypto.createHash('sha256').update(String(firebaseSecret)).digest('base64').substring(0, 32); 
+        const IV_LENGTH = 16;
+        
+        const encryptPassword = (text) => {
+            let iv = crypto.randomBytes(IV_LENGTH);
+            let cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+            let encrypted = cipher.update(text);
+            encrypted = Buffer.concat([encrypted, cipher.final()]);
+            return iv.toString('hex') + ':' + encrypted.toString('hex');
+        };
+
+        const decryptPassword = (text) => {
+            try {
+                let textParts = text.split(':');
+                if (textParts.length !== 2) return null;
+                let iv = Buffer.from(textParts[0], 'hex');
+                let encryptedText = Buffer.from(textParts[1], 'hex');
+                let decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+                let decrypted = decipher.update(encryptedText);
+                decrypted = Buffer.concat([decrypted, decipher.final()]);
+                return decrypted.toString();
+            } catch (e) {
+                return null;
+            }
+        };
+
+        const isAesEncrypted = (pass) => pass && typeof pass === 'string' && pass.includes(':') && pass.split(':')[0].length === 32;
+
         // Helper to recursively merge passwords
         const mergePasswords = (oldData, newData) => {
             for (let key in newData) {
@@ -57,7 +86,19 @@ export default async function handler(req, res) {
                         // If new data doesn't have a password, keep the old one
                         if (!newData[key].password) {
                             newData[key].password = oldData[key].password;
+                        } else {
+                            const oldPlain = isAesEncrypted(oldData[key].password) ? decryptPassword(oldData[key].password) : oldData[key].password;
+                            if (newData[key].password !== oldPlain && !isAesEncrypted(newData[key].password)) {
+                                newData[key].password = encryptPassword(newData[key].password);
+                            } else if (newData[key].password === oldPlain) {
+                                newData[key].password = oldData[key].password; // keep old encrypted hash
+                            }
                         }
+                    } else if (newData[key].password) {
+                         // New user or newly added password
+                         if (!isAesEncrypted(newData[key].password)) {
+                             newData[key].password = encryptPassword(newData[key].password);
+                         }
                     }
                     mergePasswords(oldData[key] || {}, newData[key]);
                 }

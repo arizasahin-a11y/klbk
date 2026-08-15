@@ -555,57 +555,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     didOpen: () => { Swal.showLoading(); }
                 });
 
-                const usersDb = await getCloudUsers();
-                let foundUser = null;
-
-                // Find user by email
-                for (const [uname, data] of Object.entries(usersDb)) {
-                    if (data.email && data.email.toLowerCase() === emailAddress.toLowerCase()) {
-                        foundUser = { username: uname, ...data };
-                        break;
-                    }
-                }
-
-                if (foundUser) {
-                    try {
-                        // Real Email Sending via EmailJS
-                        const templateParams = {
-                            to_email: emailAddress,
-                            email: emailAddress,
-                            user_email: emailAddress,
-                            username: foundUser.username,
-                            password: foundUser.password,
-                            school_name: foundUser.schoolName || 'Kelebek Sistemi'
-                        };
-
-                        await emailjs.send(
-                            "service_205ar93",
-                            "template_i0eo9o5",
-                            templateParams
-                        );
-
+                try {
+                    const response = await fetch('/api/forgotPassword', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: emailAddress })
+                    });
+                    
+                    if (response.ok) {
                         Swal.fire({
                             icon: 'success',
                             title: 'Bilgiler Gönderildi',
-                            html: `Kullanıcı bilgileriniz <b>${emailAddress}</b> adresine e-posta olarak gönderilmiştir.`,
+                            html: `Kullanıcı bilgileriniz sistemde kayıtlıysa <b>${emailAddress}</b> adresine gönderilmiştir.`,
                             confirmButtonColor: 'var(--secondary)'
                         });
-                    } catch (err) {
-                        console.error("EmailJS Full Error:", err);
-                        const errorMsg = err?.text || err?.message || "Bilinmeyen bir hata oluştu";
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Gönderim Hatası',
-                            html: `E-posta servisi şu an yanıt vermiyor.<br><br><small>Hata: ${errorMsg}</small><br><br>Lütfen bilgilerin doğruluğunu kontrol edin veya sistem yöneticisi ile iletişime geçin.`,
-                            confirmButtonColor: 'var(--primary)'
-                        });
+                    } else {
+                        const errData = await response.json();
+                        throw new Error(errData.error || 'Bilinmeyen sunucu hatası');
                     }
-                } else {
+                } catch (err) {
+                    console.error("Forgot Password Error:", err);
                     Swal.fire({
-                        icon: 'error',
-                        title: 'Hata',
-                        text: 'E-posta adresiniz sisteme kayıtlı değil. Sistem yöneticinizle görüşün.',
-                        confirmButtonColor: 'var(--danger)'
+                        icon: 'warning',
+                        title: 'Gönderim Hatası',
+                        html: `Servis şu an yanıt vermiyor.<br><br><small>Hata: ${err.message}</small><br><br>Lütfen sistem yöneticisi ile iletişime geçin.`,
+                        confirmButtonColor: 'var(--primary)'
                     });
                 }
             }

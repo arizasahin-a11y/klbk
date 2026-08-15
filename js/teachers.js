@@ -37,22 +37,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let teachersDb = {};
 
     // === SECURITY: Password Hashing Functions ===
-    async function hashPassword(password) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        return hashHex;
-    }
-
-    function isHashedPassword(password) {
-        return password && /^[a-f0-9]{64}$/i.test(password);
-    }
-
     async function fetchAllUsers() {
         try {
-            const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
+            const token = sessionStorage.getItem('klbk_session_token') || localStorage.getItem('klbk_session_token') || '';
+            const res = await fetch(`/api/users`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             if (res.ok) {
                 const data = await res.json();
                 return data || {};
@@ -65,12 +55,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function saveUsersToCloud(dataObj) {
         try {
-            const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`, {
+            const token = sessionStorage.getItem('klbk_session_token') || localStorage.getItem('klbk_session_token') || '';
+            const res = await fetch(`/api/updateUsers`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(dataObj)
             });
-            if (!res.ok) throw new Error("Firebase Hata");
+            if (!res.ok) throw new Error("API Hata");
             return true;
         } catch (e) {
             console.error("Buluta veri kaydedilirken hata:", e);
@@ -217,9 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             let passStr = user.password || '---';
-            if (passStr.length === 64 && /^[0-9a-f]{64}$/i.test(passStr)) {
-                passStr = '******';
-            }
 
             html += `
             <div class="stat-card glass-panel" style="display: flex; flex-direction: column; cursor: pointer; transition: all 0.2s ease; padding: 10px 15px; margin-bottom: 10px; ${cardStyle}" ${clickEvent} ${contextEvent}>
