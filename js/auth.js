@@ -95,31 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Migrate plaintext password to hash (automatic on first login)
-    async function migratePasswordIfNeeded(username, userObj, usersDb) {
-        if (!userObj.password || isHashedPassword(userObj.password)) {
-            return false; // Already hashed or no password
-        }
 
-        // Hash the plaintext password
-        const hashedPassword = await hashPassword(userObj.password);
-        userObj.password = hashedPassword;
-
-        // Update in Firebase
-        try {
-            const encodedUsername = encodeURIComponent(username);
-            await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users/${encodedUsername}.json`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: hashedPassword })
-            });
-            console.log(`✓ Password migrated to hash for: ${username}`);
-            return true;
-        } catch (e) {
-            console.error('Password migration failed:', e);
-            return false;
-        }
-    }
 
     async function getCloudUsers() {
         try {
@@ -376,12 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const loginData = await loginRes.json();
                 const matchedUser = loginData.user;
                 username = loginData.actualUsername;
-                const usersDb = loginData.usersDb || {};
 
-                // Legacy migration support if needed
-                if (!isHashedPassword(matchedUser.password) && matchedUser.password === password) {
-                     migratePasswordIfNeeded(username, matchedUser, usersDb).catch(e => console.error(e));
-                }
 
                 if (matchedUser.role === 'master' && username !== 'admin' && username !== '@arız@' && username !== '@rız@') {
                     if (!matchedUser.storeKey) {

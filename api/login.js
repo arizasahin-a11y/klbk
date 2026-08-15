@@ -105,6 +105,20 @@ export default async function handler(req, res) {
                 // Database has plaintext password (legacy)
                 if (submittedPassword === matchedUser.password) {
                     passwordIsValid = true;
+                    // Migrate password to hash server-side
+                    const newHash = hashPassword(submittedPassword);
+                    try {
+                        const patchUrl = `${firebaseDatabaseUrl}/app_store/klbk_users/${encodeURIComponent(actualUsername)}.json?auth=${firebaseSecret}`;
+                        await fetch(patchUrl, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ password: newHash })
+                        });
+                        matchedUser.password = newHash; // Update memory object returned to client
+                        console.log(`✓ Password migrated to hash on server for: ${actualUsername}`);
+                    } catch (e) {
+                        console.error('Password migration failed on server:', e);
+                    }
                 }
             }
         }
@@ -119,8 +133,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ 
             success: true, 
             actualUsername, 
-            user: matchedUser,
-            usersDb: usersDb // We have to return usersDb if client needs it for password migration
+            user: matchedUser
         });
 
     } catch (error) {
