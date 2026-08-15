@@ -760,6 +760,9 @@
                 sessionStorage.setItem('klbk_teacher_token', 'true');
                 sessionStorage.setItem('klbk_teacher_user', JSON.stringify(validUser));
                 sessionStorage.setItem('klbk_storeKey', validUser.storeKey || ('klbk_data_' + actualUsername));
+                sessionStorage.setItem('klbk_currentUser', actualUsername);
+                sessionStorage.setItem('klbk_name', matchedUser.name || actualUsername);
+                sessionStorage.setItem('klbk_role', matchedUser.role || 'ogretmen');
                 if(matchedUser.schoolName) {
                     localStorage.setItem('klbk_lastSchoolName', matchedUser.schoolName);
                 }
