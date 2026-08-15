@@ -1847,6 +1847,9 @@
                 adminSection.innerHTML += createCategory('Geçmiş Çalışmalar', 'fa-solid fa-clock-rotate-left', '#3b82f6', pastOccurrences, false);
                 adminSection.innerHTML += createCategory('Tüm Planlanmış Çalışmalar', 'fa-solid fa-list-check', '#6366f1', allActs, false);
             }
+            if (typeof renderUpcomingActivity === 'function') {
+                renderUpcomingActivity();
+            }
         }
         
         function getAllOccurrencesWithinWeek(activity, maxDate) {
