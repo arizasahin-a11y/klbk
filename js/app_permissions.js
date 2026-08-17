@@ -8,8 +8,8 @@
     const firebaseDatabaseUrl = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
     const currentPath = window.location.pathname;
     
-    // Ignore permissions check for login, portal, and security_error
-    if (currentPath === '/' || currentPath.endsWith('index.html') || currentPath.endsWith('enter.html') || currentPath.endsWith('security_error.html') || currentPath.endsWith('master.html')) {
+    // Ignore script execution completely for login and security_error
+    if (currentPath === '/' || currentPath.endsWith('index.html') || currentPath.endsWith('security_error.html') || currentPath.endsWith('master.html')) {
         document.head.removeChild(style);
         return;
     }
@@ -51,14 +51,16 @@
                 }
 
                 if (isAccessClosed) {
-                    const role = (sessionStorage.getItem('klbk_role') || localStorage.getItem('klbk_role') || '').toLowerCase().trim();
-                    const isAdmin = role === 'admin' || role === 'master' || role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi';
-                    const currentUser = sessionStorage.getItem('klbk_currentUser') || localStorage.getItem('klbk_currentUser');
-                    const hasExplicitAssignment = currentUser && perm.assignments && perm.assignments[currentUser];
+                    if (!currentPath.endsWith('enter.html')) {
+                        const role = (sessionStorage.getItem('klbk_role') || localStorage.getItem('klbk_role') || '').toLowerCase().trim();
+                        const isAdmin = role === 'admin' || role === 'master' || role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi';
+                        const currentUser = sessionStorage.getItem('klbk_currentUser') || localStorage.getItem('klbk_currentUser');
+                        const hasExplicitAssignment = currentUser && perm.assignments && perm.assignments[currentUser];
 
-                    if (!isAdmin && !hasExplicitAssignment) {
-                        showAccessDenied();
-                        return; // Stop execution
+                        if (!isAdmin && !hasExplicitAssignment) {
+                            showAccessDenied();
+                            return; // Stop execution
+                        }
                     }
                 }
 
