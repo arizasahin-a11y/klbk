@@ -424,15 +424,25 @@
         });
 
         async function loadPortalLinks(isAdmin) {
+            let appPermissions = {};
             try {
-                const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_teacher_links.json?_=${Date.now()}`, {
-                    headers: {
-                        'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache'
-                    }
-                });
-                if (res.ok) {
-                    const data = await res.json();
+                const [resLinks, resPerms] = await Promise.all([
+                    fetch(`${FIREBASE_DB_URL}/app_store/klbk_teacher_links.json?_=${Date.now()}`, {
+                        headers: {
+                            'Cache-Control': 'no-cache',
+                            'Pragma': 'no-cache'
+                        }
+                    }),
+                    fetch(`${FIREBASE_DB_URL}/app_store/klbk_app_permissions.json?_=${Date.now()}`, {
+                        headers: {
+                            'Cache-Control': 'no-cache',
+                            'Pragma': 'no-cache'
+                        }
+                    })
+                ]);
+                
+                if (resLinks.ok) {
+                    const data = await resLinks.json();
                     if (data && data.links) {
                         if (Array.isArray(data.links)) {
                             portalLinks = data.links.filter(l => l != null);
@@ -443,8 +453,12 @@
                         }
                     }
                 }
+                
+                if (resPerms.ok) {
+                    appPermissions = await resPerms.json() || {};
+                }
             } catch (err) {
-                console.error("Linkler alınamadı:", err);
+                console.error("Linkler ve yetkiler alınamadı:", err);
             }
 
             // Sadece veritabanından gelen portalLinks kullanılır. (Güvenlik amaçlı tüm linkler veritabanında tutulur)
@@ -454,6 +468,29 @@
             portalLinks = portalLinks.filter(link => {
                 if (!link || !link.url || seenUrls.has(link.url)) return false;
                 seenUrls.add(link.url);
+                return true;
+            });
+
+            // Master.html'de genel erişime kapatılan (sadece idarecilere veya atanmış kişilere açık) linkleri filtrele
+            const currentUser = sessionStorage.getItem('klbk_currentUser') || localStorage.getItem('klbk_currentUser');
+            portalLinks = portalLinks.filter(link => {
+                let dbKey = link.url;
+                if (dbKey.startsWith('/')) dbKey = dbKey.substring(1);
+                dbKey = dbKey.replace(/\./g, '_');
+                
+                const perm = appPermissions[dbKey];
+                if (perm) {
+                    let isAccessClosed = perm.globalAccess === false;
+                    if (perm.globalAccess === true && perm.expiresAt && Date.now() > perm.expiresAt) {
+                        isAccessClosed = true;
+                    }
+                    if (isAccessClosed) {
+                        const hasExplicitAssignment = currentUser && perm.assignments && perm.assignments[currentUser];
+                        if (!isAdmin && !hasExplicitAssignment) {
+                            return false; // Sıradan kullanıcıya gösterme
+                        }
+                    }
+                }
                 return true;
             });
 
