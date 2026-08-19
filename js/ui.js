@@ -398,9 +398,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             // Refresh view specific data conditionally
-            if (targetViewId === 'view-dashboard') updateDashboardStats();
-            if (targetViewId === 'view-students') updateClassesList();
-            if (targetViewId === 'view-school') loadSchoolSettings();
+            if (targetViewId === 'view-dashboard') setTimeout(() => updateDashboardStats(), 50);
+            if (targetViewId === 'view-students') setTimeout(() => updateClassesList(), 50);
+            if (targetViewId === 'view-school') setTimeout(() => loadSchoolSettings(), 50);
 
             // Update Browser URL (Hash based for easy refresh)
             window.location.hash = targetViewId;
@@ -1465,6 +1465,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        const bgColors = ['#f8fafc', '#f0fdf4', '#fdf2f8', '#fffbeb', '#f5f3ff'];
+        const borderColors = ['#cbd5e1', '#bbf7d0', '#fbcfe8', '#fde68a', '#ddd6fe'];
+
         let html = '<div class="accordion-container" style="display:flex; flex-direction:column; gap:1rem;">';
         let widgetHtml = '';
 
@@ -1478,10 +1481,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const count = clsStudents.length;
             const assignedRoom = DataManager.getSanitizedClassRoomMapping(cls) || '';
 
+            const colorIdx = index % 5;
+            const rowBg = bgColors[colorIdx];
+            const rowBorder = borderColors[colorIdx];
+
             // Accordion Header
             html += `
-                <div class="accordion-item glass-panel" style="border-radius:10px; overflow-x:auto;">
-                    <div class="accordion-header" style="padding:0.85rem 1.25rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer; gap:10px; min-width:980px;" onclick="this.nextElementSibling.classList.toggle('hidden');">
+                <div class="accordion-item glass-panel" style="border-radius:10px; background-color:${rowBg} !important; border:2px solid ${rowBorder} !important; margin-bottom:10px; overflow-x:auto;">
+                    <div class="accordion-header" style="padding:0.85rem 1.25rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer; gap:10px; flex-wrap:wrap; width:100%; box-sizing:border-box;" onclick="this.nextElementSibling.classList.toggle('hidden');">
                         <div style="width:150px; min-width:150px; flex-shrink:0; display:flex; align-items:center; gap:8px;">
                             <h2 style="color:var(--primary); font-size:1.2rem; margin:0; white-space:nowrap;">
                                 ${cls} Sınıfı
@@ -1490,7 +1497,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <i class="fa-solid fa-users"></i> ${count}
                             </span>
                         </div>
-                        <div style="display:flex; align-items:center; gap:8px; flex:1; justify-content:flex-end;">
+                        <div style="display:flex; align-items:center; gap:8px; flex:1; justify-content:flex-end; flex-wrap:wrap;">
                             <button class="btn btn-secondary btn-sm" style="height:38px; width:125px; min-width:125px; flex-shrink:0; padding:0 0.5rem; font-size:0.85rem; font-weight:600; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; gap:5px; box-sizing:border-box; white-space:nowrap;" onclick="event.stopPropagation(); window.assignSubjectsToClass('${cls}')">
                                 <i class="fa-solid fa-book"></i> Ders Tanımla
                             </button>

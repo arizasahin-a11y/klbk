@@ -1,0 +1,132 @@
+{
+  "links": [
+    {
+      "active": true,
+      "desc": "Ana Y\u00f6netim Paneli",
+      "icon": "fa-chart-line",
+      "id": "html_dashboard",
+      "title": "Dashboard",
+      "url": "/r1p5s8q3"
+    },
+    {
+      "active": false,
+      "desc": "Z\u00fcmre Planlama ve G\u00f6r\u00fc\u015f Ekleme Sayfas\u0131",
+      "icon": "fa-users-between-lines",
+      "id": "1785220909314",
+      "title": "Zumreci",
+      "url": "/zumreci.html"
+    },
+    {
+      "active": false,
+      "desc": "\u00d6\u011fretmen Yoklama Alma Sayfas\u0131",
+      "icon": "fa-clipboard-list",
+      "id": "html_yoklama_ogretmen",
+      "title": "Yoklama Ekran\u0131",
+      "url": "/yoklama_ogretmen.html"
+    },
+    {
+      "active": true,
+      "desc": "\u0130dareci Yoklama Y\u00f6netim Paneli",
+      "icon": "fa-building-user",
+      "id": "html_yoklama_idareci",
+      "title": "Yoklama \u0130dareci",
+      "url": "/yoklama_idareci.html"
+    },
+    {
+      "active": true,
+      "desc": "\u00d6\u011fretmen S\u0131nav \u0130\u015flemleri Sayfas\u0131",
+      "icon": "fa-chalkboard-user",
+      "id": "html_ogretmen",
+      "title": "\u00d6\u011fretmen S\u0131nav \u0130\u015flemleri Sayfas\u0131",
+      "url": "/h6t3y9w1"
+    },
+    {
+      "active": false,
+      "desc": "Liste olu\u015fturma ve Yazd\u0131rma Sayfas\u0131",
+      "icon": "fa-list-ol",
+      "id": "html_listeci",
+      "title": "Listeci",
+      "url": "/listeci.html"
+    },
+    {
+      "active": false,
+      "desc": "\u00d6\u011frenciler bilgilendirme ve i\u015flem sayfas\u0131",
+      "icon": "fa-user-graduate",
+      "id": "html_ogrenci",
+      "title": "\u00d6\u011frenci Paneli",
+      "url": "/j2k5l0p8"
+    },
+    {
+      "active": true,
+      "desc": "Okul \u0130\u00e7i Okul D\u0131\u015f\u0131 Faaliyetleri Y\u00f6netim Paneli",
+      "icon": "fa-tasks",
+      "id": "html_oeyp",
+      "title": "\u00d6\u011frenci Faaliyet  Paneli",
+      "url": "/oeyp.html"
+    },
+    {
+      "active": false,
+      "desc": "\u00d6\u011frenci Ders ve Davran\u0131\u015f Takip Sayfas\u0131",
+      "icon": "fa-chart-pie",
+      "id": "html_ogrencitakip",
+      "title": "\u00d6\u011frenci Takip Sayfas\u0131",
+      "url": "/ogrencitakip.html"
+    },
+    {
+      "active": false,
+      "desc": "Okul \u0130\u015fileri Uygulamar\u0131na Eri\u015fim sayfas\u0131",
+      "icon": "fa-compass",
+      "id": "html_enter",
+      "title": "Okul \u0130\u015fleri Portal\u0131",
+      "url": "/enter.html"
+    },
+    {
+      "active": false,
+      "desc": "Veli-\u00d6\u011frenci Faaliyet Bilgi Sistemi",
+      "icon": "fa-database",
+      "id": "html_oeovvb",
+      "title": "Veli-\u00d6\u011frenci Faaliyet Bilgi Sistemi",
+      "url": "/oeovvb.html"
+    },
+    {
+      "active": false,
+      "desc": "Sistem Ana Giri\u015f Sayfas\u0131",
+      "icon": "fa-right-to-bracket",
+      "id": "html_index",
+      "title": "Ana Giri\u015f",
+      "url": "/index.html"
+    },
+    {
+      "active": false,
+      "desc": "OGP ve O\u00d6P Faaliyet De\u011ferlendirme & Raporlama",
+      "icon": "fa-file-signature",
+      "id": "html_pts",
+      "title": "Proje Okulu \u0130\u015fleri Portal\u0131 (PTS)",
+      "url": "/faaliyet_liderleri.html"
+    },
+    {
+      "active": false,
+      "desc": "\u00d6\u011fretmen N\u00f6bet \u00c7izelgesi ve \u0130\u015flemleri",
+      "icon": "fa-calendar-day",
+      "id": "html_dt",
+      "title": "N\u00f6bet Planlama",
+      "url": "/dt.html"
+    },
+    {
+      "active": false,
+      "desc": "\u00d6\u011frenci N\u00f6bet Planlama",
+      "icon": "fa-user-shield",
+      "id": "html_no",
+      "title": "N\u00f6bet\u00e7i \u00d6\u011frenci",
+      "url": "/no.html"
+    },
+    {
+      "active": false,
+      "desc": "Rehberlik ve Sosyal Uygulamalar Y\u00f6netim Paneli",
+      "icon": "fa-people-group",
+      "id": "html_srh",
+      "title": "Rehberlik ve Sosyal",
+      "url": "/srh.html"
+    }
+  ]
+}

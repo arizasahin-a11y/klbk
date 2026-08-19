@@ -1,0 +1,129 @@
+{
+  "404_html": {
+    "expiresAt": 1817223115900,
+    "globalAccess": true
+  },
+  "dashboard_html": {
+    "assignments": {
+      "@r\u0131z@": "admin",
+      "undefined": "admin"
+    },
+    "expiresAt": 1817223118985,
+    "globalAccess": true
+  },
+  "dt_html": {
+    "assignments": {
+      "@r\u0131z@": "admin",
+      "ferdialtundas": "admin",
+      "hakancora": "admin",
+      "undefined": "admin"
+    },
+    "expiresAt": 1817223121889,
+    "globalAccess": true
+  },
+  "enter_html": {
+    "assignments": {
+      "@r\u0131z@": "admin"
+    },
+    "expiresAt": 1817223124199,
+    "globalAccess": true
+  },
+  "faaliyet_liderleri_html": {
+    "expiresAt": 1817223149411,
+    "globalAccess": true
+  },
+  "h6t3y9w1": {
+    "globalAccess": true
+  },
+  "index_html": {
+    "assignments": {
+      "@r\u0131z@": "admin",
+      "undefined": "admin"
+    },
+    "expiresAt": 1817223127893,
+    "globalAccess": true
+  },
+  "j2k5l0p8": {
+    "globalAccess": true
+  },
+  "listeci_html": {
+    "expiresAt": 1817223130491,
+    "globalAccess": true
+  },
+  "listeci_print_html": {
+    "expiresAt": 1817223133203,
+    "globalAccess": true
+  },
+  "no_html": {
+    "assignments": {
+      "@r\u0131z@": "admin",
+      "hakancora": "admin"
+    },
+    "globalAccess": true
+  },
+  "oeovvb_html": {
+    "expiresAt": 1817223136329,
+    "globalAccess": true
+  },
+  "oeyp_html": {
+    "assignments": {
+      "@r\u0131z@": "admin",
+      "ferdialtundas": "admin",
+      "hakancora": "admin"
+    },
+    "expiresAt": 1817223139503,
+    "globalAccess": true
+  },
+  "ogrenci_html": {
+    "expiresAt": 1817223141382,
+    "globalAccess": true
+  },
+  "ogrencitakip_html": {
+    "assignments": {
+      "@r\u0131z@": "admin"
+    },
+    "expiresAt": 1817223144166,
+    "globalAccess": true
+  },
+  "ogretmen_html": {
+    "assignments": {
+      "@r\u0131z@": "admin"
+    },
+    "expiresAt": 1817223147371,
+    "globalAccess": true
+  },
+  "r1p5s8q3": {
+    "assignments": {
+      "@r\u0131z@": "admin"
+    },
+    "globalAccess": true
+  },
+  "security_error_html": {
+    "expiresAt": 1817223152122,
+    "globalAccess": true
+  },
+  "srh_html": {
+    "assignments": {
+      "@r\u0131z@": "admin"
+    },
+    "expiresAt": 1817918944816,
+    "globalAccess": true
+  },
+  "yoklama_idareci_html": {
+    "assignments": {
+      "@r\u0131z@": "admin",
+      "ferdialtundas": "admin",
+      "hakancora": "admin"
+    },
+    "expiresAt": 1817223154097,
+    "globalAccess": true
+  },
+  "yoklama_ogretmen_html": {
+    "expiresAt": 1817223156264,
+    "globalAccess": true
+  },
+  "zumreci_html": {
+    "expiresAt": 1817223158566,
+    "globalAccess": true
+  }
+}
