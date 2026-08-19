@@ -1487,7 +1487,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Accordion Header
             html += `
-                <div class="accordion-item glass-panel" style="border-radius:10px; background-color:${rowBg} !important; border:2px solid ${rowBorder} !important; margin-bottom:10px; overflow-x:auto;">
+                <div class="accordion-item glass-panel" style="border-radius:10px; background-color:${rowBg} !important; border:4px solid ${rowBorder} !important; margin-bottom:10px; overflow-x:auto;">
                     <div class="accordion-header" style="padding:0.85rem 1.25rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer; gap:10px; flex-wrap:wrap; width:100%; box-sizing:border-box;" onclick="this.nextElementSibling.classList.toggle('hidden');">
                         <div style="width:150px; min-width:150px; flex-shrink:0; display:flex; align-items:center; gap:8px;">
                             <h2 style="color:var(--primary); font-size:1.2rem; margin:0; white-space:nowrap;">

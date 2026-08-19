@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const rowBorder = borderColors[colorIdx];
 
             html += `
-            <div class="stat-card glass-panel" style="display: flex; flex-direction: column; cursor: pointer; transition: all 0.2s ease; padding: 10px 15px; margin-bottom: 10px; background-color: ${rowBg} !important; border: 2px solid ${rowBorder} !important; ${cardStyle}" ${clickEvent} ${contextEvent}>
+            <div class="stat-card glass-panel" style="display: flex; flex-direction: column; cursor: pointer; transition: all 0.2s ease; padding: 10px 15px; margin-bottom: 10px; background-color: ${rowBg} !important; border: 4px solid ${rowBorder} !important; ${cardStyle}" ${clickEvent} ${contextEvent}>
                 
                 <div class="teacher-row-wrapper">
                     
