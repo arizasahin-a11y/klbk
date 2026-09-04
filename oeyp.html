@@ -320,7 +320,7 @@
                     <i class="fa-solid fa-clipboard-user fa-2x"></i>
                 </div>
                 <div>
-                    <h1 style="font-size: 1.25rem; font-weight: 800; color: #1e293b; margin: 0; cursor: context-menu;" oncontextmenu="setManagerName(event)" title="Müdür ismini düzenlemek için sağ tıklayın">Okul Etkinlik Yönetim Paneli</h1>
+                    <h1 style="font-size: 1.25rem; font-weight: 800; color: #1e293b; margin: 0; cursor: context-menu;" oncontextmenu="openAdminContextMenu(event)" title="Sağ tıklayın: Müdür adı veya maks. görev sayısı ayarlayın">Okul Etkinlik Yönetim Paneli</h1>
                     <p style="font-size: 0.85rem; color: #64748b; margin: 2px 0 0 0;" id="teacherWelcome">Yükleniyor...</p>
                 </div>
             </div>
@@ -983,6 +983,103 @@
             
             const existingIndex = newActStudents.findIndex(s => s.no === no);
             
+            // ---- MAKS. ÇALIŞMA SAYISI KONTROLÜ ----
+            // Eğer öğrenci zaten bu çalışmada değilse (yeni ekleme ise) kontrol et
+            if (existingIndex === -1) {
+                const maxGorev = (schoolData && schoolData.maxOgrenciGorev) ? parseInt(schoolData.maxOgrenciGorev) : 0;
+                if (maxGorev > 0) {
+                    const acts = schoolData.activities || [];
+                    // Sadece aktif (onaylanmış, silinmemiş) çalışmalardaki kayıtları say
+                    const mevcutCalismaCount = acts.filter(a =>
+                        a.isDeleted !== true &&
+                        a.isDraft !== true &&
+                        a.isApproved !== false &&
+                        (editingActivityId ? a.id !== editingActivityId : true) &&
+                        a.students && a.students.some(s => s.no === no)
+                    ).length;
+                    // Mevcut form listesindeki de ayrı bir çalışmaysa sayıya dahil et
+                    const inCurrentForm = newActStudents.some(s => s.no === no) ? 0 : 0; // zaten existingIndex === -1
+                    const toplam = mevcutCalismaCount + 1; // +1 şu an eklenecek olan
+                    if (toplam > maxGorev) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Görev Limiti Aşıldı!',
+                            html: `<b>${name}</b> adlı öğrenci zaten <b>${mevcutCalismaCount}</b> çalışmada görevli.<br><br>Bir öğrenciye en fazla <b>${maxGorev}</b> farklı çalışmada görev verilebilir. Bu limit aşıldığı için öğrenci eklenemez.`,
+                            confirmButtonText: 'Tamam'
+                        });
+                        return;
+                    }
+                }
+            }
+
+            // ---- ÇALIŞMA SAATI ÇAKIŞMA KONTROLÜ ----
+            // Mevcut çalışmanın programları ile yeni form programlarını birleştir
+            if (existingIndex === -1 && newActSchedules.length > 0) {
+                const acts = schoolData.activities || [];
+                // Bu öğrencinin başka çalışmalardaki programlarını topla
+                const ogrenciProgramlari = [];
+                acts.forEach(a => {
+                    if (a.isDeleted === true) return;
+                    if (editingActivityId && a.id === editingActivityId) return; // düzenlenen çalışmayı atla
+                    if (!a.students || !a.students.some(s => s.no === no)) return;
+                    if (!a.schedules) return;
+                    a.schedules.forEach(sch => {
+                        const gunler = sch.days.split(',').map(d => d.trim());
+                        gunler.forEach(gun => {
+                            ogrenciProgramlari.push({ gun, time: sch.time, actName: a.name });
+                        });
+                    });
+                });
+
+                // Form'daki yeni program saatleriyle karşılaştır
+                const dayMap = {'Pazar':0,'Pazartesi':1,'Salı':2,'Çarşamba':3,'Perşembe':4,'Cuma':5,'Cumartesi':6};
+                function parseTime(tStr) {
+                    if (!tStr) return null;
+                    const p = tStr.trim().split(':');
+                    return parseInt(p[0]) * 60 + parseInt(p[1]);
+                }
+                function timesOverlap(s1, e1, s2, e2) {
+                    return s1 < e2 && s2 < e1;
+                }
+
+                let cakisanCalisma = null;
+                let cakisanGun = null;
+
+                outerLoop:
+                for (const yeniSch of newActSchedules) {
+                    const yeniGunler = yeniSch.days.split(',').map(d => d.trim());
+                    const [yeniStartStr, yeniEndStr] = yeniSch.time.split('-').map(t => t.trim());
+                    const yeniStart = parseTime(yeniStartStr);
+                    const yeniEnd = parseTime(yeniEndStr);
+                    if (yeniStart === null || yeniEnd === null) continue;
+
+                    for (const yeniGun of yeniGunler) {
+                        for (const mevcut of ogrenciProgramlari) {
+                            if (mevcut.gun !== yeniGun) continue;
+                            const [mevStartStr, mevEndStr] = mevcut.time.split('-').map(t => t.trim());
+                            const mevStart = parseTime(mevStartStr);
+                            const mevEnd = parseTime(mevEndStr);
+                            if (mevStart === null || mevEnd === null) continue;
+                            if (timesOverlap(yeniStart, yeniEnd, mevStart, mevEnd)) {
+                                cakisanCalisma = mevcut.actName;
+                                cakisanGun = yeniGun;
+                                break outerLoop;
+                            }
+                        }
+                    }
+                }
+
+                if (cakisanCalisma) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Çakışma Tespit Edildi!',
+                        html: `<b>${name}</b> adlı öğrenci, <b>${cakisanGun}</b> günü zaten başka bir çalışmada (<b>${cakisanCalisma}</b>) aynı saatte görevli.<br><br>Öğrenci bu çalışmaya eklenemez.`,
+                        confirmButtonText: 'Tamam'
+                    });
+                    return;
+                }
+            }
+
             if (existingIndex !== -1) {
                 newActStudents[existingIndex].studentPhone = sPhone;
                 newActStudents[existingIndex].parentPhone = pPhone;
@@ -2558,6 +2655,85 @@
                     Swal.fire('Kaydedildi', 'Okul müdürü ismi güncellendi.', 'success');
                 }
             });
+        }
+
+        function setMaxOgrenciGorev(event) {
+            if (event) event.preventDefault();
+            const mevcutMax = (schoolData && schoolData.maxOgrenciGorev) ? schoolData.maxOgrenciGorev : 0;
+            Swal.fire({
+                title: '📋 Öğrenci Başına Maks. Çalışma Sayısı',
+                html: `
+                    <p style="color:#475569; font-size:0.95rem; margin-bottom:15px;">Bir öğrenciye en fazla kaç farklı çalışmada görev verilebileceğini belirleyin.<br><span style="color:#94a3b8; font-size:0.85rem;">0 girilirse sınırsız olur.</span></p>
+                    <input id="maxGorevInput" type="number" min="0" max="20" value="${mevcutMax}" class="swal2-input" style="text-align:center; font-size:1.5rem; font-weight:800; width:120px;" placeholder="0">
+                `,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-save"></i> Kaydet',
+                cancelButtonText: 'İptal',
+                confirmButtonColor: '#4f46e5',
+                focusConfirm: false,
+                preConfirm: () => {
+                    const val = parseInt(document.getElementById('maxGorevInput').value);
+                    if (isNaN(val) || val < 0) {
+                        Swal.showValidationMessage('Lütfen 0 veya daha büyük bir sayı girin!');
+                        return false;
+                    }
+                    return val;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    schoolData.maxOgrenciGorev = result.value;
+                    DataManager.saveSchoolSettings({ maxOgrenciGorev: result.value });
+                    const limitText = result.value === 0 ? 'Sınırsız' : `En fazla ${result.value} çalışma`;
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Kaydedildi',
+                        text: `Öğrenci başına görev limiti: ${limitText}`,
+                        timer: 2500,
+                        showConfirmButton: false
+                    });
+                }
+            });
+        }
+
+        function openAdminContextMenu(event) {
+            event.preventDefault();
+            const adminRoles = ['admin', 'idareci', 'mudur_yardimcisi', 'mudur', 'müdür yardımcısı', 'müdür'];
+            const isUserAdmin = adminRoles.includes(String(currentUser && currentUser.role || '').trim().toLowerCase());
+
+            if (isUserAdmin) {
+                // Admin için çift seçenekli menü
+                const mevcutMax = (schoolData && schoolData.maxOgrenciGorev) ? schoolData.maxOgrenciGorev : 0;
+                const limitLabel = mevcutMax > 0 ? ` (Şu an: ${mevcutMax})` : ' (Sınırsız)';
+                Swal.fire({
+                    title: '⚙️ Yönetici Ayarları',
+                    html: `
+                        <div style="display:flex; flex-direction:column; gap:12px; padding:10px 0;">
+                            <button id="swal-btn-mudur" class="swal2-confirm swal2-styled" style="background:#4f46e5; width:100%; justify-content:center; gap:8px;">
+                                <i class="fa-solid fa-user-tie"></i> Okul Müdürü Adını Düzenle
+                            </button>
+                            <button id="swal-btn-maxgorev" class="swal2-confirm swal2-styled" style="background:#10b981; width:100%; justify-content:center; gap:8px;">
+                                <i class="fa-solid fa-list-ol"></i> Maks. Öğrenci Çalışma Sayısı${limitLabel}
+                            </button>
+                        </div>
+                    `,
+                    showConfirmButton: false,
+                    showCancelButton: true,
+                    cancelButtonText: 'Kapat',
+                    didOpen: () => {
+                        document.getElementById('swal-btn-mudur').addEventListener('click', () => {
+                            Swal.close();
+                            setTimeout(() => setManagerName({ preventDefault: () => {} }), 100);
+                        });
+                        document.getElementById('swal-btn-maxgorev').addEventListener('click', () => {
+                            Swal.close();
+                            setTimeout(() => setMaxOgrenciGorev(null), 100);
+                        });
+                    }
+                });
+            } else {
+                // Öğretmen için sadece müdür adı ayarı
+                setManagerName(event);
+            }
         }
 
         async function printIdariIzin(id, event) {
