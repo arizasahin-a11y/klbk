@@ -320,7 +320,7 @@
                     <i class="fa-solid fa-clipboard-user fa-2x"></i>
                 </div>
                 <div>
-                    <h1 style="font-size: 1.25rem; font-weight: 800; color: #1e293b; margin: 0; cursor: context-menu;" oncontextmenu="openAdminContextMenu(event)" title="Sağ tıklayın: Müdür adı veya maks. görev sayısı ayarlayın">Okul Etkinlik Yönetim Paneli</h1>
+                    <h1 style="font-size: 1.25rem; font-weight: 800; color: #1e293b; margin: 0; cursor: context-menu;" oncontextmenu="openAdminContextMenu(event)" title="Sağ tıklayın: Öğrenci başına maks. çalışma sayısı ayarlayın">Okul Etkinlik Yönetim Paneli</h1>
                     <p style="font-size: 0.85rem; color: #64748b; margin: 2px 0 0 0;" id="teacherWelcome">Yükleniyor...</p>
                 </div>
             </div>
@@ -2634,29 +2634,6 @@
             if(dd) dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
         }
 
-        function setManagerName(event) {
-            event.preventDefault();
-            Swal.fire({
-                title: 'Okul Müdürü Adı Soyadı',
-                input: 'text',
-                inputValue: schoolData.managerName || '',
-                showCancelButton: true,
-                confirmButtonText: 'Kaydet',
-                cancelButtonText: 'İptal',
-                inputValidator: (value) => {
-                    if (!value) {
-                        return 'Müdür adı boş bırakılamaz!';
-                    }
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    schoolData.managerName = result.value.trim();
-                    DataManager.saveSchoolSettings({ managerName: schoolData.managerName });
-                    Swal.fire('Kaydedildi', 'Okul müdürü ismi güncellendi.', 'success');
-                }
-            });
-        }
-
         function setMaxOgrenciGorev(event) {
             if (event) event.preventDefault();
             const mevcutMax = (schoolData && schoolData.maxOgrenciGorev) ? schoolData.maxOgrenciGorev : 0;
@@ -2697,43 +2674,7 @@
 
         function openAdminContextMenu(event) {
             event.preventDefault();
-            const adminRoles = ['admin', 'idareci', 'mudur_yardimcisi', 'mudur', 'müdür yardımcısı', 'müdür'];
-            const isUserAdmin = adminRoles.includes(String(currentUser && currentUser.role || '').trim().toLowerCase());
-
-            if (isUserAdmin) {
-                // Admin için çift seçenekli menü
-                const mevcutMax = (schoolData && schoolData.maxOgrenciGorev) ? schoolData.maxOgrenciGorev : 0;
-                const limitLabel = mevcutMax > 0 ? ` (Şu an: ${mevcutMax})` : ' (Sınırsız)';
-                Swal.fire({
-                    title: '⚙️ Yönetici Ayarları',
-                    html: `
-                        <div style="display:flex; flex-direction:column; gap:12px; padding:10px 0;">
-                            <button id="swal-btn-mudur" class="swal2-confirm swal2-styled" style="background:#4f46e5; width:100%; justify-content:center; gap:8px;">
-                                <i class="fa-solid fa-user-tie"></i> Okul Müdürü Adını Düzenle
-                            </button>
-                            <button id="swal-btn-maxgorev" class="swal2-confirm swal2-styled" style="background:#10b981; width:100%; justify-content:center; gap:8px;">
-                                <i class="fa-solid fa-list-ol"></i> Maks. Öğrenci Çalışma Sayısı${limitLabel}
-                            </button>
-                        </div>
-                    `,
-                    showConfirmButton: false,
-                    showCancelButton: true,
-                    cancelButtonText: 'Kapat',
-                    didOpen: () => {
-                        document.getElementById('swal-btn-mudur').addEventListener('click', () => {
-                            Swal.close();
-                            setTimeout(() => setManagerName({ preventDefault: () => {} }), 100);
-                        });
-                        document.getElementById('swal-btn-maxgorev').addEventListener('click', () => {
-                            Swal.close();
-                            setTimeout(() => setMaxOgrenciGorev(null), 100);
-                        });
-                    }
-                });
-            } else {
-                // Öğretmen için sadece müdür adı ayarı
-                setManagerName(event);
-            }
+            setMaxOgrenciGorev(null);
         }
 
         async function printIdariIzin(id, event) {
