@@ -551,25 +551,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         const y = now.getFullYear();
         const m = now.getMonth() + 1; // 1-12
         // Academic calendar rules:
-        // Sep–Dec (9–12) → I. Dönem, year = y / y+1
-        // Jan     (1)    → I. Dönem, year = y-1 / y
-        // Feb–Aug (2–8)  → II. Dönem, year = y-1 / y
+        // 1 Eylül - 1 Ocak arası (9–12)  → içinde bulunulan yıl ve bir sonraki yıl (örn: 2026-2027)
+        // 1 Ocak - 31 Ağustos arası (1–8) → bir önceki yıl ve içinde bulunulan yıl (örn: 2025-2026)
         let autoYear, autoTerm;
         if (m >= 9) {
-            // Sep–Dec: start of new school year
             autoYear = `${y}-${y + 1}`;
             autoTerm = 'I. Dönem';
         } else if (m === 1) {
-            // January: still first term of the school year that started previous Sep
             autoYear = `${y - 1}-${y}`;
             autoTerm = 'I. Dönem';
         } else {
-            // Feb–Aug: second term of the closing school year
             autoYear = `${y - 1}-${y}`;
             autoTerm = 'II. Dönem';
         }
 
-        setVal('academicYear', school.academicYear || autoYear);
+        setVal('academicYear', autoYear);
         setVal('academicTerm', autoTerm);
 
         // Logo Preview

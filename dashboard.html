@@ -229,7 +229,7 @@
                                 </div>
                                 <div class="form-group half">
                                     <label>Eğitim Öğretim Yılı</label>
-                                    <input type="text" id="academicYear" placeholder="Örn: 2023-2024">
+                                    <input type="text" id="academicYear" placeholder="Örn: 2026-2027">
                                 </div>
                             </div>
                             <div class="form-row">
@@ -974,6 +974,13 @@
             const wizDate = document.getElementById('wizSessionDate');
             if (wizDate) {
                 wizDate.value = new Date().toISOString().slice(0, 10);
+            }
+            const ayInput = document.getElementById('academicYear');
+            if (ayInput) {
+                const now = new Date();
+                const y = now.getFullYear();
+                const m = now.getMonth() + 1;
+                ayInput.value = (m >= 9) ? `${y}-${y + 1}` : `${y - 1}-${y}`;
             }
         });
     </script>
