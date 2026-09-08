@@ -395,6 +395,26 @@
         let portalLinks = [];
 
         document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('logout') === 'true') {
+                sessionStorage.clear();
+                localStorage.removeItem('klbk_isLoggedIn');
+                localStorage.removeItem('klbk_faaliyet_isLoggedIn');
+                localStorage.removeItem('klbk_username');
+                localStorage.removeItem('klbk_currentUser');
+                localStorage.removeItem('klbk_name');
+                localStorage.removeItem('klbk_role');
+                localStorage.removeItem('klbk_session_token');
+                localStorage.removeItem('klbk_storeKey');
+                localStorage.removeItem('klbk_schoolName');
+                localStorage.removeItem('klbk_branch');
+                localStorage.removeItem('klbk_persistent_session');
+                localStorage.removeItem('klbk_rememberedUser');
+                localStorage.removeItem('klbk_teacher_token');
+                localStorage.removeItem('klbk_teacher_user');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
             const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || localStorage.getItem('klbk_isLoggedIn') === 'true';
             
             if (isLoggedIn) {
