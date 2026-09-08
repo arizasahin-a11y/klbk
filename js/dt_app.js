@@ -1728,6 +1728,34 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateOb
     return newPlan;
 }
 
+function getShiftGroupInfo(shiftId) {
+    if (shiftId === '_admin_duty') {
+        return {
+            groupKey: '_admin_duty',
+            name: 'Nöbetçi İdareci',
+            priority: -1
+        };
+    }
+    let isDilim1 = shiftId.includes('_dilim1');
+    let isDilim2 = shiftId.includes('_dilim2');
+    let cleanId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+    
+    let locInfo = nobetSettings.locations?.find(l => l.id === cleanId || cleanId.startsWith(l.id + '_') || cleanId === l.id);
+    let baseLocId = locInfo ? locInfo.id : cleanId.split('_')[0];
+    let baseLocName = locInfo ? locInfo.name : cleanId;
+    let priority = locInfo ? (locInfo.priority || 99) : 99;
+
+    let dilimSuffix = isDilim1 ? ' (1. Dilim)' : (isDilim2 ? ' (2. Dilim)' : '');
+    let groupKey = baseLocId + (isDilim1 ? '_dilim1' : (isDilim2 ? '_dilim2' : ''));
+    let displayName = baseLocName + dilimSuffix;
+
+    return {
+        groupKey: groupKey,
+        name: displayName,
+        priority: priority
+    };
+}
+
 function renderWeeklyPlan() {
     if(!currentWeekPlan || Object.keys(currentWeekPlan).length === 0) {
         $('#weeklyPlanContainer').html('<p style="color:var(--gray-500);">Plan bulunmuyor.</p>');
@@ -1737,28 +1765,34 @@ function renderWeeklyPlan() {
     let dates = Object.keys(currentWeekPlan).sort();
     const dayNames = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
     
-    // Collect all unique locations across all days
-    let allShifts = [];
+    // Aynı nöbet yerlerini tek satırda birleştirmek için grupla
+    let groupMap = {};
     dates.forEach(d => {
         for(let shiftId in currentWeekPlan[d]) {
-            if(shiftId !== '_isHoliday' && !allShifts.includes(shiftId)) allShifts.push(shiftId);
+            if(shiftId === '_isHoliday') continue;
+            let info = getShiftGroupInfo(shiftId);
+            if(!groupMap[info.groupKey]) {
+                groupMap[info.groupKey] = {
+                    key: info.groupKey,
+                    name: info.name,
+                    priority: info.priority,
+                    shiftIds: []
+                };
+            }
+            if(!groupMap[info.groupKey].shiftIds.includes(shiftId)) {
+                groupMap[info.groupKey].shiftIds.push(shiftId);
+            }
         }
     });
     
-    // Sort shifts: _admin_duty first, then by location priority if possible
-    allShifts.sort((a, b) => {
-        if(a === '_admin_duty') return -1;
-        if(b === '_admin_duty') return 1;
-        
-        let locIdA = a.replace('_dilim1', '').replace('_dilim2', '');
-        let locIdB = b.replace('_dilim1', '').replace('_dilim2', '');
-        let infoA = nobetSettings.locations?.find(l => l.id === locIdA || locIdA.startsWith(l.id + '_'));
-        let infoB = nobetSettings.locations?.find(l => l.id === locIdB || locIdB.startsWith(l.id + '_'));
-        let pA = infoA ? infoA.priority : 99;
-        let pB = infoB ? infoB.priority : 99;
-        if(pA !== pB) return pA - pB;
-        return a.localeCompare(b);
+    let groupedShifts = Object.values(groupMap);
+    groupedShifts.sort((a, b) => {
+        if(a.key === '_admin_duty') return -1;
+        if(b.key === '_admin_duty') return 1;
+        if(a.priority !== b.priority) return a.priority - b.priority;
+        return a.name.localeCompare(b.name, 'tr');
     });
+
     let html = `
     <div style="text-align:right; margin-bottom:10px;">
         <button onclick="window.openPrintTab()" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;"><i class="fa-solid fa-print"></i> PDF Yap / Yazdır</button>
@@ -1777,24 +1811,10 @@ function renderWeeklyPlan() {
             </thead>
             <tbody>`;
             
-    allShifts.forEach((shiftId, index) => {
-        let locName = shiftId;
-        if(shiftId === '_admin_duty') {
-            locName = "Nöbetçi İdareci";
-        } else {
-            let isDilim1 = shiftId.includes('_dilim1');
-            let isDilim2 = shiftId.includes('_dilim2');
-            let locId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
-            
-            let locInfo = nobetSettings.locations?.find(l => l.id === locId || locId.startsWith(l.id + '_'));
-            locName = locInfo ? locInfo.name : locId;
-            if(isDilim1) locName += " (1. Dilim)";
-            if(isDilim2) locName += " (2. Dilim)";
-        }
-        
+    groupedShifts.forEach((grp, index) => {
         let rowBg = index % 2 === 0 ? 'background: var(--white);' : 'background: #f9fafb;';
         html += `<tr style="${rowBg}">
-                    <td style="padding: 12px; border: 1px solid var(--gray-200); font-weight: 600; color: var(--primary-dark); text-align: left;">${locName}</td>`;
+                    <td style="padding: 12px; border: 1px solid var(--gray-200); font-weight: 600; color: var(--primary-dark); text-align: left;">${grp.name}</td>`;
                     
         for(let i=0; i<5; i++) {
             let dateStr = dates[i];
@@ -1803,40 +1823,45 @@ function renderWeeklyPlan() {
             if (holidayName || (currentWeekPlan[dateStr] && currentWeekPlan[dateStr]['_isHoliday'])) {
                 html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: #b45309; background: rgba(245,158,11,0.15); font-weight:600; text-align:center;">${holidayName || 'Tatil'}</td>`;
             } else {
-                let teachersList = '';
-                if(dateStr && currentWeekPlan[dateStr] && currentWeekPlan[dateStr][shiftId]) {
-                    teachersList = currentWeekPlan[dateStr][shiftId].map(uid => {
-                        let name = klbkUsers[uid]?.name || uid;
-                        let countStr = "";
-                        if (window.rotationTally && window.rotationTally[dateStr] && window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid]) {
-                            countStr = ` <span style="font-size:0.85em; opacity:0.8;">(${window.rotationTally[dateStr][shiftId][uid]})</span>`;
-                        }
-                        let isFixed = false;
-                        if (teacherData && teacherData[uid] && teacherData[uid].fixedLoc) {
-                            let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
-                            if (teacherData[uid].fixedLoc === shiftId || teacherData[uid].fixedLoc === baseShift) {
-                                isFixed = true;
+                let cellTeachersHtml = [];
+                if(dateStr && currentWeekPlan[dateStr]) {
+                    grp.shiftIds.forEach(shiftId => {
+                        let teachersInShift = currentWeekPlan[dateStr][shiftId] || [];
+                        teachersInShift.forEach(uid => {
+                            let name = klbkUsers[uid]?.name || uid;
+                            let countStr = "";
+                            if (window.rotationTally && window.rotationTally[dateStr] && window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid]) {
+                                countStr = ` <span style="font-size:0.85em; opacity:0.8;">(${window.rotationTally[dateStr][shiftId][uid]})</span>`;
                             }
-                        }
-                        
-                        let baseStyle = isFixed ? "font-weight:900; color:#111827;" : "";
+                            let isFixed = false;
+                            if (teacherData && teacherData[uid] && teacherData[uid].fixedLoc) {
+                                let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                                if (teacherData[uid].fixedLoc === shiftId || teacherData[uid].fixedLoc === baseShift || teacherData[uid].fixedLoc === grp.key) {
+                                    isFixed = true;
+                                }
+                            }
+                            
+                            let baseStyle = isFixed ? "font-weight:900; color:#111827;" : "";
 
-                        if (isAdmin) {
-                            let safeUid = uid.replace(/'/g, "\\'");
-                            let safeDate = dateStr.replace(/'/g, "\\'");
-                            if (shiftId === '_admin_duty') {
-                                return `<span style="cursor:pointer; text-decoration:underline; color:var(--primary); ${baseStyle}" onclick="window.changeAdminDuty('${safeDate}', '${safeUid}')">${name}${countStr}</span>`;
+                            if (isAdmin) {
+                                let safeUid = uid.replace(/'/g, "\\'");
+                                let safeDate = dateStr.replace(/'/g, "\\'");
+                                if (shiftId === '_admin_duty') {
+                                    cellTeachersHtml.push(`<span style="cursor:pointer; text-decoration:underline; color:var(--primary); ${baseStyle}" onclick="window.changeAdminDuty('${safeDate}', '${safeUid}')">${name}${countStr}</span>`);
+                                } else {
+                                    let cleanUid = uid.replace(/[^a-zA-Z0-9]/g, '');
+                                    cellTeachersHtml.push(`<span style="cursor:pointer; display:inline-block; margin:2px 0; ${baseStyle}" oncontextmenu="window.selectTeacherForSwap('${safeDate}', '${safeUid}', event)" onclick="window.handleTeacherClick('${safeDate}', '${safeUid}', event)" id="span_swap_${dateStr}_${cleanUid}">${name}${countStr}</span>`);
+                                }
+                            } else if (isFixed) {
+                                cellTeachersHtml.push(`<span style="${baseStyle}">${name}${countStr}</span>`);
                             } else {
-                                let cleanUid = uid.replace(/[^a-zA-Z0-9]/g, '');
-                                return `<span style="cursor:pointer; display:inline-block; ${baseStyle}" oncontextmenu="window.selectTeacherForSwap('${safeDate}', '${safeUid}', event)" onclick="window.handleTeacherClick('${safeDate}', '${safeUid}', event)" id="span_swap_${dateStr}_${cleanUid}">${name}${countStr}</span>`;
+                                cellTeachersHtml.push(`<span>${name}${countStr}</span>`);
                             }
-                        } else if (isFixed) {
-                            return `<span style="${baseStyle}">${name}${countStr}</span>`;
-                        }
-                        return name + countStr;
-                    }).join('<br>');
+                        });
+                    });
                 }
-                html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">${teachersList || '<span style="color:var(--gray-400);">-</span>'}</td>`;
+                let content = cellTeachersHtml.length > 0 ? cellTeachersHtml.join('<br>') : '<span style="color:var(--gray-400);">-</span>';
+                html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">${content}</td>`;
             }
         }
         
@@ -2441,39 +2466,47 @@ function renderTeacherWeeklyPlan() {
     let { data: planData, originalDates: dates, displayDates } = result;
 
     if (!planData || !dates || dates.length === 0) {
-        $('#teacherWeeklyPlanContainer').html('<p style="color:var(--gray-500); padding:10px;">Plan bulunamad\u0131.</p>');
+        $('#teacherWeeklyPlanContainer').html('<p style="color:var(--gray-500); padding:10px;">Plan bulunamadı.</p>');
         return;
     }
 
-    const dayNames = ['Pazartesi', 'Sal\u0131', '\u00c7ar\u015famba', 'Per\u015fembe', 'Cuma'];
+    const dayNames = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
 
-    let allShifts = [];
+    // Aynı nöbet yerlerini tek satırda birleştirmek için grupla
+    let groupMap = {};
     dates.forEach(d => {
         for (let shiftId in planData[d]) {
-            if (shiftId !== '_isHoliday' && !allShifts.includes(shiftId)) allShifts.push(shiftId);
+            if (shiftId === '_isHoliday') continue;
+            let info = getShiftGroupInfo(shiftId);
+            if (!groupMap[info.groupKey]) {
+                groupMap[info.groupKey] = {
+                    key: info.groupKey,
+                    name: info.name,
+                    priority: info.priority,
+                    shiftIds: []
+                };
+            }
+            if (!groupMap[info.groupKey].shiftIds.includes(shiftId)) {
+                groupMap[info.groupKey].shiftIds.push(shiftId);
+            }
         }
     });
 
-    allShifts.sort((a, b) => {
-        if (a === '_admin_duty') return -1;
-        if (b === '_admin_duty') return 1;
-        let locIdA = a.replace('_dilim1', '').replace('_dilim2', '');
-        let locIdB = b.replace('_dilim1', '').replace('_dilim2', '');
-        let infoA = nobetSettings.locations?.find(l => l.id === locIdA || locIdA.startsWith(l.id + '_'));
-        let infoB = nobetSettings.locations?.find(l => l.id === locIdB || locIdB.startsWith(l.id + '_'));
-        let pA = infoA ? infoA.priority : 99;
-        let pB = infoB ? infoB.priority : 99;
-        if (pA !== pB) return pA - pB;
-        return a.localeCompare(b);
+    let groupedShifts = Object.values(groupMap);
+    groupedShifts.sort((a, b) => {
+        if (a.key === '_admin_duty') return -1;
+        if (b.key === '_admin_duty') return 1;
+        if (a.priority !== b.priority) return a.priority - b.priority;
+        return a.name.localeCompare(b.name, 'tr');
     });
 
     // Build title from display dates (offset dates, not original plan dates)
-    const trMonths = ['Ocak', '\u015eubat', 'Mart', 'Nisan', 'May\u0131s', 'Haziran', 'Temmuz', 'A\u011fustos', 'Eyl\u00fcl', 'Ekim', 'Kas\u0131m', 'Aral\u0131k'];
-    let planTitle = 'N\u00f6bet \u00c7izelgesi';
+    const trMonths = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+    let planTitle = 'Nöbet Çizelgesi';
     if (displayDates.length >= 2) {
         let s = displayDates[0];
         let e = displayDates[displayDates.length - 1];
-        planTitle = `${s.getDate()} ${trMonths[s.getMonth()]} - ${e.getDate()} ${trMonths[e.getMonth()]} Aras\u0131 N\u00f6bet \u00c7izelgesi`;
+        planTitle = `${s.getDate()} ${trMonths[s.getMonth()]} - ${e.getDate()} ${trMonths[e.getMonth()]} Arası Nöbet Çizelgesi`;
     }
 
     // Determine max navigable range: allow up to 12 weeks forward, disallow going before week 0
@@ -2483,7 +2516,7 @@ function renderTeacherWeeklyPlan() {
     let navHtml = `<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid var(--gray-200); padding-bottom:10px;">
         <h3 style="margin:0; color:var(--primary-dark);"><i class="fa-solid fa-table-list"></i> ${planTitle}</h3>
         <div style="display:flex; gap:6px; flex-shrink:0;">
-            <button onclick="window.teacherPrevWeek()" title="\u00d6nceki Hafta"
+            <button onclick="window.teacherPrevWeek()" title="Önceki Hafta"
                 style="background:${canGoPrev ? 'white' : 'var(--gray-200)'}; border:2px solid var(--gray-300); border-radius:50%; width:36px; height:36px; cursor:${canGoPrev ? 'pointer' : 'not-allowed'}; font-size:1.1rem; color:var(--primary-dark); display:flex; align-items:center; justify-content:center; transition:all 0.2s;"
                 ${canGoPrev ? '' : 'disabled'}>
                 <i class="fa-solid fa-chevron-left"></i>
@@ -2501,7 +2534,7 @@ function renderTeacherWeeklyPlan() {
         <table style="width: 100%; border-collapse: collapse; min-width: 800px; text-align: center; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
             <thead>
                 <tr style="background: var(--primary); color: white;">
-                    <th style="padding: 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">N\u00f6bet Yeri</th>`;
+                    <th style="padding: 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">Nöbet Yeri</th>`;
 
     for (let i = 0; i < 5; i++) {
         let colDate = displayDates[i] || null;
@@ -2515,11 +2548,10 @@ function renderTeacherWeeklyPlan() {
             </thead>
             <tbody>`;
 
-    allShifts.forEach((shiftId, index) => {
-        let locName = getDutyLocationName(shiftId);
+    groupedShifts.forEach((grp, index) => {
         let rowBg = index % 2 === 0 ? 'background: var(--white);' : 'background: #f9fafb;';
         html += `<tr style="${rowBg}">
-                    <td style="padding: 12px; border: 1px solid var(--gray-200); font-weight: 600; color: var(--primary-dark); text-align: left;">${locName}</td>`;
+                    <td style="padding: 12px; border: 1px solid var(--gray-200); font-weight: 600; color: var(--primary-dark); text-align: left;">${grp.name}</td>`;
 
         for (let i = 0; i < 5; i++) {
             let dateStr = dates[i];
@@ -2530,31 +2562,35 @@ function renderTeacherWeeklyPlan() {
             if (holidayName || (planData[dateStr] && planData[dateStr]['_isHoliday'])) {
                 html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: #b45309; background: rgba(245,158,11,0.15); font-weight:600; text-align:center;">${holidayName || 'Tatil'}</td>`;
             } else {
-                let teachersList = '';
-                if (dateStr && planData[dateStr] && planData[dateStr][shiftId]) {
-                    teachersList = planData[dateStr][shiftId].map(uid => {
-                        let name = klbkUsers[uid]?.name || uid;
+                let cellTeachersHtml = [];
+                if (dateStr && planData[dateStr]) {
+                    grp.shiftIds.forEach(shiftId => {
+                        let teachersInShift = planData[dateStr][shiftId] || [];
+                        teachersInShift.forEach(uid => {
+                            let name = klbkUsers[uid]?.name || uid;
 
-                        let countStr = '';
-                        if (window.rotationTally && window.rotationTally[dateStr] && window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid]) {
-                            countStr = ` <span style="font-size:0.85em; opacity:0.8;">(${window.rotationTally[dateStr][shiftId][uid]})</span>`;
-                        }
+                            let countStr = '';
+                            if (window.rotationTally && window.rotationTally[dateStr] && window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid]) {
+                                countStr = ` <span style="font-size:0.85em; opacity:0.8;">(${window.rotationTally[dateStr][shiftId][uid]})</span>`;
+                            }
 
-                        let isFixed = false;
-                        if (teacherData && teacherData[uid] && teacherData[uid].fixedLoc) {
-                            let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
-                            if (teacherData[uid].fixedLoc === shiftId || teacherData[uid].fixedLoc === baseShift) isFixed = true;
-                        }
+                            let isFixed = false;
+                            if (teacherData && teacherData[uid] && teacherData[uid].fixedLoc) {
+                                let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                                if (teacherData[uid].fixedLoc === shiftId || teacherData[uid].fixedLoc === baseShift || teacherData[uid].fixedLoc === grp.key) isFixed = true;
+                            }
 
-                        let highlightStyle = isFixed ? 'font-weight: 900; color: #111827;' : '';
-                        if (uid === currentUser.username) {
-                            highlightStyle = 'color: #39ff14; font-weight: 900; font-size: 1.15em; background: var(--gray-900); padding: 4px 8px; border-radius: 6px; display:inline-block; margin:2px; box-shadow: 0 0 8px rgba(57,255,20,0.4);';
-                        }
+                            let highlightStyle = isFixed ? 'font-weight: 900; color: #111827;' : '';
+                            if (uid === currentUser?.username) {
+                                highlightStyle = 'color: #39ff14; font-weight: 900; font-size: 1.15em; background: var(--gray-900); padding: 4px 8px; border-radius: 6px; display:inline-block; margin:2px 0; box-shadow: 0 0 8px rgba(57,255,20,0.4);';
+                            }
 
-                        return `<span style="${highlightStyle}">${name}${countStr}</span>`;
-                    }).join('<br>');
+                            cellTeachersHtml.push(`<span style="${highlightStyle}">${name}${countStr}</span>`);
+                        });
+                    });
                 }
-                html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">${teachersList || '<span style="color:var(--gray-400);">-</span>'}</td>`;
+                let content = cellTeachersHtml.length > 0 ? cellTeachersHtml.join('<br>') : '<span style="color:var(--gray-400);">-</span>';
+                html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">${content}</td>`;
             }
         }
 
@@ -2567,6 +2603,7 @@ function renderTeacherWeeklyPlan() {
 
     $('#teacherWeeklyPlanContainer').html(html);
 }
+
 
 window.teacherPrevWeek = function() {
     if (_teacherWeekOffset > 0) { _teacherWeekOffset--; renderTeacherWeeklyPlan(); }
