@@ -1495,11 +1495,12 @@ window.generatePlan = async function() {
                     
                     slotGenders.forEach((genderReq, r) => {
                         let idSuffix = slotGenders.length > 1 ? `_${r+1}` : '';
+                        let slotRank = r + 1; // 1: ilk nöbetçi, 2: ikinci nöbetçi, vb.
                         if(isHalf) {
-                            shifts.push({ id: `${loc.id}${idSuffix}_dilim1`, locId: loc.id, priority: loc.priority, genderReq });
-                            shifts.push({ id: `${loc.id}${idSuffix}_dilim2`, locId: loc.id, priority: loc.priority, genderReq });
+                            shifts.push({ id: `${loc.id}${idSuffix}_dilim1`, locId: loc.id, priority: loc.priority, genderReq, slotRank });
+                            shifts.push({ id: `${loc.id}${idSuffix}_dilim2`, locId: loc.id, priority: loc.priority, genderReq, slotRank });
                         } else {
-                            shifts.push({ id: `${loc.id}${idSuffix}`, locId: loc.id, priority: loc.priority, genderReq });
+                            shifts.push({ id: `${loc.id}${idSuffix}`, locId: loc.id, priority: loc.priority, genderReq, slotRank });
                         }
                     });
                 });
@@ -1512,6 +1513,11 @@ window.generatePlan = async function() {
                     if(g === 'erkek' || g === 'e' || g === 'bay' || g === 'male') return 'erkek';
                     if(g === 'kadin' || g === 'kadın' || g === 'k' || g === 'bayan' || g === 'female') return 'kadin';
                     return 'farketmez';
+                };
+
+                // Yardımcı: Bir nöbet yerine şu ana kadar atanmış toplam öğretmen sayısı
+                const getLocTeacherCount = (locId) => {
+                    return shifts.filter(s => s.locId === locId).reduce((sum, s) => sum + (newPlan[dateStr][s.id]?.length || 0), 0);
                 };
 
                 // 1. Sabit yeri olan öğretmenleri yerleştir
@@ -1537,8 +1543,9 @@ window.generatePlan = async function() {
                     }
                 });
                 
-                // 2. Kalan öğretmenleri cinsiyet kısıtlarına ve dengesine göre dağıt
-                // Cinsiyeti belirli olanları önceliklendirerek kotalara yerleşmesini sağla
+                // 2. Kalan öğretmenleri dağıt
+                // KURAL: Her nöbet yerinde en az bir nöbetçi bulunması zorunludur.
+                // 2 nöbetçi gerektiren yerler, her yere bir nöbetçi verildikten sonra atanır!
                 remainingTeachers.sort((a,b) => {
                     let gA = getTeacherGender(a) !== 'farketmez' ? 1 : 0;
                     let gB = getTeacherGender(b) !== 'farketmez' ? 1 : 0;
@@ -1549,11 +1556,26 @@ window.generatePlan = async function() {
                 remainingTeachers.forEach(uid => {
                     let tGender = getTeacherGender(uid);
                     
-                    // Shiftleri doluluk, cinsiyet uygunluğu ve önceliğe göre sırala
-                    let sortedShifts = [...shifts].sort((a,b) => {
+                    // Shiftleri öncelikle boş yer kuralına göre sırala:
+                    // 1. Henüz boş olan slotlar
+                    // 2. HENÜZ HİÇ NÖBETÇİSİ OLMAYAN YERLER (locTeacherCount === 0) DAİMA EN ÖNCELİKLİDİR!
+                    // 3. slotRank: 1. nöbetçiler daima 2. nöbetçilerden önce atanır!
+                    // 4. Cinsiyet uyumu
+                    // 5. Nöbet yeri önceliği (priority)
+                    let sortedShifts = [...shifts].sort((a, b) => {
                         let countA = newPlan[dateStr][a.id].length;
                         let countB = newPlan[dateStr][b.id].length;
                         if(countA !== countB) return countA - countB;
+                        
+                        // O nöbet yerinin o anki toplam doluluğu (0 nöbetçili yerler kesinlikle 1+ nöbetçili yerlerden önce gelir)
+                        let locCountA = getLocTeacherCount(a.locId);
+                        let locCountB = getLocTeacherCount(b.locId);
+                        if(locCountA !== locCountB) return locCountA - locCountB;
+                        
+                        // 1. nöbetçi slotları (slotRank=1), 2. nöbetçi slotlarından (slotRank=2) önce doldurulur
+                        let rankA = a.slotRank || 1;
+                        let rankB = b.slotRank || 1;
+                        if(rankA !== rankB) return rankA - rankB;
                         
                         // Cinsiyet eşleşme skoru
                         let scoreA = 0;
