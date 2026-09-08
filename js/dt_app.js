@@ -1897,8 +1897,10 @@ function renderWeeklyPlan() {
                         });
                     });
                 }
-                let content = cellTeachersHtml.length > 0 ? cellTeachersHtml.join('<br>') : '<span style="color:var(--gray-400);">-</span>';
-                html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);">${content}</td>`;
+                let emptyPlaceholder = `<span style="color:var(--gray-400); cursor:pointer; padding:2px 8px; border-radius:4px; display:inline-block;" title="Tıklayarak öğretmen taşıyabilirsiniz">-</span>`;
+                let content = cellTeachersHtml.length > 0 ? cellTeachersHtml.join('<br>') : emptyPlaceholder;
+                let cellClick = isAdmin ? `onclick="window.handleDutyCellClick('${dateStr}', '${grp.key}', event)"` : '';
+                html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: var(--gray-700);" ${cellClick}>${content}</td>`;
             }
         }
         
@@ -2994,10 +2996,10 @@ window.selectTeacherForSwap = (dateStr, uid, e) => {
         toast: true,
         position: 'top-end',
         showConfirmButton: false,
-        timer: 3000,
+        timer: 4000,
         timerProgressBar: true,
         icon: 'info',
-        title: `${tName} seçildi. Takas için hedefe sol tıklayın (İptal: ESC / Sağ tık)`
+        title: `${tName} seçildi. Takas için başka öğretmene, taşımak için boş yere sol tıklayın (İptal: ESC / Sağ tık)`
     });
 };
 
@@ -3084,6 +3086,116 @@ window.confirmTeacherSwap = async (t1, t2) => {
         } else {
             Swal.fire('Hata', 'Kişilerin baz plandaki yerleri bulunamadı.', 'error');
         }
+    }
+};
+
+window.handleDutyCellClick = (dateStr, groupKey, e) => {
+    if (!isAdmin) return;
+    if (!window.selectedSwapTeacher) return;
+    // Eğer bir öğretmenin span'ine tıklandıysa bırak handleTeacherClick çalışsın
+    if (e && e.target && e.target.closest('[id^="span_swap_"]')) {
+        return;
+    }
+    window.confirmTeacherMove(window.selectedSwapTeacher, dateStr, groupKey);
+};
+
+window.confirmTeacherMove = async (t1, targetDateStr, targetGroupKey) => {
+    if (!isAdmin) return;
+    if (!t1 || !t1.uid) return;
+
+    let p = allNobetPlans[viewingPlanId];
+    if (!p || !p.data) return;
+    let plan = p.data;
+
+    let tName = klbkUsers[t1.uid]?.name || t1.uid;
+    
+    // Hedef nöbet yerinin adını belirle
+    let locInfo = nobetSettings.locations?.find(l => l.id === targetGroupKey || targetGroupKey.startsWith(l.id + '_') || l.id.startsWith(targetGroupKey));
+    let targetLocName = targetGroupKey === '_admin_duty' ? 'Nöbetçi İdareci' : (locInfo ? locInfo.name : targetGroupKey);
+
+    if (p.status === 'published' && p.startDate) {
+        let diffTime = new Date().getTime() - new Date(p.startDate).getTime();
+        let weeksPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+        if (weeksPassed > 0) {
+            const { isConfirmed } = await Swal.fire({
+                title: 'Dikkat!',
+                text: 'Bu plan yayında ve dinamik dönüşüm aşamasında. Taşıma yaparsanız değişiklikler 1. haftadaki ORİJİNAL taslağa uygulanır!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Devam Et',
+                cancelButtonText: 'İptal'
+            });
+            if(!isConfirmed) return;
+        }
+    }
+
+    const { isConfirmed } = await Swal.fire({
+        title: 'Nöbet Yeri Taşıma Onayı',
+        html: `<b>${tName}</b> isimli öğretmeni <b>${targetLocName}</b> nöbet yerine taşımak istiyor musunuz?<br><br><i>Not: Bu işlem orijinal plana işlenecektir.</i>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Evet, Taşı',
+        confirmButtonColor: '#2563eb',
+        cancelButtonText: 'İptal'
+    });
+
+    if (isConfirmed) {
+        // 1. Öğretmenin eski yerini bul
+        let fromShift = null;
+        if (plan[t1.dateStr]) {
+            for (let sid in plan[t1.dateStr]) {
+                if (Array.isArray(plan[t1.dateStr][sid]) && plan[t1.dateStr][sid].includes(t1.uid)) {
+                    fromShift = sid;
+                    break;
+                }
+            }
+        }
+
+        if (!fromShift) {
+            return Swal.fire('Hata', 'Öğretmenin mevcut nöbet yeri planda bulunamadı.', 'error');
+        }
+
+        // 2. Hedef shift'i bul veya oluştur
+        if (!plan[targetDateStr]) plan[targetDateStr] = {};
+        
+        let targetShift = null;
+        if (targetGroupKey === '_admin_duty') {
+            targetShift = '_admin_duty';
+        } else {
+            // targetGroupKey ile eşleşen mevcut shift'leri filtrele
+            let matchingShifts = Object.keys(plan[targetDateStr]).filter(sid => {
+                let clean = sid.replace('_dilim1', '').replace('_dilim2', '');
+                return clean === targetGroupKey || sid.startsWith(targetGroupKey) || clean.startsWith(targetGroupKey);
+            });
+
+            // Varsa boş olan shift'i seç
+            for (let sid of matchingShifts) {
+                if (Array.isArray(plan[targetDateStr][sid]) && plan[targetDateStr][sid].length === 0) {
+                    targetShift = sid;
+                    break;
+                }
+            }
+            // Boş yoksa ilk matching shift'e veya targetGroupKey'e ata
+            if (!targetShift) {
+                targetShift = matchingShifts.length > 0 ? matchingShifts[0] : targetGroupKey;
+            }
+        }
+
+        if (!Array.isArray(plan[targetDateStr][targetShift])) {
+            plan[targetDateStr][targetShift] = [];
+        }
+
+        // Eski yerden çıkar
+        let oldIdx = plan[t1.dateStr][fromShift].indexOf(t1.uid);
+        if (oldIdx !== -1) {
+            plan[t1.dateStr][fromShift].splice(oldIdx, 1);
+        }
+
+        // Yeni yere ekle
+        plan[targetDateStr][targetShift].push(t1.uid);
+
+        window.cancelTeacherSwap();
+        await savePlanChanges(`${tName} başarıyla ${targetLocName} nöbetine taşındı.`);
     }
 };
 
