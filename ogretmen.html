@@ -2864,83 +2864,50 @@
 
                     Swal.showLoading();
                     try {
-                        const res = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`);
-                        if (res.ok) {
-                            const db = await res.json();
-                            if (db) {
-                                // 1. Verify current password (support both hashed and plaintext)
-                                if (!db[currentUser]) {
-                                    throw new Error("Kullanıcı bulunamadı!");
-                                }
+                        const res = await fetch('/api/updateProfile', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                currentUser: currentUser,
+                                currentPassword: currentPassVerify,
+                                newUsername: newUsername,
+                                email: email,
+                                gender: gender,
+                                newPassword: pass
+                            })
+                        });
 
-                                let passwordMatch = false;
-                                const storedPassword = db[currentUser].password;
-                                
-                                if (isHashedPassword(storedPassword)) {
-                                    const verifyHash = await hashPassword(currentPassVerify);
-                                    passwordMatch = storedPassword === verifyHash;
-                                } else {
-                                    passwordMatch = storedPassword === currentPassVerify;
-                                }
+                        const data = await res.json().catch(() => ({}));
 
-                                if (!passwordMatch) {
-                                    throw new Error("Güncel şifreniz hatalı!");
-                                }
+                        if (!res.ok) {
+                            throw new Error(data.error || "Kayıt sırasında hata oluştu");
+                        }
 
-                                // 2. Check if username is taken by someone ELSE
-                                if (newUsername !== currentUser && db[newUsername]) {
-                                    throw new Error("Bu kullanıcı adı zaten alınmış!");
-                                }
+                        // Update Top Icon immediately
+                        const tIcon = document.getElementById('teacherGenderIcon');
+                        if (tIcon) {
+                            let iconClass = 'fa-user-tie';
+                            let bg = '#2196f3';
+                            if (gender === 'kadin') { iconClass = 'fa-user-nurse'; bg = '#e91e63'; }
+                            else if (gender === 'diger') { iconClass = 'fa-user'; bg = '#6c757d'; }
+                            tIcon.className = `fa-solid ${iconClass}`;
+                            document.getElementById('teacherGenderContainer').style.background = bg;
+                        }
+                        sessionStorage.setItem('klbk_gender', gender);
+                        localStorage.setItem('klbk_gender', gender);
 
-                                const userData = db[currentUser];
-                                userData.email = email;
-                                userData.gender = gender;
-                                
-                                // Hash new password if provided
-                                if (pass && pass.trim() !== '') {
-                                    userData.password = await hashPassword(pass);
-                                }
-
-                                // Key Renaming Logic
-                                if (newUsername !== currentUser) {
-                                    db[newUsername] = userData;
-                                    delete db[currentUser];
-                                } else {
-                                    db[currentUser] = userData;
-                                }
-
-                                const putRes = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_users.json`, {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(db)
-                                });
-                                if (!putRes.ok) throw new Error("Kayıt sırasında hata oluştu");
-
-                                // Update Top Icon immediately
-                                const tIcon = document.getElementById('teacherGenderIcon');
-                                if (tIcon) {
-                                    let iconClass = 'fa-user-tie';
-                                    let bg = '#2196f3';
-                                    if (gender === 'kadin') { iconClass = 'fa-user-nurse'; bg = '#e91e63'; }
-                                    else if (gender === 'diger') { iconClass = 'fa-user'; bg = '#6c757d'; }
-                                    tIcon.className = `fa-solid ${iconClass}`;
-                                    document.getElementById('teacherGenderContainer').style.background = bg;
-                                }
-                                sessionStorage.setItem('klbk_gender', gender);
-
-                                // Update current session in place
-                                if (newUsername !== currentUser) {
-                                    sessionStorage.setItem('klbk_currentUser', newUsername);
-                                    const oldStoreKey = sessionStorage.getItem('klbk_storeKey');
-                                    if (oldStoreKey === `klbk_data_${currentUser}`) {
-                                        sessionStorage.setItem('klbk_storeKey', `klbk_data_${newUsername}`);
-                                    }
-                                }
-                                
-                                return { newUsername };
+                        // Update current session in place
+                        const finalUsername = data.username || newUsername;
+                        if (finalUsername !== currentUser) {
+                            sessionStorage.setItem('klbk_currentUser', finalUsername);
+                            localStorage.setItem('klbk_currentUser', finalUsername);
+                            if (data.storeKey) {
+                                sessionStorage.setItem('klbk_storeKey', data.storeKey);
+                                localStorage.setItem('klbk_storeKey', data.storeKey);
                             }
                         }
-                        throw new Error("Veritabanı hatası");
+                        
+                        return { newUsername: finalUsername };
                     } catch (e) {
                         Swal.showValidationMessage(e.message);
                         return false;

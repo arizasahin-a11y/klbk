@@ -1149,51 +1149,38 @@
 
                     Swal.showLoading();
                     try {
-                        const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`);
-                        if (res.ok) {
-                            const db = await res.json();
-                            if (db) {
-                                if (!db[currentUser]) {
-                                    throw new Error("Kullanıcı bulunamadı!");
-                                }
+                        const res = await fetch('/api/updateProfile', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                currentUser: currentUser,
+                                currentPassword: currentPassVerify,
+                                newUsername: newUsername,
+                                email: email,
+                                gender: gender,
+                                newPassword: pass
+                            })
+                        });
 
-                                const passHash = await hashPassword(currentPassVerify);
-                                if (db[currentUser].password !== currentPassVerify && db[currentUser].password !== passHash) {
-                                    throw new Error("Güncel şifre yanlış!");
-                                }
+                        const data = await res.json().catch(() => ({}));
 
-                                if (newUsername !== currentUser && db[newUsername]) {
-                                    throw new Error("Bu kullanıcı adı zaten alınmış!");
-                                }
+                        if (!res.ok) {
+                            throw new Error(data.error || "Kayıt sırasında hata oluştu");
+                        }
 
-                                const updatedUser = { ...db[currentUser] };
-                                updatedUser.email = email;
-                                updatedUser.gender = gender;
+                        sessionStorage.setItem('klbk_gender', gender);
+                        localStorage.setItem('klbk_gender', gender);
 
-                                if (pass) {
-                                    updatedUser.password = await hashPassword(pass);
-                                }
-
-                                if (newUsername !== currentUser) {
-                                    db[newUsername] = updatedUser;
-                                    delete db[currentUser];
-                                } else {
-                                    db[currentUser] = updatedUser;
-                                }
-
-                                const updateRes = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_users.json`, {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(db)
-                                });
-
-                                if (!updateRes.ok) throw new Error("Veritabanı güncellenemedi");
-
-                                if (newUsername !== currentUser) {
-                                    sessionStorage.setItem('klbk_currentUser', newUsername);
-                                }
+                        const finalUsername = data.username || newUsername;
+                        if (finalUsername !== currentUser) {
+                            sessionStorage.setItem('klbk_currentUser', finalUsername);
+                            localStorage.setItem('klbk_currentUser', finalUsername);
+                            if (data.storeKey) {
+                                sessionStorage.setItem('klbk_storeKey', data.storeKey);
+                                localStorage.setItem('klbk_storeKey', data.storeKey);
                             }
                         }
+                        return { newUsername: finalUsername };
                     } catch (error) {
                         Swal.showValidationMessage(`Hata: ${error.message}`);
                         return false;
