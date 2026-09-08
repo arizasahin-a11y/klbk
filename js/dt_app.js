@@ -1756,6 +1756,22 @@ function getShiftGroupInfo(shiftId) {
     };
 }
 
+function getLocationSortOrder(groupKey) {
+    if (groupKey === '_admin_duty') return -999999;
+    if (!nobetSettings || !Array.isArray(nobetSettings.locations)) return 999999;
+    
+    let baseId = groupKey.replace('_dilim1', '').replace('_dilim2', '');
+    let idx = nobetSettings.locations.findIndex(l => l.id === baseId || baseId.startsWith(l.id + '_') || l.id.startsWith(baseId));
+    
+    if (idx !== -1) {
+        let loc = nobetSettings.locations[idx];
+        let p = (loc.priority !== undefined && loc.priority !== null) ? parseInt(loc.priority) : 99;
+        let dilimOrder = groupKey.includes('_dilim2') ? 1 : 0;
+        return (p * 100000) + (idx * 10) + dilimOrder;
+    }
+    return 999999;
+}
+
 function renderWeeklyPlan() {
     if(!currentWeekPlan || Object.keys(currentWeekPlan).length === 0) {
         $('#weeklyPlanContainer').html('<p style="color:var(--gray-500);">Plan bulunmuyor.</p>');
@@ -1787,10 +1803,9 @@ function renderWeeklyPlan() {
     
     let groupedShifts = Object.values(groupMap);
     groupedShifts.sort((a, b) => {
-        if(a.key === '_admin_duty') return -1;
-        if(b.key === '_admin_duty') return 1;
-        if(a.priority !== b.priority) return a.priority - b.priority;
-        return a.name.localeCompare(b.name, 'tr');
+        let orderA = getLocationSortOrder(a.key);
+        let orderB = getLocationSortOrder(b.key);
+        return orderA - orderB;
     });
 
     let html = `
@@ -2494,10 +2509,9 @@ function renderTeacherWeeklyPlan() {
 
     let groupedShifts = Object.values(groupMap);
     groupedShifts.sort((a, b) => {
-        if (a.key === '_admin_duty') return -1;
-        if (b.key === '_admin_duty') return 1;
-        if (a.priority !== b.priority) return a.priority - b.priority;
-        return a.name.localeCompare(b.name, 'tr');
+        let orderA = getLocationSortOrder(a.key);
+        let orderB = getLocationSortOrder(b.key);
+        return orderA - orderB;
     });
 
     // Build title from display dates (offset dates, not original plan dates)
