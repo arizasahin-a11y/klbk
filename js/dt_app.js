@@ -79,6 +79,12 @@ $(document).ready(function() {
         e.preventDefault();
         submitIncident();
     });
+
+    // Sayfa başlığına sağ tıklama - Nöbet Kuralları Düzenleme / Görüntüleme
+    $(document).on('contextmenu', '#dtPageTitle, .header-title', function(e) {
+        e.preventDefault();
+        openDutyRulesModal();
+    });
 });
 
 async function checkSession() {
@@ -107,6 +113,9 @@ async function checkSession() {
         if (typeof window.renderQuickHolidayButton === 'function') {
             window.renderQuickHolidayButton('dtHeaderButtons');
         }
+
+        // Öğretmen için haftalık nöbet kuralları kontrolü
+        await checkAndShowDutyRules();
     } else {
         $('#dashboardSection').hide();
         $('#loginSection').show();
@@ -907,11 +916,22 @@ function renderLocationsList() {
         html = '<p style="color:var(--gray-500); padding:10px;">Henüz nöbet yeri eklenmemiş.</p>';
     } else {
         locs.sort((a,b) => a.priority - b.priority).forEach((loc, index) => {
+            let genderBadges = [];
+            let male = parseInt(loc.reqMale) || 0;
+            let female = parseInt(loc.reqFemale) || 0;
+            let any = parseInt(loc.reqAny) || 0;
+            
+            if(male > 0) genderBadges.push(`<span style="color:#2563eb; font-weight:600;"><i class="fa-solid fa-mars"></i> ${male} Erkek</span>`);
+            if(female > 0) genderBadges.push(`<span style="color:#db2777; font-weight:600;"><i class="fa-solid fa-venus"></i> ${female} Kadın</span>`);
+            if(any > 0) genderBadges.push(`<span style="color:#475569; font-weight:600;"><i class="fa-solid fa-venus-mars"></i> ${any} Farketmez</span>`);
+            
+            let genderDesc = genderBadges.length > 0 ? genderBadges.join(' | ') : `${loc.reqTeachers || 1} Öğretmen`;
+
             html += `
                 <div class="item-row">
                     <div class="item-row-content">
                         <span class="item-row-title">${loc.name}</span>
-                        <span class="item-row-desc">Öncelik: ${loc.priority} | Öğretmen: ${loc.reqTeachers}</span>
+                        <span class="item-row-desc">Öncelik: ${loc.priority} | Kontenjan: ${genderDesc}</span>
                     </div>
                     <button class="btn btn-sm" style="background:#fef2f2; color:#ef4444; border:1px solid #fecaca; padding:5px 10px;" onclick="removeLocation(${index})"><i class="fa-solid fa-trash"></i></button>
                 </div>
@@ -927,32 +947,85 @@ window.openAddLocationModal = function() {
     Swal.fire({
         title: 'Yeni Nöbet Yeri',
         html: `
-            <input id="swal-input1" class="swal2-input" placeholder="Yer Adı (Örn: Bahçe)">
-            <input id="swal-input2" type="number" class="swal2-input" placeholder="Öncelik (1 en yüksek)">
-            <input id="swal-input3" type="number" class="swal2-input" placeholder="Gereken Öğretmen Sayısı">
+            <div style="text-align:left; font-family:'Outfit', sans-serif;">
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:0.85rem; font-weight:600; color:var(--gray-700); margin-bottom:4px; display:block;">Yer Adı</label>
+                    <input id="swal-input1" class="swal2-input" placeholder="Yer Adı (Örn: Bahçe)" style="margin:0; width:100%; box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:0.85rem; font-weight:600; color:var(--gray-700); margin-bottom:4px; display:block;">Öncelik (1 en yüksek)</label>
+                    <input id="swal-input2" type="number" min="1" value="1" class="swal2-input" placeholder="Öncelik" style="margin:0; width:100%; box-sizing:border-box;">
+                </div>
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-top:14px;">
+                    <label style="font-size:0.85rem; font-weight:700; color:var(--primary-dark); margin-bottom:8px; display:block;">
+                        <i class="fa-solid fa-users"></i> Gereken Öğretmen & Cinsiyet Dağılımı
+                    </label>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
+                        <div>
+                            <label style="font-size:0.75rem; font-weight:600; color:#1d4ed8; display:flex; align-items:center; gap:4px; margin-bottom:4px;">
+                                <i class="fa-solid fa-mars"></i> Erkek
+                            </label>
+                            <input id="swal-reqMale" type="number" min="0" value="0" class="swal2-input" style="margin:0; width:100%; height:38px; font-size:14px; text-align:center; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.75rem; font-weight:600; color:#be185d; display:flex; align-items:center; gap:4px; margin-bottom:4px;">
+                                <i class="fa-solid fa-venus"></i> Kadın
+                            </label>
+                            <input id="swal-reqFemale" type="number" min="0" value="0" class="swal2-input" style="margin:0; width:100%; height:38px; font-size:14px; text-align:center; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.75rem; font-weight:600; color:#475569; display:flex; align-items:center; gap:4px; margin-bottom:4px;">
+                                <i class="fa-solid fa-venus-mars"></i> Farketmez
+                            </label>
+                            <input id="swal-reqAny" type="number" min="0" value="1" class="swal2-input" style="margin:0; width:100%; height:38px; font-size:14px; text-align:center; box-sizing:border-box;">
+                        </div>
+                    </div>
+                    <small style="color:#64748b; font-size:0.75rem; margin-top:6px; display:block;">
+                        Örn: 1 Erkek, 2 Kadın, 2 Farketmez şeklinde ayrı ayrı belirtebilirsiniz.
+                    </small>
+                </div>
+            </div>
         `,
         focusConfirm: false,
         showCancelButton: true,
         confirmButtonText: 'Ekle',
         cancelButtonText: 'İptal',
         preConfirm: () => {
-            return [
-                document.getElementById('swal-input1').value,
-                document.getElementById('swal-input2').value,
-                document.getElementById('swal-input3').value
-            ]
+            const name = document.getElementById('swal-input1').value.trim();
+            const priority = parseInt(document.getElementById('swal-input2').value) || 1;
+            const reqMale = parseInt(document.getElementById('swal-reqMale').value) || 0;
+            const reqFemale = parseInt(document.getElementById('swal-reqFemale').value) || 0;
+            const reqAny = parseInt(document.getElementById('swal-reqAny').value) || 0;
+
+            if(!name) {
+                Swal.showValidationMessage('Lütfen nöbet yeri adını girin');
+                return false;
+            }
+            if(reqMale === 0 && reqFemale === 0 && reqAny === 0) {
+                Swal.showValidationMessage('En az 1 öğretmen sayısı (Erkek, Kadın veya Farketmez) girmelisiniz');
+                return false;
+            }
+            return {
+                name,
+                priority,
+                reqMale,
+                reqFemale,
+                reqAny,
+                reqTeachers: reqMale + reqFemale + reqAny
+            };
         }
     }).then((result) => {
-        if (result.isConfirmed) {
-            const vals = result.value;
-            if(!vals[0]) return Swal.fire('Hata', 'Yer adı zorunludur', 'error');
-            
+        if (result.isConfirmed && result.value) {
+            const val = result.value;
             if(!nobetSettings.locations) nobetSettings.locations = [];
             nobetSettings.locations.push({
                 id: 'loc_' + Date.now(),
-                name: vals[0],
-                priority: parseInt(vals[1] || 1),
-                reqTeachers: parseInt(vals[2] || 1)
+                name: val.name,
+                priority: val.priority,
+                reqMale: val.reqMale,
+                reqFemale: val.reqFemale,
+                reqAny: val.reqAny,
+                reqTeachers: val.reqTeachers
             });
             renderLocationsList();
         }
@@ -1404,28 +1477,57 @@ window.generatePlan = async function() {
                 let shifts = [];
                 
                 sortedLocs.forEach(loc => {
-                    let req = loc.reqTeachers ? parseInt(loc.reqTeachers) : 1;
-                    for (let r = 0; r < req; r++) {
-                        let idSuffix = req > 1 ? `_${r+1}` : '';
-                        if(isHalf) {
-                            shifts.push({ id: `${loc.id}${idSuffix}_dilim1`, locId: loc.id, priority: loc.priority });
-                            shifts.push({ id: `${loc.id}${idSuffix}_dilim2`, locId: loc.id, priority: loc.priority });
-                        } else {
-                            shifts.push({ id: `${loc.id}${idSuffix}`, locId: loc.id, priority: loc.priority });
-                        }
+                    // Cinsiyet kontenjan slotlarını hazırla
+                    let slotGenders = [];
+                    let maleCount = parseInt(loc.reqMale) || 0;
+                    let femaleCount = parseInt(loc.reqFemale) || 0;
+                    let anyCount = parseInt(loc.reqAny) || 0;
+                    
+                    for(let m = 0; m < maleCount; m++) slotGenders.push('erkek');
+                    for(let f = 0; f < femaleCount; f++) slotGenders.push('kadin');
+                    for(let a = 0; a < anyCount; a++) slotGenders.push('farketmez');
+                    
+                    // Eski verilerle uyumluluk için eğer hiçbiri belirtilmemişse:
+                    if(slotGenders.length === 0) {
+                        let req = loc.reqTeachers ? parseInt(loc.reqTeachers) : 1;
+                        for(let r = 0; r < req; r++) slotGenders.push('farketmez');
                     }
+                    
+                    slotGenders.forEach((genderReq, r) => {
+                        let idSuffix = slotGenders.length > 1 ? `_${r+1}` : '';
+                        if(isHalf) {
+                            shifts.push({ id: `${loc.id}${idSuffix}_dilim1`, locId: loc.id, priority: loc.priority, genderReq });
+                            shifts.push({ id: `${loc.id}${idSuffix}_dilim2`, locId: loc.id, priority: loc.priority, genderReq });
+                        } else {
+                            shifts.push({ id: `${loc.id}${idSuffix}`, locId: loc.id, priority: loc.priority, genderReq });
+                        }
+                    });
                 });
                 
                 shifts.forEach(s => newPlan[dateStr][s.id] = []);
                 
-                // Handle fixed locations first
+                // Yardımcı: Öğretmenin cinsiyetini normalize et
+                const getTeacherGender = (uid) => {
+                    let g = (klbkUsers[uid]?.gender || '').toLowerCase().trim();
+                    if(g === 'erkek' || g === 'e' || g === 'bay' || g === 'male') return 'erkek';
+                    if(g === 'kadin' || g === 'kadın' || g === 'k' || g === 'bayan' || g === 'female') return 'kadin';
+                    return 'farketmez';
+                };
+
+                // 1. Sabit yeri olan öğretmenleri yerleştir
                 let remainingTeachers = [];
                 teachersToday.forEach(uid => {
                     let tData = teacherData[uid];
                     if(tData && tData.fixedLoc) {
-                        let validShifts = shifts.filter(s => s.locId === tData.fixedLoc);
+                        let tGender = getTeacherGender(uid);
+                        let validShifts = shifts.filter(s => s.locId === tData.fixedLoc || s.id.startsWith(tData.fixedLoc));
                         if(validShifts.length > 0) {
-                            validShifts.sort((a,b) => newPlan[dateStr][a.id].length - newPlan[dateStr][b.id].length);
+                            validShifts.sort((a,b) => {
+                                let matchA = (a.genderReq === tGender ? -2 : (a.genderReq === 'farketmez' ? -1 : 0));
+                                let matchB = (b.genderReq === tGender ? -2 : (b.genderReq === 'farketmez' ? -1 : 0));
+                                if(matchA !== matchB) return matchA - matchB;
+                                return newPlan[dateStr][a.id].length - newPlan[dateStr][b.id].length;
+                            });
                             newPlan[dateStr][validShifts[0].id].push(uid);
                         } else {
                             remainingTeachers.push(uid);
@@ -1435,19 +1537,39 @@ window.generatePlan = async function() {
                     }
                 });
                 
-                // Distribute remaining teachers to balance shifts
-                // Sort them so teachers with higher schedule scores get priority placement (if tie)
-                remainingTeachers.sort((a,b) => scoreDayForTeacher(b, dayName) - scoreDayForTeacher(a, dayName));
+                // 2. Kalan öğretmenleri cinsiyet kısıtlarına ve dengesine göre dağıt
+                // Cinsiyeti belirli olanları önceliklendirerek kotalara yerleşmesini sağla
+                remainingTeachers.sort((a,b) => {
+                    let gA = getTeacherGender(a) !== 'farketmez' ? 1 : 0;
+                    let gB = getTeacherGender(b) !== 'farketmez' ? 1 : 0;
+                    if(gA !== gB) return gB - gA;
+                    return scoreDayForTeacher(b, dayName) - scoreDayForTeacher(a, dayName);
+                });
                 
                 remainingTeachers.forEach(uid => {
-                    // Find shift with lowest count, tie-break by priority
-                    shifts.sort((a,b) => {
+                    let tGender = getTeacherGender(uid);
+                    
+                    // Shiftleri doluluk, cinsiyet uygunluğu ve önceliğe göre sırala
+                    let sortedShifts = [...shifts].sort((a,b) => {
                         let countA = newPlan[dateStr][a.id].length;
                         let countB = newPlan[dateStr][b.id].length;
                         if(countA !== countB) return countA - countB;
+                        
+                        // Cinsiyet eşleşme skoru
+                        let scoreA = 0;
+                        if(a.genderReq === tGender && tGender !== 'farketmez') scoreA = 3;
+                        else if(a.genderReq === 'farketmez') scoreA = 2;
+                        else if(tGender === 'farketmez') scoreA = 1;
+                        
+                        let scoreB = 0;
+                        if(b.genderReq === tGender && tGender !== 'farketmez') scoreB = 3;
+                        else if(b.genderReq === 'farketmez') scoreB = 2;
+                        else if(tGender === 'farketmez') scoreB = 1;
+                        
+                        if(scoreA !== scoreB) return scoreB - scoreA;
                         return a.priority - b.priority;
                     });
-                    newPlan[dateStr][shifts[0].id].push(uid);
+                    newPlan[dateStr][sortedShifts[0].id].push(uid);
                 });
             }
             dayDate.setDate(dayDate.getDate() + 1);
@@ -1517,8 +1639,8 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateOb
         shiftIds.sort((a, b) => {
             let locIdA = a.replace('_dilim1', '').replace('_dilim2', '');
             let locIdB = b.replace('_dilim1', '').replace('_dilim2', '');
-            let pA = nobetSettings.locations?.find(l => l.id === locIdA)?.priority || 99;
-            let pB = nobetSettings.locations?.find(l => l.id === locIdB)?.priority || 99;
+            let pA = nobetSettings.locations?.find(l => l.id === locIdA || locIdA.startsWith(l.id + '_'))?.priority || 99;
+            let pB = nobetSettings.locations?.find(l => l.id === locIdB || locIdB.startsWith(l.id + '_'))?.priority || 99;
             if(pA !== pB) return pA - pB;
             return a.localeCompare(b);
         });
@@ -1630,8 +1752,8 @@ function renderWeeklyPlan() {
         
         let locIdA = a.replace('_dilim1', '').replace('_dilim2', '');
         let locIdB = b.replace('_dilim1', '').replace('_dilim2', '');
-        let infoA = nobetSettings.locations?.find(l => l.id === locIdA);
-        let infoB = nobetSettings.locations?.find(l => l.id === locIdB);
+        let infoA = nobetSettings.locations?.find(l => l.id === locIdA || locIdA.startsWith(l.id + '_'));
+        let infoB = nobetSettings.locations?.find(l => l.id === locIdB || locIdB.startsWith(l.id + '_'));
         let pA = infoA ? infoA.priority : 99;
         let pB = infoB ? infoB.priority : 99;
         if(pA !== pB) return pA - pB;
@@ -1664,7 +1786,7 @@ function renderWeeklyPlan() {
             let isDilim2 = shiftId.includes('_dilim2');
             let locId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
             
-            let locInfo = nobetSettings.locations?.find(l => l.id === locId);
+            let locInfo = nobetSettings.locations?.find(l => l.id === locId || locId.startsWith(l.id + '_'));
             locName = locInfo ? locInfo.name : locId;
             if(isDilim1) locName += " (1. Dilim)";
             if(isDilim2) locName += " (2. Dilim)";
@@ -1735,7 +1857,7 @@ function getDutyLocationName(shiftId) {
     let isDilim1 = shiftId.includes('_dilim1');
     let isDilim2 = shiftId.includes('_dilim2');
     let locId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
-    let locInfo = nobetSettings.locations?.find(l => l.id === locId);
+    let locInfo = nobetSettings.locations?.find(l => l.id === locId || locId.startsWith(l.id + '_'));
     let lName = locInfo ? locInfo.name : locId;
     if(isDilim1) lName += " (1. Dilim)";
     if(isDilim2) lName += " (2. Dilim)";
@@ -2337,8 +2459,8 @@ function renderTeacherWeeklyPlan() {
         if (b === '_admin_duty') return 1;
         let locIdA = a.replace('_dilim1', '').replace('_dilim2', '');
         let locIdB = b.replace('_dilim1', '').replace('_dilim2', '');
-        let infoA = nobetSettings.locations?.find(l => l.id === locIdA);
-        let infoB = nobetSettings.locations?.find(l => l.id === locIdB);
+        let infoA = nobetSettings.locations?.find(l => l.id === locIdA || locIdA.startsWith(l.id + '_'));
+        let infoB = nobetSettings.locations?.find(l => l.id === locIdB || locIdB.startsWith(l.id + '_'));
         let pA = infoA ? infoA.priority : 99;
         let pB = infoB ? infoB.priority : 99;
         if (pA !== pB) return pA - pB;
@@ -3154,4 +3276,207 @@ window.openPrintTab = async () => {
     `);
     
     win.document.close();
+};
+
+/* --- ÖĞRETMEN NÖBET KURALLARI (Sağ Tık & Haftalık Onay) --- */
+
+window.openDutyRulesModal = async function() {
+    let currentRules = "";
+    try {
+        const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/rules.json?_=${Date.now()}`);
+        if(res.ok) {
+            const data = await res.json();
+            if(data && data.text) currentRules = data.text;
+        }
+    } catch(e) {
+        console.error("Rules fetch error:", e);
+    }
+
+    if (!isAdmin) {
+        if(!currentRules || !currentRules.trim()) {
+            return Swal.fire({
+                icon: 'info',
+                title: 'Nöbet Kuralları',
+                text: 'Henüz sisteme eklenmiş bir nöbet kuralı bulunmamaktadır.',
+                confirmButtonText: 'Tamam'
+            });
+        }
+        let paragraphs = currentRules.split(/\r?\n/).filter(p => p.trim() !== '');
+        let listHtml = paragraphs.map(p => `
+            <div style="background:#f8fafc; border-left:4px solid #2563eb; padding:12px 16px; margin-bottom:10px; border-radius:6px; font-size:0.95rem; color:#1e293b; text-align:left; line-height:1.5; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                ${p}
+            </div>
+        `).join('');
+        return Swal.fire({
+            title: '<div style="display:flex; align-items:center; justify-content:center; gap:8px; color:#1e3a8a;"><i class="fa-solid fa-clipboard-list"></i> Öğretmen Nöbet Kuralları</div>',
+            html: `<div style="max-height: 420px; overflow-y: auto; text-align: left; padding: 6px;">${listHtml}</div>`,
+            confirmButtonText: 'Kapat',
+            confirmButtonColor: '#2563eb'
+        });
+    }
+
+    // İdareci / Admin için düzenleme modalı
+    Swal.fire({
+        title: '<div style="display:flex; align-items:center; justify-content:center; gap:8px; color:#1e3a8a;"><i class="fa-solid fa-pen-to-square"></i> Öğretmen Nöbet Kuralları</div>',
+        html: `
+            <div style="text-align: left; font-family: 'Outfit', sans-serif;">
+                <p style="font-size: 0.85rem; color: var(--gray-600); margin-bottom: 10px;">
+                    Öğretmenlerin uyması gereken nöbet kurallarını yazın. <strong>Her yeni başlayan paragraf/satır otomatik olarak 1, 2, 3... şeklinde numaralandırılacaktır.</strong>
+                </p>
+                <textarea id="swalRulesText" class="swal2-textarea" style="width: 100%; height: 220px; font-size: 14px; line-height: 1.5; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box; resize: vertical;" placeholder="Kuralları buraya yazın...&#10;Örn: Nöbet yerine ders başlamadan 15 dk önce gelinmelidir.&#10;Nöbet süresince nöbet alanı izinsiz terk edilmemelidir.">${currentRules}</textarea>
+                <div style="margin-top: 8px; font-size: 0.75rem; color: #64748b; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-circle-info" style="color: #3b82f6;"></i> Bu kurallar öğretmenler nöbet sayfasına girdiğinde haftada 1 kez onaylatılır.
+                </div>
+            </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-floppy-disk"></i> Kaydet',
+        confirmButtonColor: '#2563eb',
+        cancelButtonText: 'İptal',
+        preConfirm: () => {
+            const rawText = document.getElementById('swalRulesText').value.trim();
+            if(!rawText) {
+                Swal.showValidationMessage('Lütfen en az bir kural yazın.');
+                return false;
+            }
+            // Her başlayan yeni paragraf 1, 2 şeklinde numaralandırılsın
+            const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+            const numbered = lines.map((line, idx) => {
+                const cleaned = line.replace(/^\d+[\.\)\-]\s*/, '').trim();
+                return `${idx + 1}. ${cleaned}`;
+            }).join('\n\n');
+            return numbered;
+        }
+    }).then(async (result) => {
+        if(result.isConfirmed && result.value) {
+            const formattedText = result.value;
+            Swal.fire({ title: 'Kaydediliyor...', didOpen: () => Swal.showLoading() });
+            try {
+                const res = await fetch('/api/updateNobet', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        path: 'rules',
+                        data: {
+                            text: formattedText,
+                            updatedAt: Date.now(),
+                            updatedBy: currentUser?.name || currentUser?.username || 'Yönetici'
+                        }
+                    })
+                });
+                if(res.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Başarılı',
+                        text: 'Nöbet kuralları kaydedildi ve numaralandırıldı.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    const err = await res.text();
+                    Swal.fire('Hata', 'Kaydedilemedi: ' + err, 'error');
+                }
+            } catch(e) {
+                Swal.fire('Hata', 'İşlem başarısız: ' + e.message, 'error');
+            }
+        }
+    });
+};
+
+async function checkAndShowDutyRules() {
+    if (isAdmin) return; // İdarecilere onaylatma gerekmez
+    const uid = currentUser?.username;
+    if (!uid) return;
+
+    try {
+        const rulesRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/rules.json?_=${Date.now()}`);
+        if (!rulesRes.ok) return;
+        const rulesData = await rulesRes.json();
+        if (!rulesData || !rulesData.text || !rulesData.text.trim()) return;
+
+        // Haftalık kontrol (1 hafta = 7 gün = 604,800,000 ms)
+        const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+        let lastConfirmedTime = 0;
+
+        const localKey = 'klbk_duty_rules_confirmed_' + uid;
+        const localVal = localStorage.getItem(localKey);
+        if (localVal) {
+            lastConfirmedTime = parseInt(localVal) || 0;
+        }
+
+        if (Date.now() - lastConfirmedTime >= ONE_WEEK_MS) {
+            try {
+                const confRes = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/rule_confirmations/${uid}.json?_=${Date.now()}`);
+                if (confRes.ok) {
+                    const confData = await confRes.json();
+                    if (confData && confData.confirmedAt) {
+                        lastConfirmedTime = Math.max(lastConfirmedTime, parseInt(confData.confirmedAt) || 0);
+                        localStorage.setItem(localKey, lastConfirmedTime.toString());
+                    }
+                }
+            } catch(e) {
+                console.error("Confirmation check error:", e);
+            }
+        }
+
+        // Eğer son okuma kuralların son güncellenme tarihinden eskiyse veya 1 haftadan eskiyse göster
+        if (Date.now() - lastConfirmedTime < ONE_WEEK_MS) {
+            return;
+        }
+
+        const paragraphs = rulesData.text.split(/\r?\n/).filter(p => p.trim() !== '');
+        const itemsHtml = paragraphs.map(p => `
+            <div style="background:#f8fafc; border-left:4px solid #2563eb; padding:12px 16px; margin-bottom:10px; border-radius:6px; font-size:0.95rem; color:#1e293b; text-align:left; line-height:1.5; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                ${p}
+            </div>
+        `).join('');
+
+        Swal.fire({
+            title: '<div style="display:flex; align-items:center; justify-content:center; gap:8px; color:#1e3a8a;"><i class="fa-solid fa-clipboard-check"></i> Öğretmen Nöbet Kuralları</div>',
+            html: `
+                <div style="font-family:'Outfit', sans-serif;">
+                    <p style="color:#64748b; font-size:0.9rem; margin-bottom:15px; text-align:left;">
+                        Lütfen nöbet görevinize başlamadan önce haftalık nöbet kurallarını okuyup onaylayınız:
+                    </p>
+                    <div style="max-height: 380px; overflow-y: auto; padding: 4px; margin-bottom: 10px;">
+                        ${itemsHtml}
+                    </div>
+                </div>
+            `,
+            confirmButtonText: '<i class="fa-solid fa-check"></i> Okudum',
+            confirmButtonColor: '#2563eb',
+            allowOutsideClick: false,
+            allowEscapeKey: false
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const now = Date.now();
+                localStorage.setItem(localKey, now.toString());
+                try {
+                    await fetch('/api/updateNobet', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            path: `rule_confirmations/${uid}`,
+                            data: {
+                                confirmedAt: now,
+                                userName: currentUser?.name || uid
+                            }
+                        })
+                    });
+                } catch(e) {
+                    console.error("Failed to save confirmation to server:", e);
+                }
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Onaylandı',
+                    text: 'Nöbet kurallarını onayladınız. İyi çalışmalar dileriz!',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+        });
+    } catch(err) {
+        console.error("Error in checkAndShowDutyRules:", err);
+    }
 };
