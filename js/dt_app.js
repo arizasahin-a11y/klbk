@@ -1997,6 +1997,25 @@ function determineNextDuty(teacherUid) {
     return { notFound: true };
 }
 
+function getStudentDutyClass(p) {
+    if (!p) return '';
+    let sClass = p.class || p.className || '';
+    if (!sClass && p.number) {
+        if (Array.isArray(studentsList) && studentsList.length > 0) {
+            let sObj = studentsList.find(s => String(s.no) === String(p.number));
+            if (sObj && sObj.class) return sObj.class;
+        }
+        let db = typeof DataManager !== 'undefined' ? DataManager._getData() : null;
+        if (db && db.students) {
+            let sObj = Array.isArray(db.students) 
+                ? db.students.find(s => String(s.no) === String(p.number))
+                : Object.values(db.students).find(s => String(s.no) === String(p.number));
+            if (sObj && sObj.class) return sObj.class;
+        }
+    }
+    return sClass;
+}
+
 function renderAdminGlobalDutyDashboard(container) {
     if (!publishedPlanMeta || !publishedPlanMeta.data) {
         container.html(`<div style="padding: 30px;"><i class="fa-solid fa-calendar-xmark" style="font-size: 3rem; color: var(--gray-400); margin-bottom:15px;"></i><h3>Aktif Nöbet Planı Yok</h3></div>`);
@@ -2057,25 +2076,6 @@ function renderAdminGlobalDutyDashboard(container) {
                 }
             }
         });
-    }
-    
-    function getStudentDutyClass(p) {
-        if (!p) return '';
-        let sClass = p.class || p.className || '';
-        if (!sClass && p.number) {
-            if (Array.isArray(studentsList) && studentsList.length > 0) {
-                let sObj = studentsList.find(s => String(s.no) === String(p.number));
-                if (sObj && sObj.class) return sObj.class;
-            }
-            let db = typeof DataManager !== 'undefined' ? DataManager._getData() : null;
-            if (db && db.students) {
-                let sObj = Array.isArray(db.students) 
-                    ? db.students.find(s => String(s.no) === String(p.number))
-                    : Object.values(db.students).find(s => String(s.no) === String(p.number));
-                if (sObj && sObj.class) return sObj.class;
-            }
-        }
-        return sClass;
     }
 
     let db = DataManager._getData();
@@ -2172,8 +2172,10 @@ function updateTeacherDutyDashboardUI() {
     let isToday = dutyDate.toDateString() === today.toDateString();
     
     // Get lesson times
-    let storeKey = sessionStorage.getItem('klbk_storeKey') || 'klbk_data_admin';
-    fetch(`${FIREBASE_DB_URL}/app_store/${storeKey}/school/lessonTimes.json`).then(res => res.json()).then(lessonTimes => {
+    let db = typeof DataManager !== 'undefined' ? DataManager._getData() : null;
+    let localLessonTimes = (db && db.school && db.school.lessonTimes) ? db.school.lessonTimes : null;
+
+    function startTeacherUI(lessonTimes) {
         let firstStart = lessonTimes && lessonTimes['1_start'] ? lessonTimes['1_start'] : '08:30';
         let lastEnd = '15:30';
         if(lessonTimes) {
@@ -2181,10 +2183,10 @@ function updateTeacherDutyDashboardUI() {
             if(lessonTimes[`${maxHour}_end`]) lastEnd = lessonTimes[`${maxHour}_end`];
         }
         
-        let startH = parseInt(firstStart.split(':')[0]);
-        let startM = parseInt(firstStart.split(':')[1]);
-        let endH = parseInt(lastEnd.split(':')[0]);
-        let endM = parseInt(lastEnd.split(':')[1]);
+        let startH = parseInt(firstStart.split(':')[0]) || 8;
+        let startM = parseInt(firstStart.split(':')[1]) || 30;
+        let endH = parseInt(lastEnd.split(':')[0]) || 15;
+        let endM = parseInt(lastEnd.split(':')[1]) || 30;
         
         let dutyStart = new Date(dutyDate);
         dutyStart.setHours(startH, startM, 0, 0);
@@ -2207,8 +2209,8 @@ function updateTeacherDutyDashboardUI() {
             let html = '';
             
             // Öğrencileri getir
-            let db = DataManager._getData();
-            let sPlan = (db && db.school && db.school.studentDuties && db.school.studentDuties.plan) ? db.school.studentDuties.plan : [];
+            let dbData = typeof DataManager !== 'undefined' ? DataManager._getData() : null;
+            let sPlan = (dbData && dbData.school && dbData.school.studentDuties && dbData.school.studentDuties.plan) ? dbData.school.studentDuties.plan : [];
             let shiftedPlan = typeof window.shiftStudentPlanDates === 'function' ? window.shiftStudentPlanDates(sPlan) : sPlan;
             let todaysPlan = [];
             for(let i=0; i<sPlan.length; i++){
@@ -2287,9 +2289,22 @@ function updateTeacherDutyDashboardUI() {
         renderUI();
         teacherDutyInterval = setInterval(renderUI, 1000);
         if(!isAdmin) renderTeacherWeeklyPlan();
-    }).catch(e => {
-        container.html(`<div style="padding: 30px; color: red;">Ders saatleri alınamadı. Lütfen sayfayı yenileyin.</div>`);
-    });
+    }
+
+    if (localLessonTimes && Object.keys(localLessonTimes).length > 0) {
+        startTeacherUI(localLessonTimes);
+    } else {
+        let storeKey = sessionStorage.getItem('klbk_storeKey') || 'klbk_data_admin';
+        fetch(`${FIREBASE_DB_URL}/app_store/${storeKey}/school/lessonTimes.json`)
+            .then(res => res.ok ? res.json() : null)
+            .then(fetchedTimes => {
+                startTeacherUI(fetchedTimes || {});
+            })
+            .catch(err => {
+                console.warn("Could not fetch lesson times, using defaults", err);
+                startTeacherUI({});
+            });
+    }
 }
 
 window.dtShowStudentOptions = function(event, date, locName, className, number, isLongPress) {
