@@ -2059,6 +2059,25 @@ function renderAdminGlobalDutyDashboard(container) {
         });
     }
     
+    function getStudentDutyClass(p) {
+        if (!p) return '';
+        let sClass = p.class || p.className || '';
+        if (!sClass && p.number) {
+            if (Array.isArray(studentsList) && studentsList.length > 0) {
+                let sObj = studentsList.find(s => String(s.no) === String(p.number));
+                if (sObj && sObj.class) return sObj.class;
+            }
+            let db = typeof DataManager !== 'undefined' ? DataManager._getData() : null;
+            if (db && db.students) {
+                let sObj = Array.isArray(db.students) 
+                    ? db.students.find(s => String(s.no) === String(p.number))
+                    : Object.values(db.students).find(s => String(s.no) === String(p.number));
+                if (sObj && sObj.class) return sObj.class;
+            }
+        }
+        return sClass;
+    }
+
     let db = DataManager._getData();
     let sPlan = (db && db.school && db.school.studentDuties && db.school.studentDuties.plan) ? db.school.studentDuties.plan : [];
     let shiftedPlan = typeof window.shiftStudentPlanDates === 'function' ? window.shiftStudentPlanDates(sPlan) : sPlan;
@@ -2072,18 +2091,20 @@ function renderAdminGlobalDutyDashboard(container) {
     
     let studentsHtml = '';
     if (todaysStudents.length > 0) {
-        let list = todaysStudents.map(p => `
+        let list = todaysStudents.map(p => {
+            let sClass = getStudentDutyClass(p);
+            return `
             <div style="background: rgba(255,255,255,0.7); border-radius: 6px; padding: 6px 10px; margin-bottom: 6px; font-size: 0.9rem; border: 1px solid #eee; cursor: pointer; transition: 0.2s;"
                  onmouseover="this.style.background='rgba(255,255,255,1)'" onmouseout="this.style.background='rgba(255,255,255,0.7)'"
-                 oncontextmenu="window.dtShowStudentOptions(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}', true)"
-                 onclick="window.dtShowStudentOptions(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}', false)">
+                 oncontextmenu="window.dtShowStudentOptions(event, '${p.date}', '${p.locName}', '${sClass}', '${p.number}', true)"
+                 onclick="window.dtShowStudentOptions(event, '${p.date}', '${p.locName}', '${sClass}', '${p.number}', false)">
                 <div style="display:flex; justify-content:space-between;">
                     <span style="font-weight:600; color:var(--dark);">${p.name}</span>
                     <span style="color:#4f46e5; font-size:0.8rem; font-weight:700;">${p.locName}</span>
                 </div>
-                <div style="font-size:0.8rem; color:var(--gray-600);">${p.className} - No: ${p.number}</div>
+                <div style="font-size:0.8rem; color:var(--gray-600);">${sClass ? `${sClass} - ` : ''}No: ${p.number}</div>
             </div>
-        `).join('');
+        `;}).join('');
         studentsHtml = `
             <div style="padding: 15px; background: rgba(79, 70, 229, 0.05); border-radius: 8px; text-align:left; max-height: 250px; overflow-y:auto; border: 1px solid rgba(79, 70, 229, 0.1);">
                 <strong style="color:#4f46e5; display:block; margin-bottom:10px;"><i class="fa-solid fa-user-graduate"></i> Nöbetçi Öğrenciler (${todaysStudents.length})</strong>
@@ -2188,24 +2209,32 @@ function updateTeacherDutyDashboardUI() {
             // Öğrencileri getir
             let db = DataManager._getData();
             let sPlan = (db && db.school && db.school.studentDuties && db.school.studentDuties.plan) ? db.school.studentDuties.plan : [];
-            let todaysPlan = sPlan.filter(p => p.date === targetDateStr);
+            let shiftedPlan = typeof window.shiftStudentPlanDates === 'function' ? window.shiftStudentPlanDates(sPlan) : sPlan;
+            let todaysPlan = [];
+            for(let i=0; i<sPlan.length; i++){
+                let p = sPlan[i];
+                let pDate = shiftedPlan[i] ? shiftedPlan[i].date : p.date;
+                if(pDate === targetDateStr) todaysPlan.push(p);
+            }
             let sDutiesHtml = '';
             if (todaysPlan.length > 0) {
-                let studentsHtml = todaysPlan.map(p => `
+                let studentsHtml = todaysPlan.map(p => {
+                    let sClass = getStudentDutyClass(p);
+                    return `
                     <div style="background: rgba(255,255,255,0.7); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; cursor: pointer; transition: 0.2s;"
                          onmouseover="this.style.background='rgba(255,255,255,1)'" onmouseout="this.style.background='rgba(255,255,255,0.7)'"
-                         oncontextmenu="window.dtShowStudentOptions(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}', true)"
-                         onclick="window.dtShowStudentOptions(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}', false)">
+                         oncontextmenu="window.dtShowStudentOptions(event, '${p.date}', '${p.locName}', '${sClass}', '${p.number}', true)"
+                         onclick="window.dtShowStudentOptions(event, '${p.date}', '${p.locName}', '${sClass}', '${p.number}', false)">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div>
                                 <div style="font-size:0.75rem; color:#4f46e5; font-weight:700;">${p.locName}</div>
                                 <div style="font-weight:600; color:var(--dark); font-size:0.9rem;">${p.name}</div>
-                                <div style="font-size:0.75rem; color:var(--gray-600);">${p.className} - Öğrenci No: ${p.number}</div>
+                                <div style="font-size:0.75rem; color:var(--gray-600);">${sClass ? `${sClass} - ` : ''}Öğrenci No: ${p.number}</div>
                             </div>
                             ${p.note ? `<div style="font-size:0.7rem; font-weight:600; max-width:90px; text-align:right;">${p.note}</div>` : ''}
                         </div>
                     </div>
-                `).join('');
+                `;}).join('');
 
                 sDutiesHtml = `
                     <div style="padding: 15px; background: rgba(79, 70, 229, 0.05); border-radius: 8px; text-align:left; font-size:0.95rem; color:var(--gray-700); height:100%;">
@@ -2281,7 +2310,8 @@ window.dtShowStudentOptions = function(event, date, locName, className, number, 
         futureStudents.forEach((p, index) => {
             let [y,m,d] = p.date.split('-');
             let fDate = `${d}.${m}.${y}`;
-            optionsHtml += `<option value="${index}">${fDate} - ${p.name} (${p.className} / ${p.number})</option>`;
+            let sClass = getStudentDutyClass(p);
+            optionsHtml += `<option value="${index}">${fDate} - ${p.name} (${sClass ? `${sClass} / ` : ''}${p.number})</option>`;
         });
         optionsHtml += '</select>';
         
@@ -2327,7 +2357,7 @@ window.dtShowStudentOptions = function(event, date, locName, className, number, 
 window.dtMarkPresent = function(date, locName, className, number) {
     let db = DataManager._getData();
     let plan = db.school.studentDuties.plan;
-    let currentIdx = plan.findIndex(p => p.date === date && p.locName === locName && p.className === className && String(p.number) === String(number));
+    let currentIdx = plan.findIndex(p => p.date === date && p.locName === locName && (!className || (p.className || p.class) === className) && String(p.number) === String(number));
     
     if (currentIdx === -1) return;
     
@@ -2339,7 +2369,7 @@ window.dtMarkPresent = function(date, locName, className, number) {
 window.dtMarkAbsentAndSwap = function(date, locName, className, number) {
     let db = DataManager._getData();
     let plan = db.school.studentDuties.plan;
-    let currentIdx = plan.findIndex(p => p.date === date && p.locName === locName && p.className === className && String(p.number) === String(number));
+    let currentIdx = plan.findIndex(p => p.date === date && p.locName === locName && (!className || (p.className || p.class) === className) && String(p.number) === String(number));
     
     if (currentIdx === -1) return;
     
@@ -2359,14 +2389,17 @@ window.dtMarkAbsentAndSwap = function(date, locName, className, number) {
     let p1 = plan[currentIdx];
     let p2 = plan[nextIdx];
     
-    let tempClass = p1.className;
+    let tempClass = p1.class || p1.className || '';
     let tempNum = p1.number;
     let tempName = p1.name;
     
-    p1.className = p2.className;
+    let p2Class = p2.class || p2.className || '';
+    p1.class = p2Class;
+    p1.className = p2Class;
     p1.number = p2.number;
     p1.name = p2.name;
     
+    p2.class = tempClass;
     p2.className = tempClass;
     p2.number = tempNum;
     p2.name = tempName;
@@ -2381,21 +2414,25 @@ window.dtMarkAbsentAndSwap = function(date, locName, className, number) {
 window.dtManualSwap = function(date, locName, className, number, targetP) {
     let db = DataManager._getData();
     let plan = db.school.studentDuties.plan;
-    let idx1 = plan.findIndex(p => p.date === date && p.locName === locName && p.className === className && String(p.number) === String(number));
-    let idx2 = plan.findIndex(p => p.date === targetP.date && p.locName === targetP.locName && p.className === targetP.className && String(p.number) === String(targetP.number));
+    let idx1 = plan.findIndex(p => p.date === date && p.locName === locName && (!className || (p.className || p.class) === className) && String(p.number) === String(number));
+    let targetClass = targetP.class || targetP.className || '';
+    let idx2 = plan.findIndex(p => p.date === targetP.date && p.locName === targetP.locName && (!targetClass || (p.className || p.class) === targetClass) && String(p.number) === String(targetP.number));
     
     if (idx1 !== -1 && idx2 !== -1) {
         let p1 = plan[idx1];
         let p2 = plan[idx2];
         
-        let tempClass = p1.className;
+        let tempClass = p1.class || p1.className || '';
         let tempNum = p1.number;
         let tempName = p1.name;
         
-        p1.className = p2.className;
+        let p2Class = p2.class || p2.className || '';
+        p1.class = p2Class;
+        p1.className = p2Class;
         p1.number = p2.number;
         p1.name = p2.name;
         
+        p2.class = tempClass;
         p2.className = tempClass;
         p2.number = tempNum;
         p2.name = tempName;
