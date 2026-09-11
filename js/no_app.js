@@ -178,11 +178,23 @@ function renderLocations() {
 window.removeLocation = function(id) {
     dutyLocations = dutyLocations.filter(l => l.id !== id);
     renderLocations();
-    savePlan();
+    let db = DataManager._getData();
+    if (db && db.school && db.school.studentDuties) {
+        db.school.studentDuties.locations = dutyLocations;
+        if (generatedPlan && generatedPlan.length > 0 && typeof window.autoUpdateStudentDuties === 'function') {
+            window.autoUpdateStudentDuties(false);
+            let updatedDb = DataManager._getData();
+            generatedPlan = updatedDb.school.studentDuties.plan || [];
+            window.uniqueDates = [...new Set(generatedPlan.map(p => p.date))];
+            renderPlan();
+            if (typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
+        }
+    }
+    window.savePlan(true);
 };
 
 // --- Planlama Algoritması ---
-window.generatePlan = function() {
+window.generatePlan = async function() {
     const selectedClasses = $('#classSelect').val();
     if (!selectedClasses || selectedClasses.length === 0) {
         Swal.fire('Hata', 'Lütfen nöbetçi seçilecek en az bir sınıf belirleyin.', 'warning');
@@ -193,9 +205,46 @@ window.generatePlan = function() {
         return;
     }
 
+    let today = new Date();
+    let todayYear = today.getFullYear();
+    let todayMonth = String(today.getMonth() + 1).padStart(2, '0');
+    let todayDay = String(today.getDate()).padStart(2, '0');
+    let todayStr = `${todayYear}-${todayMonth}-${todayDay}`;
+
+    // Başlangıç tarihi sor: Geçmiş nöbetler silinmeden hangi tarihten itibaren plan yapılacağını belirler
+    const { value: startDateStr } = await Swal.fire({
+        title: 'Nöbet Planı Başlangıç Tarihi',
+        html: `
+            <div style="text-align: left; font-size: 0.95rem; color: var(--gray-700); margin-bottom: 12px;">
+                Nöbet planı hangi tarihten itibaren oluşturulsun?
+            </div>
+            <div style="text-align: left; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; margin-bottom: 15px; font-size: 0.85rem; color: #166534; line-height: 1.4;">
+                <i class="fa-solid fa-shield-halved" style="color: #16a34a; margin-right: 5px;"></i>
+                <b>Geçmiş Veriler Korunur:</b> Seçtiğiniz tarihten önceki mevcut tüm nöbet kayıtları silinmeden aynen korunacaktır.
+            </div>
+            <input type="date" id="planStartDateInput" class="swal2-input" style="width: 85%; margin: 0 auto; display: block;" value="${todayStr}">
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#4f46e5',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: '<i class="fa-solid fa-wand-magic-sparkles"></i> Planı Oluştur',
+        cancelButtonText: 'İptal',
+        preConfirm: () => {
+            const val = document.getElementById('planStartDateInput').value;
+            if (!val) {
+                Swal.showValidationMessage('Lütfen geçerli bir başlangıç tarihi seçin.');
+                return false;
+            }
+            return val;
+        }
+    });
+
+    if (!startDateStr) return; // İptal edildi
+
     Swal.fire({
         title: 'Plan Oluşturuluyor...',
-        html: 'Geçmiş veriler korunarak, bugünden itibaren 1 yıllık plan hesaplanıyor.',
+        html: `Seçilen <b>${startDateStr}</b> tarihinden itibaren 1 yıllık plan hesaplanıyor.<br><small style="color:var(--gray-500);">Önceki nöbet kayıtları korunuyor...</small>`,
         allowOutsideClick: false,
         didOpen: () => {
             Swal.showLoading();
@@ -208,9 +257,10 @@ window.generatePlan = function() {
                 db.school.studentDuties.globalRule = document.getElementById('globalRule').value;
                 db.school.studentDuties.locations = dutyLocations;
                 db.school.studentDuties.exemptStudents = window.exemptStudents || [];
+                db.school.studentDuties.lockedUntilDate = startDateStr;
                 
                 if (typeof window.autoUpdateStudentDuties === 'function') {
-                    window.autoUpdateStudentDuties(false);
+                    window.autoUpdateStudentDuties(false, startDateStr);
                 } else {
                     Swal.fire('Hata', 'Güncelleme motoru bulunamadı.', 'error');
                     return;
@@ -222,8 +272,7 @@ window.generatePlan = function() {
                 let uniqueDates = [...new Set(generatedPlan.map(p => p.date))];
                 window.uniqueDates = uniqueDates;
                 
-                let todayStr = new Date().toISOString().split('T')[0];
-                let targetDateIndex = uniqueDates.findIndex(d => d >= todayStr);
+                let targetDateIndex = uniqueDates.findIndex(d => d >= startDateStr);
                 
                 let startIndex = 0;
                 if (targetDateIndex !== -1) {
@@ -236,20 +285,21 @@ window.generatePlan = function() {
                 Swal.close();
                 renderPlan();
                 
-                if(typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
+                if (typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
                 $('#resultsPanel').show();
                 $('#btnSavePlan').show();
                 $('#topSaveBtn').show();
+                $('#topDeleteBtn').show();
                 
                 Swal.fire({
                     toast: true,
                     position: 'top-end',
                     icon: 'success',
-                    title: 'Gelecek planı oluşturuldu (Geçmiş nöbetler korundu). Kaydet butonuna basmayı unutmayın.',
+                    title: 'Yeni plan oluşturuldu (Geçmiş nöbetler korundu). Kaydet butonuna basmayı unutmayın.',
                     showConfirmButton: false,
-                    timer: 3000
+                    timer: 3500
                 });
-            }, 500);
+            }, 400);
         }
     });
 };
@@ -322,8 +372,10 @@ function renderPlan() {
     if (generatedPlan.length === 0 || !window.uniqueDates || window.uniqueDates.length === 0) {
         $('#resultsPanel').hide();
         $('#topSaveBtn').hide();
+        $('#topDeleteBtn').hide();
         return;
     }
+    $('#topDeleteBtn').show();
 
     let itemsPerChunk = 20;
     let todayStr = new Date().toISOString().split('T')[0];
@@ -500,23 +552,45 @@ window.addExemptStudent = function() {
     
     if (!window.exemptStudents.includes(id)) {
         window.exemptStudents.push(id);
-        if(typeof window.renderExemptStudentsList === 'function') window.renderExemptStudentsList();
-        window.updateExemptStudentDropdown(); // Listeyi güncelle ki eklenen gitsin
-        if (generatedPlan && generatedPlan.length > 0) {
-            window.generatePlan();
+        if (typeof window.renderExemptStudentsList === 'function') window.renderExemptStudentsList();
+        window.updateExemptStudentDropdown();
+        
+        let db = DataManager._getData();
+        if (!db.school) db.school = {};
+        if (!db.school.studentDuties) db.school.studentDuties = {};
+        db.school.studentDuties.exemptStudents = window.exemptStudents || [];
+        
+        if (generatedPlan && generatedPlan.length > 0 && typeof window.autoUpdateStudentDuties === 'function') {
+            window.autoUpdateStudentDuties(false);
+            let updatedDb = DataManager._getData();
+            generatedPlan = updatedDb.school.studentDuties.plan || [];
+            window.uniqueDates = [...new Set(generatedPlan.map(p => p.date))];
+            renderPlan();
+            if (typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
         }
-        window.savePlan();
+        window.savePlan(true);
     }
 };
 
 window.removeExemptStudent = function(id) {
     window.exemptStudents = window.exemptStudents.filter(e => e !== id);
-    if(typeof window.renderExemptStudentsList === 'function') window.renderExemptStudentsList();
-    window.updateExemptStudentDropdown(); // Sınıf seçiliyse öğrenci geri gelsin
-    if (generatedPlan && generatedPlan.length > 0) {
-        window.generatePlan();
+    if (typeof window.renderExemptStudentsList === 'function') window.renderExemptStudentsList();
+    window.updateExemptStudentDropdown();
+    
+    let db = DataManager._getData();
+    if (!db.school) db.school = {};
+    if (!db.school.studentDuties) db.school.studentDuties = {};
+    db.school.studentDuties.exemptStudents = window.exemptStudents || [];
+    
+    if (generatedPlan && generatedPlan.length > 0 && typeof window.autoUpdateStudentDuties === 'function') {
+        window.autoUpdateStudentDuties(false);
+        let updatedDb = DataManager._getData();
+        generatedPlan = updatedDb.school.studentDuties.plan || [];
+        window.uniqueDates = [...new Set(generatedPlan.map(p => p.date))];
+        renderPlan();
+        if (typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
     }
-    window.savePlan();
+    window.savePlan(true);
 };
 
 window.renderExemptStudentsList = function() {
@@ -700,7 +774,7 @@ window.markAbsentAndSwap = function(date, locName, className, number) {
 window.clearPastDuties = async function() {
     Swal.fire({
         title: 'Geçmiş Nöbetleri Sil',
-        text: 'Bugünden önceki tüm nöbet kayıtları kalıcı olarak silinecektir. Emin misiniz?',
+        text: 'Bugünden önceki tüm nöbet kayıtları silinecektir. Emin misiniz?',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
@@ -709,7 +783,12 @@ window.clearPastDuties = async function() {
         cancelButtonText: 'İptal'
     }).then(async (result) => {
         if (result.isConfirmed) {
-            let todayStr = new Date().toISOString().split('T')[0];
+            let today = new Date();
+            let todayYear = today.getFullYear();
+            let todayMonth = String(today.getMonth() + 1).padStart(2, '0');
+            let todayDay = String(today.getDate()).padStart(2, '0');
+            let todayStr = `${todayYear}-${todayMonth}-${todayDay}`;
+            
             let originalLength = generatedPlan.length;
             generatedPlan = generatedPlan.filter(p => p.date >= todayStr);
             
@@ -722,11 +801,135 @@ window.clearPastDuties = async function() {
             window.uniqueDates = uniqueDates;
             window.currentChunkStartIndex = 0;
             
-            await window.savePlan();
+            await window.savePlan(true);
             renderPlan();
-            Swal.fire('Silindi!', 'Geçmiş nöbet kayıtları başarıyla silindi.', 'success');
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'Geçmiş nöbet kayıtları silindi.',
+                showConfirmButton: false,
+                timer: 2000
+            });
         }
     });
+};
+
+// --- Plan Silme İşlemi ---
+window.deletePlan = async function() {
+    if (!generatedPlan || generatedPlan.length === 0) {
+        Swal.fire('Bilgi', 'Silinecek herhangi bir nöbet planı bulunmuyor.', 'info');
+        return;
+    }
+
+    const result = await Swal.fire({
+        title: 'Nöbet Planını Sil',
+        html: `
+            <div style="font-size: 0.95rem; color: var(--gray-700); margin-bottom: 15px; text-align: left;">
+                Lütfen yapmak istediğiniz silme işlemini seçin:
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px; text-align:left;">
+                <label style="display:flex; align-items:center; gap:12px; padding:12px; border:1px solid #fee2e2; background:#fef2f2; border-radius:8px; cursor:pointer;">
+                    <input type="radio" name="deletePlanScope" value="all" checked style="width:18px; height:18px; accent-color:#ef4444;">
+                    <div>
+                        <div style="font-weight:700; color:#b91c1c;"><i class="fa-solid fa-trash-can" style="margin-right:5px;"></i> Tüm Planı Sil</div>
+                        <div style="font-size:0.8rem; color:#7f1d1d;">Geçmiş ve gelecek dahil tüm nöbet çizelgesi tamamen silinir.</div>
+                    </div>
+                </label>
+                <label style="display:flex; align-items:center; gap:12px; padding:12px; border:1px solid #fef3c7; background:#fffbeb; border-radius:8px; cursor:pointer;">
+                    <input type="radio" name="deletePlanScope" value="future" style="width:18px; height:18px; accent-color:#f59e0b;">
+                    <div>
+                        <div style="font-weight:700; color:#b45309;"><i class="fa-solid fa-calendar-xmark" style="margin-right:5px;"></i> Sadece Gelecek Planı Sil</div>
+                        <div style="font-size:0.8rem; color:#92400e;">Bugünden önceki geçmiş nöbetler korunur, bugünden sonraki plan silinir.</div>
+                    </div>
+                </label>
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Evet, Sil',
+        cancelButtonText: 'Vazgeç',
+        preConfirm: () => {
+            const scope = document.querySelector('input[name="deletePlanScope"]:checked')?.value || 'all';
+            return scope;
+        }
+    });
+
+    if (!result.isConfirmed) return;
+
+    let scope = result.value;
+    let today = new Date();
+    let todayYear = today.getFullYear();
+    let todayMonth = String(today.getMonth() + 1).padStart(2, '0');
+    let todayDay = String(today.getDate()).padStart(2, '0');
+    let todayStr = `${todayYear}-${todayMonth}-${todayDay}`;
+
+    let db = DataManager._getData();
+    if (!db.school) db.school = {};
+    if (!db.school.studentDuties) db.school.studentDuties = {};
+
+    if (scope === 'all') {
+        generatedPlan = [];
+        window.uniqueDates = [];
+        window.currentChunkStartIndex = 0;
+        db.school.studentDuties.plan = [];
+        db.school.studentDuties.updatedAt = Date.now();
+        delete db.school.studentDuties.lockedUntilDate;
+        
+        DataManager._saveData(db);
+        
+        renderPlan();
+        if (typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
+        $('#resultsPanel').hide();
+        $('#topSaveBtn').hide();
+        $('#topDeleteBtn').hide();
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Tüm nöbet planı silindi.',
+            showConfirmButton: false,
+            timer: 2000
+        });
+    } else if (scope === 'future') {
+        let beforeCount = generatedPlan.length;
+        generatedPlan = generatedPlan.filter(p => p.date < todayStr);
+        let removedCount = beforeCount - generatedPlan.length;
+
+        if (removedCount === 0) {
+            Swal.fire('Bilgi', 'Silinecek gelecek nöbet kaydı bulunamadı.', 'info');
+            return;
+        }
+
+        window.uniqueDates = [...new Set(generatedPlan.map(p => p.date))];
+        window.currentChunkStartIndex = Math.max(0, window.uniqueDates.length - 20);
+        
+        db.school.studentDuties.plan = generatedPlan;
+        db.school.studentDuties.updatedAt = Date.now();
+        
+        DataManager._saveData(db);
+        
+        renderPlan();
+        if (typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
+        
+        if (generatedPlan.length === 0) {
+            $('#resultsPanel').hide();
+            $('#topSaveBtn').hide();
+            $('#topDeleteBtn').hide();
+        }
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Gelecek nöbet planı silindi. Geçmiş kayıtlar korundu.',
+            showConfirmButton: false,
+            timer: 2500
+        });
+    }
 };
 
 window.openDutyRulesModal = function(event) {
@@ -771,39 +974,20 @@ window.openDutyRulesModal = function(event) {
 };
 
 // --- Kayıt İşlemleri ---
-window.savePlan = async function() {
-    let todayStr = new Date().toISOString().split('T')[0];
-    
-    // Uygulama tarihi sor
-    let { value: selectedDateStr } = await Swal.fire({
-        title: 'Plan Uygulama Tarihi',
-        html: `
-            <div style="font-size:0.9rem; color:var(--gray-600); margin-bottom:15px; text-align:left;">
-                Oluşturduğunuz yeni nöbet listesi hangi tarihten itibaren geçerli olsun?<br><br>
-                <small><b>Not:</b> Seçtiğiniz tarihten önceki günler için eski nöbet planınız korunacaktır.</small>
-            </div>
-            <input type="date" id="applyDateInput" class="swal2-input" style="width: 80%;" value="${todayStr}">
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Kaydet',
-        cancelButtonText: 'İptal',
-        confirmButtonColor: 'var(--primary)',
-        preConfirm: () => {
-            const val = document.getElementById('applyDateInput').value;
-            if (!val) {
-                Swal.showValidationMessage('Lütfen geçerli bir tarih seçin');
-            }
-            return val;
-        }
-    });
-
-    if (!selectedDateStr) return; // Kullanıcı iptal etti
-
+window.savePlan = async function(silent = false) {
     let db = DataManager._getData();
+    if (!db.school) db.school = {};
     let existingRules = db.school?.studentDuties?.rules || '';
 
     const selectedClasses = $('#classSelect').val() || [];
-    const globalRule = document.getElementById('globalRule').value;
+    const globalRule = document.getElementById('globalRule') ? document.getElementById('globalRule').value : 'sirayla';
+    
+    let today = new Date();
+    let todayYear = today.getFullYear();
+    let todayMonth = String(today.getMonth() + 1).padStart(2, '0');
+    let todayDay = String(today.getDate()).padStart(2, '0');
+    let defaultLockedDate = `${todayYear}-${todayMonth}-${todayDay}`;
+
     const saveData = {
         locations: dutyLocations,
         selectedClasses: selectedClasses,
@@ -811,42 +995,40 @@ window.savePlan = async function() {
         rules: existingRules,
         plan: generatedPlan,
         exemptStudents: window.exemptStudents || [],
-        lockedUntilDate: selectedDateStr,
+        lockedUntilDate: db.school?.studentDuties?.lockedUntilDate || defaultLockedDate,
         updatedAt: Date.now()
     };
 
     try {
-        Swal.fire({ title: 'Kaydediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-        
-        if (!db.school) db.school = {};
-        db.school.studentDuties = saveData;
-        
-        // Kaydetmeden hemen önce geleceği güncelle (muafiyet/lokasyon değiştiyse yansısın ve seçilen tarihten itibaren oluştursun)
-        if (typeof window.autoUpdateStudentDuties === 'function') {
-            window.autoUpdateStudentDuties(false);
-            generatedPlan = db.school.studentDuties.plan || [];
+        if (!silent) {
+            Swal.fire({ title: 'Kaydediliyor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
         }
         
+        db.school.studentDuties = saveData;
         DataManager._saveData(db);
 
-        Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: 'success',
-            title: 'Değişiklikler kaydedildi',
-            showConfirmButton: false,
-            timer: 1500
-        });
+        if (!silent) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'Nöbet planı ve ayarlar kaydedildi.',
+                showConfirmButton: false,
+                timer: 1500
+            });
+        }
     } catch (e) {
         console.error(e);
-        Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: 'error',
-            title: 'Kaydedilirken hata oluştu',
-            showConfirmButton: false,
-            timer: 2000
-        });
+        if (!silent) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'error',
+                title: 'Kaydedilirken hata oluştu',
+                showConfirmButton: false,
+                timer: 2000
+            });
+        }
     }
 };
 
@@ -867,11 +1049,12 @@ async function loadSavedData() {
             } else {
                 window.exemptStudents = [];
             }
-            if(typeof window.renderExemptStudentsList === 'function') window.renderExemptStudentsList();
+            if (typeof window.renderExemptStudentsList === 'function') window.renderExemptStudentsList();
 
             if (data.plan && data.plan.length > 0) {
                 let p = typeof window.shiftStudentPlanDates === 'function' ? window.shiftStudentPlanDates(data.plan) : data.plan;
                 generatedPlan = p;
+                
                 // Kayıtlı planı chunk'lara ayır
                 let uniqueDates = [...new Set(generatedPlan.map(p => p.date))];
                 window.uniqueDates = uniqueDates;
@@ -888,9 +1071,14 @@ async function loadSavedData() {
                 window.currentChunkStartIndex = startIndex;
                 
                 renderPlan();
-                if(typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
+                if (typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
                 $('#resultsPanel').show();
                 $('#topSaveBtn').show();
+                $('#topDeleteBtn').show();
+            } else {
+                $('#resultsPanel').hide();
+                $('#topSaveBtn').hide();
+                $('#topDeleteBtn').hide();
             }
         }
     } catch (e) {

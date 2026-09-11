@@ -1788,7 +1788,7 @@ window.getHolidayInfo = function(dateObj) {
     return false;
 };
 
-window.autoUpdateStudentDuties = function(triggerSave = true) {
+window.autoUpdateStudentDuties = function(triggerSave = true, customStartDate = null) {
     try {
         let db = typeof DataManager !== 'undefined' ? DataManager._getData() : null;
         if (!db || !db.school || !db.school.studentDuties) return;
@@ -1802,16 +1802,16 @@ window.autoUpdateStudentDuties = function(triggerSave = true) {
         
         if (dutyLocations.length === 0 || selectedClasses.length === 0) return;
         
+        // Eğer henüz hiç plan oluşturulmamışsa veya plan silinmişse, arka plan hook'ları (öğrenci ekle/sil) istem dışı plan üretmesin.
+        if (!customStartDate && (!plan || plan.length === 0)) return;
+
         let allStudents = typeof DataManager !== 'undefined' ? DataManager.getStudents() : [];
         if (!allStudents || allStudents.length === 0) return;
         
         let shiftedPlan = typeof window.shiftStudentPlanDates === 'function' ? window.shiftStudentPlanDates(plan) : plan;
         
         let todayStr = new Date().toISOString().split('T')[0];
-        let startDateStr = todayStr;
-        if (duties.lockedUntilDate && duties.lockedUntilDate > todayStr) {
-            startDateStr = duties.lockedUntilDate;
-        }
+        let startDateStr = customStartDate || duties.lockedUntilDate || todayStr;
         
         let studentStats = {}; 
         selectedClasses.forEach(c => {
@@ -1824,9 +1824,10 @@ window.autoUpdateStudentDuties = function(triggerSave = true) {
         let pastPlanRaw = [];
         for (let i = 0; i < plan.length; i++) {
             let p = plan[i];
-            let shiftedDate = shiftedPlan[i] ? shiftedPlan[i].date : p.date;
+            let actualDate = p.date;
             
-            if (shiftedDate < startDateStr) {
+            // Seçilen tarihten önceki tüm nöbetler silinmeden aynen korunur
+            if (actualDate < startDateStr) {
                 pastPlanRaw.push(p);
                 let id = p.class + '-' + String(p.number).trim();
                 if (studentStats[id] !== undefined) {
@@ -1838,12 +1839,16 @@ window.autoUpdateStudentDuties = function(triggerSave = true) {
         }
         
         let workingDays = [];
-        let d = new Date(startDateStr); 
+        let parts = startDateStr.split('-');
+        let d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
         let maxLookAhead = 365;
         while(maxLookAhead > 0) {
             let dayOfWeek = d.getDay();
             if (dayOfWeek !== 0 && dayOfWeek !== 6) { 
-                let dStr = d.toISOString().split('T')[0];
+                let y = d.getFullYear();
+                let m = String(d.getMonth() + 1).padStart(2, '0');
+                let day = String(d.getDate()).padStart(2, '0');
+                let dStr = `${y}-${m}-${day}`;
                 let isHoliday = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(dStr) : false;
                 if (!isHoliday) {
                     workingDays.push(dStr);
