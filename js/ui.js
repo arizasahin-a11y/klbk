@@ -869,6 +869,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const no = document.getElementById('stdNo').value.trim();
         const stdClass = document.getElementById('stdClass').value.trim().toUpperCase();
+        const ex1Val = document.getElementById('stdExtra1').value.trim().toUpperCase();
+        const gCode = ex1Val === 'K' ? 'K' : (ex1Val === 'E' ? 'E' : '');
+        const gText = gCode === 'K' ? 'Kız' : (gCode === 'E' ? 'Erkek' : '');
 
         const std = {
             no: no,
@@ -877,7 +880,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             alan: document.getElementById('stdField').value.trim(),
             ogrenciKodu: document.getElementById('stdCode').value.trim(),
             dersler: document.getElementById('stdSubjects').value.split(/[,\n;]/).map(s => s.trim()).filter(Boolean),
-            extra1: document.getElementById('stdExtra1').value.trim(),
+            extra1: gCode,
+            cinsiyet: gText,
+            gender: gText,
             extra2: document.getElementById('stdExtra2').value.trim(),
             extra3: document.getElementById('stdExtra3').value.trim(),
             extra4: document.getElementById('stdExtra4').value.trim(),
@@ -939,175 +944,246 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonArr = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                    if (jsonArr.length === 0) {
-                        Swal.fire('Hata', 'Excel dosyası boş görünüyor.', 'error');
-                        return;
-                    }
+                    // Helper normalization functions
+                    const cleanStr = (s) => (s === null || s === undefined) ? '' : String(s).trim();
+                    const normTr = (s) => cleanStr(s).replace(/[\s\.\-_/\\,;:()\[\]]+/g, '').replace(/İ/g, 'i').replace(/I/g, 'ı').toLowerCase();
+                    
+                    const detectGender = (val) => {
+                        if (val === null || val === undefined) return '';
+                        let s = cleanStr(val);
+                        if (!s) return '';
+                        let cleaned = normTr(s);
+                        if (cleaned === 'k' || cleaned === 'kız' || cleaned === 'kiz' || cleaned === 'kadın' || cleaned === 'kadin' || cleaned === 'bayan' || cleaned === 'female' || cleaned === 'f' || cleaned.startsWith('kız') || cleaned.startsWith('kiz') || cleaned.startsWith('kadın') || cleaned.startsWith('kadin') || cleaned.startsWith('kkız') || cleaned.startsWith('kkiz')) {
+                            return 'K';
+                        }
+                        if (cleaned === 'e' || cleaned === 'erkek' || cleaned === 'bay' || cleaned === 'male' || cleaned === 'm' || cleaned.startsWith('erkek') || cleaned.startsWith('eerkek')) {
+                            return 'E';
+                        }
+                        let u = s.toUpperCase();
+                        if (u === 'K' || u === 'E') return u;
+                        return '';
+                    };
 
-                    // Collect students in array
+                    const isClassHeader = (s) => {
+                        let n = normTr(s);
+                        return n === 'sınıf' || n === 'sinif' || n === 'sınıfı' || n === 'sinifi' || n === 'şube' || n === 'sube' || n === 'şubesi' || n === 'subesi' || n === 'sınıfşube' || n === 'sinifsube' || n === 'derslik';
+                    };
+
+                    const isNoHeader = (s) => {
+                        let n = normTr(s);
+                        return n.includes('öğrencino') || n.includes('ogrencino') || n.includes('okulno') || n.includes('numara') || n.includes('ogrno') || n.includes('tc') || n.includes('kimlik') || n === 'no' || n === 'numarası' || n === 'numarasi';
+                    };
+
+                    const isSurnameHeader = (s) => {
+                        let n = normTr(s);
+                        return n === 'soyadı' || n === 'soyad' || n === 'soyadi';
+                    };
+
+                    const isNameHeader = (s) => {
+                        let n = normTr(s);
+                        return n === 'adısoyadı' || n === 'adsoyad' || n === 'adveyaadsoyad' || n.includes('öğrenciadı') || n.includes('ogrenciadi') || n === 'adı' || n === 'ad' || n === 'isim';
+                    };
+
+                    const isFullNameHeader = (s) => {
+                        let n = normTr(s);
+                        return n === 'adısoyadı' || n === 'adsoyad' || n === 'adisoyadi' || n.includes('öğrenciadısoyadı') || n.includes('ogrenciadisoyadi');
+                    };
+
+                    const isGenderHeader = (s) => {
+                        let n = normTr(s);
+                        return n.includes('cinsiyet') || n === 'cins' || n === 'cinsi' || n === 'ke' || n === 'kızerkek' || n === 'kizerkek' || n === 'gender' || n === 'sex';
+                    };
+
+                    const normalizeClass = (s) => {
+                        let raw = cleanStr(s).toUpperCase();
+                        let m = raw.match(/(\d+)\s*[\/\-]?\s*([A-Za-zçğıöşüÇĞİÖŞÜ])/);
+                        if (m) {
+                            return (m[1] + m[2]).toUpperCase();
+                        }
+                        return raw.replace(/[\/\-\s]+/g, '');
+                    };
+
                     const parsedStudents = [];
-                    let currentClass = null;
-                    let findingHeaders = false;
-                    let colSNo = -1, colOgrNo = -1, colAd = -1, colSoyad = -1, colCinsiyet = -1;
-                    let detectedMode = null; // 'e-okul' or 'simple'
 
-                    for (let i = 0; i < jsonArr.length; i++) {
-                        const row = jsonArr[i];
-                        if (!row || row.length === 0) continue;
+                    // Loop through ALL sheets in workbook
+                    for (const sheetName of workbook.SheetNames) {
+                        const worksheet = workbook.Sheets[sheetName];
+                        if (!worksheet) continue;
+                        const jsonArr = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                        if (!jsonArr || jsonArr.length === 0) continue;
 
-                        let rowTextStr = row.join(' ').replace(/\n/g, ' ').toUpperCase();
+                        let defaultSheetClass = null;
+                        let mSheet = cleanStr(sheetName).match(/^(\d+)\s*[\/\-]?\s*([A-Za-zçğıöşüÇĞİÖŞÜ])$/);
+                        if (mSheet) {
+                            defaultSheetClass = (mSheet[1] + mSheet[2]).toUpperCase();
+                        }
 
-                        // 1. Check for E-Okul Class Header (Priority)
-                        let cMatchStr = null;
-                        let m1 = rowTextStr.match(/(\d+)\.?\s*[ŞS]?INIF.*?([A-ZÇĞİÖŞÜ])\s*[ŞS]UBE/);
-                        if (m1) {
-                            cMatchStr = m1[1] + m1[2];
-                        } else {
-                            let m2 = rowTextStr.match(/[ŞS]?INIF.*?(?::|-|=)\s*(\d+)\s*[\/\-]?\s*([A-ZÇĞİÖŞÜ])/);
-                            if (m2) cMatchStr = m2[1] + m2[2];
-                            else {
-                                let m3 = rowTextStr.match(/(\d+)\s*[\/\-]\s*([A-ZÇĞİÖŞÜ])\s*[ŞS]?INIF/);
-                                if (m3) cMatchStr = m3[1] + m3[2];
+                        let currentClass = defaultSheetClass;
+                        let colMap = { class: -1, no: -1, name: -1, surname: -1, adsoyad: -1, gender: -1, sno: -1 };
+                        let mode = null; // 'tabular' or 'e-okul'
+
+                        for (let i = 0; i < jsonArr.length; i++) {
+                            const row = jsonArr[i];
+                            if (!row || row.length === 0) continue;
+
+                            let nonEmpties = row.map(c => cleanStr(c)).filter(Boolean);
+                            if (nonEmpties.length === 0) continue;
+                            let rowTextStr = nonEmpties.join(' ').toUpperCase();
+
+                            // 1. Check for E-Okul Class Section Banner
+                            // Rule: A banner has class title and does NOT look like a student data row (e.g. not 3+ cells with student number)
+                            let isDataLikeRow = nonEmpties.length >= 3 && nonEmpties.some(c => /^\d{1,6}$/.test(c));
+                            let cBanner = null;
+
+                            if (!isDataLikeRow) {
+                                let m1 = rowTextStr.match(/(\d+)\.?\s*[ŞS]?INIF.*?([A-ZÇĞİÖŞÜ])\s*[ŞS]UBE/);
+                                if (m1) cBanner = m1[1] + m1[2];
                                 else {
-                                    let m4 = rowTextStr.match(/(\d+)\s*([A-ZÇĞİÖŞÜ])\s*(?:[ŞS]?INIFI|[ŞS]?UBESİ)/);
-                                    if (m4) cMatchStr = m4[1] + m4[2];
+                                    let m2 = rowTextStr.match(/[ŞS]?INIF.*?(?::|-|=)\s*(\d+)\s*[\/\-]?\s*([A-ZÇĞİÖŞÜ])/);
+                                    if (m2) cBanner = m2[1] + m2[2];
                                     else {
-                                        // Catch simple "9-A" or "10/B" as header if it's the only thing or start of row
-                                        let m5 = rowTextStr.match(/^(\d+)\s*[\/\-]\s*([A-ZÇĞİÖŞÜ])(?:\s|$)/);
-                                        if (m5) cMatchStr = m5[1] + m5[2];
-                                    }
-                                }
-                            }
-                        }
-
-                        if (cMatchStr) {
-                            currentClass = cMatchStr;
-                            findingHeaders = true;
-                            detectedMode = 'e-okul';
-                            colSNo = -1; colOgrNo = -1; colAd = -1; colSoyad = -1; colCinsiyet = -1;
-                            continue;
-                        }
-
-                        // 2. Simple Format Detection (Only if not already in E-Okul mode)
-                        // If we haven't found an E-Okul header yet, check if this row looks like Class | No | Name
-                        if (!detectedMode || detectedMode === 'simple') {
-                            const stdClass = String(row[0] || '').trim().toUpperCase();
-                            const no = String(row[1] || '').trim();
-                            const name = String(row[2] || '').trim();
-
-                            // A row is simple if Class is like 9A, 10-B, and No is numeric
-                            if (stdClass && no && name && !isNaN(parseInt(no))) {
-                                // Validate Class string a bit more
-                                if (stdClass.match(/^\d+\s*[\/\-]?[A-ZÇĞİÖŞÜ]$/) || stdClass.match(/^\d+$/)) {
-                                    let normalizedClass = stdClass.replace(/[\/\-\s]+/g, '');
-                                    let stdObj = {
-                                        no, name, class: normalizedClass,
-                                        status: 'Aktif'
-                                    };
-                                    let rawCins = String(row[3] || '').trim().toUpperCase();
-                                    if (rawCins.startsWith('K')) stdObj.extra1 = 'K';
-                                    else if (rawCins.startsWith('E')) stdObj.extra1 = 'E';
-                                    
-                                    parsedStudents.push(stdObj);
-                                    detectedMode = 'simple';
-                                    continue;
-                                }
-                            }
-                        }
-
-                        // 3. Continue E-Okul Parsing if mode is set
-                        if (detectedMode === 'e-okul' && findingHeaders && currentClass) {
-                            if (colSNo !== -1) {
-                                let potentialSNo = parseInt(row[colSNo]);
-                                if (!isNaN(potentialSNo) && potentialSNo > 0) {
-                                    findingHeaders = false;
-                                    if (colOgrNo === -1) {
-                                        for (let j = colSNo + 1; j < row.length; j++) {
-                                            if (String(row[j] || '').trim().length > 0) { colOgrNo = j; break; }
-                                        }
-                                    }
-                                    if (colAd === -1) {
-                                        for (let j = (colOgrNo !== -1 ? colOgrNo : colSNo) + 1; j < row.length; j++) {
-                                            if (String(row[j] || '').trim().length > 0) { colAd = j; colSoyad = j; break; }
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (findingHeaders) {
-                                let sNoIdx = row.findIndex(c => { let v = String(c || '').trim().replace(/[\s\.\n]+/g, '').toUpperCase(); return v === 'SNO' || v === 'SIRANO' || v === 'NO' || v === 'SN'; });
-                                if (sNoIdx !== -1) colSNo = sNoIdx;
-                                let ogrNoIdx = row.findIndex(c => {
-                                    let val = String(c || '').trim().replace(/[\s\.\n]+/g, '').toUpperCase();
-                                    return val.includes('ÖĞRENCİNO') || val.includes('ÖGRENCİNO') || val.includes('OGRENCINO') || val.includes('OKULNO') || val.includes('NUMARASI') || val.includes('TC') || val.includes('OGRNO');
-                                });
-                                if (ogrNoIdx !== -1) colOgrNo = ogrNoIdx;
-                                let adSoyadIdx = row.findIndex(c => { let v = String(c || '').trim().replace(/[\s\.\n]+/g, '').toUpperCase(); return v === 'ADISOYADI' || v === 'ADSOYAD' || v.includes('ÖĞRENCİADISOYADI'); });
-                                if (adSoyadIdx !== -1) { colAd = adSoyadIdx; colSoyad = adSoyadIdx; }
-                                let adIdx = row.findIndex(c => { let v = String(c || '').trim().replace(/[\n]+/g, '').toUpperCase(); return v === 'ADI' || v === 'AD'; });
-                                if (adIdx !== -1) colAd = adIdx;
-                                let soyadIdx = row.findIndex(c => { let v = String(c || '').trim().replace(/[\n]+/g, '').toUpperCase(); return v === 'SOYADI' || v === 'SOYAD'; });
-                                if (soyadIdx !== -1) colSoyad = soyadIdx;
-                                let cinsiyetIdx = row.findIndex(c => { 
-                                    let v = String(c || '').trim().replace(/[\s\.\n]+/g, '').toUpperCase(); 
-                                    return v.includes('CİNSİYET') || v.includes('CINSIYET') || v === 'CİNS' || v === 'CINS'; 
-                                });
-                                if (cinsiyetIdx !== -1) colCinsiyet = cinsiyetIdx;
-                                continue;
-                            }
-                        }
-
-                        if (detectedMode === 'e-okul' && currentClass && !findingHeaders && colSNo !== -1) {
-                            let sNoVal = parseInt(row[colSNo]);
-                            if (!isNaN(sNoVal)) {
-                                let stdNo = String(row[colOgrNo] || '').replace(/[\n\s]+/g, '').trim();
-                                let stdAd = "", stdSoyad = "";
-                                if (colAd === colSoyad) {
-                                    let full = String(row[colAd] || '').replace(/\n/g, ' ').trim();
-                                    let parts = full.split(/\s+/);
-                                    if (parts.length > 1) { stdSoyad = parts.pop(); stdAd = parts.join(' '); }
-                                    else { stdAd = full; stdSoyad = ""; }
-                                } else {
-                                    stdAd = String(row[colAd] || '').replace(/\n/g, ' ').trim();
-                                    stdSoyad = String(row[colSoyad] || '').replace(/\n/g, ' ').trim();
-                                }
-                                if (stdNo && (stdAd || stdSoyad)) {
-                                    let fullName = (stdAd + " " + stdSoyad).replace(/\s+/g, ' ').trim();
-                                    let newStdObj = {
-                                        no: stdNo, name: fullName, class: currentClass,
-                                        status: 'Aktif'
-                                    };
-                                    let cVal = colCinsiyet !== -1 ? String(row[colCinsiyet] || '').trim().toUpperCase() : '';
-                                    if (cVal.startsWith('K')) {
-                                        newStdObj.extra1 = 'K';
-                                    } else if (cVal.startsWith('E')) {
-                                        newStdObj.extra1 = 'E';
-                                    } else {
-                                        // Bulletproof fallback: search for gender in the row after the name
-                                        let startScan = Math.max(colAd, colSoyad, colOgrNo, colSNo) + 1;
-                                        for (let j = startScan; j < row.length; j++) {
-                                            let gVal = String(row[j] || '').trim().replace(/[\.\s]+/g, '').toUpperCase();
-                                            if (gVal === 'KIZ' || gVal === 'K') {
-                                                newStdObj.extra1 = 'K';
-                                                colCinsiyet = j; // Remember the column for subsequent rows
-                                                break;
-                                            } else if (gVal === 'ERKEK' || gVal === 'E') {
-                                                newStdObj.extra1 = 'E';
-                                                colCinsiyet = j; // Remember the column for subsequent rows
-                                                break;
+                                        let m3 = rowTextStr.match(/(\d+)\s*[\/\-]\s*([A-ZÇĞİÖŞÜ])\s*[ŞS]?INIF/);
+                                        if (m3) cBanner = m3[1] + m3[2];
+                                        else {
+                                            let m4 = rowTextStr.match(/(\d+)\s*([A-ZÇĞİÖŞÜ])\s*(?:[ŞS]?INIFI|[ŞS]?UBESİ)/);
+                                            if (m4) cBanner = m4[1] + m4[2];
+                                            else if (nonEmpties.length <= 2) {
+                                                let m5 = nonEmpties[0].match(/^(\d+)\s*[\/\-]?\s*([A-ZÇĞİÖŞÜ])$/);
+                                                if (m5) cBanner = m5[1] + m5[2];
                                             }
                                         }
                                     }
-                                    parsedStudents.push(newStdObj);
                                 }
-                            } else if (String(row[colSNo]).trim()) {
-                                // Non-numeric S.No means maybe end of class or some footer
-                                // But don't clear currentClass immediately, just stop finding headers if we were
-                                findingHeaders = false;
+                            }
+
+                            if (cBanner) {
+                                currentClass = cBanner;
+                                mode = 'e-okul';
+                                colMap = { class: -1, no: -1, name: -1, surname: -1, adsoyad: -1, gender: -1, sno: -1 };
+                                continue;
+                            }
+
+                            // 2. Check if row is a Column Header row
+                            let hasNoHeader = row.some(c => isNoHeader(c));
+                            let hasNameHeader = row.some(c => isNameHeader(c));
+                            if (hasNoHeader && hasNameHeader) {
+                                colMap = { class: -1, no: -1, name: -1, surname: -1, adsoyad: -1, gender: -1, sno: -1 };
+                                for (let j = 0; j < row.length; j++) {
+                                    let cell = row[j];
+                                    if (isClassHeader(cell)) colMap.class = j;
+                                    else if (isNoHeader(cell)) colMap.no = j;
+                                    else if (isSurnameHeader(cell)) colMap.surname = j;
+                                    else if (isFullNameHeader(cell)) colMap.adsoyad = j;
+                                    else if (isNameHeader(cell)) colMap.name = j;
+                                    else if (isGenderHeader(cell)) colMap.gender = j;
+                                    else if (normTr(cell) === 'sno' || normTr(cell) === 'sirano' || normTr(cell) === 'sn') colMap.sno = j;
+                                }
+
+                                if (colMap.class !== -1) {
+                                    mode = 'tabular';
+                                }
+                                continue;
+                            }
+
+                            // 3. Process Data Row via Column Mapping (if headers were detected)
+                            if (colMap.no !== -1 && (colMap.name !== -1 || colMap.adsoyad !== -1)) {
+                                let noCell = colMap.no < row.length ? cleanStr(row[colMap.no]) : '';
+                                let noMatch = noCell.match(/\d+/);
+                                if (noMatch) {
+                                    let stdNo = noMatch[0];
+                                    let fullName = '';
+                                    if (colMap.adsoyad !== -1 && colMap.adsoyad < row.length) {
+                                        fullName = cleanStr(row[colMap.adsoyad]);
+                                    } else if (colMap.name !== -1 && colMap.name < row.length) {
+                                        fullName = cleanStr(row[colMap.name]);
+                                        if (colMap.surname !== -1 && colMap.surname < row.length) {
+                                            fullName += ' ' + cleanStr(row[colMap.surname]);
+                                        }
+                                    }
+
+                                    if (fullName) {
+                                        let stdClass = '';
+                                        if (colMap.class !== -1 && colMap.class < row.length) {
+                                            stdClass = normalizeClass(row[colMap.class]);
+                                        }
+                                        if (!stdClass) {
+                                            stdClass = currentClass || defaultSheetClass || '9A';
+                                        }
+
+                                        // Gender Detection
+                                        let gCode = '';
+                                        if (colMap.gender !== -1 && colMap.gender < row.length) {
+                                            gCode = detectGender(row[colMap.gender]);
+                                        }
+                                        if (!gCode) {
+                                            // Fallback: scan other cells in row for gender
+                                            for (let j = 0; j < row.length; j++) {
+                                                if (j === colMap.no || j === colMap.sno || j === colMap.name || j === colMap.surname || j === colMap.adsoyad || j === colMap.class) continue;
+                                                gCode = detectGender(row[j]);
+                                                if (gCode) {
+                                                    colMap.gender = j; // Remember column for subsequent rows
+                                                    break;
+                                                }
+                                            }
+                                        }
+
+                                        let gText = gCode === 'K' ? 'Kız' : (gCode === 'E' ? 'Erkek' : '');
+                                        parsedStudents.push({
+                                            no: stdNo,
+                                            name: fullName.replace(/\s+/g, ' ').trim(),
+                                            class: stdClass,
+                                            status: 'Aktif',
+                                            extra1: gCode,
+                                            cinsiyet: gText,
+                                            gender: gText
+                                        });
+                                        continue;
+                                    }
+                                }
+                            }
+
+                            // 4. Raw Fallback: If no headers, detect columns by pattern
+                            if (nonEmpties.length >= 3) {
+                                let clsFound = '', noFound = '', genderFound = '', nameFound = '';
+                                for (let j = 0; j < row.length; j++) {
+                                    let cell = cleanStr(row[j]);
+                                    if (!cell) continue;
+
+                                    let g = detectGender(cell);
+                                    if (g && !genderFound) {
+                                        genderFound = g;
+                                        continue;
+                                    }
+
+                                    let mCls = cell.match(/^(\d+)\s*[\/\-]?\s*([A-Za-zçğıöşüÇĞİÖŞÜ])$/);
+                                    if (mCls && !clsFound) {
+                                        clsFound = (mCls[1] + mCls[2]).toUpperCase();
+                                        continue;
+                                    }
+
+                                    if (/^\d{1,6}$/.test(cell) && !noFound) {
+                                        noFound = cell;
+                                        continue;
+                                    }
+
+                                    if (cell.length >= 2 && !nameFound && !/^\d+$/.test(cell)) {
+                                        nameFound = cell;
+                                    }
+                                }
+
+                                if (noFound && nameFound) {
+                                    let gText = genderFound === 'K' ? 'Kız' : (genderFound === 'E' ? 'Erkek' : '');
+                                    parsedStudents.push({
+                                        no: noFound,
+                                        name: nameFound.replace(/\s+/g, ' ').trim(),
+                                        class: clsFound || currentClass || defaultSheetClass || '9A',
+                                        status: 'Aktif',
+                                        extra1: genderFound,
+                                        cinsiyet: gText,
+                                        gender: gText
+                                    });
+                                }
                             }
                         }
                     }
@@ -1117,10 +1193,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                         return;
                     }
 
+                    let totalStudents = parsedStudents.length;
+                    let kizCount = parsedStudents.filter(s => s.extra1 === 'K').length;
+                    let erkekCount = parsedStudents.filter(s => s.extra1 === 'E').length;
+                    let genderInfo = (kizCount > 0 || erkekCount > 0)
+                        ? `<div style="margin-top: 10px; font-size: 0.95rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; display:inline-flex; gap:15px;">
+                            <span style="color:#db2777; font-weight:700;"><i class="fa-solid fa-person-dress"></i> ${kizCount} Kız</span>
+                            <span style="color:#2563eb; font-weight:700;"><i class="fa-solid fa-person"></i> ${erkekCount} Erkek</span>
+                           </div>`
+                        : '';
+
                     // Choose Import Method
                     const result = await Swal.fire({
                         title: 'Yükleme Seçeneği',
-                        text: `${parsedStudents.length} öğrenci tespit edildi. Nasıl yüklemek istersiniz?`,
+                        html: `<b>${totalStudents}</b> öğrenci başarıyla tespit edildi.<br>${genderInfo}<br><br>Nasıl yüklemek istersiniz?`,
                         icon: 'question',
                         showCancelButton: true,
                         confirmButtonText: 'Güncelle',
@@ -1146,7 +1232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             title: 'Sıfırdan Yükleme Tamamlandı',
                             customClass: { popup: 'swal2-responsive-popup' },
                             width: 'auto',
-                            html: `<b>${stats.totalStudents}</b> öğrenci ve <b>${stats.totalClasses}</b> sınıf başarıyla eklendi.`,
+                            html: `<b>${stats.totalStudents}</b> öğrenci (${kizCount > 0 ? kizCount + ' Kız, ' : ''}${erkekCount > 0 ? erkekCount + ' Erkek' : ''}) ve <b>${stats.totalClasses}</b> sınıf başarıyla eklendi.`,
                             confirmButtonColor: '#4f46e5'
                         });
                     } else {
@@ -1160,6 +1246,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <p style="margin: 0.75rem 0; display:flex; align-items:center; gap:10px;"><i class="fa-solid fa-user-plus" style="color:#10b981; font-size:1.1rem;"></i> <span><b>${stats.addedCount}</b> yeni öğrenci eklendi.</span></p>
                                     <p style="margin: 0.75rem 0; display:flex; align-items:center; gap:10px;"><i class="fa-solid fa-user-minus" style="color:#ef4444; font-size:1.1rem;"></i> <span><b>${stats.deletedCount}</b> öğrenci silindi.</span></p>
                                     <p style="margin: 0.75rem 0; display:flex; align-items:center; gap:10px;"><i class="fa-solid fa-shuffle" style="color:#f59e0b; font-size:1.1rem;"></i> <span><b>${stats.classChangedCount}</b> öğrenci sınıf değiştirdi.</span></p>
+                                    ${(kizCount > 0 || erkekCount > 0) ? `<p style="margin: 0.75rem 0; display:flex; align-items:center; gap:10px;"><i class="fa-solid fa-venus-mars" style="color:#8b5cf6; font-size:1.1rem;"></i> <span>Cinsiyet Dağılımı: <b>${kizCount} Kız</b>, <b>${erkekCount} Erkek</b></span></p>` : ''}
                                 </div>
                             `,
                             confirmButtonColor: '#4f46e5'
@@ -1481,17 +1568,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             const rowBg = bgColors[colorIdx];
             const rowBorder = borderColors[colorIdx];
 
+            const kCount = clsStudents.filter(s => {
+                const g = String(s.cinsiyet || s.gender || s.extra1 || '').trim().toUpperCase();
+                return g === 'K' || g === 'KIZ' || g === 'KADIN' || g === 'FEMALE';
+            }).length;
+            const eCount = clsStudents.filter(s => {
+                const g = String(s.cinsiyet || s.gender || s.extra1 || '').trim().toUpperCase();
+                return g === 'E' || g === 'ERKEK' || g === 'MALE';
+            }).length;
+
             // Accordion Header
             html += `
                 <div class="accordion-item glass-panel" style="border-radius:10px; background-color:${rowBg} !important; border:4px solid ${rowBorder} !important; margin-bottom:10px; overflow-x:auto;">
                     <div class="accordion-header" style="padding:0.85rem 1.25rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer; gap:10px; flex-wrap:wrap; width:100%; box-sizing:border-box;" onclick="this.nextElementSibling.classList.toggle('hidden');">
-                        <div style="width:150px; min-width:150px; flex-shrink:0; display:flex; align-items:center; gap:8px;">
+                        <div style="width:auto; min-width:180px; flex-shrink:0; display:flex; align-items:center; gap:8px;">
                             <h2 style="color:var(--primary); font-size:1.2rem; margin:0; white-space:nowrap;">
                                 ${cls} Sınıfı
                             </h2>
-                            <span style="background:var(--secondary); color:#fff; padding:0.2rem 0.5rem; border-radius:1rem; font-size:0.75rem; white-space:nowrap; display:inline-flex; align-items:center; gap:4px; height:24px;">
+                            <span style="background:var(--secondary); color:#fff; padding:0.2rem 0.5rem; border-radius:1rem; font-size:0.75rem; white-space:nowrap; display:inline-flex; align-items:center; gap:4px; height:24px;" title="Toplam Öğrenci Sayısı">
                                 <i class="fa-solid fa-users"></i> ${count}
                             </span>
+                            ${(kCount > 0 || eCount > 0) ? `
+                            <span style="background:#fdf2f8; color:#be185d; border:1px solid #fbcfe8; padding:0.2rem 0.45rem; border-radius:1rem; font-size:0.72rem; font-weight:700; white-space:nowrap; display:inline-flex; align-items:center; gap:3px; height:24px;" title="Kız Öğrenci Sayısı">
+                                <i class="fa-solid fa-venus"></i> ${kCount}
+                            </span>
+                            <span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:0.2rem 0.45rem; border-radius:1rem; font-size:0.72rem; font-weight:700; white-space:nowrap; display:inline-flex; align-items:center; gap:3px; height:24px;" title="Erkek Öğrenci Sayısı">
+                                <i class="fa-solid fa-mars"></i> ${eCount}
+                            </span>` : ''}
                         </div>
                         <div style="display:flex; align-items:center; gap:8px; flex:1; justify-content:flex-end; flex-wrap:wrap;">
                             <button class="btn btn-secondary btn-sm" style="height:38px; width:125px; min-width:125px; flex-shrink:0; padding:0 0.5rem; font-size:0.85rem; font-weight:600; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; gap:5px; box-sizing:border-box; white-space:nowrap;" onclick="event.stopPropagation(); window.assignSubjectsToClass('${cls}')">
@@ -1537,6 +1640,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <tr style="border-bottom:2px solid var(--primary); color:var(--text);">
                                         <th style="padding:0.75rem 0.5rem;">Öğrenci No</th>
                                         <th style="padding:0.75rem 0.5rem;">Adı Soyadı</th>
+                                        <th style="padding:0.75rem 0.5rem;">Cinsiyet</th>
                                         <th style="padding:0.75rem 0.5rem;">Alanı</th>
                                         <th style="padding:0.75rem 0.5rem;">Öğrenci Kodu</th>
                                         <th style="padding:0.75rem 0.5rem;">Dersler</th>
@@ -1547,6 +1651,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
 
             clsStudents.forEach(std => {
+                const rawG = String(std.cinsiyet || std.gender || std.extra1 || '').trim();
+                const gUpper = rawG.toUpperCase();
+                let gBadge = '<span style="color:#94a3b8; font-size:0.8rem;">-</span>';
+                if (gUpper === 'K' || gUpper === 'KIZ' || gUpper === 'KADIN' || gUpper === 'FEMALE') {
+                    gBadge = '<span style="background:#fdf2f8; color:#be185d; border:1px solid #fbcfe8; padding:2px 7px; border-radius:6px; font-size:0.78rem; font-weight:600; display:inline-flex; align-items:center; gap:3px;"><i class="fa-solid fa-venus" style="font-size:0.75rem;"></i> Kız</span>';
+                } else if (gUpper === 'E' || gUpper === 'ERKEK' || gUpper === 'MALE') {
+                    gBadge = '<span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:2px 7px; border-radius:6px; font-size:0.78rem; font-weight:600; display:inline-flex; align-items:center; gap:3px;"><i class="fa-solid fa-mars" style="font-size:0.75rem;"></i> Erkek</span>';
+                } else if (rawG) {
+                    gBadge = `<span style="background:#f1f5f9; color:#475569; padding:2px 7px; border-radius:6px; font-size:0.78rem;">${rawG}</span>`;
+                }
+
                 html += `
                     <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
                         <td style="padding:0.75rem 0.5rem; font-weight:bold;">${std.no}</td>
@@ -1555,6 +1670,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             ${(std.ogrenciKodu || "").split(/[,\s]+/).map(k => k.trim().toUpperCase()).includes('C') ? '<span class="condition-marker type-c" data-tooltip="Dikkat Edilmesi Gerekir">C</span>' : ''}
                             ${(std.ogrenciKodu || "").split(/[,\s]+/).map(k => k.trim().toUpperCase()).includes('H') ? '<span class="condition-marker type-h" data-tooltip="Sağlık Sorunu Var">H</span>' : ''}
                         </td>
+                        <td style="padding:0.75rem 0.5rem;">${gBadge}</td>
                         <td style="padding:0.75rem 0.5rem;"><span style="font-size:0.85rem; background:rgba(255,255,255,0.1); padding:0.2rem 0.5rem; border-radius:4px;">${std.alan || '-'}</span></td>
                         <td style="padding:0.75rem 0.5rem;">${std.ogrenciKodu || '-'}</td>
                         <td style="padding:0.75rem 0.5rem; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${(std.dersler || []).join(', ')}">${(std.dersler || []).join(', ') || '-'}</td>
@@ -2724,6 +2840,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const std = data.students[studentIndex];
+        const currentGenderVal = (() => {
+            const raw = String(std.extra1 || std.cinsiyet || std.gender || '').trim().toUpperCase();
+            if (raw === 'K' || raw === 'KIZ' || raw === 'KADIN' || raw === 'FEMALE') return 'K';
+            if (raw === 'E' || raw === 'ERKEK' || raw === 'MALE') return 'E';
+            return '';
+        })();
 
         let html = `
     <div style="text-align:left; font-size:0.9rem;">
@@ -2786,9 +2908,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="modal-form-group">
                     <label style="font-weight:600; font-size:0.8rem;">Cinsiyet (K/E)</label>
                     <select id="edit-std-ex1" class="swal2-select" style="margin:0; width:100%; height:34px; font-size:0.85rem; padding:0 8px; border:1px solid #d9d9d9; border-radius:6px; background:#fff; outline:none;">
-                        <option value="" ${!std.extra1 ? 'selected' : ''}>Seçiniz</option>
-                        <option value="K" ${std.extra1 === 'K' ? 'selected' : ''}>KIZ</option>
-                        <option value="E" ${std.extra1 === 'E' ? 'selected' : ''}>ERKEK</option>
+                        <option value="" ${!currentGenderVal ? 'selected' : ''}>Seçiniz</option>
+                        <option value="K" ${currentGenderVal === 'K' ? 'selected' : ''}>KIZ</option>
+                        <option value="E" ${currentGenderVal === 'E' ? 'selected' : ''}>ERKEK</option>
                     </select>
                 </div>
                 <div class="modal-form-group">
@@ -2872,6 +2994,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const derslerStr = document.getElementById('edit-std-dersler').value.trim();
                 const derslerArr = derslerStr ? derslerStr.split(/[,\n;]/).map(d => d.trim()).filter(d => d) : [];
+                const chosenGender = document.getElementById('edit-std-ex1').value.trim();
+                const genderLabel = chosenGender === 'K' ? 'Kız' : (chosenGender === 'E' ? 'Erkek' : '');
 
                 return {
                     no: no,
@@ -2880,7 +3004,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     alan: document.getElementById('edit-std-alan').value.trim(),
                     ogrenciKodu: document.getElementById('edit-std-kodu').value.trim(),
                     dersler: derslerArr,
-                    extra1: document.getElementById('edit-std-ex1').value.trim(),
+                    extra1: chosenGender,
+                    cinsiyet: genderLabel,
+                    gender: genderLabel,
                     extra2: document.getElementById('edit-std-ex2').value.trim(),
                     extra3: document.getElementById('edit-std-ex3').value.trim(),
                     extra4: document.getElementById('edit-std-ex4').value.trim(),

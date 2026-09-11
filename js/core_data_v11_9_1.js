@@ -693,7 +693,11 @@ const DataManager = {
                         stats.classChangedCount++;
                     }
                     // Merge data, keeping existing student's extra data but updating Excel fields
-                    finalStudents.push({ ...existingStd, ...newStd });
+                    let merged = { ...existingStd, ...newStd };
+                    if (!newStd.extra1 && existingStd.extra1) merged.extra1 = existingStd.extra1;
+                    if (!newStd.cinsiyet && existingStd.cinsiyet) merged.cinsiyet = existingStd.cinsiyet;
+                    if (!newStd.gender && existingStd.gender) merged.gender = existingStd.gender;
+                    finalStudents.push(merged);
                 } else {
                     // New student
                     stats.addedCount++;
