@@ -373,3 +373,13 @@ tr:hover { background: #f1f5f9; }
     .app-header { flex-direction: column; gap: 15px; }
     .control-grid { grid-template-columns: 1fr; }
 }
+
+@media print {
+    body { background: white !important; color: black !important; }
+    .bg-shape, .floating-home, .app-header, .panel-section:not(#resultsPanel), .action-buttons, .month-nav, #todayDutiesPanel { display: none !important; }
+    #resultsPanel { display: block !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; background: white !important; }
+    .glass-panel { background: white !important; box-shadow: none !important; border: none !important; }
+    table { width: 100% !important; border-collapse: collapse !important; }
+    th, td { border: 1px solid #333 !important; padding: 6px 10px !important; color: black !important; }
+    th { background: #f0f0f0 !important; font-weight: bold !important; }
+}

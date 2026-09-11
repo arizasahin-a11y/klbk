@@ -165,15 +165,83 @@ function renderLocations() {
                         <span>${genderIcon} ${loc.gender}</span>
                     </span>
                 </div>
-                <button class="btn-icon" onclick="window.removeLocation('${loc.id}')" title="Sil" style="color: #ef4444; background: rgba(239, 68, 68, 0.1); border-radius: 8px; border: none; padding: 10px; cursor: pointer; transition: 0.2s;">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
+                <div style="display:flex; gap:6px;">
+                    <button class="btn-icon" onclick="window.openEditLocationModal('${loc.id}')" title="Düzenle" style="color: #4f46e5; background: rgba(79, 70, 229, 0.1); border-radius: 8px; border: none; padding: 10px; cursor: pointer; transition: 0.2s;">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="btn-icon" onclick="window.removeLocation('${loc.id}')" title="Sil" style="color: #ef4444; background: rgba(239, 68, 68, 0.1); border-radius: 8px; border: none; padding: 10px; cursor: pointer; transition: 0.2s;">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
             </div>
         `;
         container.append(html);
     });
     container.show();
 }
+
+window.openEditLocationModal = function(id) {
+    const loc = dutyLocations.find(l => l.id === id);
+    if (!loc) return;
+
+    Swal.fire({
+        title: 'Nöbet Yerini Düzenle',
+        html: `
+            <div style="display:flex; flex-direction:column; gap:15px; text-align:left; margin-top:10px;">
+                <div>
+                    <label style="font-weight:600; font-size:14px;">Yer Adı</label>
+                    <input id="editLocName" class="swal2-input" value="${loc.name}" style="margin:5px 0 0 0; width:100%;">
+                </div>
+                <div>
+                    <label style="font-weight:600; font-size:14px;">Nöbetçi Sayısı</label>
+                    <input type="number" id="editLocCount" class="swal2-input" min="1" value="${loc.count}" style="margin:5px 0 0 0; width:100%;">
+                </div>
+                <div>
+                    <label style="font-weight:600; font-size:14px;">Cinsiyet Kuralı</label>
+                    <select id="editLocGender" class="swal2-select" style="margin:5px 0 0 0; width:100%; display:flex;">
+                        <option value="Farketmez" ${loc.gender === 'Farketmez' ? 'selected' : ''}>Farketmez</option>
+                        <option value="Kız" ${loc.gender === 'Kız' ? 'selected' : ''}>Sadece Kız</option>
+                        <option value="Erkek" ${loc.gender === 'Erkek' ? 'selected' : ''}>Sadece Erkek</option>
+                    </select>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Kaydet',
+        cancelButtonText: 'İptal',
+        preConfirm: () => {
+            const name = document.getElementById('editLocName').value.trim();
+            const count = parseInt(document.getElementById('editLocCount').value);
+            const gender = document.getElementById('editLocGender').value;
+            
+            if (!name) return Swal.showValidationMessage("Yer adı girin.");
+            if (isNaN(count) || count < 1) return Swal.showValidationMessage("Geçerli bir nöbetçi sayısı girin.");
+            return { name, count, gender };
+        }
+    }).then((res) => {
+        if (res.isConfirmed) {
+            loc.name = res.value.name;
+            loc.count = res.value.count;
+            loc.gender = res.value.gender;
+            renderLocations();
+            
+            let db = DataManager._getData();
+            if (db && db.school && db.school.studentDuties) {
+                db.school.studentDuties.locations = dutyLocations;
+                if (generatedPlan && generatedPlan.length > 0 && typeof window.autoUpdateStudentDuties === 'function') {
+                    window.autoUpdateStudentDuties(false);
+                    let updatedDb = DataManager._getData();
+                    generatedPlan = updatedDb.school.studentDuties.plan || [];
+                    window.uniqueDates = [...new Set(generatedPlan.map(p => p.date))];
+                    renderPlan();
+                    if (typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
+                }
+            }
+            window.savePlan(true);
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Nöbet yeri güncellendi.', showConfirmButton: false, timer: 1500 });
+        }
+    });
+};
 
 window.removeLocation = function(id) {
     dutyLocations = dutyLocations.filter(l => l.id !== id);
@@ -305,23 +373,36 @@ window.generatePlan = async function() {
 };
 
 
+function getStudentGenderNormalized(student) {
+    if (!student) return '';
+    if (typeof DataManager !== 'undefined' && typeof DataManager.getStudentGenderNormalized === 'function') {
+        return DataManager.getStudentGenderNormalized(student);
+    }
+    let val = student.cinsiyet || student.Cinsiyet || student['Cinsiyeti'] || student['CİNSİYETİ'] || student.gender || student.Gender || student.cns || student.extra1 || '';
+    let str = String(val).trim();
+    if (!str) return '';
+    let norm = str.replace(/İ/g, 'I').replace(/ı/g, 'i').toUpperCase();
+    if (norm === 'K' || norm.startsWith('KIZ') || norm.startsWith('KADIN') || norm.startsWith('BAYAN') || norm.startsWith('FEMALE') || norm.includes('(K') || norm.includes('KIZ')) {
+        return 'Kız';
+    }
+    if (norm === 'E' || norm.startsWith('ERKEK') || norm.startsWith('BAY') || norm.startsWith('MALE') || norm.includes('(E') || norm.includes('ERKEK')) {
+        return 'Erkek';
+    }
+    return str;
+}
+
 function isValidGender(student, genderPref) {
-    if (genderPref === 'Farketmez') return true;
+    if (!genderPref || genderPref === 'Farketmez' || genderPref === 'Hepsi') return true;
     
-    // Veritabanındaki farklı sütun isimlerini kapsa
-    let genderVal = student.cinsiyet || student.Cinsiyet || student['Cinsiyeti'] || student['CİNSİYETİ'] || student.gender || student.cns || student.extra1 || '';
-    let sg = String(genderVal).toLowerCase().trim();
+    let sg = getStudentGenderNormalized(student);
+    if (!sg) return true; // Cinsiyet bilgisi yoksa akışı tıkamamak için izin ver
     
-    if (!sg) return true; // Eğer veritabanında cinsiyet verisi tamamen eksikse, sistemi çökertmemek için herkesi dahil et.
+    let prefNorm = String(genderPref).replace(/İ/g, 'I').replace(/ı/g, 'i').toUpperCase();
+    let isPrefFemale = (prefNorm === 'K' || prefNorm.includes('KIZ') || prefNorm.includes('KADIN') || prefNorm.includes('FEMALE'));
+    let isPrefMale = (prefNorm === 'E' || prefNorm.includes('ERKEK') || prefNorm.includes('MALE'));
     
-    if (genderPref === 'Kız') {
-        return (sg === 'kız' || sg === 'k' || sg === 'kiz' || sg.includes('female') || sg.includes('kadın') || sg.includes('kadin'));
-    }
-    
-    if (genderPref === 'Erkek') {
-        return (sg === 'erkek' || sg === 'e' || sg.includes('male'));
-    }
-    
+    if (isPrefFemale) return sg === 'Kız';
+    if (isPrefMale) return sg === 'Erkek';
     return true; 
 }
 
@@ -428,11 +509,21 @@ function renderPlan() {
             }
             
             let displayClass = p.className || p.class || 'Bilinmiyor';
+            let std = allStudents.find(s => (s.class === displayClass) && String(s.number || s.no) === String(p.number));
+            let gender = p.gender || (std ? getStudentGenderNormalized(std) : '');
+            let genderBadge = '<span style="color:#94a3b8; font-size:12px;">-</span>';
+            if (gender === 'Kız') {
+                genderBadge = '<span style="background:#fdf2f8; color:#be185d; border:1px solid #fbcfe8; padding:2px 8px; border-radius:12px; font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i class="fa-solid fa-venus" style="font-size:11px;"></i> Kız</span>';
+            } else if (gender === 'Erkek') {
+                genderBadge = '<span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:2px 8px; border-radius:12px; font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i class="fa-solid fa-mars" style="font-size:11px;"></i> Erkek</span>';
+            }
+
             html += `
                 <td style="color:${isPast ? '#9ca3af' : 'inherit'}"><span style="background:${isPast ? 'rgba(0,0,0,0.05)' : 'rgba(79,70,229,0.1)'}; color:${isPast ? '#9ca3af' : '#4f46e5'}; padding:4px 8px; border-radius:6px; font-weight:600; font-size:13px;">${p.locName}</span></td>
                 <td style="color:${isPast ? '#9ca3af' : 'inherit'}">${displayClass}</td>
                 <td style="color:${isPast ? '#9ca3af' : 'inherit'}">${p.number}</td>
                 <td style="color:${isPast ? '#9ca3af' : 'inherit'}">${p.name} ${p.note ? `<br><span style="font-size:11px;">${p.note}</span>` : ''}</td>
+                <td style="color:${isPast ? '#9ca3af' : 'inherit'}">${genderBadge}</td>
             </tr>`;
             tbody.insertAdjacentHTML('beforeend', html);
         });
@@ -460,7 +551,7 @@ window.handleRowRightClick = function(event, date, locName, className, number) {
     });
 };
 
-window.handleRowClick = function(event, date, locName, className, number) {
+window.handleRowClick = async function(event, date, locName, className, number) {
     if (!window.swapSource) return; // Değişim modu açık değilse normal tıklama (şu an boş)
     
     // Kendisine tıklandıysa iptal et
@@ -480,18 +571,57 @@ window.handleRowClick = function(event, date, locName, className, number) {
     if (idx1 !== -1 && idx2 !== -1) {
         let p1 = generatedPlan[idx1];
         let p2 = generatedPlan[idx2];
+
+        // Cinsiyet kuralı kontrolü
+        let loc1Obj = dutyLocations.find(l => l.name === p1Data.locName);
+        let loc2Obj = dutyLocations.find(l => l.name === p2Data.locName);
+
+        let std1 = allStudents.find(s => (s.class === (p1.className || p1.class)) && String(s.number || s.no) === String(p1.number));
+        let std2 = allStudents.find(s => (s.class === (p2.className || p2.class)) && String(s.number || s.no) === String(p2.number));
+
+        let g1 = p1.gender || (std1 ? getStudentGenderNormalized(std1) : '');
+        let g2 = p2.gender || (std2 ? getStudentGenderNormalized(std2) : '');
+
+        let conflictWarning = '';
+        if (loc1Obj && loc1Obj.gender && loc1Obj.gender !== 'Farketmez' && g2 && g2 !== loc1Obj.gender) {
+            conflictWarning += `<br>• <b>${p2.name}</b> (${g2}), <b>${p1Data.locName}</b> (Sadece ${loc1Obj.gender}) yerine atanıyor.`;
+        }
+        if (loc2Obj && loc2Obj.gender && loc2Obj.gender !== 'Farketmez' && g1 && g1 !== loc2Obj.gender) {
+            conflictWarning += `<br>• <b>${p1.name}</b> (${g1}), <b>${p2Data.locName}</b> (Sadece ${loc2Obj.gender}) yerine atanıyor.`;
+        }
+
+        if (conflictWarning) {
+            const confirmRes = await Swal.fire({
+                title: 'Cinsiyet Kuralı Uyarısı',
+                html: `Seçilen yer değişiminde nöbet yerinin cinsiyet kuralı uyuşmuyor:${conflictWarning}<br><br>Yine de yer değiştirmek istiyor musunuz?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#f59e0b',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Evet, Değiştir',
+                cancelButtonText: 'Vazgeç'
+            });
+            if (!confirmRes.isConfirmed) {
+                window.swapSource = null;
+                document.querySelectorAll('.plan-row').forEach(el => el.style.background = '');
+                return;
+            }
+        }
         
         let tempClass = p1.className;
         let tempNum = p1.number;
         let tempName = p1.name;
+        let tempGender = p1.gender;
         
         p1.className = p2.className;
         p1.number = p2.number;
         p1.name = p2.name;
+        p1.gender = p2.gender;
         
         p2.className = tempClass;
         p2.number = tempNum;
         p2.name = tempName;
+        p2.gender = tempGender;
         
         p1.note = "<span style='color:#f59e0b;'><i class='fa-solid fa-right-left'></i> Manuel Değiştirildi</span>";
         p2.note = "<span style='color:#f59e0b;'><i class='fa-solid fa-right-left'></i> Manuel Değiştirildi</span>";
@@ -540,7 +670,9 @@ window.updateExemptStudentDropdown = function() {
         let id = c + '-' + (s.number || s.no || s.name || '-').toString().trim();
         // Eğer zaten muafsa seçilemesin
         if (window.exemptStudents.includes(id)) return; 
-        sel.innerHTML += `<option value="${id}">${s.number || '-'} - ${s.name} ${s.surname||''}</option>`;
+        let g = getStudentGenderNormalized(s);
+        let gTag = g ? ` [${g}]` : '';
+        sel.innerHTML += `<option value="${id}">${s.number || '-'} - ${s.name} ${s.surname||''}${gTag}</option>`;
     });
     sel.disabled = false;
 };
@@ -610,7 +742,9 @@ window.renderExemptStudentsList = function() {
         
         let studentObj = allStudents.find(s => s.class === c && (String(s.number) === String(numOrName) || String(s.no) === String(numOrName) || s.name === numOrName));
         let fullName = studentObj ? `${studentObj.name} ${studentObj.surname || ''}`.trim() : '';
-        let displayName = fullName ? `${numOrName} - ${fullName}` : numOrName;
+        let sGender = studentObj ? getStudentGenderNormalized(studentObj) : '';
+        let sGenderTag = sGender ? ` (${sGender})` : '';
+        let displayName = fullName ? `${numOrName} - ${fullName}${sGenderTag}` : numOrName;
         
         let html = `
             <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; padding:8px 12px; border-radius:6px; border:1px solid rgba(0,0,0,0.05);">
@@ -652,14 +786,27 @@ window.renderTodayDuties = function() {
     container.innerHTML = '';
     
     todaysPlan.forEach((p, idx) => {
+        let displayClass = p.className || p.class || 'Bilinmiyor';
+        let std = allStudents.find(s => (s.class === displayClass) && String(s.number || s.no) === String(p.number));
+        let gender = p.gender || (std ? getStudentGenderNormalized(std) : '');
+        let genderBadge = '';
+        if (gender === 'Kız') {
+            genderBadge = '<span style="background:#fdf2f8; color:#be185d; border:1px solid #fbcfe8; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:600; display:inline-flex; align-items:center; gap:3px; margin-left:6px;"><i class="fa-solid fa-venus"></i> Kız</span>';
+        } else if (gender === 'Erkek') {
+            genderBadge = '<span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:600; display:inline-flex; align-items:center; gap:3px; margin-left:6px;"><i class="fa-solid fa-mars"></i> Erkek</span>';
+        }
+
         let html = `
             <div style="flex:1; min-width: 200px; background: rgba(79,70,229,0.05); border: 1px solid rgba(79,70,229,0.2); border-radius: 12px; padding: 15px; position:relative; cursor:pointer; transition:0.2s;"
                  onmouseover="this.style.background='rgba(79,70,229,0.1)'" onmouseout="this.style.background='rgba(79,70,229,0.05)'"
                  oncontextmenu="window.showAbsentOptions(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}')"
                  onclick="window.showAbsentOptions(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}')">
-                <div style="font-size: 0.8rem; font-weight: 700; color: #4f46e5; margin-bottom: 5px;">${p.locName}</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                    <span style="font-size: 0.8rem; font-weight: 700; color: #4f46e5;">${p.locName}</span>
+                    ${genderBadge}
+                </div>
                 <div style="font-weight: 700; color: var(--gray-800);">${p.name}</div>
-                <div style="font-size: 0.85rem; color: var(--gray-600);"><i class="fa-solid fa-graduation-cap"></i> ${p.className || p.class || 'Bilinmiyor'} - No: ${p.number}</div>
+                <div style="font-size: 0.85rem; color: var(--gray-600);"><i class="fa-solid fa-graduation-cap"></i> ${displayClass} - No: ${p.number}</div>
                 ${p.note ? `<div style="font-size:0.75rem; margin-top:5px; font-weight:600;">${p.note}</div>` : ''}
                 <div style="font-size:0.7rem; color:var(--gray-500); margin-top:10px; text-align:right;"><i class="fa-solid fa-hand-pointer"></i> Yoklama için tıkla</div>
             </div>
@@ -930,6 +1077,8 @@ window.deletePlan = async function() {
             timer: 2500
         });
     }
+window.printPlan = function() {
+    window.print();
 };
 
 window.openDutyRulesModal = function(event) {

@@ -631,6 +631,21 @@ const DataManager = {
         return Array.isArray(students) ? students : Object.values(students);
     },
 
+    getStudentGenderNormalized: function (student) {
+        if (!student) return '';
+        let val = student.cinsiyet || student.Cinsiyet || student['Cinsiyeti'] || student['CİNSİYETİ'] || student.gender || student.Gender || student.cns || student.extra1 || '';
+        let str = String(val).trim();
+        if (!str) return '';
+        let norm = str.replace(/İ/g, 'I').replace(/ı/g, 'i').toUpperCase();
+        if (norm === 'K' || norm.startsWith('KIZ') || norm.startsWith('KADIN') || norm.startsWith('BAYAN') || norm.startsWith('FEMALE') || norm.includes('(K') || norm.includes('KIZ')) {
+            return 'Kız';
+        }
+        if (norm === 'E' || norm.startsWith('ERKEK') || norm.startsWith('BAY') || norm.startsWith('MALE') || norm.includes('(E') || norm.includes('ERKEK')) {
+            return 'Erkek';
+        }
+        return str;
+    },
+
     addStudent: function (studentObj) {
         const data = this._getData();
         // Check if exists using robust string comparison
@@ -1832,8 +1847,14 @@ window.autoUpdateStudentDuties = function(triggerSave = true, customStartDate = 
             
             // Seçilen tarihten önceki tüm nöbetler silinmeden aynen korunur
             if (actualDate < startDateStr) {
+                if (!p.gender) {
+                    let matchingStd = allStudents.find(s => (s.class === (p.className || p.class)) && String(s.number || s.no) === String(p.number));
+                    if (matchingStd && typeof DataManager.getStudentGenderNormalized === 'function') {
+                        p.gender = DataManager.getStudentGenderNormalized(matchingStd);
+                    }
+                }
                 pastPlanRaw.push(p);
-                let id = p.class + '-' + String(p.number).trim();
+                let id = (p.className || p.class) + '-' + String(p.number).trim();
                 if (studentStats[id] !== undefined) {
                     studentStats[id]++;
                 } else {
@@ -1867,14 +1888,33 @@ window.autoUpdateStudentDuties = function(triggerSave = true, customStartDate = 
             studentsByClass[c] = allStudents.filter(s => s.class === c).sort((a,b) => parseInt(a.no || a.number) - parseInt(b.no || b.number));
         });
 
+        const getStudentGenderNormalized = (student) => {
+            if (!student) return '';
+            let val = student.cinsiyet || student.Cinsiyet || student['Cinsiyeti'] || student['CİNSİYETİ'] || student.gender || student.Gender || student.cns || student.extra1 || '';
+            let str = String(val).trim();
+            if (!str) return '';
+            let norm = str.replace(/İ/g, 'I').replace(/ı/g, 'i').toUpperCase();
+            if (norm === 'K' || norm.startsWith('KIZ') || norm.startsWith('KADIN') || norm.startsWith('BAYAN') || norm.startsWith('FEMALE') || norm.includes('(K') || norm.includes('KIZ')) {
+                return 'Kız';
+            }
+            if (norm === 'E' || norm.startsWith('ERKEK') || norm.startsWith('BAY') || norm.startsWith('MALE') || norm.includes('(E') || norm.includes('ERKEK')) {
+                return 'Erkek';
+            }
+            return str;
+        };
+
         const isValidGender = (student, genderPref) => {
-            if (genderPref === 'Farketmez') return true;
-            let genderVal = student.cinsiyet || student.Cinsiyet || student['Cinsiyeti'] || student['CİNSİYETİ'] || student.gender || student.cns || student.extra1 || '';
-            let sg = String(genderVal).toLowerCase().trim();
+            if (!genderPref || genderPref === 'Farketmez' || genderPref === 'Hepsi') return true;
+            let sg = getStudentGenderNormalized(student);
             if (!sg) return true; 
-            if (genderPref === 'Kız') return (sg === 'kız' || sg === 'k' || sg === 'kiz' || sg.includes('female') || sg.includes('kadın') || sg.includes('kadin'));
-            if (genderPref === 'Erkek') return (sg === 'erkek' || sg === 'e' || sg.includes('male'));
-            return true; 
+            
+            let prefNorm = String(genderPref).replace(/İ/g, 'I').replace(/ı/g, 'i').toUpperCase();
+            let isPrefFemale = (prefNorm === 'K' || prefNorm.includes('KIZ') || prefNorm.includes('KADIN') || prefNorm.includes('FEMALE'));
+            let isPrefMale = (prefNorm === 'E' || prefNorm.includes('ERKEK') || prefNorm.includes('MALE'));
+            
+            if (isPrefFemale) return sg === 'Kız';
+            if (isPrefMale) return sg === 'Erkek';
+            return true;
         };
         
         let futurePlan = [];
@@ -1924,13 +1964,16 @@ window.autoUpdateStudentDuties = function(triggerSave = true, customStartDate = 
                     });
                     
                     let selected = candidateStudents[0];
+                    let sGender = getStudentGenderNormalized(selected.student);
                     futurePlan.push({
                         date: dateStr, 
                         locId: loc.id,
                         locName: loc.name,
                         class: selected.class,
+                        className: selected.class,
                         name: selected.student.name + ' ' + (selected.student.surname || ''),
-                        number: selected.number
+                        number: selected.number,
+                        gender: sGender
                     });
                     
                     assignedToday.add(selected.id);
