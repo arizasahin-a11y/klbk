@@ -23,6 +23,76 @@
         let openSessions = new Set();
         let lastStates = {};
 
+        // 3 saatlik oturum suresi kurali (10800000 ms)
+        const STUDENT_SESSION_TIMEOUT_MS = 3 * 60 * 60 * 1000;
+        const STUDENT_SESSION_START_KEY = 'klbk_student_session_start';
+        let sessionTimeoutTimer = null;
+
+        function scheduleSessionTimeout(ms) {
+            if (sessionTimeoutTimer) {
+                clearTimeout(sessionTimeoutTimer);
+                sessionTimeoutTimer = null;
+            }
+            sessionTimeoutTimer = setTimeout(() => {
+                expireStudentSession(true);
+            }, Math.max(500, ms));
+        }
+
+        function startStudentSession() {
+            const now = Date.now();
+            localStorage.setItem(STUDENT_SESSION_START_KEY, now.toString());
+            scheduleSessionTimeout(STUDENT_SESSION_TIMEOUT_MS);
+        }
+
+        function expireStudentSession(showAlert = true) {
+            if (sessionTimeoutTimer) {
+                clearTimeout(sessionTimeoutTimer);
+                sessionTimeoutTimer = null;
+            }
+            logout();
+            if (showAlert && typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Oturum Süresi Doldu',
+                    text: 'Öğrenci portalındaki 3 saatlik oturum süreniz dolduğu için güvenli çıkış yapıldı.',
+                    confirmButtonColor: '#4f46e5',
+                    confirmButtonText: 'Tamam'
+                });
+            }
+        }
+
+        function checkStudentSessionExpiry() {
+            const hasSession = localStorage.getItem('klbk_student_session') || localStorage.getItem('klbk_srh_session');
+            if (!hasSession) return false;
+
+            let sessionStart = parseInt(localStorage.getItem(STUDENT_SESSION_START_KEY) || '0');
+            const now = Date.now();
+
+            if (!sessionStart) {
+                sessionStart = now;
+                localStorage.setItem(STUDENT_SESSION_START_KEY, now.toString());
+            }
+
+            if ((now - sessionStart) >= STUDENT_SESSION_TIMEOUT_MS) {
+                expireStudentSession(true);
+                return true;
+            }
+
+            const remainingMs = STUDENT_SESSION_TIMEOUT_MS - (now - sessionStart);
+            scheduleSessionTimeout(remainingMs);
+            return false;
+        }
+
+        setInterval(() => {
+            const hasSession = localStorage.getItem('klbk_student_session') || localStorage.getItem('klbk_srh_session');
+            if (hasSession) {
+                const sessionStart = parseInt(localStorage.getItem(STUDENT_SESSION_START_KEY) || '0');
+                if (sessionStart && (Date.now() - sessionStart) >= STUDENT_SESSION_TIMEOUT_MS) {
+                    expireStudentSession(true);
+                }
+            }
+        }, 30000);
+
         async function syncTime() {
             const statusEl = document.getElementById('timeSyncStatus');
             try {
@@ -266,6 +336,14 @@
                 if (checkClassroomDisplay()) return;
             } catch (err) {
                 console.error("checkClassroomDisplay crashed:", err);
+            }
+
+            // Öğrenci portalı 3 saatlik oturum süresi kontrolü
+            if (checkStudentSessionExpiry()) {
+                const lv = document.getElementById('loginView');
+                if (lv) lv.classList.remove('hidden');
+                document.body.classList.add('login-body');
+                return;
             }
 
             // r-oturumu: öğrenci r2403 formatında giriş yapmışsa session geri yükle
@@ -523,6 +601,7 @@
                             class: studentObj.class || studentObj.sinif || ''
                         }));
                         localStorage.setItem('klbk_student_session', 'r' + srhNo);
+                        startStudentSession();
                         
                         // Yönlendirme ve UI güncellemeleri
                         const loginView = document.getElementById('loginView');
@@ -624,6 +703,7 @@
                     }).then((result) => {
                         if (result.isConfirmed) {
                             localStorage.setItem('klbk_student_session', 'n' + dutyNo);
+                            startStudentSession();
                             // UI geçişini yap
                             const loginView = document.getElementById('loginView');
                             const resultsView = document.getElementById('resultsView');
@@ -726,6 +806,7 @@
 
             // Save session
             localStorage.setItem('klbk_student_session', no);
+            startStudentSession();
 
             document.getElementById('studentNameDisplay').textContent = currentStudent.name;
             document.getElementById('studentClassDisplay').textContent = currentStudent.class + (currentStudent.alan ? ` / ${currentStudent.alan}` : '');
@@ -826,6 +907,11 @@
             localStorage.removeItem('klbk_student_session');
             localStorage.removeItem('klbk_persistent_session');
             localStorage.removeItem('klbk_srh_session');
+            localStorage.removeItem(STUDENT_SESSION_START_KEY);
+            if (sessionTimeoutTimer) {
+                clearTimeout(sessionTimeoutTimer);
+                sessionTimeoutTimer = null;
+            }
             currentStudent = null;
             window.currentSrhStudent = null;
             window.publishedSrhApps = null;
@@ -838,6 +924,8 @@
             if (document.getElementById('dutyView')) document.getElementById('dutyView').classList.add('hidden');
             if (document.getElementById('srhListView')) document.getElementById('srhListView').classList.add('hidden');
             if (document.getElementById('srhView')) document.getElementById('srhView').classList.add('hidden');
+            const overlay = document.getElementById('fullScreenPlanOverlay');
+            if (overlay) overlay.remove();
             document.getElementById('studentNo').value = '';
             openSessions.clear();
             document.body.classList.add('login-body');
@@ -2725,6 +2813,11 @@
             const dutyNo = urlParams.get('dutyCheck');
             if (!dutyNo) return;
             
+            if (checkStudentSessionExpiry()) return;
+            if (!localStorage.getItem(STUDENT_SESSION_START_KEY)) {
+                startStudentSession();
+            }
+            
             // Eğer parametre varsa, sınav UI'ını gizle, nöbet UI'ını göster
             const loginView = document.getElementById('loginView');
             const resultsView = document.getElementById('resultsView');
@@ -2786,12 +2879,40 @@
             
             let shiftIds = Object.keys(baseDayData).filter(id => id !== '_admin_duty' && !id.startsWith('fixed_'));
             
-            let locations = settings.locations || [];
+            let locations = [];
+            if (Array.isArray(settings.locations)) {
+                locations = [...settings.locations];
+            } else if (settings.global && Array.isArray(settings.global.locations)) {
+                locations = [...settings.global.locations];
+            }
+            if (locations.length === 0 && settings.profiles) {
+                Object.values(settings.profiles).forEach(prof => {
+                    if (prof && Array.isArray(prof.locations)) {
+                        prof.locations.forEach(loc => {
+                            if (!locations.find(l => l.id === loc.id)) {
+                                locations.push(loc);
+                            }
+                        });
+                    }
+                });
+            }
+
+            function findLocInfo(sId) {
+                if (!sId) return null;
+                let clean = sId.replace('_dilim1', '').replace('_dilim2', '');
+                let baseLocId = clean.replace(/_\d+$/, '');
+                return locations.find(l => 
+                    l.id === clean || 
+                    l.id === baseLocId || 
+                    clean.startsWith(l.id + '_') || 
+                    baseLocId.startsWith(l.id) ||
+                    (l.id && clean && String(l.id) === String(baseLocId))
+                );
+            }
+            
             shiftIds.sort((a, b) => {
-                let locIdA = a.replace('_dilim1', '').replace('_dilim2', '');
-                let locIdB = b.replace('_dilim1', '').replace('_dilim2', '');
-                let pA = locations.find(l => l.id === locIdA)?.priority || 99;
-                let pB = locations.find(l => l.id === locIdB)?.priority || 99;
+                let pA = findLocInfo(a)?.priority || 99;
+                let pB = findLocInfo(b)?.priority || 99;
                 if(pA !== pB) return pA - pB;
                 return a.localeCompare(b);
             });
@@ -2808,7 +2929,13 @@
                     let isFixed = false;
                     if (users[uname] && users[uname].fixedLoc) {
                         let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
-                        if (users[uname].fixedLoc === shiftId || users[uname].fixedLoc === baseShift) {
+                        let cleanBaseShift = baseShift.replace(/_\d+$/, '');
+                        let locInfo = findLocInfo(shiftId);
+                        let matchedId = locInfo ? locInfo.id : cleanBaseShift;
+                        if (users[uname].fixedLoc === shiftId || 
+                            users[uname].fixedLoc === baseShift || 
+                            users[uname].fixedLoc === cleanBaseShift ||
+                            users[uname].fixedLoc === matchedId) {
                             isFixed = true;
                         }
                     }
@@ -2848,9 +2975,13 @@
                 } else {
                     let isDilim1 = shiftId.includes('_dilim1');
                     let isDilim2 = shiftId.includes('_dilim2');
-                    let locId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
-                    let locInfo = locations.find(l => l.id === locId);
-                    locName = locInfo ? locInfo.name : locId;
+                    let locInfo = findLocInfo(shiftId);
+                    if (locInfo && locInfo.name) {
+                        locName = locInfo.name;
+                    } else {
+                        let clean = shiftId.replace('_dilim1', '').replace('_dilim2', '').replace(/_\d+$/, '');
+                        locName = clean;
+                    }
                     if(isDilim1) locName += " (1. Dilim)";
                     if(isDilim2) locName += " (2. Dilim)";
                 }
@@ -2887,12 +3018,13 @@
                 let resSettings = await fetch(`${DataManager.firebaseDatabaseUrl}/app_store/klbk_nobet/settings.json`);
                 if (resSettings.ok) {
                     let rawSettings = await resSettings.json();
-                    if (rawSettings && rawSettings.global) {
-                        if (typeof rawSettings.global === 'string') {
-                            teacherSettings = JSON.parse(rawSettings.global);
-                        } else {
-                            teacherSettings = rawSettings.global;
+                    if (rawSettings) {
+                        let globalSettings = {};
+                        if (rawSettings.global) {
+                            globalSettings = typeof rawSettings.global === 'string' ? JSON.parse(rawSettings.global) : rawSettings.global;
                         }
+                        teacherSettings = { ...rawSettings, ...globalSettings };
+                        if (globalSettings.locations) teacherSettings.locations = globalSettings.locations;
                     }
                 }
                 
