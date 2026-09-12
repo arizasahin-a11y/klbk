@@ -1077,6 +1077,8 @@ window.deletePlan = async function() {
             timer: 2500
         });
     }
+};
+
 window.printPlan = function() {
     window.print();
 };
