@@ -1672,8 +1672,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 html += `
                     <tr class="student-row" data-std-no="${std.no}" data-std-name="${std.name}" data-std-field="${std.alan || ''}" style="border-bottom:1px solid rgba(0,0,0,0.05);">
                         <td style="padding:0.75rem 0.5rem; font-weight:bold;">${std.no}</td>
-                        <td style="padding:0.75rem 0.5rem; display:flex; align-items:center; gap:5px;">
-                            ${std.name}
+                        <td style="padding:0.75rem 0.5rem; display:flex; align-items:center; gap:5px; cursor:context-menu;" 
+                            title="Sınıf değiştirmek için sağ tıklayın" 
+                            oncontextmenu="event.preventDefault(); event.stopPropagation(); window.changeStudentClass('${std.no}');" 
+                            ontouchstart="window._stdTouchTimer = setTimeout(() => { window.changeStudentClass('${std.no}'); }, 700)" 
+                            ontouchend="clearTimeout(window._stdTouchTimer)" 
+                            ontouchmove="clearTimeout(window._stdTouchTimer)">
+                            <span style="font-weight:600; color:var(--dark);">${std.name}</span>
                             ${(std.ogrenciKodu || "").split(/[,\s]+/).map(k => k.trim().toUpperCase()).includes('C') ? '<span class="condition-marker type-c" data-tooltip="Dikkat Edilmesi Gerekir">C</span>' : ''}
                             ${(std.ogrenciKodu || "").split(/[,\s]+/).map(k => k.trim().toUpperCase()).includes('H') ? '<span class="condition-marker type-h" data-tooltip="Sağlık Sorunu Var">H</span>' : ''}
                         </td>
@@ -1829,6 +1834,124 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
             container.appendChild(noResults);
         }
+    };
+
+    // --- Öğrenci Sınıf Değiştirme (Sağ Tık Menüsü) ---
+    window.changeStudentClass = function (studentNo) {
+        const data = DataManager._getData();
+        const student = (data.students || []).find(s => String(s.no) === String(studentNo));
+
+        if (!student) {
+            Swal.fire('Hata', 'Öğrenci bulunamadı.', 'error');
+            return;
+        }
+
+        const currentClass = (student.class || '').trim();
+
+        const extractGradeLevel = (cls) => {
+            if (!cls) return '';
+            const m = String(cls).match(/\d+/);
+            if (m) return m[0];
+            return String(cls).trim().split(/[\s\/\-_]+/)[0].toUpperCase();
+        };
+
+        const currentGrade = extractGradeLevel(currentClass);
+
+        // Tüm sınıfları topla
+        const classSet = new Set();
+        (data.students || []).forEach(s => {
+            if (s.class && s.class.trim()) classSet.add(s.class.trim());
+        });
+
+        const sortedClasses = Array.from(classSet).sort((a, b) => {
+            const numA = (a.match(/\d+/) || [0])[0];
+            const numB = (b.match(/\d+/) || [0])[0];
+            if (numA !== numB) return parseInt(numA) - parseInt(numB);
+            return a.localeCompare(b, 'tr');
+        });
+
+        // Sadece kendi düzeyindeki (mevcut sınıfı hariç) sınıfları filtrele
+        const targetClasses = sortedClasses.filter(cls => {
+            return cls !== currentClass && extractGradeLevel(cls) === currentGrade;
+        });
+
+        if (targetClasses.length === 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Başka Şube Yok',
+                html: `<b>${student.name}</b> (${student.no}) öğrencisinin bulunduğu <b>${currentClass}</b> sınıfı düzeyinde (${currentGrade ? currentGrade + '. sınıf' : ''}) geçilebilecek başka bir şube bulunamadı.`,
+                confirmButtonColor: '#0284c7',
+                confirmButtonText: 'Tamam'
+            });
+            return;
+        }
+
+        const optionsHtml = targetClasses.map(cls => `<option value="${cls}">${cls} Sınıfı</option>`).join('');
+
+        Swal.fire({
+            title: 'Sınıf Değiştir',
+            html: `
+                <div style="text-align:left; font-size:0.95rem; margin-top:8px;">
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; margin-bottom:15px;">
+                        <div style="font-weight:700; font-size:1.05rem; color:var(--dark); display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-user-graduate" style="color:#0284c7;"></i> ${student.name}
+                        </div>
+                        <div style="color:var(--gray-600); font-size:0.85rem; margin-top:5px; display:flex; gap:12px; flex-wrap:wrap;">
+                            <span>Okul No: <b>${student.no}</b></span>
+                            <span>Mevcut Sınıf: <b style="color:#ef4444;">${currentClass}</b></span>
+                            ${student.alan ? `<span>Alan: <b>${student.alan}</b></span>` : ''}
+                        </div>
+                    </div>
+
+                    <label style="display:block; font-weight:700; margin-bottom:6px; color:var(--gray-700);">
+                        Taşınacak Yeni Şube (${currentGrade ? currentGrade + '. Sınıf Seviyesi' : ''}):
+                    </label>
+                    <select id="swal-target-class-select" class="swal2-select" style="display:block; width:100%; box-sizing:border-box; margin:0; padding:9px 12px; font-size:1rem; font-weight:600; border-radius:8px; border:2px solid #0284c7; background:#f0f9ff; color:#0369a1; outline:none; cursor:pointer;">
+                        ${optionsHtml}
+                    </select>
+                    <p style="font-size:0.8rem; color:var(--gray-500); margin-top:8px; margin-bottom:0;">
+                        <i class="fa-solid fa-circle-info" style="color:#0284c7;"></i> Kural gereği öğrenci sadece kendi sınıf seviyesindeki (${currentGrade ? currentGrade + '. sınıf' : ''}) diğer şubelere taşınabilir.
+                    </p>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fa-solid fa-check"></i> Tamam',
+            cancelButtonText: 'İptal',
+            confirmButtonColor: '#0284c7',
+            cancelButtonColor: '#64748b',
+            preConfirm: () => {
+                const select = document.getElementById('swal-target-class-select');
+                const targetCls = select ? select.value : null;
+                if (!targetCls) {
+                    Swal.showValidationMessage('Lütfen hedef sınıfı seçiniz.');
+                    return false;
+                }
+                return targetCls;
+            }
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                const targetClass = result.value;
+                const liveData = DataManager._getData();
+                const sIndex = (liveData.students || []).findIndex(s => String(s.no) === String(studentNo));
+                if (sIndex !== -1) {
+                    const prevClass = liveData.students[sIndex].class;
+                    liveData.students[sIndex].class = targetClass;
+                    DataManager._saveData(liveData);
+
+                    // Listeyi hemen güncelle
+                    updateClassesList();
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Sınıf Değiştirildi',
+                        html: `<b>${student.name}</b> (${student.no}) öğrencisi <b>${prevClass}</b> sınıfından <b>${targetClass}</b> sınıfına başarıyla taşındı.`,
+                        timer: 2500,
+                        showConfirmButton: true,
+                        confirmButtonText: 'Tamam'
+                    });
+                }
+            }
+        });
     };
 
     // --- 8. Classroom Management ---
