@@ -480,6 +480,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     c.classList.add('hidden');
                 }
             });
+
+            if (targetId === 'classLists') {
+                const searchInput = document.getElementById('studentClassSearchInput');
+                if (searchInput && searchInput.value.trim() && typeof window.filterClassesList === 'function') {
+                    window.filterClassesList(searchInput.value);
+                }
+            }
         });
     });
 
@@ -1579,7 +1586,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Accordion Header
             html += `
-                <div class="accordion-item glass-panel" style="border-radius:10px; background-color:${rowBg} !important; border:4px solid ${rowBorder} !important; margin-bottom:10px; overflow-x:auto;">
+                <div class="accordion-item glass-panel" data-class-name="${cls}" style="border-radius:10px; background-color:${rowBg} !important; border:4px solid ${rowBorder} !important; margin-bottom:10px; overflow-x:auto;">
                     <div class="accordion-header" style="padding:0.85rem 1.25rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer; gap:10px; flex-wrap:wrap; width:100%; box-sizing:border-box;" onclick="this.nextElementSibling.classList.toggle('hidden');">
                         <div style="width:auto; min-width:180px; flex-shrink:0; display:flex; align-items:center; gap:8px;">
                             <h2 style="color:var(--primary); font-size:1.2rem; margin:0; white-space:nowrap;">
@@ -1663,7 +1670,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 html += `
-                    <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
+                    <tr class="student-row" data-std-no="${std.no}" data-std-name="${std.name}" data-std-field="${std.alan || ''}" style="border-bottom:1px solid rgba(0,0,0,0.05);">
                         <td style="padding:0.75rem 0.5rem; font-weight:bold;">${std.no}</td>
                         <td style="padding:0.75rem 0.5rem; display:flex; align-items:center; gap:5px;">
                             ${std.name}
@@ -1704,13 +1711,125 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
         });
 
-
-
         html += '</div>';
 
         container.innerHTML = html;
         recentWidget.innerHTML = widgetHtml;
+
+        // Eğer aktif bir arama metni varsa listeyi hemen filtrele
+        const searchInput = document.getElementById('studentClassSearchInput');
+        if (searchInput && searchInput.value.trim() && typeof window.filterClassesList === 'function') {
+            window.filterClassesList(searchInput.value);
+        }
     }
+
+    // --- Sınıflar Sekmesi Canlı Öğrenci & Sınıf Arama Fonksiyonu ---
+    window.filterClassesList = function (query) {
+        const input = document.getElementById('studentClassSearchInput');
+        const q = (query !== undefined ? query : (input ? input.value : '')).trim();
+        const container = document.getElementById('classesGridContainer');
+        if (!container) return;
+
+        const accordionItems = container.querySelectorAll('.accordion-item');
+        if (accordionItems.length === 0) return;
+
+        // Varsa önceki "Sonuç Bulunamadı" uyarısını kaldır
+        const existingNoResults = document.getElementById('classesSearchNoResults');
+        if (existingNoResults) existingNoResults.remove();
+
+        if (!q) {
+            // Arama boşsa tüm sınıfları ve öğrencileri normal durumuna getir
+            accordionItems.forEach(item => {
+                item.style.display = '';
+                const body = item.querySelector('.accordion-body');
+                if (body) body.classList.add('hidden');
+                item.querySelectorAll('.student-row').forEach(row => {
+                    row.style.display = '';
+                });
+            });
+            return;
+        }
+
+        const normalize = (str) => {
+            if (!str) return '';
+            return String(str)
+                .toLowerCase()
+                .replace(/ı/g, 'i')
+                .replace(/ğ/g, 'g')
+                .replace(/ü/g, 'u')
+                .replace(/ş/g, 's')
+                .replace(/ö/g, 'o')
+                .replace(/ç/g, 'c')
+                .trim();
+        };
+
+        const qNorm = normalize(q);
+        const qLower = q.toLocaleLowerCase('tr');
+        let visibleClassCount = 0;
+
+        accordionItems.forEach(item => {
+            const clsName = item.getAttribute('data-class-name') || '';
+            const clsNorm = normalize(clsName);
+            const clsLower = clsName.toLocaleLowerCase('tr');
+            const classMatches = clsNorm.includes(qNorm) || clsLower.includes(qLower);
+
+            const studentRows = item.querySelectorAll('.student-row');
+            let matchedStudentsInClass = 0;
+
+            studentRows.forEach(row => {
+                const stdNo = String(row.getAttribute('data-std-no') || '');
+                const stdName = row.getAttribute('data-std-name') || '';
+                const stdField = row.getAttribute('data-std-field') || '';
+
+                const nameNorm = normalize(stdName);
+                const nameLower = stdName.toLocaleLowerCase('tr');
+                const fieldNorm = normalize(stdField);
+                const fieldLower = stdField.toLocaleLowerCase('tr');
+
+                const matches = classMatches ||
+                    stdNo.includes(q) ||
+                    nameNorm.includes(qNorm) ||
+                    nameLower.includes(qLower) ||
+                    fieldNorm.includes(qNorm) ||
+                    fieldLower.includes(qLower);
+
+                if (matches) {
+                    row.style.display = '';
+                    matchedStudentsInClass++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            if (classMatches || matchedStudentsInClass > 0) {
+                item.style.display = '';
+                const body = item.querySelector('.accordion-body');
+                if (body) {
+                    // Eşleşme olduğunda öğrenciyi hemen görebilmek için akordeon açılır
+                    body.classList.remove('hidden');
+                }
+                visibleClassCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        if (visibleClassCount === 0) {
+            const noResults = document.createElement('div');
+            noResults.id = 'classesSearchNoResults';
+            noResults.className = 'glass-panel';
+            noResults.style.padding = '2.5rem 1.5rem';
+            noResults.style.textAlign = 'center';
+            noResults.style.marginTop = '1rem';
+            noResults.style.color = 'var(--gray-500)';
+            noResults.innerHTML = `
+                <i class="fa-solid fa-magnifying-glass fa-2x" style="margin-bottom:12px; opacity:0.5; color:var(--primary);"></i>
+                <h3 style="margin:5px 0; color:var(--dark); font-size:1.15rem;">Sonuç Bulunamadı</h3>
+                <p style="margin:0; font-size:0.9rem;">"<b>${q}</b>" aramasına uygun sınıf veya öğrenci bulunamadı.</p>
+            `;
+            container.appendChild(noResults);
+        }
+    };
 
     // --- 8. Classroom Management ---
     const btnPreviewClassroom = document.getElementById('btnPreviewClassroom');
