@@ -2744,6 +2744,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     };
 
+    window.toggleAllSwalStudents = function (selectAll) {
+        document.querySelectorAll('.swal-student-item').forEach(item => {
+            if (item.style.display !== 'none') {
+                const cb = item.querySelector('.swal-student-cb');
+                if (cb) cb.checked = selectAll;
+            }
+        });
+        window.updateSwalStudentCount();
+    };
+
+    window.updateSwalStudentCount = function () {
+        const el = document.getElementById('swal-selected-count');
+        if (el) {
+            const count = document.querySelectorAll('.swal-student-cb:checked').length;
+            el.textContent = count;
+        }
+    };
+
+    window.filterSwalStudents = function (query) {
+        const q = (query || '').toLowerCase().trim();
+        document.querySelectorAll('.swal-student-item').forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(q) ? 'flex' : 'none';
+        });
+    };
+
     window.assignFieldToClass = function (className) {
         const data = DataManager._getData();
         let classStudents = data.students.filter(s => s.class === className);
@@ -2758,26 +2784,49 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <input type="text" id="swal-field-name" class="swal2-input" placeholder="Örn: Sayısal, Eşit Ağırlık..." style="margin:0; width:100%; box-sizing:border-box;">
             </div>
             
-            <label style="display:flex; align-items:center; gap:8px; margin-bottom:1rem; cursor:pointer;">
+            <label style="display:flex; align-items:center; gap:8px; margin-bottom:0.75rem; cursor:pointer;">
                 <input type="checkbox" id="swal-specific-students-toggle" style="width:18px; height:18px; cursor:pointer;" 
-                       onchange="document.getElementById('swal-students-list').style.display = this.checked ? 'block' : 'none';">
+                       onchange="const el = document.getElementById('swal-students-list'); el.style.display = this.checked ? 'block' : 'none'; if(this.checked) window.updateSwalStudentCount();">
                 <span style="font-weight:600; color:var(--primary);">Sadece belirli öğrencilere tanımla</span>
             </label>
             
-            <div id="swal-students-list" style="display:none; max-height:200px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+            <div id="swal-students-list" style="display:none; border:1px solid #e2e8f0; border-radius:8px; padding:10px; background:#f8fafc;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #e2e8f0; flex-wrap:wrap; gap:6px;">
+                    <span style="font-size:0.85rem; font-weight:700; color:var(--gray-700);">
+                        Öğrenci Listesi (<span id="swal-selected-count" style="color:var(--primary); font-weight:800;">0</span>/${classStudents.length})
+                    </span>
+                    <div style="display:flex; gap:6px;">
+                        <button type="button" class="btn btn-sm" 
+                                style="padding:3px 9px; font-size:0.8rem; font-weight:600; border-radius:6px; border:1px solid #0284c7; background:#f0f9ff; color:#0284c7; cursor:pointer; display:inline-flex; align-items:center; gap:4px;" 
+                                onclick="window.toggleAllSwalStudents(true)">
+                            <i class="fa-solid fa-check-double"></i> Hepsi
+                        </button>
+                        <button type="button" class="btn btn-sm" 
+                                style="padding:3px 9px; font-size:0.8rem; font-weight:600; border-radius:6px; border:1px solid #cbd5e1; background:white; color:#64748b; cursor:pointer; display:inline-flex; align-items:center; gap:4px;" 
+                                onclick="window.toggleAllSwalStudents(false)">
+                            <i class="fa-solid fa-xmark"></i> Hiçbiri
+                        </button>
+                    </div>
+                </div>
+                <div style="margin-bottom:8px;">
+                    <input type="text" id="swal-student-search" placeholder="Öğrenci ara (isim veya no)..." 
+                           style="width:100%; box-sizing:border-box; padding:5px 8px; font-size:0.82rem; border:1px solid #cbd5e1; border-radius:6px; outline:none; background:white;"
+                           oninput="window.filterSwalStudents(this.value)">
+                </div>
+                <div style="max-height:200px; overflow-y:auto; padding-right:2px;">
     `;
 
         classStudents.forEach(std => {
             let currentField = std.alan ? ` <span style="font-size:0.8rem; color:#888;">(${std.alan})</span>` : '';
             html += `
-            <label style="display:flex; align-items:center; gap:8px; margin-bottom:6px; cursor:pointer;">
-                <input type="checkbox" class="swal-student-cb" value="${std.no}" style="width:16px; height:16px; cursor:pointer;" checked>
+            <label class="swal-student-item" style="display:flex; align-items:center; gap:8px; margin-bottom:5px; padding:4px 8px; border-radius:6px; background:white; border:1px solid #f1f5f9; cursor:pointer;">
+                <input type="checkbox" class="swal-student-cb" value="${std.no}" style="width:16px; height:16px; cursor:pointer;" onchange="window.updateSwalStudentCount()">
                 <span><b>${std.no}</b> - ${std.name}${currentField}</span>
             </label>
         `;
         });
 
-        html += `</div></div>`;
+        html += `</div></div></div>`;
 
         Swal.fire({
             title: `${className} Sınıfına Alan Tanımla`,
