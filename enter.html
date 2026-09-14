@@ -1097,6 +1097,99 @@
         };
 
         let cachedUsersDb = null;
+        let cachedLessonTimes = null;
+
+        async function getSchoolLessonTimes() {
+            if (cachedLessonTimes) return cachedLessonTimes;
+            
+            try {
+                const localData = JSON.parse(localStorage.getItem('klbk_data') || localStorage.getItem('klbk_data_admin') || '{}');
+                if (localData && localData.school && localData.school.lessonTimes && Object.keys(localData.school.lessonTimes).length > 0) {
+                    cachedLessonTimes = localData.school.lessonTimes;
+                    return cachedLessonTimes;
+                }
+            } catch (e) {}
+
+            const storeKey = sessionStorage.getItem('klbk_storeKey') || localStorage.getItem('klbk_storeKey') || 'klbk_data_admin';
+            try {
+                const res = await fetch(`${FIREBASE_DB_URL}/app_store/${storeKey}/school/lessonTimes.json`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && Object.keys(data).length > 0) {
+                        cachedLessonTimes = data;
+                        return cachedLessonTimes;
+                    }
+                }
+            } catch (e) {}
+
+            try {
+                const res2 = await fetch(`${FIREBASE_DB_URL}/school/lessonTimes.json`);
+                if (res2.ok) {
+                    const data2 = await res2.json();
+                    if (data2 && Object.keys(data2).length > 0) {
+                        cachedLessonTimes = data2;
+                        return cachedLessonTimes;
+                    }
+                }
+            } catch (e) {}
+
+            cachedLessonTimes = {
+                "1_start": "08:30", "1_end": "09:10",
+                "2_start": "09:20", "2_end": "10:00",
+                "3_start": "10:10", "3_end": "10:50",
+                "4_start": "11:00", "4_end": "11:40",
+                "5_start": "11:50", "5_end": "12:30",
+                "6_start": "13:10", "6_end": "13:50",
+                "7_start": "14:00", "7_end": "14:40",
+                "8_start": "14:50", "8_end": "15:30"
+            };
+            return cachedLessonTimes;
+        }
+
+        function getCurrentLessonPeriod(lessonTimes, maxPeriod) {
+            if (!lessonTimes) return null;
+            const now = new Date();
+            const day = now.getDay();
+            // Hafta sonu (0: Pazar, 6: Cumartesi) ise ders saati yok
+            if (day === 0 || day === 6) return null;
+
+            const nowMins = now.getHours() * 60 + now.getMinutes();
+
+            const parseTime = (tStr) => {
+                if (!tStr || typeof tStr !== 'string') return null;
+                const parts = tStr.trim().split(':');
+                if (parts.length < 2) return null;
+                return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+            };
+
+            // 1. Doğrudan ders anında mıyız?
+            for (let p = 1; p <= maxPeriod; p++) {
+                const start = parseTime(lessonTimes[`${p}_start`]);
+                const end = parseTime(lessonTimes[`${p}_end`]);
+                if (start !== null && end !== null) {
+                    if (nowMins >= start && nowMins <= end) {
+                        return { period: p, isBreak: false, startStr: lessonTimes[`${p}_start`], endStr: lessonTimes[`${p}_end`] };
+                    }
+                }
+            }
+
+            // 2. Teneffüs anında mıyız? (Örn: 1. derse 20 dk kala veya dersler arası teneffüs)
+            for (let p = 1; p <= maxPeriod; p++) {
+                const start = parseTime(lessonTimes[`${p}_start`]);
+                if (p === 1 && start !== null) {
+                    if (nowMins >= start - 20 && nowMins < start) {
+                        return { period: 1, isBreak: true, startStr: lessonTimes[`1_start`], endStr: lessonTimes[`1_end`] };
+                    }
+                } else if (p > 1 && start !== null) {
+                    const prevEnd = parseTime(lessonTimes[`${p - 1}_end`]);
+                    if (prevEnd !== null && nowMins > prevEnd && nowMins < start) {
+                        return { period: p, isBreak: true, startStr: lessonTimes[`${p}_start`], endStr: lessonTimes[`${p}_end`] };
+                    }
+                }
+            }
+
+            return null;
+        }
 
         async function showUserSchedule() {
             try {
@@ -1106,13 +1199,13 @@
                     didOpen: () => { Swal.showLoading(); }
                 });
 
+                const [usersRes, lessonTimes] = await Promise.all([
+                    cachedUsersDb ? Promise.resolve(cachedUsersDb) : fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json?_t=${Date.now()}`).then(r => r.ok ? r.json() : {}),
+                    getSchoolLessonTimes()
+                ]);
+
                 if (!cachedUsersDb) {
-                    const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json?_t=${Date.now()}`);
-                    if (res.ok) {
-                        cachedUsersDb = await res.json() || {};
-                    } else {
-                        throw new Error('Kullanıcı verisi alınamadı.');
-                    }
+                    cachedUsersDb = usersRes || {};
                 }
 
                 // Giriş yapan kullanıcıyı tespit et
@@ -1210,14 +1303,34 @@
                     }
                 }
 
+                // O andaki dersi hesapla
+                const currentPeriodInfo = getCurrentLessonPeriod(lessonTimes, maxPeriod);
+                const activePeriodNum = currentPeriodInfo ? currentPeriodInfo.period : null;
+
                 // Tablo HTML'i oluştur
                 let tableHtml = `
-                    <div style="margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                        <div style="font-weight: 700; font-size: 1.05rem; color: #0f172a;">
-                            <i class="fa-solid fa-chalkboard-user" style="color: #2563eb; margin-right: 6px;"></i>
-                            ${escapeHtml(matchedUser.name || currentDisplayName)}
+                    <div style="margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <div style="font-weight: 700; font-size: 1.05rem; color: #0f172a;">
+                                <i class="fa-solid fa-chalkboard-user" style="color: #2563eb; margin-right: 6px;"></i>
+                                ${escapeHtml(matchedUser.name || currentDisplayName)}
+                            </div>
+                            ${currentPeriodInfo ? `
+                                <span style="background: #047857; color: #ffffff; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 0 10px rgba(5, 150, 105, 0.5);">
+                                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #34d399; display: inline-block; box-shadow: 0 0 6px #34d399;"></span>
+                                    Şu An: ${currentPeriodInfo.period}. Ders ${currentPeriodInfo.isBreak ? '(Teneffüs)' : ''}
+                                </span>
+                            ` : `
+                                <span style="background: #f1f5f9; color: #64748b; padding: 2px 9px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; border: 1px solid #e2e8f0;">
+                                    <i class="fa-regular fa-clock"></i> Ders Saati Dışı
+                                </span>
+                            `}
                         </div>
-                        <div style="font-size: 0.8rem; color: #64748b; display: flex; align-items: center; gap: 14px;">
+                        <div style="font-size: 0.78rem; color: #475569; display: flex; align-items: center; flex-wrap: wrap; gap: 12px;">
+                            <span style="display: inline-flex; align-items: center; gap: 6px;">
+                                <span style="width: 15px; height: 15px; border-radius: 4px; background: linear-gradient(135deg, #059669, #047857); border: 2px solid #34d399; box-shadow: 0 0 8px rgba(16, 185, 129, 0.7); display: inline-block;"></span>
+                                <strong style="color: #047857;">Şu Anki Ders (Belirgin Yeşil)</strong>
+                            </span>
                             <span style="display: inline-flex; align-items: center; gap: 6px;">
                                 <span style="width: 13px; height: 13px; border-radius: 3px; background: #10b981; display: inline-block;"></span>
                                 <strong style="color: #065f46;">Bugünün Dersleri (Yeşil)</strong>
@@ -1229,14 +1342,25 @@
                         </div>
                     </div>
                     <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
-                        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: center; background: white; min-width: 580px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: center; background: white; min-width: 620px;">
                             <thead>
                                 <tr style="background: #1e293b; color: white;">
                                     <th style="padding: 10px 8px; font-weight: 700; width: 110px; border-right: 1px solid #334155;">Gün \\ Ders</th>
                 `;
 
                 for (let p = 1; p <= maxPeriod; p++) {
-                    tableHtml += `<th style="padding: 10px 4px; font-weight: 700; border-right: 1px solid #334155;">${p}</th>`;
+                    const isCurrentCol = (todayNum >= 1 && todayNum <= 5 && p === activePeriodNum);
+                    const pStart = lessonTimes[`${p}_start`];
+                    const pEnd = lessonTimes[`${p}_end`];
+                    const pTime = (pStart && pEnd) ? `${pStart} - ${pEnd}` : (pStart || '');
+
+                    tableHtml += `
+                        <th style="padding: 8px 4px; font-weight: 700; border-right: 1px solid #334155; ${isCurrentCol ? 'background: #064e3b; border-top: 3px solid #34d399;' : ''}">
+                            ${isCurrentCol ? `<span style="font-size: 0.58rem; background: #34d399; color: #064e3b; padding: 1px 5px; border-radius: 4px; font-weight: 900; display: inline-block; margin-bottom: 2px; letter-spacing: 0.5px;">ŞU AN</span>` : ''}
+                            <div style="font-size: 0.88rem; font-weight: ${isCurrentCol ? '900' : '700'}; color: ${isCurrentCol ? '#ffffff' : 'white'};">${p}. Ders</div>
+                            ${pTime ? `<div style="font-size: 0.65rem; color: ${isCurrentCol ? '#a7f3d0' : '#94a3b8'}; font-weight: 500; margin-top: 1px;">${pTime}</div>` : ''}
+                        </th>
+                    `;
                 }
                 tableHtml += `</tr></thead><tbody>`;
 
@@ -1247,39 +1371,74 @@
                     // Bugün için yeşil tema, diğer günler için gri tema
                     const rowBg = isToday ? '#ecfdf5' : '#ffffff';
                     const dayThBg = isToday ? '#059669' : '#64748b';
-                    const borderRow = isToday ? '1.5px solid #a7f3d0' : '1px solid #e2e8f0';
+                    const borderRow = isToday ? '2px solid #a7f3d0' : '1px solid #e2e8f0';
 
                     tableHtml += `
                         <tr style="background: ${rowBg}; border-bottom: ${borderRow}; transition: background 0.15s;">
                             <td style="padding: 12px 6px; background: ${dayThBg}; color: #ffffff; font-weight: 700; border-right: 1px solid rgba(255,255,255,0.2); vertical-align: middle;">
-                                <div>${dDef.name}</div>
+                                <div style="font-size: 0.95rem;">${dDef.name}</div>
                                 ${isToday ? `<span style="display:inline-block; margin-top:3px; font-size:0.65rem; background:#34d399; color:#064e3b; padding:1px 6px; border-radius:10px; font-weight:800; letter-spacing:0.5px;">BUGÜN</span>` : ''}
                             </td>
                     `;
 
                     for (let p = 1; p <= maxPeriod; p++) {
                         const lesson = getLessonCell(dayData, p);
-                        const hasLesson = lesson !== '-';
+                        const hasLesson = (lesson !== '-');
+                        const isCurrentActiveLesson = (isToday && p === activePeriodNum);
                         let cellContent = '';
 
-                        if (isToday) {
-                            // Yeşil tema
+                        if (isCurrentActiveLesson) {
+                            // O ANDAKİ DERS (DAHA BELİRGİN YEŞİL TEMA)
                             if (hasLesson) {
-                                cellContent = `<span style="background: #10b981; color: #ffffff; font-weight: 800; border-radius: 6px; padding: 6px 4px; margin: 3px; display: block; box-shadow: 0 2px 5px rgba(16, 185, 129, 0.4); font-size: 0.95rem;">${escapeHtml(lesson)}</span>`;
+                                cellContent = `
+                                    <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #ffffff; border: 2.5px solid #34d399; border-radius: 8px; padding: 6px 4px; margin: 1px; box-shadow: 0 0 16px rgba(16, 185, 129, 0.85), 0 4px 8px rgba(0,0,0,0.25); transform: scale(1.04); position: relative; z-index: 2;">
+                                        <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 2px;">
+                                            <span style="width: 6px; height: 6px; border-radius: 50%; background: #34d399; display: inline-block; box-shadow: 0 0 4px #34d399;"></span>
+                                            <span style="font-size: 0.62rem; background: #34d399; color: #064e3b; padding: 0.5px 5px; border-radius: 6px; font-weight: 900; letter-spacing: 0.5px;">ŞU AN</span>
+                                        </div>
+                                        <div style="font-size: 1.05rem; font-weight: 900; letter-spacing: 0.3px; text-shadow: 0 1px 2px rgba(0,0,0,0.3); line-height: 1.2;">
+                                            ${escapeHtml(lesson)}
+                                        </div>
+                                    </div>
+                                `;
+                            } else {
+                                cellContent = `
+                                    <div style="background: rgba(16, 185, 129, 0.15); border: 2px dashed #10b981; border-radius: 8px; padding: 6px 2px; margin: 1px; color: #047857; font-weight: 800;">
+                                        <span style="font-size: 0.6rem; background: #34d399; color: #064e3b; padding: 0.5px 5px; border-radius: 4px; font-weight: 900; display: inline-block; margin-bottom: 2px;">ŞU AN</span>
+                                        <div style="font-size: 0.8rem;">BOŞ</div>
+                                    </div>
+                                `;
+                            }
+                        } else if (isToday) {
+                            // Bugünün diğer dersleri (Yeşil tema)
+                            if (hasLesson) {
+                                cellContent = `
+                                    <span style="background: #10b981; color: #ffffff; font-weight: 700; border-radius: 6px; padding: 6px 4px; margin: 3px; display: block; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.35); font-size: 0.92rem; line-height: 1.2;">
+                                        ${escapeHtml(lesson)}
+                                    </span>
+                                `;
                             } else {
                                 cellContent = `<span style="color: #6ee7b7; font-size: 0.85rem; font-weight: 500;">-</span>`;
                             }
                         } else {
-                            // Gri tema
+                            // Diğer günler (Gri tema)
                             if (hasLesson) {
-                                cellContent = `<span style="background: #f1f5f9; color: #334155; font-weight: 700; border-radius: 6px; padding: 6px 4px; margin: 3px; display: block; border: 1px solid #cbd5e1; font-size: 0.9rem;">${escapeHtml(lesson)}</span>`;
+                                cellContent = `
+                                    <span style="background: #f1f5f9; color: #334155; font-weight: 600; border-radius: 6px; padding: 6px 4px; margin: 3px; display: block; border: 1px solid #cbd5e1; font-size: 0.88rem; line-height: 1.2;">
+                                        ${escapeHtml(lesson)}
+                                    </span>
+                                `;
                             } else {
                                 cellContent = `<span style="color: #cbd5e1; font-size: 0.85rem;">-</span>`;
                             }
                         }
 
+                        const tdStyle = isCurrentActiveLesson 
+                            ? 'padding: 3px; background: #d1fae5; border: 2px solid #10b981; border-radius: 6px; vertical-align: middle;'
+                            : `padding: 4px; border-right: 1px dashed ${isToday ? '#a7f3d0' : '#e2e8f0'}; vertical-align: middle;`;
+
                         tableHtml += `
-                            <td style="padding: 4px; border-right: 1px dashed ${isToday ? '#a7f3d0' : '#e2e8f0'}; vertical-align: middle;">
+                            <td style="${tdStyle}">
                                 ${cellContent}
                             </td>
                         `;
@@ -1295,7 +1454,7 @@
                                 <span>Haftalık Ders Programı</span>
                             </div>`,
                     html: tableHtml,
-                    width: '820px',
+                    width: '850px',
                     confirmButtonText: 'Kapat',
                     confirmButtonColor: '#2563eb',
                     customClass: {
