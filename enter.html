@@ -1191,13 +1191,107 @@
             return null;
         }
         let isScheduleLoading = false;
+        let cachedDutyPlan = null;
+
+        async function getPublishedDutyPlan() {
+            if (cachedDutyPlan !== null) return cachedDutyPlan;
+            try {
+                const res = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_nobet/publishedPlan.json?_t=${Date.now()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && typeof data === 'object') {
+                        cachedDutyPlan = data;
+                        return cachedDutyPlan;
+                    }
+                }
+            } catch (e) {
+                console.warn("Nöbet planı alınamadı:", e);
+            }
+            cachedDutyPlan = {};
+            return cachedDutyPlan;
+        }
+
+        function findTeacherDutyDays(dutyPlan, userKey, uname, fullName, displayName) {
+            const dutyDays = new Set();
+            if (!dutyPlan) return dutyDays;
+
+            const planData = dutyPlan.data || dutyPlan;
+            if (!planData || typeof planData !== 'object') return dutyDays;
+
+            const clean = (s) => (s || '').toString().trim().toLowerCase();
+            const charMap = {"ş":"s", "ı":"i", "ğ":"g", "ü":"u", "ö":"o", "ç":"c"};
+            const normalize = (s) => clean(s).replace(/[şığıüöç]/g, m => charMap[m]).replace(/[^a-z0-9]/g, '');
+
+            const normKey = normalize(userKey);
+            const normUname = normalize(uname);
+            const normName = normalize(fullName);
+            const normDisp = normalize(displayName);
+
+            const matchesTeacher = (t) => {
+                if (!t) return false;
+                const normT = normalize(t);
+                if (!normT) return false;
+                if (normKey && normT === normKey) return true;
+                if (normUname && normT === normUname) return true;
+                if (normName && normT === normName) return true;
+                if (normDisp && normT === normDisp) return true;
+                if (normName && (normName.includes(normT) || normT.includes(normName))) return true;
+                return false;
+            };
+
+            for (const [dateOrDayKey, shifts] of Object.entries(planData)) {
+                if (!shifts || typeof shifts !== 'object') continue;
+
+                let targetDayKey = null;
+
+                // 1. ISO Tarih kontrolü (Örn: "2026-08-03")
+                if (dateOrDayKey.includes('-')) {
+                    const parts = dateOrDayKey.split('-');
+                    if (parts.length === 3) {
+                        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+                        const dayNum = d.getDay();
+                        const map = { 1: 'Pa', 2: 'Sa', 3: 'Ça', 4: 'Pe', 5: 'Cu' };
+                        targetDayKey = map[dayNum];
+                    }
+                } else {
+                    // 2. Gün adı kontrolü (Örn: "Pazartesi", "Pa", vb.)
+                    const k = dateOrDayKey.trim().toLowerCase();
+                    if (k.startsWith('pa') || k === 'pt') targetDayKey = 'Pa';
+                    else if (k.startsWith('sa')) targetDayKey = 'Sa';
+                    else if (k.startsWith('ça') || k.startsWith('ca')) targetDayKey = 'Ça';
+                    else if (k.startsWith('pe')) targetDayKey = 'Pe';
+                    else if (k.startsWith('cu')) targetDayKey = 'Cu';
+                }
+
+                if (!targetDayKey) continue;
+
+                // Bu güne ait nöbet yerlerinde öğretmen var mı?
+                let foundInDay = false;
+                for (const [shiftId, teachers] of Object.entries(shifts)) {
+                    const tList = Array.isArray(teachers) ? teachers : [teachers];
+                    for (const t of tList) {
+                        if (matchesTeacher(t)) {
+                            foundInDay = true;
+                            break;
+                        }
+                    }
+                    if (foundInDay) break;
+                }
+
+                if (foundInDay) {
+                    dutyDays.add(targetDayKey);
+                }
+            }
+
+            return dutyDays;
+        }
 
         async function showUserSchedule() {
             if (isScheduleLoading) return;
             isScheduleLoading = true;
 
             try {
-                const needsFetch = !cachedUsersDb || !cachedLessonTimes;
+                const needsFetch = !cachedUsersDb || !cachedLessonTimes || !cachedDutyPlan;
                 if (needsFetch) {
                     Swal.fire({
                         title: 'Ders Programı Yükleniyor...',
@@ -1206,9 +1300,10 @@
                     });
                 }
 
-                const [usersRes, lessonTimes] = await Promise.all([
+                const [usersRes, lessonTimes, dutyPlan] = await Promise.all([
                     cachedUsersDb ? Promise.resolve(cachedUsersDb) : fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json?_t=${Date.now()}`).then(r => r.ok ? r.json() : {}),
-                    getSchoolLessonTimes()
+                    getSchoolLessonTimes(),
+                    getPublishedDutyPlan()
                 ]);
 
                 if (!cachedUsersDb) {
@@ -1226,10 +1321,12 @@
                                             currentUname).trim();
 
                 let matchedUser = null;
+                let matchedUserKey = null;
 
                 // 1. Doğrudan kullanıcı adı anahtarı ile ara
                 if (currentUname && cachedUsersDb[currentUname]) {
                     matchedUser = cachedUsersDb[currentUname];
+                    matchedUserKey = currentUname;
                 }
 
                 // 2. Büyük/küçük harf duyarsız anahtar kontrolü
@@ -1238,6 +1335,7 @@
                     for (const [k, u] of Object.entries(cachedUsersDb)) {
                         if (k.toLowerCase() === lower) {
                             matchedUser = u;
+                            matchedUserKey = k;
                             break;
                         }
                     }
@@ -1250,6 +1348,7 @@
                         const uName = (u.name || '').toLowerCase().replace(/\s+/g, '');
                         if (uName && (uName === cleanDisp || cleanDisp.includes(uName) || uName.includes(cleanDisp))) {
                             matchedUser = u;
+                            matchedUserKey = k;
                             break;
                         }
                     }
@@ -1264,6 +1363,7 @@
                         const uNameSlug = (u.name || '').toLowerCase().replace(/[şığıüöç]/g, m => charMap[m]).replace(/[^a-z0-9]/g, '');
                         if (kSlug === slug || uNameSlug === slug) {
                             matchedUser = u;
+                            matchedUserKey = k;
                             break;
                         }
                     }
@@ -1294,6 +1394,10 @@
                     { key: 'Pe', name: 'Perşembe', dayNum: 4 },
                     { key: 'Cu', name: 'Cuma', dayNum: 5 }
                 ];
+
+                // Öğretmenin nöbet günlerini tespit et
+                const dutyDayKeys = findTeacherDutyDays(dutyPlan, matchedUserKey, currentUname, matchedUser.name, currentDisplayName);
+                const dutyDayNames = Array.from(dutyDayKeys).map(k => dayDefs.find(d => d.key === k)?.name).filter(Boolean);
 
                 // Maksimum ders saatini hesapla (en az 8)
                 let maxPeriod = 8;
@@ -1333,6 +1437,11 @@
                                     <i class="fa-regular fa-clock"></i> Ders Saati Dışı
                                 </span>
                             `}
+                            ${dutyDayNames.length > 0 ? `
+                                <span style="background: #fef2f2; color: #b91c1c; border: 1.5px solid #ef4444; padding: 2px 9px; border-radius: 20px; font-size: 0.72rem; font-weight: 800; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 1px 3px rgba(239, 68, 68, 0.15);">
+                                    <i class="fa-solid fa-shield-halved" style="color: #ef4444;"></i> Nöbet: ${escapeHtml(dutyDayNames.join(', '))}
+                                </span>
+                            ` : ''}
                         </div>
                         <div style="font-size: 0.75rem; color: #475569; display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
                             <span style="display: inline-flex; align-items: center; gap: 5px;">
@@ -1342,6 +1451,10 @@
                             <span style="display: inline-flex; align-items: center; gap: 5px;">
                                 <span style="width: 12px; height: 12px; border-radius: 3px; background: #10b981; display: inline-block;"></span>
                                 <strong style="color: #065f46;">Bugün (Yeşil Sütun)</strong>
+                            </span>
+                            <span style="display: inline-flex; align-items: center; gap: 5px;">
+                                <span style="width: 12px; height: 12px; border-radius: 3px; background: #fff5f5; border: 2px solid #ef4444; display: inline-block;"></span>
+                                <strong style="color: #b91c1c;">Nöbet Günü (Kırmızı Çerçeve)</strong>
                             </span>
                             <span style="display: inline-flex; align-items: center; gap: 5px;">
                                 <span style="width: 12px; height: 12px; border-radius: 3px; background: #94a3b8; display: inline-block;"></span>
@@ -1361,13 +1474,31 @@
                 // Sütun Başlıkları: Günler (Pazartesi - Cuma)
                 dayDefs.forEach((dDef) => {
                     const isToday = (dDef.dayNum === todayNum);
-                    const thBg = isToday ? '#059669' : '#1e293b';
-                    const thBorder = isToday ? 'border-top: 3px solid #34d399; border-bottom: 2px solid #047857;' : 'border-right: 1px solid #334155;';
+                    const isDutyDay = dutyDayKeys.has(dDef.key);
+
+                    let thBg = '#1e293b';
+                    let thBorder = 'border-right: 1px solid #334155;';
+
+                    if (isDutyDay && isToday) {
+                        thBg = '#059669';
+                        thBorder = 'border-top: 3.5px solid #ef4444; border-left: 2.5px solid #ef4444; border-right: 2.5px solid #ef4444;';
+                    } else if (isDutyDay) {
+                        thBg = '#1e293b';
+                        thBorder = 'border-top: 3.5px solid #ef4444; border-left: 2.5px solid #ef4444; border-right: 2.5px solid #ef4444;';
+                    } else if (isToday) {
+                        thBg = '#059669';
+                        thBorder = 'border-top: 3px solid #34d399; border-bottom: 2px solid #047857; border-right: 1px solid rgba(255,255,255,0.15);';
+                    } else {
+                        thBorder = 'border-right: 1px solid rgba(255,255,255,0.15);';
+                    }
 
                     tableHtml += `
-                        <th style="padding: 8px 4px; font-weight: 700; background: ${thBg}; color: #ffffff; border-right: 1px solid rgba(255,255,255,0.15); ${thBorder} min-width: 75px;">
-                            <div style="font-size: 0.9rem; font-weight: ${isToday ? '900' : '700'};">${dDef.name}</div>
-                            ${isToday ? `<span style="display: inline-block; margin-top: 2px; font-size: 0.6rem; background: #34d399; color: #064e3b; padding: 1px 6px; border-radius: 8px; font-weight: 900; letter-spacing: 0.5px;">BUGÜN</span>` : ''}
+                        <th style="padding: 8px 4px; font-weight: 700; background: ${thBg}; color: #ffffff; ${thBorder} min-width: 75px; vertical-align: middle;">
+                            <div style="font-size: 0.9rem; font-weight: ${(isToday || isDutyDay) ? '900' : '700'};">${dDef.name}</div>
+                            <div style="display: flex; gap: 3px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 2px;">
+                                ${isToday ? `<span style="font-size: 0.58rem; background: #34d399; color: #064e3b; padding: 1px 5px; border-radius: 6px; font-weight: 900; letter-spacing: 0.5px;">BUGÜN</span>` : ''}
+                                ${isDutyDay ? `<span style="font-size: 0.58rem; background: #ef4444; color: #ffffff; padding: 1px 5px; border-radius: 6px; font-weight: 900; letter-spacing: 0.5px; box-shadow: 0 0 6px rgba(239,68,68,0.7);"><i class="fa-solid fa-shield-halved" style="margin-right:2px; font-size:0.55rem;"></i>NÖBETÇİ</span>` : ''}
+                            </div>
                         </th>
                     `;
                 });
@@ -1377,6 +1508,7 @@
                 // Satırlar: Ders Saatleri (1. Ders, 2. Ders, ... maxPeriod)
                 for (let p = 1; p <= maxPeriod; p++) {
                     const isCurrentPeriodRow = (currentPeriodInfo && p === activePeriodNum);
+                    const isLastRow = (p === maxPeriod);
                     const pStart = lessonTimes[`${p}_start`];
                     const pEnd = lessonTimes[`${p}_end`];
                     const pTime = (pStart && pEnd) ? `${pStart} - ${pEnd}` : (pStart || '');
@@ -1398,6 +1530,7 @@
                     // Gün hücreleri (Pazartesi ... Cuma)
                     dayDefs.forEach((dDef) => {
                         const isToday = (dDef.dayNum === todayNum);
+                        const isDutyDay = dutyDayKeys.has(dDef.key);
                         const dayData = normalizedSchedule[dDef.key];
                         const lesson = getLessonCell(dayData, p);
                         const hasLesson = (lesson !== '-');
@@ -1438,26 +1571,48 @@
                                 cellContent = `<span style="color: #6ee7b7; font-size: 0.85rem; font-weight: 500;">-</span>`;
                             }
                         } else {
-                            // Diğer günler (Gri tema)
+                            // Diğer günler (Gri tema veya nöbet günü tatlı pembe tonu)
                             if (hasLesson) {
                                 cellContent = `
-                                    <span style="background: #f1f5f9; color: #334155; font-weight: 600; border-radius: 6px; padding: 6px 3px; margin: 2px; display: block; border: 1px solid #cbd5e1; font-size: 0.88rem; line-height: 1.2;">
+                                    <span style="background: ${isDutyDay ? '#fff1f2' : '#f1f5f9'}; color: #334155; font-weight: 600; border-radius: 6px; padding: 6px 3px; margin: 2px; display: block; border: 1px solid ${isDutyDay ? '#fecdd3' : '#cbd5e1'}; font-size: 0.88rem; line-height: 1.2;">
                                         ${escapeHtml(lesson)}
                                     </span>
                                 `;
                             } else {
-                                cellContent = `<span style="color: #cbd5e1; font-size: 0.85rem;">-</span>`;
+                                cellContent = `<span style="color: ${isDutyDay ? '#fda4af' : '#cbd5e1'}; font-size: 0.85rem;">-</span>`;
                             }
                         }
 
-                        // Hücre arka planı: Bugünün sütununa soft yeşil zemin, diğerlerine beyaz
-                        let tdStyle = '';
+                        // Hücre arka planı ve Kırmızı Çerçeve
+                        let tdStyle = 'padding: 4px; vertical-align: middle;';
+
+                        // Zemin rengi
                         if (isCurrentActiveLesson) {
-                            tdStyle = 'padding: 3px; background: #d1fae5; border: 2px solid #10b981; border-radius: 6px; vertical-align: middle;';
+                            tdStyle += ' background: #d1fae5;';
                         } else if (isToday) {
-                            tdStyle = 'padding: 4px; background: #ecfdf5; border-right: 1.5px dashed #a7f3d0; vertical-align: middle;';
+                            tdStyle += ' background: #ecfdf5;';
+                        } else if (isDutyDay) {
+                            tdStyle += ' background: #fff5f5;'; // Nöbet günü için özel soft zemin
                         } else {
-                            tdStyle = 'padding: 4px; background: #ffffff; border-right: 1px dashed #e2e8f0; vertical-align: middle;';
+                            tdStyle += ' background: #ffffff;';
+                        }
+
+                        // Kenarlıklar: Nöbetçi gün için Kırmızı Çerçeve
+                        if (isDutyDay) {
+                            tdStyle += ' border-left: 2.5px solid #ef4444 !important; border-right: 2.5px solid #ef4444 !important;';
+                            if (isLastRow) {
+                                tdStyle += ' border-bottom: 3.5px solid #ef4444 !important;';
+                            }
+                        } else {
+                            if (isToday) {
+                                tdStyle += ' border-right: 1.5px dashed #a7f3d0;';
+                            } else {
+                                tdStyle += ' border-right: 1px dashed #e2e8f0;';
+                            }
+                        }
+
+                        if (isCurrentActiveLesson) {
+                            tdStyle += ' outline: 2px solid #10b981; border-radius: 4px;';
                         }
 
                         tableHtml += `
