@@ -176,6 +176,42 @@
             transform: scale(1.1);
         }
 
+        /* Guide Info Button */
+        .guide-info-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #0284c7;
+            color: #ffffff !important;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            vertical-align: middle;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);
+            flex-shrink: 0;
+            margin-left: 6px;
+        }
+        .guide-info-btn:hover {
+            background: #0369a1;
+            color: #ffffff !important;
+            transform: scale(1.22);
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.5);
+        }
+        .guide-info-btn i {
+            pointer-events: none;
+        }
+
+        .guide-modal-popup {
+            border-radius: 18px !important;
+            padding: 1.5rem !important;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15) !important;
+        }
+
         /* Admin UI */
         .admin-panel {
             background: rgba(255, 255, 255, 0.9);
@@ -360,7 +396,12 @@
                     <i class="fa-solid fa-plus"></i> Yeni Bağlantı Ekle
                 </button>
             </div>
-            <p style="color:var(--gray-500); font-size:0.9rem; margin-top:-10px; margin-bottom:20px;">Bu ekrandan eklediğiniz ve aktif ettiğiniz bağlantılar, sisteme giriş yapan tüm öğretmenlere portal anasayfasında görünecektir.</p>
+            <p style="color:var(--gray-500); font-size:0.9rem; margin-top:-10px; margin-bottom:20px;">
+                Bu ekrandan eklediğiniz ve aktif ettiğiniz bağlantılar, sisteme giriş yapan tüm öğretmenlere portal anasayfasında görünecektir.<br>
+                <span style="display:inline-block; margin-top:6px; color:#2563eb; font-weight:500;">
+                    <i class="fa-solid fa-circle-info"></i> <strong>İpucu:</strong> Sayfa isimlerine <u>sağ tıklayarak</u> (veya satırdaki "Kılavuz Ekle" butonuna basarak) öğretmenlerin görebileceği kullanım kılavuzu linkini tanımlayabilirsiniz.
+                </span>
+            </p>
             
             <div id="adminLinksContainer">
                 <div style="text-align:center; padding:2rem; color:var(--gray-400);">Yükleniyor...</div>
@@ -565,9 +606,16 @@
                 card.style.background = `hsla(${hue}, 85%, 95%, 0.85)`;
                 card.style.border = `3px solid hsla(${hue}, 80%, 55%, 1)`;
                 
+                if (isAdmin) {
+                    card.oncontextmenu = (e) => {
+                        openGuideUrlModal(link.id, e);
+                    };
+                    card.title = "Sağ Tık: Kullanım Kılavuzu Linki Ekle / Düzenle";
+                }
+
                 card.onclick = (e) => {
                     // Butonlara tıklandıysa sayfaya gitme
-                    if (e.target.closest('.order-btn') || e.target.closest('.copy-btn')) return;
+                    if (e.target.closest('.order-btn') || e.target.closest('.copy-btn') || e.target.closest('.guide-info-btn')) return;
                     window.location.href = link.url;
                 };
 
@@ -582,14 +630,28 @@
                     `;
                 }
 
+                const safeUrl = escapeHtml(link.url || '#');
+                const safeTitle = escapeHtml(link.title || 'Başlıksız');
+                const safeDesc = escapeHtml(link.desc || '');
+                const safeIcon = escapeHtml(link.icon || 'fa-link');
+                const hasGuide = link.guideUrl && String(link.guideUrl).trim().length > 0;
+                const safeGuideUrl = hasGuide ? escapeHtml(formatUrl(link.guideUrl)) : '';
+
                 card.innerHTML = `
                     ${orderButtons}
-                    <button class="copy-btn" onclick="copyTeacherLink('${link.url}', this)" title="Bağlantıyı Kopyala/Paylaş"><i class="fa-regular fa-copy"></i></button>
+                    <button class="copy-btn" onclick="copyTeacherLink('${safeUrl}', this)" title="Bağlantıyı Kopyala/Paylaş"><i class="fa-regular fa-copy"></i></button>
                     <div class="link-card-header">
-                        <div class="link-icon"><i class="fa-solid ${link.icon || 'fa-link'}"></i></div>
-                        <h3>${link.title || 'Başlıksız'}</h3>
+                        <div class="link-icon"><i class="fa-solid ${safeIcon}"></i></div>
+                        <h3 style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                            <span style="flex: 1; word-break: break-word;" ${isAdmin ? `oncontextmenu="openGuideUrlModal('${link.id}', event);"` : ''}>${safeTitle}</span>
+                            ${hasGuide ? `
+                                <a href="${safeGuideUrl}" target="_blank" rel="noopener noreferrer" class="guide-info-btn" onclick="event.stopPropagation();" ${isAdmin ? `oncontextmenu="openGuideUrlModal('${link.id}', event);"` : ''} title="Nasıl Kullanılır? Sayfa Kullanım Kılavuzunu Aç">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                </a>
+                            ` : ''}
+                        </h3>
                     </div>
-                    <p>${link.desc || ''}</p>
+                    <p>${safeDesc}</p>
                 `;
                 grid.appendChild(card);
             });
@@ -664,18 +726,28 @@
             portalLinks.forEach((link, index) => {
                 const row = document.createElement('div');
                 row.className = 'admin-link-row';
+                row.oncontextmenu = (e) => {
+                    openGuideUrlModal(link.id, e);
+                };
+                const hasGuide = link.guideUrl && String(link.guideUrl).trim().length > 0;
                 row.innerHTML = `
                     <div style="display:flex; flex-direction:column; gap:2px; margin-right:10px;">
                         <button class="btn btn-sm" style="padding:2px 6px; background:#f1f5f9; color:var(--dark); border:1px solid #e2e8f0; cursor:pointer;" onclick="moveLinkUp(${index})" ${index === 0 ? 'disabled style="opacity:0.5;"' : ''} title="Yukarı Taşı"><i class="fa-solid fa-chevron-up"></i></button>
                         <button class="btn btn-sm" style="padding:2px 6px; background:#f1f5f9; color:var(--dark); border:1px solid #e2e8f0; cursor:pointer;" onclick="moveLinkDown(${index})" ${index === portalLinks.length - 1 ? 'disabled style="opacity:0.5;"' : ''} title="Aşağı Taşı"><i class="fa-solid fa-chevron-down"></i></button>
                     </div>
                     <div style="display:flex; flex-direction:column; gap:5px; flex:1;">
-                        <input type="text" placeholder="Başlık" value="${link.title || ''}" onchange="updateLinkData('${link.id}', 'title', this.value)" style="font-weight:bold;">
-                        <input type="text" placeholder="Açıklama" value="${link.desc || ''}" onchange="updateLinkData('${link.id}', 'desc', this.value)" style="font-size:0.85rem;">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <input type="text" placeholder="Başlık" value="${escapeHtml(link.title || '')}" onchange="updateLinkData('${link.id}', 'title', this.value)" oncontextmenu="openGuideUrlModal('${link.id}', event)" title="Sağ Tık: Kullanım Kılavuzu Linki Ekle/Düzenle" style="font-weight:bold; flex:1;">
+                            <button type="button" class="btn btn-sm" onclick="openGuideUrlModal('${link.id}', event)" oncontextmenu="openGuideUrlModal('${link.id}', event)" title="${hasGuide ? 'Kılavuz Linki: ' + escapeHtml(link.guideUrl) : 'Kılavuz linki henüz yok. Eklemek için tıklayın veya sağ tıklayın.'}" style="padding:4px 8px; border-radius:8px; font-size:0.75rem; white-space:nowrap; display:inline-flex; align-items:center; gap:4px; cursor:pointer; background:${hasGuide ? '#dbeafe' : '#f1f5f9'}; color:${hasGuide ? '#1d4ed8' : '#64748b'}; border:1px solid ${hasGuide ? '#93c5fd' : '#cbd5e1'}; font-weight:600;">
+                                <i class="fa-solid fa-circle-info" style="${hasGuide ? 'color:#2563eb;' : ''}"></i>
+                                ${hasGuide ? 'Kılavuz Var' : 'Kılavuz Ekle'}
+                            </button>
+                        </div>
+                        <input type="text" placeholder="Açıklama" value="${escapeHtml(link.desc || '')}" onchange="updateLinkData('${link.id}', 'desc', this.value)" style="font-size:0.85rem;">
                     </div>
                     <div style="display:flex; flex-direction:column; gap:5px; flex:1;">
-                        <input type="text" placeholder="URL (Örn: /h6t3y9w1)" value="${link.url || ''}" onchange="updateLinkData('${link.id}', 'url', this.value)">
-                        <input type="text" placeholder="İkon Sınıfı (Örn: fa-list)" value="${link.icon || ''}" onchange="updateLinkData('${link.id}', 'icon', this.value)">
+                        <input type="text" placeholder="URL (Örn: /h6t3y9w1)" value="${escapeHtml(link.url || '')}" onchange="updateLinkData('${link.id}', 'url', this.value)">
+                        <input type="text" placeholder="İkon Sınıfı (Örn: fa-list)" value="${escapeHtml(link.icon || '')}" onchange="updateLinkData('${link.id}', 'icon', this.value)">
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:0 10px;">
                         <label class="toggle-switch" title="Aktif/Pasif">
@@ -683,7 +755,7 @@
                             <span class="toggle-slider"></span>
                         </label>
                         <div style="display:flex; gap:5px; margin-top:4px;">
-                            <a id="test-btn-${link.id}" href="${link.url || '#'}" class="btn btn-sm" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; padding:4px 8px; text-decoration:none; display:flex; align-items:center; justify-content:center;" title="Sayfaya Git"><i class="fa-solid fa-arrow-right-to-bracket"></i></a>
+                            <a id="test-btn-${link.id}" href="${escapeHtml(link.url || '#')}" class="btn btn-sm" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; padding:4px 8px; text-decoration:none; display:flex; align-items:center; justify-content:center;" title="Sayfaya Git"><i class="fa-solid fa-arrow-right-to-bracket"></i></a>
                             <button class="btn btn-sm" style="background:#fef2f2; color:#ef4444; border:1px solid #fecaca; padding:4px 8px; display:flex; align-items:center; justify-content:center;" onclick="removeLink('${link.id}')" title="Sil"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
@@ -728,7 +800,8 @@
                 desc: "",
                 url: "/",
                 icon: "fa-link",
-                active: true
+                active: true,
+                guideUrl: ""
             });
             renderAdminLinks();
         };
@@ -738,6 +811,167 @@
             renderAdminLinks();
         };
 
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function formatUrl(url) {
+            if (!url) return '#';
+            let trimmed = String(url).trim();
+            if (!trimmed) return '#';
+            if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/')) {
+                return trimmed;
+            }
+            return 'https://' + trimmed;
+        }
+
+        window.openGuideUrlModal = function(linkId, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            const link = portalLinks.find(l => l.id === linkId);
+            if (!link) return;
+
+            Swal.fire({
+                title: `<div style="display:flex; align-items:center; justify-content:center; gap:10px; font-size:1.25rem;">
+                            <i class="fa-solid fa-circle-info" style="color: #2563eb;"></i>
+                            <span>Kullanım Kılavuzu Linki</span>
+                        </div>`,
+                html: `
+                    <div style="text-align: left; margin-top: 12px;">
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 15px;">
+                            <div style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Sayfa İsmi</div>
+                            <div style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin-top: 2px;">
+                                <i class="fa-solid ${escapeHtml(link.icon || 'fa-link')}" style="color: #2563eb; margin-right: 6px;"></i>
+                                ${escapeHtml(link.title || 'Başlıksız')}
+                            </div>
+                            <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">${escapeHtml(link.url || '')}</div>
+                        </div>
+
+                        <label for="swal-guide-url-input" style="display: block; font-size: 0.88rem; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                            Bu sayfanın nasıl kullanılacağına dair link (URL):
+                        </label>
+                        <input id="swal-guide-url-input" class="swal2-input" type="url" 
+                               placeholder="Örn: https://youtube.com/... veya https://drive.google.com/..." 
+                               value="${escapeHtml(link.guideUrl || '')}" 
+                               style="margin: 0; width: 100%; box-sizing: border-box; font-size: 0.95rem; padding: 10px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1;">
+
+                        <div style="margin-top: 10px; font-size: 0.8rem; color: #475569; line-height: 1.4; background: #eff6ff; padding: 10px 12px; border-radius: 8px; border: 1px solid #dbeafe;">
+                            <i class="fa-solid fa-lightbulb" style="color: #2563eb; margin-right: 4px;"></i>
+                            Öğretmen kullanıcısı girdiğinde sayfa isminin yanında mavi <strong>(İ)</strong> sembolü olacak ve tıklanınca bu link açılacaktır.
+                        </div>
+
+                        ${link.guideUrl ? `
+                            <div style="margin-top: 12px; display: flex; align-items: center; justify-content: space-between;">
+                                <a href="${escapeHtml(formatUrl(link.guideUrl))}" target="_blank" style="font-size: 0.85rem; color: #2563eb; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Mevcut Linki Test Et
+                                </a>
+                                <button type="button" onclick="document.getElementById('swal-guide-url-input').value = '';" style="font-size: 0.8rem; color: #ef4444; background: none; border: none; cursor: pointer; text-decoration: underline;">
+                                    Linki Temizle
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-save"></i> Kaydet',
+                cancelButtonText: 'Vazgeç',
+                confirmButtonColor: '#2563eb',
+                cancelButtonColor: '#94a3b8',
+                customClass: {
+                    popup: 'guide-modal-popup'
+                },
+                didOpen: () => {
+                    const input = document.getElementById('swal-guide-url-input');
+                    if (input) {
+                        input.focus();
+                        input.select();
+                        input.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter') {
+                                Swal.clickConfirm();
+                            }
+                        });
+                    }
+                },
+                preConfirm: () => {
+                    const input = document.getElementById('swal-guide-url-input');
+                    return input ? input.value : '';
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    let guideUrl = (result.value || '').trim();
+                    if (guideUrl && !guideUrl.startsWith('http://') && !guideUrl.startsWith('https://') && !guideUrl.startsWith('/')) {
+                        guideUrl = 'https://' + guideUrl;
+                    }
+                    link.guideUrl = guideUrl;
+                    await saveGuideUrlChanges();
+                }
+            });
+        };
+
+        async function saveGuideUrlChanges() {
+            try {
+                Swal.fire({
+                    title: 'Kaydediliyor...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                let saved = false;
+                try {
+                    const res = await fetch('/api/updateLinks', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ links: portalLinks })
+                    });
+                    if (res.ok) {
+                        saved = true;
+                    }
+                } catch (err) {
+                    console.warn("API route unavailable, trying direct DB:", err);
+                }
+
+                if (!saved) {
+                    const resFb = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_teacher_links.json`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ links: portalLinks })
+                    });
+                    if (!resFb.ok) {
+                        throw new Error("Veritabanına kaydedilemedi.");
+                    }
+                }
+
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Kullanım kılavuzu linki kaydedildi!',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                const role = (sessionStorage.getItem('klbk_role') || localStorage.getItem('klbk_role') || '').toLowerCase().trim();
+                const isAdmin = role === 'admin' || role === 'master' || role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi';
+                if (isAdmin) renderAdminLinks();
+                renderTeacherLinks(isAdmin);
+            } catch (err) {
+                console.error("Kaydetme hatası:", err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Hata',
+                    text: 'Kılavuz linki kaydedilemedi: ' + err.message
+                });
+            }
+        }
+
         window.saveAdminLinks = async function() {
             try {
                 Swal.fire({
@@ -746,15 +980,30 @@
                     didOpen: () => { Swal.showLoading(); }
                 });
                 
-                const res = await fetch('/api/updateLinks', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ links: portalLinks })
-                });
+                let saved = false;
+                try {
+                    const res = await fetch('/api/updateLinks', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ links: portalLinks })
+                    });
+                    if (res.ok) {
+                        saved = true;
+                    }
+                } catch (err) {
+                    console.warn("API route unavailable, trying direct DB:", err);
+                }
 
-                if (!res.ok) {
-                    const errData = await res.json().catch(() => ({}));
-                    throw new Error(errData.error || "Sunucu reddetti (HTTP " + res.status + ")");
+                if (!saved) {
+                    const resFb = await fetch(`${FIREBASE_DB_URL}/app_store/klbk_teacher_links.json`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ links: portalLinks })
+                    });
+                    if (!resFb.ok) {
+                        const errData = await resFb.json().catch(() => ({}));
+                        throw new Error(errData.error || "Sunucu reddetti");
+                    }
                 }
 
                 Swal.fire({
