@@ -1190,14 +1190,21 @@
 
             return null;
         }
+        let isScheduleLoading = false;
 
         async function showUserSchedule() {
+            if (isScheduleLoading) return;
+            isScheduleLoading = true;
+
             try {
-                Swal.fire({
-                    title: 'Ders Programı Yükleniyor...',
-                    allowOutsideClick: false,
-                    didOpen: () => { Swal.showLoading(); }
-                });
+                const needsFetch = !cachedUsersDb || !cachedLessonTimes;
+                if (needsFetch) {
+                    Swal.fire({
+                        title: 'Ders Programı Yükleniyor...',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+                }
 
                 const [usersRes, lessonTimes] = await Promise.all([
                     cachedUsersDb ? Promise.resolve(cachedUsersDb) : fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json?_t=${Date.now()}`).then(r => r.ok ? r.json() : {}),
@@ -1263,6 +1270,7 @@
                 }
 
                 if (!matchedUser || !matchedUser.schedule || Object.keys(matchedUser.schedule).length === 0) {
+                    if (Swal.isVisible()) Swal.hideLoading();
                     Swal.fire({
                         icon: 'info',
                         title: 'Ders Programı Bulunamadı',
@@ -1464,6 +1472,10 @@
 
                 tableHtml += `</tbody></table></div>`;
 
+                if (Swal.isVisible()) {
+                    Swal.hideLoading();
+                }
+
                 Swal.fire({
                     title: `<div style="display:flex; align-items:center; justify-content:center; gap:8px; font-size:1.25rem;">
                                 <i class="fa-solid fa-calendar-days" style="color: #10b981;"></i>
@@ -1471,8 +1483,20 @@
                             </div>`,
                     html: tableHtml,
                     width: '780px',
+                    showConfirmButton: true,
+                    showCloseButton: true,
+                    allowOutsideClick: true,
                     confirmButtonText: 'Kapat',
                     confirmButtonColor: '#2563eb',
+                    didOpen: () => {
+                        Swal.hideLoading();
+                        const btn = Swal.getConfirmButton();
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.style.display = 'inline-block';
+                            btn.textContent = 'Kapat';
+                        }
+                    },
                     customClass: {
                         popup: 'guide-modal-popup'
                     }
@@ -1480,11 +1504,14 @@
 
             } catch (err) {
                 console.error("Ders programı yüklenemedi:", err);
+                if (Swal.isVisible()) Swal.hideLoading();
                 Swal.fire({
                     icon: 'error',
                     title: 'Hata',
                     text: 'Ders programı yüklenirken bir sorun oluştu: ' + err.message
                 });
+            } finally {
+                isScheduleLoading = false;
             }
         }
 
