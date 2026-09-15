@@ -549,98 +549,157 @@
 
         .lesson-card {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1rem 1.25rem;
-            border-radius: var(--radius-md);
-            border: 2px solid var(--gray-200);
-            background: white;
-            transition: all 0.3s ease;
-            gap: 12px;
-        }
-
-        .lesson-card.active {
-            border-color: var(--geldi-color);
-            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15);
+            flex-direction: column;
+            gap: 8px;
+            padding: 11px 15px;
+            border-radius: 12px;
+            border: 1.5px solid #cbd5e1;
+            background: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+            transition: all 0.25s ease;
+            position: relative;
             cursor: pointer;
-            animation: pulse-active-card 2s infinite;
+            box-sizing: border-box;
         }
 
-        @keyframes pulse-active-card {
-            0% { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15); }
-            50% { box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3); }
-            100% { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15); }
-        }
-
-        .lesson-card.active:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25);
+        .lesson-card:hover {
+            border-color: #94a3b8;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            transform: translateY(-1px);
         }
 
         .lesson-card.waiting {
-            border-color: var(--gray-200);
-            background: #f8fafc;
-            opacity: 0.75;
+            border: 1.5px solid #cbd5e1;
+            background: #ffffff;
         }
 
-        .lesson-card-left {
+        .lesson-card.active {
+            border: 2.5px solid #10b981;
+            border-left: 6px solid #059669;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25), 0 0 0 1px rgba(16, 185, 129, 0.2);
+            animation: pulse-active-card 2.5s infinite;
+        }
+
+        @keyframes pulse-active-card {
+            0% {
+                box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2), 0 0 0 1px rgba(16, 185, 129, 0.2);
+            }
+            50% {
+                box-shadow: 0 4px 22px rgba(16, 185, 129, 0.4), 0 0 0 2px rgba(16, 185, 129, 0.35);
+            }
+            100% {
+                box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2), 0 0 0 1px rgba(16, 185, 129, 0.2);
+            }
+        }
+
+        /* 2 Satırlı Kart İskeleti */
+        .lesson-card-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .lesson-row-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .lesson-row-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             flex-shrink: 0;
-            min-width: 80px;
         }
 
-        .lesson-hour {
+        .lesson-hour-badge {
             font-weight: 800;
-            font-size: 1rem;
-            color: var(--dark);
+            font-size: 0.96rem;
+            color: #1e293b;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .lesson-badge-active {
+            font-size: 0.68rem;
+            background: #059669;
+            color: #ffffff;
+            padding: 2px 7px;
+            border-radius: 6px;
+            font-weight: 800;
+            letter-spacing: 0.4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 1px 4px rgba(5, 150, 105, 0.35);
+            animation: pulse-badge 1.8s infinite;
+        }
+
+        @keyframes pulse-badge {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.85; transform: scale(1.04); }
         }
 
         .lesson-time {
-            font-size: 0.8rem;
-            color: var(--gray-500);
+            font-size: 0.84rem;
+            color: #64748b;
             font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
         }
 
-        .lesson-card-center {
-            flex: 1;
-            text-align: center;
-        }
-
-        .lesson-class {
+        .lesson-class-badge {
             font-weight: 800;
-            font-size: 1.2rem;
-            color: var(--primary);
+            font-size: 1.15rem;
+            color: #0284c7;
+            background: #f0f9ff;
+            border: 1.5px solid #bae6fd;
+            padding: 2px 10px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            letter-spacing: 0.3px;
         }
 
-        .lesson-card.active .lesson-class {
+        .lesson-class-badge.active-class {
             color: #065f46;
-        }
-
-        .lesson-card-right {
-            flex-shrink: 0;
-            text-align: right;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 6px;
+            background: #dcfce7;
+            border-color: #86efac;
+            font-size: 1.22rem;
+            box-shadow: 0 1px 4px rgba(16, 185, 129, 0.2);
         }
 
         .lesson-countdown {
-            font-family: 'Courier New', monospace;
+            font-family: 'Courier New', Courier, monospace;
+            font-variant-numeric: tabular-nums;
             font-weight: 800;
-            font-size: 1.1rem;
-            color: var(--geldi-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .waiting-countdown {
-            color: var(--gray-500);
-            font-size: 0.95rem;
+            color: #475569;
+            font-size: 0.92rem;
+        }
+
+        .active-countdown {
+            color: #047857;
+            font-size: 1.05rem;
+            font-weight: 900;
         }
 
         .btn-yoklama-al {
-            padding: 6px 14px;
-            font-size: 0.85rem;
-            background: var(--geldi-color);
+            padding: 5px 12px;
+            font-size: 0.82rem;
+            background: #059669;
             color: white;
             border: none;
             border-radius: 8px;
@@ -649,12 +708,14 @@
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(5, 150, 105, 0.3);
+            white-space: nowrap;
         }
 
         .btn-yoklama-al:hover {
-            background: #059669;
+            background: #047857;
             transform: translateY(-1px);
         }
 
@@ -687,26 +748,22 @@
 
         @media (max-width: 768px) {
             .daily-schedule {
-                padding: 1rem;
+                padding: 0.85rem;
             }
             .lesson-card {
-                flex-direction: column;
-                align-items: stretch;
-                text-align: center;
-                gap: 8px;
-                padding: 1rem;
+                padding: 9px 12px;
+                gap: 6px;
             }
-            .lesson-card-left {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                min-width: auto;
+            .lesson-hour-badge {
+                font-size: 0.92rem;
             }
-            .lesson-card-right {
-                align-items: center;
-                flex-direction: row;
-                justify-content: center;
-                gap: 10px;
+            .lesson-class-badge {
+                font-size: 1.08rem;
+                padding: 2px 8px;
+            }
+            .btn-yoklama-al {
+                padding: 4px 10px;
+                font-size: 0.78rem;
             }
         }
     </style>
@@ -1718,6 +1775,7 @@
             
             let html = '';
             visibleLessons.forEach(lesson => {
+                const safeClassName = String(lesson.className || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 if (lesson.status === 'active') {
                     let diff = lesson.endSecs - currentTotalSeconds;
                     if (diff < 0) diff = 0;
@@ -1726,16 +1784,27 @@
                     
                     html += `
                         <div class="lesson-card active" onclick="selectLessonFromSchedule(${lesson.hour})">
-                            <div class="lesson-card-left">
-                                <div class="lesson-hour">${lesson.hour}. Ders</div>
-                                <div class="lesson-time">${lesson.startStr} - ${lesson.endStr}</div>
+                            <div class="lesson-card-row lesson-card-row-top">
+                                <div class="lesson-row-left">
+                                    <span class="lesson-hour-badge"><i class="fa-solid fa-book-open" style="color:#059669; font-size:0.85rem;"></i> ${lesson.hour}. Ders</span>
+                                    <span class="lesson-badge-active"><i class="fa-solid fa-bolt"></i> ŞU ANKİ DERS</span>
+                                </div>
+                                <div class="lesson-row-right">
+                                    <span class="lesson-time"><i class="fa-regular fa-clock"></i> ${lesson.startStr} - ${lesson.endStr}</span>
+                                </div>
                             </div>
-                            <div class="lesson-card-center">
-                                <div class="lesson-class">${lesson.className}</div>
-                            </div>
-                            <div class="lesson-card-right">
-                                <div class="lesson-countdown"><i class="fa-solid fa-hourglass-end"></i> ${mm}:${ss}</div>
-                                <button class="btn-yoklama-al"><i class="fa-solid fa-clipboard-list"></i> Yoklama Al</button>
+                            <div class="lesson-card-row lesson-card-row-bottom">
+                                <div class="lesson-row-left">
+                                    <span class="lesson-class-badge active-class"><i class="fa-solid fa-graduation-cap"></i> ${safeClassName}</span>
+                                </div>
+                                <div class="lesson-row-right">
+                                    <div class="lesson-countdown active-countdown" title="Ders bitimine kalan süre">
+                                        <i class="fa-solid fa-hourglass-end"></i> ${mm}:${ss}
+                                    </div>
+                                    <button class="btn-yoklama-al" onclick="event.stopPropagation(); selectLessonFromSchedule(${lesson.hour})">
+                                        <i class="fa-solid fa-clipboard-check"></i> Yoklama Al
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -1748,16 +1817,24 @@
                     let countdownStr = hh > 0 ? `${hh}:${mm}:${ss}` : `${mm}:${ss}`;
                     
                     html += `
-                        <div class="lesson-card waiting">
-                            <div class="lesson-card-left">
-                                <div class="lesson-hour">${lesson.hour}. Ders</div>
-                                <div class="lesson-time">${lesson.startStr} - ${lesson.endStr}</div>
+                        <div class="lesson-card waiting" onclick="selectLessonFromSchedule(${lesson.hour})">
+                            <div class="lesson-card-row lesson-card-row-top">
+                                <div class="lesson-row-left">
+                                    <span class="lesson-hour-badge"><i class="fa-solid fa-book-open" style="color:#94a3b8; font-size:0.85rem;"></i> ${lesson.hour}. Ders</span>
+                                </div>
+                                <div class="lesson-row-right">
+                                    <span class="lesson-time"><i class="fa-regular fa-clock"></i> ${lesson.startStr} - ${lesson.endStr}</span>
+                                </div>
                             </div>
-                            <div class="lesson-card-center">
-                                <div class="lesson-class">${lesson.className}</div>
-                            </div>
-                            <div class="lesson-card-right">
-                                <div class="lesson-countdown waiting-countdown"><i class="fa-solid fa-hourglass-half"></i> ${countdownStr}</div>
+                            <div class="lesson-card-row lesson-card-row-bottom">
+                                <div class="lesson-row-left">
+                                    <span class="lesson-class-badge"><i class="fa-solid fa-graduation-cap"></i> ${safeClassName}</span>
+                                </div>
+                                <div class="lesson-row-right">
+                                    <div class="lesson-countdown waiting-countdown" title="Ders başlangıcına kalan süre">
+                                        <i class="fa-solid fa-hourglass-half"></i> ${countdownStr}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     `;
