@@ -1,11 +1,11 @@
-﻿/**
+/**
  * km_firebase.js - Okul Isleri Modulu Firebase Veri Katmani
  * KLBK FRVR projesine entegre edilmis okul yonetim sistemi.
  * Tum veriler Firebase Realtime Database uzerinde /okul_isleri/ node'unda tutulur.
  */
 
 const KM_DB_URL = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
-const KM_BASE = "okul_isleri";
+const KM_BASE = "app_store/okul_isleri";
 
 function km_safeKey(str) {
     return (str || '').replace(/[.#$\[\]/]/g, '_').trim();
