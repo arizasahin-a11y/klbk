@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
@@ -252,7 +252,7 @@ async function runSetup() {
 
         const newPerms = {};
         if (!perms['km_ogretmen_html']) { newPerms['km_ogretmen_html'] = { globalAccess: true, assignments: {} }; }
-        if (!perms['km_admin_html'])    { newPerms['km_admin_html']    = { globalAccess: false, assignments: {} }; }
+        if (!perms['km_admin_html'])    { newPerms['km_admin_html']    = { globalAccess: true, assignments: {} }; }
         if (!perms['km_ogrenci_html'])  { newPerms['km_ogrenci_html']  = { globalAccess: true, assignments: {} }; }
 
         if (Object.keys(newPerms).length > 0) {
