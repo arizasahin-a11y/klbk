@@ -1,0 +1,208 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Calisma Yonetimi - Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/app_permissions.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .km-container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+        .km-header { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px 25px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid rgba(255,255,255,0.5); }
+        .km-tabs { display: flex; gap: 10px; margin-bottom: 20px; background: rgba(255,255,255,0.7); border-radius: 12px; padding: 8px; }
+        .km-tab { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 0.95rem; transition: all 0.2s; background: transparent; color: #64748b; }
+        .km-tab.active { background: white; color: #1d4ed8; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .km-section { display: none; } .km-section.active { display: block; }
+        .km-table-wrapper { background: rgba(255,255,255,0.9); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid rgba(255,255,255,0.5); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        thead th { background: #f8fafc; padding: 12px 15px; text-align: left; font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+        tbody tr:hover { background: rgba(248,250,252,0.8); }
+        .km-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 10px; border: none; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; }
+        .km-btn-primary { background: var(--primary, #3b82f6); color: white; }
+        .km-btn-primary:hover { filter: brightness(1.1); }
+        .km-btn-danger { background: #fee2e2; color: #b91c1c; }
+        .km-btn-danger:hover { background: #fca5a5; }
+        .km-btn-sm { padding: 5px 10px; font-size: 0.8rem; border-radius: 7px; }
+        .km-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .km-modal-box { background: white; width: 90%; max-width: 600px; border-radius: 20px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
+        .km-form-group { margin-bottom: 16px; }
+        .km-form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; color: #374151; }
+        .km-input { width: 100%; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-family: inherit; font-size: 0.95rem; outline: none; box-sizing: border-box; transition: border-color 0.2s; }
+        .km-input:focus { border-color: #3b82f6; }
+        select.km-input { cursor: pointer; }
+        .km-reset-box { background: rgba(255,255,255,0.9); border-radius: 16px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid rgba(255,255,255,0.5); max-width: 500px; }
+    </style>
+</head>
+<body>
+    <div class="km-container">
+        <div class="km-header">
+            <div>
+                <h2 style="margin:0;font-weight:800;"><i class="fa-solid fa-chalkboard-user" style="color:#3b82f6;margin-right:10px;"></i>Calisma Yonetimi</h2>
+                <p style="margin:4px 0 0;color:#64748b;font-size:0.9rem;">Calisma ve sinif atamalarini yonetin</p>
+            </div>
+            <div style="display:flex;gap:10px;">
+                <button class="km-btn" style="background:#f1f5f9;color:#475569;" onclick="kmAdminExport()">
+                    <i class="fa-solid fa-download"></i> Yedek Al
+                </button>
+                <button class="km-btn km-btn-danger" onclick="window.location.href='enter.html'">
+                    <i class="fa-solid fa-arrow-left"></i> Geri
+                </button>
+            </div>
+        </div>
+
+        <div class="km-tabs">
+            <button class="km-tab active" onclick="kmSwitchTab('studies')"><i class="fa-solid fa-book" style="margin-right:6px;"></i>Calismalar</button>
+            <button class="km-tab" onclick="kmSwitchTab('assignments')"><i class="fa-solid fa-link" style="margin-right:6px;"></i>Atamalar</button>
+            <button class="km-tab" onclick="kmSwitchTab('reset')"><i class="fa-solid fa-rotate-left" style="margin-right:6px;"></i>Sifirla</button>
+        </div>
+
+        <!-- Calismalar Tab -->
+        <div id="kmTab_studies" class="km-section active">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:15px;">
+                <button class="km-btn km-btn-primary" onclick="kmAdminNewStudy()">
+                    <i class="fa-solid fa-plus"></i> Yeni Calisma
+                </button>
+            </div>
+            <div class="km-table-wrapper">
+                <table><thead><tr>
+                    <th>Calisma Adi</th><th>Durum</th><th>Sorular</th><th>Islemler</th>
+                </tr></thead>
+                <tbody id="kmStudiesTable">
+                    <tr><td colspan="4" style="text-align:center;padding:3rem;color:#94a3b8;"><i class="fa-solid fa-spinner fa-spin"></i></td></tr>
+                </tbody></table>
+            </div>
+        </div>
+
+        <!-- Atamalar Tab -->
+        <div id="kmTab_assignments" class="km-section">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:15px;">
+                <button class="km-btn km-btn-primary" onclick="kmAdminNewAssignment()">
+                    <i class="fa-solid fa-plus"></i> Yeni Atama
+                </button>
+            </div>
+            <div class="km-table-wrapper">
+                <table><thead><tr>
+                    <th>Calisma</th><th>Sinif</th><th>Yontem</th><th>Ayarlar</th><th>Islemler</th>
+                </tr></thead>
+                <tbody id="kmAssignmentsTable">
+                    <tr><td colspan="5" style="text-align:center;padding:3rem;color:#94a3b8;"><i class="fa-solid fa-spinner fa-spin"></i></td></tr>
+                </tbody></table>
+            </div>
+        </div>
+
+        <!-- Sifirla Tab -->
+        <div id="kmTab_reset" class="km-section">
+            <div class="km-reset-box">
+                <h3 style="margin-top:0;"><i class="fa-solid fa-rotate-left" style="color:#ef4444;margin-right:8px;"></i>Degerlendirme Sifirla</h3>
+                <p style="color:#64748b;font-size:0.9rem;">Secili sinifin puanlarini ve degerlendirmesini sifirlar. Cevaplar korunur.</p>
+                <div class="km-form-group">
+                    <label>Calisma</label>
+                    <select id="kmResetStudy" class="km-input" onchange="kmAdminPopulateResetSelect()">
+                        <option value="">Calisma sec...</option>
+                    </select>
+                </div>
+                <div class="km-form-group">
+                    <label>Sinif</label>
+                    <input type="text" id="kmResetClass" class="km-input" placeholder="orn: 9A, 10-B">
+                </div>
+                <button class="km-btn km-btn-danger" onclick="kmAdminResetEvals()" style="width:100%;justify-content:center;">
+                    <i class="fa-solid fa-rotate-left"></i> Sifirla
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calisma Modal -->
+    <div class="km-modal" id="kmStudyModal">
+        <div class="km-modal-box">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 id="kmStudyModalTitle" style="margin:0;">Yeni Calisma</h3>
+                <button onclick="document.getElementById('kmStudyModal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#94a3b8;">&times;</button>
+            </div>
+            <div class="km-form-group">
+                <label>Calisma Adi *</label>
+                <input type="text" id="kmStudyName" class="km-input" placeholder="orn: Sivi Basinci">
+            </div>
+            <div class="km-form-group">
+                <label>Aciklama</label>
+                <textarea id="kmStudyAciklama" class="km-input" rows="3" placeholder="Calisma hakkinda aciklama..."></textarea>
+            </div>
+            <div class="km-form-group">
+                <label>Sorular (JSON formatinda)</label>
+                <textarea id="kmStudySorular" class="km-input" rows="8" placeholder='[{"soru": "...", "secenekler": ["A", "B", "C", "D"], "dogru": 0}]' style="font-family:monospace;font-size:0.85rem;"></textarea>
+                <p style="color:#94a3b8;font-size:0.8rem;margin-top:5px;">Her soru nesnesi: soru, secenekler (opsiyonel), gorsel (URL, opsiyonel)</p>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:10px;">
+                <button class="km-btn" style="background:#f1f5f9;color:#475569;" onclick="document.getElementById('kmStudyModal').style.display='none'">Iptal</button>
+                <button class="km-btn km-btn-primary" onclick="kmAdminSaveStudy()">
+                    <i class="fa-solid fa-save"></i> Kaydet
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Atama Modal -->
+    <div class="km-modal" id="kmAssignModal">
+        <div class="km-modal-box">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 id="kmAssignModalTitle" style="margin:0;">Yeni Atama</h3>
+                <button onclick="document.getElementById('kmAssignModal').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#94a3b8;">&times;</button>
+            </div>
+            <div class="km-form-group">
+                <label>Calisma *</label>
+                <select id="kmAssignStudy" class="km-input"><option value="">Calisma sec...</option></select>
+            </div>
+            <div class="km-form-group">
+                <label>Sinif *</label>
+                <input type="text" id="kmAssignClass" class="km-input" placeholder="orn: 9A, 10-B">
+            </div>
+            <div class="km-form-group">
+                <label>Yontem</label>
+                <select id="kmAssignMethod" class="km-input">
+                    <option value="Tek">Bireysel (Tek)</option>
+                    <option value="Grup">Grup</option>
+                </select>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:15px;">
+                <label style="display:flex;align-items:center;gap:8px;background:#f8fafc;padding:10px;border-radius:8px;cursor:pointer;">
+                    <input type="checkbox" id="kmAssignGorme"> Goruntuleme Izni
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;background:#f8fafc;padding:10px;border-radius:8px;cursor:pointer;">
+                    <input type="checkbox" id="kmAssignYapma"> Yapma Izni
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;background:#f8fafc;padding:10px;border-radius:8px;cursor:pointer;">
+                    <input type="checkbox" id="kmAssignDegerl"> Degerlendirme Goster
+                </label>
+            </div>
+            <div class="km-form-group">
+                <label>Bitis Tarihi (Opsiyonel)</label>
+                <input type="date" id="kmAssignBitis" class="km-input">
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:10px;">
+                <button class="km-btn" style="background:#f1f5f9;color:#475569;" onclick="document.getElementById('kmAssignModal').style.display='none'">Iptal</button>
+                <button class="km-btn km-btn-primary" onclick="kmAdminSaveAssignment()">
+                    <i class="fa-solid fa-save"></i> Kaydet
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function kmSwitchTab(tab) {
+            document.querySelectorAll('.km-tab').forEach((t, i) => t.classList.remove('active'));
+            document.querySelectorAll('.km-section').forEach(s => s.classList.remove('active'));
+            const tabs = ['studies','assignments','reset'];
+            const idx = tabs.indexOf(tab);
+            document.querySelectorAll('.km-tab')[idx].classList.add('active');
+            document.getElementById(`kmTab_${tab}`).classList.add('active');
+            if (tab === 'reset') kmAdminPopulateResetSelect();
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/km_firebase.js"></script>
+    <script src="js/km_admin_app.js"></script>
+</body>
+</html>

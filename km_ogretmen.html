@@ -1,0 +1,64 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Degerlendirme Paneli - Ogretmen</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/app_permissions.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .km-container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+        .km-header { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); border-radius: 16px; padding: 20px 25px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid rgba(255,255,255,0.5); }
+        .km-card { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); border: 1px solid rgba(255,255,255,0.5); transition: all 0.25s; }
+        .km-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(59,130,246,0.12); }
+        .km-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 10px; border: none; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; }
+        .km-btn-primary { background: var(--primary, #3b82f6); color: white; }
+        .km-btn-primary:hover { filter: brightness(1.1); }
+        .km-btn-sm { padding: 5px 10px; font-size: 0.8rem; border-radius: 7px; }
+        .km-tab-btn { padding: 8px 18px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 0.85rem; color: #64748b; transition: all 0.2s; }
+        .km-tab-btn.km-tab-active { background: #eff6ff; color: #1d4ed8; border-color: #93c5fd; }
+        .km-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+    </style>
+</head>
+<body>
+    <div class="km-container">
+        <div class="km-header">
+            <div>
+                <h2 style="margin:0;font-weight:800;"><i class="fa-solid fa-chart-bar" style="color:#3b82f6;margin-right:10px;"></i>Degerlendirme Paneli</h2>
+                <p style="margin:4px 0 0;color:#64748b;font-size:0.9rem;">Ogrenci yanitlarini inceleyin ve puanlayin</p>
+            </div>
+            <button class="km-btn" style="background:#f1f5f9;color:#475569;" onclick="window.location.href='enter.html'">
+                <i class="fa-solid fa-arrow-left"></i> Portale Don
+            </button>
+        </div>
+
+        <!-- Calisma Listesi -->
+        <div id="kmOgrListSection">
+            <h3 style="margin-bottom:15px;color:#1e293b;"><i class="fa-solid fa-books" style="color:#3b82f6;margin-right:8px;"></i>Aktif Calismalar</h3>
+            <div id="kmOgrStudyList" class="km-grid">
+                <div style="grid-column:1/-1;text-align:center;padding:3rem;color:#94a3b8;">
+                    <i class="fa-solid fa-spinner fa-spin fa-2x"></i><br><br>Yukleniyor...
+                </div>
+            </div>
+        </div>
+
+        <!-- Calisma Detayi -->
+        <div id="kmOgrDetailSection" style="display:none;">
+            <div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;">
+                <button class="km-btn" style="background:#f1f5f9;color:#475569;" onclick="kmOgrGeriDon()">
+                    <i class="fa-solid fa-arrow-left"></i> Geri
+                </button>
+                <h3 id="kmOgrDetailTitle" style="margin:0;font-weight:800;color:#1e293b;"></h3>
+            </div>
+            <div id="kmOgrClassTabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px;"></div>
+            <div id="kmOgrClassContent" class="km-card"></div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/km_firebase.js"></script>
+    <script src="js/km_ogretmen_app.js"></script>
+</body>
+</html>

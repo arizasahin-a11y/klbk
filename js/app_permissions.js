@@ -1,4 +1,4 @@
-(async function() {
+﻿(async function() {
     // Hide body initially to prevent flashing unauthorized content
     const style = document.createElement('style');
     style.id = 'app-permissions-style';
@@ -9,7 +9,7 @@
     const currentPath = window.location.pathname;
     
     // Ignore script execution completely for login and security_error
-    if (currentPath === '/' || currentPath.endsWith('index.html') || currentPath.endsWith('security_error.html') || currentPath.endsWith('master.html')) {
+    if (currentPath === '/' || currentPath.endsWith('index.html') || currentPath.endsWith('security_error.html') || currentPath.endsWith('master.html') || currentPath.endsWith('km_ogrenci.html')) {
         document.head.removeChild(style);
         return;
     }
@@ -30,7 +30,13 @@
                 '/n4b9v1c7': '/master.html',
                 '/n4b9v1c7.html': '/master.html',
                 '/j2k5l0p8': '/ogrenci.html',
-                '/j2k5l0p8.html': '/ogrenci.html'
+                '/j2k5l0p8.html': '/ogrenci.html',
+                '/km2x9v3a': '/km_ogretmen.html',
+                '/km2x9v3a.html': '/km_ogretmen.html',
+                '/km8b4w1e': '/km_admin.html',
+                '/km8b4w1e.html': '/km_admin.html',
+                '/km5c7r6s': '/km_ogrenci.html',
+                '/km5c7r6s.html': '/km_ogrenci.html'
             };
             
             const canonicalPath = urlMap[currentPath] || currentPath;

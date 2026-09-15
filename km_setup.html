@@ -1,0 +1,284 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KM Modulu Firebase Kurulumu</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #f0f9ff, #e0f2fe); min-height: 100vh; padding: 20px; }
+        .card { background: white; border-radius: 20px; padding: 30px; max-width: 750px; margin: 0 auto; box-shadow: 0 20px 50px rgba(0,0,0,0.1); }
+        h2 { font-size: 1.4rem; font-weight: 800; color: #1e293b; margin-bottom: 8px; }
+        h3 { font-size: 1rem; font-weight: 700; color: #1e293b; margin: 20px 0 10px; }
+        p { color: #64748b; font-size: 0.88rem; line-height: 1.5; margin-bottom: 12px; }
+        .step { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px 18px; margin-bottom: 12px; }
+        .step-num { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: #3b82f6; color: white; border-radius: 50%; font-weight: 700; font-size: 0.85rem; margin-right: 8px; flex-shrink: 0; }
+        .step-title { display: flex; align-items: center; font-weight: 700; margin-bottom: 8px; }
+        .code-box { background: #1e293b; color: #e2e8f0; border-radius: 10px; padding: 14px 16px; font-family: monospace; font-size: 0.8rem; white-space: pre-wrap; word-break: break-all; margin: 10px 0; position: relative; max-height: 220px; overflow-y: auto; }
+        .copy-btn { position: absolute; top: 8px; right: 8px; background: #3b82f6; color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 0.75rem; font-weight: 600; }
+        .copy-btn:hover { background: #2563eb; }
+        .log { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 15px; font-family: monospace; font-size: 0.8rem; max-height: 250px; overflow-y: auto; color: #334155; margin: 12px 0; display: none; }
+        .log .ok { color: #16a34a; } .log .err { color: #dc2626; } .log .info { color: #2563eb; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 0.9rem; transition: all 0.2s; }
+        .btn-primary { background: #3b82f6; color: white; } .btn-primary:hover { background: #2563eb; }
+        .btn-secondary { background: #f1f5f9; color: #475569; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .warn { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 10px; padding: 12px 16px; color: #92400e; font-size: 0.85rem; margin-bottom: 16px; }
+        .success { background: #dcfce7; border: 1px solid #86efac; border-radius: 10px; padding: 12px 16px; color: #166534; font-size: 0.85rem; margin-bottom: 16px; display: none; }
+        .tab-btns { display: flex; gap: 8px; margin-bottom: 20px; }
+        .tab-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 0.85rem; color: #64748b; }
+        .tab-btn.active { background: #eff6ff; color: #1d4ed8; border-color: #93c5fd; }
+        .tab-content { display: none; } .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2><i class="fa-solid fa-database" style="color:#3b82f6;margin-right:8px;"></i>KM Modulu Firebase Kurulumu</h2>
+    <p>Okul Isleri modulunu Firebase'e kaydetmek icin iki yontem mevcuttur.</p>
+
+    <div class="tab-btns">
+        <button class="tab-btn active" onclick="showTab('auto')"><i class="fa-solid fa-bolt"></i> Otomatik (Onay Gerekli)</button>
+        <button class="tab-btn" onclick="showTab('manual')"><i class="fa-solid fa-terminal"></i> Firebase Console</button>
+    </div>
+
+    <!-- OTOMATIK -->
+    <div id="tab_auto" class="tab-content active">
+        <div class="warn">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <strong>401 Hatasi aliyorsaniz:</strong> Firebase Realtime Database kurallarinizda <code>klbk_app_permissions</code>
+            ve <code>klbk_teacher_links</code> icin yazma izni tanimli olmayabilir.
+            <br><br>
+            <strong>Cozum 1:</strong> Asagidaki "Kurulumu Baslat" butonunu deneyin — guncel rules dosyasi eklendi.
+            <br>
+            <strong>Cozum 2:</strong> Firebase Console sekmesini kullanin (her zaman calisir).
+        </div>
+
+        <div id="logBox" class="log"></div>
+        <div id="successBox" class="success">
+            <i class="fa-solid fa-check-circle"></i> <strong>Kurulum Tamamlandi!</strong>
+            enter.html'e gidin — "Degerlendirme Paneli" karti artik gorunur.
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" id="btnSetup" onclick="runSetup()">
+                <i class="fa-solid fa-rocket"></i> Kurulumu Baslat
+            </button>
+            <button class="btn btn-secondary" onclick="window.location.href='enter.html'">
+                <i class="fa-solid fa-arrow-left"></i> Portale Don
+            </button>
+        </div>
+    </div>
+
+    <!-- MANUEL / FIREBASE CONSOLE -->
+    <div id="tab_manual" class="tab-content">
+        <p>Firebase Console uzerinden asagidaki adimlari takip edin. Hicbir kod yazmadan calısır.</p>
+
+        <div class="step">
+            <div class="step-title"><span class="step-num">1</span>Firebase Realtime Database Kurallarini Guncelle</div>
+            <p><a href="https://console.firebase.google.com/project/klbk-620b0/database/klbk-620b0-default-rtdb/rules" target="_blank" style="color:#2563eb;">Firebase Console → Database → Rules</a> adresine gidin ve asagidaki kurali ekleyin:</p>
+            <div class="code-box" id="rules_code">{
+  "rules": {
+    "app_store": {
+      ".read": true,
+      "klbk_users": { ".read": true, ".write": true },
+      "klbk_teacher_links": { ".read": true, ".write": true },
+      "klbk_app_permissions": { ".read": true, ".write": true },
+      "klbk_master_pin": { ".read": true, ".write": true },
+      "klbk_activity_log": { ".write": true },
+      "device_assigns": { ".read": true, ".write": true },
+      "klbk_zumre_plans": { ".read": true, ".write": true },
+      "klbk_agenda_templates": { ".read": true, ".write": true },
+      "active_sessions": {
+        ".read": false,
+        "$token": { ".write": true }
+      },
+      "$storeKey": {
+        ".write": "!data.exists() || (newData.child('_sessionToken').exists() && root.child('app_store/active_sessions/' + newData.child('_sessionToken').val()).exists())"
+      }
+    }
+  }
+}</div>
+            <button class="copy-btn" onclick="copyCode('rules_code', this)">Kopyala</button>
+        </div>
+
+        <div class="step">
+            <div class="step-title"><span class="step-num">2</span>teacher_links Verisini Ekle</div>
+            <p><a href="https://console.firebase.google.com/project/klbk-620b0/database/klbk-620b0-default-rtdb/data/app_store/klbk_teacher_links" target="_blank" style="color:#2563eb;">app_store/klbk_teacher_links</a> node'una gidin.<br>
+            Mevcut veri varsa "links" dizisinin sonuna asagidaki 3 nesneyi ekleyin:</p>
+            <div class="code-box" id="links_code">[
+  {
+    "id": "km_ogretmen",
+    "title": "Degerlendirme Paneli",
+    "desc": "Ogrenci calisma takibi ve puanlama",
+    "icon": "fa-chart-bar",
+    "url": "/km2x9v3a",
+    "active": true
+  },
+  {
+    "id": "km_admin",
+    "title": "Calisma Yonetimi",
+    "desc": "Calisma olustur, sinif ata, yonet",
+    "icon": "fa-chalkboard-user",
+    "url": "/km8b4w1e",
+    "active": false
+  },
+  {
+    "id": "km_ogrenci",
+    "title": "Ogrenci Calismasi",
+    "desc": "Ogrenci giris ve calisma ekrani",
+    "icon": "fa-graduation-cap",
+    "url": "/km5c7r6s",
+    "active": true
+  }
+]</div>
+            <button class="copy-btn" onclick="copyCode('links_code', this)">Kopyala</button>
+        </div>
+
+        <div class="step">
+            <div class="step-title"><span class="step-num">3</span>app_permissions Verisini Ekle</div>
+            <p><a href="https://console.firebase.google.com/project/klbk-620b0/database/klbk-620b0-default-rtdb/data/app_store/klbk_app_permissions" target="_blank" style="color:#2563eb;">app_store/klbk_app_permissions</a> node'una gidin ve asagidakileri ekleyin:</p>
+            <div class="code-box" id="perms_code">{
+  "km_ogretmen_html": {
+    "globalAccess": true,
+    "assignments": {}
+  },
+  "km_admin_html": {
+    "globalAccess": false,
+    "assignments": {}
+  },
+  "km_ogrenci_html": {
+    "globalAccess": true,
+    "assignments": {}
+  }
+}</div>
+            <button class="copy-btn" onclick="copyCode('perms_code', this)">Kopyala</button>
+        </div>
+
+        <div class="step">
+            <div class="step-title"><span class="step-num">4</span>Kontrol Et</div>
+            <p>Islemleri tamamladiktan sonra enter.html'e gidin. "Degerlendirme Paneli" karti artik gorUnmelidir.<br>
+            master.html'den izin yonetimini yapabilirsiniz.</p>
+            <button class="btn btn-primary" onclick="window.location.href='enter.html'">
+                <i class="fa-solid fa-arrow-right"></i> enter.html'e Git
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const FIREBASE_DB_URL = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
+
+function showTab(t) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('tab_' + t).classList.add('active');
+}
+
+function copyCode(id, btn) {
+    const text = document.getElementById(id).textContent.replace(/^Kopyala/, '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = 'Kopyalandı!';
+        btn.style.background = '#16a34a';
+        setTimeout(() => { btn.textContent = 'Kopyala'; btn.style.background = ''; }, 2000);
+    });
+}
+
+function log(msg, type = 'info') {
+    const box = document.getElementById('logBox');
+    box.style.display = 'block';
+    const span = document.createElement('div');
+    span.className = type;
+    span.textContent = (type === 'ok' ? '✅ ' : type === 'err' ? '❌ ' : 'ℹ️ ') + msg;
+    box.appendChild(span);
+    box.scrollTop = box.scrollHeight;
+}
+
+async function fbGet(path) {
+    const res = await fetch(`${FIREBASE_DB_URL}/${path}.json?_=${Date.now()}`);
+    return res.ok ? await res.json() : null;
+}
+
+async function fbPatch(path, data) {
+    const res = await fetch(`${FIREBASE_DB_URL}/${path}.json`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+    });
+    if (res.status === 401) throw new Error('401 - Yazma izni yok. Firebase Console sekmesini kullanin.');
+    if (res.status === 403) throw new Error('403 - Erisim reddedildi. Firebase Console sekmesini kullanin.');
+    if (!res.ok) throw new Error(`HTTP ${res.status} hatasi`);
+    return await res.json();
+}
+
+async function runSetup() {
+    const btn = document.getElementById('btnSetup');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Calistirilıyor...';
+    document.getElementById('logBox').innerHTML = '';
+
+    try {
+        // 1. teacher_links
+        log('Mevcut teacher_links aliniyor...');
+        const linksData = await fbGet('app_store/klbk_teacher_links');
+        let links = [];
+        if (linksData && linksData.links) {
+            links = Array.isArray(linksData.links)
+                ? linksData.links.filter(l => l)
+                : Object.values(linksData.links).filter(l => l);
+        }
+
+        const kmLinks = [
+            { id: 'km_ogretmen', title: 'Degerlendirme Paneli', desc: 'Ogrenci calisma takibi ve puanlama', icon: 'fa-chart-bar', url: '/km2x9v3a', active: true },
+            { id: 'km_admin',    title: 'Calisma Yonetimi',    desc: 'Calisma olustur, sinif ata, yonet', icon: 'fa-chalkboard-user', url: '/km8b4w1e', active: false },
+            { id: 'km_ogrenci',  title: 'Ogrenci Calismasi',   desc: 'Ogrenci giris ve calisma ekrani', icon: 'fa-graduation-cap', url: '/km5c7r6s', active: true }
+        ];
+
+        let added = 0;
+        for (const kl of kmLinks) {
+            if (!links.find(l => l && l.id === kl.id)) { links.push(kl); added++; }
+        }
+        log(`${added} yeni link hazırlandi.`);
+
+        log('teacher_links kaydediliyor...');
+        await fbPatch('app_store/klbk_teacher_links', { links });
+        log('teacher_links OK!', 'ok');
+
+        // 2. app_permissions
+        log('app_permissions aliniyor...');
+        const permsData = await fbGet('app_store/klbk_app_permissions');
+        const perms = permsData || {};
+
+        const newPerms = {};
+        if (!perms['km_ogretmen_html']) { newPerms['km_ogretmen_html'] = { globalAccess: true, assignments: {} }; }
+        if (!perms['km_admin_html'])    { newPerms['km_admin_html']    = { globalAccess: false, assignments: {} }; }
+        if (!perms['km_ogrenci_html'])  { newPerms['km_ogrenci_html']  = { globalAccess: true, assignments: {} }; }
+
+        if (Object.keys(newPerms).length > 0) {
+            log('app_permissions kaydediliyor...');
+            await fbPatch('app_store/klbk_app_permissions', newPerms);
+            log('app_permissions OK!', 'ok');
+        } else {
+            log('app_permissions zaten ekli.', 'ok');
+        }
+
+        log('KURULUM TAMAMLANDI!', 'ok');
+        document.getElementById('successBox').style.display = 'block';
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Tamamlandi!';
+        btn.style.background = '#16a34a';
+
+    } catch (e) {
+        log(e.message, 'err');
+        if (e.message.includes('401') || e.message.includes('403')) {
+            log('Firebase Console sekmesine gecin (yukardaki sekme butonu).', 'info');
+            // Firebase Console sekmesini ac
+            document.querySelectorAll('.tab-btn')[1].click();
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-rocket"></i> Tekrar Dene';
+    }
+}
+</script>
+</body>
+</html>
