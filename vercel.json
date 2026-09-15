@@ -1,4 +1,4 @@
-﻿{
+{
   "headers": [
     {
       "source": "/(.*)\\.html",
@@ -19,6 +19,9 @@
     { "src": "/ogrenci(\\.html)?$", "status": 302, "headers": { "Location": "/security_error" } },
     { "src": "/ogretmen(\\.html)?$", "status": 302, "headers": { "Location": "/security_error" } },
     { "src": "/dashboard(\\.html)?$", "status": 302, "headers": { "Location": "/security_error" } },
+    { "src": "/km_ogretmen(\\.html)?$", "status": 302, "headers": { "Location": "/security_error" } },
+    { "src": "/km_admin(\\.html)?$", "status": 302, "headers": { "Location": "/security_error" } },
+    { "src": "/km_ogrenci(\\.html)?$", "status": 302, "headers": { "Location": "/security_error" } },
     { "src": "/k9x7v2m4(\\.html)?$", "dest": "/index.html" },
     { "src": "/h6t3y9w1(\\.html)?$", "dest": "/ogretmen.html" },
     { "src": "/r1p5s8q3(\\.html)?$", "dest": "/dashboard.html" },
