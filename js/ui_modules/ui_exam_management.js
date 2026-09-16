@@ -4405,7 +4405,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         window.currentRenderedSession = updatedSes;
                         window.renderExamSessionsList();
                         if (typeof window._renderExamResults === 'function') {
-                            window._renderExamResults(newResults);
+                            window._renderExamResults(updatedSes);
                         }
 
                         setTimeout(() => {
@@ -4552,7 +4552,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window._currentExamResults = res;
                 window.currentRenderedSession = session;
                 window.renderExamSessionsList();
-                window._renderExamResults(res);
+                window._renderExamResults(session);
                 setTimeout(() => {
                     if (typeof window.viewSessionDistribution === 'function') {
                         window.viewSessionDistribution(id, null, true);
@@ -4938,7 +4938,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('examSetupPanel').classList.add('hidden');
             document.getElementById('examResultsPanel').classList.remove('hidden');
             window.currentRenderedSession = session;
-            window._renderExamResults(res);
+            window._renderExamResults(session);
         });
     };
 

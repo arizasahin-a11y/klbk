@@ -2637,14 +2637,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     function renderExamResults(session, targetContainer = null, appendMode = false) {
-        const results = session.results;
+        if (!session) return;
+        const results = Array.isArray(session) ? session : (session.results || []);
+        const sessionId = (!Array.isArray(session) && session.id) ? session.id : (window.currentRenderedSession?.id || 'session');
         const view = targetContainer || examClassroomsView;
+        if (!view) return;
         const openRoomIds = Array.from(view.querySelectorAll('.nested-accordion-body:not(.hidden)')).map(el => el.id);
         
         if (!appendMode) view.innerHTML = '';
 
         results.forEach((room, idx) => {
-            const roomId = `nested-room-schema-${session.id}-${idx}`;
+            const roomId = `nested-room-schema-${sessionId}-${idx}`;
             const roomEl = document.createElement('div');
             roomEl.className = 'exam-room-result';
             roomEl.style.marginBottom = '2.5rem';
@@ -2722,7 +2725,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="nested-accordion-header" onclick="toggleNestedAccordion('${roomId}')" style="background:var(--gray-50); padding:1rem; border:1px solid var(--gray-200); border-radius:8px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                     <h3 style="margin:0; font-size:1.1rem;"><i class="fa-solid fa-table-cells" style="color:var(--primary);"></i> ${room.name} Salonu - Oturma Planı</h3>
                     <div style="display:flex; align-items:center; gap:15px;">
-                        <i class="fa-solid fa-print" style="color:var(--gray-400); cursor:pointer;" title="Yazdır" onclick="event.stopPropagation(); window.printSessionDistribution('${session.id}', '${room.name}')"></i>
+                        <i class="fa-solid fa-print" style="color:var(--gray-400); cursor:pointer;" title="Yazdır" onclick="event.stopPropagation(); window.printSessionDistribution('${sessionId}', '${room.name}')"></i>
                         <i id="icon-${roomId}" class="fa-solid ${openRoomIds.includes(roomId) ? 'fa-chevron-down' : 'fa-chevron-right'}" style="color:var(--gray-400);"></i>
                     </div>
                 </div>
