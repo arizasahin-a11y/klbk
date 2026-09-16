@@ -3491,7 +3491,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!ses) return;
 
         // Extract ALL unique full subject names (e.g., "Matematik 10") present in the results
-        // Extract ALL unique full subject names (e.g., "Matematik 10") and map them to student counts
         const subjectStats = {};
         if (ses.results) {
             ses.results.forEach(room => {
@@ -3520,7 +3519,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = DataManager.getSanitizedSubjectMetadata(ses, sub);
             const subExamNum = data.examNo || data.examNumber || '';
             const subPapers = data.papers || {};
-            const subHeader = data.pdfHeaderDesign || '1'; // Inject subHeader variable
+            const subHeader = data.pdfHeaderDesign || '1';
 
             let paperInputs = '';
             if (ses.type === 'uygulama') {
@@ -3604,9 +3603,351 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                     ${paperInputs}
                 </div>
-    `;
+            `;
         });
 
+        // ── Sınıf ve Öğrenci Yönetimi Veri Hazırlığı ──
+        const allStudents = DataManager.getStudents();
+        const allRooms = DataManager.getClassrooms();
+
+        // Mevcut dağıtımda yer alan öğrenciler
+        const currentDistributedStudentNos = new Set();
+        if (ses.results) {
+            ses.results.forEach(room => {
+                Object.values(room.seats || {}).forEach(std => {
+                    if (std && std.no) currentDistributedStudentNos.add(std.no.toString());
+                });
+            });
+        }
+
+        // Bu dersleri alan aday öğrenciler
+        const sessionSubjectsNorm = subjectNames.map(s => String(s || '').trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ'));
+        let candidateStudents = allStudents.filter(s => {
+            if (!s.dersler || !s.dersler.length) return false;
+            return s.dersler.some(d => {
+                const dn = String(d || '').trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
+                return sessionSubjectsNorm.some(sn => dn === sn || dn.startsWith(sn + ' ') || sn.startsWith(dn + ' '));
+            });
+        });
+
+        // Eğer candidateStudents boşsa veya sonuçlardaki bazı öğrenciler candidate listesinde yoksa birleştir
+        if (ses.results) {
+            ses.results.forEach(room => {
+                Object.values(room.seats || {}).forEach(std => {
+                    if (std && std.no && !candidateStudents.some(cs => String(cs.no) === String(std.no))) {
+                        candidateStudents.push(std);
+                    }
+                });
+            });
+        }
+
+        // Sınıflara göre grupla
+        const classGroups = {};
+        candidateStudents.forEach(s => {
+            const cls = (s.class || "Bilinmeyen").trim();
+            if (!classGroups[cls]) classGroups[cls] = [];
+            if (!classGroups[cls].some(ex => String(ex.no) === String(s.no))) {
+                classGroups[cls].push(s);
+            }
+        });
+
+        const sortedClassNames = Object.keys(classGroups).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }));
+
+        // Başlangıç seçili öğrenci durumları: cls -> Set of string nos
+        const editClassSelection = {};
+        const initialExcluded = new Set((ses.excludedStudents || []).map(String));
+
+        sortedClassNames.forEach(cls => {
+            const stds = classGroups[cls];
+            const hasStudentsInResult = stds.some(s => currentDistributedStudentNos.has(String(s.no)));
+            const isClassInSelected = ses.selectedClasses && ses.selectedClasses.some(sc => sc.includes(cls));
+            const isInitialActive = hasStudentsInResult || isClassInSelected;
+
+            editClassSelection[cls] = new Set();
+            if (isInitialActive) {
+                stds.forEach(s => {
+                    const sno = String(s.no);
+                    if (currentDistributedStudentNos.size > 0) {
+                        if (currentDistributedStudentNos.has(sno)) {
+                            editClassSelection[cls].add(sno);
+                        }
+                    } else if (!initialExcluded.has(sno)) {
+                        editClassSelection[cls].add(sno);
+                    }
+                });
+            }
+        });
+
+        // Toplam derslik kapasitesi ve Derslik Seçimi Hazırlığı
+        const editRoomSelection = new Set();
+        const initialRoomNames = ses.results ? ses.results.map(r => r.name) : (ses.selectedClassrooms || []);
+        allRooms.forEach(r => {
+            if (initialRoomNames.includes(r.name)) editRoomSelection.add(r.name);
+        });
+        if (editRoomSelection.size === 0 && ses.selectedClassrooms && ses.selectedClassrooms.length) {
+            ses.selectedClassrooms.forEach(rn => editRoomSelection.add(rn));
+        }
+
+        const getRoomCap = (room) => {
+            let cap = 0;
+            for (let g = 1; g <= (room.groups || 1); g++) {
+                const conf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
+                for (let r = 1; r <= conf.rows; r++) {
+                    for (let c = 1; c <= conf.cols; c++) {
+                        const sid = `G${g}-S${r}-C${c}`;
+                        if (!room.disabledSeats?.includes(sid)) cap++;
+                    }
+                }
+            }
+            return cap;
+        };
+
+        const calcTotalCapacity = () => {
+            let total = 0;
+            allRooms.forEach(room => {
+                if (editRoomSelection.has(room.name)) total += getRoomCap(room);
+            });
+            return total;
+        };
+
+        const getSelectionSnapshot = () => {
+            const obj = {};
+            sortedClassNames.forEach(cls => {
+                obj[cls] = Array.from(editClassSelection[cls]).sort();
+            });
+            return JSON.stringify(obj);
+        };
+        const initialSnapshot = getSelectionSnapshot();
+        const initialRoomSnapshot = Array.from(editRoomSelection).sort().join(',');
+
+        // Kapasite ve sayaç göstergelerini güncelleyen merkezi yardımcı
+        window.updateCapacityIndicators = () => {
+            let totalSelectedCount = 0;
+            sortedClassNames.forEach(cls => {
+                totalSelectedCount += editClassSelection[cls].size;
+            });
+            const totalCapacity = calcTotalCapacity();
+
+            const lblSelected = document.getElementById('lblSelectedStudentsCount');
+            if (lblSelected) lblSelected.innerText = totalSelectedCount;
+
+            const lblSelectedRooms = document.getElementById('lblSelectedStudentsInRoomsCount');
+            if (lblSelectedRooms) lblSelectedRooms.innerText = totalSelectedCount;
+
+            const lblCap = document.getElementById('lblTotalCapacityCount');
+            if (lblCap) lblCap.innerText = totalCapacity;
+
+            const lblRoomsCap = document.getElementById('lblRoomsCapacityCount');
+            if (lblRoomsCap) lblRoomsCap.innerText = totalCapacity;
+
+            const badgeTotal = document.getElementById('badgeTotalStudents');
+            if (badgeTotal) badgeTotal.innerText = `${totalSelectedCount} Öğrenci`;
+
+            const badgeRooms = document.getElementById('badgeTotalRooms');
+            if (badgeRooms) badgeRooms.innerText = `${editRoomSelection.size} Derslik`;
+
+            const isOverCapacity = (totalCapacity > 0 && totalSelectedCount > totalCapacity);
+            const warningEl = document.getElementById('capacityWarningText');
+            if (warningEl) warningEl.style.display = isOverCapacity ? 'block' : 'none';
+
+            const warningRoomsEl = document.getElementById('roomsCapacityWarningText');
+            if (warningRoomsEl) warningRoomsEl.style.display = isOverCapacity ? 'block' : 'none';
+        };
+
+        // Sekme Değiştirici
+        window.switchEditorTab = (tabName) => {
+            const metaTab = document.getElementById('tabPaneMeta');
+            const classesTab = document.getElementById('tabPaneClasses');
+            const roomsTab = document.getElementById('tabPaneRooms');
+
+            const btnMeta = document.getElementById('tabBtnMeta');
+            const btnClasses = document.getElementById('tabBtnClasses');
+            const btnRooms = document.getElementById('tabBtnRooms');
+
+            if (metaTab) metaTab.style.display = tabName === 'meta' ? 'block' : 'none';
+            if (classesTab) classesTab.style.display = tabName === 'classes' ? 'block' : 'none';
+            if (roomsTab) roomsTab.style.display = tabName === 'rooms' ? 'block' : 'none';
+
+            if (btnMeta) btnMeta.classList.toggle('active', tabName === 'meta');
+            if (btnClasses) btnClasses.classList.toggle('active', tabName === 'classes');
+            if (btnRooms) btnRooms.classList.toggle('active', tabName === 'rooms');
+
+            if (tabName === 'classes' && typeof window.renderEditorClassesList === 'function') {
+                window.renderEditorClassesList();
+            } else if (tabName === 'rooms' && typeof window.renderEditorRoomsList === 'function') {
+                window.renderEditorRoomsList();
+            }
+        };
+
+        // Sınıflar Listesi Render
+        window.renderEditorClassesList = () => {
+            const container = document.getElementById('editorClassesContainer');
+            if (!container) return;
+
+            let html = '';
+            sortedClassNames.forEach(cls => {
+                const stds = classGroups[cls];
+                const selectedCount = editClassSelection[cls].size;
+                const isChecked = selectedCount > 0;
+                const isPartial = selectedCount > 0 && selectedCount < stds.length;
+
+                html += `
+                    <div class="edit-class-card ${isChecked ? 'active' : ''}" id="edit-class-card-${cls}">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <input type="checkbox" class="edit-class-cb" data-class="${cls}" ${isChecked ? 'checked' : ''} 
+                                   onchange="window.toggleEditClass('${cls}', this.checked)" style="width:18px; height:18px; cursor:pointer;">
+                            <div>
+                                <span style="font-weight:700; font-size:1rem; color:#1e293b;">${cls}</span>
+                                ${isPartial ? '<span style="font-size:0.75rem; color:#f59e0b; margin-left:6px; font-weight:bold;">(Kısmi Seçim)</span>' : ''}
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <span style="font-size:0.85rem; color:#475569; font-weight:600;">
+                                <b style="color:${isChecked ? '#4f46e5' : '#94a3b8'};">${selectedCount}</b> / ${stds.length} Öğrenci
+                            </span>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="window.openEditClassStudentsModal('${cls}')" 
+                                    style="font-size:0.75rem; padding:4px 10px; display:inline-flex; align-items:center; gap:5px;" title="Bu sınıftan öğrenci seç">
+                                <i class="fa-solid fa-user-pen"></i> Öğrenci Seç
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            window.updateCapacityIndicators();
+        };
+
+        window.toggleEditClass = (cls, isChecked) => {
+            const stds = classGroups[cls] || [];
+            if (isChecked) {
+                editClassSelection[cls] = new Set(stds.map(s => String(s.no)));
+            } else {
+                editClassSelection[cls].clear();
+            }
+            window.renderEditorClassesList();
+        };
+
+        window.toggleAllEditorClasses = (select) => {
+            sortedClassNames.forEach(cls => {
+                const stds = classGroups[cls] || [];
+                if (select) {
+                    editClassSelection[cls] = new Set(stds.map(s => String(s.no)));
+                } else {
+                    editClassSelection[cls].clear();
+                }
+            });
+            window.renderEditorClassesList();
+        };
+
+        window.openEditClassStudentsModal = (cls) => {
+            const stds = classGroups[cls] || [];
+            if (!stds.length) return;
+
+            let listHtml = `
+                <div class="modal-row" style="margin-bottom:1rem; display:flex; gap:0.5rem; justify-content:center;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.edit-std-cb').forEach(cb => cb.checked = true)">Hepsini Seç</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.edit-std-cb').forEach(cb => cb.checked = false)">Hiçbirini Seç</button>
+                </div>
+                <div style="text-align:left; max-height:320px; overflow-y:auto; padding:0.5rem; border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc;">`;
+            stds.forEach(s => {
+                const isSelected = editClassSelection[cls].has(String(s.no));
+                listHtml += `
+                    <label style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem; cursor:pointer; padding: 0.5rem; border-bottom: 1px solid #e2e8f0; background:#ffffff; border-radius:6px;">
+                        <input type="checkbox" class="edit-std-cb" value="${s.no}" ${isSelected ? 'checked' : ''} style="width:18px; height:18px; cursor:pointer;">
+                        <span style="font-size:0.95rem; color:#1e293b;"><b>${s.no}</b> - ${s.name}</span>
+                    </label>
+                `;
+            });
+            listHtml += `</div>`;
+
+            Swal.fire({
+                title: `${cls} Sınıfı Öğrenci Seçimi`,
+                html: listHtml,
+                showCancelButton: true,
+                confirmButtonText: 'Tamam',
+                cancelButtonText: 'İptal',
+                didOpen: () => {
+                    const containers = document.querySelectorAll('.swal2-container');
+                    const topContainer = containers[containers.length - 1];
+                    if (topContainer) topContainer.style.zIndex = '1000005';
+                },
+                preConfirm: () => {
+                    const checkedNos = Array.from(document.querySelectorAll('.edit-std-cb:checked')).map(cb => cb.value.toString());
+                    editClassSelection[cls] = new Set(checkedNos);
+                    window.renderEditorClassesList();
+                }
+            });
+        };
+
+        // Derslikler Listesi Render
+        window.renderEditorRoomsList = () => {
+            const container = document.getElementById('editorRoomsContainer');
+            if (!container) return;
+
+            let html = '';
+            allRooms.forEach(room => {
+                const isChecked = editRoomSelection.has(room.name);
+                const cap = getRoomCap(room);
+                const groupText = `${room.groups || 1} Grup`;
+                const configText = room.rows && room.cols ? `${room.rows}x${room.cols}` : '';
+
+                html += `
+                    <div class="edit-class-card ${isChecked ? 'active' : ''}" id="edit-room-card-${room.name}">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <input type="checkbox" class="edit-room-cb" data-room="${room.name}" ${isChecked ? 'checked' : ''} 
+                                   onchange="window.toggleEditRoom('${room.name}', this.checked)" style="width:18px; height:18px; cursor:pointer;">
+                            <div>
+                                <span style="font-weight:700; font-size:1rem; color:#1e293b;"><i class="fa-solid fa-door-open" style="color:#6366f1; margin-right:4px;"></i> ${room.name} Salonu</span>
+                                <small style="color:#64748b; margin-left:6px;">(${groupText}${configText ? ' • ' + configText : ''})</small>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span class="edit-class-badge" style="background:${isChecked ? '#e0e7ff' : '#f1f5f9'}; color:${isChecked ? '#4338ca' : '#64748b'}; font-size:0.85rem; padding:4px 10px;">
+                                <i class="fa-solid fa-chair"></i> <b>${cap}</b> Koltuk
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            window.updateCapacityIndicators();
+        };
+
+        window.toggleEditRoom = (roomName, isChecked) => {
+            if (isChecked) {
+                editRoomSelection.add(roomName);
+            } else {
+                editRoomSelection.delete(roomName);
+            }
+            window.renderEditorRoomsList();
+        };
+
+        window.toggleAllEditorRooms = (select) => {
+            allRooms.forEach(room => {
+                if (select) {
+                    editRoomSelection.add(room.name);
+                } else {
+                    editRoomSelection.delete(room.name);
+                }
+            });
+            window.renderEditorRoomsList();
+        };
+
+        window.autoMatchEditorRooms = () => {
+            // Seçili sınıflarla eşleşen derslikleri otomatik işaretle
+            const selectedClasses = sortedClassNames.filter(cls => editClassSelection[cls].size > 0);
+            allRooms.forEach(room => {
+                const isAutoMatch = selectedClasses.some(cls => DataManager.getSanitizedClassRoomMapping(cls) === room.name);
+                if (isAutoMatch) {
+                    editRoomSelection.add(room.name);
+                }
+            });
+            window.renderEditorRoomsList();
+        };
+
+        // Modal Gövdesi
         Swal.fire({
             title: 'Oturum Bilgilerini Düzenle',
             customClass: { popup: 'swal2-responsive-popup' },
@@ -3615,90 +3956,157 @@ document.addEventListener('DOMContentLoaded', async () => {
             backdrop: true,
             html: `
                 <div class="modal-body-wrapper" style="text-align: left;">
-                    <div class="modal-row" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
-                        <div class="modal-form-group" style="flex: 1; min-width: 180px; max-width: 220px;">
-                            <label style="font-weight:700;">Sınav Tarihi</label>
-                            <input type="date" id="meta-date" class="swal2-input" style="width:100%; margin:0; height:40px;" value="${window.formatDateToInput(ses.date) || ''}">
-                        </div>
-                        <div class="modal-form-group" style="flex: 1; min-width: 140px; max-width: 180px;">
-                            <label style="font-weight:700;">Ders Saati</label>
-                            ${(() => {
-                                const school = DataManager.getSchoolSettings();
-                                const lessonTimes = school.lessonTimes || {};
-                                const dailyLessons = parseInt(school.dailyLessons) || 0;
-                                let options = '<option value="">Hızlı Seçim</option>';
-                                for (let i = 1; i <= dailyLessons; i++) {
-                                    const start = lessonTimes[`${i}_start`];
-                                    if (start) {
-                                        const isSelected = (ses.time === start || ses.time === `${i}. Ders`) ? 'selected' : '';
-                                        options += `<option value="${start}" ${isSelected}>${i}. Ders (${start})</option>`;
+                    <!-- Sekme Başlıkları -->
+                    <div class="session-editor-tabs" style="display:flex; gap:6px; margin-bottom:1.25rem; border-bottom:2px solid #e2e8f0; flex-wrap:wrap;">
+                        <button type="button" id="tabBtnMeta" class="session-editor-tab-btn active" onclick="window.switchEditorTab('meta')">
+                            <i class="fa-solid fa-file-pen"></i> Oturum & Soru Kağıtları
+                        </button>
+                        <button type="button" id="tabBtnClasses" class="session-editor-tab-btn" onclick="window.switchEditorTab('classes')">
+                            <i class="fa-solid fa-users-gear"></i> Sınıflar & Öğrenciler 
+                            <span id="badgeTotalStudents" class="edit-class-badge" style="margin-left:4px;">0 Öğrenci</span>
+                        </button>
+                        <button type="button" id="tabBtnRooms" class="session-editor-tab-btn" onclick="window.switchEditorTab('rooms')">
+                            <i class="fa-solid fa-school"></i> Derslikler 
+                            <span id="badgeTotalRooms" class="edit-class-badge" style="margin-left:4px;">0 Derslik</span>
+                        </button>
+                    </div>
+
+                    <!-- TAB 1: Oturum Bilgileri & Dersler -->
+                    <div id="tabPaneMeta" class="tab-pane">
+                        <div class="modal-row" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <div class="modal-form-group" style="flex: 1; min-width: 180px; max-width: 220px;">
+                                <label style="font-weight:700;">Sınav Tarihi</label>
+                                <input type="date" id="meta-date" class="swal2-input" style="width:100%; margin:0; height:40px;" value="${window.formatDateToInput(ses.date) || ''}">
+                            </div>
+                            <div class="modal-form-group" style="flex: 1; min-width: 140px; max-width: 180px;">
+                                <label style="font-weight:700;">Ders Saati</label>
+                                ${(() => {
+                                    const school = DataManager.getSchoolSettings();
+                                    const lessonTimes = school.lessonTimes || {};
+                                    const dailyLessons = parseInt(school.dailyLessons) || 0;
+                                    let options = '<option value="">Hızlı Seçim</option>';
+                                    for (let i = 1; i <= dailyLessons; i++) {
+                                        const start = lessonTimes[`${i}_start`];
+                                        if (start) {
+                                            const isSelected = (ses.time === start || ses.time === `${i}. Ders`) ? 'selected' : '';
+                                            options += `<option value="${start}" ${isSelected}>${i}. Ders (${start})</option>`;
+                                        }
                                     }
-                                }
-                                return `
-                                    <select id="meta-lesson" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem; padding:0 10px;">
-                                        ${options}
-                                    </select>
-                                `;
-                            })()}
+                                    return `
+                                        <select id="meta-lesson" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem; padding:0 10px;">
+                                            ${options}
+                                        </select>
+                                    `;
+                                })()}
+                            </div>
+                            <div class="modal-form-group" style="flex: 1; min-width: 120px; max-width: 160px;">
+                                <label style="font-weight:700;">Saat / Dakika</label>
+                                <input type="time" id="meta-time" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem;" value="" required>
+                            </div>
+                            <div class="modal-form-group" style="flex: 1; min-width: 150px; max-width: 180px;">
+                                <label style="font-weight:700;">Sınav Süresi (dk)</label>
+                                <input type="number" id="meta-duration" class="swal2-input" style="width:100%; margin:0; height:40px; text-align:center;" value="${ses.examDuration || 40}" min="1">
+                                <div id="duration-timer-preview" style="font-size: 0.9rem; font-weight: 800; color: #ef4444; margin-top: 5px; text-align: center; font-family: monospace; background: #fee2e2; border-radius: 4px; padding: 2px 0;">00:40:00</div>
+                            </div>
                         </div>
-                        <div class="modal-form-group" style="flex: 1; min-width: 120px; max-width: 160px;">
-                            <label style="font-weight:700;">Saat / Dakika</label>
-                            <input type="time" id="meta-time" class="swal2-input" style="width:100%; margin:0; height:40px; font-size:0.9rem;" value="" required>
+
+                        <div class="modal-form-card" style="margin-bottom: 1.5rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap; padding: 1rem; background: var(--gray-50); border-radius: 12px; border: 1px solid var(--gray-200);">
+                            <div style="display:flex; align-items:center; gap:0.8rem;">
+                                <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary); font-size:1.2rem;"></i>
+                                <div>
+                                    <strong style="display:block; font-size:0.85rem;">Toplu Sınav No Uygula</strong>
+                                    <small style="color:var(--gray-500); font-size:0.75rem;">Seçili tüm derslere aynı numarayı girin.</small>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:0.3rem; align-items:center;">
+                                <input type="text" id="bulk-exam-num" class="swal2-input" style="width:60px; margin:0; height:32px; text-align:center; font-size:0.8rem; padding:0;" placeholder="No">
+                                <button type="button" class="btn btn-primary btn-sm" style="height:32px; padding:0 10px; font-size:0.75rem;" onclick="const val=document.getElementById('bulk-exam-num').value; document.querySelectorAll('.meta-subject-row').forEach(row => { const cb=row.querySelector('.meta-sub-check'); if(cb && cb.checked){ const input=row.querySelector('.meta-exam-num-input'); if(input) input.value=val; } })">Uygula</button>
+                            </div>
+                            
+                            <div style="flex:1; min-width:20px;"></div>
+
+                            <div class="modal-form-group" style="display:flex; align-items:center; gap:0.8rem;">
+                                <label style="font-weight:700; margin:0; font-size:0.85rem; color: var(--gray-700);">Ekran Görünümü</label>
+                                <div style="display:flex; align-items:center; gap:0.5rem; background:white; padding:4px 8px; border-radius:8px; border:1px solid var(--gray-200);">
+                                    <label style="display:flex; align-items:center; gap:5px; cursor:pointer; margin:0;" title="Öğrenci Panelinde oturma planını göster">
+                                        <input type="checkbox" id="meta-screen-check" ${ses.screenViewEnabled !== false ? 'checked' : ''} style="width:16px; height:16px;">
+                                        <i class="fa-solid fa-desktop" style="color:var(--info); font-size:0.9rem;"></i>
+                                    </label>
+                                    <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit !== undefined ? ses.screenViewLimit : (DataManager.getSchoolSettings()?.defaultTimes?.defaultScreenViewLimit || 8)}" min="0" max="9999" style="width:65px; height:28px; text-align:center; border:1px solid var(--gray-200); border-radius:4px; font-weight:bold; font-size:0.85rem;">
+                                    <span style="font-size:0.75rem; font-weight:600; color:var(--gray-500);">dk</span>
+                                    <div style="width:1px; height:16px; background:var(--gray-300); margin:0 4px;"></div>
+                                    <label style="display:flex; align-items:center; gap:5px; cursor:pointer; margin:0;" title="Akıllı Tahta Yansıtma Modunda Zaman Sayacını Göster">
+                                        <input type="checkbox" id="meta-screen-timer-check" ${ses.screenViewTimerEnabled !== false ? 'checked' : ''} style="width:16px; height:16px;">
+                                        <i class="fa-solid fa-stopwatch" style="color:var(--warning); font-size:0.9rem;"></i>
+                                        <span style="font-size:0.75rem; font-weight:600; color:var(--gray-600);">Sayaç</span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
-                        <div class="modal-form-group" style="flex: 1; min-width: 150px; max-width: 180px;">
-                            <label style="font-weight:700;">Sınav Süresi (dk)</label>
-                            <input type="number" id="meta-duration" class="swal2-input" style="width:100%; margin:0; height:40px; text-align:center;" value="${ses.examDuration || 40}" min="1">
-                            <div id="duration-timer-preview" style="font-size: 0.9rem; font-weight: 800; color: #ef4444; margin-top: 5px; text-align: center; font-family: monospace; background: #fee2e2; border-radius: 4px; padding: 2px 0;">00:40:00</div>
+
+                        <div id="meta-subjects-list" style="max-height: 350px; overflow-y: auto; padding-right:0.5rem;">
+                            ${subjectsHtml}
+                        </div>
+
+                        <hr style="margin:1.5rem 0; border:0; border-top:1px solid var(--gray-300);">
+
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label style="display:block; margin-bottom:0.5rem; font-weight:bold;">Öğrenciye Mesaj / Uyarılar</label>
+                            <textarea id="meta-std-msg" class="swal2-textarea" style="width:100%; margin:0; height:80px;" placeholder="Optik formları dikkatli doldurunuz...">${ses.studentMsg || ''}</textarea>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label style="display:block; margin-bottom:0.5rem; font-weight:bold;">Öğretmen Mesajı / Talimatlar</label>
+                            <textarea id="meta-tch-msg" class="swal2-textarea" style="width:100%; margin:0; height:80px;" placeholder="Sınav süresi ${DataManager.getSchoolSettings().defaultTimes?.defaultExamDuration || 40} dakikadır...">${ses.teacherMsg || ''}</textarea>
                         </div>
                     </div>
 
-                    <div class="modal-form-card" style="margin-bottom: 1.5rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap; padding: 1rem; background: var(--gray-50); border-radius: 12px; border: 1px solid var(--gray-200);">
-                        <div style="display:flex; align-items:center; gap:0.8rem;">
-                            <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary); font-size:1.2rem;"></i>
+                    <!-- TAB 2: Sınıflar & Öğrenciler -->
+                    <div id="tabPaneClasses" class="tab-pane" style="display:none;">
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 16px; margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                             <div>
-                                <strong style="display:block; font-size:0.85rem;">Toplu Sınav No Uygula</strong>
-                                <small style="color:var(--gray-500); font-size:0.75rem;">Seçili tüm derslere aynı numarayı girin.</small>
+                                <div style="font-size:0.95rem; font-weight:700; color:#1e293b;">
+                                    Seçili: <span id="lblSelectedStudentsCount" style="color:#4f46e5;">0</span> Öğrenci 
+                                    <span style="color:#94a3b8; font-weight:normal; margin:0 4px;">/</span> 
+                                    Kapasite: <span id="lblTotalCapacityCount" style="color:#059669;">${calcTotalCapacity()}</span> Koltuk
+                                </div>
+                                <div id="capacityWarningText" style="font-size:0.78rem; color:#dc2626; font-weight:bold; display:none; margin-top:2px;">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> Seçilen öğrenci sayısı toplam derslik kapasitesini aşıyor!
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="window.toggleAllEditorClasses(true)">Tüm Sınıfları Seç</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="window.toggleAllEditorClasses(false)">Tümünü Kaldır</button>
                             </div>
                         </div>
-                        <div style="display:flex; gap:0.3rem; align-items:center;">
-                            <input type="text" id="bulk-exam-num" class="swal2-input" style="width:60px; margin:0; height:32px; text-align:center; font-size:0.8rem; padding:0;" placeholder="No">
-                            <button type="button" class="btn btn-primary btn-sm" style="height:32px; padding:0 10px; font-size:0.75rem;" onclick="const val=document.getElementById('bulk-exam-num').value; document.querySelectorAll('.meta-subject-row').forEach(row => { const cb=row.querySelector('.meta-sub-check'); if(cb && cb.checked){ const input=row.querySelector('.meta-exam-num-input'); if(input) input.value=val; } })">Uygula</button>
-                        </div>
-                        
-                        <div style="flex:1; min-width:20px;"></div>
 
-                        <div class="modal-form-group" style="display:flex; align-items:center; gap:0.8rem;">
-                            <label style="font-weight:700; margin:0; font-size:0.85rem; color: var(--gray-700);">Ekran Görünümü</label>
-                            <div style="display:flex; align-items:center; gap:0.5rem; background:white; padding:4px 8px; border-radius:8px; border:1px solid var(--gray-200);">
-                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer; margin:0;" title="Öğrenci Panelinde oturma planını göster">
-                                    <input type="checkbox" id="meta-screen-check" ${ses.screenViewEnabled !== false ? 'checked' : ''} style="width:16px; height:16px;">
-                                    <i class="fa-solid fa-desktop" style="color:var(--info); font-size:0.9rem;"></i>
-                                </label>
-                                <input type="number" id="meta-screen-limit" value="${ses.screenViewLimit !== undefined ? ses.screenViewLimit : (DataManager.getSchoolSettings()?.defaultTimes?.defaultScreenViewLimit || 8)}" min="0" max="9999" style="width:65px; height:28px; text-align:center; border:1px solid var(--gray-200); border-radius:4px; font-weight:bold; font-size:0.85rem;">
-                                <span style="font-size:0.75rem; font-weight:600; color:var(--gray-500);">dk</span>
-                                <div style="width:1px; height:16px; background:var(--gray-300); margin:0 4px;"></div>
-                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer; margin:0;" title="Akıllı Tahta Yansıtma Modunda Zaman Sayacını Göster">
-                                    <input type="checkbox" id="meta-screen-timer-check" ${ses.screenViewTimerEnabled !== false ? 'checked' : ''} style="width:16px; height:16px;">
-                                    <i class="fa-solid fa-stopwatch" style="color:var(--warning); font-size:0.9rem;"></i>
-                                    <span style="font-size:0.75rem; font-weight:600; color:var(--gray-600);">Sayaç</span>
-                                </label>
+                        <div id="editorClassesContainer" style="max-height:380px; overflow-y:auto; padding-right:4px;">
+                            <!-- Sınıf kartları JS ile doldurulacak -->
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: Derslikler -->
+                    <div id="tabPaneRooms" class="tab-pane" style="display:none;">
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 16px; margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <div>
+                                <div style="font-size:0.95rem; font-weight:700; color:#1e293b;">
+                                    Toplam Kapasite: <span id="lblRoomsCapacityCount" style="color:#059669;">${calcTotalCapacity()}</span> Koltuk
+                                    <span style="color:#94a3b8; font-weight:normal; margin:0 4px;">/</span> 
+                                    Hedef Öğrenci: <span id="lblSelectedStudentsInRoomsCount" style="color:#4f46e5;">0</span>
+                                </div>
+                                <div id="roomsCapacityWarningText" style="font-size:0.78rem; color:#dc2626; font-weight:bold; display:none; margin-top:2px;">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> Seçili dersliklerin toplam kapasitesi öğrenci sayısının altında! Lütfen daha fazla derslik seçin.
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="window.toggleAllEditorRooms(true)">Tümünü Seç</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="window.autoMatchEditorRooms()" title="Seçili sınıflarla eşleşen derslikleri otomatik seç">Otomatik Eşleştir</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="window.toggleAllEditorRooms(false)">Tümünü Kaldır</button>
                             </div>
                         </div>
-                    </div>
 
-                    <div id="meta-subjects-list" style="max-height: 400px; overflow-y: auto; padding-right:0.5rem;">
-                        ${subjectsHtml}
-                    </div>
-
-                    <hr style="margin:1.5rem 0; border:0; border-top:1px solid var(--gray-300);">
-
-                    <div class="form-group" style="margin-bottom: 1rem;">
-                        <label style="display:block; margin-bottom:0.5rem; font-weight:bold;">Öğrenciye Mesaj / Uyarılar</label>
-                        <textarea id="meta-std-msg" class="swal2-textarea" style="width:100%; margin:0; height:80px;" placeholder="Optik formları dikkatli doldurkan...">${ses.studentMsg || ''}</textarea>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 1rem;">
-                        <label style="display:block; margin-bottom:0.5rem; font-weight:bold;">Öğretmen Mesajı / Talimatlar</label>
-                        <textarea id="meta-tch-msg" class="swal2-textarea" style="width:100%; margin:0; height:80px;" placeholder="Sınav süresi ${DataManager.getSchoolSettings().defaultTimes?.defaultExamDuration || 40} dakikadır...">${ses.teacherMsg || ''}</textarea>
+                        <div id="editorRoomsContainer" style="max-height:380px; overflow-y:auto; padding-right:4px;">
+                            <!-- Derslik kartları JS ile doldurulacak -->
+                        </div>
                     </div>
 
                     <hr style="margin:1.5rem 0; border:0; border-top:2px dashed #6366f1;">
@@ -3715,12 +4123,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </button>
                     </div>
                 </div>
-`,
+            `,
             showCancelButton: true,
             confirmButtonText: 'Tümünü Kaydet',
             cancelButtonText: 'İptal',
             didOpen: () => {
-                // Ensure values are selected even if template literal had issues
                 const dateInp = document.getElementById('meta-date');
                 const timeInp = document.getElementById('meta-time');
                 if (dateInp && ses.date) dateInp.value = window.formatDateToInput(ses.date);
@@ -3759,6 +4166,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     durationInp.addEventListener('input', (e) => updateTimer(e.target.value));
                     updateTimer(durationInp.value);
                 }
+
+                // Sınıflar ve derslikler listelerini ilk kez çiz
+                window.renderEditorClassesList();
+                window.renderEditorRoomsList();
             },
             preConfirm: () => {
                 const newMetadata = ses.subjectMetadata ? JSON.parse(JSON.stringify(ses.subjectMetadata)) : {};
@@ -3796,7 +4207,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         pdfHeaderDesign: headerDesign,
                         papers: papers
                     };
-
                 });
 
                 return {
@@ -3817,10 +4227,88 @@ document.addEventListener('DOMContentLoaded', async () => {
         })
             .then((result) => {
                 if (result.isConfirmed) {
+                    const finalSnapshot = getSelectionSnapshot();
+                    const finalRoomSnapshot = Array.from(editRoomSelection).sort().join(',');
+
+                    const hasStudentChanges = (initialSnapshot !== finalSnapshot);
+                    const hasRoomChanges = (initialRoomSnapshot !== finalRoomSnapshot);
+
                     const updatedSes = { ...ses, ...result.value };
-                    DataManager.addExamSession(updatedSes);
-                    window.renderExamSessionsList();
-                    Swal.fire('Kaydedildi', 'Tüm ders bilgileri başarıyla güncellendi.', 'success');
+
+                    if (!hasStudentChanges && !hasRoomChanges) {
+                        // Sınıf, öğrenci veya derslik değişikliği yok; yalnızca metadata kaydet
+                        DataManager.addExamSession(updatedSes);
+                        window.renderExamSessionsList();
+                        Swal.fire('Kaydedildi', 'Tüm ders ve oturum bilgileri başarıyla güncellendi.', 'success');
+                        return;
+                    }
+
+                    // Sınıf, öğrenci veya derslik seçimi DEĞİŞTİ -> Yeniden dağıt
+                    const targetRooms = allRooms.filter(r => editRoomSelection.has(r.name));
+                    if (targetRooms.length === 0) {
+                        Swal.fire('Hata', 'Oturum için en az bir derslik seçilmelidir!', 'error');
+                        return;
+                    }
+
+                    const newTargetStudents = [];
+                    const newExcludedStudents = [];
+
+                    sortedClassNames.forEach(cls => {
+                        const stds = classGroups[cls];
+                        stds.forEach(s => {
+                            const sno = String(s.no);
+                            if (editClassSelection[cls].has(sno)) {
+                                const sCopy = { ...s };
+                                if (!sCopy._matchedSubject) {
+                                    const match = sessionSubjectsNorm.find(sn => 
+                                        (s.dersler || []).some(d => {
+                                            const dn = String(d || '').trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
+                                            return dn === sn || dn.startsWith(sn + ' ') || sn.startsWith(dn + ' ');
+                                        })
+                                    );
+                                    sCopy._matchedSubject = match ? (subjectNames.find(sn => String(sn).trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ') === match) || subjectNames[0]) : subjectNames[0];
+                                }
+                                newTargetStudents.push(sCopy);
+                            } else {
+                                newExcludedStudents.push(sno);
+                            }
+                        });
+                    });
+
+                    if (newTargetStudents.length === 0) {
+                        Swal.fire('Hata', 'Oturumda en az bir öğrenci seçili olmalıdır!', 'error');
+                        return;
+                    }
+
+                    updatedSes.selectedClassrooms = Array.from(editRoomSelection);
+                    updatedSes.excludedStudents = newExcludedStudents;
+                    updatedSes.selectedClasses = sortedClassNames.filter(cls => editClassSelection[cls].size > 0);
+
+                    // Yeniden dağıt
+                    window._distributeWithRetry([...newTargetStudents], targetRooms, updatedSes, (newRes) => {
+                        if (!newRes) {
+                            Swal.fire('Hata', 'Dağıtım sonucu oluşturulamadı.', 'error');
+                            return;
+                        }
+                        updatedSes.results = newRes;
+                        DataManager.addExamSession(updatedSes);
+                        window._currentExamResults = newRes;
+                        window.currentRenderedSession = updatedSes;
+                        window.renderExamSessionsList();
+                        window._renderExamResults(newRes);
+
+                        setTimeout(() => {
+                            if (typeof window.viewSessionDistribution === 'function') {
+                                window.viewSessionDistribution(id, null, true);
+                            }
+                        }, 100);
+
+                        Swal.fire({
+                            title: 'Dağıtım Güncellendi',
+                            html: `Sınıf, öğrenci ve derslik seçimleriniz kaydedildi.<br>Oturum <b>${newTargetStudents.length}</b> öğrenci ve <b>${targetRooms.length}</b> derslik ile başarıyla yeniden dağıtıldı.`,
+                            icon: 'success'
+                        });
+                    });
                 }
             });
     };
