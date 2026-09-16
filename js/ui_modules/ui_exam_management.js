@@ -594,27 +594,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!inf) return;
 
             let listHtml = `
-                <div class="modal-row" style="margin-bottom:1rem;">
-                    <button class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.wiz-std-cb').forEach(cb => cb.checked = true)">Hepsini Seç</button>
-                    <button class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.wiz-std-cb').forEach(cb => cb.checked = false)">Hiçbirini Seç</button>
+                <div class="modal-row" style="margin-bottom:1rem; display:flex; gap:0.5rem; justify-content:center;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.wiz-std-cb').forEach(cb => cb.checked = true)">Hepsini Seç</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.wiz-std-cb').forEach(cb => cb.checked = false)">Hiçbirini Seç</button>
                 </div>
-                <div style="text-align:left; max-height:300px; overflow-y:auto; padding:0.5rem;">`;
+                <div style="text-align:left; max-height:320px; overflow-y:auto; padding:0.5rem; border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc;">`;
             inf.students.forEach(s => {
                 const isExcluded = wizardSessionData.excludedStudents.includes(s.no.toString());
                 listHtml += `
-                    <label style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem; cursor:pointer; padding: 0.5rem; border-bottom: 1px solid var(--gray-100);">
-                        <input type="checkbox" class="wiz-std-cb" value="${s.no}" ${isExcluded ? '' : 'checked'} style="width:18px; height:18px;">
-                        <span><b>${s.no}</b> - ${s.name}</span>
+                    <label style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem; cursor:pointer; padding: 0.5rem; border-bottom: 1px solid #e2e8f0; background:#ffffff; border-radius:6px;">
+                        <input type="checkbox" class="wiz-std-cb" value="${s.no}" ${isExcluded ? '' : 'checked'} style="width:18px; height:18px; cursor:pointer;">
+                        <span style="font-size:0.95rem; color:#1e293b;"><b>${s.no}</b> - ${s.name}</span>
                     </label>
                 `;
             });
             listHtml += `</div>`;
 
             Swal.fire({
-                title: `Öğrenci Seçimi`,
+                title: `${inf.className ? inf.className + ' - ' : ''}Öğrenci Seçimi`,
                 html: listHtml,
                 showCancelButton: true,
                 confirmButtonText: 'Tamam',
+                cancelButtonText: 'İptal',
+                didOpen: () => {
+                    const swalContainer = document.querySelector('.swal2-container');
+                    if (swalContainer) {
+                        swalContainer.style.zIndex = '1000000';
+                    }
+                },
                 preConfirm: () => {
                     const checkedNos = Array.from(document.querySelectorAll('.wiz-std-cb:checked')).map(cb => cb.value);
                     const allNos = inf.students.map(s => s.no.toString());
