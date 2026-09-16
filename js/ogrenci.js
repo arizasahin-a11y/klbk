@@ -1,4 +1,4 @@
-﻿DataManager._getStorageKey = function () {
+DataManager._getStorageKey = function () {
             const urlParams = new URLSearchParams(window.location.search);
             const q = urlParams.get('school');
             
@@ -982,14 +982,18 @@
                 const diffMins = diffMs / 1000 / 60;
                 const diffEndMins = (endTime - now) / 1000 / 60;
 
-                // Sınav 36 saatten sonraysa GÖSTERME
-                if (diffMins > 36 * 60) return;
+                let limit = parseInt(schoolDefs.studentLocationMinutes);
+                if (isNaN(limit) || limit < 0) limit = 20;
 
-                // Sınav biteli 30 dakikadan fazla olduysa GÖSTERME
-                if (diffEndMins < -schoolDefs.studentExamEndHideMinutes) return;
+                // Sınav önceden gösterme eşiği: En az 36 saat veya girilen limit süresi kadar
+                const maxLookaheadMins = Math.max(36 * 60, limit);
+                if (diffMins > maxLookaheadMins) return;
+
+                // Sınav biteli gizleme süresinden fazla olduysa GÖSTERME
+                const endHideLimit = parseInt(schoolDefs.studentExamEndHideMinutes) || 30;
+                if (diffEndMins < -endHideLimit) return;
 
                 let stateCode;
-                let limit = schoolDefs.studentLocationMinutes;
                 if (ses.type === 'uygulama') {
                     if (diffEndMins < 0) {
                         stateCode = 'finished';
@@ -1001,7 +1005,17 @@
                         stateCode = 'near';
                     }
                 } else {
-                    stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > limit ? 'med' : 'near')));
+                    if (diffEndMins < 0) {
+                        stateCode = 'finished';
+                    } else if (diffMins <= 0) {
+                        stateCode = 'active';
+                    } else if (diffMins <= limit) {
+                        stateCode = 'near';
+                    } else if (diffMins <= Math.max(60, limit + 60)) {
+                        stateCode = 'med';
+                    } else {
+                        stateCode = 'far';
+                    }
                 }
                 
                 const stateKey = stateCode + (ses.type === 'uygulama' ? `_unlocked_${((now - targetTime) / 1000 / 60) >= schoolDefs.examFilesActiveMinutes}` : '');
@@ -1013,7 +1027,7 @@
                 const isFinished = (stateCode === 'finished');
                 // stateCode can be active or near
                 const isNearOrActive = (stateCode === 'near' || stateCode === 'active' || isFinished); // allow clicking to see results even if finished
-                const isOpen = openSessions.has(ses.id);
+                const isOpen = openSessions.has(ses.id) || (myExams.length === 1 && isNearOrActive);
 
                 let timerDisplayHtml = '';
                 if (isFar) {
@@ -1082,20 +1096,35 @@
                 const diffMins = diffMs / 1000 / 60;
                 const diffEndMins = (endTime - now) / 1000 / 60;
 
+                let limit = parseInt(schoolDefs.studentLocationMinutes);
+                if (isNaN(limit) || limit < 0) limit = 20;
+                const maxLookaheadMins = Math.max(36 * 60, limit);
+                const endHideLimit = parseInt(schoolDefs.studentExamEndHideMinutes) || 30;
+
                 let newState = 'hidden';
-                if (diffMins <= 36 * 60 && diffEndMins >= -schoolDefs.studentExamEndHideMinutes) {
+                if (diffMins <= maxLookaheadMins && diffEndMins >= -endHideLimit) {
                     if (ses.type === 'uygulama') {
                         if (diffEndMins < 0) {
                             newState = 'finished';
                         } else if (diffMins <= 0) {
                             newState = 'active';
-                        } else if (diffMins > schoolDefs.studentLocationMinutes) {
+                        } else if (diffMins > limit) {
                             newState = 'far';
                         } else {
                             newState = 'near';
                         }
                     } else {
-                        newState = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : (Math.floor(diffMins) > schoolDefs.studentLocationMinutes ? 'med' : 'near')));
+                        if (diffEndMins < 0) {
+                            newState = 'finished';
+                        } else if (diffMins <= 0) {
+                            newState = 'active';
+                        } else if (diffMins <= limit) {
+                            newState = 'near';
+                        } else if (diffMins <= Math.max(60, limit + 60)) {
+                            newState = 'med';
+                        } else {
+                            newState = 'far';
+                        }
                     }
                 }
 
