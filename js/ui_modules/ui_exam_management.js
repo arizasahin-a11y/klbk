@@ -3607,48 +3607,55 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         // ── Sınıf ve Öğrenci Yönetimi Veri Hazırlığı ──
-        const allStudents = DataManager.getStudents();
-        const allRooms = DataManager.getClassrooms();
-
-        // Mevcut dağıtımda yer alan öğrenciler
-        const currentDistributedStudentNos = new Set();
-        if (ses.results) {
-            ses.results.forEach(room => {
-                Object.values(room.seats || {}).forEach(std => {
-                    if (std && std.no) currentDistributedStudentNos.add(std.no.toString());
-                });
-            });
-        }
-
-        // Bu dersleri alan aday öğrenciler
+        // 1. Okuldaki tüm öğrencileri ve mevcut oturumdaki öğrencileri eksiksiz birleştir
+        const allStudents = DataManager.getStudents() || [];
         const sessionSubjectsNorm = subjectNames.map(s => String(s || '').trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ'));
-        let candidateStudents = allStudents.filter(s => {
-            if (!s.dersler || !s.dersler.length) return false;
-            return s.dersler.some(d => {
-                const dn = String(d || '').trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
-                return sessionSubjectsNorm.some(sn => dn === sn || dn.startsWith(sn + ' ') || sn.startsWith(dn + ' '));
-            });
-        });
 
-        // Eğer candidateStudents boşsa veya sonuçlardaki bazı öğrenciler candidate listesinde yoksa birleştir
-        if (ses.results) {
+        const candidateMap = new Map(); // sno -> student object
+        const currentDistributedStudentNos = new Set();
+
+        // Önce mevcut dağıtımdaki tüm öğrencileri al (orijinal _matchedSubject korunur)
+        if (ses.results && Array.isArray(ses.results)) {
             ses.results.forEach(room => {
                 Object.values(room.seats || {}).forEach(std => {
-                    if (std && std.no && !candidateStudents.some(cs => String(cs.no) === String(std.no))) {
-                        candidateStudents.push(std);
+                    if (std && std.no) {
+                        const sno = String(std.no);
+                        currentDistributedStudentNos.add(sno);
+                        candidateMap.set(sno, { ...std });
                     }
                 });
             });
         }
+
+        // Okuldaki öğrencilerden bu dersleri alanları da ekle (yeni eklenebilecek öğrenciler)
+        allStudents.forEach(s => {
+            if (!s || !s.no) return;
+            const sno = String(s.no);
+            if (candidateMap.has(sno)) return; // zaten var
+
+            const sDersler = (s.dersler || []).map(d => String(d || '').trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ'));
+            const takesSubject = sDersler.some(dn =>
+                sessionSubjectsNorm.some(sn => dn === sn || dn.startsWith(sn + ' ') || sn.startsWith(dn + ' '))
+            );
+
+            if (takesSubject) {
+                candidateMap.set(sno, { ...s });
+            }
+        });
+
+        const candidateStudents = Array.from(candidateMap.values());
 
         // Sınıflara göre grupla
         const classGroups = {};
         candidateStudents.forEach(s => {
             const cls = (s.class || "Bilinmeyen").trim();
             if (!classGroups[cls]) classGroups[cls] = [];
-            if (!classGroups[cls].some(ex => String(ex.no) === String(s.no))) {
-                classGroups[cls].push(s);
-            }
+            classGroups[cls].push(s);
+        });
+
+        // Her sınıftaki öğrencileri numaralarına göre sırala
+        Object.keys(classGroups).forEach(cls => {
+            classGroups[cls].sort((a, b) => (parseInt(a.no) || 0) - (parseInt(b.no) || 0));
         });
 
         const sortedClassNames = Object.keys(classGroups).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }));
@@ -3678,22 +3685,81 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
-        // Toplam derslik kapasitesi ve Derslik Seçimi Hazırlığı
+        // ── Dersliklerin Eksiksiz Toplanması ──
+        // Sistemde kayıtlı olanlar + oturumun mevcut sonuçlarında olanlar + selectedClassrooms
+        const storedRooms = DataManager.getClassrooms() || [];
+        const roomMap = new Map();
+
+        storedRooms.forEach(r => {
+            if (r && r.name) {
+                roomMap.set(r.name, {
+                    name: r.name,
+                    groups: r.groups || 2,
+                    rows: r.rows || 4,
+                    cols: r.cols || 4,
+                    groupConfigs: r.groupConfigs || null,
+                    disabledSeats: r.disabledSeats || []
+                });
+            }
+        });
+
+        if (ses.results && Array.isArray(ses.results)) {
+            ses.results.forEach(r => {
+                if (r && r.name && !roomMap.has(r.name)) {
+                    roomMap.set(r.name, {
+                        name: r.name,
+                        groups: r.groups || 2,
+                        rows: r.rows || 4,
+                        cols: r.cols || 4,
+                        groupConfigs: r.groupConfigs || null,
+                        disabledSeats: r.disabledSeats || []
+                    });
+                }
+            });
+        }
+
+        if (ses.selectedClassrooms && Array.isArray(ses.selectedClassrooms)) {
+            ses.selectedClassrooms.forEach(rName => {
+                if (rName && !roomMap.has(rName)) {
+                    roomMap.set(rName, {
+                        name: rName,
+                        groups: 2,
+                        rows: 4,
+                        cols: 4,
+                        groupConfigs: null,
+                        disabledSeats: []
+                    });
+                }
+            });
+        }
+
+        const allRooms = Array.from(roomMap.values()).sort((a, b) =>
+            (a.name || '').localeCompare(b.name || '', 'tr', { numeric: true })
+        );
+
         const editRoomSelection = new Set();
-        const initialRoomNames = ses.results ? ses.results.map(r => r.name) : (ses.selectedClassrooms || []);
+        const initialRoomNames = ses.results && ses.results.length ? ses.results.map(r => r.name) : (ses.selectedClassrooms || []);
         allRooms.forEach(r => {
             if (initialRoomNames.includes(r.name)) editRoomSelection.add(r.name);
         });
         if (editRoomSelection.size === 0 && ses.selectedClassrooms && ses.selectedClassrooms.length) {
             ses.selectedClassrooms.forEach(rn => editRoomSelection.add(rn));
         }
+        // Eğer hala boşsa ilk baştaki derslikleri seç
+        if (editRoomSelection.size === 0 && allRooms.length > 0) {
+            allRooms.slice(0, Math.min(5, allRooms.length)).forEach(r => editRoomSelection.add(r.name));
+        }
 
         const getRoomCap = (room) => {
+            if (!room) return 0;
             let cap = 0;
-            for (let g = 1; g <= (room.groups || 1); g++) {
-                const conf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
-                for (let r = 1; r <= conf.rows; r++) {
-                    for (let c = 1; c <= conf.cols; c++) {
+            const groups = room.groups || 1;
+            for (let g = 1; g <= groups; g++) {
+                const conf = room.groupConfigs?.[g - 1] || { rows: room.rows || 4, cols: room.cols || 4 };
+                const rows = conf.rows || room.rows || 4;
+                const cols = conf.cols || room.cols || 4;
+                for (let r = 1; r <= rows; r++) {
+                    for (let c = 1; c <= cols; c++) {
                         const sid = `G${g}-S${r}-C${c}`;
                         if (!room.disabledSeats?.includes(sid)) cap++;
                     }
@@ -3779,48 +3845,116 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         };
 
-        // Sınıflar Listesi Render
+        // Sınıflar Listesi Render (INLINE AKORDİYONLU ÇEKMECE)
+        const openDrawers = new Set();
+
+        window.toggleStudentDrawer = (cls) => {
+            if (openDrawers.has(cls)) {
+                openDrawers.delete(cls);
+            } else {
+                openDrawers.add(cls);
+            }
+            window.renderEditorClassesList();
+        };
+
         window.renderEditorClassesList = () => {
             const container = document.getElementById('editorClassesContainer');
             if (!container) return;
 
+            const searchVal = (document.getElementById('classSearchInput')?.value || '').trim().toLocaleUpperCase('tr-TR');
+
             let html = '';
             sortedClassNames.forEach(cls => {
-                const stds = classGroups[cls];
+                if (searchVal && !cls.toLocaleUpperCase('tr-TR').includes(searchVal)) return;
+
+                const stds = classGroups[cls] || [];
                 const selectedCount = editClassSelection[cls].size;
                 const isChecked = selectedCount > 0;
                 const isPartial = selectedCount > 0 && selectedCount < stds.length;
+                const isOpen = openDrawers.has(cls);
+
+                let studentsListHtml = '';
+                if (isOpen) {
+                    studentsListHtml = `
+                        <div id="drawer-${cls}" style="margin-top:10px; padding:10px; background:#f1f5f9; border-radius:8px; border:1px solid #cbd5e1;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+                                <strong style="font-size:0.8rem; color:#334155;"><i class="fa-solid fa-list-check"></i> ${cls} Öğrencileri (${selectedCount}/${stds.length})</strong>
+                                <div style="display:flex; gap:6px;">
+                                    <button type="button" class="btn btn-secondary btn-sm" style="font-size:0.72rem; padding:2px 8px;" onclick="window.toggleStudentsInClass('${cls}', true)">Tümünü Seç</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" style="font-size:0.72rem; padding:2px 8px;" onclick="window.toggleStudentsInClass('${cls}', false)">Tümünü Kaldır</button>
+                                </div>
+                            </div>
+                            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:6px; max-height:220px; overflow-y:auto; padding-right:4px;">
+                    `;
+
+                    stds.forEach(s => {
+                        const sno = String(s.no);
+                        const isStdChecked = editClassSelection[cls].has(sno);
+                        studentsListHtml += `
+                            <label style="display:flex; align-items:center; gap:6px; background:white; padding:5px 8px; border-radius:6px; border:1px solid ${isStdChecked ? '#818cf8' : '#e2e8f0'}; cursor:pointer; font-size:0.82rem; margin:0;">
+                                <input type="checkbox" data-class="${cls}" data-no="${sno}" ${isStdChecked ? 'checked' : ''} 
+                                       onchange="window.toggleSingleStudent('${cls}', '${sno}', this.checked)" style="width:16px; height:16px; cursor:pointer;">
+                                <span style="color:#1e293b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${s.no} - ${s.name}"><b>${s.no}</b> ${s.name}</span>
+                            </label>
+                        `;
+                    });
+
+                    studentsListHtml += `</div></div>`;
+                }
 
                 html += `
-                    <div class="edit-class-card ${isChecked ? 'active' : ''}" id="edit-class-card-${cls}">
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <input type="checkbox" class="edit-class-cb" data-class="${cls}" ${isChecked ? 'checked' : ''} 
-                                   onchange="window.toggleEditClass('${cls}', this.checked)" style="width:18px; height:18px; cursor:pointer;">
-                            <div>
-                                <span style="font-weight:700; font-size:1rem; color:#1e293b;">${cls}</span>
-                                ${isPartial ? '<span style="font-size:0.75rem; color:#f59e0b; margin-left:6px; font-weight:bold;">(Kısmi Seçim)</span>' : ''}
+                    <div class="edit-class-card ${isChecked ? 'active' : ''}" id="edit-class-card-${cls}" style="display:block; margin-bottom:8px; padding:10px 14px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <input type="checkbox" class="edit-class-cb" data-class="${cls}" ${isChecked ? 'checked' : ''} 
+                                       onchange="window.toggleEditClass('${cls}', this.checked)" style="width:18px; height:18px; cursor:pointer;">
+                                <div>
+                                    <span style="font-weight:700; font-size:1rem; color:#1e293b;">${cls}</span>
+                                    ${isPartial ? '<span style="font-size:0.75rem; color:#f59e0b; margin-left:6px; font-weight:bold; background:#fef3c7; padding:2px 6px; border-radius:4px;">(Kısmi Seçim)</span>' : ''}
+                                </div>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <span style="font-size:0.85rem; color:#475569; font-weight:600;">
+                                    <b style="color:${isChecked ? '#4f46e5' : '#94a3b8'};">${selectedCount}</b> / ${stds.length} Öğrenci
+                                </span>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="window.toggleStudentDrawer('${cls}')" 
+                                        style="font-size:0.78rem; padding:4px 10px; display:inline-flex; align-items:center; gap:5px;" title="Öğrencileri aç/kapat">
+                                    <i class="fa-solid fa-users"></i> Öğrenciler <i class="fa-solid ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'}"></i>
+                                </button>
                             </div>
                         </div>
-                        <div style="display:flex; align-items:center; gap:12px;">
-                            <span style="font-size:0.85rem; color:#475569; font-weight:600;">
-                                <b style="color:${isChecked ? '#4f46e5' : '#94a3b8'};">${selectedCount}</b> / ${stds.length} Öğrenci
-                            </span>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="window.openEditClassStudentsModal('${cls}')" 
-                                    style="font-size:0.75rem; padding:4px 10px; display:inline-flex; align-items:center; gap:5px;" title="Bu sınıftan öğrenci seç">
-                                <i class="fa-solid fa-user-pen"></i> Öğrenci Seç
-                            </button>
-                        </div>
+                        ${studentsListHtml}
                     </div>
                 `;
             });
 
-            container.innerHTML = html;
+            container.innerHTML = html || '<div style="text-align:center; padding:1rem; color:#94a3b8;">Eşleşen sınıf bulunamadı.</div>';
             window.updateCapacityIndicators();
         };
 
         window.toggleEditClass = (cls, isChecked) => {
             const stds = classGroups[cls] || [];
             if (isChecked) {
+                editClassSelection[cls] = new Set(stds.map(s => String(s.no)));
+            } else {
+                editClassSelection[cls].clear();
+            }
+            window.renderEditorClassesList();
+        };
+
+        window.toggleSingleStudent = (cls, sno, isChecked) => {
+            if (!editClassSelection[cls]) editClassSelection[cls] = new Set();
+            if (isChecked) {
+                editClassSelection[cls].add(String(sno));
+            } else {
+                editClassSelection[cls].delete(String(sno));
+            }
+            window.renderEditorClassesList();
+        };
+
+        window.toggleStudentsInClass = (cls, selectAll) => {
+            const stds = classGroups[cls] || [];
+            if (selectAll) {
                 editClassSelection[cls] = new Set(stds.map(s => String(s.no)));
             } else {
                 editClassSelection[cls].clear();
@@ -3840,53 +3974,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.renderEditorClassesList();
         };
 
-        window.openEditClassStudentsModal = (cls) => {
-            const stds = classGroups[cls] || [];
-            if (!stds.length) return;
-
-            let listHtml = `
-                <div class="modal-row" style="margin-bottom:1rem; display:flex; gap:0.5rem; justify-content:center;">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.edit-std-cb').forEach(cb => cb.checked = true)">Hepsini Seç</button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.querySelectorAll('.edit-std-cb').forEach(cb => cb.checked = false)">Hiçbirini Seç</button>
-                </div>
-                <div style="text-align:left; max-height:320px; overflow-y:auto; padding:0.5rem; border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc;">`;
-            stds.forEach(s => {
-                const isSelected = editClassSelection[cls].has(String(s.no));
-                listHtml += `
-                    <label style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem; cursor:pointer; padding: 0.5rem; border-bottom: 1px solid #e2e8f0; background:#ffffff; border-radius:6px;">
-                        <input type="checkbox" class="edit-std-cb" value="${s.no}" ${isSelected ? 'checked' : ''} style="width:18px; height:18px; cursor:pointer;">
-                        <span style="font-size:0.95rem; color:#1e293b;"><b>${s.no}</b> - ${s.name}</span>
-                    </label>
-                `;
-            });
-            listHtml += `</div>`;
-
-            Swal.fire({
-                title: `${cls} Sınıfı Öğrenci Seçimi`,
-                html: listHtml,
-                showCancelButton: true,
-                confirmButtonText: 'Tamam',
-                cancelButtonText: 'İptal',
-                didOpen: () => {
-                    const containers = document.querySelectorAll('.swal2-container');
-                    const topContainer = containers[containers.length - 1];
-                    if (topContainer) topContainer.style.zIndex = '1000005';
-                },
-                preConfirm: () => {
-                    const checkedNos = Array.from(document.querySelectorAll('.edit-std-cb:checked')).map(cb => cb.value.toString());
-                    editClassSelection[cls] = new Set(checkedNos);
-                    window.renderEditorClassesList();
-                }
-            });
-        };
-
         // Derslikler Listesi Render
         window.renderEditorRoomsList = () => {
             const container = document.getElementById('editorRoomsContainer');
             if (!container) return;
 
+            const searchVal = (document.getElementById('roomSearchInput')?.value || '').trim().toLocaleUpperCase('tr-TR');
+
             let html = '';
+            let renderedRoomCount = 0;
+
             allRooms.forEach(room => {
+                if (searchVal && !room.name.toLocaleUpperCase('tr-TR').includes(searchVal)) return;
+                renderedRoomCount++;
+
                 const isChecked = editRoomSelection.has(room.name);
                 const cap = getRoomCap(room);
                 const groupText = `${room.groups || 1} Grup`;
@@ -3911,7 +4012,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 `;
             });
 
-            container.innerHTML = html;
+            container.innerHTML = html || '<div style="text-align:center; padding:1rem; color:#94a3b8;">Eşleşen derslik bulunamadı.</div>';
             window.updateCapacityIndicators();
         };
 
@@ -3936,7 +4037,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         window.autoMatchEditorRooms = () => {
-            // Seçili sınıflarla eşleşen derslikleri otomatik işaretle
             const selectedClasses = sortedClassNames.filter(cls => editClassSelection[cls].size > 0);
             allRooms.forEach(room => {
                 const isAutoMatch = selectedClasses.some(cls => DataManager.getSanitizedClassRoomMapping(cls) === room.name);
@@ -4073,8 +4173,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <i class="fa-solid fa-triangle-exclamation"></i> Seçilen öğrenci sayısı toplam derslik kapasitesini aşıyor!
                                 </div>
                             </div>
-                            <div style="display:flex; gap:8px;">
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="window.toggleAllEditorClasses(true)">Tüm Sınıfları Seç</button>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <input type="text" id="classSearchInput" placeholder="Sınıf ara..." oninput="window.renderEditorClassesList()" 
+                                       style="padding:4px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem; width:120px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="window.toggleAllEditorClasses(true)">Tümünü Seç</button>
                                 <button type="button" class="btn btn-secondary btn-sm" onclick="window.toggleAllEditorClasses(false)">Tümünü Kaldır</button>
                             </div>
                         </div>
@@ -4097,7 +4199,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <i class="fa-solid fa-triangle-exclamation"></i> Seçili dersliklerin toplam kapasitesi öğrenci sayısının altında! Lütfen daha fazla derslik seçin.
                                 </div>
                             </div>
-                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                                <input type="text" id="roomSearchInput" placeholder="Derslik ara..." oninput="window.renderEditorRoomsList()" 
+                                       style="padding:4px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem; width:120px;">
                                 <button type="button" class="btn btn-secondary btn-sm" onclick="window.toggleAllEditorRooms(true)">Tümünü Seç</button>
                                 <button type="button" class="btn btn-secondary btn-sm" onclick="window.autoMatchEditorRooms()" title="Seçili sınıflarla eşleşen derslikleri otomatik seç">Otomatik Eşleştir</button>
                                 <button type="button" class="btn btn-secondary btn-sm" onclick="window.toggleAllEditorRooms(false)">Tümünü Kaldır</button>
@@ -4211,15 +4315,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 return {
                     subjectMetadata: newMetadata,
-                    date: window.formatDateToStandard(document.getElementById('meta-date').value),
-                    time: document.getElementById('meta-time').value.trim(),
-                    examDuration: parseInt(document.getElementById('meta-duration').value) || 40,
-                    studentMsg: document.getElementById('meta-std-msg').value.trim(),
-                    teacherMsg: document.getElementById('meta-tch-msg').value.trim(),
-                    screenViewEnabled: document.getElementById('meta-screen-check').checked,
-                    screenViewTimerEnabled: document.getElementById('meta-screen-timer-check').checked,
+                    date: window.formatDateToStandard(document.getElementById('meta-date')?.value || ''),
+                    time: (document.getElementById('meta-time')?.value || '').trim(),
+                    examDuration: parseInt(document.getElementById('meta-duration')?.value) || 40,
+                    studentMsg: (document.getElementById('meta-std-msg')?.value || '').trim(),
+                    teacherMsg: (document.getElementById('meta-tch-msg')?.value || '').trim(),
+                    screenViewEnabled: document.getElementById('meta-screen-check')?.checked ?? true,
+                    screenViewTimerEnabled: document.getElementById('meta-screen-timer-check')?.checked ?? true,
                     screenViewLimit: (function() {
-                        const val = parseInt(document.getElementById('meta-screen-limit').value);
+                        const val = parseInt(document.getElementById('meta-screen-limit')?.value);
                         return isNaN(val) ? (DataManager.getSchoolSettings()?.defaultTimes?.defaultScreenViewLimit || 8) : val;
                     })()
                 };
@@ -4254,10 +4358,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const newExcludedStudents = [];
 
                     sortedClassNames.forEach(cls => {
-                        const stds = classGroups[cls];
+                        const stds = classGroups[cls] || [];
                         stds.forEach(s => {
                             const sno = String(s.no);
-                            if (editClassSelection[cls].has(sno)) {
+                            if (editClassSelection[cls] && editClassSelection[cls].has(sno)) {
                                 const sCopy = { ...s };
                                 if (!sCopy._matchedSubject) {
                                     const match = sessionSubjectsNorm.find(sn => 
@@ -4282,33 +4386,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     updatedSes.selectedClassrooms = Array.from(editRoomSelection);
                     updatedSes.excludedStudents = newExcludedStudents;
-                    updatedSes.selectedClasses = sortedClassNames.filter(cls => editClassSelection[cls].size > 0);
+                    updatedSes.selectedClasses = sortedClassNames.filter(cls => editClassSelection[cls] && editClassSelection[cls].size > 0);
 
-                    // Yeniden dağıt
-                    window._distributeWithRetry([...newTargetStudents], targetRooms, updatedSes, (newRes) => {
-                        if (!newRes) {
-                            Swal.fire('Hata', 'Dağıtım sonucu oluşturulamadı.', 'error');
-                            return;
+                    try {
+                        const algo = window.ExamAlgorithm || (typeof ExamAlgorithm !== 'undefined' ? ExamAlgorithm : null);
+                        if (!algo || typeof algo.distribute !== 'function') {
+                            throw new Error('ExamAlgorithm yüklenemedi.');
                         }
-                        updatedSes.results = newRes;
+
+                        const newResults = algo.distribute([...newTargetStudents], targetRooms, updatedSes);
+                        if (!newResults || !newResults.length) {
+                            throw new Error('Dağıtım algoritması geçerli bir yerleşim üretemedi.');
+                        }
+
+                        updatedSes.results = newResults;
                         DataManager.addExamSession(updatedSes);
-                        window._currentExamResults = newRes;
+                        window._currentExamResults = newResults;
                         window.currentRenderedSession = updatedSes;
                         window.renderExamSessionsList();
-                        window._renderExamResults(newRes);
+                        if (typeof window._renderExamResults === 'function') {
+                            window._renderExamResults(newResults);
+                        }
 
                         setTimeout(() => {
                             if (typeof window.viewSessionDistribution === 'function') {
                                 window.viewSessionDistribution(id, null, true);
                             }
-                        }, 100);
+                        }, 150);
 
                         Swal.fire({
                             title: 'Dağıtım Güncellendi',
-                            html: `Sınıf, öğrenci ve derslik seçimleriniz kaydedildi.<br>Oturum <b>${newTargetStudents.length}</b> öğrenci ve <b>${targetRooms.length}</b> derslik ile başarıyla yeniden dağıtıldı.`,
+                            html: `Sınıf, öğrenci ve derslik seçimleriniz sisteme işlendi.<br>Oturum <b>${newTargetStudents.length}</b> öğrenci ve <b>${targetRooms.length}</b> derslik ile başarıyla yeniden dağıtıldı.`,
                             icon: 'success'
                         });
-                    });
+                    } catch (err) {
+                        console.error('Yeniden dağıtım hatası:', err);
+                        Swal.fire('Dağıtım Hatası', 'Yeniden dağıtım sırasında hata oluştu: ' + err.message, 'error');
+                    }
                 }
             });
     };
