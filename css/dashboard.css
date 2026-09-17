@@ -1436,6 +1436,66 @@ small {
     cursor: pointer;
 }
 
+.session-attendance-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 24px;
+    min-width: 24px;
+    padding: 0 6px;
+    border-radius: 12px;
+    background: rgba(79, 70, 229, 0.08);
+    color: var(--primary, #4f46e5);
+    border: 1px solid rgba(79, 70, 229, 0.22);
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 700;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    line-height: 1;
+    text-decoration: none;
+    outline: none;
+    margin-left: 2px;
+}
+
+.session-attendance-btn:hover {
+    background: var(--primary, #4f46e5);
+    color: #ffffff !important;
+    border-color: var(--primary, #4f46e5);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(79, 70, 229, 0.25);
+}
+
+.session-attendance-btn.has-flagged {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fca5a5;
+}
+
+.session-attendance-btn.has-flagged:hover {
+    background: #dc2626;
+    color: #ffffff !important;
+    border-color: #dc2626;
+    box-shadow: 0 3px 10px rgba(220, 38, 38, 0.3);
+}
+
+.session-attendance-btn .flagged-count-badge {
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 8px;
+    background: #dc2626;
+    color: #ffffff;
+    margin-left: 2px;
+    line-height: 1.1;
+}
+
+.session-attendance-btn.has-flagged:hover .flagged-count-badge {
+    background: #ffffff;
+    color: #dc2626;
+}
+
 .session-subjects {
     font-size: 0.75rem;
     color: var(--gray-500);
