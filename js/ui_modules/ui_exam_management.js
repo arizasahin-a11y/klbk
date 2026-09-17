@@ -4073,6 +4073,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     <!-- TAB 1: Oturum Bilgileri & Dersler -->
                     <div id="tabPaneMeta" class="tab-pane">
+                        <div class="modal-form-group" style="margin-bottom: 1.25rem;">
+                            <label style="font-weight:700; display:block; margin-bottom:6px; color:#1e293b; font-size:0.95rem;">
+                                <i class="fa-solid fa-signature" style="color:var(--primary); margin-right:5px;"></i> Oturum İsmi
+                            </label>
+                            <input type="text" id="meta-session-name" class="swal2-input" style="width:100%; margin:0; height:42px; font-weight:700; font-size:1rem;" value="${(ses.name || '').replace(/"/g, '&quot;')}" placeholder="Oturum İsmi (örn: 1. Dönem 1. Ortak Sınavı)" required>
+                        </div>
+
                         <div class="modal-row" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
                             <div class="modal-form-group" style="flex: 1; min-width: 180px; max-width: 220px;">
                                 <label style="font-weight:700;">Sınav Tarihi</label>
@@ -4313,7 +4320,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     };
                 });
 
+                const sessionName = (document.getElementById('meta-session-name')?.value || '').trim();
+                if (!sessionName) {
+                    window.switchEditorTab('meta');
+                    Swal.showValidationMessage('Lütfen oturum ismini boş bırakmayınız.');
+                    return false;
+                }
+
                 return {
+                    name: sessionName,
                     subjectMetadata: newMetadata,
                     date: window.formatDateToStandard(document.getElementById('meta-date')?.value || ''),
                     time: (document.getElementById('meta-time')?.value || '').trim(),
@@ -4340,10 +4355,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const updatedSes = { ...ses, ...result.value };
 
                     if (!hasStudentChanges && !hasRoomChanges) {
-                        // Sınıf, öğrenci veya derslik değişikliği yok; yalnızca metadata kaydet
+                        // Sınıf, öğrenci veya derslik değişikliği yok; yalnızca metadata/isim kaydet
                         DataManager.addExamSession(updatedSes);
+                        window.currentRenderedSession = updatedSes;
                         window.renderExamSessionsList();
-                        Swal.fire('Kaydedildi', 'Tüm ders ve oturum bilgileri başarıyla güncellendi.', 'success');
+                        if (typeof window.viewSessionDistribution === 'function' && window._currentlyOpenSessionId === id) {
+                            window.viewSessionDistribution(id, null, true);
+                        }
+                        Swal.fire('Kaydedildi', 'Oturum ismi ve ders bilgileri başarıyla güncellendi.', 'success');
                         return;
                     }
 
