@@ -164,30 +164,49 @@ DataManager._getStorageKey = function () {
                 window._deviceMapPollerStarted = true;
                 
                 // Track ALL classes assigned to this device to prevent infinite reload on multi-assignment
-                window._currentAssignedClasses = Object.keys(mappings)
-                    .filter(k => mappings[k] === devId)
-                    .sort().join(',');
+                const cachedAssigned = localStorage.getItem('klbk_assigned_classes');
+                const initialAssigned = Object.keys(mappings).filter(k => mappings[k] === devId).sort().join(',');
+                window._currentAssignedClasses = (cachedAssigned !== null && cachedAssigned !== '') ? cachedAssigned : initialAssigned;
                 
                 setInterval(async () => {
                     const currentDev = localStorage.getItem('klbk_device_id');
-                    if(!currentDev) return;
+                    if (!currentDev) return;
                     try {
                         const storeKey = encodeURIComponent(DataManager._getStorageKey());
                         const res = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/${storeKey}/classDeviceMappings.json?t=` + Date.now());
-                        if(res.ok) {
+                        if (res.ok) {
                             const newMappings = await res.json() || {};
                             
                             const newAssignedClasses = Object.keys(newMappings)
                                 .filter(k => newMappings[k] === currentDev)
                                 .sort().join(',');
                             
-                            // If mapping changed, reload the page to apply cleanly
+                            // Persist to local DataManager & localStorage so it is not forgotten
+                            const localData = DataManager._getData();
+                            localData.classDeviceMappings = newMappings;
+                            DataManager._memoryData = localData;
+                            try {
+                                localStorage.setItem(DataManager._getStorageKey(), JSON.stringify(localData));
+                            } catch(e) {}
+                            localStorage.setItem('klbk_assigned_classes', newAssignedClasses);
+                            
+                            // If mapping changed from last known state, only reload if not typing and not on login screen
                             if (window._currentAssignedClasses !== newAssignedClasses) {
-                                location.reload();
+                                window._currentAssignedClasses = newAssignedClasses;
+                                
+                                const activeEl = document.activeElement;
+                                const isUserTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
+                                const loginView = document.getElementById('loginView');
+                                const isLoginVisible = loginView && !loginView.classList.contains('hidden');
+                                
+                                // Do not interrupt user while entering number or on login view
+                                if (!isUserTyping && !isLoginVisible) {
+                                    location.reload();
+                                }
                             }
                         }
                     } catch(e) {}
-                }, 3000);
+                }, 5000);
             }
 
             if (!assignedClass) return false;
@@ -746,7 +765,35 @@ DataManager._getStorageKey = function () {
                             const res = await fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/${storeKey}/classDeviceMappings.json`);
                             if (res.ok) {
                                 const mappings = await res.json() || {};
-                                if (Object.values(mappings).includes(devId)) location.reload();
+                                if (Object.values(mappings).includes(devId)) {
+                                    if (beaconInterval) { clearInterval(beaconInterval); beaconInterval = null; }
+                                    
+                                    // Yerel DataManager ve localStorage'a hemen kaydet
+                                    const localData = DataManager._getData();
+                                    localData.classDeviceMappings = mappings;
+                                    DataManager._memoryData = localData;
+                                    try {
+                                        localStorage.setItem(DataManager._getStorageKey(), JSON.stringify(localData));
+                                    } catch(e) {}
+                                    
+                                    const assignedClasses = Object.keys(mappings)
+                                        .filter(k => mappings[k] === devId)
+                                        .sort().join(',');
+                                    localStorage.setItem('klbk_assigned_classes', assignedClasses);
+                                    window._currentAssignedClasses = assignedClasses;
+                                    
+                                    if (noInput) noInput.value = '';
+                                    
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Cihaz Başarıyla Eşlendi!',
+                                        text: `Cihaz sisteme tanımlandı (${assignedClasses}). Yönlendiriliyorsunuz...`,
+                                        timer: 1500,
+                                        showConfirmButton: false
+                                    }).then(() => {
+                                        location.reload();
+                                    });
+                                }
                             }
                         } catch(e) {}
                     };
@@ -778,6 +825,7 @@ DataManager._getStorageKey = function () {
                         confirmButtonColor: '#ef4444'
                     }).then(() => {
                         if (beaconInterval) { clearInterval(beaconInterval); beaconInterval = null; }
+                        if (noInput) noInput.value = '';
                     });
                     
                     return; // Normal öğrenci girişini atla
