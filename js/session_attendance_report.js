@@ -240,6 +240,14 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
     const headerScopeTitle = filterSubject ? `${filterSubject} Dersi Yoklama ve Katılım Raporu` : 'Sınav Oturumu Yoklama ve Durum Raporu';
     const sanitizedFileName = (ses.name + (filterSubject ? '_' + filterSubject : '')).replace(/[^a-zA-Z0-9çğıöşüÇĞİÖŞÜ_-]/g, '_');
 
+    const safeScopeTitle = JSON.stringify(headerScopeTitle);
+    const safeFilterSubjectSub = JSON.stringify(filterSubject ? `${filterSubject} Dersi Alanlar` : 'Sınava Kayıtlı');
+    const safeDefaultTeacher = JSON.stringify(filterSubject || 'Ders Sorumlusu');
+    const safeSesId = JSON.stringify(String(ses.id));
+    const safeEncodedSub = JSON.stringify(String(encodedSub || ''));
+    const safeFileName = JSON.stringify(sanitizedFileName);
+    const safeDefaultClass = JSON.stringify(defaultClass || 'ALL');
+
     const htmlContent = `<!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -1071,9 +1079,9 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
 
     <script>
         let currentStatusFilter = 'ALL';
-        let currentClassFilter = '${defaultClass || 'ALL'}';
+        let currentClassFilter = ${safeDefaultClass};
         let currentRoomFilter = 'ALL';
-        const baseScopeTitle = '${headerScopeTitle}';
+        const baseScopeTitle = ${safeScopeTitle};
         const totalSessionStudents = ${totalCount};
 
         function toggleSummary(contentId, chevronId) {
@@ -1249,7 +1257,7 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
                 } else if (currentRoomFilter !== 'ALL') {
                     kpiTotalSub.innerHTML = '<i class="fa-solid fa-door-open"></i> ' + currentRoomFilter + ' Salonu';
                 } else {
-                    kpiTotalSub.innerHTML = '<i class="fa-solid fa-chart-pie"></i> ${filterSubject ? 'Dersi Alanlar' : 'Sınava Kayıtlı'}';
+                    kpiTotalSub.innerHTML = '<i class="fa-solid fa-chart-pie"></i> ' + ${safeFilterSubjectSub};
                 }
             }
 
@@ -1327,14 +1335,14 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
                 if (currentClassFilter !== 'ALL') {
                     sigTeacherRole.textContent = currentClassFilter + ' Şube Rehber Öğretmeni';
                 } else {
-                    sigTeacherRole.textContent = '${filterSubject || 'Ders Sorumlusu'}';
+                    sigTeacherRole.textContent = ${safeDefaultTeacher};
                 }
             }
         }
 
         function refreshReport() {
             if (window.opener && typeof window.opener.openSessionAttendanceReport === 'function') {
-                window.opener.openSessionAttendanceReport('${ses.id}', '${encodedSub || ''}', currentClassFilter !== 'ALL' ? currentClassFilter : null);
+                window.opener.openSessionAttendanceReport(${safeSesId}, ${safeEncodedSub}, currentClassFilter !== 'ALL' ? currentClassFilter : null);
                 window.close();
             } else {
                 window.location.reload();
@@ -1348,8 +1356,9 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
                 return;
             }
 
-            let csv = '\uFEFF';
-            csv += 'Sira,Sinif,OkulNo,AdSoyad,Salon,SinavDersi,Durum\n';
+            const CRLF = String.fromCharCode(13, 10);
+            let csv = String.fromCharCode(0xFEFF);
+            csv += 'Sira,Sinif,OkulNo,AdSoyad,Salon,SinavDersi,Durum' + CRLF;
 
             rows.forEach((r, i) => {
                 const cols = r.querySelectorAll('td');
@@ -1361,7 +1370,7 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
                 const sSub = '"' + ((cols[5] ? cols[5].innerText.trim() : '')).replace(/"/g, '""') + '"';
                 const sStat = cols[6] ? cols[6].innerText.trim() : '';
 
-                csv += [sNo, sClass, sNum, sName, sRoom, sSub, sStat].join(',') + '\n';
+                csv += [sNo, sClass, sNum, sName, sRoom, sSub, sStat].join(',') + CRLF;
             });
 
             let fileSuffix = '';
@@ -1373,7 +1382,7 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = '${sanitizedFileName}' + fileSuffix + '_Yoklama_Raporu.csv';
+            a.download = ${safeFileName} + fileSuffix + '_Yoklama_Raporu.csv';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

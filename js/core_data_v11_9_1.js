@@ -1286,6 +1286,12 @@ const DataManager = {
 
     getFileBytes: async function (url) {
         if (!url) return null;
+        if (typeof window !== 'undefined' && window.location && window.location.protocol.startsWith('http')) {
+            if (typeof url === 'string' && (url.startsWith('file:') || /^[a-zA-Z]:[\\\/]/.test(url))) {
+                console.warn("[getFileBytes] Web ortamında yerel dosya yolu (file:///) güvenlik nedeniyle taranamaz:", url);
+                return null;
+            }
+        }
         if (this._fileBytesCache[url]) return this._fileBytesCache[url];
 
         if (!this._activePromises) this._activePromises = {};
