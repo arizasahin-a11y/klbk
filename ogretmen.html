@@ -1455,6 +1455,7 @@
                 })();
 
                 if (targetSessions.length > 0) {
+                    let renderedCardCount = 0;
                     targetSessions.forEach(item => {
                         const ses = item.session;
                         const subjectsObj = item.displaySubjects;
@@ -1476,6 +1477,7 @@
                             : (stateCode === 'active' ? `<div class="countdown" id="cd-${ses.id}" data-prev="active" style="color:var(--danger)">DEVAM EDİYOR</div>`
                                 : `<div class="countdown" id="cd-${ses.id}" data-prev="waiting">${formatCountdown(diffMs)}</div>`);
 
+                        renderedCardCount++;
                         html += `<div class="exam-card ${isOpen ? 'is-open' : ''}" data-ses-id="${ses.id}">
                                     <div class="exam-header" onclick="toggleSession('${ses.id}')">
                                         <div style="flex:1">
@@ -1929,6 +1931,29 @@
                             html += `</div></div>`;
                         });
 
+                    // Tüm oturumlar zaman filtresiyle atlandıysa boş durum göster
+                    if (renderedCardCount === 0) {
+                        const _noRenderDuties = getMyDuties(_renderSessions);
+                        if (_noRenderDuties.length === 0) {
+                            html = `
+                            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 4rem 2rem; text-align:center;">
+                                <div style="width:90px; height:90px; border-radius:50%; background:linear-gradient(135deg,#e0e7ff,#dbeafe); display:flex; align-items:center; justify-content:center; margin-bottom:1.5rem; box-shadow:0 8px 24px rgba(79,70,229,0.12);">
+                                    <i class="fa-solid fa-calendar-xmark" style="font-size:2.5rem; color:#818cf8;"></i>
+                                </div>
+                                <h3 style="margin:0 0 0.5rem; font-size:1.3rem; font-weight:900; color:var(--dark);">Şu An Aktif Sınav veya Görev Yok</h3>
+                                <p style="margin:0 0 1.2rem; font-size:0.95rem; color:var(--gray-500); max-width:420px; line-height:1.6;">
+                                    Branşınıza (<strong style="color:var(--primary);">${myBranches.length > 0 ? myBranches.join(', ') : 'Tanımlanmamış'}</strong>) atanmış aktif bir sınav oturumu veya gözetmenlik görevi bulunmuyor.
+                                </p>
+                                <div style="background:#f8fafc; border:1px solid var(--gray-200); border-radius:12px; padding:1rem 1.5rem; font-size:0.82rem; color:var(--gray-500); line-height:1.8; max-width:400px;">
+                                    <div><i class="fa-solid fa-circle-check" style="color:#10b981; margin-right:6px;"></i>Sınavlar yönetici tarafından yayınlandığında burada görünür</div>
+                                    <div><i class="fa-solid fa-circle-check" style="color:#10b981; margin-right:6px;"></i>Gözetmenlik göreviniz atandığında buradan takip edebilirsiniz</div>
+                                    <div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--gray-200); color:var(--gray-400);">
+                                        <i class="fa-solid fa-database" style="margin-right:4px;"></i>Sistemde toplam <strong>${_renderSessions.length}</strong> oturum mevcut
+                                    </div>
+                                </div>
+                            </div>`;
+                        }
+                    }
                 }
                 html = dutiesHtml ? (dutiesHtml + html) : html;
                 listContainer.innerHTML = html;
