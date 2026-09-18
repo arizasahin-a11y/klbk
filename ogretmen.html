@@ -1327,16 +1327,45 @@
                 let html = '';
                 let dutiesHtml = '';
 
+                // Görev sayısını da burada kontrol edelim (dutiesHtml sonraki IIFE'de set ediliyor,
+                // bu yüzden önce görevleri hesaplayıp empty state kararı verelim)
+                const _myDutiesForEmpty = getMyDuties(_renderSessions);
+
                 if (targetSessions.length === 0) {
-                    html = `
-                        <div class="glass-panel" style="padding: 2rem; text-align: center;">
-                            <div style="color: var(--gray-500); font-weight: 600; margin-bottom:10px;">Şu an size tanımlı herhangi bir sınav görünmüyor.</div>
+                    if (_myDutiesForEmpty.length === 0) {
+                        // Hem sınav hem görev yok → kapsamlı boş durum mesajı
+                        html = `
+                        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 4rem 2rem; text-align:center;">
+                            <div style="width:90px; height:90px; border-radius:50%; background:linear-gradient(135deg,#e0e7ff,#dbeafe); display:flex; align-items:center; justify-content:center; margin-bottom:1.5rem; box-shadow:0 8px 24px rgba(79,70,229,0.12);">
+                                <i class="fa-solid fa-calendar-xmark" style="font-size:2.5rem; color:#818cf8;"></i>
+                            </div>
+                            <h3 style="margin:0 0 0.5rem; font-size:1.3rem; font-weight:900; color:var(--dark);">Şu An Aktif Sınav veya Görev Yok</h3>
+                            <p style="margin:0 0 1.2rem; font-size:0.95rem; color:var(--gray-500); max-width:420px; line-height:1.6;">
+                                Branşınıza (<strong style="color:var(--primary);">${myBranches.length > 0 ? myBranches.join(', ') : 'Tanımlanmamış'}</strong>) atanmış yayınlanmış bir sınav oturumu veya gözetmenlik görevi bulunmuyor.
+                            </p>
+                            <div style="background:#f8fafc; border:1px solid var(--gray-200); border-radius:12px; padding:1rem 1.5rem; font-size:0.82rem; color:var(--gray-500); line-height:1.8; max-width:400px;">
+                                <div><i class="fa-solid fa-circle-check" style="color:#10b981; margin-right:6px;"></i>Sınavlar yönetici tarafından yayınlandığında burada görünür</div>
+                                <div><i class="fa-solid fa-circle-check" style="color:#10b981; margin-right:6px;"></i>Gözetmenlik göreviniz atandığında buradan takip edebilirsiniz</div>
+                                <div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--gray-200); color:var(--gray-400);">
+                                    <i class="fa-solid fa-database" style="margin-right:4px;"></i>Sistemde toplam <strong>${_renderSessions.length}</strong> oturum mevcut
+                                </div>
+                            </div>
+                        </div>`;
+                    } else {
+                        // Görev var ama branşa ait sınav yok
+                        html = `
+                        <div class="glass-panel" style="padding: 1.5rem 2rem; text-align: center; margin-bottom: 1rem;">
+                            <div style="color: var(--gray-500); font-weight: 600; margin-bottom:8px;">
+                                <i class="fa-solid fa-magnifying-glass" style="margin-right:6px; color:var(--primary);"></i>
+                                Branşınıza ait sınav bulunamadı
+                            </div>
                             <div style="font-size: 0.8rem; color: var(--gray-400);">
                                 <i class="fa-solid fa-info-circle"></i> Sınavların görünmesi için "Yayınla" durumunda olmaları ve branşınızla eşleşmeleri gerekir.
                                 <br>Sistemdeki toplam oturum sayısı: ${_renderSessions.length}
                             </div>
                         </div>`;
-                }
+                    } // end else (görev var ama sınav yok)
+                } // end if (targetSessions.length === 0)
 
                 // SINAV GÖREVLERİNİZ BÖLÜMÜ — branş eşleşmesinden bağımsız olarak her zaman kontrol edilir
                 (function() {
