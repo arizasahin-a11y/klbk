@@ -1764,7 +1764,13 @@ const DataManager = {
                     const customName = session.customProctors[room.name];
                     
                     if (originalName && originalName !== customName && originalName !== "Belirlenmedi") {
-                        const tMatchEntry = Object.entries(teachersDb).find(([uKey, t]) => t && t.name && cleanName && ((t.name === cleanName) || (t.name.toUpperCase() === cleanName.toUpperCase())));
+                        const cleanName = originalName.replace(" (İdare)", "").trim();
+                        const tMatchEntry = Object.entries(teachersDb).find(([uKey, t]) => {
+                            if (!t || !t.name || !cleanName) return false;
+                            const tNameClean = t.name.trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
+                            const cNameClean = cleanName.toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
+                            return t.name === cleanName || tNameClean === cNameClean;
+                        });
                         
                         if (tMatchEntry) {
                             const [uKey, tMatch] = tMatchEntry;
