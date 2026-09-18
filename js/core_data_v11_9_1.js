@@ -98,9 +98,9 @@ const DataManager = {
 
     // Get Key
     _getStorageKey: function () {
-        const storeKey = sessionStorage.getItem('klbk_storeKey');
+        const storeKey = sessionStorage.getItem('klbk_storeKey') || localStorage.getItem('klbk_storeKey');
         if (storeKey) return storeKey;
-        const user = sessionStorage.getItem('klbk_currentUser') || 'admin';
+        const user = sessionStorage.getItem('klbk_currentUser') || localStorage.getItem('klbk_currentUser') || 'admin';
         return `klbk_data_${user}`;
     },
 
@@ -851,24 +851,37 @@ const DataManager = {
 
     parseSessionDateTime: function (dateStr, timeStr) {
         if (!dateStr) return new Date(0);
-        let ds = dateStr;
+        let ds = String(dateStr).trim();
         if (ds.includes('.')) {
             const parts = ds.split('.');
-            if (parts.length === 3 && parts[0].length === 2) {
-                ds = `${parts[2]}-${parts[1]}-${parts[0]}`; // DD.MM.YYYY to YYYY-MM-DD
+            if (parts.length === 3) {
+                const day = parts[0].trim().padStart(2, '0');
+                const month = parts[1].trim().padStart(2, '0');
+                const year = parts[2].trim();
+                ds = `${year}-${month}-${day}`; // DD.MM.YYYY or D.M.YYYY to YYYY-MM-DD
+            }
+        } else if (ds.includes('/')) {
+            const parts = ds.split('/');
+            if (parts.length === 3) {
+                const day = parts[0].trim().padStart(2, '0');
+                const month = parts[1].trim().padStart(2, '0');
+                const year = parts[2].trim();
+                ds = `${year}-${month}-${day}`;
             }
         }
 
-        let ts = timeStr || "00:00";
-        if (ts.includes('. Ders')) {
+        let ts = String(timeStr || "00:00").trim();
+        if (ts.includes('. Ders') || ts.includes('.Ders') || ts.toLowerCase().includes('ders')) {
             const lessonNum = parseInt(ts);
             const school = this.getSchoolSettings();
-            const lessonTimes = school.lessonTimes || {};
+            const lessonTimes = (school && school.lessonTimes) || {};
             const startTime = lessonTimes[`${lessonNum}_start`];
             ts = startTime || "08:00"; // Default to 08:00 if not set
         } else if (ts.includes(':')) {
-            const [h, m] = ts.split(':');
-            ts = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+            const parts = ts.split(':');
+            const h = parts[0].trim().padStart(2, '0');
+            const m = (parts[1] || '00').trim().padStart(2, '0');
+            ts = `${h}:${m}`;
         }
 
         const d = new Date(`${ds}T${ts}:00`);
@@ -1436,19 +1449,34 @@ const DataManager = {
                 if (!usersDb) return {};
                 
                 const myStoreKey = this._getStorageKey();
-                const schoolTeachers = {};
+                let schoolTeachers = {};
                 for (let [uname, u] of Object.entries(usersDb)) {
-                    if (uname === 'admin' || u.role === 'admin' || u.role === 'master' || (u.storeKey || `klbk_data_${uname}`) === myStoreKey) {
+                    if (uname === 'admin' || u.role === 'admin' || u.role === 'master' || (u.storeKey || `klbk_data_${uname}`) === myStoreKey || myStoreKey === 'klbk_data_admin') {
                         if (uname !== 'admin' && uname !== '@arız@' && uname !== '@rız@') {
-                            schoolTeachers[uname] = u;
+                            schoolTeachers[uname] = { ...u, uname: uname };
                         }
                     }
                 }
+                // Fallback: If storeKey filter produced empty result, load all school teachers from usersDb
+                if (Object.keys(schoolTeachers).length === 0) {
+                    for (let [uname, u] of Object.entries(usersDb)) {
+                        if (uname !== 'admin' && uname !== '@arız@' && uname !== '@rız@' && u && u.name) {
+                            schoolTeachers[uname] = { ...u, uname: uname };
+                        }
+                    }
+                }
+                try {
+                    localStorage.setItem('klbk_cached_teachers_db', JSON.stringify(schoolTeachers));
+                } catch (e) {}
                 return schoolTeachers;
             }
         } catch (e) {
             console.error("Failed to fetch school teachers:", e);
         }
+        try {
+            const cached = localStorage.getItem('klbk_cached_teachers_db');
+            if (cached) return JSON.parse(cached);
+        } catch (e) {}
         return {};
     },
 
@@ -1462,11 +1490,22 @@ const DataManager = {
 
         const parseDay = (dateStr) => {
             if (!dateStr) return null;
-            let ds = dateStr;
+            let ds = String(dateStr).trim();
             if (ds.includes('.')) {
                 const parts = ds.split('.');
-                if (parts.length === 3 && parts[0].length === 2) {
-                    ds = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                if (parts.length === 3) {
+                    const day = parts[0].trim().padStart(2, '0');
+                    const month = parts[1].trim().padStart(2, '0');
+                    const year = parts[2].trim();
+                    ds = `${year}-${month}-${day}`;
+                }
+            } else if (ds.includes('/')) {
+                const parts = ds.split('/');
+                if (parts.length === 3) {
+                    const day = parts[0].trim().padStart(2, '0');
+                    const month = parts[1].trim().padStart(2, '0');
+                    const year = parts[2].trim();
+                    ds = `${year}-${month}-${day}`;
                 }
             }
             const d = new Date(ds + 'T00:00:00');
@@ -1725,12 +1764,12 @@ const DataManager = {
                     const customName = session.customProctors[room.name];
                     
                     if (originalName && originalName !== customName && originalName !== "Belirlenmedi") {
-                        const cleanName = originalName.replace(" (İdare)", "");
-                        const tMatch = Object.values(teachersDb).find(t => t && t.name && cleanName && ((t.name === cleanName) || (t.name.toUpperCase() === cleanName.toUpperCase())));
+                        const tMatchEntry = Object.entries(teachersDb).find(([uKey, t]) => t && t.name && cleanName && ((t.name === cleanName) || (t.name.toUpperCase() === cleanName.toUpperCase())));
                         
-                        if (tMatch) {
+                        if (tMatchEntry) {
+                            const [uKey, tMatch] = tMatchEntry;
                             result.globalSpares.push({
-                                uname: tMatch.uname,
+                                uname: tMatch.uname || uKey,
                                 name: cleanName + (originalName.includes(" (İdare)") ? " (İdare)" : ""),
                                 role: tMatch.role,
                                 isDouble: false,

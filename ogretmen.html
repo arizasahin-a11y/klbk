@@ -514,13 +514,23 @@
             if (statusEl) statusEl.classList.add('hidden');
             document.body.style.visibility = 'visible';
 
+            // First load from local cache if available so UI renders immediately with teachers
+            try {
+                const cachedTeachers = localStorage.getItem('klbk_cached_teachers_db');
+                if (cachedTeachers) {
+                    window.globalTeachersDb = JSON.parse(cachedTeachers);
+                }
+            } catch (e) {}
+
             if (window.DataManager && window.DataManager.getSchoolTeachers) {
-                window.DataManager.getSchoolTeachers()
-                    .then(db => {
+                try {
+                    const db = await window.DataManager.getSchoolTeachers();
+                    if (db && Object.keys(db).length > 0) {
                         window.globalTeachersDb = db;
-                        try { renderExams(); } catch (e) { console.error(e); }
-                    })
-                    .catch(err => console.error(err));
+                    }
+                } catch (err) {
+                    console.error("Initial getSchoolTeachers failed:", err);
+                }
             }
 
             try { renderExams(); } catch (e) { console.error("Initial renderExams failed:", e); }
@@ -1072,6 +1082,129 @@
         };
 
 
+        function normalizeTeacherName(str) {
+            if (!str) return '';
+            return str.toString()
+                .replace(/\(idare\)|\(idareci\)|\(id\)/gi, '')
+                .replace(/[\u200B-\u200D\uFEFF]/g, '')
+                .trim()
+                .toLocaleLowerCase('tr-TR')
+                .replace(/ğ/g, 'g')
+                .replace(/ü/g, 'u')
+                .replace(/ş/g, 's')
+                .replace(/ı/g, 'i')
+                .replace(/ö/g, 'o')
+                .replace(/ç/g, 'c')
+                .replace(/[^a-z0-9]/g, '');
+        }
+
+        function isTeacherMatch(assignedName, candidateNames) {
+            if (!assignedName) return false;
+            const normAssigned = normalizeTeacherName(assignedName);
+            if (!normAssigned) return false;
+
+            return candidateNames.some(cand => {
+                if (!cand) return false;
+                const normCand = normalizeTeacherName(cand);
+                if (!normCand) return false;
+                return normAssigned === normCand || normAssigned.includes(normCand) || normCand.includes(normAssigned);
+            });
+        }
+
+        function getMyDuties(sessions) {
+            const duties = [];
+            if (!sessions || !Array.isArray(sessions)) return duties;
+
+            const myUname = (sessionStorage.getItem('klbk_currentUser') || 
+                             localStorage.getItem('klbk_currentUser') || 
+                             sessionStorage.getItem('klbk_username') || 
+                             localStorage.getItem('klbk_username') || 
+                             currentUser || '').trim();
+
+            const myRawName = (sessionStorage.getItem('klbk_name') || 
+                               localStorage.getItem('klbk_name') || 
+                               currentName || '').trim();
+
+            const myFormattedName = (window.DataManager && window.DataManager.formatTeacherName) 
+                ? DataManager.formatTeacherName(myRawName || myUname) 
+                : (myRawName || myUname);
+
+            // Candidate names to match this teacher against duties
+            const candidateNames = new Set();
+            if (myUname) candidateNames.add(myUname);
+            if (myRawName) candidateNames.add(myRawName);
+            if (myFormattedName) candidateNames.add(myFormattedName);
+            if (currentName) candidateNames.add(currentName);
+
+            // Also check teacher DB for exact name entry
+            const teachersDb = window.globalTeachersDb || {};
+            if (myUname && teachersDb[myUname]) {
+                const dbTeacher = teachersDb[myUname];
+                if (dbTeacher && dbTeacher.name) {
+                    candidateNames.add(dbTeacher.name);
+                    if (window.DataManager && window.DataManager.formatTeacherName) {
+                        candidateNames.add(DataManager.formatTeacherName(dbTeacher.name));
+                    }
+                }
+            }
+
+            const candidateList = Array.from(candidateNames);
+
+            // Use synchronized network clock if available, otherwise device clock
+            const now = (typeof getNow === 'function') ? getNow() : new Date();
+
+            sessions.forEach(ses => {
+                if (!ses) return;
+
+                const schoolDefs = DataManager.getSchoolSettings()?.defaultTimes || {};
+                const removalMinutes = schoolDefs.teacherExamRemovalMinutes !== undefined ? schoolDefs.teacherExamRemovalMinutes : 120;
+
+                // Sınav bitiş zamanını kontrol et (en az 60 dk esneklik tanı, saat uyuşmazlığında görev kaybolmasın)
+                const endTime = DataManager.getSessionEndDateTime(ses.date, ses.time, ses.examDuration);
+                if (!isNaN(endTime.getTime()) && endTime.getTime() > 0) {
+                    const effectiveRemovalMinutes = Math.max(removalMinutes, 60);
+                    const removeTime = new Date(endTime.getTime() + (effectiveRemovalMinutes * 60 * 1000));
+                    if (now > removeTime) return;
+                }
+
+                const teachersData = DataManager.calculateExamTeachers(ses, teachersDb);
+
+                // 1. Gözetmenlikleri kontrol et (Classrooms)
+                Object.entries(teachersData.classrooms || {}).forEach(([roomName, info]) => {
+                    if (info.gorevli && isTeacherMatch(info.gorevli, candidateList)) {
+                        duties.push({
+                            id: ses.id,
+                            name: ses.name,
+                            date: ses.date,
+                            time: ses.time,
+                            room: roomName,
+                            role: 'Gözetmen'
+                        });
+                    }
+                });
+
+                // 2. Yedeklikleri kontrol et (globalSpares)
+                (teachersData.globalSpares || []).forEach(spare => {
+                    const unameMatch = spare.uname && myUname && (spare.uname.toLowerCase().trim() === myUname.toLowerCase().trim());
+                    const nameMatch = isTeacherMatch(spare.name, candidateList);
+                    const spareUnameMatch = spare.uname && isTeacherMatch(spare.uname, candidateList);
+
+                    if (unameMatch || nameMatch || spareUnameMatch) {
+                        duties.push({
+                            id: ses.id,
+                            name: ses.name,
+                            date: ses.date,
+                            time: ses.time,
+                            room: 'Yedek Gözetmen',
+                            role: 'Yedek'
+                        });
+                    }
+                });
+            });
+
+            return duties;
+        }
+
         // =========================================================================
         // Oturum ve Ders Yoklama / Katılım Raporu (İ Sembolü Penceresi)
         // =========================================================================
@@ -1185,11 +1318,11 @@
 
                 // SINAV GÖREVLERİNİZ BÖLÜMÜ — branş eşleşmesinden bağımsız olarak her zaman kontrol edilir
                 (function() {
-                    var _isAdmin = currentRole === 'idareci' || currentRole === 'admin' || currentRole === 'master';
-                    var myDuties = _isAdmin ? [] : getMyDuties(_renderSessions);
+                    var myDuties = getMyDuties(_renderSessions);
                     if (myDuties.length === 0) return;
 
-                    var isDutiesOpen = sessionStorage.getItem('klbk_myDutiesOpen') === 'true';
+                    var storedDutiesOpen = sessionStorage.getItem('klbk_myDutiesOpen');
+                    var isDutiesOpen = storedDutiesOpen === null ? true : (storedDutiesOpen === 'true');
                     var dutiesItemsHtml = '';
 
                     myDuties.forEach(function(d) {
@@ -1253,7 +1386,7 @@
                             + '</div></div>';
                     });
 
-                    dutiesHtml += '<div class="glass-panel" style="margin-top: 2.5rem; margin-bottom: 2rem; border: 3px solid #d97706; padding: 0; overflow: hidden;">'
+                    dutiesHtml += '<div class="glass-panel" style="margin-top: 1rem; margin-bottom: 1.5rem; border: 3px solid #d97706; padding: 0; overflow: hidden;">'
                         + '<div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(217, 119, 6, 0.05);" onclick="window.toggleMyDuties()">'
                         + '<h3 style="margin: 0; font-size: 1.1rem; font-weight: 900; color: #d97706; display: flex; align-items: center; gap: 10px;">'
                         + '<i class="fa-solid fa-clipboard-check"></i> SINAV GÖREVLERİNİZ'
@@ -1743,7 +1876,7 @@
                         });
 
                 }
-                html += dutiesHtml;
+                html = dutiesHtml ? (dutiesHtml + html) : html;
                 listContainer.innerHTML = html;
             } catch (err) {
                 console.error("renderExams error:", err);
@@ -2809,42 +2942,7 @@
             return password && /^[a-f0-9]{64}$/i.test(password);
         }
 
-        const getMyDuties = (sessions) => {
-            const duties = [];
-            const myName = DataManager.formatTeacherName(sessionStorage.getItem('klbk_name'));
-            const myUname = sessionStorage.getItem('klbk_uname');
-            const now = new Date();
-            
-            sessions.forEach(ses => {
-                if (!ses) return;
-
-                const schoolDefs = DataManager.getSchoolSettings()?.defaultTimes || {
-                    teacherExamRemovalMinutes: 5
-                };
-                
-                // Sınav bitişinden sonraki silme zamanını hesapla
-                const endTime = DataManager.getSessionEndDateTime(ses.date, ses.time, ses.examDuration);
-                const removeTime = new Date(endTime.getTime() + (schoolDefs.teacherExamRemovalMinutes * 60 * 1000));
-                
-                // Eğer şimdiki zaman, silme zamanından büyükse bu görevi atla
-                if (now > removeTime) return;
-
-                const teachersData = DataManager.calculateExamTeachers(ses, window.globalTeachersDb || {});
-                // Gözetmenlikleri kontrol et
-                Object.entries(teachersData.classrooms || {}).forEach(([roomName, info]) => {
-                    if (info.gorevli && info.gorevli.includes(myName)) {
-                        duties.push({ id: ses.id, name: ses.name, date: ses.date, time: ses.time, room: roomName, role: 'Gözetmen' });
-                    }
-                });
-                // Yedeklikleri kontrol et
-                (teachersData.globalSpares || []).forEach(spare => {
-                    if (spare.name === myName || spare.uname === myUname) {
-                        duties.push({ id: ses.id, name: ses.name, date: ses.date, time: ses.time, room: 'Yedek Gözetmen', role: 'Yedek' });
-                    }
-                });
-            });
-            return duties;
-        };
+        // getMyDuties is now defined above renderExams with normalized matching support.
 
         async function openTeacherSettings() {
             Swal.fire({
