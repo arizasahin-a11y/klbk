@@ -1126,6 +1126,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     onclick="window.printSessionDistribution('${ses.id}')">
                                     <i class="fa-solid fa-print"></i>
                                 </button>
+                                <button class="btn btn-secondary mode-add-student-btn" style="padding: 0.5rem 0.75rem; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid #10b981; background: #ecfdf5; color: #059669; font-size: 0.9rem; cursor: pointer; transition: all 0.2s;" title="Boş Koltuğa Öğrenci Ekle"
+                                    onclick="window.openAddStudentToDistributionModal('${ses.id}')">
+                                    <i class="fa-solid fa-user-plus"></i>
+                                </button>
                             </div>
                         </td>
                         <td style="padding:1.25rem; text-align:center; display:flex; gap:0.5rem; justify-content:center;">
@@ -1198,6 +1202,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <div class="archived-actions">
                                     <button onclick="window.viewSessionDistribution('${ses.id}')">
                                         <i class="fa-solid fa-eye"></i> Görüntüle
+                                    </button>
+                                    <button onclick="window.openAddStudentToDistributionModal('${ses.id}')" style="color:#059669;">
+                                        <i class="fa-solid fa-user-plus"></i> Öğrenci Ekle
                                     </button>
                                     <button onclick="window.printSessionDistribution('${ses.id}')">
                                         <i class="fa-solid fa-print"></i> Yazdır
@@ -4441,41 +4448,156 @@ document.addEventListener('DOMContentLoaded', async () => {
                     updatedSes.excludedStudents = newExcludedStudents;
                     updatedSes.selectedClasses = sortedClassNames.filter(cls => editClassSelection[cls] && editClassSelection[cls].size > 0);
 
-                    try {
-                        const algo = window.ExamAlgorithm || (typeof ExamAlgorithm !== 'undefined' ? ExamAlgorithm : null);
-                        if (!algo || typeof algo.distribute !== 'function') {
-                            throw new Error('ExamAlgorithm yüklenemedi.');
-                        }
-
-                        const newResults = algo.distribute([...newTargetStudents], targetRooms, updatedSes);
-                        if (!newResults || !newResults.length) {
-                            throw new Error('Dağıtım algoritması geçerli bir yerleşim üretemedi.');
-                        }
-
-                        updatedSes.results = newResults;
-                        DataManager.addExamSession(updatedSes);
-                        window._currentExamResults = newResults;
-                        window.currentRenderedSession = updatedSes;
-                        window.renderExamSessionsList();
-                        if (typeof window._renderExamResults === 'function') {
-                            window._renderExamResults(updatedSes);
-                        }
-
-                        setTimeout(() => {
-                            if (typeof window.viewSessionDistribution === 'function') {
-                                window.viewSessionDistribution(id, null, true);
+                    const runFullRedistribution = () => {
+                        try {
+                            const algo = window.ExamAlgorithm || (typeof ExamAlgorithm !== 'undefined' ? ExamAlgorithm : null);
+                            if (!algo || typeof algo.distribute !== 'function') {
+                                throw new Error('ExamAlgorithm yüklenemedi.');
                             }
-                        }, 150);
 
-                        Swal.fire({
-                            title: 'Dağıtım Güncellendi',
-                            html: `Sınıf, öğrenci ve derslik seçimleriniz sisteme işlendi.<br>Oturum <b>${newTargetStudents.length}</b> öğrenci ve <b>${targetRooms.length}</b> derslik ile başarıyla yeniden dağıtıldı.`,
-                            icon: 'success'
+                            const newResults = algo.distribute([...newTargetStudents], targetRooms, updatedSes);
+                            if (!newResults || !newResults.length) {
+                                throw new Error('Dağıtım algoritması geçerli bir yerleşim üretemedi.');
+                            }
+
+                            updatedSes.results = newResults;
+                            DataManager.addExamSession(updatedSes);
+                            window._currentExamResults = newResults;
+                            window.currentRenderedSession = updatedSes;
+                            window.renderExamSessionsList();
+                            if (typeof window._renderExamResults === 'function') {
+                                window._renderExamResults(updatedSes);
+                            }
+
+                            setTimeout(() => {
+                                if (typeof window.viewSessionDistribution === 'function') {
+                                    window.viewSessionDistribution(id, null, true);
+                                }
+                            }, 150);
+
+                            Swal.fire({
+                                title: 'Dağıtım Güncellendi',
+                                html: `Sınıf, öğrenci ve derslik seçimleriniz sisteme işlendi.<br>Oturum <b>${newTargetStudents.length}</b> öğrenci ve <b>${targetRooms.length}</b> derslik ile başarıyla yeniden dağıtıldı.`,
+                                icon: 'success'
+                            });
+                        } catch (err) {
+                            console.error('Yeniden dağıtım hatası:', err);
+                            Swal.fire('Dağıtım Hatası', 'Yeniden dağıtım sırasında hata oluştu: ' + err.message, 'error');
+                        }
+                    };
+
+                    // Eğer oturumun zaten bir dağıtımı varsa ve salonlar değişmediyse, mevcut dağıtımı koruma seçeneği sun
+                    if (ses.results && Array.isArray(ses.results) && ses.results.length > 0 && !hasRoomChanges) {
+                        const existingDistributedNos = new Set();
+                        ses.results.forEach(r => {
+                            Object.values(r.seats || {}).forEach(std => {
+                                if (std && std.no !== undefined && std.no !== null) existingDistributedNos.add(String(std.no));
+                            });
                         });
-                    } catch (err) {
-                        console.error('Yeniden dağıtım hatası:', err);
-                        Swal.fire('Dağıtım Hatası', 'Yeniden dağıtım sırasında hata oluştu: ' + err.message, 'error');
+
+                        const addedStudents = newTargetStudents.filter(s => !existingDistributedNos.has(String(s.no)));
+                        const removedStudentNos = Array.from(existingDistributedNos).filter(no => !newTargetStudents.some(s => String(s.no) === no));
+
+                        if (addedStudents.length > 0 || removedStudentNos.length > 0) {
+                            Swal.fire({
+                                title: 'Öğrenci Değişikliği Algılandı',
+                                html: `Oturuma <b>${addedStudents.length}</b> yeni öğrenci eklendi${removedStudentNos.length > 0 ? `, <b>${removedStudentNos.length}</b> öğrenci çıkarıldı` : ''}.<br><br>` +
+                                      `Mevcut dağıtımdaki öğrencilerin yerlerini koruyarak yeni öğrencileri <b>boş koltuklara mı</b> eklemek istersiniz, ` +
+                                      `yoksa tüm öğrencileri <b>sıfırdan tekrar mı</b> dağıtmak istersiniz?`,
+                                icon: 'question',
+                                showDenyButton: true,
+                                showCancelButton: true,
+                                confirmButtonText: '<i class="fa-solid fa-chair"></i> Mevcut Dağıtımı Koru (Boş Yerlere Ekle)',
+                                denyButtonText: '<i class="fa-solid fa-arrows-rotate"></i> Sıfırdan Tekrar Dağıt',
+                                cancelButtonText: 'İptal',
+                                confirmButtonColor: '#10b981',
+                                denyButtonColor: '#6366f1'
+                            }).then(decision => {
+                                if (decision.isConfirmed) {
+                                    const preservedResults = JSON.parse(JSON.stringify(ses.results));
+                                    if (removedStudentNos.length > 0) {
+                                        const remSet = new Set(removedStudentNos);
+                                        preservedResults.forEach(r => {
+                                            Object.keys(r.seats || {}).forEach(sid => {
+                                                if (r.seats[sid] && remSet.has(String(r.seats[sid].no))) {
+                                                    delete r.seats[sid];
+                                                }
+                                            });
+                                        });
+                                    }
+
+                                    const emptySeatSlots = [];
+                                    preservedResults.forEach((r, rIdx) => {
+                                        for (let g = 1; g <= r.groups; g++) {
+                                            const conf = r.groupConfigs ? r.groupConfigs[g - 1] : { rows: r.rows || 1, cols: r.cols || 1 };
+                                            for (let row = 1; row <= conf.rows; row++) {
+                                                for (let col = 1; col <= conf.cols; col++) {
+                                                    const sid = `G${g}-S${row}-C${col}`;
+                                                    if (!(r.disabledSeats && r.disabledSeats.includes(sid))) {
+                                                        if (!r.seats || !r.seats[sid]) {
+                                                            emptySeatSlots.push({ roomIdx: rIdx, seatId: sid, col: col });
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    });
+
+                                    let placedCount = 0;
+                                    const unplacedList = [];
+                                    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                                    addedStudents.forEach(st => {
+                                        if (emptySeatSlots.length > 0) {
+                                            const slot = emptySeatSlots.shift();
+                                            const stCopy = { ...st };
+                                            if (updatedSes.hasGroups) {
+                                                const col = slot.col || 1;
+                                                stCopy._groupLabel = alphabet[(col - 1) % (updatedSes.groupCount || 2)] || 'A';
+                                            }
+                                            if (!preservedResults[slot.roomIdx].seats) preservedResults[slot.roomIdx].seats = {};
+                                            preservedResults[slot.roomIdx].seats[slot.seatId] = stCopy;
+                                            placedCount++;
+                                        } else {
+                                            unplacedList.push(st);
+                                        }
+                                    });
+
+                                    updatedSes.results = preservedResults;
+                                    DataManager.addExamSession(updatedSes);
+                                    window._currentExamResults = preservedResults;
+                                    window.currentRenderedSession = updatedSes;
+                                    window.renderExamSessionsList();
+                                    if (typeof window._renderExamResults === 'function') {
+                                        window._renderExamResults(updatedSes);
+                                    }
+                                    setTimeout(() => {
+                                        if (typeof window.viewSessionDistribution === 'function') {
+                                            window.viewSessionDistribution(id, null, true);
+                                        }
+                                    }, 150);
+
+                                    if (unplacedList.length > 0) {
+                                        Swal.fire({
+                                            title: 'Kısmen Yerleştirildi',
+                                            html: `<b>${placedCount}</b> yeni öğrenci boş koltuklara yerleştirildi.<br><b style="color:#ef4444;">${unplacedList.length}</b> öğrenci için yeterli boş koltuk kalmadığı için yerleştirilemedi.`,
+                                            icon: 'warning'
+                                        });
+                                    } else {
+                                        Swal.fire({
+                                            title: 'Dağıtım Korundu',
+                                            html: `Mevcut dağıtımdaki hiçbir öğrencinin yeri değişmedi.<br><b>${placedCount}</b> yeni öğrenci başarıyla boş koltuklara eklendi.`,
+                                            icon: 'success'
+                                        });
+                                    }
+                                } else if (decision.isDenied) {
+                                    runFullRedistribution();
+                                }
+                            });
+                            return;
+                        }
                     }
+
+                    runFullRedistribution();
                 }
             });
     };
@@ -4611,6 +4733,608 @@ document.addEventListener('DOMContentLoaded', async () => {
                         window.viewSessionDistribution(id, null, true);
                     }
                 }, 100);
+            });
+        });
+    };
+
+    // ─── Boş Koltuğa Doğrudan Öğrenci Ata (Dağıtımı Bozmadan) ────────────
+    window.openAssignStudentToSeatModal = function (roomIdx, seatId, sessionId = null) {
+        const sid = sessionId || window._currentlyOpenSessionId;
+        const session = (sid ? DataManager.getExamSessions().find(s => s.id === sid) : null) || window.currentRenderedSession;
+        if (!session || !session.results) {
+            Swal.fire('Hata', 'Aktif oturum veya dağıtım bilgisi bulunamadı.', 'error');
+            return;
+        }
+
+        const room = session.results[roomIdx];
+        if (!room) {
+            Swal.fire('Hata', 'Seçilen derslik bulunamadı.', 'error');
+            return;
+        }
+
+        // Koltuğun görsel sıra numarasını hesapla
+        let seatNum = seatId;
+        let counter = 1;
+        for (let g = 1; g <= room.groups; g++) {
+            const conf = room.groupConfigs ? room.groupConfigs[g - 1] : { rows: room.rows || 1, cols: room.cols || 1 };
+            for (let r = 1; r <= conf.rows; r++) {
+                for (let c = 1; c <= conf.cols; c++) {
+                    const idStr = `G${g}-S${r}-C${c}`;
+                    if (!(room.disabledSeats && room.disabledSeats.includes(idStr))) {
+                        if (idStr === seatId) { seatNum = counter; break; }
+                        counter++;
+                    }
+                }
+            }
+        }
+
+        // Dağıtımda zaten oturan öğrenciler
+        const placedNos = new Set();
+        session.results.forEach(r => {
+            Object.values(r.seats || {}).forEach(std => {
+                if (std && std.no !== undefined && std.no !== null) placedNos.add(String(std.no));
+            });
+        });
+
+        const allStudents = DataManager.getStudents() || [];
+        const unplacedStudents = allStudents.filter(s => s && s.no !== undefined && !placedNos.has(String(s.no)));
+        unplacedStudents.sort((a, b) => (a.class || '').localeCompare(b.class || '', 'tr') || (parseInt(a.no) || 0) - (parseInt(b.no) || 0));
+
+        // Oturumun dersleri
+        const sessionSubjects = [];
+        if (Array.isArray(session.subjects)) {
+            session.subjects.forEach(s => {
+                const name = typeof s === 'object' ? s.name : s;
+                if (name && !sessionSubjects.includes(name)) sessionSubjects.push(name);
+            });
+        }
+        if (!sessionSubjects.length && session.subject) sessionSubjects.push(session.subject);
+        if (session.results) {
+            session.results.forEach(r => Object.values(r.seats || {}).forEach(s => {
+                if (s && s._matchedSubject && !sessionSubjects.includes(s._matchedSubject)) sessionSubjects.push(s._matchedSubject);
+            }));
+        }
+        if (!sessionSubjects.length) sessionSubjects.push('Genel Sınav');
+
+        // Varsayılan grup
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let defaultGroup = 'A';
+        if (session.hasGroups) {
+            const colMatch = seatId.match(/C(\d+)/);
+            const col = colMatch ? parseInt(colMatch[1]) : 1;
+            defaultGroup = alphabet[(col - 1) % (session.groupCount || 2)] || 'A';
+        }
+
+        let studentOptionsHtml = unplacedStudents.map(s => {
+            const derslerText = (s.dersler || []).join(', ');
+            return `<option value="${s.no}" data-name="${(s.name || '').replace(/"/g, '&quot;')}" data-class="${s.class || ''}" data-dersler="${(derslerText).replace(/"/g, '&quot;')}">${s.class || '?'} - No: ${s.no} - ${s.name || ''}</option>`;
+        }).join('');
+
+        let subjectsOptionsHtml = sessionSubjects.map(sub => `<option value="${sub}">${sub}</option>`).join('');
+
+        let groupsHtml = '';
+        if (session.hasGroups) {
+            let groupOpts = '';
+            const grpCount = session.groupCount || 2;
+            for (let i = 0; i < grpCount; i++) {
+                const letter = alphabet[i];
+                groupOpts += `<option value="${letter}" ${letter === defaultGroup ? 'selected' : ''}>Grup ${letter}</option>`;
+            }
+            groupsHtml = `
+                <div style="flex:1; min-width:130px;">
+                    <label style="font-weight:700; font-size:0.85rem; color:#475569; display:block; margin-bottom:4px;">Soru Kitapçığı Grubu</label>
+                    <select id="modalStudentGroup" class="swal2-select" style="width:100%; margin:0; height:38px; font-size:0.9rem; padding:0 8px;">
+                        ${groupOpts}
+                    </select>
+                </div>
+            `;
+        }
+
+        Swal.fire({
+            title: 'Boş Koltuğa Öğrenci Ekle',
+            width: '560px',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fa-solid fa-user-plus"></i> Koltuğa Ata ve Kaydet',
+            cancelButtonText: 'İptal',
+            confirmButtonColor: '#10b981',
+            html: `
+                <div style="text-align:left;">
+                    <div style="background:linear-gradient(135deg, #eef2ff, #f8fafc); border:1.5px solid #c7d2fe; border-radius:10px; padding:12px 16px; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-size:0.8rem; color:#6366f1; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Seçili Boş Koltuk</div>
+                            <div style="font-size:1.1rem; font-weight:800; color:#1e293b;">
+                                <i class="fa-solid fa-door-open" style="color:#6366f1;"></i> ${room.name} Salonu
+                                <span style="color:#94a3b8; font-weight:normal; margin:0 6px;">|</span>
+                                <i class="fa-solid fa-chair" style="color:#10b981;"></i> Koltuk No: <span style="color:#059669;">${seatNum}</span>
+                                <small style="color:#94a3b8; font-size:0.75rem; font-weight:normal;">(${seatId})</small>
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <span class="badge" style="background:#dcfce7; color:#166534; font-size:0.75rem; font-weight:700; padding:4px 8px; border-radius:6px;">Boş Koltuk</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:14px;">
+                        <label style="font-weight:700; font-size:0.88rem; color:#1e293b; display:block; margin-bottom:4px;">
+                            Kayıtlı Öğrenci Seçin <small style="color:#64748b; font-weight:normal;">(${unplacedStudents.length} atanmamış öğrenci)</small>
+                        </label>
+                        <input type="text" id="modalStudentSearch" class="swal2-input" placeholder="İsim, numara veya sınıf ile ara..." style="width:100%; margin:0 0 6px 0; height:36px; font-size:0.85rem; padding:0 10px;">
+                        <select id="modalStudentSelect" class="swal2-select" style="width:100%; margin:0; height:40px; font-size:0.9rem; padding:0 8px;">
+                            <option value="">-- Listeden Seçin veya Aşağıya Manuel Yazın --</option>
+                            ${studentOptionsHtml}
+                        </select>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                        <div style="height:1px; flex:1; background:#e2e8f0;"></div>
+                        <span style="font-size:0.75rem; color:#94a3b8; font-weight:600; text-transform:uppercase;">Veya Bilgileri Girin</span>
+                        <div style="height:1px; flex:1; background:#e2e8f0;"></div>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+                        <div style="flex:1; min-width:90px;">
+                            <label style="font-weight:700; font-size:0.8rem; color:#475569; display:block; margin-bottom:4px;">Öğrenci No *</label>
+                            <input type="number" id="modalStdNo" class="swal2-input" placeholder="Örn: 104" style="width:100%; margin:0; height:38px; font-size:0.85rem; padding:0 8px;">
+                        </div>
+                        <div style="flex:2; min-width:140px;">
+                            <label style="font-weight:700; font-size:0.8rem; color:#475569; display:block; margin-bottom:4px;">Ad Soyad *</label>
+                            <input type="text" id="modalStdName" class="swal2-input" placeholder="Ad Soyad" style="width:100%; margin:0; height:38px; font-size:0.85rem; padding:0 8px;">
+                        </div>
+                        <div style="flex:1; min-width:80px;">
+                            <label style="font-weight:700; font-size:0.8rem; color:#475569; display:block; margin-bottom:4px;">Sınıf *</label>
+                            <input type="text" id="modalStdClass" class="swal2-input" placeholder="Örn: 10-A" style="width:100%; margin:0; height:38px; font-size:0.85rem; padding:0 8px;">
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+                        <div style="flex:2; min-width:180px;">
+                            <label style="font-weight:700; font-size:0.85rem; color:#475569; display:block; margin-bottom:4px;">Sınav Dersi *</label>
+                            <select id="modalStdSubject" class="swal2-select" style="width:100%; margin:0; height:38px; font-size:0.9rem; padding:0 8px;">
+                                ${subjectsOptionsHtml}
+                            </select>
+                        </div>
+                        ${groupsHtml}
+                    </div>
+                    <div style="font-size:0.78rem; color:#065f46; background:#ecfdf5; padding:8px 12px; border-radius:6px; border:1px solid #a7f3d0;">
+                        <i class="fa-solid fa-circle-check" style="color:#059669; margin-right:4px;"></i>
+                        <b>Dağıtım Korunur:</b> Mevcut dağıtımdaki hiçbir öğrencinin yeri değişmez. Yalnızca bu öğrenci boş koltuğa eklenir.
+                    </div>
+                </div>
+            `,
+            didOpen: () => {
+                const searchInput = document.getElementById('modalStudentSearch');
+                const selectEl = document.getElementById('modalStudentSelect');
+                const noInput = document.getElementById('modalStdNo');
+                const nameInput = document.getElementById('modalStdName');
+                const classInput = document.getElementById('modalStdClass');
+                const subSelect = document.getElementById('modalStdSubject');
+
+                if (searchInput && selectEl) {
+                    searchInput.addEventListener('input', (e) => {
+                        const q = e.target.value.trim().toLocaleUpperCase('tr-TR');
+                        Array.from(selectEl.options).forEach((opt, idx) => {
+                            if (idx === 0) return;
+                            const match = opt.text.toLocaleUpperCase('tr-TR').includes(q);
+                            opt.style.display = match ? '' : 'none';
+                        });
+                    });
+                }
+
+                if (selectEl) {
+                    selectEl.addEventListener('change', (e) => {
+                        const opt = e.target.selectedOptions[0];
+                        if (opt && opt.value) {
+                            const sno = opt.value;
+                            const std = allStudents.find(s => String(s.no) === String(sno));
+                            if (std) {
+                                noInput.value = std.no;
+                                nameInput.value = std.name || '';
+                                classInput.value = std.class || '';
+
+                                const stdDersler = (std.dersler || []).map(d => String(d).trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ'));
+                                for (let sOpt of subSelect.options) {
+                                    const optNorm = sOpt.value.trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
+                                    if (stdDersler.some(d => d === optNorm || d.startsWith(optNorm) || optNorm.startsWith(d))) {
+                                        subSelect.value = sOpt.value;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            },
+            preConfirm: () => {
+                const noVal = (document.getElementById('modalStdNo')?.value || '').trim();
+                const nameVal = (document.getElementById('modalStdName')?.value || '').trim();
+                const classVal = (document.getElementById('modalStdClass')?.value || '').trim();
+                const subVal = document.getElementById('modalStdSubject')?.value;
+                const grpVal = document.getElementById('modalStudentGroup')?.value || defaultGroup;
+
+                if (!noVal || !nameVal || !classVal) {
+                    Swal.showValidationMessage('Lütfen Öğrenci No, Ad Soyad ve Sınıf alanlarını doldurunuz.');
+                    return false;
+                }
+                if (!subVal) {
+                    Swal.showValidationMessage('Lütfen bir sınav dersi seçiniz.');
+                    return false;
+                }
+
+                return {
+                    no: noVal,
+                    name: nameVal,
+                    class: classVal,
+                    subject: subVal,
+                    group: grpVal
+                };
+            }
+        }).then(result => {
+            if (!result.isConfirmed || !result.value) return;
+
+            const val = result.value;
+            const studentObj = {
+                no: val.no,
+                name: val.name,
+                class: val.class,
+                _matchedSubject: val.subject,
+                dersler: [val.subject]
+            };
+
+            const existingStd = allStudents.find(s => String(s.no) === String(val.no));
+            if (existingStd) {
+                if (existingStd.alan) studentObj.alan = existingStd.alan;
+                if (existingStd.ogrenciKodu) studentObj.ogrenciKodu = existingStd.ogrenciKodu;
+                if (existingStd.dersler) studentObj.dersler = existingStd.dersler;
+            } else {
+                DataManager.addStudent({
+                    no: val.no,
+                    name: val.name,
+                    class: val.class,
+                    dersler: [val.subject],
+                    status: 'Aktif'
+                });
+            }
+
+            if (session.hasGroups) {
+                studentObj._groupLabel = val.group;
+            }
+
+            if (!room.seats) room.seats = {};
+            room.seats[seatId] = studentObj;
+
+            if (!session.selectedClasses) session.selectedClasses = [];
+            if (!session.selectedClasses.includes(val.class)) {
+                session.selectedClasses.push(val.class);
+            }
+            if (session.excludedStudents) {
+                session.excludedStudents = session.excludedStudents.filter(no => String(no) !== String(val.no));
+            }
+
+            DataManager.addExamSession(session);
+            window.currentRenderedSession = session;
+            window._currentExamResults = session.results;
+            window.renderExamSessionsList();
+
+            if (typeof window.viewSessionDistribution === 'function' && window._currentlyOpenSessionId === session.id) {
+                window.viewSessionDistribution(session.id, null, true, true);
+            } else if (typeof window._renderExamResults === 'function') {
+                window._renderExamResults(session, window._activeResultsContainer, true);
+            }
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Öğrenci Eklendi',
+                html: `<b>${val.name}</b> (${val.no}), <b>${room.name} Salonu</b> ${seatNum}. koltuğa yerleştirildi.<br><small style="color:#059669;">Mevcut dağıtım bozulmadan başarıyla güncellendi.</small>`,
+                timer: 2500,
+                showConfirmButton: false
+            });
+        });
+    };
+
+    // ─── Oturuma Boş Salon/Yer Seçerek Öğrenci Ekle ────────────────────────
+    window.openAddStudentToDistributionModal = function (sessionId = null) {
+        const sid = sessionId || window._currentlyOpenSessionId;
+        const session = (sid ? DataManager.getExamSessions().find(s => s.id === sid) : null) || window.currentRenderedSession;
+        if (!session || !session.results || !session.results.length) {
+            Swal.fire('Hata', 'Bu oturum için henüz bir dağıtım yapılmamış.', 'warning');
+            return;
+        }
+
+        // Boş koltukları topla
+        const emptySeats = [];
+        session.results.forEach((r, rIdx) => {
+            let rCounter = 1;
+            for (let g = 1; g <= r.groups; g++) {
+                const conf = r.groupConfigs ? r.groupConfigs[g - 1] : { rows: r.rows || 1, cols: r.cols || 1 };
+                for (let row = 1; row <= conf.rows; row++) {
+                    for (let col = 1; col <= conf.cols; col++) {
+                        const sidStr = `G${g}-S${row}-C${col}`;
+                        if (!(r.disabledSeats && r.disabledSeats.includes(sidStr))) {
+                            if (!r.seats || !r.seats[sidStr]) {
+                                emptySeats.push({
+                                    roomIdx: rIdx,
+                                    roomName: r.name,
+                                    seatId: sidStr,
+                                    seatNum: rCounter,
+                                    col: col
+                                });
+                            }
+                            rCounter++;
+                        }
+                    }
+                }
+            }
+        });
+
+        if (emptySeats.length === 0) {
+            Swal.fire({
+                title: 'Boş Koltuk Bulunamadı',
+                html: 'Bu oturumdaki tüm dersliklerin koltukları tamamen doludur.<br>Yeni öğrenci eklemek için lütfen "Düzenle" menüsünden oturuma yeni bir derslik ekleyiniz.',
+                icon: 'info'
+            });
+            return;
+        }
+
+        const placedNos = new Set();
+        session.results.forEach(r => {
+            Object.values(r.seats || {}).forEach(std => {
+                if (std && std.no !== undefined && std.no !== null) placedNos.add(String(std.no));
+            });
+        });
+
+        const allStudents = DataManager.getStudents() || [];
+        const unplacedStudents = allStudents.filter(s => s && s.no !== undefined && !placedNos.has(String(s.no)));
+        unplacedStudents.sort((a, b) => (a.class || '').localeCompare(b.class || '', 'tr') || (parseInt(a.no) || 0) - (parseInt(b.no) || 0));
+
+        const sessionSubjects = [];
+        if (Array.isArray(session.subjects)) {
+            session.subjects.forEach(s => {
+                const name = typeof s === 'object' ? s.name : s;
+                if (name && !sessionSubjects.includes(name)) sessionSubjects.push(name);
+            });
+        }
+        if (!sessionSubjects.length && session.subject) sessionSubjects.push(session.subject);
+        if (session.results) {
+            session.results.forEach(r => Object.values(r.seats || {}).forEach(s => {
+                if (s && s._matchedSubject && !sessionSubjects.includes(s._matchedSubject)) sessionSubjects.push(s._matchedSubject);
+            }));
+        }
+        if (!sessionSubjects.length) sessionSubjects.push('Genel Sınav');
+
+        let seatOptionsHtml = `<option value="auto">⚡ [Otomatik] İlk Uygun Boş Koltuğa Yerleştir (${emptySeats.length} Boş Koltuk)</option>`;
+        const roomsMap = {};
+        emptySeats.forEach(st => {
+            if (!roomsMap[st.roomName]) roomsMap[st.roomName] = [];
+            roomsMap[st.roomName].push(st);
+        });
+
+        Object.keys(roomsMap).forEach(rName => {
+            seatOptionsHtml += `<optgroup label="${rName} Salonu (${roomsMap[rName].length} Boş Yer)">`;
+            roomsMap[rName].forEach(st => {
+                seatOptionsHtml += `<option value="${st.roomIdx}|${st.seatId}">${rName} Salonu - Koltuk ${st.seatNum} (${st.seatId})</option>`;
+            });
+            seatOptionsHtml += `</optgroup>`;
+        });
+
+        let studentOptionsHtml = unplacedStudents.map(s => {
+            return `<option value="${s.no}" data-name="${(s.name || '').replace(/"/g, '&quot;')}" data-class="${s.class || ''}">${s.class || '?'} - No: ${s.no} - ${s.name || ''}</option>`;
+        }).join('');
+
+        let subjectsOptionsHtml = sessionSubjects.map(sub => `<option value="${sub}">${sub}</option>`).join('');
+
+        Swal.fire({
+            title: 'Dağıtıma Öğrenci Ekle',
+            width: '580px',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fa-solid fa-user-plus"></i> Dağıtıma Ekle ve Kaydet',
+            cancelButtonText: 'İptal',
+            confirmButtonColor: '#10b981',
+            html: `
+                <div style="text-align:left;">
+                    <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; gap:10px;">
+                        <i class="fa-solid fa-shield-halved" style="color:#059669; font-size:1.4rem;"></i>
+                        <div style="font-size:0.85rem; color:#065f46;">
+                            <strong>Mevcut Dağıtım Korunur:</strong> Eklenen öğrenci seçtiğiniz boş salona ve koltuğa yerleştirilir. Diğer öğrencilerin yerleri kesinlikle değişmez.
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:12px;">
+                        <label style="font-weight:700; font-size:0.85rem; color:#1e293b; display:block; margin-bottom:4px;">
+                            1. Öğrenci Seçimi <small style="color:#64748b;">(${unplacedStudents.length} atanmamış öğrenci)</small>
+                        </label>
+                        <input type="text" id="addStdSearch" class="swal2-input" placeholder="Öğrenci ara (No, İsim, Sınıf)..." style="width:100%; margin:0 0 6px 0; height:36px; font-size:0.85rem;">
+                        <select id="addStdSelect" class="swal2-select" style="width:100%; margin:0; height:40px; font-size:0.9rem;">
+                            <option value="">-- Listeden Seçin veya Manuel Girin --</option>
+                            ${studentOptionsHtml}
+                        </select>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+                        <div style="flex:1; min-width:90px;">
+                            <label style="font-weight:700; font-size:0.8rem; color:#475569; display:block; margin-bottom:4px;">No *</label>
+                            <input type="number" id="addStdNo" class="swal2-input" placeholder="Örn: 104" style="width:100%; margin:0; height:38px; font-size:0.85rem;">
+                        </div>
+                        <div style="flex:2; min-width:140px;">
+                            <label style="font-weight:700; font-size:0.8rem; color:#475569; display:block; margin-bottom:4px;">Ad Soyad *</label>
+                            <input type="text" id="addStdName" class="swal2-input" placeholder="Ad Soyad" style="width:100%; margin:0; height:38px; font-size:0.85rem;">
+                        </div>
+                        <div style="flex:1; min-width:80px;">
+                            <label style="font-weight:700; font-size:0.8rem; color:#475569; display:block; margin-bottom:4px;">Sınıf *</label>
+                            <input type="text" id="addStdClass" class="swal2-input" placeholder="Örn: 10-A" style="width:100%; margin:0; height:38px; font-size:0.85rem;">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:12px;">
+                        <label style="font-weight:700; font-size:0.85rem; color:#1e293b; display:block; margin-bottom:4px;">
+                            2. Boş Salon ve Yer Seçimi <small style="color:#059669; font-weight:bold;">(${emptySeats.length} boş koltuk mevcut)</small>
+                        </label>
+                        <select id="addStdSeatSelect" class="swal2-select" style="width:100%; margin:0; height:40px; font-size:0.9rem;">
+                            ${seatOptionsHtml}
+                        </select>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+                        <div style="flex:2; min-width:180px;">
+                            <label style="font-weight:700; font-size:0.85rem; color:#475569; display:block; margin-bottom:4px;">Sınav Dersi *</label>
+                            <select id="addStdSubject" class="swal2-select" style="width:100%; margin:0; height:38px; font-size:0.9rem;">
+                                ${subjectsOptionsHtml}
+                            </select>
+                        </div>
+                        ${session.hasGroups ? `
+                        <div style="flex:1; min-width:110px;">
+                            <label style="font-weight:700; font-size:0.85rem; color:#475569; display:block; margin-bottom:4px;">Grup</label>
+                            <select id="addStdGroup" class="swal2-select" style="width:100%; margin:0; height:38px; font-size:0.9rem;">
+                                <option value="A">Grup A</option>
+                                <option value="B">Grup B</option>
+                                ${session.groupCount > 2 ? '<option value="C">Grup C</option><option value="D">Grup D</option>' : ''}
+                            </select>
+                        </div>` : ''}
+                    </div>
+                </div>
+            `,
+            didOpen: () => {
+                const searchInp = document.getElementById('addStdSearch');
+                const selectEl = document.getElementById('addStdSelect');
+                const noInp = document.getElementById('addStdNo');
+                const nameInp = document.getElementById('addStdName');
+                const classInp = document.getElementById('addStdClass');
+                const subSelect = document.getElementById('addStdSubject');
+
+                if (searchInp && selectEl) {
+                    searchInp.addEventListener('input', (e) => {
+                        const q = e.target.value.trim().toLocaleUpperCase('tr-TR');
+                        Array.from(selectEl.options).forEach((opt, idx) => {
+                            if (idx === 0) return;
+                            opt.style.display = opt.text.toLocaleUpperCase('tr-TR').includes(q) ? '' : 'none';
+                        });
+                    });
+                }
+
+                if (selectEl) {
+                    selectEl.addEventListener('change', (e) => {
+                        const opt = e.target.selectedOptions[0];
+                        if (opt && opt.value) {
+                            const std = allStudents.find(s => String(s.no) === String(opt.value));
+                            if (std) {
+                                noInp.value = std.no;
+                                nameInp.value = std.name || '';
+                                classInp.value = std.class || '';
+
+                                const stdDersler = (std.dersler || []).map(d => String(d).trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ'));
+                                for (let sOpt of subSelect.options) {
+                                    const optNorm = sOpt.value.trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
+                                    if (stdDersler.some(d => d === optNorm || d.startsWith(optNorm) || optNorm.startsWith(d))) {
+                                        subSelect.value = sOpt.value;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            },
+            preConfirm: () => {
+                const noVal = (document.getElementById('addStdNo')?.value || '').trim();
+                const nameVal = (document.getElementById('addStdName')?.value || '').trim();
+                const classVal = (document.getElementById('addStdClass')?.value || '').trim();
+                const subVal = document.getElementById('addStdSubject')?.value;
+                const seatVal = document.getElementById('addStdSeatSelect')?.value;
+                const grpVal = document.getElementById('addStdGroup')?.value || 'A';
+
+                if (!noVal || !nameVal || !classVal) {
+                    Swal.showValidationMessage('Lütfen Öğrenci No, Ad Soyad ve Sınıf alanlarını doldurunuz.');
+                    return false;
+                }
+                if (!subVal) {
+                    Swal.showValidationMessage('Lütfen bir sınav dersi seçiniz.');
+                    return false;
+                }
+
+                return {
+                    no: noVal,
+                    name: nameVal,
+                    class: classVal,
+                    subject: subVal,
+                    seatChoice: seatVal,
+                    group: grpVal
+                };
+            }
+        }).then(result => {
+            if (!result.isConfirmed || !result.value) return;
+            const val = result.value;
+
+            let targetSeat = null;
+            if (val.seatChoice === 'auto') {
+                targetSeat = emptySeats[0];
+            } else {
+                const [rIdxStr, sidStr] = val.seatChoice.split('|');
+                targetSeat = emptySeats.find(s => s.roomIdx === parseInt(rIdxStr) && s.seatId === sidStr);
+                if (!targetSeat) targetSeat = emptySeats[0];
+            }
+
+            if (!targetSeat) {
+                Swal.fire('Hata', 'Hedef boş koltuk bulunamadı.', 'error');
+                return;
+            }
+
+            const studentObj = {
+                no: val.no,
+                name: val.name,
+                class: val.class,
+                _matchedSubject: val.subject,
+                dersler: [val.subject]
+            };
+
+            const existingStd = allStudents.find(s => String(s.no) === String(val.no));
+            if (existingStd) {
+                if (existingStd.alan) studentObj.alan = existingStd.alan;
+                if (existingStd.ogrenciKodu) studentObj.ogrenciKodu = existingStd.ogrenciKodu;
+                if (existingStd.dersler) studentObj.dersler = existingStd.dersler;
+            } else {
+                DataManager.addStudent({
+                    no: val.no,
+                    name: val.name,
+                    class: val.class,
+                    dersler: [val.subject],
+                    status: 'Aktif'
+                });
+            }
+
+            if (session.hasGroups) {
+                const col = targetSeat.col || 1;
+                const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                studentObj._groupLabel = val.group || (alphabet[(col - 1) % (session.groupCount || 2)] || 'A');
+            }
+
+            const room = session.results[targetSeat.roomIdx];
+            if (!room.seats) room.seats = {};
+            room.seats[targetSeat.seatId] = studentObj;
+
+            if (!session.selectedClasses) session.selectedClasses = [];
+            if (!session.selectedClasses.includes(val.class)) {
+                session.selectedClasses.push(val.class);
+            }
+            if (session.excludedStudents) {
+                session.excludedStudents = session.excludedStudents.filter(no => String(no) !== String(val.no));
+            }
+
+            DataManager.addExamSession(session);
+            window.currentRenderedSession = session;
+            window._currentExamResults = session.results;
+            window.renderExamSessionsList();
+
+            if (typeof window.viewSessionDistribution === 'function' && window._currentlyOpenSessionId === session.id) {
+                window.viewSessionDistribution(session.id, null, true, true);
+            } else if (typeof window._renderExamResults === 'function') {
+                window._renderExamResults(session, window._activeResultsContainer, true);
+            }
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Öğrenci Eklendi',
+                html: `<b>${val.name}</b> (${val.no}), <b>${targetSeat.roomName} Salonu</b> ${targetSeat.seatNum}. koltuğa yerleştirildi.<br><small style="color:#059669;">Mevcut dağıtım bozulmadan korundu.</small>`,
+                timer: 2500,
+                showConfirmButton: false
             });
         });
     };

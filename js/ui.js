@@ -2702,9 +2702,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <div style="width:22px; height:22px; background:#f8fafc; border:1px solid #cbd5e1; color:#334155; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:900; position:absolute; bottom:0; left:50%; transform:translateX(-50%); z-index:2; box-shadow:0 2px 4px rgba(0,0,0,0.1);">${curNum}</div>
                                 </div>`;
                             } else {
-                                groupsHtml += `<div class="desk empty" style="width:95px; height:80px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; border:2px dashed #ef4444; background:#fff5f5; border-radius:8px; cursor:pointer; position:relative; overflow:visible; padding:6px;"
-                                    onclick="examDeskClick(event, ${idx}, '${seatId}')">
-                                    <div style="font-size:0.6rem; font-weight:900; color:#dc2626; margin-top:10px; letter-spacing:0.5px; text-align:center; line-height:1.2;">BOŞ<br>BIRAKINIZ</div>
+                                groupsHtml += `<div class="desk empty" style="width:95px; height:80px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; border:2px dashed #ef4444; background:#fff5f5; border-radius:8px; cursor:pointer; position:relative; overflow:visible; padding:6px; transition:all 0.15s ease;"
+                                    title="Öğrenci atamak için tıklayın (${curNum}. Koltuk)"
+                                    onclick="examDeskClick(event, ${idx}, '${seatId}')"
+                                    oncontextmenu="examDeskRightClick(event, ${idx}, '${seatId}')">
+                                    <div style="font-size:0.6rem; font-weight:900; color:#dc2626; margin-top:6px; letter-spacing:0.5px; text-align:center; line-height:1.2;">BOŞ<br><span style="font-size:0.52rem; color:#4f46e5; font-weight:800; background:rgba(238,242,255,0.95); border:1px solid #c7d2fe; padding:1px 4px; border-radius:4px; display:inline-block; margin-top:2px;">+ Öğrenci Ekle</span></div>
                                     <div style="width:22px; height:22px; background:#fee2e2; border:1px solid #fecaca; color:#ef4444; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:900; position:absolute; bottom:0; left:50%; transform:translateX(-50%); z-index:2; box-shadow:0 2px 4px rgba(239,68,68,0.1);">${curNum}</div>
                                 </div>`;
                             }
@@ -3551,7 +3553,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             window._currentExamResults = window.currentRenderedSession.results;
         }
         const results = window._currentExamResults;
-        if (!results || !results[+roomIdx] || !results[+roomIdx].seats[seatId]) return;
+        if (!results || !results[+roomIdx]) return;
+        const student = results[+roomIdx].seats && results[+roomIdx].seats[seatId];
+        if (!student) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof window.openAssignStudentToSeatModal === 'function') {
+                window.openAssignStudentToSeatModal(+roomIdx, seatId);
+            }
+            return;
+        }
         // Only prevent default AFTER confirming we'll show our menu
         e.preventDefault();
         e.stopPropagation();
@@ -3564,7 +3575,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ── Called from onclick="examDeskClick(event, idx, seatId)"
     window.examDeskClick = function (e, roomIdx, seatId) {
-        if (!_ctx.moveMode) return;
+        if (!_ctx.moveMode) {
+            const results = window._currentExamResults || (window.currentRenderedSession && window.currentRenderedSession.results);
+            const room = results && results[+roomIdx];
+            const student = room && room.seats && room.seats[seatId];
+            if (!student) {
+                e.stopPropagation();
+                if (typeof window.openAssignStudentToSeatModal === 'function') {
+                    window.openAssignStudentToSeatModal(+roomIdx, seatId);
+                }
+            }
+            return;
+        }
         e.stopPropagation();
         clearHighlights();
 
