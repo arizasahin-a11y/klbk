@@ -5478,7 +5478,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const effCount = getEffectiveSubjectGroupCount(session, s._matchedSubject);
             const groupSuffix = (effCount > 1 && (s._groupLabel || s.group)) ? ` (${s._groupLabel || s.group})` : '';
-            const st = s.status || (session.studentStatuses && session.studentStatuses[s.no]) || '';
+            const _rawSt5481 = (session.studentStatuses && session.studentStatuses[s.no]) || s.status || '';
+            // 'Aktif' sistem kayıt durumudur; yoklama rozeti olarak gösterilmez
+            const st = (_rawSt5481 === 'Aktif') ? '' : _rawSt5481;
             const stBadge = st ? `<span style="display:inline-block; font-size:0.65rem; font-weight:800; padding:1px 5px; border-radius:4px; margin-left:6px; color:${st === 'GELMEDİ' ? '#dc2626' : (st === 'KOPYA' ? '#7f1d1d' : '#0284c7')}; background:${st === 'GELMEDİ' || st === 'KOPYA' ? '#fef2f2' : '#f0f9ff'}; border:1px solid ${st === 'GELMEDİ' ? '#fca5a5' : (st === 'KOPYA' ? '#fecaca' : '#bae6fd')};">${st}</span>` : '';
 
             return `
@@ -5624,7 +5626,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 style="width:15px; height:15px;">`;
                     }
                     
-                    const st = s.status || (session.studentStatuses && session.studentStatuses[s.no]) || '';
+                    const _rawSt5627 = (session.studentStatuses && session.studentStatuses[s.no]) || s.status || '';
+                    // 'Aktif' sistem kayıt durumudur; yoklama rozeti olarak gösterilmez
+                    const st = (_rawSt5627 === 'Aktif') ? '' : _rawSt5627;
                     const stBadge = st ? `<span style="display:inline-block; font-size:0.65rem; font-weight:800; padding:1px 5px; border-radius:4px; margin-left:6px; color:${st === 'GELMEDİ' ? '#dc2626' : (st === 'KOPYA' ? '#7f1d1d' : '#0284c7')}; background:${st === 'GELMEDİ' || st === 'KOPYA' ? '#fef2f2' : '#f0f9ff'}; border:1px solid ${st === 'GELMEDİ' ? '#fca5a5' : (st === 'KOPYA' ? '#fecaca' : '#bae6fd')};">${st}</span>` : '';
 
                     return `

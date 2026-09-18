@@ -50,8 +50,9 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
                 const std = seat.student || seat;
                 if (std && std.no) {
                     const noKey = String(std.no).trim();
-                    const rawStatus = statuses[noKey] || statuses[std.no];
-                    const status = rawStatus || 'GELDİ';
+                    const rawStatus = statuses[noKey] || statuses[std.no] || std.status || '';
+                    // 'Aktif' = öğrencinin sistem kayıt durumu; sınav yoklamasında 'GELDİ' anlamına gelir
+                    const status = (!rawStatus || rawStatus === 'Aktif') ? 'GELDİ' : rawStatus;
 
                     const sClass = (std.class || '-').trim();
                     const sName = (std.name || '').trim();
