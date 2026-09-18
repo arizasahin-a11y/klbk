@@ -5478,13 +5478,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const effCount = getEffectiveSubjectGroupCount(session, s._matchedSubject);
             const groupSuffix = (effCount > 1 && (s._groupLabel || s.group)) ? ` (${s._groupLabel || s.group})` : '';
+            const st = s.status || (session.studentStatuses && session.studentStatuses[s.no]) || '';
+            const stBadge = st ? `<span style="display:inline-block; font-size:0.65rem; font-weight:800; padding:1px 5px; border-radius:4px; margin-left:6px; color:${st === 'GELMEDİ' ? '#dc2626' : (st === 'KOPYA' ? '#7f1d1d' : '#0284c7')}; background:${st === 'GELMEDİ' || st === 'KOPYA' ? '#fef2f2' : '#f0f9ff'}; border:1px solid ${st === 'GELMEDİ' ? '#fca5a5' : (st === 'KOPYA' ? '#fecaca' : '#bae6fd')};">${st}</span>` : '';
 
             return `
-                <tr>
+                <tr style="${st === 'GELMEDİ' ? 'background:#fffafa;' : ''}">
                     <td style="padding:8px; border-bottom:1px solid #eee;"><b>${seatToNum[seatId] || '-'}</b></td>
                     <td style="padding:8px; border-bottom:1px solid #eee;">${s.class}</td>
                     <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}</b></td>
-                    <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.name}${groupSuffix}</b></td>
+                    <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.name}${groupSuffix}</b>${stBadge}</td>
                     <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${window.shortenSubject(s._matchedSubject || '-', 15)}</td>
                     <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">
                         ${checkboxHtml}
@@ -5622,10 +5624,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 style="width:15px; height:15px;">`;
                     }
                     
+                    const st = s.status || (session.studentStatuses && session.studentStatuses[s.no]) || '';
+                    const stBadge = st ? `<span style="display:inline-block; font-size:0.65rem; font-weight:800; padding:1px 5px; border-radius:4px; margin-left:6px; color:${st === 'GELMEDİ' ? '#dc2626' : (st === 'KOPYA' ? '#7f1d1d' : '#0284c7')}; background:${st === 'GELMEDİ' || st === 'KOPYA' ? '#fef2f2' : '#f0f9ff'}; border:1px solid ${st === 'GELMEDİ' ? '#fca5a5' : (st === 'KOPYA' ? '#fecaca' : '#bae6fd')};">${st}</span>` : '';
+
                     return `
-                    <tr>
+                    <tr style="${st === 'GELMEDİ' ? 'background:#fffafa;' : ''}">
                         <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}${s._groupLabel ? ` (${s._groupLabel})` : ''}</b></td>
-                        <td style="padding:8px; border-bottom:1px solid #eee;">${s.name}</td>
+                        <td style="padding:8px; border-bottom:1px solid #eee;">${s.name}${stBadge}</td>
                         <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${window.shortenSubject(s._matchedSubject || '-', 15)}</td>
                         <td style="padding:8px; border-bottom:1px solid #eee;">${s.room}</td>
                         <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.seatNum}</b></td>

@@ -817,8 +817,79 @@ const DataManager = {
 
         const exists = data.examSessions.findIndex(s => s.id === sessionObj.id);
         if (exists !== -1) {
+            const existingSes = data.examSessions[exists];
+            // Öğrenci yoklama ve devamsızlık durumlarının (GELMEDİ, KOPYA vb.) kaybolmaması için birleştir
+            const mergedStatuses = Object.assign({}, existingSes.studentStatuses || {}, sessionObj.studentStatuses || {});
+
+            // Dağıtım sonuçlarındaki (session.results) koltuklardan da mevcut statüleri topla
+            if (sessionObj.results && Array.isArray(sessionObj.results)) {
+                sessionObj.results.forEach(r => {
+                    if (r.seats) {
+                        Object.values(r.seats).forEach(seat => {
+                            const std = seat.student || seat;
+                            if (std && std.no && std.status) {
+                                mergedStatuses[std.no] = std.status;
+                            }
+                        });
+                    }
+                });
+            }
+            if (existingSes.results && Array.isArray(existingSes.results)) {
+                existingSes.results.forEach(r => {
+                    if (r.seats) {
+                        Object.values(r.seats).forEach(seat => {
+                            const std = seat.student || seat;
+                            if (std && std.no && std.status && !mergedStatuses[std.no]) {
+                                mergedStatuses[std.no] = std.status;
+                            }
+                        });
+                    }
+                });
+            }
+
+            sessionObj.studentStatuses = mergedStatuses;
+
+            // Statüleri doğrudan dağıtımdaki (results) koltuklara işle -> Dağıtımla birlikte saklansın
+            if (sessionObj.results && Array.isArray(sessionObj.results)) {
+                sessionObj.results.forEach(r => {
+                    if (r.seats) {
+                        Object.values(r.seats).forEach(seat => {
+                            const std = seat.student || seat;
+                            if (std && std.no) {
+                                const st = sessionObj.studentStatuses[std.no];
+                                if (st) {
+                                    std.status = st;
+                                    seat.status = st;
+                                    if (seat.student) seat.student.status = st;
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+
             data.examSessions[exists] = sessionObj;
         } else {
+            if (!sessionObj.studentStatuses) sessionObj.studentStatuses = {};
+            if (sessionObj.results && Array.isArray(sessionObj.results)) {
+                sessionObj.results.forEach(r => {
+                    if (r.seats) {
+                        Object.values(r.seats).forEach(seat => {
+                            const std = seat.student || seat;
+                            if (std && std.no) {
+                                if (std.status) {
+                                    sessionObj.studentStatuses[std.no] = std.status;
+                                } else if (sessionObj.studentStatuses[std.no]) {
+                                    const st = sessionObj.studentStatuses[std.no];
+                                    std.status = st;
+                                    seat.status = st;
+                                    if (seat.student) seat.student.status = st;
+                                }
+                            }
+                        });
+                    }
+                });
+            }
             data.examSessions.push(sessionObj);
         }
         this._saveData(data);

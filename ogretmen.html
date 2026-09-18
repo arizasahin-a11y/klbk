@@ -863,6 +863,28 @@
                             delete session.studentStatuses[studentNo];
                         }
 
+                        // Dağıtım sonuçlarındaki koltukta da sakla (dağıtımla birlikte kalıcı olsun)
+                        if (session.results && Array.isArray(session.results)) {
+                            session.results.forEach(room => {
+                                if (room.seats) {
+                                    Object.values(room.seats).forEach(seat => {
+                                        const std = seat.student || seat;
+                                        if (std && String(std.no) === String(studentNo)) {
+                                            if (statusVal === 'TEMİZLE') {
+                                                delete std.status;
+                                                delete seat.status;
+                                                if (seat.student) delete seat.student.status;
+                                            } else {
+                                                std.status = statusVal;
+                                                seat.status = statusVal;
+                                                if (seat.student) seat.student.status = statusVal;
+                                            }
+                                        }
+                                    });
+                                }
+                            });
+                        }
+
                         DataManager.addExamSession(session);
                         markLocalChange();
                         lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
@@ -1341,16 +1363,19 @@
                                     var std = seat.student || seat;
                                     if (!std || !std.no) return;
                                     studCount++;
-                                    var status = statuses[std.no] || '';
-                                    var statusColor = status === 'GELMEDİ' ? 'var(--danger)' : (status === 'KOPYA' ? '#7f1d1d' : (status === 'DİĞER' ? '#0284c7' : 'var(--danger)'));
-                                    var statusText = status || '<i class="fa-solid fa-circle-info" title="Durum İşaretle" style="font-size:1.3rem; vertical-align: middle;"></i>';
-                                    studentsHtml += '<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--gray-100);">'
+                                    var status = statuses[std.no] || std.status || '';
+                                    var statusColor = status === 'GELMEDİ' ? 'var(--danger)' : (status === 'KOPYA' ? '#7f1d1d' : (status === 'DİĞER' ? '#0284c7' : 'var(--gray-400)'));
+                                    var statusBg = status === 'GELMEDİ' ? '#fef2f2' : (status === 'KOPYA' ? '#fef2f2' : (status === 'DİĞER' ? '#f0f9ff' : 'white'));
+                                    var statusText = status || '<i class="fa-solid fa-circle-info" title="Durum İşaretle" style="font-size:1.1rem; vertical-align: middle; color:var(--gray-400);"></i>';
+                                    var rowHighlight = status === 'GELMEDİ' ? 'background:#fff5f5; border-left:3px solid var(--danger); padding-left:6px;' : '';
+                                    studentsHtml += '<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--gray-100); ' + rowHighlight + '">'
                                         + '<div style="font-size:0.85rem; font-weight:700; color:var(--dark);">'
                                         + '<span style="color:var(--gray-500); width:40px; display:inline-block;">' + std.class + '</span> '
                                         + '<span style="color:var(--primary); width:45px; display:inline-block;">' + std.no + '</span> '
                                         + std.name + ' ' + (std.surname || '')
+                                        + (status ? ' <span style="font-size:0.7rem; font-weight:800; padding:2px 6px; border-radius:4px; margin-left:6px; color:' + statusColor + '; background:' + statusBg + '; border:1px solid ' + statusColor + ';">' + status + '</span>' : '')
                                         + '</div>'
-                                        + '<button onclick="window.setStudentStatus(\'' + d.id + '\', \'' + std.no + '\')" style="background:white; border:1px solid ' + statusColor + '; color:' + statusColor + '; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:800; cursor:pointer;">'
+                                        + '<button onclick="window.setStudentStatus(\'' + d.id + '\', \'' + std.no + '\')" style="background:' + statusBg + '; border:1px solid ' + statusColor + '; color:' + statusColor + '; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:800; cursor:pointer;">'
                                         + statusText
                                         + '</button></div>';
                                 });

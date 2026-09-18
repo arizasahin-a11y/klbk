@@ -2683,6 +2683,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             const curNum = seatToNumRoom[seatId] || '-';
                             if (student) {
                                 const sub = student._matchedSubject || '-';
+                                const studentStatus = student.status || (session.studentStatuses && session.studentStatuses[student.no]) || '';
                                 let bg = 'background:white;';
                                 let border = 'border:2px solid var(--primary);';
                                 const neighbors = [{ dr: 0, dc: -1 }, { dr: 0, dc: 1 }, { dr: -1, dc: -1 }, { dr: -1, dc: 1 }, { dr: 1, dc: -1 }, { dr: 1, dc: 1 }, { dr: -1, dc: 0, v: 1 }, { dr: 1, dc: 0, v: 1 }];
@@ -2695,8 +2696,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 if (hs) { bg = 'background:#fee2e2;'; border = 'border:2px solid #ef4444;'; }
                                 else if (hv) { bg = 'background:#fef9c3;'; border = 'border:2px solid #eab308;'; }
 
-                                groupsHtml += `<div class="desk" style="width:95px; height:80px; display:flex; flex-direction:column; justify-content:flex-start; align-items:center; ${bg} ${border} border-radius:8px; padding:6px; position:relative; box-shadow:0 3px 5px rgba(0,0,0,0.06); cursor:pointer; overflow:visible;"
+                                let statusBadgeHtml = '';
+                                if (studentStatus === 'GELMEDİ') {
+                                    statusBadgeHtml = `<div style="position:absolute; top:-7px; right:-7px; background:#dc2626; color:white; font-size:0.52rem; font-weight:900; padding:1px 5px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.25); z-index:3; letter-spacing:0.5px;">GELMEDİ</div>`;
+                                } else if (studentStatus === 'KOPYA') {
+                                    statusBadgeHtml = `<div style="position:absolute; top:-7px; right:-7px; background:#7f1d1d; color:white; font-size:0.52rem; font-weight:900; padding:1px 5px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.25); z-index:3; letter-spacing:0.5px;">KOPYA</div>`;
+                                } else if (studentStatus === 'DİĞER') {
+                                    statusBadgeHtml = `<div style="position:absolute; top:-7px; right:-7px; background:#0284c7; color:white; font-size:0.52rem; font-weight:900; padding:1px 5px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.25); z-index:3; letter-spacing:0.5px;">DİĞER</div>`;
+                                }
+
+                                groupsHtml += `<div class="desk" style="width:95px; height:80px; display:flex; flex-direction:column; justify-content:flex-start; align-items:center; ${bg} ${border} border-radius:8px; padding:6px; position:relative; box-shadow:0 3px 5px rgba(0,0,0,0.06); cursor:pointer; overflow:visible; ${studentStatus === 'GELMEDİ' ? 'opacity:0.9; background:#fffafa;' : ''}"
                                     onclick="examDeskClick(event, ${idx}, '${seatId}')" oncontextmenu="examDeskRightClick(event, ${idx}, '${seatId}')">
+                                    ${statusBadgeHtml}
                                     <div style="font-size:0.6rem; color:#64748b; font-weight:700; background:rgba(241,245,249,0.6); padding:1px 4px; border-radius:4px; width:100%; text-align:center; margin-bottom:4px;">${student.class} / ${student.no}</div>
                                     <div style="font-size:0.65rem; font-weight:800; color:#1e293b; text-align:center; line-height:1.1; margin-top:2px; height:32px; display:flex; align-items:center; justify-content:center; overflow:hidden;">${student.name}</div>
                                     <div style="width:22px; height:22px; background:#f8fafc; border:1px solid #cbd5e1; color:#334155; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:900; position:absolute; bottom:0; left:50%; transform:translateX(-50%); z-index:2; box-shadow:0 2px 4px rgba(0,0,0,0.1);">${curNum}</div>
