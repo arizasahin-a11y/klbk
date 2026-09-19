@@ -1907,9 +1907,32 @@ function renderWeeklyPlan() {
     let groupedShifts = Object.values(groupMap);
     groupedShifts.sort((a, b) => getLocationSortOrder(a.key) - getLocationSortOrder(b.key));
 
+    // Compute minOffset: how many steps back to the plan's startDate
+    let minOffset = 0;
+    if (activePlanMeta.startDate) {
+        let _sd = new Date(activePlanMeta.startDate); _sd.setHours(12,0,0,0);
+        // For monthly, baseMonday is already snapped; compute steps from baseMonday back to startDate
+        let _diffDays = Math.floor((baseMonday.getTime() - _sd.getTime()) / (1000*60*60*24));
+        let _diffSteps = Math.floor(_diffDays / (7 * stepWeeks));
+        minOffset = -_diffSteps;
+    }
+
     // Navigation
-    let canGoPrev = _adminWeekOffset > 0;
+    let canGoPrev = _adminWeekOffset > minOffset;
     let canGoNext = _adminWeekOffset < navMax;
+
+    // --- Update planStatusBanner to show currently displayed week/period ---
+    if (activePlanMeta.status === 'published') {
+        let _typeName = activeDutyType === 'monthly' ? 'Aylık Dönüşümlü' : (activeDutyType === 'fixed' ? 'Sabit' : 'Haftalık Dönüşümlü');
+        let _formatD = (d) => `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()} ${['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'][d.getDay()]}`;
+        let _bannerPeriodText;
+        if (activeDutyType === 'fixed') {
+            _bannerPeriodText = `${_formatD(displayDates[0])} tarihinden itibaren geçerlidir.`;
+        } else {
+            _bannerPeriodText = `${_formatD(displayDates[0])} - ${_formatD(cycleEndFriday)} arasında geçerlidir.`;
+        }
+        $('#planStatusBanner').html(`<i class="fa-solid fa-calendar-check"></i> <b>Bu plan yayında. (${_typeName})</b> ${_bannerPeriodText}`).css({background: '#d1fae5', color: '#065f46'}).show();
+    }
     let navHtml = `
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
         <span style="font-weight:700; font-size:1.05rem; color:var(--primary-dark);">
@@ -2031,7 +2054,30 @@ function renderWeeklyPlan() {
 }
 
 window.adminPrevWeek = function() {
-    if (_adminWeekOffset > 0) { _adminWeekOffset--; renderWeeklyPlan(); }
+    // Get minOffset: how far back to the plan's startDate
+    let _ap = viewingPlanId && allNobetPlans[viewingPlanId] ? allNobetPlans[viewingPlanId] : publishedPlanMeta;
+    let _dt = (_ap && (_ap.dutyType || nobetSettings.dutyType)) || 'fixed';
+    let _stepWeeks = (_dt === 'monthly') ? 4 : 1;
+    let _minOffset = 0;
+    if (_ap && _ap.startDate) {
+        let now = new Date();
+        let day = now.getDay();
+        let dtm = day === 0 ? 1 : day === 6 ? 2 : 1 - day;
+        let baseM = new Date(now);
+        baseM.setDate(now.getDate() + dtm);
+        baseM.setHours(12, 0, 0, 0);
+        if (_dt === 'monthly' && _ap.startDate) {
+            let sd = new Date(_ap.startDate); sd.setHours(12,0,0,0);
+            let dw = Math.max(0, Math.floor((baseM - sd) / (1000*60*60*24*7)));
+            let cp = Math.floor(dw / 4);
+            baseM = new Date(sd); baseM.setDate(sd.getDate() + cp * 28); baseM.setHours(12,0,0,0);
+        }
+        let startDate = new Date(_ap.startDate); startDate.setHours(12,0,0,0);
+        let diffDays = Math.floor((baseM - startDate) / (1000*60*60*24));
+        let diffSteps = Math.floor(diffDays / (7 * _stepWeeks));
+        _minOffset = -diffSteps; // how many steps back to reach startDate
+    }
+    if (_adminWeekOffset > _minOffset) { _adminWeekOffset--; renderWeeklyPlan(); }
 };
 window.adminNextWeek = function() {
     // Get navMax dynamically based on dutyType
