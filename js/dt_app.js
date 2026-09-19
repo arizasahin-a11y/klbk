@@ -296,11 +296,9 @@ async function loadInitialData() {
                 if (p.data) {
                     // CORRUPTION FIX: Remove mistakenly nested plans inside the published data
                     publishedPlanMeta = p;
-                    if (!isAdmin) {
-                        currentWeekPlan = applyDynamicRotation(p.data, p.startDate, nobetSettings.dutyType || 'fixed');
-                    } else {
-                        currentWeekPlan = p.data;
-                    }
+                    let _activeDutyType = p.dutyType || nobetSettings.dutyType || 'fixed';
+                    // Apply rotation for BOTH admin and teacher so the initial view is always current
+                    currentWeekPlan = applyDynamicRotation(p.data, p.startDate, _activeDutyType);
                 } else {
                     currentWeekPlan = p; // backward compat if saved directly
                 }
@@ -347,9 +345,12 @@ async function loadInitialData() {
             }
         }
         
-        // If not admin, teacher only sees published
+        // If not admin, teacher only sees published.
+        // For admin: apply rotation so the plan table shows current rotation state.
         if(isAdmin && viewingPlanId && allNobetPlans[viewingPlanId]) {
-            currentWeekPlan = allNobetPlans[viewingPlanId].data;
+            let _vp = allNobetPlans[viewingPlanId];
+            let _vDutyType = _vp.dutyType || nobetSettings.dutyType || 'fixed';
+            currentWeekPlan = applyDynamicRotation(_vp.data, _vp.startDate, _vDutyType);
         }
 
         populateTeacherDropdowns();
@@ -2524,13 +2525,37 @@ function _getPlanForOffset(offset) {
     }
     if (!planMeta || !planMeta.data) return { data: currentWeekPlan || {}, displayDates: [] };
 
-    // Determine base reference date (today; if Saturday jump to next Monday)
+    // Determine the Monday of the "current" week.
+    // Rule: Cumartesi (6) veya Pazar (0) ise bir sonraki haftanın Pazartesi'si baz alınır.
     let now = new Date();
-    if (now.getDay() === 6) now.setDate(now.getDate() + 2);
+    let day = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    let daysToMonday;
+    if (day === 0) {
+        daysToMonday = 1; // Pazar → bir sonraki Pazartesi
+    } else if (day === 6) {
+        daysToMonday = 2; // Cumartesi → bir sonraki Pazartesi
+    } else {
+        daysToMonday = 1 - day; // Bu haftanın Pazartesi'si (negatif veya sıfır)
+    }
+    let baseMonday = new Date(now);
+    baseMonday.setDate(now.getDate() + daysToMonday);
+    baseMonday.setHours(12, 0, 0, 0); // Gün sınırı sorunlarını önlemek için öğle saati
 
-    // Target reference date = now + offset weeks (used for rotation calculation)
-    let targetRef = new Date(now);
-    targetRef.setDate(targetRef.getDate() + offset * 7);
+    // Target week's Monday = baseMonday + offset weeks
+    let targetMonday = new Date(baseMonday);
+    targetMonday.setDate(baseMonday.getDate() + offset * 7);
+
+    // Build display dates: the actual Mon–Fri of the target week
+    let displayDates = [];
+    for (let i = 0; i < 5; i++) {
+        let d = new Date(targetMonday);
+        d.setDate(targetMonday.getDate() + i);
+        displayDates.push(d);
+    }
+
+    // Use Wednesday of the target week as reference for rotation calculation
+    let targetRef = new Date(targetMonday);
+    targetRef.setDate(targetMonday.getDate() + 2);
 
     // Compute rotated plan for the target week
     let activeDutyType = planMeta.dutyType || nobetSettings.dutyType || 'fixed';
@@ -2541,13 +2566,7 @@ function _getPlanForOffset(offset) {
         rotatedData = JSON.parse(JSON.stringify(planMeta.data));
     }
 
-    // Build display dates: take the plan's original sorted dates and shift them by offset weeks
     let originalDates = Object.keys(rotatedData).sort();
-    let displayDates = originalDates.map(d => {
-        let date = new Date(d);
-        date.setDate(date.getDate() + offset * 7);
-        return date;
-    });
 
     return { data: rotatedData, originalDates, displayDates };
 }
