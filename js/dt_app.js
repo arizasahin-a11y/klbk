@@ -1807,21 +1807,38 @@ function renderWeeklyPlan() {
         return;
     }
 
-    // ---- Compute target week's Mon-Fri real dates (same logic as _getPlanForOffset) ----
+    // ---- Compute target period Mon-Fri dates with monthly cycle support ----
     let now = new Date();
     let day = now.getDay();
     let daysToMonday;
-    if (day === 0)      daysToMonday = 1;        // Sunday  → next Monday
-    else if (day === 6) daysToMonday = 2;        // Saturday → next Monday
-    else                daysToMonday = 1 - day;  // Mon=0, Tue=-1, ... Fri=-4
+    if (day === 0)      daysToMonday = 1;
+    else if (day === 6) daysToMonday = 2;
+    else                daysToMonday = 1 - day;
     let baseMonday = new Date(now);
     baseMonday.setDate(now.getDate() + daysToMonday);
     baseMonday.setHours(12, 0, 0, 0);
 
-    let targetMonday = new Date(baseMonday);
-    targetMonday.setDate(baseMonday.getDate() + _adminWeekOffset * 7);
+    let activeDutyType = activePlanMeta.dutyType || nobetSettings.dutyType || 'fixed';
+    const isMonthly = (activeDutyType === 'monthly');
+    let stepWeeks = isMonthly ? 4 : 1;
+    let navMax = isMonthly ? 6 : 12;
 
-    // Real display dates: Pazartesi–Cuma of target week
+    // Monthly: snap baseMonday to start of current 4-week cycle
+    if (isMonthly && activePlanMeta.startDate) {
+        let startDate = new Date(activePlanMeta.startDate);
+        startDate.setHours(12, 0, 0, 0);
+        let diffDays = Math.floor((baseMonday.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        let diffWeeks = Math.max(0, Math.floor(diffDays / 7));
+        let cyclesPassed = Math.floor(diffWeeks / 4);
+        baseMonday = new Date(startDate);
+        baseMonday.setDate(startDate.getDate() + cyclesPassed * 28);
+        baseMonday.setHours(12, 0, 0, 0);
+    }
+
+    let targetMonday = new Date(baseMonday);
+    targetMonday.setDate(baseMonday.getDate() + _adminWeekOffset * stepWeeks * 7);
+
+    // Real display dates: Pazartesi–Cuma of first week of target period
     let displayDates = [];
     for (let i = 0; i < 5; i++) {
         let d = new Date(targetMonday);
@@ -1829,12 +1846,15 @@ function renderWeeklyPlan() {
         displayDates.push(d);
     }
 
+    // Period end date: last Friday of the cycle
+    let cycleEndFriday = new Date(targetMonday);
+    cycleEndFriday.setDate(targetMonday.getDate() + (stepWeeks * 7) - 3);
+
     // Reference date for rotation = Wednesday of target week
     let targetRef = new Date(targetMonday);
     targetRef.setDate(targetMonday.getDate() + 2);
 
-    // Apply rotation for the target week
-    let activeDutyType = activePlanMeta.dutyType || nobetSettings.dutyType || 'fixed';
+    // Apply rotation for the target period
     let planData;
     if (activePlanMeta.startDate && activeDutyType !== 'fixed') {
         planData = applyDynamicRotation(activePlanMeta.data, activePlanMeta.startDate, activeDutyType, targetRef);
@@ -1846,12 +1866,28 @@ function renderWeeklyPlan() {
     const dayNames = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
     const trMonths = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
-    // Build week title
+    // Build title
     let weekTitle = 'Nöbet Çizelgesi';
     if (displayDates.length >= 2) {
-        let s = displayDates[0], e = displayDates[displayDates.length - 1];
-        weekTitle = `${s.getDate()} ${trMonths[s.getMonth()]} - ${e.getDate()} ${trMonths[e.getMonth()]} ${e.getFullYear()} Haftası Nöbet Planı`;
+        let s = displayDates[0];
+        if (isMonthly) {
+            weekTitle = `${s.getDate()} ${trMonths[s.getMonth()]} - ${cycleEndFriday.getDate()} ${trMonths[cycleEndFriday.getMonth()]} ${cycleEndFriday.getFullYear()} Dönemi Nöbet Planı`;
+        } else {
+            let e = displayDates[displayDates.length - 1];
+            weekTitle = `${s.getDate()} ${trMonths[s.getMonth()]} - ${e.getDate()} ${trMonths[e.getMonth()]} ${e.getFullYear()} Haftası Nöbet Planı`;
+        }
     }
+
+    // Navigation labels
+    let prevLabel = isMonthly ? 'Önceki Dönem' : 'Önceki Hafta';
+    let nextLabel = isMonthly ? 'Sonraki Dönem' : 'Sonraki Hafta';
+    let homeLabel = isMonthly ? 'Bu Dönem' : 'Bu Hafta';
+    let calIcon = isMonthly ? 'calendar-days' : 'calendar-week';
+
+    // Cycle badge (for monthly)
+    let cycleBadge = isMonthly
+        ? `<span style="background:rgba(99,102,241,0.12); color:#4f46e5; font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:8px;">${_adminWeekOffset + 1}. Dönem</span>`
+        : '';
 
     // Aynı nöbet yerlerini tek satırda birleştirmek için grupla
     let groupMap = {};
@@ -1873,23 +1909,23 @@ function renderWeeklyPlan() {
 
     // Navigation
     let canGoPrev = _adminWeekOffset > 0;
-    let canGoNext = _adminWeekOffset < 12;
+    let canGoNext = _adminWeekOffset < navMax;
     let navHtml = `
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
         <span style="font-weight:700; font-size:1.05rem; color:var(--primary-dark);">
-            <i class="fa-solid fa-calendar-week"></i> ${weekTitle}
+            <i class="fa-solid fa-${calIcon}"></i> ${weekTitle}${cycleBadge}
         </span>
         <div style="display:flex; gap:8px; align-items:center;">
-            <button onclick="window.adminPrevWeek()" title="Önceki Hafta"
+            <button onclick="window.adminPrevWeek()" title="${prevLabel}"
                 style="background:${canGoPrev ? 'var(--primary)' : 'var(--gray-200)'}; color:${canGoPrev ? 'white' : 'var(--gray-400)'}; border:none; border-radius:8px; padding:7px 14px; cursor:${canGoPrev ? 'pointer' : 'not-allowed'}; font-size:0.95rem; display:flex; align-items:center; gap:5px; transition:all 0.2s;"
                 ${canGoPrev ? '' : 'disabled'}>
-                <i class="fa-solid fa-chevron-left"></i> Önceki Hafta
+                <i class="fa-solid fa-chevron-left"></i> ${prevLabel}
             </button>
-            ${_adminWeekOffset > 0 ? `<button onclick="window.adminGoCurrentWeek()" title="Bu Hafta" style="background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; border-radius:8px; padding:7px 14px; cursor:pointer; font-size:0.95rem;"><i class="fa-solid fa-house"></i> Bu Hafta</button>` : ''}
-            <button onclick="window.adminNextWeek()" title="Sonraki Hafta"
+            ${_adminWeekOffset > 0 ? `<button onclick="window.adminGoCurrentWeek()" title="${homeLabel}" style="background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; border-radius:8px; padding:7px 14px; cursor:pointer; font-size:0.95rem;"><i class="fa-solid fa-house"></i> ${homeLabel}</button>` : ''}
+            <button onclick="window.adminNextWeek()" title="${nextLabel}"
                 style="background:${canGoNext ? 'var(--primary)' : 'var(--gray-200)'}; color:${canGoNext ? 'white' : 'var(--gray-400)'}; border:none; border-radius:8px; padding:7px 14px; cursor:${canGoNext ? 'pointer' : 'not-allowed'}; font-size:0.95rem; display:flex; align-items:center; gap:5px; transition:all 0.2s;"
                 ${canGoNext ? '' : 'disabled'}>
-                Sonraki Hafta <i class="fa-solid fa-chevron-right"></i>
+                ${nextLabel} <i class="fa-solid fa-chevron-right"></i>
             </button>
             <button onclick="window.openPrintTab()" style="background:var(--gray-100); color:var(--gray-700); border:1px solid var(--gray-300); padding:7px 14px; border-radius:8px; cursor:pointer; font-size:0.95rem;"><i class="fa-solid fa-print"></i> Yazdır</button>
         </div>
@@ -1981,6 +2017,15 @@ function renderWeeklyPlan() {
     html += `</tbody>
         </table>
     </div>`;
+
+    // Monthly: add cycle info note
+    if (isMonthly && cycleEndFriday) {
+        let s = displayDates[0], e = cycleEndFriday;
+        html += `<div style="margin-top:10px; padding:8px 14px; background:rgba(99,102,241,0.07); border-radius:8px; font-size:0.85rem; color:#4f46e5; border:1px solid rgba(99,102,241,0.2);">
+            <i class="fa-solid fa-circle-info"></i> Bu dönem <b>${s.getDate()} ${trMonths[s.getMonth()]}</b> – <b>${e.getDate()} ${trMonths[e.getMonth()]} ${e.getFullYear()}</b> tarihleri arasında geçerlidir. 
+            Aynı öğretmenler 4 hafta boyunca aynı nöbet yerinde görev yapar.
+        </div>`;
+    }
     
     $('#weeklyPlanContainer').html(html);
 }
@@ -1989,7 +2034,11 @@ window.adminPrevWeek = function() {
     if (_adminWeekOffset > 0) { _adminWeekOffset--; renderWeeklyPlan(); }
 };
 window.adminNextWeek = function() {
-    if (_adminWeekOffset < 12) { _adminWeekOffset++; renderWeeklyPlan(); }
+    // Get navMax dynamically based on dutyType
+    let _ap = viewingPlanId && allNobetPlans[viewingPlanId] ? allNobetPlans[viewingPlanId] : publishedPlanMeta;
+    let _dt = (_ap && _ap.dutyType) || nobetSettings.dutyType || 'fixed';
+    let _navMax = (_dt === 'monthly') ? 6 : 12;
+    if (_adminWeekOffset < _navMax) { _adminWeekOffset++; renderWeeklyPlan(); }
 };
 window.adminGoCurrentWeek = function() {
     _adminWeekOffset = 0; renderWeeklyPlan();
@@ -2591,41 +2640,52 @@ function formatCountdown(ms) {
 // --- Week Navigation State ---
 let _teacherWeekOffset = 0; // 0 = current/auto week, +1 = next week, -1 = prev week
 
-// Returns { data, displayDates } for the given week offset.
-// data: teacher assignments (rotation-applied plan.data)
-// displayDates: array of 5 Date objects for Mon–Fri of the target week
+// Returns { data, displayDates, cycleStartMonday, cycleEndFriday, activeDutyType, stepWeeks } for the given offset.
+// offset unit = 1 step = 1 week (weekly) or 4 weeks (monthly)
 function _getPlanForOffset(offset) {
     // Use the published plan as the source of truth
     let planMeta = publishedPlanMeta;
     if (!planMeta) {
-        // Fallback: find any plan with data
         for (let k in allNobetPlans) {
             if (allNobetPlans[k] && allNobetPlans[k].data) { planMeta = allNobetPlans[k]; break; }
         }
     }
-    if (!planMeta || !planMeta.data) return { data: currentWeekPlan || {}, displayDates: [] };
+    if (!planMeta || !planMeta.data) return { data: currentWeekPlan || {}, displayDates: [], activeDutyType: 'fixed', stepWeeks: 1 };
 
-    // Determine the Monday of the "current" week.
-    // Rule: Cumartesi (6) veya Pazar (0) ise bir sonraki haftanın Pazartesi'si baz alınır.
+    let activeDutyType = planMeta.dutyType || nobetSettings.dutyType || 'fixed';
+    // Monthly = 4-week cycle; weekly = 1-week cycle
+    let stepWeeks = (activeDutyType === 'monthly') ? 4 : 1;
+    let maxOffset = (activeDutyType === 'monthly') ? 6 : 12; // max navigable steps
+
+    // Determine the Monday of the "current" base period
     let now = new Date();
-    let day = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    let day = now.getDay();
     let daysToMonday;
-    if (day === 0) {
-        daysToMonday = 1; // Pazar → bir sonraki Pazartesi
-    } else if (day === 6) {
-        daysToMonday = 2; // Cumartesi → bir sonraki Pazartesi
-    } else {
-        daysToMonday = 1 - day; // Bu haftanın Pazartesi'si (negatif veya sıfır)
-    }
+    if (day === 0)      daysToMonday = 1;
+    else if (day === 6) daysToMonday = 2;
+    else                daysToMonday = 1 - day;
     let baseMonday = new Date(now);
     baseMonday.setDate(now.getDate() + daysToMonday);
-    baseMonday.setHours(12, 0, 0, 0); // Gün sınırı sorunlarını önlemek için öğle saati
+    baseMonday.setHours(12, 0, 0, 0);
 
-    // Target week's Monday = baseMonday + offset weeks
+    // For monthly: snap baseMonday back to the start of the current 4-week cycle
+    if (activeDutyType === 'monthly' && planMeta.startDate) {
+        let startDate = new Date(planMeta.startDate);
+        startDate.setHours(12, 0, 0, 0);
+        let diffDays = Math.floor((baseMonday.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        let diffWeeks = Math.max(0, Math.floor(diffDays / 7));
+        let cyclesPassed = Math.floor(diffWeeks / 4);
+        // baseMonday = start of current 4-week cycle
+        baseMonday = new Date(startDate);
+        baseMonday.setDate(startDate.getDate() + cyclesPassed * 28);
+        baseMonday.setHours(12, 0, 0, 0);
+    }
+
+    // Target period start = baseMonday + offset * stepWeeks * 7 days
     let targetMonday = new Date(baseMonday);
-    targetMonday.setDate(baseMonday.getDate() + offset * 7);
+    targetMonday.setDate(baseMonday.getDate() + offset * stepWeeks * 7);
 
-    // Build display dates: the actual Mon–Fri of the target week
+    // Display dates: Mon–Fri of the FIRST week of the target period (for the table columns)
     let displayDates = [];
     for (let i = 0; i < 5; i++) {
         let d = new Date(targetMonday);
@@ -2633,12 +2693,15 @@ function _getPlanForOffset(offset) {
         displayDates.push(d);
     }
 
-    // Use Wednesday of the target week as reference for rotation calculation
+    // Period end date: last Friday of the cycle (= targetMonday + stepWeeks*7 - 3 days)
+    let cycleEndFriday = new Date(targetMonday);
+    cycleEndFriday.setDate(targetMonday.getDate() + (stepWeeks * 7) - 3);
+
+    // Reference date for rotation = Wednesday of the first week of the target period
     let targetRef = new Date(targetMonday);
     targetRef.setDate(targetMonday.getDate() + 2);
 
-    // Compute rotated plan for the target week
-    let activeDutyType = planMeta.dutyType || nobetSettings.dutyType || 'fixed';
+    // Compute rotated plan
     let rotatedData;
     if (planMeta.startDate && activeDutyType !== 'fixed') {
         rotatedData = applyDynamicRotation(planMeta.data, planMeta.startDate, activeDutyType, targetRef);
@@ -2648,12 +2711,12 @@ function _getPlanForOffset(offset) {
 
     let originalDates = Object.keys(rotatedData).sort();
 
-    return { data: rotatedData, originalDates, displayDates };
+    return { data: rotatedData, originalDates, displayDates, cycleEndFriday, activeDutyType, stepWeeks, maxOffset };
 }
 
 function renderTeacherWeeklyPlan() {
     let result = _getPlanForOffset(_teacherWeekOffset);
-    let { data: planData, originalDates: dates, displayDates } = result;
+    let { data: planData, originalDates: dates, displayDates, cycleEndFriday, activeDutyType, stepWeeks, maxOffset } = result;
 
     if (!planData || !dates || dates.length === 0) {
         $('#teacherWeeklyPlanContainer').html('<p style="color:var(--gray-500); padding:10px;">Plan bulunamadı.</p>');
@@ -2661,6 +2724,8 @@ function renderTeacherWeeklyPlan() {
     }
 
     const dayNames = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
+    const trMonths = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+    const isMonthly = (activeDutyType === 'monthly');
 
     // Aynı nöbet yerlerini tek satırda birleştirmek için grupla
     let groupMap = {};
@@ -2669,12 +2734,7 @@ function renderTeacherWeeklyPlan() {
             if (shiftId === '_isHoliday') continue;
             let info = getShiftGroupInfo(shiftId);
             if (!groupMap[info.groupKey]) {
-                groupMap[info.groupKey] = {
-                    key: info.groupKey,
-                    name: info.name,
-                    priority: info.priority,
-                    shiftIds: []
-                };
+                groupMap[info.groupKey] = { key: info.groupKey, name: info.name, priority: info.priority, shiftIds: [] };
             }
             if (!groupMap[info.groupKey].shiftIds.includes(shiftId)) {
                 groupMap[info.groupKey].shiftIds.push(shiftId);
@@ -2683,37 +2743,50 @@ function renderTeacherWeeklyPlan() {
     });
 
     let groupedShifts = Object.values(groupMap);
-    groupedShifts.sort((a, b) => {
-        let orderA = getLocationSortOrder(a.key);
-        let orderB = getLocationSortOrder(b.key);
-        return orderA - orderB;
-    });
+    groupedShifts.sort((a, b) => getLocationSortOrder(a.key) - getLocationSortOrder(b.key));
 
-    // Build title from display dates (offset dates, not original plan dates)
-    const trMonths = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+    // Build title
     let planTitle = 'Nöbet Çizelgesi';
     if (displayDates.length >= 2) {
         let s = displayDates[0];
-        let e = displayDates[displayDates.length - 1];
-        planTitle = `${s.getDate()} ${trMonths[s.getMonth()]} - ${e.getDate()} ${trMonths[e.getMonth()]} Arası Nöbet Çizelgesi`;
+        if (isMonthly && cycleEndFriday) {
+            // Monthly: show full 4-week cycle range
+            planTitle = `${s.getDate()} ${trMonths[s.getMonth()]} - ${cycleEndFriday.getDate()} ${trMonths[cycleEndFriday.getMonth()]} ${cycleEndFriday.getFullYear()} Dönemi Nöbet Çizelgesi`;
+        } else {
+            let e = displayDates[displayDates.length - 1];
+            planTitle = `${s.getDate()} ${trMonths[s.getMonth()]} - ${e.getDate()} ${trMonths[e.getMonth()]} ${e.getFullYear()} Haftası Nöbet Çizelgesi`;
+        }
     }
 
-    // Determine max navigable range: allow up to 12 weeks forward, disallow going before week 0
+    // Navigation labels
+    let prevLabel = isMonthly ? 'Önceki Dönem' : 'Önceki Hafta';
+    let nextLabel = isMonthly ? 'Sonraki Dönem' : 'Sonraki Hafta';
+    let navMax = maxOffset || (isMonthly ? 6 : 12);
     let canGoPrev = _teacherWeekOffset > 0;
-    let canGoNext = _teacherWeekOffset < 12;
+    let canGoNext = _teacherWeekOffset < navMax;
 
-    let navHtml = `<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid var(--gray-200); padding-bottom:10px;">
-        <h3 style="margin:0; color:var(--primary-dark);"><i class="fa-solid fa-table-list"></i> ${planTitle}</h3>
+    // Monthly: show a badge indicating the cycle number
+    let cycleBadge = '';
+    if (isMonthly) {
+        let cycleNum = _teacherWeekOffset + 1;
+        cycleBadge = `<span style="background:rgba(99,102,241,0.12); color:#4f46e5; font-size:0.78rem; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:8px;">${cycleNum}. Dönem</span>`;
+    }
+
+    let navHtml = `<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid var(--gray-200); padding-bottom:10px; flex-wrap:wrap; gap:8px;">
+        <h3 style="margin:0; color:var(--primary-dark); font-size:0.95rem;">
+            <i class="fa-solid fa-${isMonthly ? 'calendar-days' : 'table-list'}"></i> ${planTitle}${cycleBadge}
+        </h3>
         <div style="display:flex; gap:6px; flex-shrink:0;">
-            <button onclick="window.teacherPrevWeek()" title="Önceki Hafta"
-                style="background:${canGoPrev ? 'white' : 'var(--gray-200)'}; border:2px solid var(--gray-300); border-radius:50%; width:36px; height:36px; cursor:${canGoPrev ? 'pointer' : 'not-allowed'}; font-size:1.1rem; color:var(--primary-dark); display:flex; align-items:center; justify-content:center; transition:all 0.2s;"
+            <button onclick="window.teacherPrevWeek()" title="${prevLabel}"
+                style="background:${canGoPrev ? 'var(--primary)' : 'var(--gray-200)'}; color:${canGoPrev ? 'white' : 'var(--gray-400)'}; border:none; border-radius:8px; padding:6px 12px; cursor:${canGoPrev ? 'pointer' : 'not-allowed'}; font-size:0.85rem; display:flex; align-items:center; gap:4px; transition:all 0.2s;"
                 ${canGoPrev ? '' : 'disabled'}>
-                <i class="fa-solid fa-chevron-left"></i>
+                <i class="fa-solid fa-chevron-left"></i> ${prevLabel}
             </button>
-            <button onclick="window.teacherNextWeek()" title="Sonraki Hafta"
-                style="background:${canGoNext ? 'white' : 'var(--gray-200)'}; border:2px solid var(--gray-300); border-radius:50%; width:36px; height:36px; cursor:${canGoNext ? 'pointer' : 'not-allowed'}; font-size:1.1rem; color:var(--primary-dark); display:flex; align-items:center; justify-content:center; transition:all 0.2s;"
+            ${_teacherWeekOffset > 0 ? `<button onclick="window.teacherGoCurrentPeriod()" style="background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; border-radius:8px; padding:6px 12px; cursor:pointer; font-size:0.85rem;"><i class="fa-solid fa-house"></i></button>` : ''}
+            <button onclick="window.teacherNextWeek()" title="${nextLabel}"
+                style="background:${canGoNext ? 'var(--primary)' : 'var(--gray-200)'}; color:${canGoNext ? 'white' : 'var(--gray-400)'}; border:none; border-radius:8px; padding:6px 12px; cursor:${canGoNext ? 'pointer' : 'not-allowed'}; font-size:0.85rem; display:flex; align-items:center; gap:4px; transition:all 0.2s;"
                 ${canGoNext ? '' : 'disabled'}>
-                <i class="fa-solid fa-chevron-right"></i>
+                ${nextLabel} <i class="fa-solid fa-chevron-right"></i>
             </button>
         </div>
     </div>`;
@@ -2730,6 +2803,7 @@ function renderTeacherWeeklyPlan() {
         let colDateStr = colDate
             ? `<br><span style="font-size:0.78rem; font-weight:400; opacity:0.85;">${String(colDate.getDate()).padStart(2,'0')}.${String(colDate.getMonth()+1).padStart(2,'0')}</span>`
             : '';
+        // Monthly: show date range per column (Mon-Fri of each week... or just Mon date)
         html += `<th style="padding: 12px 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">${dayNames[i] || ''}${colDateStr}</th>`;
     }
 
@@ -2790,15 +2864,29 @@ function renderTeacherWeeklyPlan() {
         </table>
     </div>`;
 
+    // Monthly: add info note about cycle
+    if (isMonthly && cycleEndFriday) {
+        let s = displayDates[0], e = cycleEndFriday;
+        html += `<div style="margin-top:10px; padding:8px 14px; background:rgba(99,102,241,0.07); border-radius:8px; font-size:0.85rem; color:#4f46e5; border:1px solid rgba(99,102,241,0.2);">
+            <i class="fa-solid fa-circle-info"></i> Bu dönem <b>${s.getDate()} ${trMonths[s.getMonth()]}</b> – <b>${e.getDate()} ${trMonths[e.getMonth()]} ${e.getFullYear()}</b> tarihleri arasında geçerlidir. Aynı öğretmenler 4 hafta boyunca aynı nöbet yerinde görev yapar.
+        </div>`;
+    }
+
     $('#teacherWeeklyPlanContainer').html(html);
 }
 
-
 window.teacherPrevWeek = function() {
+    let result = _getPlanForOffset(0);
+    let navMax = result.maxOffset || 12;
     if (_teacherWeekOffset > 0) { _teacherWeekOffset--; renderTeacherWeeklyPlan(); }
 };
 window.teacherNextWeek = function() {
-    if (_teacherWeekOffset < 12) { _teacherWeekOffset++; renderTeacherWeeklyPlan(); }
+    let result = _getPlanForOffset(0);
+    let navMax = result.maxOffset || 12;
+    if (_teacherWeekOffset < navMax) { _teacherWeekOffset++; renderTeacherWeeklyPlan(); }
+};
+window.teacherGoCurrentPeriod = function() {
+    _teacherWeekOffset = 0; renderTeacherWeeklyPlan();
 };
 
 
