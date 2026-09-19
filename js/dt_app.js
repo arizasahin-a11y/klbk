@@ -2808,7 +2808,29 @@ function renderTeacherWeeklyPlan() {
     let prevLabel = isMonthly ? 'Önceki Dönem' : 'Önceki Hafta';
     let nextLabel = isMonthly ? 'Sonraki Dönem' : 'Sonraki Hafta';
     let navMax = maxOffset || (isMonthly ? 6 : 12);
-    let canGoPrev = _teacherWeekOffset > 0;
+
+    // Compute minOffset: how many steps back to plan's startDate
+    let minOffset = 0;
+    let _planMeta = publishedPlanMeta;
+    if (!_planMeta) { for (let k in allNobetPlans) { if (allNobetPlans[k] && allNobetPlans[k].data) { _planMeta = allNobetPlans[k]; break; } } }
+    if (_planMeta && _planMeta.startDate) {
+        let _now = new Date();
+        let _day = _now.getDay();
+        let _dtm = _day === 0 ? 1 : _day === 6 ? 2 : 1 - _day;
+        let _baseM = new Date(_now); _baseM.setDate(_now.getDate() + _dtm); _baseM.setHours(12,0,0,0);
+        if (isMonthly && _planMeta.startDate) {
+            let _sd2 = new Date(_planMeta.startDate); _sd2.setHours(12,0,0,0);
+            let _dw = Math.max(0, Math.floor((_baseM - _sd2) / (1000*60*60*24*7)));
+            let _cp = Math.floor(_dw / 4);
+            _baseM = new Date(_sd2); _baseM.setDate(_sd2.getDate() + _cp * 28); _baseM.setHours(12,0,0,0);
+        }
+        let _sd = new Date(_planMeta.startDate); _sd.setHours(12,0,0,0);
+        let _diffDays = Math.floor((_baseM.getTime() - _sd.getTime()) / (1000*60*60*24));
+        let _stepW = isMonthly ? 4 : 1;
+        minOffset = -Math.floor(_diffDays / (7 * _stepW));
+    }
+
+    let canGoPrev = _teacherWeekOffset > minOffset;
     let canGoNext = _teacherWeekOffset < navMax;
 
     // Monthly: show a badge indicating the cycle number
@@ -2828,7 +2850,7 @@ function renderTeacherWeeklyPlan() {
                 ${canGoPrev ? '' : 'disabled'}>
                 <i class="fa-solid fa-chevron-left"></i> ${prevLabel}
             </button>
-            ${_teacherWeekOffset > 0 ? `<button onclick="window.teacherGoCurrentPeriod()" style="background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; border-radius:8px; padding:6px 12px; cursor:pointer; font-size:0.85rem;"><i class="fa-solid fa-house"></i></button>` : ''}
+            ${_teacherWeekOffset !== 0 ? `<button onclick="window.teacherGoCurrentPeriod()" style="background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; border-radius:8px; padding:6px 12px; cursor:pointer; font-size:0.85rem;"><i class="fa-solid fa-house"></i></button>` : ''}
             <button onclick="window.teacherNextWeek()" title="${nextLabel}"
                 style="background:${canGoNext ? 'var(--primary)' : 'var(--gray-200)'}; color:${canGoNext ? 'white' : 'var(--gray-400)'}; border:none; border-radius:8px; padding:6px 12px; cursor:${canGoNext ? 'pointer' : 'not-allowed'}; font-size:0.85rem; display:flex; align-items:center; gap:4px; transition:all 0.2s;"
                 ${canGoNext ? '' : 'disabled'}>
@@ -2922,9 +2944,28 @@ function renderTeacherWeeklyPlan() {
 }
 
 window.teacherPrevWeek = function() {
-    let result = _getPlanForOffset(0);
-    let navMax = result.maxOffset || 12;
-    if (_teacherWeekOffset > 0) { _teacherWeekOffset--; renderTeacherWeeklyPlan(); }
+    // Compute minOffset same as in renderTeacherWeeklyPlan
+    let _planMeta = publishedPlanMeta;
+    if (!_planMeta) { for (let k in allNobetPlans) { if (allNobetPlans[k] && allNobetPlans[k].data) { _planMeta = allNobetPlans[k]; break; } } }
+    let _dt = (_planMeta && _planMeta.dutyType) || nobetSettings.dutyType || 'fixed';
+    let _stepW = _dt === 'monthly' ? 4 : 1;
+    let minOffset = 0;
+    if (_planMeta && _planMeta.startDate) {
+        let _now = new Date();
+        let _day = _now.getDay();
+        let _dtm = _day === 0 ? 1 : _day === 6 ? 2 : 1 - _day;
+        let _baseM = new Date(_now); _baseM.setDate(_now.getDate() + _dtm); _baseM.setHours(12,0,0,0);
+        if (_dt === 'monthly') {
+            let _sd2 = new Date(_planMeta.startDate); _sd2.setHours(12,0,0,0);
+            let _dw = Math.max(0, Math.floor((_baseM - _sd2) / (1000*60*60*24*7)));
+            let _cp = Math.floor(_dw / 4);
+            _baseM = new Date(_sd2); _baseM.setDate(_sd2.getDate() + _cp * 28); _baseM.setHours(12,0,0,0);
+        }
+        let _sd = new Date(_planMeta.startDate); _sd.setHours(12,0,0,0);
+        let _diffDays = Math.floor((_baseM.getTime() - _sd.getTime()) / (1000*60*60*24));
+        minOffset = -Math.floor(_diffDays / (7 * _stepW));
+    }
+    if (_teacherWeekOffset > minOffset) { _teacherWeekOffset--; renderTeacherWeeklyPlan(); }
 };
 window.teacherNextWeek = function() {
     let result = _getPlanForOffset(0);
