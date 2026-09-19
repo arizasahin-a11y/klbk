@@ -760,7 +760,7 @@ window.updatePlanActionButtons = () => {
     
     let activeDutyType = p.dutyType || nobetSettings.dutyType || 'fixed';
     currentWeekPlan = applyDynamicRotation(p.data, p.startDate, activeDutyType);
-    if(isAdmin) renderWeeklyPlan();
+    if(isAdmin) { _adminWeekOffset = 0; renderWeeklyPlan(); }
 };
 
 window.loadSelectedPlan = () => {
@@ -1795,28 +1795,72 @@ function getLocationSortOrder(groupKey) {
     return 999999;
 }
 
+// --- Admin Week Navigation State ---
+let _adminWeekOffset = 0; // 0 = current week, +1 = next week, -1 = prev
+
 function renderWeeklyPlan() {
-    if(!currentWeekPlan || Object.keys(currentWeekPlan).length === 0) {
+    // Get the active plan meta for the selected plan (not necessarily published)
+    let activePlanMeta = viewingPlanId && allNobetPlans[viewingPlanId] ? allNobetPlans[viewingPlanId] : publishedPlanMeta;
+
+    if (!activePlanMeta || !activePlanMeta.data || Object.keys(activePlanMeta.data).length === 0) {
         $('#weeklyPlanContainer').html('<p style="color:var(--gray-500);">Plan bulunmuyor.</p>');
         return;
     }
-    
-    let dates = Object.keys(currentWeekPlan).sort();
+
+    // ---- Compute target week's Mon-Fri real dates (same logic as _getPlanForOffset) ----
+    let now = new Date();
+    let day = now.getDay();
+    let daysToMonday;
+    if (day === 0)      daysToMonday = 1;        // Sunday  → next Monday
+    else if (day === 6) daysToMonday = 2;        // Saturday → next Monday
+    else                daysToMonday = 1 - day;  // Mon=0, Tue=-1, ... Fri=-4
+    let baseMonday = new Date(now);
+    baseMonday.setDate(now.getDate() + daysToMonday);
+    baseMonday.setHours(12, 0, 0, 0);
+
+    let targetMonday = new Date(baseMonday);
+    targetMonday.setDate(baseMonday.getDate() + _adminWeekOffset * 7);
+
+    // Real display dates: Pazartesi–Cuma of target week
+    let displayDates = [];
+    for (let i = 0; i < 5; i++) {
+        let d = new Date(targetMonday);
+        d.setDate(targetMonday.getDate() + i);
+        displayDates.push(d);
+    }
+
+    // Reference date for rotation = Wednesday of target week
+    let targetRef = new Date(targetMonday);
+    targetRef.setDate(targetMonday.getDate() + 2);
+
+    // Apply rotation for the target week
+    let activeDutyType = activePlanMeta.dutyType || nobetSettings.dutyType || 'fixed';
+    let planData;
+    if (activePlanMeta.startDate && activeDutyType !== 'fixed') {
+        planData = applyDynamicRotation(activePlanMeta.data, activePlanMeta.startDate, activeDutyType, targetRef);
+    } else {
+        planData = JSON.parse(JSON.stringify(activePlanMeta.data));
+    }
+    let dates = Object.keys(planData).sort(); // original plan date keys
+
     const dayNames = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
-    
+    const trMonths = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+
+    // Build week title
+    let weekTitle = 'Nöbet Çizelgesi';
+    if (displayDates.length >= 2) {
+        let s = displayDates[0], e = displayDates[displayDates.length - 1];
+        weekTitle = `${s.getDate()} ${trMonths[s.getMonth()]} - ${e.getDate()} ${trMonths[e.getMonth()]} ${e.getFullYear()} Haftası Nöbet Planı`;
+    }
+
     // Aynı nöbet yerlerini tek satırda birleştirmek için grupla
     let groupMap = {};
     dates.forEach(d => {
-        for(let shiftId in currentWeekPlan[d]) {
+        for(let shiftId in planData[d]) {
             if(shiftId === '_isHoliday') continue;
             let info = getShiftGroupInfo(shiftId);
             if(!groupMap[info.groupKey]) {
-                groupMap[info.groupKey] = {
-                    key: info.groupKey,
-                    name: info.name,
-                    priority: info.priority,
-                    shiftIds: []
-                };
+                groupMap[info.groupKey] = { key: info.groupKey, name: info.name, priority: info.priority, shiftIds: [] };
             }
             if(!groupMap[info.groupKey].shiftIds.includes(shiftId)) {
                 groupMap[info.groupKey].shiftIds.push(shiftId);
@@ -1825,24 +1869,45 @@ function renderWeeklyPlan() {
     });
     
     let groupedShifts = Object.values(groupMap);
-    groupedShifts.sort((a, b) => {
-        let orderA = getLocationSortOrder(a.key);
-        let orderB = getLocationSortOrder(b.key);
-        return orderA - orderB;
-    });
+    groupedShifts.sort((a, b) => getLocationSortOrder(a.key) - getLocationSortOrder(b.key));
 
-    let html = `
-    <div style="text-align:right; margin-bottom:10px;">
-        <button onclick="window.openPrintTab()" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;"><i class="fa-solid fa-print"></i> PDF Yap / Yazdır</button>
-    </div>
-    <div style="overflow-x: auto; margin-top: 20px;" id="printablePlanArea">
+    // Navigation
+    let canGoPrev = _adminWeekOffset > 0;
+    let canGoNext = _adminWeekOffset < 12;
+    let navHtml = `
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+        <span style="font-weight:700; font-size:1.05rem; color:var(--primary-dark);">
+            <i class="fa-solid fa-calendar-week"></i> ${weekTitle}
+        </span>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <button onclick="window.adminPrevWeek()" title="Önceki Hafta"
+                style="background:${canGoPrev ? 'var(--primary)' : 'var(--gray-200)'}; color:${canGoPrev ? 'white' : 'var(--gray-400)'}; border:none; border-radius:8px; padding:7px 14px; cursor:${canGoPrev ? 'pointer' : 'not-allowed'}; font-size:0.95rem; display:flex; align-items:center; gap:5px; transition:all 0.2s;"
+                ${canGoPrev ? '' : 'disabled'}>
+                <i class="fa-solid fa-chevron-left"></i> Önceki Hafta
+            </button>
+            ${_adminWeekOffset > 0 ? `<button onclick="window.adminGoCurrentWeek()" title="Bu Hafta" style="background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; border-radius:8px; padding:7px 14px; cursor:pointer; font-size:0.95rem;"><i class="fa-solid fa-house"></i> Bu Hafta</button>` : ''}
+            <button onclick="window.adminNextWeek()" title="Sonraki Hafta"
+                style="background:${canGoNext ? 'var(--primary)' : 'var(--gray-200)'}; color:${canGoNext ? 'white' : 'var(--gray-400)'}; border:none; border-radius:8px; padding:7px 14px; cursor:${canGoNext ? 'pointer' : 'not-allowed'}; font-size:0.95rem; display:flex; align-items:center; gap:5px; transition:all 0.2s;"
+                ${canGoNext ? '' : 'disabled'}>
+                Sonraki Hafta <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            <button onclick="window.openPrintTab()" style="background:var(--gray-100); color:var(--gray-700); border:1px solid var(--gray-300); padding:7px 14px; border-radius:8px; cursor:pointer; font-size:0.95rem;"><i class="fa-solid fa-print"></i> Yazdır</button>
+        </div>
+    </div>`;
+
+    let html = navHtml + `
+    <div style="overflow-x: auto;" id="printablePlanArea">
         <table style="width: 100%; border-collapse: collapse; min-width: 800px; text-align: center; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
             <thead>
                 <tr style="background: var(--primary); color: white;">
                     <th style="padding: 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">Nöbet Yeri</th>`;
     
-    for(let i=0; i<5; i++) {
-        html += `<th style="padding: 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">${dayNames[i] || ''}</th>`;
+    for(let i = 0; i < 5; i++) {
+        let colDate = displayDates[i] || null;
+        let colDateStr = colDate
+            ? `<br><span style="font-size:0.78rem; font-weight:400; opacity:0.85;">${String(colDate.getDate()).padStart(2,'0')}.${String(colDate.getMonth()+1).padStart(2,'0')}</span>`
+            : '';
+        html += `<th style="padding: 12px 15px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600;">${dayNames[i] || ''}${colDateStr}</th>`;
     }
     
     html += `</tr>
@@ -1854,17 +1919,22 @@ function renderWeeklyPlan() {
         html += `<tr style="${rowBg}">
                     <td style="padding: 12px; border: 1px solid var(--gray-200); font-weight: 600; color: var(--primary-dark); text-align: left;">${grp.name}</td>`;
                     
-        for(let i=0; i<5; i++) {
-            let dateStr = dates[i];
-            let holidayName = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(dateStr) : false;
+        for(let i = 0; i < 5; i++) {
+            let dateStr = dates[i]; // original plan key
+            let colDate = displayDates[i];
+            // Check holiday for the display date (real calendar date)
+            let checkDateStr = colDate
+                ? `${colDate.getFullYear()}-${String(colDate.getMonth()+1).padStart(2,'0')}-${String(colDate.getDate()).padStart(2,'0')}`
+                : null;
+            let holidayName = (checkDateStr && typeof window.getHolidayInfo === 'function') ? window.getHolidayInfo(checkDateStr) : false;
             
-            if (holidayName || (currentWeekPlan[dateStr] && currentWeekPlan[dateStr]['_isHoliday'])) {
+            if (holidayName || (planData[dateStr] && planData[dateStr]['_isHoliday'])) {
                 html += `<td style="padding: 12px; border: 1px solid var(--gray-200); color: #b45309; background: rgba(245,158,11,0.15); font-weight:600; text-align:center;">${holidayName || 'Tatil'}</td>`;
             } else {
                 let cellTeachersHtml = [];
-                if(dateStr && currentWeekPlan[dateStr]) {
+                if(dateStr && planData[dateStr]) {
                     grp.shiftIds.forEach(shiftId => {
-                        let teachersInShift = currentWeekPlan[dateStr][shiftId] || [];
+                        let teachersInShift = planData[dateStr][shiftId] || [];
                         teachersInShift.forEach(uid => {
                             let name = klbkUsers[uid]?.name || uid;
                             let countStr = "";
@@ -1914,6 +1984,16 @@ function renderWeeklyPlan() {
     
     $('#weeklyPlanContainer').html(html);
 }
+
+window.adminPrevWeek = function() {
+    if (_adminWeekOffset > 0) { _adminWeekOffset--; renderWeeklyPlan(); }
+};
+window.adminNextWeek = function() {
+    if (_adminWeekOffset < 12) { _adminWeekOffset++; renderWeeklyPlan(); }
+};
+window.adminGoCurrentWeek = function() {
+    _adminWeekOffset = 0; renderWeeklyPlan();
+};
 
 let teacherDutyInterval = null;
 
