@@ -1428,6 +1428,17 @@
                 if (usersData) {
                     teachersDb = usersData;
                     activeTeacherObject = teachersDb[activeTeacherUsername];
+                    // Büyük/küçük harf veya ad-soyad uyumsuzluğu için esnek eşleşme
+                    if (!activeTeacherObject && activeTeacherUsername) {
+                        const targetLower = activeTeacherUsername.toLowerCase().trim();
+                        for (const [uname, u] of Object.entries(teachersDb)) {
+                            if (uname.toLowerCase().trim() === targetLower || (u.name && u.name.toLowerCase().trim() === targetLower)) {
+                                activeTeacherObject = u;
+                                activeTeacherUsername = uname;
+                                break;
+                            }
+                        }
+                    }
                 }
                 schoolData = DataManager.getSchoolSettings();
                 allStudents = DataManager.getStudents();
@@ -1565,6 +1576,50 @@
             }
         }
 
+        function cleanLessonStr(str) {
+            if (!str) return '';
+            let s = str.toString().toLocaleUpperCase('tr-TR')
+                .replace(/İ/g, 'I')
+                .replace(/I/g, 'I')
+                .replace(/Ç/g, 'C')
+                .replace(/Ğ/g, 'G')
+                .replace(/Ö/g, 'O')
+                .replace(/Ş/g, 'S')
+                .replace(/Ü/g, 'U');
+                
+            s = s.replace(/\bSECMELI\s*TED\b/g, 'SECMELITDE')
+                 .replace(/\bSECMELI\s*TDE\b/g, 'SECMELITDE')
+                 .replace(/\bSECMELI\s*TDVE\b/g, 'SECMELITDE')
+                 .replace(/SECMELITED/g, 'SECMELITDE')
+                 .replace(/SECMELITDVE/g, 'SECMELITDE');
+            
+            s = s.replace(/DIN\s*K\.?\s*VE\s*AHLAK\s*B\.?/g, 'DINKULTURU')
+                 .replace(/DIN\s*KULTURU\s*VE\s*AHLAK\s*BILGISI/g, 'DINKULTURU')
+                 .replace(/DIN\s*KULTURU/g, 'DINKULTURU');
+
+            s = s.replace(/BEDEN\s*EGITIMI(\s*VE\s*SPOR)?/g, 'BEDENEGITIMI');
+            s = s.replace(/GORSEL\s*SANATLAR/g, 'GORSELSANATLAR').replace(/\bRESIM\b/g, 'GORSELSANATLAR');
+
+            return s.replace(/[^A-Z0-9]/g, '');
+        }
+
+        function isSubjectMatch(selectedSubject, studentDersler) {
+            if (!selectedSubject || !studentDersler || !Array.isArray(studentDersler) || studentDersler.length === 0) {
+                return false;
+            }
+            const cleanSub = cleanLessonStr(selectedSubject);
+            if (!cleanSub) return false;
+            const cleanSubNoNum = cleanSub.replace(/\d+$/, '');
+
+            return studentDersler.some(lessonName => {
+                const cleanLes = cleanLessonStr(lessonName);
+                if (!cleanLes) return false;
+                const cleanLesNoNum = cleanLes.replace(/\d+$/, '');
+                return cleanLes.includes(cleanSub) || cleanSub.includes(cleanLes) ||
+                       (cleanSubNoNum && cleanLesNoNum && (cleanLesNoNum === cleanSubNoNum || cleanLesNoNum.includes(cleanSubNoNum) || cleanSubNoNum.includes(cleanLesNoNum)));
+            });
+        }
+
         function checkAndAutoDetectClass() {
             if (typeof DataManager !== 'undefined' && !DataManager._isCloudLoaded) return;
             
@@ -1630,7 +1685,21 @@
                             }
                         }
                         
-                        // 2. Eğer geçmiyorsa (sadece "10A" ise) öğretmenin ana (ilk) branşını seç
+                        // 3. Eğer öğretmenin birden fazla branşı varsa, bu sınıftaki öğrencilerin dersleriyle eşleşeni öncelikli seç
+                        if (!foundSubject && activeTeacherObject.branch && activeTeacherObject.branch.length > 1) {
+                            const targetClassClean = matchedOption.value.trim().toUpperCase();
+                            const classStudents = allStudents.filter(s => s.class && s.class.trim().toUpperCase() === targetClassClean);
+                            for (let br of activeTeacherObject.branch) {
+                                const hasAny = classStudents.some(s => s.dersler && isSubjectMatch(br, s.dersler));
+                                if (hasAny) {
+                                    subjectSelect.value = br;
+                                    foundSubject = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // 4. Eğer hala bulunamadıysa (sadece "10A" ise) öğretmenin ana (ilk) branşını seç
                         if (!foundSubject && activeTeacherObject.branch && activeTeacherObject.branch.length > 0) {
                             subjectSelect.value = activeTeacherObject.branch[0];
                         }
@@ -1971,26 +2040,31 @@
             studentListContainer.classList.remove('hidden');
 
             // Filter students by class
-            activeClassStudents = allStudents.filter(s => s.class && s.class.trim() === classVal.trim());
+            const classStudents = allStudents.filter(s => s.class && s.class.trim().toUpperCase() === classVal.trim().toUpperCase());
             
             // Filter by subject if applicable
-            let subjectFiltered = activeClassStudents.filter(s => {
-                if (subjectVal && s.dersler && Array.isArray(s.dersler) && s.dersler.length > 0) {
-                    const cleanStr = str => (str || '').toString().toLocaleUpperCase('tr-TR').replace(/[^A-ZÇĞIİÖŞÜ0-9]/g, '');
-                    const cleanSubject = cleanStr(subjectVal);
-                    
-                    const takesLesson = s.dersler.some(lessonName => {
-                        const cleanLesson = cleanStr(lessonName);
-                        return cleanLesson.includes(cleanSubject) || cleanSubject.includes(cleanLesson);
-                    });
-                    
-                    return takesLesson;
-                }
-                return true;
-            });
+            let subjectFiltered = [];
+            if (subjectVal) {
+                subjectFiltered = classStudents.filter(s => {
+                    if (s.dersler && Array.isArray(s.dersler) && s.dersler.length > 0) {
+                        return isSubjectMatch(subjectVal, s.dersler);
+                    }
+                    return false;
+                });
+            }
 
-            // Filtreyi katı olarak uygula. O dersi alan öğrenci yoksa liste boş gelsin.
-            activeClassStudents = subjectFiltered;
+            // Sadece eğer konu/ders bazlı filtreleme öğrenci bulduysa (örneğin seçmeli ders ayrımı varsa) filtreyi uygula.
+            // Aksi halde (Rehberlik, Beden, Müzik, Görsel Sanatlar gibi sisteme girilmemiş ortak dersler için
+            // veya ders adı farklılığı durumunda listenin boş kalmasını önlemek için) tüm sınıfı göster.
+            let isElectiveGroup = false;
+            if (subjectFiltered.length > 0) {
+                activeClassStudents = subjectFiltered;
+                if (subjectFiltered.length < classStudents.length) {
+                    isElectiveGroup = true;
+                }
+            } else {
+                activeClassStudents = classStudents;
+            }
             
             const sortVal = document.getElementById('sortSelect') ? document.getElementById('sortSelect').value : 'no';
             if (sortVal === 'name') {
@@ -1999,7 +2073,14 @@
                 activeClassStudents.sort((a, b) => (parseInt(a.no) || 0) - (parseInt(b.no) || 0));
             }
 
-            document.getElementById('totalStudentsDisplay').textContent = activeClassStudents.length;
+            const totalDisplay = document.getElementById('totalStudentsDisplay');
+            if (totalDisplay) {
+                if (isElectiveGroup) {
+                    totalDisplay.innerHTML = `${activeClassStudents.length} <span style="font-size:0.8rem; font-weight:normal; opacity:0.85;">(Seçmeli Grup / Sınıf: ${classStudents.length})</span>`;
+                } else {
+                    totalDisplay.textContent = activeClassStudents.length;
+                }
+            }
 
             // Load existing attendance if any
             loadExistingAttendanceRecord(isSubjectChange);
@@ -2078,7 +2159,7 @@
             tbody.innerHTML = '';
 
             if (activeClassStudents.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding:2rem; color:var(--gray-400);">Bu sınıfta öğrenci bulunamadı.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding:2rem; color:var(--gray-400);">Bu sınıfta kayıtlı öğrenci bulunamadı.</td></tr>`;
                 return;
             }
 
