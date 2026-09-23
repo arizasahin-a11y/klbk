@@ -245,12 +245,23 @@
             </div>
         </div>
 
-        <div class="tabs" style="align-items: center; justify-content: space-between;">
+        <div class="tabs" style="align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
             <div style="display: flex; gap: 10px;">
                 <button class="tab-btn active" onclick="switchTab('og', this)" oncontextmenu="handleTabRightClick(event, 'og')"><i class="fas fa-chart-line"></i> Okul Gelişim</button>
                 <button class="tab-btn" onclick="switchTab('oo', this)" oncontextmenu="handleTabRightClick(event, 'oo')"><i class="fas fa-star"></i> Okul Özel</button>
             </div>
             
+            <div class="filter-wrapper" style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-calendar-alt" style="color: #4f46e5;"></i>
+                <label for="fl-edu-year-select" style="cursor: pointer; user-select: none; font-weight: 600;">Eğitim Yılı:</label>
+                <select id="fl-edu-year-select" class="filter-select" onchange="onEduYearChange()" style="font-weight: 600; padding: 6px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; color: #1e293b; cursor: pointer;">
+                    <option value="2025 - 2026">2025 - 2026 (1. Yıl)</option>
+                    <option value="2026 - 2027" selected>2026 - 2027 (2. Yıl)</option>
+                    <option value="2027 - 2028">2027 - 2028 (3. Yıl)</option>
+                    <option value="2028 - 2029">2028 - 2029 (4. Yıl)</option>
+                </select>
+            </div>
+
             <div class="filter-wrapper">
                 <i class="fas fa-filter" style="color: #4f46e5;"></i>
                 <label for="leader-filter" style="cursor: pointer; user-select: none;">Lider Filtresi:</label>
@@ -850,6 +861,46 @@
 
 let globalLeadersMap = new Map();
         let _lastRenderParams = null;
+        let _leadersRawMap = new Map();
+        let _leadersMap = new Map();
+        let _reportsList = [];
+        let _liveSnapshotInit = false;
+
+        function getSelectedEduYear() {
+            const sel = document.getElementById('fl-edu-year-select');
+            return sel ? sel.value : '2026 - 2027';
+        }
+
+        function getYearIndex(eduYear) {
+            const yStr = eduYear || getSelectedEduYear();
+            const startYear = parseInt(yStr.split('-')[0].trim());
+            const idx = (startYear - 2025) + 1;
+            return (idx >= 1 && idx <= 4) ? idx : 2;
+        }
+
+        function getLeadersForPlan(planId, eduYear) {
+            const selectedYear = eduYear || getSelectedEduYear();
+            const raw = _leadersRawMap.get(planId);
+            if (raw) {
+                if (raw.leadersByYear && Array.isArray(raw.leadersByYear[selectedYear])) {
+                    return raw.leadersByYear[selectedYear];
+                }
+                if (selectedYear === '2025 - 2026') {
+                    return raw.leaders || [];
+                }
+                return [];
+            }
+            if (selectedYear === '2025 - 2026') {
+                if (typeof DEFAULT_ACTIVITY_LEADERS !== 'undefined' && DEFAULT_ACTIVITY_LEADERS[planId]) {
+                    return DEFAULT_ACTIVITY_LEADERS[planId];
+                }
+            }
+            return [];
+        }
+
+        function onEduYearChange() {
+            renderDataUI();
+        }
 
         function toggleViewMode() {
             if (_lastRenderParams) {
@@ -865,10 +916,6 @@ let globalLeadersMap = new Map();
             }
         }
 
-        let _leadersMap = new Map();
-        let _reportsList = [];
-        let _liveSnapshotInit = false;
-
         async function loadData() {
             try {
                 if (!_liveSnapshotInit) {
@@ -882,8 +929,8 @@ let globalLeadersMap = new Map();
                         ]);
 
                         const [lSnap, rSnap] = await Promise.race([fetchPromise, timeoutPromise]);
-                        _leadersMap.clear();
-                        lSnap.forEach(doc => _leadersMap.set(doc.id, doc.data().leaders || []));
+                        _leadersRawMap.clear();
+                        lSnap.forEach(doc => _leadersRawMap.set(doc.id, doc.data()));
                         _reportsList = [];
                         rSnap.forEach(doc => _reportsList.push({ id: doc.id, ...doc.data() }));
                     } catch (e) {
@@ -892,9 +939,8 @@ let globalLeadersMap = new Map();
 
                     if (db) {
                         db.collection('activity_leaders').onSnapshot(snap => {
-                            _leadersMap.clear();
-                            snap.forEach(doc => _leadersMap.set(doc.id, doc.data().leaders || []));
-                            globalLeadersMap = _leadersMap;
+                            _leadersRawMap.clear();
+                            snap.forEach(doc => _leadersRawMap.set(doc.id, doc.data()));
                             renderDataUI();
                         }, err => console.warn("leaders snap err:", err));
 
@@ -906,7 +952,6 @@ let globalLeadersMap = new Map();
                     }
                 }
 
-                globalLeadersMap = _leadersMap;
                 await renderDataUI();
 
             } catch(e) {
@@ -1187,6 +1232,20 @@ let globalLeadersMap = new Map();
                 ].map(t => formatNameTR(t));
             }
 
+            const selectedEduYear = getSelectedEduYear();
+            _leadersMap.clear();
+            _leadersRawMap.forEach((_, planId) => {
+                _leadersMap.set(planId, getLeadersForPlan(planId, selectedEduYear));
+            });
+            if (selectedEduYear === '2025 - 2026') {
+                Object.keys(DEFAULT_ACTIVITY_LEADERS).forEach(planId => {
+                    if (!_leadersMap.has(planId) || _leadersMap.get(planId).length === 0) {
+                        _leadersMap.set(planId, DEFAULT_ACTIVITY_LEADERS[planId]);
+                    }
+                });
+            }
+            globalLeadersMap = _leadersMap;
+
             const teacherSet = new Set(baseTeachers);
             _leadersMap.forEach((leaders) => {
                 leaders.forEach(ldr => teacherSet.add(formatNameTR(ldr)));
@@ -1249,6 +1308,8 @@ let globalLeadersMap = new Map();
             const leaderActivities = new Map();
             const fullActivityList = [];
             const today = new Date(); today.setHours(0,0,0,0);
+            const selectedYear = getSelectedEduYear();
+            const yearIdx = getYearIndex(selectedYear);
             
             // Initialize with all teachers (Storing original name for display)
             allTeachers.forEach(t => leaderActivities.set(norm(t), { original: t, acts: [] }));
@@ -1256,8 +1317,12 @@ let globalLeadersMap = new Map();
             dbSource.forEach(item => {
                 const planId = isOG ? `og-${item.no}` : `oo-${item.sira}`;
                 
-                const startStr = isOG ? (item['y1_bas'] || item['genel_baslangic']) : (item['baslangic_1'] || item['baslangic_2']);
-                const endStr = isOG ? (item['y1_bit'] || item['genel_bitis']) : (item['bitis_1'] || item['bitis_2']);
+                const startStr = isOG 
+                    ? (item[`y${yearIdx}_bas`] || item['genel_baslangic']) 
+                    : (item[`baslangic_${yearIdx}`] || item['baslangic_1']);
+                const endStr = isOG 
+                    ? (item[`y${yearIdx}_bit`] || item['genel_bitis']) 
+                    : (item[`bitis_${yearIdx}`] || item['bitis_1']);
                 
                 const fmtDate = (dStr) => {
                     const d = parseDBDate(dStr);
@@ -1275,24 +1340,24 @@ let globalLeadersMap = new Map();
                 
                 const typeVal = isOG ? 'OKUL GELİŞİM PROJESİ' : 'OKUL ÖZEL PROJESİ';
                 const report = reports.find(r => {
-                    if (r.projectType !== typeVal) return false;
+                    if (r.projectType !== typeVal || r.eduYear !== selectedYear) return false;
                     if (r.planId && r.planId === planId) return true;
                     return normalizeString(r.activityName) === normName;
                 });
 
                 const actNameHtml = (isOG && item.tema) ? `${nameText} <span style="color:#94a3b8;font-size:0.85em;display:inline-block;margin-left:4px;">(TEMA ${item.tema})</span>` : nameText;
 
-                let actLeaders = leadersMap.get(planId);
+                let actLeaders = getLeadersForPlan(planId, selectedYear);
                 if (!actLeaders || actLeaders.length === 0) {
-                    if (typeof DEFAULT_ACTIVITY_LEADERS !== 'undefined' && DEFAULT_ACTIVITY_LEADERS[planId]) {
-                        actLeaders = DEFAULT_ACTIVITY_LEADERS[planId];
-                    } else {
+                    if (selectedYear === '2025 - 2026') {
                         const rawSorumlu = isOG ? (item.sorumlu || '') : (item.sorumlu_verisi || '');
                         if (rawSorumlu) {
                             actLeaders = rawSorumlu.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
                         } else {
                             actLeaders = [];
                         }
+                    } else {
+                        actLeaders = [];
                     }
                 }
                 
@@ -1617,6 +1682,7 @@ let globalLeadersMap = new Map();
 
             try {
                 const batch = db.batch();
+                const selectedYear = getSelectedEduYear();
                 
                 // We need to iterate over ALL activities of this prefix in COMBINED_DB
                 // to decide whether to add or remove this leader.
@@ -1627,7 +1693,7 @@ let globalLeadersMap = new Map();
                     const planId = prefix + (_editingPrefix === 'og' ? item.no : item.sira);
                     const shouldBeAssigned = _currentAssignments.has(planId);
                     
-                    let leaders = globalLeadersMap.get(planId) || [];
+                    let leaders = getLeadersForPlan(planId, selectedYear);
                     const isAlreadyThere = leaders.some(l => norm(l) === norm(_editingLeader));
 
                     let newLeaders = [...leaders];
@@ -1642,7 +1708,18 @@ let globalLeadersMap = new Map();
                     }
 
                     if (changed) {
-                        batch.set(db.collection('activity_leaders').doc(planId), { leaders: newLeaders });
+                        const raw = _leadersRawMap.get(planId) || {};
+                        const leadersByYear = raw.leadersByYear ? { ...raw.leadersByYear } : {};
+                        leadersByYear[selectedYear] = newLeaders;
+
+                        const docData = {
+                            planId,
+                            leadersByYear
+                        };
+                        if (selectedYear === '2025 - 2026') {
+                            docData.leaders = newLeaders;
+                        }
+                        batch.set(db.collection('activity_leaders').doc(planId), docData, { merge: true });
                     }
                 });
 
@@ -1742,8 +1819,22 @@ let globalLeadersMap = new Map();
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Kaydediliyor...';
 
             try {
+                const selectedYear = getSelectedEduYear();
                 const newLeaders = _lastRenderParams.ALL_TEACHERS.filter(t => _currentActLeaders.has(norm(t)));
-                await db.collection('activity_leaders').doc(_editingPlanId).set({ leaders: newLeaders });
+                
+                const raw = _leadersRawMap.get(_editingPlanId) || {};
+                const leadersByYear = raw.leadersByYear ? { ...raw.leadersByYear } : {};
+                leadersByYear[selectedYear] = newLeaders;
+
+                const docData = {
+                    planId: _editingPlanId,
+                    leadersByYear
+                };
+                if (selectedYear === '2025 - 2026') {
+                    docData.leaders = newLeaders;
+                }
+
+                await db.collection('activity_leaders').doc(_editingPlanId).set(docData, { merge: true });
                 
                 alert('✅ Liderler başarıyla güncellendi.');
                 closeActivityLeadersModal();
@@ -1849,9 +1940,10 @@ let globalLeadersMap = new Map();
             const principal = localStorage.getItem('schoolPrincipal') || 'FERDİ ALTUNDAŞ';
             const sayiNo = localStorage.getItem('teblig_sayi_' + prefix) || 'E-59965669-010.05-159365286';
             
+            const selectedYear = getSelectedEduYear();
             const introText = prefix === 'og' 
-                ? 'Okulumuzda yürütülmekte olan “Bütüncül Okul Gelişim Projesi: Öğrenen, Gelişen ve Güçlü Okul Ekosistemi” kapsamında aşağıda belirtilen görevlerde görevlendirilmiş bulunmaktasınız.'
-                : 'Okulumuzda yürütülmekte olan “Okulum Sağlıklı Yuvam” okul özel projesi kapsamında aşağıda belirtilen faaliyetlerde görevlendirilmiş bulunmaktasınız.';
+                ? `Okulumuzda ${selectedYear} eğitim öğretim yılında yürütülmekte olan “Bütüncül Okul Gelişim Projesi: Öğrenen, Gelişen ve Güçlü Okul Ekosistemi” kapsamında aşağıda belirtilen görevlerde görevlendirilmiş bulunmaktasınız.`
+                : `Okulumuzda ${selectedYear} eğitim öğretim yılında yürütülmekte olan “Okulum Sağlıklı Yuvam” okul özel projesi kapsamında aşağıda belirtilen faaliyetlerde görevlendirilmiş bulunmaktasınız.`;
 
             const tasksHtml = activities.map(a => `<li>${a.name}</li>`).join('');
 

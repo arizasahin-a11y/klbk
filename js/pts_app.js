@@ -30,6 +30,7 @@ db.enablePersistence().catch(err => {
 let combinedData = null;
 let savedReportsCache = []; // Cache for filtering overdue list
 let activityLeadersCache = new Map(); // planId -> leaders[]
+let activityLeadersRawCache = new Map(); // planId -> full doc data with leadersByYear
 let registeredLeadersCache = []; // Global Havuz (Ad Soyad dizisi)
 let currentReportingPerson = null; 
 let lastSavedData = null; 
@@ -266,7 +267,18 @@ function calculateEduYear() {
         eduYear = `${year - 1} - ${year}`;
     }
     const el = document.getElementById('edu-year');
-    if (el) el.value = eduYear;
+    if (el) {
+        if (!el.querySelector(`option[value="${eduYear}"]`)) {
+            const opt = document.createElement('option');
+            opt.value = eduYear;
+            opt.textContent = eduYear;
+            el.appendChild(opt);
+        }
+        if (!el.value) {
+            el.value = eduYear;
+        }
+        updateFilledState(el);
+    }
 }
 
 // Helper: Track if an input has a meaningful value
@@ -528,6 +540,44 @@ window.addEventListener('DOMContentLoaded', () => {
     const themeSelect = document.getElementById('activity-theme');
     if (themeSelect) {
         themeSelect.addEventListener('change', () => updateFilledState(themeSelect));
+    }
+
+    const eduYearSelect = document.getElementById('edu-year');
+    if (eduYearSelect) {
+        eduYearSelect.addEventListener('change', () => {
+            updateFilledState(eduYearSelect);
+            // Re-populate start/end dates if an activity from plan is currently selected
+            const planIdInput = document.getElementById('plan-id');
+            if (planIdInput && planIdInput.value && combinedData) {
+                const isOG = planIdInput.value.startsWith('og-');
+                const dbSource = isOG ? combinedData.og_db : combinedData.oo_db;
+                const idNum = parseInt(planIdInput.value.split('-')[1]);
+                const item = dbSource.find(i => (isOG ? i.no : i.sira) === idNum);
+                if (item) {
+                    const yearIdx = getYearIndexForReport();
+                    const startStr = isOG ? item[`y${yearIdx}_bas`] : item[`baslangic_${yearIdx}`];
+                    const endStr = isOG ? item[`y${yearIdx}_bit`] : item[`bitis_${yearIdx}`];
+                    const startInput = document.getElementById('activity-start');
+                    const endInput = document.getElementById('activity-end');
+                    if (startInput && startStr) { startInput.value = parseDBDate(startStr); updateFilledState(startInput); }
+                    if (endInput && endStr) { endInput.value = parseDBDate(endStr); updateFilledState(endInput); }
+                }
+            }
+            // Update overdue/reported modal if currently open
+            const modal = document.getElementById('overdue-modal');
+            if (modal && modal.style.display === 'flex') {
+                const headerText = modal.querySelector('.modal-header h3')?.innerText || '';
+                if (headerText.includes('Eksik') && typeof checkUnreportedActivities === 'function') {
+                    checkUnreportedActivities();
+                } else if (headerText.includes('Girilmiş') && typeof checkReportedActivities === 'function') {
+                    checkReportedActivities();
+                }
+            }
+            if (typeof renderFillerSuggestions === 'function') {
+                const fillerInput = document.getElementById('filler-name');
+                if (fillerInput) renderFillerSuggestions(fillerInput.value || '');
+            }
+        });
     }
 
     const lastStatus = localStorage.getItem('lastActivityStatus');
@@ -2219,12 +2269,12 @@ function getCheckboxValues(name, otherCheckId, otherTextId) {
     return vals.join(', ');
 }
 
-function getYearIndexForReport() {
-    const eduYearVal = document.getElementById('edu-year').value;
-    if (!eduYearVal) return 1;
+function getYearIndexForReport(specificYear) {
+    const eduYearVal = specificYear || (document.getElementById('edu-year') ? document.getElementById('edu-year').value : '');
+    if (!eduYearVal) return 2;
     const startYear = parseInt(eduYearVal.split('-')[0].trim());
-    const index = (startYear - 2025) + 1; // 2025 -> 1, 2026 -> 2...
-    return (index >= 1 && index <= 4) ? index : 1;
+    const index = (startYear - 2025) + 1; // 2025 -> 1, 2026 -> 2, 2027 -> 3, 2028 -> 4
+    return (index >= 1 && index <= 4) ? index : 2;
 }
 
 function checkUnreportedActivities() {
@@ -2648,12 +2698,51 @@ function syncLeadersCache() {
     if (!db) { setTimeout(syncLeadersCache, 500); return; }
     db.collection(LEADER_STORE).onSnapshot((snapshot) => {
         activityLeadersCache.clear();
+        activityLeadersRawCache.clear();
         snapshot.forEach((doc) => {
             const d = doc.data();
+            activityLeadersRawCache.set(doc.id, d);
             activityLeadersCache.set(doc.id, d.leaders || []);
         });
         console.log(`Leader cache updated: ${activityLeadersCache.size} entries.`);
     });
+}
+
+function getLeadersForPlanAndYear(planId, eduYear) {
+    const selectedYear = eduYear || (document.getElementById('edu-year') ? document.getElementById('edu-year').value : '2026 - 2027');
+    const raw = activityLeadersRawCache.get(planId);
+    if (raw) {
+        if (raw.leadersByYear && Array.isArray(raw.leadersByYear[selectedYear])) {
+            return raw.leadersByYear[selectedYear];
+        }
+        if (selectedYear === '2025 - 2026') {
+            return raw.leaders || [];
+        }
+        return [];
+    }
+    if (selectedYear === '2025 - 2026') {
+        return activityLeadersCache.get(planId) || [];
+    }
+    return [];
+}
+
+function getLeadersMapForCurrentYear(eduYear) {
+    const selectedYear = eduYear || (document.getElementById('edu-year') ? document.getElementById('edu-year').value : '2026 - 2027');
+    const map = new Map();
+    const allPlanIds = new Set();
+    activityLeadersRawCache.forEach((_, id) => allPlanIds.add(id));
+    activityLeadersCache.forEach((_, id) => allPlanIds.add(id));
+    if (combinedData) {
+        if (combinedData.og_db) combinedData.og_db.forEach(i => allPlanIds.add(`og-${i.no}`));
+        if (combinedData.oo_db) combinedData.oo_db.forEach(i => allPlanIds.add(`oo-${i.sira}`));
+    }
+    allPlanIds.forEach(id => {
+        const leaders = getLeadersForPlanAndYear(id, selectedYear);
+        if (leaders && leaders.length > 0) {
+            map.set(id, leaders);
+        }
+    });
+    return map;
 }
 
 async function syncRegisteredLeadersCache() {
@@ -2804,7 +2893,7 @@ function deleteGlobalLeaderAction(name, onlyCleanup = false) {
 
 // Lider badge satırını inşa et
 function buildLeaderBadgeRow(planId) {
-    const leaders = activityLeadersCache.get(planId) || [];
+    const leaders = getLeadersForPlanAndYear(planId);
     if (leaders.length === 0) return '';
     const badges = leaders.map(l => `<span class="leader-badge"><i class="fas fa-crown"></i>${formatNameTR(l)}</span>`).join('');
     return `<div class="leader-badge-row">${badges}</div>`;
@@ -2850,11 +2939,12 @@ function openLeaderModal(planId, projectType, taskName) {
 function renderLeaderModalList(planId) {
     const ul = document.getElementById('lm-leaders-list');
     if (!ul) return;
-    const leaders = activityLeadersCache.get(planId) || [];
+    const currentYear = document.getElementById('edu-year') ? document.getElementById('edu-year').value : '2026 - 2027';
+    const leaders = getLeadersForPlanAndYear(planId, currentYear);
     ul.innerHTML = '';
 
     if (leaders.length === 0) {
-        ul.innerHTML = '<div class="lm-empty"><i class="fas fa-user-slash" style="margin-right:6px;"></i>Henüz lider tanımlanmamış.</div>';
+        ul.innerHTML = `<div class="lm-empty"><i class="fas fa-user-slash" style="margin-right:6px;"></i>${currentYear} için henüz lider tanımlanmamış.</div>`;
         return;
     }
 
@@ -2885,15 +2975,29 @@ function _leaderAddAction() {
     const projectType = _leaderModalProjectType;
     if (!planId) return;
 
-    const currentLeaders = new Set(activityLeadersCache.get(planId) || []);
+    const currentYear = document.getElementById('edu-year') ? document.getElementById('edu-year').value : '2026 - 2027';
+    const currentLeaders = new Set(getLeadersForPlanAndYear(planId, currentYear));
     selectedOptions.forEach(name => currentLeaders.add(name));
 
-    db.collection(LEADER_STORE).doc(planId).set({
+    const updatedList = Array.from(currentLeaders);
+    const raw = activityLeadersRawCache.get(planId) || {};
+    const leadersByYear = raw.leadersByYear ? { ...raw.leadersByYear } : {};
+    leadersByYear[currentYear] = updatedList;
+
+    const docData = {
         planId,
         projectType,
-        leaders: Array.from(currentLeaders)
-    }).then(() => {
+        leadersByYear: leadersByYear
+    };
+    if (currentYear === '2025 - 2026') {
+        docData.leaders = updatedList;
+    }
+
+    db.collection(LEADER_STORE).doc(planId).set(docData, { merge: true }).then(() => {
         sel.selectedIndex = -1; // Deselect all
+        raw.leadersByYear = leadersByYear;
+        if (currentYear === '2025 - 2026') raw.leaders = updatedList;
+        activityLeadersRawCache.set(planId, raw);
         renderLeaderModalList(planId);
     }).catch(e => alert('Kayıt hatası: ' + e.message));
 }
@@ -2904,19 +3008,28 @@ function deleteLeaderAction(planId, idx, leaderName) {
     if (pw === null) return;
     if (pw !== LEADER_PASSWORD) { alert('❌ Hatalı şifre!'); return; }
 
-    const currentLeaders = [...(activityLeadersCache.get(planId) || [])];
+    const currentYear = document.getElementById('edu-year') ? document.getElementById('edu-year').value : '2026 - 2027';
+    const currentLeaders = [...getLeadersForPlanAndYear(planId, currentYear)];
     currentLeaders.splice(idx, 1);
 
     const docRef = db.collection(LEADER_STORE).doc(planId);
-    if (currentLeaders.length === 0) {
-        docRef.delete().then(() => {
-            renderLeaderModalList(planId);
-        }).catch(e => alert('Silme hatası: ' + e.message));
-    } else {
-        docRef.set({ planId, leaders: currentLeaders }, { merge: true }).then(() => {
-            renderLeaderModalList(planId);
-        }).catch(e => alert('Güncelleme hatası: ' + e.message));
+    const raw = activityLeadersRawCache.get(planId) || {};
+    const leadersByYear = raw.leadersByYear ? { ...raw.leadersByYear } : {};
+    leadersByYear[currentYear] = currentLeaders;
+
+    const updatePayload = {
+        leadersByYear: leadersByYear
+    };
+    if (currentYear === '2025 - 2026') {
+        updatePayload.leaders = currentLeaders;
     }
+
+    docRef.set(updatePayload, { merge: true }).then(() => {
+        raw.leadersByYear = leadersByYear;
+        if (currentYear === '2025 - 2026') raw.leaders = currentLeaders;
+        activityLeadersRawCache.set(planId, raw);
+        renderLeaderModalList(planId);
+    }).catch(e => alert('Silme hatası: ' + e.message));
 }
 
 // Faaliyet Lideri dropdown'u artık kullanılmıyor, datalist/suggestions yapısına geçildi
@@ -2926,8 +3039,9 @@ function renderFillerSuggestions(fragment) {
     const panel = document.getElementById('filler-suggestions-panel');
     if (!panel) return;
 
-    const allNames = new Set();
-    activityLeadersCache.forEach(names => names.forEach(n => allNames.add(n)));
+    const allNames = new Set(registeredLeadersCache);
+    const currentYearMap = getLeadersMapForCurrentYear();
+    currentYearMap.forEach(names => names.forEach(n => allNames.add(n)));
     
     const filtered = Array.from(allNames)
         .filter(n => n.toLocaleLowerCase('tr').includes(fragment.toLocaleLowerCase('tr')))
@@ -2990,8 +3104,9 @@ function renderLeaderFilterSuggestions(fragment) {
     const typeVal = typeRadio ? typeRadio.value : 'OKUL GELİŞİM PROJESİ';
     const prefix = typeVal === 'OKUL GELİŞİM PROJESİ' ? 'og-' : 'oo-';
 
+    const currentYearMap = getLeadersMapForCurrentYear();
     const allLeaders = new Set();
-    activityLeadersCache.forEach((leaders, planId) => {
+    currentYearMap.forEach((leaders, planId) => {
         if (planId.startsWith(prefix)) {
             leaders.forEach(l => {
                 if (l) allLeaders.add(formatNameTR(l));
@@ -3031,24 +3146,25 @@ function checkActivitiesByLeader(leaderName) {
     const statusVal = statusRadio ? statusRadio.value : 'expired';
     const isOG = typeVal === 'OKUL GELİŞİM PROJESİ';
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const yearIdx = getYearIndexForReport();
+    const eduYearVal = document.getElementById('edu-year') ? document.getElementById('edu-year').value : '2026 - 2027';
+    const yearIdx = getYearIndexForReport(eduYearVal);
 
     // Bu lidere ait planId'leri bul
+    const currentYearMap = getLeadersMapForCurrentYear(eduYearVal);
     const leaderPlanIds = new Set();
-    activityLeadersCache.forEach((leaders, planId) => {
+    currentYearMap.forEach((leaders, planId) => {
         if (leaders.some(l => l.toLowerCase() === leaderName.toLowerCase())) {
             leaderPlanIds.add(planId);
         }
     });
 
     if (leaderPlanIds.size === 0) {
-        alert(`"${leaderName}" adlı lidere atanmış faaliyet bulunamadı.`);
+        alert(`"${leaderName}" adlı lidere ${eduYearVal} yılında atanmış faaliyet bulunamadı.`);
         return;
     }
 
     const dbSource = isOG ? combinedData.og_db : combinedData.oo_db;
     const results = [];
-    const eduYearVal = document.getElementById('edu-year').value;
 
     dbSource.forEach(item => {
         const itemId = isOG ? `og-${item.no}` : `oo-${item.sira}`;
@@ -3091,7 +3207,7 @@ function checkActivitiesByLeader(leaderName) {
     }
 
     currentModalTasks = results;
-    currentModalTitle = `${leaderName} — Faaliyet Listesi`;
+    currentModalTitle = `${leaderName} — Faaliyet Listesi (${eduYearVal})`;
     showStatusModal(currentModalTitle, results);
 }
 
@@ -3109,19 +3225,20 @@ function showAllLeadersModal() {
     _almCurrentStatusVal = statusVal;
     const statusLabel = statusVal === 'expired' ? 'Süresi Dolan' : 'Devam Eden';
     const typeLabel = typeVal === 'OKUL GELİŞİM PROJESİ' ? 'Okul Gelişim' : 'Okul Özel';
+    const eduYearVal = document.getElementById('edu-year') ? document.getElementById('edu-year').value : '2026 - 2027';
 
     const modal = document.getElementById('all-leaders-modal');
     const almTitle = document.getElementById('alm-title');
     const almList = document.getElementById('alm-list');
     if (!modal || !almList) return;
 
-    if (almTitle) almTitle.textContent = `Faaliyet Liderleri — ${typeLabel} / ${statusLabel}`;
+    if (almTitle) almTitle.textContent = `Faaliyet Liderleri (${eduYearVal}) — ${typeLabel} / ${statusLabel}`;
 
     // Lider → faaliyet sayısı hesapla
     const leaderCounts = new Map();
-    activityLeadersCache.forEach((leaders, planId) => {
-        // Proje türü filtresi
-        const prefix = typeVal === 'OKUL GELİŞİM PROJESİ' ? 'og-' : 'oo-';
+    const currentYearMap = getLeadersMapForCurrentYear(eduYearVal);
+    const prefix = typeVal === 'OKUL GELİŞİM PROJESİ' ? 'og-' : 'oo-';
+    currentYearMap.forEach((leaders, planId) => {
         if (!planId.startsWith(prefix)) return;
         leaders.forEach(l => {
             leaderCounts.set(l, (leaderCounts.get(l) || 0) + 1);
@@ -3130,7 +3247,7 @@ function showAllLeadersModal() {
 
     almList.innerHTML = '';
     if (leaderCounts.size === 0) {
-        almList.innerHTML = '<div class="lm-empty" style="text-align:center; color:#64748b; padding:1.5rem;"><i class="fas fa-crown" style="margin-right:8px;"></i>Bu proje türünde lider tanımlanmamış.</div>';
+        almList.innerHTML = `<div class="lm-empty" style="text-align:center; color:#64748b; padding:1.5rem;"><i class="fas fa-crown" style="margin-right:8px;"></i>Bu proje türünde ${eduYearVal} yılı için lider tanımlanmamış.</div>`;
     } else {
         const sorted = Array.from(leaderCounts.entries()).sort((a, b) => b[1] - a[1]);
         sorted.forEach(([leader, count]) => {
@@ -3160,13 +3277,14 @@ function printLeaderFullReport() {
     const typeLabel = isOG ? 'Okul Gelişim Projesi' : 'Okul Özel Projesi';
     const prefix = isOG ? 'og-' : 'oo-';
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const yearIdx = getYearIndexForReport();
     const eduYearVal = document.getElementById('edu-year') ? document.getElementById('edu-year').value : '';
+    const yearIdx = getYearIndexForReport(eduYearVal);
     const dbSource = isOG ? combinedData.og_db : combinedData.oo_db;
 
     const leaderActivities = new Map();
+    const currentYearMap = getLeadersMapForCurrentYear(eduYearVal);
 
-    activityLeadersCache.forEach((leaders, planId) => {
+    currentYearMap.forEach((leaders, planId) => {
         if (!planId.startsWith(prefix)) return;
         const item = dbSource.find(it => (isOG ? `og-${it.no}` : `oo-${it.sira}`) === planId);
         if (!item) return;
@@ -3177,7 +3295,6 @@ function printLeaderFullReport() {
         const dt = parseDBDate(dStr);
         const endDate = dt ? new Date(dt) : null;
         const isExpired = endDate ? endDate < today : false;
-        // Filtre yok — süresi dolsun ya da dolmasın tümü listelenir
 
         const startStr = isOG ? item[`y${yearIdx}_bas`] : item[`baslangic_${yearIdx}`];
         const endStr   = isOG ? item[`y${yearIdx}_bit`] : item[`bitis_${yearIdx}`];
@@ -3206,7 +3323,7 @@ function printLeaderFullReport() {
     });
 
     if (leaderActivities.size === 0) {
-        alert('Bu filtreler için lider tanımlı faaliyet bulunamadı.');
+        alert(`${eduYearVal} yılı için lider tanımlı faaliyet bulunamadı.`);
         return;
     }
 
@@ -3340,15 +3457,15 @@ function printNoLeaderReport() {
     const typeLabel = isOG ? 'Okul Gelişim Projesi' : 'Okul Özel Projesi';
     const prefix = isOG ? 'og-' : 'oo-';
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const yearIdx = getYearIndexForReport();
     const eduYearVal = document.getElementById('edu-year') ? document.getElementById('edu-year').value : '';
+    const yearIdx = getYearIndexForReport(eduYearVal);
     const dbSource = isOG ? combinedData.og_db : combinedData.oo_db;
 
     const noLeaderActivities = [];
 
     dbSource.forEach(item => {
         const planId = isOG ? `og-${item.no}` : `oo-${item.sira}`;
-        const leaders = activityLeadersCache.get(planId) || [];
+        const leaders = getLeadersForPlanAndYear(planId, eduYearVal);
         
         if (leaders.length === 0) {
             const dStr = isOG
