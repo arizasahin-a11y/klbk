@@ -87,6 +87,14 @@ window._doLoadRecord = function(data) {
             }
         }
 
+        if (!data.activityTheme && typeof findThemeForActivity === 'function') {
+            const detectedTheme = findThemeForActivity(data);
+            const themeEl = document.getElementById('activity-theme');
+            if (detectedTheme && themeEl) {
+                themeEl.value = detectedTheme;
+            }
+        }
+
         // Project Type Radio
         if (data.projectType) {
             const r = document.querySelector(`input[name="project-type"][value="${data.projectType}"]`);
@@ -1205,9 +1213,10 @@ function renderActivitySuggestions(fragment) {
             div.onclick = () => {
                 const activityInput = document.getElementById('activity-name');
                 activityInput.value = nameText;
-                if (themeSelect && isOG && item.tema) {
-                    themeSelect.value = `TEMA ${item.tema}`;
-                    updateFilledState(themeSelect);
+                const themeInput = document.getElementById('activity-theme');
+                if (themeInput) {
+                    themeInput.value = (isOG && (item.tema || item.tema === 0)) ? `TEMA ${item.tema}` : '';
+                    if (typeof updateFilledState === 'function') updateFilledState(themeInput);
                 }
                 const planIdInput = document.getElementById('plan-id');
                 if (planIdInput) planIdInput.value = isOG ? 'og-' + item.no : 'oo-' + item.sira;
@@ -1521,16 +1530,108 @@ function validateForm() {
     return true;
 }
 
+function findThemeForActivity(data) {
+    if (!data) return '';
+    let themeVal = (data.activityTheme || '').toString().trim();
+    if (themeVal) {
+        if (!isNaN(themeVal)) return `TEMA ${themeVal}`;
+        return themeVal.toUpperCase().includes('TEMA') ? themeVal.toUpperCase() : `TEMA ${themeVal}`;
+    }
+
+    if (data.projectType && data.projectType !== 'OKUL GELİŞİM PROJESİ') {
+        return '';
+    }
+
+    const dbList = (typeof combinedData !== 'undefined' && combinedData && combinedData.og_db) 
+        ? combinedData.og_db 
+        : ((typeof COMBINED_DB !== 'undefined' && COMBINED_DB && COMBINED_DB.og_db) ? COMBINED_DB.og_db : []);
+
+    if (!dbList || !dbList.length) return '';
+
+    // 1. PlanId ile arama (en güvenilir)
+    if (data.planId) {
+        let pId = data.planId.toString().trim().toLowerCase();
+        let no = null;
+        if (pId.startsWith('og-')) {
+            no = parseInt(pId.split('-')[1]);
+        } else if (!isNaN(pId)) {
+            no = parseInt(pId);
+        }
+        if (no !== null) {
+            const found = dbList.find(i => i.no === no);
+            if (found && (found.tema || found.tema === 0)) {
+                return `TEMA ${found.tema}`;
+            }
+        }
+    }
+
+    // 2. Faaliyet adı ile eşleştirme
+    if (data.activityName) {
+        const normAct = typeof normalizeString === 'function' 
+            ? normalizeString(data.activityName) 
+            : data.activityName.toString().trim().toLowerCase().replace(/[^a-z0-9çğıöşü]/g, '');
+
+        if (normAct) {
+            let matched = dbList.find(i => {
+                const normItem = typeof normalizeString === 'function' 
+                    ? normalizeString(i.eylem_adi) 
+                    : (i.eylem_adi || '').toString().trim().toLowerCase().replace(/[^a-z0-9çğıöşü]/g, '');
+                return normAct === normItem;
+            });
+
+            if (!matched && normAct.length >= 12) {
+                const prefix = normAct.slice(0, Math.min(25, normAct.length));
+                matched = dbList.find(i => {
+                    const normItem = typeof normalizeString === 'function' 
+                        ? normalizeString(i.eylem_adi) 
+                        : (i.eylem_adi || '').toString().trim().toLowerCase().replace(/[^a-z0-9çğıöşü]/g, '');
+                    return normItem.includes(prefix) || prefix.includes(normItem);
+                });
+            }
+
+            if (!matched && normAct.length >= 15) {
+                matched = dbList.find(i => {
+                    const normItem = typeof normalizeString === 'function' 
+                        ? normalizeString(i.eylem_adi) 
+                        : (i.eylem_adi || '').toString().trim().toLowerCase().replace(/[^a-z0-9çğıöşü]/g, '');
+                    return normItem.includes(normAct) || normAct.includes(normItem);
+                });
+            }
+
+            if (matched && (matched.tema || matched.tema === 0)) {
+                return `TEMA ${matched.tema}`;
+            }
+        }
+    }
+
+    return '';
+}
+
 function getFormData() {
     const typeChecked = document.querySelector('input[name="project-type"]:checked');
     const statusChecked = document.querySelector('input[name="report-status"]:checked');
+    const currentType = typeChecked ? typeChecked.value : 'OKUL GELİŞİM PROJESİ';
+    const currentPlanId = document.getElementById('plan-id') ? document.getElementById('plan-id').value : '';
+    const currentActName = document.getElementById('activity-name') ? document.getElementById('activity-name').value : '';
+
+    let currentTheme = document.getElementById('activity-theme') ? document.getElementById('activity-theme').value : '';
+    if (!currentTheme) {
+        currentTheme = findThemeForActivity({
+            planId: currentPlanId,
+            activityName: currentActName,
+            projectType: currentType
+        });
+        if (currentTheme && document.getElementById('activity-theme')) {
+            document.getElementById('activity-theme').value = currentTheme;
+        }
+    }
     
     return {
-        planId: document.getElementById('plan-id') ? document.getElementById('plan-id').value : '',
+        planId: currentPlanId,
         eduYear: document.getElementById('edu-year').value,
-        projectType: typeChecked ? typeChecked.value : 'OKUL GELİŞİM PROJESİ',
-        activityName: document.getElementById('activity-name').value,
-        activityTheme: document.getElementById('activity-theme') ? document.getElementById('activity-theme').value : '',
+        projectType: currentType,
+        activityName: currentActName,
+        activityTheme: currentTheme,
         activityType: getCheckboxValues('activity-type', 'type-other-check', 'type-other-text'),
         teacher: formatNameTR(document.getElementById('responsible-teacher').value),
         participantProfile: getCheckboxValues('participant-profile', 'participant-other-check', 'participant-other-text'),
@@ -1566,9 +1667,13 @@ function printReport(data) {
     const fill = (id, val) => { const el = pc.querySelector(id); if (el) el.textContent = val || ''; };
     fill('#p-edu-year', data.eduYear); fill('#p-type-area', data.projectType); 
     
-    let displayName = data.activityName;
-    if (data.projectType === 'OKUL GELİŞİM PROJESİ' && data.activityTheme) {
-        displayName += ` (${data.activityTheme})`;
+    let displayName = (data.activityName || '').trim();
+    const themeTag = findThemeForActivity(data);
+    if (themeTag) {
+        const upperName = displayName.toUpperCase();
+        if (!upperName.includes(`(${themeTag.toUpperCase()})`) && !upperName.includes(themeTag.toUpperCase())) {
+            displayName = `${displayName} (${themeTag})`.trim();
+        }
     }
     fill('#p-name', displayName);
     fill('#p-type', data.activityType); fill('#p-teacher', data.teacher); fill('#p-profile', data.participantProfile);
@@ -3387,7 +3492,27 @@ function printNoLeaderReport() {
 }
 
 function autoSelectTheme() {
-    // TEMA kutusu kaldırıldığı için bu fonksiyon artık işlevsizdir.
+    const actInput = document.getElementById('activity-name');
+    const themeInput = document.getElementById('activity-theme');
+    const planIdInput = document.getElementById('plan-id');
+    const typeChecked = document.querySelector('input[name="project-type"]:checked');
+    if (!actInput || !themeInput) return;
+
+    if (typeChecked && typeChecked.value !== 'OKUL GELİŞİM PROJESİ') {
+        themeInput.value = '';
+        return;
+    }
+
+    if (typeof findThemeForActivity === 'function') {
+        const t = findThemeForActivity({
+            activityName: actInput.value,
+            planId: planIdInput ? planIdInput.value : '',
+            projectType: typeChecked ? typeChecked.value : 'OKUL GELİŞİM PROJESİ'
+        });
+        if (t) {
+            themeInput.value = t;
+        }
+    }
 }
 
 // --- AYARLAR VE OKUL ADI LOGIC ---
