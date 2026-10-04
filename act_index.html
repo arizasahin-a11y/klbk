@@ -1323,16 +1323,28 @@
             });
         }
 
-        window.onload = () => {
-            veritabaniniYukle().then(() => {
-                s3DropdownYukle();
-                s3AtamalariCek();
-                s4DosyaListesiYukle();
-                const sonSekme = sessionStorage.getItem('aktifSekme');
-                if (sonSekme && sonSekme !== 'sekme3') {
-                    openTab(null, sonSekme);
+        // Instant Local Cache: Zero-latency render for Sekme 3 (Çalışma Süreci)
+        try {
+            const cachedAtamalar = localStorage.getItem('act_aktif_atamalar');
+            if (cachedAtamalar) {
+                aktifAtamalar = JSON.parse(cachedAtamalar);
+                if (Array.isArray(aktifAtamalar) && aktifAtamalar.length > 0) {
+                    s3TabloCiz();
                 }
-            });
+            }
+        } catch (e) {}
+
+        window.onload = () => {
+            // Restore last active tab or stay on sekme3
+            const sonSekme = sessionStorage.getItem('aktifSekme');
+            if (sonSekme && sonSekme !== 'sekme3') {
+                openTab(null, sonSekme);
+            }
+
+            // Fire all network requests in parallel without blocking each other
+            veritabaniniYukle();
+            s3AtamalariCek();
+            dosyaListeleriniYukle();
         };
 
         function openTab(evt, tabId) {
@@ -1345,9 +1357,9 @@
                 buttons.forEach(btn => { if (btn.getAttribute('onclick').includes(tabId)) btn.classList.add('active'); });
             }
             sessionStorage.setItem('aktifSekme', tabId);
-            if (tabId === 'sekme3') { s3DropdownYukle(); s3AtamalariCek(); }
+            if (tabId === 'sekme3') { s3TabloCiz(); s3AtamalariCek(); }
             if (tabId === 'sekme2') listeyiYukle();
-            if (tabId === 'sekme4') s4DosyaListesiYukle();
+            if (tabId === 'sekme4') dosyaListeleriniYukle();
         }
 
         async function veritabaniniYukle() {
@@ -1801,11 +1813,7 @@
             tabloCiz();
         };
         function s3DropdownYukle() {
-            const cS = document.getElementById("s3CalismaSec");
-            fetch("/listeCalismalar").then(r => r.json()).then(dosyalar => {
-                cS.innerHTML = '<option value="">-- Seçin --</option>';
-                dosyalar.filter(d => d.startsWith("qwx")).forEach(d => { const n = d.replace("qwx", "").replace(".json", ""); cS.appendChild(new Option(n.replace("qwx", ""), n)); });
-            });
+            dosyaListeleriniYukle();
         }
         async function s3AtamalariCek() {
             try {
@@ -1815,6 +1823,7 @@
                     const data = await res.json();
                     if (Array.isArray(data)) {
                         aktifAtamalar = data;
+                        try { localStorage.setItem('act_aktif_atamalar', JSON.stringify(data)); } catch (e) {}
                         s3TabloCiz();
                         return;
                     }
@@ -1826,11 +1835,16 @@
             // Fallback: parallel Promise.all
             fetch("/listeCalismalar").then(res => res.json()).then(dosyalar => {
                 const qFiles = dosyalar.filter(d => d.startsWith("qqq"));
-                if (qFiles.length === 0) { aktifAtamalar = []; return s3TabloCiz(); }
+                if (qFiles.length === 0) {
+                    aktifAtamalar = [];
+                    try { localStorage.setItem('act_aktif_atamalar', JSON.stringify([])); } catch (e) {}
+                    return s3TabloCiz();
+                }
                 Promise.all(qFiles.map(f => 
                     fetch(`/calismaGetir?isim=${encodeURIComponent(f.replace(".json", ""))}`).then(r => r.json()).catch(() => null)
                 )).then(results => {
                     aktifAtamalar = results.filter(Boolean);
+                    try { localStorage.setItem('act_aktif_atamalar', JSON.stringify(aktifAtamalar)); } catch (e) {}
                     s3TabloCiz();
                 });
             });
@@ -1898,6 +1912,8 @@
                     if (el) el.textContent = v ? "--:--" : (a.sure > 0 ? "BİTTİ" : "--:--");
                 }
 
+                try { localStorage.setItem('act_aktif_atamalar', JSON.stringify(aktifAtamalar)); } catch (e) {}
+
                 try {
                     const res = await fetch("/calismaKaydet", {
                         method: "POST",
@@ -1907,7 +1923,6 @@
                     if (!res.ok) throw new Error("Kaydedilemedi");
                 } catch (e) {
                     alert("Ayar kaydedilirken hata oluştu: " + e.message);
-                    // Revert visual change? maybe too complex for now, but at least alert.
                 }
             }
         }
@@ -1915,7 +1930,6 @@
             const a = aktifAtamalar.find(x => String(x.id) === String(id));
             let s = parseInt(document.getElementById("inp_" + id).value) || 0;
 
-            // Prevent negative
             if (s < 0) {
                 s = 0;
                 document.getElementById("inp_" + id).value = 0;
@@ -1925,19 +1939,24 @@
                 a.sure = s;
 
                 if (s > 0) {
-                    // Timer set -> Grant Permission
                     a.yapma = true;
                     a.bitis = Date.now() + (s * 60 * 1000);
                 } else {
-                    // 0 Duration -> Revoke Permission (Stop)
                     a.yapma = false;
                     a.bitis = null;
                 }
 
-                s3Upd(id, 'bitis', a.bitis);
-                s3Upd(id, 'yapma', a.yapma);
-                s3Upd(id, 'sure', s);
                 s3TabloCiz();
+                try { localStorage.setItem('act_aktif_atamalar', JSON.stringify(aktifAtamalar)); } catch (e) {}
+
+                // High-performance single update call
+                fetch("/calismaKaydet", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ calismaIsmi: id, sorular: a })
+                }).catch(e => {
+                    alert("Süre kaydedilirken hata oluştu: " + e.message);
+                });
             }
         }
         function s3Del(id) { if (confirm("Sil?")) fetch("/calismaSil", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ calismaIsmi: id }) }).then(() => s3AtamalariCek()); }
@@ -1967,28 +1986,36 @@
             });
         }, 1000);
 
-        function s4DosyaListesiYukle() {
+        function dosyaListeleriniYukle() {
             fetch("/listeCalismalar").then(r => r.json()).then(dosyalar => {
-                // Populate Study Selects
-                document.getElementById("s3CalismaSec").innerHTML = '<option value="">-- Seçin --</option>';
-                document.getElementById("s4DosyaSec").innerHTML = '<option value="">-- Seç --</option>';
-                document.getElementById("sinifCalismaSec").innerHTML = '<option value="">-- Çalışma Seçin --</option>';
+                const s3C = document.getElementById("s3CalismaSec");
+                const s4D = document.getElementById("s4DosyaSec");
+                const snC = document.getElementById("sinifCalismaSec");
+
+                const prevS3 = s3C ? s3C.value : "";
+                const prevS4 = s4D ? s4D.value : "";
+                const prevSn = snC ? snC.value : "";
+
+                if (s3C) s3C.innerHTML = '<option value="">-- Seçin --</option>';
+                if (s4D) s4D.innerHTML = '<option value="">-- Seç --</option>';
+                if (snC) snC.innerHTML = '<option value="">-- Çalışma Seçin --</option>';
 
                 const safeDosyalar = dosyalar.map(d => typeof d === 'string' ? d : d.dosya_adi);
 
                 safeDosyalar.filter(d => d.startsWith("qwx")).forEach(d => {
                     const name = d.replace("qwx", "").replace(".json", "");
-                    // S3
-                    const opt3 = document.createElement("option"); opt3.value = name; opt3.textContent = name;
-                    document.getElementById("s3CalismaSec").appendChild(opt3);
-                    // S4
-                    const opt4 = document.createElement("option"); opt4.value = name; opt4.textContent = name;
-                    document.getElementById("s4DosyaSec").appendChild(opt4);
-                    // Group Creation
-                    const optG = document.createElement("option"); optG.value = name; optG.textContent = name;
-                    document.getElementById("sinifCalismaSec").appendChild(optG);
+                    if (s3C) s3C.appendChild(new Option(name, name));
+                    if (s4D) s4D.appendChild(new Option(name, name));
+                    if (snC) snC.appendChild(new Option(name, name));
                 });
+
+                if (prevS3 && s3C) s3C.value = prevS3;
+                if (prevS4 && s4D) s4D.value = prevS4;
+                if (prevSn && snC) snC.value = prevSn;
             });
+        }
+        function s4DosyaListesiYukle() {
+            dosyaListeleriniYukle();
         }
 
         document.getElementById("s4DosyaSec").onchange = async function () {
@@ -2016,7 +2043,7 @@
 
             try {
                 const [dosyalar, rW] = await Promise.all([
-                    (await fetch("/listeCalismalar")).json(),
+                    fetch("/listeCalismalar").then(r => r.json()),
                     fetch(`/calismaGetir?isim=www_${calisma}`).catch(() => null)
                 ]);
 
@@ -2032,9 +2059,13 @@
 
                 sinifSel.innerHTML = '<option value="">-- Seç --</option>';
 
-                for (let f of atananlar) {
-                    const data = await (await fetch(`/calismaGetir?isim=${f.replace(".json", "")}`)).json();
-                    if (data.sinif) {
+                // High-performance parallel fetch for all assigned classes
+                const atananDataList = await Promise.all(
+                    atananlar.map(f => fetch(`/calismaGetir?isim=${f.replace(".json", "")}`).then(r => r.json()).catch(() => null))
+                );
+
+                for (let data of atananDataList) {
+                    if (data && data.sinif) {
                         const buSinifinTumCevaplari = wwwData.filter(r => r.sinif === data.sinif && r.ogrenciNo !== "AYARLAR");
                         const buSinifinBitmisCevaplari = buSinifinTumCevaplari.filter(r => r.degerlendirme && (r.degerlendirme.degerlendirildi || typeof r.degerlendirme.toplam !== "undefined"));
 

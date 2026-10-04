@@ -10,13 +10,16 @@ let cache = {
   studies: null,
   studiesTime: 0,
   assignments: null,
-  assignmentsTime: 0
+  assignmentsTime: 0,
+  fileList: null,
+  fileListTime: 0
 };
-const CACHE_TTL = 12000; // 12 seconds TTL
+const CACHE_TTL = 15000; // 15 seconds TTL
 
 function invalidateCache() {
   cache.studies = null;
   cache.assignments = null;
+  cache.fileList = null;
 }
 
 function sinifIsmiTemizle(s) {
@@ -154,6 +157,7 @@ export default async function handler(req, res) {
           yontem: a.method || 'Grup',
           ...(a.settings || {})
         }));
+        res.setHeader('Cache-Control', 'public, max-age=3, s-maxage=6, stale-while-revalidate=15');
         return res.status(200).json(list);
       }
 
@@ -276,15 +280,28 @@ export default async function handler(req, res) {
     // 2. /listeCalismalar (Optimized with Cache & Shallow)
     // ----------------------------------------------------
     if (routeName === 'listeCalismalar') {
+      const now = Date.now();
+      if (cache.fileList && (now - cache.fileListTime < CACHE_TTL)) {
+        res.setHeader('Cache-Control', 'public, max-age=5, s-maxage=10, stale-while-revalidate=30');
+        return res.status(200).json(cache.fileList);
+      }
+
+      const [studies, assignments, evalsKeys, sGroups, cGroups, jsonFiles] = await Promise.all([
+        getCachedStudies(),
+        getCachedAssignments(),
+        fb('evaluations', 'GET', null, 'shallow=true').then(r => r || {}),
+        fb('study_groups', 'GET', null, 'shallow=true').then(r => r || {}),
+        fb('class_groups', 'GET', null, 'shallow=true').then(r => r || {}),
+        fb('json_files', 'GET', null, 'shallow=true').then(r => r || {})
+      ]);
+
       const files = [];
-      const studies = await getCachedStudies();
       for (const s of Object.values(studies)) {
         if (!s.is_archived) {
           files.push(`qwx${s.name}.json`);
         }
       }
 
-      const assignments = await getCachedAssignments();
       for (const a of Object.values(assignments)) {
         const st = studies[a.study_name] || Object.values(studies).find(s => s.name === a.study_name);
         if (!st || !st.is_archived) {
@@ -292,13 +309,10 @@ export default async function handler(req, res) {
         }
       }
 
-      // Shallow fetch (keys only: 100 bytes instead of 2.2MB!)
-      const evalsKeys = await fb('evaluations', 'GET', null, 'shallow=true') || {};
       for (const studyName of Object.keys(evalsKeys)) {
         files.push(`www_${studyName}.json`);
       }
 
-      const sGroups = await fb('study_groups', 'GET', null, 'shallow=true') || {};
       for (const gKey of Object.keys(sGroups)) {
         const parts = gKey.split('___');
         if (parts.length === 2) {
@@ -306,11 +320,18 @@ export default async function handler(req, res) {
         }
       }
 
-      const cGroups = await fb('class_groups', 'GET', null, 'shallow=true') || {};
       for (const cName of Object.keys(cGroups)) {
         files.push(`${cName}Grupları.json`);
       }
 
+      for (const jName of Object.keys(jsonFiles)) {
+        files.push(`${jName}.json`);
+      }
+
+      cache.fileList = files;
+      cache.fileListTime = now;
+
+      res.setHeader('Cache-Control', 'public, max-age=5, s-maxage=10, stale-while-revalidate=30');
       return res.status(200).json(files);
     }
 
@@ -349,9 +370,11 @@ export default async function handler(req, res) {
       const schoolNo = String(req.query.schoolNo).trim();
       if (!sinif || !schoolNo) return res.status(400).json({ error: 'Missing params' });
 
-      const studies = await fb('studies') || {};
-      const assignments = await fb('assignments') || {};
-      const studyGroups = await fb('study_groups') || {};
+      const [studies, assignments, studyGroups] = await Promise.all([
+        getCachedStudies(),
+        getCachedAssignments(),
+        fb('study_groups').then(r => r || {})
+      ]);
       const normSinif = sinifIsmiTemizle(sinif);
 
       const matchedAssignments = Object.values(assignments).filter(a => {
@@ -365,9 +388,18 @@ export default async function handler(req, res) {
         return res.status(200).json({ assignments: [] });
       }
 
+      // Parallel fetch for study evaluations
+      const evalsEntries = await Promise.all(
+        matchedAssignments.map(async a => {
+          const evals = await fb(`evaluations/${encodeURIComponent(a.study_name)}`) || {};
+          return [a.study_name, evals];
+        })
+      );
+      const evalMap = Object.fromEntries(evalsEntries);
+
       const results = [];
       for (const a of matchedAssignments) {
-        const studyEvals = await fb(`evaluations/${encodeURIComponent(a.study_name)}`) || {};
+        const studyEvals = evalMap[a.study_name] || {};
         const ayarlarObj = studyEvals['AYARLAR'] ? (studyEvals['AYARLAR'].answers || studyEvals['AYARLAR']) : {};
         const studentRec = studyEvals[schoolNo] || null;
 
