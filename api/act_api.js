@@ -711,6 +711,8 @@ export default async function handler(req, res) {
       }
 
       const name = target.replace(/^qwx|^www_/, '').replace(/\.json$/, '').trim();
+      // Safety: an empty name would target the whole studies/evaluations nodes
+      if (!name) return res.status(400).json({ status: 'eksik' });
       await fb(`studies/${encodeURIComponent(name)}`, 'DELETE');
       await fb(`evaluations/${encodeURIComponent(name)}`, 'DELETE');
 
