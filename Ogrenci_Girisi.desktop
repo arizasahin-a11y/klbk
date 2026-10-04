@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Öğrenci Girişi
+Comment=Etkinlik Yönetimi Öğrenci Paneli
+Exec=xdg-open "https://klbk-five.vercel.app/giris"
+Icon=applications-internet
+Terminal=false
+StartupNotify=true
+Categories=Education;Network;

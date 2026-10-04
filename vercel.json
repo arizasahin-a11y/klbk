@@ -3,32 +3,125 @@
     {
       "source": "/(.*)\\.html",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
-        { "key": "Pragma", "value": "no-cache" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        }
       ]
     },
     {
       "source": "/(.*)\\.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
       ]
     }
   ],
   "routes": [
-    { "src": "/master(\\.html)?$", "status": 302, "headers": { "Location": "/security_error" } },
-    { "src": "/ogrenci(\\.html)?$", "status": 302, "headers": { "Location": "/security_error" } },
-    { "src": "/ogretmen(\\.html)?$", "status": 302, "headers": { "Location": "/security_error" } },
-    { "src": "/dashboard(\\.html)?$", "status": 302, "headers": { "Location": "/security_error" } },
-    { "src": "/k9x7v2m4(\\.html)?$", "dest": "/index.html" },
-    { "src": "/h6t3y9w1(\\.html)?$", "dest": "/ogretmen.html" },
-    { "src": "/r1p5s8q3(\\.html)?$", "dest": "/dashboard.html" },
-    { "src": "/n4b9v1c7(\\.html)?$", "dest": "/master.html" },
-    { "src": "/j2k5l0p8(\\.html)?$", "dest": "/ogrenci.html" },
-    { "src": "/yoklama_ogretmen(\\.html)?$", "dest": "/yoklama_ogretmen.html" },
-    { "src": "/yoklama_idareci(\\.html)?$", "dest": "/yoklama_idareci.html" },
-    { "src": "/zumreci(\\.html)?$", "dest": "/zumreci.html" },
-    { "src": "/security_error(\\.html)?$", "dest": "/404.html" },
-    { "handle": "filesystem" },
-    { "src": "^/([^./]+)$", "dest": "/$1.html" }
+    {
+      "src": "/master(\\.html)?$",
+      "status": 302,
+      "headers": {
+        "Location": "/security_error"
+      }
+    },
+    {
+      "src": "/ogrenci(\\.html)?$",
+      "status": 302,
+      "headers": {
+        "Location": "/security_error"
+      }
+    },
+    {
+      "src": "/ogretmen(\\.html)?$",
+      "status": 302,
+      "headers": {
+        "Location": "/security_error"
+      }
+    },
+    {
+      "src": "/dashboard(\\.html)?$",
+      "status": 302,
+      "headers": {
+        "Location": "/security_error"
+      }
+    },
+    {
+      "src": "/k9x7v2m4(\\.html)?$",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/h6t3y9w1(\\.html)?$",
+      "dest": "/ogretmen.html"
+    },
+    {
+      "src": "/r1p5s8q3(\\.html)?$",
+      "dest": "/dashboard.html"
+    },
+    {
+      "src": "/n4b9v1c7(\\.html)?$",
+      "dest": "/master.html"
+    },
+    {
+      "src": "/j2k5l0p8(\\.html)?$",
+      "dest": "/ogrenci.html"
+    },
+    {
+      "src": "/yoklama_ogretmen(\\.html)?$",
+      "dest": "/yoklama_ogretmen.html"
+    },
+    {
+      "src": "/yoklama_idareci(\\.html)?$",
+      "dest": "/yoklama_idareci.html"
+    },
+    {
+      "src": "/zumreci(\\.html)?$",
+      "dest": "/zumreci.html"
+    },
+    {
+      "src": "/security_error(\\.html)?$",
+      "dest": "/404.html"
+    },
+    {
+      "src": "/giris(\\.html)?$",
+      "dest": "/act_ogrenci.html"
+    },
+    {
+      "src": "/21012012(\\.html)?$",
+      "dest": "/act_index.html"
+    },
+    {
+      "src": "/727812(\\.html)?$",
+      "dest": "/act_admin.html"
+    },
+    {
+      "src": "/degerlendirme(\\.html)?$",
+      "dest": "/degerlendirme.html"
+    },
+    {
+      "src": "/(calismaGetir|listeCalismalar|grupListesiGetir|calismaKaydet|kaydet|puanKaydet|degerlendirmeBitir|degerlendirmeSifirla|tumCevaplariTemizle|calismaSil|arsivle|arsivdenGeriYukle|arsivGuncelle|arsivListesi|yonetimDosyaListesi|yedekAl|yedekYukle|restart)(.*)",
+      "dest": "/api/$1.js$2"
+    },
+    {
+      "src": "/api/ogrenciPaneli(.*)",
+      "dest": "/api/ogrenciPaneli.js$1"
+    },
+    {
+      "src": "/veritabani\\.json",
+      "dest": "/veritabani.json"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "^/([^./]+)$",
+      "dest": "/$1.html"
+    }
   ]
 }

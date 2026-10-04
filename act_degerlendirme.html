@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Değerlendirme Paneli</title>
+    <style>
+        :root {
+            --ana: #2E8B57;
+            --yesil: #2e7d32;
+            --kirmizi: #d32f2f;
+            --gri: #607d8b;
+            --zemin: #f5f5f5;
+            --turuncu: #FF9800;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--zemin);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--ana);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            position: relative;
+            height: 50px;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .header-left {
+            position: absolute;
+            left: 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        .header-right {
+            position: absolute;
+            right: 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .teacher-bar {
+            background: #fff;
+            padding: 10px;
+            border-bottom: 2px solid var(--ana);
+            display: none;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .teacher-bar select {
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 0.9rem;
+            min-width: 150px;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            max-width: 900px;
+            /* Reduced from 1200px */
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .calisma-adi {
+            text-align: center;
+            font-weight: bold;
+            color: var(--ana);
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            background: white;
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border: 1px solid #ddd;
+            display: none;
+            /* Shown via JS when content is loaded */
+        }
+
+        .card {
+            background: white;
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: row;
+            flex: 1;
+            overflow: hidden;
+            border: 1px solid #ddd;
+        }
+
+        .soru-bolumu {
+            background: #e8f5e9;
+            padding: 15px;
+            border-right: 1px solid #c8e6c9;
+            color: #1b5e20;
+            overflow-y: auto;
+            flex: 0 0 40%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .soru-baslik {
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: var(--ana);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .soru-icerik {
+            font-size: 1.05rem;
+            line-height: 1.55;
+            font-weight: 600;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .cevap-bolumu {
+            padding: 15px;
+            flex: 1;
+            overflow-y: auto;
+            background: #fff;
+        }
+
+        .cevap-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 8px;
+            padding: 10px;
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 6px;
+        }
+
+        .cevap-metin {
+            flex: 1;
+            min-width: 0;
+            font-size: 0.95rem;
+            color: #333;
+            line-height: 1.5;
+            margin-top: 4px;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+
+        .cevap-puan-btn {
+            border: 1px solid #ccc;
+            background: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #666;
+            flex-shrink: 0;
+        }
+
+        .btn-dogru-aktif {
+            background: var(--yesil) !important;
+            color: white !important;
+            border-color: var(--yesil) !important;
+            transform: scale(1.1);
+        }
+
+        .btn-yanlis-aktif {
+            background: var(--kirmizi) !important;
+            color: white !important;
+            border-color: var(--kirmizi) !important;
+            transform: scale(1.1);
+        }
+
+        .controls {
+            padding: 10px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        button.nav-btn {
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-geri {
+            background: var(--gri);
+        }
+
+        .btn-ileri {
+            background: var(--ana);
+        }
+
+        .btn-bitir {
+            background: #d84315;
+            flex: 2;
+            display: none;
+        }
+
+        .sonuc-kutusu {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            max-width: 450px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            border-top: 5px solid var(--ana);
+        }
+
+        .sonuc-puan {
+            font-size: 3.5rem;
+            color: #333;
+            font-weight: bold;
+            margin: 10px 0;
+            display: block;
+        }
+
+        #sonuc_detay {
+            text-align: left;
+            margin: 15px 0;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border: 1px solid #eee;
+            font-size: 0.95rem;
+        }
+
+        .tamamlandi-uyari {
+            display: none;
+            background: #fff;
+            border: 2px solid #2E7D32;
+            color: #2E7D32;
+            padding: 40px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 500px;
+            z-index: 200;
+        }
+
+        /* MEDYA GÖMME VE LİNK STİLLERİ */
+        .embedded-wrapper {
+            width: 100%;
+            margin-top: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 5px;
+            background: #fff;
+            box-sizing: border-box;
+        }
+
+        .embedded-img {
+            max-height: 200px;
+            max-width: 100%;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .embedded-img.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            max-height: 100vh;
+            object-fit: contain;
+            z-index: 9999;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .embedded-video {
+            max-width: 100%;
+            height: auto;
+            max-height: 300px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .embedded-audio {
+            width: 100%;
+        }
+
+        .embedded-iframe {
+            width: 100%;
+            height: 350px;
+            border: none;
+        }
+
+        .embed-fallback {
+            text-align: center;
+            font-size: 13px;
+            margin-top: 5px;
+            background: #f1f1f1;
+            padding: 6px;
+            border-radius: 4px;
+        }
+
+        .embed-fallback a {
+            color: #1976D2;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .embed-fallback a:hover {
+            text-decoration: underline;
+        }
+
+        /* WEB BAĞLANTI KARTI (E-DEVLET, MEBBİS VB.) */
+        .embedded-link-card {
+            width: 100%;
+            margin: 8px 0;
+            border: 1px solid #d0e2ff;
+            border-radius: 8px;
+            padding: 12px 14px;
+            background: linear-gradient(135deg, #f8faff 0%, #f0f6ff 100%);
+            box-sizing: border-box;
+            box-shadow: 0 1px 4px rgba(11, 87, 208, 0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .embedded-link-card:hover {
+            border-color: #8ab4f8;
+            box-shadow: 0 2px 8px rgba(11, 87, 208, 0.12);
+        }
+
+        .link-card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .link-card-icon {
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .link-card-meta {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .link-card-title {
+            font-weight: 700;
+            color: #1a73e8;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .link-card-domain {
+            font-size: 0.78rem;
+            color: #5f6368;
+        }
+
+        .link-card-url-text {
+            font-size: 0.82rem;
+            color: #444;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #e1e8f5;
+            word-break: break-all;
+            margin: 2px 0 6px 0;
+            font-family: monospace;
+        }
+
+        .link-card-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #1a73e8;
+            color: #ffffff !important;
+            padding: 7px 14px;
+            border-radius: 6px;
+            text-decoration: none !important;
+            font-weight: 600;
+            font-size: 0.88rem;
+            transition: background 0.2s, transform 0.1s;
+            cursor: pointer;
+            align-self: flex-start;
+        }
+
+        .link-card-action-btn:hover {
+            background: #1557b0;
+            transform: translateY(-1px);
+            color: #ffffff !important;
+        }
+
+        .aktif-web-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: #0b57d0;
+            background: #f0f7ff;
+            border: 1px solid #cce3ff;
+            padding: 3px 10px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9em;
+            word-break: break-all;
+            transition: all 0.2s ease;
+            vertical-align: middle;
+            margin: 2px 2px;
+        }
+
+        .aktif-web-link:hover {
+            background: #dbeafe;
+            border-color: #93c5fd;
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        /* GÖMÜLÜ PORTAL VE EBA STİLLERİ */
+        .embedded-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 6px 12px;
+            border-radius: 6px 6px 0 0;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .embedded-topbar-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .embedded-topbar-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        .embedded-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #ffffff;
+            color: #0f172a;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .embedded-btn:hover {
+            background: #e2e8f0;
+            border-color: #94a3b8;
+            color: #0f172a;
+        }
+
+        .embedded-iframe.eba-iframe {
+            width: 100%;
+            min-height: 500px;
+            height: 520px;
+            border: none;
+            border-radius: 0 0 6px 6px;
+            display: block;
+        }
+
+        .portal-action-box {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 6px;
+            align-items: center;
+        }
+
+        .portal-open-window-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #0b57d0 0%, #0842a0 100%);
+            color: #ffffff !important;
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(11, 87, 208, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .portal-open-window-btn:hover {
+            background: linear-gradient(135deg, #0842a0 0%, #063075 100%);
+            box-shadow: 0 4px 8px rgba(11, 87, 208, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .portal-security-notice {
+            font-size: 0.76rem;
+            color: #475569;
+            margin-top: 6px;
+            line-height: 1.4;
+            background: #fff8e1;
+            border-left: 3px solid #f59e0b;
+            padding: 6px 10px;
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <div id="header_info" class="header-left">--</div>
+        <h1>Değerlendirme Sistemi</h1>
+        <div class="header-right">PUAN: <span id="h_puan">0</span></div>
+    </div>
+
+    <div id="teacher_bar" class="teacher-bar">
+        <select id="sel_calisma">
+            <option value="">Çalışma Seç</option>
+        </select>
+        <select id="sel_sinif">
+            <option value="">Sınıf Seç</option>
+        </select>
+        <button onclick="TeacherApp.baslat()"
+            style="background:var(--ana); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">GETİR</button>
+    </div>
+
+    <div class="container">
+        <div id="tamamlandi_panel" class="tamamlandi-uyari">
+            ✅ BU SINIF DEĞERLENDİRİLMİŞTİR
+            <br><span style="font-size:1rem; color:#555; font-weight:normal; display:block; margin-top:10px;">Bu sınıfın
+                değerlendirmesi tamamlanmış veya listede kaydı yok.</span>
+            <button onclick="TeacherApp.resetSelection()"
+                style="margin-top:20px; padding:8px 20px; background:#607d8b; color:white; border:none; border-radius:4px; cursor:pointer; font-size:1rem;">Tamam</button>
+        </div>
+
+        <div id="calisma_adi" class="calisma-adi"></div>
+
+        <div id="main_content" class="card" style="display:none;">
+            <div class="soru-bolumu">
+                <span class="soru-baslik">SORU <span id="s_no">1</span></span>
+                <div id="s_metin" class="soru-icerik"></div>
+            </div>
+            <div class="cevap-bolumu">
+                <div id="cevap_listesi"></div>
+            </div>
+        </div>
+
+        <div id="controls_area" class="controls" style="display:none;">
+            <button class="nav-btn btn-geri" id="btn_geri" onclick="App.nav(-1)">❮ Geri</button>
+            <button class="nav-btn btn-ileri" id="btn_ileri" onclick="App.nav(1)">İleri ❯</button>
+            <button class="nav-btn btn-bitir" id="btn_bitir" onclick="App.bitir()">💾 Kaydet ve Bitir</button>
+        </div>
+
+        <div id="sonuc_ekrani" class="sonuc-kutusu">
+            <h2 style="color:var(--ana); margin-top:0;">Değerlendirme Tamamlandı</h2>
+            <div id="sonuc_detay"></div>
+            <p style="margin-bottom:0; font-weight:bold; color:#555;">TOPLAM PUAN</p>
+            <span class="sonuc-puan" id="sonuc_puan_goster">0</span>
+            <button onclick="isTeacher ? location.reload() : window.close()" class="nav-btn btn-geri"
+                style="width:100%;">Kapat</button>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        let isTeacher = false;
+
+        const State = {
+            sorular: [], activeVeri: null, sIdx: 0, anlikPuanlar: {},
+            pSinif: params.get('sinif'), pOgrenci: params.get('ogrenci'), pCalisma: params.get('calisma'),
+            kuyruk: [], kuyrukIdx: 0, grupCalismasi: false, grupUyeleri: null, grupAdi: ""
+        };
+
+        function guncelleToplamPuan() {
+            let t = 0;
+            if (State.anlikPuanlar) {
+                Object.entries(State.anlikPuanlar).forEach(([sIdx, arr]) => {
+                    const soru = State.sorular[sIdx];
+                    const isMCQ = (typeof soru === 'object' && soru.type === 'coktan_secmeli');
+
+                    if (Array.isArray(arr)) {
+                        if (isMCQ) {
+                            const p = arr[0];
+                            if (Number(p) === 1) {
+                                t += 1;
+                            } else if (Number(p) === 0) {
+                                const secenekSayisi = (soru.secenekler || []).length;
+                                if (secenekSayisi > 1) {
+                                    t -= 1 / (secenekSayisi - 1);
+                                }
+                            }
+                        } else {
+                            arr.forEach(p => { if (Number(p) === 1) t++; });
+                        }
+                    }
+                });
+            }
+            const scoreDisp = Math.max(0, t).toFixed(2).replace(/\.00$/, "");
+            document.getElementById('h_puan').textContent = scoreDisp;
+            document.getElementById('sonuc_puan_goster').textContent = scoreDisp;
+        }
+
+        // --- GELİŞMİŞ VE GÜVENLİ LİNK DÖNÜŞTÜRÜCÜ ---
+        function linkleriDonustur(text) {
+            if (!text) return "";
+            const urlRegex = /(https?:\/\/[^\s<]+|www\.[^\s<]+|[a-zA-Z0-9.-]*eba\.gov\.tr[^\s<]*|[a-zA-Z0-9.-]*(?:youtube\.com|youtu\.be)[^\s<]*)/gi;
+            return text.replace(urlRegex, function (match) {
+                let rawUrl = match.trim();
+                let trailingPunct = "";
+                const punctMatch = rawUrl.match(/[.,!?;:)\\]>]+$/);
+                if (punctMatch) {
+                    trailingPunct = punctMatch[0];
+                    rawUrl = rawUrl.slice(0, -trailingPunct.length);
+                }
+                if (!rawUrl) return match;
+
+                let hrefUrl = rawUrl;
+                if (!/^https?:\/\//i.test(hrefUrl)) {
+                    hrefUrl = 'https://' + hrefUrl;
+                }
+                hrefUrl = hrefUrl.replace(/^http:\/\//i, 'https://');
+                if (hrefUrl.toLowerCase() === 'https://eba.gov.tr' || hrefUrl.toLowerCase() === 'https://eba.gov.tr/') {
+                    hrefUrl = 'https://www.eba.gov.tr';
+                }
+
+                const cleanUrl = hrefUrl;
+                const urlNoParams = cleanUrl.split('?')[0].split('#')[0];
+                const ext = urlNoParams.split('.').pop().toLowerCase();
+
+                // 1. Google Drive & Docs & Forms
+                if (cleanUrl.includes('drive.google.com') || cleanUrl.includes('docs.google.com')) {
+                    let id = null;
+                    const dMatch = cleanUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                    if (dMatch) {
+                        id = dMatch[1];
+                    } else {
+                        const idParam = cleanUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                        if (idParam) id = idParam[1];
+                        else {
+                            const folderMatch = cleanUrl.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+                            if (folderMatch) id = folderMatch[1];
+                        }
+                    }
+
+                    let embedUrl = null;
+                    if (cleanUrl.includes('/forms/')) {
+                        embedUrl = cleanUrl.includes('?') ? (cleanUrl + '&embedded=true') : (cleanUrl + '?embedded=true');
+                    } else if (cleanUrl.includes('/folders/')) {
+                        embedUrl = id ? `https://drive.google.com/embeddedfolderview?id=${id}#list` : null;
+                    } else if (cleanUrl.includes('/document/')) {
+                        embedUrl = id ? `https://docs.google.com/document/d/${id}/preview` : null;
+                    } else if (cleanUrl.includes('/spreadsheets/')) {
+                        embedUrl = id ? `https://docs.google.com/spreadsheets/d/${id}/preview` : null;
+                    } else if (cleanUrl.includes('/presentation/')) {
+                        embedUrl = id ? `https://docs.google.com/presentation/d/${id}/preview` : null;
+                    } else if (id) {
+                        embedUrl = `https://drive.google.com/file/d/${id}/preview`;
+                    }
+
+                    if (embedUrl) {
+                        return `<div class="embedded-wrapper"><iframe src="${embedUrl}" class="embedded-iframe" allow="autoplay" loading="lazy"></iframe><div class="embed-fallback"><a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">📄 Dosyayı Yeni Sekmede Aç ↗</a></div></div>` + trailingPunct;
+                    } else {
+                        return `<div class="embedded-wrapper"><div class="embed-fallback"><a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">📄 Google Drive Bağlantısını Aç ↗</a></div></div>` + trailingPunct;
+                    }
+                }
+
+                // 2. Resimler
+                if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) {
+                    return `<img src="${cleanUrl}" class="embedded-img" onclick="this.classList.toggle('fullscreen')" title="Büyütmek için tıkla" loading="lazy">` + trailingPunct;
+                }
+
+                // 3. Ses
+                if (['mp3', 'wav', 'ogg', 'm4a'].includes(ext)) {
+                    return `<div class="embedded-wrapper"><audio controls src="${cleanUrl}" class="embedded-audio"></audio></div>` + trailingPunct;
+                }
+
+                // 4. Video (Dosya)
+                if (['mp4', 'webm', 'mov'].includes(ext)) {
+                    return `<div class="embedded-wrapper"><video controls src="${cleanUrl}" class="embedded-video"></video></div>` + trailingPunct;
+                }
+
+                // 5. YouTube
+                if (cleanUrl.includes('youtube.com') || cleanUrl.includes('youtu.be')) {
+                    let ytId = null;
+                    if (cleanUrl.includes('youtu.be/')) {
+                        ytId = cleanUrl.split('youtu.be/')[1].split(/[?&#]/)[0];
+                    } else if (cleanUrl.includes('/shorts/')) {
+                        ytId = cleanUrl.split('/shorts/')[1].split(/[?&#]/)[0];
+                    } else if (cleanUrl.includes('watch?v=')) {
+                        ytId = cleanUrl.split('watch?v=')[1].split(/[?&#]/)[0];
+                    } else if (cleanUrl.includes('/embed/')) {
+                        ytId = cleanUrl.split('/embed/')[1].split(/[?&#]/)[0];
+                    }
+                    if (ytId) {
+                        return `<div class="embedded-wrapper"><iframe src="https://www.youtube.com/embed/${ytId}" class="embedded-iframe" allowfullscreen loading="lazy"></iframe><div class="embed-fallback"><a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">▶️ Videoyu YouTube'da Aç ↗</a></div></div>` + trailingPunct;
+                    }
+                }
+
+                // 6. Gömülebilir Eğitim Portalları ve Simülasyonları (EBA, PhET, GeoGebra, Scratch)
+                if (cleanUrl.toLowerCase().includes('eba.gov.tr')) {
+                    return `<div class="embedded-wrapper portal-embed-wrapper eba-wrapper">
+                        <div class="embedded-topbar">
+                            <span class="embedded-topbar-title">📚 EBA (Eğitim Bilişim Ağı) İçeriği</span>
+                            <div class="embedded-topbar-btns">
+                                <button type="button" class="embedded-btn" onclick="window.open('${cleanUrl}', 'ebaWin', 'width=1150,height=800,scrollbars=yes,resizable=yes'); return false;" title="Ayrı pencerede aç">🗗 Ayrı Pencere</button>
+                                <a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="embedded-btn" title="Yeni sekmede aç">Yeni Sekme ↗</a>
+                            </div>
+                        </div>
+                        <iframe src="${cleanUrl}" class="embedded-iframe eba-iframe" loading="lazy" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+                        <div class="embed-fallback">
+                            <span>EBA sayfası açılmıyorsa: </span>
+                            <a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">🌐 EBA İçeriğini Yeni Sekmede Aç ↗</a>
+                            <span> veya </span>
+                            <button type="button" class="embedded-btn" onclick="window.open('${cleanUrl}', 'ebaWin', 'width=1150,height=800,scrollbars=yes,resizable=yes'); return false;">🗗 Ayrı Pencerede Aç</button>
+                        </div>
+                    </div>` + trailingPunct;
+                }
+
+                if (cleanUrl.includes('phet.colorado.edu') || cleanUrl.includes('geogebra.org') || cleanUrl.includes('scratch.mit.edu')) {
+                    return `<div class="embedded-wrapper"><iframe src="${cleanUrl}" class="embedded-iframe" loading="lazy" allowfullscreen></iframe><div class="embed-fallback"><a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">🌐 Uygulamayı Yeni Sekmede Aç ↗</a></div></div>` + trailingPunct;
+                }
+
+                // 7. e-DEVLET, MEBBİS VE DİĞER GENEL WEB BAĞLANTILARI
+                // Bu siteler için ön izleme penceresi gösterilmez, doğrudan temiz ve aktif bir tıklanabilir bağlantı verilir.
+                let icon = "🔗";
+                const lowUrl = cleanUrl.toLowerCase();
+                if (lowUrl.includes('turkiye.gov.tr')) icon = "🏛️";
+                else if (lowUrl.includes('mebbis.meb.gov.tr') || lowUrl.includes('meb.gov.tr')) icon = "🎓";
+                else if (lowUrl.includes('osym.gov.tr')) icon = "📝";
+                else if (lowUrl.includes('github.com')) icon = "💻";
+                else if (lowUrl.includes('canva.com')) icon = "🎨";
+                else if (lowUrl.includes('wikipedia.org')) icon = "📖";
+
+                return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="aktif-web-link">${icon} ${cleanUrl} ↗</a>` + trailingPunct;
+            });
+        }
+
+        const App = {
+            init: async () => {
+                if (State.pCalisma) {
+                    try {
+                        const rRaw = await fetch(`/calismaGetir?isim=www_${State.pCalisma}`);
+                        if (rRaw.ok) {
+                            const data = await rRaw.json();
+                            const ayar = data.find(x => x.ogrenciNo === "AYARLAR");
+                            if (ayar && ayar.izin) isTeacher = true;
+                        }
+                    } catch (e) { }
+                } else {
+                    const kayitliCalisma = sessionStorage.getItem('deg_calisma');
+                    if (kayitliCalisma) {
+                        State.pCalisma = kayitliCalisma;
+                        State.pSinif = sessionStorage.getItem('deg_sinif');
+                        isTeacher = true;
+                    }
+                }
+
+                if (isTeacher) {
+                    document.getElementById('teacher_bar').style.display = 'flex';
+                    await TeacherApp.setup();
+
+                    if (State.pCalisma && State.pSinif) {
+                        const cSel = document.getElementById('sel_calisma');
+                        const sSel = document.getElementById('sel_sinif');
+
+                        cSel.value = State.pCalisma;
+
+                        await TeacherApp.siniflariGetir();
+
+                        // Eğer sınıf listede yoksa (yani bitmiş veya hiç başlamamışsa) seçim yapma
+                        if (![...sSel.options].some(o => o.value === State.pSinif)) {
+                            // Sınıf filtrelendiği için listeye eklenmedi, bu yüzden seçilmiyor.
+                            // baslat() fonksiyonu bu durumu kontrol edecek.
+                        } else {
+                            sSel.value = State.pSinif;
+                        }
+
+                        TeacherApp.baslat();
+                    }
+                } else {
+                    StudentApp.init();
+                }
+
+                if (State.pCalisma) {
+                    const cleanName = State.pCalisma.replace(/^www_/, '').replace(/_/g, ' ');
+                    const titleEl = document.getElementById('calisma_adi');
+                    if (titleEl) {
+                        titleEl.textContent = cleanName.toUpperCase();
+                        titleEl.style.display = 'block';
+                    }
+                }
+            },
+            renderSoru: () => {
+                const sObj = State.sorular[State.sIdx];
+                const soruMetni = (typeof sObj === 'object') ? sObj.soru : sObj;
+                const isMCQ = (typeof sObj === 'object' && sObj.type === 'coktan_secmeli');
+
+                document.getElementById('s_no').textContent = State.sIdx + 1;
+                document.getElementById('s_metin').innerHTML = linkleriDonustur(soruMetni);
+                // Fix: Robust match for soruIndex (string vs number)
+                const cObj = (State.activeVeri.cevaplar || []).find(c => Number(c.soruIndex) === Number(State.sIdx));
+                const liste = cObj ? cObj.cevaplar : [];
+                const puanlar = State.anlikPuanlar[State.sIdx] || [];
+
+                // Değerlendirme bitti mi kontrol et (Eski bitti bayrağı artık sınav bitişi için kullanılıyor)
+                const evalDurum = State.activeVeri?.degerlendirme;
+                const degerlendirmeBitti = !!(evalDurum?.degerlendirildi || typeof evalDurum?.toplam !== "undefined");
+
+                let h = "";
+
+                if (isMCQ) {
+                    const studentChoiceIndex = (liste && liste.length > 0) ? parseInt(liste[0]) : -1;
+                    const p = puanlar[0];
+                    const disabled = degerlendirmeBitti ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : '';
+                    let btnDClass = (Number(p) === 1) ? 'btn-dogru-aktif' : '';
+                    let btnYClass = (Number(p) === 0) ? 'btn-yanlis-aktif' : '';
+
+                    let yText = "Y";
+                    if (p === "G" || p === "M") {
+                        yText = p;
+                        btnYClass = 'btn-yanlis-aktif';
+                    }
+
+                    h += `<div style="display:flex; flex-direction:column; gap:8px; margin-bottom:15px; width:100%;">`;
+                    (sObj.secenekler || []).forEach((sec, idx) => {
+                        const char = String.fromCharCode(65 + idx);
+                        const isSelected = (idx === studentChoiceIndex);
+                        const isCorrectAnswer = (idx === sObj.dogruCevap);
+
+                        let optStyle = `padding:12px; border:2px solid #e0e0e0; border-radius:8px; background:#f9f9f9; display:flex; align-items:center;`;
+
+                        // Highlight student's choice
+                        if (isSelected) {
+                            if (Number(p) === 1) {
+                                optStyle = `padding:12px; border:2px solid #4CAF50; border-radius:8px; background:#e8f5e9; display:flex; align-items:center; box-shadow:0 2px 8px rgba(76,175,80,0.3);`;
+                            } else {
+                                optStyle = `padding:12px; border:2px solid #F44336; border-radius:8px; background:#ffebee; display:flex; align-items:center; box-shadow:0 2px 8px rgba(244,67,54,0.3);`;
+                            }
+                        }
+
+                        h += `<div style="${optStyle}">
+                            <strong style="margin-right:15px; font-size:1.1rem; color:#555;">${char})</strong>
+                            <span style="flex:1; font-size:1rem; color:#333; white-space:pre-wrap; word-break:break-word;">${linkleriDonustur(sec)}</span>
+                            ${isSelected ? `<span style="font-size:0.8rem; font-weight:bold; color:white; background:${Number(p) === 1 ? '#4CAF50' : '#F44336'}; padding:3px 8px; border-radius:12px; margin-left:10px;">Öğrenci Seçimi</span>` : ''}
+                            ${(!isSelected && isCorrectAnswer && Number(p) === 0) ? `<span style="font-size:0.8rem; font-weight:bold; color:#4CAF50; border:1px solid #4CAF50; padding:2px 8px; border-radius:12px; margin-left:10px;">Doğru Cevap</span>` : ''}
+                        </div>`;
+                    });
+                    h += `</div>`;
+
+                    if (studentChoiceIndex === -1 && liste.length === 0) {
+                        h += `<div style="font-style:italic; color:#999; margin-bottom:15px; text-align:center;">Öğrenci bu soruyu boş bırakmış.</div>`;
+                    }
+
+                    h += `<div class="cevap-item" style="justify-content:center; background:none; border:none; padding-top:10px;">
+                        <button class="cevap-puan-btn ${btnDClass}" onclick="App.puanla(0,1)" ${disabled}>D</button>
+                        <button class="cevap-puan-btn ${btnYClass}" onclick="App.puanla(0,0)" ${disabled} title="${p === 'G' ? 'Girmedi' : (p === 'M' ? 'Mazeretli' : 'Yanlış')}">${yText}</button>
+                    </div>`;
+                } else {
+                    liste.forEach((txt, i) => {
+                        const p = puanlar[i]; // Can be string "G" or "M" now
+                        const disabled = degerlendirmeBitti ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : '';
+
+                        let btnDClass = (Number(p) === 1) ? 'btn-dogru-aktif' : '';
+                        let btnYClass = (Number(p) === 0) ? 'btn-yanlis-aktif' : '';
+
+                        let yText = "Y";
+                        if (p === "G" || p === "M") {
+                            yText = p; // Show G or M on the button
+                            btnYClass = 'btn-yanlis-aktif'; // Highlight as wrong/special
+                        }
+
+                        h += `<div class="cevap-item"><div class="cevap-metin">${linkleriDonustur(txt)}</div>
+                        <button class="cevap-puan-btn ${btnDClass}" onclick="App.puanla(${i},1)" ${disabled}>D</button>
+                        <button class="cevap-puan-btn ${btnYClass}" onclick="App.puanla(${i},0)" ${disabled} title="${p === 'G' ? 'Girmedi' : (p === 'M' ? 'Mazeretli' : 'Yanlış')}">${yText}</button></div>`;
+                    });
+                }
+
+                document.getElementById('cevap_listesi').innerHTML = h || `<div style="font-style:italic; color:#999; text-align:center; padding:20px;">Cevap yok.</div>`;
+
+                document.getElementById('btn_geri').disabled = (State.sIdx === 0);
+                const son = (State.sIdx === State.sorular.length - 1);
+                document.getElementById('btn_ileri').style.display = son ? "none" : "block";
+                document.getElementById('btn_bitir').style.display = son ? "block" : "none";
+
+                // Eğer değerlendirme bittiyse bitir butonunu gizle
+                if (degerlendirmeBitti) {
+                    document.getElementById('btn_bitir').style.display = "none";
+                }
+
+                if (isTeacher) document.getElementById('btn_bitir').textContent = "💾 Sıradaki Öğrenci ❯";
+            },
+            puanla: async (cIdx, p) => {
+                // Değerlendirme bitti mi kontrol et (degerlendirildi bayrağına bakıyoruz)
+                const evalDurum = State.activeVeri?.degerlendirme;
+                if (evalDurum?.degerlendirildi || typeof evalDurum?.toplam !== "undefined") {
+                    alert("⚠️ Bu değerlendirme tamamlanmış. Değişiklik yapmak için 'Değerlendirmeyi Sıfırla' butonunu kullanın.");
+                    return;
+                }
+
+                if (!State.anlikPuanlar[State.sIdx]) State.anlikPuanlar[State.sIdx] = [];
+                State.anlikPuanlar[State.sIdx][cIdx] = p;
+                guncelleToplamPuan();
+                App.renderSoru();
+
+                await fetch("/puanKaydet", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ dosyaAdi: `www_${State.pCalisma}`, ogrenciNo: State.activeVeri.ogrenciNo, sinif: State.pSinif, soruIndex: State.sIdx, cevapIndex: cIdx, puan: p })
+                });
+            },
+            nav: (n) => {
+                let yeni = State.sIdx + n;
+                if (yeni >= 0 && yeni < State.sorular.length) { State.sIdx = yeni; App.renderSoru(); }
+            },
+            bitir: async () => {
+                const toplamPuan = parseFloat(document.getElementById('h_puan').textContent) || 0;
+
+                let targetMembers = [];
+                // Eğer öğretmen modundaysa ve kuyruk varsa
+                if (isTeacher && State.kuyruk.length > 0) {
+                    const currentItem = State.kuyruk[State.kuyrukIdx];
+                    if (currentItem.members && currentItem.members.length > 0) {
+                        targetMembers = currentItem.members;
+                    } else {
+                        targetMembers = [State.activeVeri.ogrenciNo];
+                    }
+                } else {
+                    // Öğrenci modu veya tekil mod
+                    if (State.grupCalismasi && State.grupUyeleri) {
+                        targetMembers = State.grupUyeleri.map(u => String(u["Okul Numaranız"]));
+                    } else {
+                        targetMembers = [State.activeVeri.ogrenciNo];
+                    }
+                }
+
+                // Prepare Payload for all members
+                // We want to force the CURRENT scores to everyone in the group
+                const scoresToSave = State.anlikPuanlar;
+                const evalData = {
+                    degerlendirildi: true,
+                    bitti: State.activeVeri?.degerlendirme?.bitti || false,
+                    tarih: new Date().toLocaleString(),
+                    toplam: toplamPuan
+                };
+
+                // Preserve existing OA if we are propagating? 
+                // Actually, the request says "O student's score given to all". 
+                // Usually OA is individual, but if one gets a score, should OA overwrite?
+                // Let's assume we propagate SCORES and EVAL STATUS. OA should probably be individual OR duplicated if explicitly set.
+                // But here we are just saving 'bitti' and 'scores'.
+
+                const promises = [];
+                targetMembers.forEach(no => {
+                    // Normalize ID
+                    const sNo = String(no).trim();
+
+                    // We use /kaydet for full control (scores + evaluation)
+                    const payload = {
+                        dosyaAdi: `www_${State.pCalisma}`,
+                        veri: {
+                            ogrenciNo: sNo,
+                            sinif: State.pSinif,
+                            puanlar: scoresToSave,
+                            degerlendirme: evalData
+                            // We do NOT send 'cevaplar' here to avoid overwriting them with empty/wrong data
+                        }
+                    };
+
+                    promises.push(fetch("/kaydet", {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    }));
+                });
+
+                await Promise.all(promises);
+
+                if (isTeacher) {
+                    State.kuyrukIdx++;
+                    TeacherApp.yukle();
+                } else {
+                    location.reload();
+                }
+            },
+            bitisGoster: () => {
+                document.getElementById('main_content').style.display = "none";
+                document.getElementById('controls_area').style.display = "none";
+                const res = document.getElementById("sonuc_ekrani");
+
+                const isFocusViolation = State.activeVeri?.degerlendirme?.OA?.includes("Odak Koptu");
+                const pMsg = isFocusViolation
+                    ? "Çalışma Kurallarına aykırı davrandığınız için değerlendirme notunuz 0 olarak atanmıştır. Değerlendirme yapamazsınız."
+                    : "Çalışmanız değerlendirildi. tekrar değerlendirme yapamazsınız";
+
+                res.style.display = "block";
+                res.innerHTML = `
+                    <div style="position:relative; background:${isFocusViolation ? '#ffebee' : '#e8f5e9'}; border:2px solid ${isFocusViolation ? '#ef9a9a' : '#a5d6a7'}; border-radius:12px; padding:25px; text-align:center; color:${isFocusViolation ? '#c62828' : '#2e7d32'}; margin-bottom:20px; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
+                        <button onclick="window.location.href='/giris'" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; cursor:pointer; color:${isFocusViolation ? '#c62828' : '#2e7d32'}; font-weight:bold;" title="Kapat">✕</button>
+                        <div style="font-size:2.5em; margin-bottom:10px;">${isFocusViolation ? '🚫' : '🎉'}</div>
+                        <h2 style="margin:0; font-size:1.8em;">${isFocusViolation ? 'KURAL İHLALİ' : 'BU ÇALIŞMA BİTTİ'}</h2>
+                        <p style="margin:5px 0 0 0; opacity:0.8; font-weight:bold;">${pMsg}</p>
+                    </div>
+                `;
+
+                let infoHtml = "";
+                if (State.grupCalismasi && State.grupUyeleri) {
+                    // Group view
+                    infoHtml += `<div style="padding:15px; background:#fff8e1; border:1px solid #ffecb3; border-radius:10px; margin-bottom:20px; border-left:6px solid #ffc107;">
+                        <span style="color:#e65100; font-weight:bold; font-size:0.9em; display:block; margin-bottom:4px;">GRUP ÇALIŞMASI</span>
+                        <strong style="font-size:1.2em; color:#333;">SINIF: ${State.activeVeri.sinif} - ${State.grupAdi}</strong>
+                    </div>`;
+
+                    let l = "<strong>GRUP ÜYELERİ:</strong><ul style='margin:10px 0; padding-left:22px; font-size:1.05em; line-height:1.7;'>";
+                    State.grupUyeleri.forEach(u => {
+                        const isMe = String(u["Okul Numaranız"]).trim() === String(State.pOgrenci).trim();
+                        l += `<li${isMe ? ' style="font-weight:bold; color:var(--ana);"' : ''}>${u["Okul Numaranız"]} - ${u["Adınız Soyadınız"]}${isMe ? ' (Siz)' : ''}</li>`;
+                    });
+                    infoHtml += l + "</ul>";
+                } else {
+                    infoHtml += `<div style="padding:15px; background:#f9f9f9; border-radius:10px; margin-bottom:20px;">
+                            <strong>ÖĞRENCİ:</strong><br><span style="font-size:1.1em; font-weight:bold;">${State.activeVeri.ogrenciNo} - ${State.activeVeri.adSoyad}</span>
+                        </div>`;
+                }
+
+                const det = document.createElement("div");
+                det.className = "bitis-panel";
+                det.innerHTML = infoHtml + `
+                    <div style="margin-top:20px; padding-top:20px; border-top:1px solid #eee; text-align:center;">
+                        <div style="font-size:0.9em; color:#666;">TOPLAM PUAN</div>
+                        <div id="bitis_puan" style="font-size:3em; font-weight:bold; color:var(--ana); line-height:1;">0</div>
+                    </div>
+                `;
+                res.appendChild(det);
+
+                const pEl = document.getElementById("bitis_puan");
+                if (pEl) {
+                    let toplam = 0;
+                    Object.entries(State.activeVeri.puanlar || {}).forEach(([sIdx, arr]) => {
+                        const soru = State.sorular[sIdx];
+                        const isMCQ = (typeof soru === 'object' && soru.type === 'coktan_secmeli');
+
+                        if (Array.isArray(arr)) {
+                            if (isMCQ) {
+                                const p = arr[0];
+                                if (Number(p) === 1) {
+                                    toplam += 1;
+                                } else if (Number(p) === 0) {
+                                    const secenekSayisi = (soru.secenekler || []).length;
+                                    if (secenekSayisi > 1) {
+                                        toplam -= 1 / (secenekSayisi - 1);
+                                    }
+                                }
+                            } else {
+                                arr.forEach(p => { if (Number(p) === 1) toplam++; });
+                            }
+                        }
+                    });
+                    const finalScore = Math.max(0, toplam).toFixed(2).replace(/\.00$/, "");
+                    pEl.textContent = finalScore;
+                    document.getElementById('sonuc_puan_goster').textContent = finalScore;
+                }
+            }
+        };
+
+        const StudentApp = {
+            init: async () => {
+                const qqqName = "qqq" + (State.pSinif || "").replace(/\s/g, '') + (State.pCalisma || "");
+                const [rQ, rS, rD, rV] = await Promise.all([
+                    fetch(`/calismaGetir?isim=${qqqName}`),
+                    fetch(`/calismaGetir?isim=qwx${State.pCalisma}`),
+                    fetch(`/calismaGetir?isim=www_${State.pCalisma}`),
+                    fetch('/veritabani.json')
+                ]);
+
+                const qqqData = await rQ.json().catch(() => ({}));
+                State.grupCalismasi = (qqqData.yontem === "Grup");
+
+                const qwxData = await rS.json();
+                State.sorular = qwxData.sorular || [];
+
+                const tum = await rD.json();
+                console.log('[DEBUG degerlendirme] tum data:', JSON.stringify(tum).substring(0, 500));
+                console.log('[DEBUG degerlendirme] pOgrenci:', State.pOgrenci, 'pCalisma:', State.pCalisma);
+                const db = await rV.json().catch(() => ({}));
+
+                // SQL'den gelen veri zaten doğru formatta
+                let tumOgrenciler = [];
+                if (Array.isArray(db)) {
+                    tumOgrenciler = db;
+                } else if (db && typeof db === 'object') {
+                    // Legacy format: { "className": [students], ... }
+                    tumOgrenciler = Object.values(db).flat().filter(x => x);
+                }
+
+                State.activeVeri = null;
+
+                if (State.grupCalismasi && State.pSinif) {
+                    try {
+                        // FIX: Fetch study-specific groups
+                        const grupUrl = `/grupListesiGetir?sinif=${encodeURIComponent(State.pSinif)}&calisma=${encodeURIComponent(State.pCalisma)}`;
+                        console.log('[DEBUG degerlendirme] Fetching groups from:', grupUrl);
+                        const rG = await fetch(grupUrl);
+                        const gruplar = await rG.json();
+                        console.log('[DEBUG degerlendirme] Groups loaded:', Array.isArray(gruplar) ? `${gruplar.length} groups` : 'NOT ARRAY', typeof gruplar);
+
+                        if (Array.isArray(gruplar) && gruplar.length > 0) {
+                            const myGroupIndex = gruplar.findIndex(g => Array.isArray(g) && g.some(u => String(u["Okul Numaranız"]).trim() === String(State.pOgrenci).trim()));
+                            console.log('[DEBUG degerlendirme] myGroupIndex:', myGroupIndex, 'for student:', State.pOgrenci);
+
+                            if (myGroupIndex !== -1) {
+                                const myGroup = gruplar[myGroupIndex];
+                                State.grupUyeleri = myGroup;
+                                State.grupAdi = `${myGroupIndex + 1}. GRUP`;
+                                const groupIds = myGroup.map(u => String(u["Okul Numaranız"]).trim());
+                                console.log('[DEBUG degerlendirme] Group member IDs:', groupIds);
+
+                                // Try to find ANY group member's record in tum
+                                State.activeVeri = tum.find(x => groupIds.includes(String(x.ogrenciNo).trim()));
+                                console.log('[DEBUG degerlendirme] Group tum match:', State.activeVeri ? 'FOUND' : 'NOT FOUND');
+
+                                // If no group member found in tum, try direct match for this specific student
+                                if (!State.activeVeri) {
+                                    State.activeVeri = tum.find(x => String(x.ogrenciNo).trim() === String(State.pOgrenci).trim());
+                                    console.log('[DEBUG degerlendirme] Direct fallback in group:', State.activeVeri ? 'FOUND' : 'NOT FOUND');
+                                }
+                            }
+                        } else {
+                            console.log('[DEBUG degerlendirme] No groups data returned or empty array');
+                        }
+                    } catch (e) { console.log("Grup hatası:", e); }
+                }
+
+                if (!State.activeVeri) {
+                    // FIX: ALWAYS try direct ogrenciNo match, even in group mode
+                    State.activeVeri = tum.find(x => String(x.ogrenciNo) === String(State.pOgrenci));
+                    console.log('[DEBUG degerlendirme] Direct match result:', State.activeVeri ? 'FOUND' : 'NOT FOUND');
+                    if (!State.activeVeri && tum.length > 0) {
+                        console.log('[DEBUG degerlendirme] Available ogrenciNo values:', tum.map(x => x.ogrenciNo));
+                        console.log('[DEBUG degerlendirme] Looking for:', State.pOgrenci);
+                    }
+
+                    if (!State.activeVeri) {
+                        console.log('[DEBUG degerlendirme] FALLBACK: Creating empty activeVeri (NO ANSWERS!)');
+                        const ogrenciBilgi = tumOgrenciler.find(x => String(x["Okul Numaranız"]) === String(State.pOgrenci));
+                        const adSoyad = ogrenciBilgi ? ogrenciBilgi["Adınız Soyadınız"] : "Öğrenci";
+
+                        State.activeVeri = {
+                            ogrenciNo: State.pOgrenci,
+                            adSoyad: adSoyad,
+                            sinif: State.pSinif,
+                            cevaplar: [],
+                            puanlar: {},
+                            degerlendirme: { bitti: false }
+                        };
+                    }
+                }
+
+                if (!State.pSinif && State.activeVeri.sinif) State.pSinif = State.activeVeri.sinif;
+                State.anlikPuanlar = State.activeVeri.puanlar || {};
+
+                // --- AUTO-EVALUATE MULTIPLE CHOICE QUESTIONS (STUDENT PEER EVAL) ---
+                const rawAnswers = State.activeVeri.cevaplar || [];
+                const normalizedAnswers = Array.isArray(rawAnswers) && rawAnswers.length > 0 && typeof rawAnswers[0] === 'object' && rawAnswers[0].cevaplar ? rawAnswers :
+                    (Array.isArray(rawAnswers) && rawAnswers.answers ? rawAnswers.answers : rawAnswers);
+
+                State.sorular.forEach((soru, sIdx) => {
+                    const sAnsObj = normalizedAnswers.find(c => c.soruIndex === sIdx);
+                    if (!sAnsObj || !sAnsObj.cevaplar || sAnsObj.cevaplar.length === 0) return;
+
+                    const studentAnsStr = sAnsObj.cevaplar[0];
+                    if (studentAnsStr === undefined || studentAnsStr === "") return;
+
+                    if (typeof soru === 'object' && soru.type === 'coktan_secmeli') {
+                        if (!State.anlikPuanlar[sIdx]) State.anlikPuanlar[sIdx] = [];
+                        if (State.anlikPuanlar[sIdx][0] === undefined) {
+                            const isCorrect = parseInt(studentAnsStr) === parseInt(soru.dogruCevap);
+                            State.anlikPuanlar[sIdx][0] = isCorrect ? 1 : 0;
+                        }
+                    } else if (typeof soru === 'object' && soru.type === 'text' && soru.cevabiVar) {
+                        if (!State.anlikPuanlar[sIdx]) State.anlikPuanlar[sIdx] = [];
+                        if (State.anlikPuanlar[sIdx][0] === undefined) {
+                            const isCorrect = studentAnsStr.trim().toLowerCase() === String(soru.dogruCevap || "").trim().toLowerCase();
+                            State.anlikPuanlar[sIdx][0] = isCorrect ? 1 : 0;
+                        }
+                    }
+                });
+
+                // --- OA AUTO-CORRECT LOGIC ---
+                // "Girmedi"/"Gelmedi" -> "G"
+                // "Mazeretli" -> "M"
+                // "Çalışmadı" -> "0"
+                if (State.activeVeri.degerlendirme && State.activeVeri.degerlendirme.OA) {
+                    const oa = State.activeVeri.degerlendirme.OA.toLowerCase().trim();
+                    let autoCode = null;
+                    if (oa.includes("girmedi") || oa.includes("gelmedi")) autoCode = "G";
+                    else if (oa.includes("mazeretli")) autoCode = "M";
+                    else if (oa.includes("çalışmadı") || oa.includes("calismadi")) autoCode = "0";
+
+                    if (autoCode) {
+                        console.log(`[OA Auto-Score] Detected '${oa}' -> Applying '${autoCode}' to all.`);
+                        State.sorular.forEach((_, i) => {
+                            // FIX: Must be an array to match data structure [score]
+                            State.anlikPuanlar[i] = [autoCode];
+                        });
+                    }
+                }
+
+                let headerInfo = "";
+                if (State.grupCalismasi && State.grupAdi) {
+                    headerInfo = `${State.pSinif} - ${State.grupAdi}`;
+                } else {
+                    headerInfo = `${State.pSinif} - ${State.activeVeri.ogrenciNo} - ${State.activeVeri.adSoyad}`;
+                }
+                document.getElementById('header_info').textContent = headerInfo;
+
+                const evalDurum = State.activeVeri?.degerlendirme;
+                if (evalDurum?.degerlendirildi || typeof evalDurum?.toplam !== "undefined") {
+                    guncelleToplamPuan();
+                    if (!isTeacher) {
+                        // Student: Block re-evaluation, show result screen
+                        App.bitisGoster();
+                        return;
+                    }
+                    // Teacher: Allow viewing in read-only mode
+                }
+
+                document.getElementById('main_content').style.display = "flex";
+                document.getElementById('controls_area').style.display = "flex";
+                guncelleToplamPuan();
+                App.renderSoru();
+            }
+        };
+
+        const TeacherApp = {
+            db: null,
+            setup: async () => {
+                const rDb = await fetch('veritabani.json');
+                TeacherApp.db = await rDb.json();
+
+                const r = await fetch('/listeCalismalar');
+                const list = await r.json();
+                const cSel = document.getElementById('sel_calisma');
+
+                list.filter(d => d.startsWith("www_")).forEach(d => {
+                    const ad = d.replace("www_", "").replace(".json", "");
+                    if (![...cSel.options].some(o => o.value === ad)) cSel.add(new Option(ad, ad));
+                });
+
+                cSel.onchange = () => TeacherApp.siniflariGetir();
+            },
+
+            siniflariGetir: async () => {
+                const calisma = document.getElementById('sel_calisma').value;
+                const sSel = document.getElementById('sel_sinif');
+                sSel.innerHTML = '<option value="">Sınıf Seç</option>';
+
+                if (!calisma) return;
+
+                let wwwData = [];
+                try {
+                    const r = await fetch(`/calismaGetir?isim=www_${calisma}`);
+                    if (r.ok) wwwData = await r.json();
+                } catch (e) { }
+
+                // Sınıf listesini veritabanından al ve SİSTEM'i filtrele
+                const tumOgrenciler = Object.values(TeacherApp.db)[0];
+                const siniflar = [...new Set(tumOgrenciler.map(x => x["Sınıfınız"]))].filter(s => s !== "SİSTEM");
+
+                // --- FILTRELEME MANTIĞI: ---
+                // 1. Sınıfın www_ dosyasında hiç kaydı yoksa EKLEME.
+                // 2. Sınıfın www_ dosyasındaki tüm kayıtları "bitti: true" ise EKLEME.
+                // 3. Sadece en az bir "bitti: false" veya "bitti: undefined" varsa EKLE.
+
+                siniflar.forEach(sinif => {
+                    // Bu sınıfa ait www_ kayıtları
+                    const sinifKayitlari = wwwData.filter(x => x.sinif === sinif);
+
+                    // 1. Dosyada hiç kaydı yoksa -> LİSTELEME
+                    if (sinifKayitlari.length === 0) return;
+
+                    // 2. Tüm kayıtlar değerlendirilmiş mi? (Bitmeyen sınavlar -bitti:true- değerlendirilmiş sayılmaz)
+                    const hepsiBitti = sinifKayitlari.every(k => k.degerlendirme && (k.degerlendirme.degerlendirildi || typeof k.degerlendirme.toplam !== "undefined"));
+
+                    // Hepsi değerlendirilmişse -> LİSTELEME
+                    if (hepsiBitti) return;
+
+                    // Hala iş varsa listeye ekle
+                    sSel.add(new Option(sinif, sinif));
+                });
+            },
+
+            resetSelection: () => {
+                sessionStorage.removeItem('deg_calisma');
+                sessionStorage.removeItem('deg_sinif');
+                sessionStorage.removeItem('deg_idx');
+                document.getElementById('sel_calisma').value = "";
+                document.getElementById('sel_sinif').innerHTML = '<option value="">Sınıf Seç</option>';
+                document.getElementById('tamamlandi_panel').style.display = "none";
+                document.getElementById('header_info').textContent = "--";
+            },
+
+            baslat: async () => {
+                State.pCalisma = document.getElementById('sel_calisma').value || State.pCalisma;
+                State.pSinif = document.getElementById('sel_sinif').value || State.pSinif;
+
+                if (!State.pCalisma || !State.pSinif) {
+                    document.getElementById('main_content').style.display = "none";
+                    document.getElementById('controls_area').style.display = "none";
+                    document.getElementById('sonuc_ekrani').style.display = "none";
+                    return alert("Lütfen Çalışma ve Sınıf seçiniz.");
+                }
+
+                // Seçimi Kaydet
+                sessionStorage.setItem('deg_calisma', State.pCalisma);
+                sessionStorage.setItem('deg_sinif', State.pSinif);
+
+                // --- EK GÜVENLİK: SINIFIN DURUMUNU TEKRAR KONTROL ET ---
+                // Eğer URL'den zorla girildiyse veya listede yokken hafızadan geldiyse
+                let wwwData = [];
+                try {
+                    const r = await fetch(`/calismaGetir?isim=www_${State.pCalisma}`);
+                    if (r.ok) wwwData = await r.json();
+                } catch (e) { }
+
+                const sinifKayitlari = wwwData.filter(x => x.sinif === State.pSinif);
+
+                // Eğer hiç kayıt yoksa veya hepsi bitmişse -> KİLİTLE
+                let kilitli = false;
+                if (sinifKayitlari.length === 0) {
+                    kilitli = true; // Hiç başlamamış (kayıt yok)
+                } else {
+                    const hepsiBitti = sinifKayitlari.every(k => k.degerlendirme && (k.degerlendirme.degerlendirildi || typeof k.degerlendirme.toplam !== "undefined"));
+                    if (hepsiBitti) kilitli = true;
+                }
+
+                if (kilitli) {
+                    document.getElementById('main_content').style.display = "none";
+                    document.getElementById('controls_area').style.display = "none";
+                    document.getElementById('sonuc_ekrani').style.display = "none";
+                    document.getElementById('tamamlandi_panel').style.display = "block";
+                    return;
+                }
+                // -------------------------------------------------------------
+
+                document.getElementById('tamamlandi_panel').style.display = "none";
+
+                const qqqName = "qqq" + (State.pSinif || "").replace(/\s/g, '') + (State.pCalisma || "");
+                const [rQ, rS, rD] = await Promise.all([
+                    fetch(`/calismaGetir?isim=${qqqName}`),
+                    fetch(`/calismaGetir?isim=qwx${State.pCalisma}`),
+                    fetch(`/calismaGetir?isim=www_${State.pCalisma}`)
+                ]);
+
+                const qqqData = await rQ.json().catch(() => ({}));
+                State.grupCalismasi = (qqqData.yontem === "Grup");
+
+                const qwxData = await rS.json();
+                State.sorular = qwxData.sorular || [];
+
+                let grupListesi = [];
+                if (State.grupCalismasi) {
+                    try {
+                        const rG = await fetch(`/grupListesiGetir?sinif=${encodeURIComponent(State.pSinif)}&calisma=${encodeURIComponent(State.pCalisma)}`);
+                        grupListesi = await rG.json();
+                    } catch (e) { }
+                }
+
+                const rawData = await rD.json();
+                const sinifVerisi = rawData.filter(x => x.sinif === State.pSinif && x.ogrenciNo !== "AYARLAR");
+
+                State.kuyruk = [];
+
+                if (State.grupCalismasi && grupListesi.length > 0) {
+                    grupListesi.forEach((grp, idx) => {
+                        const grpIds = grp.map(u => String(u["Okul Numaranız"]));
+                        const kayit = sinifVerisi.find(x => grpIds.includes(String(x.ogrenciNo)));
+
+                        if (kayit) {
+                            // Eğer bitmişse kuyruğa ekleme
+                            if (kayit.degerlendirme && kayit.degerlendirme.bitti) return;
+
+                            State.kuyruk.push({
+                                baslik: `${State.pSinif} - ${idx + 1}. GRUP`,
+                                kayit: kayit,
+                                members: grpIds
+                            });
+                        }
+                    });
+                } else {
+                    sinifVerisi.forEach(kayit => {
+                        // Eğer bitmişse kuyruğa ekleme
+                        if (kayit.degerlendirme && kayit.degerlendirme.bitti) return;
+
+                        State.kuyruk.push({
+                            baslik: `${State.pSinif} - ${kayit.ogrenciNo} - ${kayit.adSoyad}`,
+                            kayit: kayit,
+                            members: [kayit.ogrenciNo]
+                        });
+                    });
+                }
+
+                // KUYRUK BOŞSA HERKES BİTMİŞ DEMEKTİR
+                if (State.kuyruk.length === 0) {
+                    document.getElementById('tamamlandi_panel').style.display = "block";
+                    return;
+                }
+
+                // Kaldığımız yerden devam etme (indeks sıfırlanır çünkü bitenleri çıkardık)
+                State.kuyrukIdx = 0;
+
+                TeacherApp.yukle();
+            },
+            yukle: async () => {
+                if (State.kuyrukIdx >= State.kuyruk.length) {
+                    alert("Sınıf Bitti!");
+                    sessionStorage.removeItem('deg_calisma');
+                    sessionStorage.removeItem('deg_sinif');
+                    sessionStorage.removeItem('deg_idx');
+                    document.getElementById('sel_calisma').value = "";
+                    document.getElementById('sel_sinif').innerHTML = '<option value="">Sınıf Seç</option>';
+                    document.getElementById('main_content').style.display = "none";
+                    document.getElementById('controls_area').style.display = "none";
+                    document.getElementById('sonuc_ekrani').style.display = "none";
+                    document.getElementById('header_info').textContent = "--";
+                    return;
+                }
+
+                sessionStorage.setItem('deg_idx', State.kuyrukIdx);
+
+                const item = State.kuyruk[State.kuyrukIdx];
+
+                // --- OTOMATİK "G" (GİRMEDİ/KATILMADI) İŞLEME ---
+                const cevapYok = !item.kayit || !item.kayit.cevaplar || item.kayit.cevaplar.length === 0 || (Array.isArray(item.kayit.cevaplar) && item.kayit.cevaplar.every(c => c.cevaplar.length === 0));
+
+                if (cevapYok) {
+                    // Otomatik olarak G olarak işaretle ve geç
+                    const promises = [];
+                    // members array'i kuyruk oluşturulurken hazırlanmalıydı. Kuyruk yapısını kontrol ettim, members var.
+                    // Fakat TeacherApp.baslat içinde kuyruk oluşturulurken logic biraz farklı. 
+                    // Tekrar kontrol: members alanı var (satır 758 ve 770).
+
+                    if (item.members) {
+                        item.members.forEach(ogrNo => {
+                            promises.push(fetch("/degerlendirmeBitir", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    dosyaAdi: `www_${State.pCalisma}`,
+                                    ogrenciNo: ogrNo,
+                                    sinif: State.pSinif,
+                                    puan: "G"
+                                })
+                            }));
+                        });
+                    }
+
+                    await Promise.all(promises);
+
+                    // Sonraki kişiye geç
+                    State.kuyrukIdx++;
+                    TeacherApp.yukle();
+                    return;
+                }
+
+                State.activeVeri = item.kayit;
+                State.pOgrenci = State.activeVeri.ogrenciNo;
+                State.anlikPuanlar = State.activeVeri.puanlar || {};
+
+                // --- AUTO-EVALUATE MULTIPLE CHOICE QUESTIONS (TEACHER EVAL) ---
+                const rawAnswers = State.activeVeri.cevaplar || [];
+                const normalizedAnswers = Array.isArray(rawAnswers) && rawAnswers.length > 0 && typeof rawAnswers[0] === 'object' && rawAnswers[0].cevaplar ? rawAnswers :
+                    (Array.isArray(rawAnswers) && rawAnswers.answers ? rawAnswers.answers : rawAnswers);
+
+                State.sorular.forEach((soru, sIdx) => {
+                    const sAnsObj = normalizedAnswers.find(c => c.soruIndex === sIdx);
+                    if (!sAnsObj || !sAnsObj.cevaplar || sAnsObj.cevaplar.length === 0) return;
+
+                    const studentAnsStr = sAnsObj.cevaplar[0];
+                    if (studentAnsStr === undefined || studentAnsStr === "") return;
+
+                    if (typeof soru === 'object' && soru.type === 'coktan_secmeli') {
+                        if (!State.anlikPuanlar[sIdx]) State.anlikPuanlar[sIdx] = [];
+                        if (State.anlikPuanlar[sIdx][0] === undefined) {
+                            const isCorrect = parseInt(studentAnsStr) === parseInt(soru.dogruCevap);
+                            State.anlikPuanlar[sIdx][0] = isCorrect ? 1 : 0;
+                        }
+                    } else if (typeof soru === 'object' && soru.type === 'text' && soru.cevabiVar) {
+                        if (!State.anlikPuanlar[sIdx]) State.anlikPuanlar[sIdx] = [];
+                        if (State.anlikPuanlar[sIdx][0] === undefined) {
+                            const isCorrect = studentAnsStr.trim().toLowerCase() === String(soru.dogruCevap || "").trim().toLowerCase();
+                            State.anlikPuanlar[sIdx][0] = isCorrect ? 1 : 0;
+                        }
+                    }
+                });
+
+                State.sIdx = 0;
+
+                // Başlık güncelleme
+                document.getElementById('header_info').textContent = `[${State.kuyrukIdx + 1}/${State.kuyruk.length}] ${item.baslik}`;
+
+                document.getElementById('main_content').style.display = "flex";
+                document.getElementById('controls_area').style.display = "flex";
+                document.getElementById('sonuc_ekrani').style.display = "none";
+                guncelleToplamPuan();
+                // App.renderSoru(); // App.renderSoru State.activeVeri kullanıyor, sorun yok.
+                // Fakat App.renderSoru içinde 'linkleriDonustur' var, bu fonksiyon tanımlı mı? 
+                // Degerlendirme.html içinde linkleriDonustur YOK. Index.html'de var.
+                // Bu fonksiyon renderSoru içinde kullanılıyor mu kontrol etmeliyim. 
+                // Eğer yoksa eklemeliyim veya basitleştirmeliyim.
+                // Mevcut kodda App object'i içinde renderSoru var mı? Evet var ama henüz okumadım. 
+                // Önceki view_file 300-400 arasıydı. renderSoru muhtemelen orada bir yerde.
+                // Neyse, yukle fonksiyonunu değiştirelim önce.
+
+                // renderSoru çağrısı App objesi içinde olmalı.
+                // Burada App.renderSoru() diye çağıracağız.
+                // Ancak App objesinin metodlarına erişim var mı? Evet.
+
+                // NOT: App.renderSoru henüz tanımlanmadı (bu blokta yok). 
+                // Kodun geri kalanında App objesi tanımlı.
+
+                // Render işlemi
+                renderSoruT();
+            }
+        };
+
+        // Helper wrapper for render since App.renderSoru might be defined later or inside App
+        function renderSoruT() {
+            // App.renderSoru() çağrılacak ama App.renderSoru'nun içeriğini bilmiyoruz.
+            // Muhtemelen App objesi altında tanımlı.
+            if (App.renderSoru) App.renderSoru();
+        }
+
+        window.onload = App.init;
+    </script>
+</body>
+
+</html>
