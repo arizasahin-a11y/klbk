@@ -294,24 +294,23 @@ export default async function handler(req, res) {
         return res.status(200).json(cache.fileList);
       }
 
-      const [studies, assignments, evalsKeys, sGroups, cGroups, jsonFiles] = await Promise.all([
+      const [studies, assignments, evalsKeys, sGroups, cGroups] = await Promise.all([
         getCachedStudies(),
         getCachedAssignments(),
         fb('evaluations', 'GET', null, 'shallow=true').then(r => r || {}),
         fb('study_groups', 'GET', null, 'shallow=true').then(r => r || {}),
-        fb('class_groups', 'GET', null, 'shallow=true').then(r => r || {}),
-        fb('json_files', 'GET', null, 'shallow=true').then(r => r || {})
+        fb('class_groups', 'GET', null, 'shallow=true').then(r => r || {})
       ]);
 
       const files = [];
       for (const s of Object.values(studies)) {
-        if (!s.is_archived) {
+        if (s && typeof s === 'object' && s.name && !s.is_archived) {
           files.push(`qwx${s.name}.json`);
         }
       }
 
       for (const a of Object.values(assignments)) {
-        const st = studies[a.study_name] || Object.values(studies).find(s => s.name === a.study_name);
+        const st = studies[a.study_name] || Object.values(studies).find(s => s && s.name === a.study_name);
         if (!st || !st.is_archived) {
           files.push(`qqq${String(a.class_name).replace(/\s/g, '')}${a.study_name}.json`);
         }
@@ -330,10 +329,6 @@ export default async function handler(req, res) {
 
       for (const cName of Object.keys(cGroups)) {
         files.push(`${cName}Grupları.json`);
-      }
-
-      for (const jName of Object.keys(jsonFiles)) {
-        files.push(`${jName}.json`);
       }
 
       cache.fileList = files;
@@ -741,14 +736,17 @@ export default async function handler(req, res) {
     // ----------------------------------------------------
     if (routeName === 'arsivle') {
       invalidateCache();
-      const name = req.body.calismaIsmi ? req.body.calismaIsmi.replace(/^qwx/, '').replace(/\.json$/, '') : '';
+      const raw = req.body.dosyaIsmi || req.body.calismaIsmi || '';
+      const name = String(raw).replace(/^qwx/, '').replace(/\.json$/, '').trim();
+      if (!name) return res.status(400).json({ status: 'eksik' });
       await fb(`studies/${encodeURIComponent(name)}/is_archived`, 'PUT', true);
       return res.status(200).json({ status: 'ok' });
     }
 
     if (routeName === 'arsivdenGeriYukle') {
       invalidateCache();
-      const name = req.body.dosyaIsmi ? req.body.dosyaIsmi.replace(/^qwx/, '').replace(/\.json$/, '') : '';
+      const name = req.body.dosyaIsmi ? req.body.dosyaIsmi.replace(/^qwx/, '').replace(/\.json$/, '').trim() : '';
+      if (!name) return res.status(400).json({ status: 'eksik' });
       await fb(`studies/${encodeURIComponent(name)}/is_archived`, 'PUT', false);
       return res.status(200).json({ status: 'ok' });
     }
@@ -756,7 +754,8 @@ export default async function handler(req, res) {
     if (routeName === 'arsivGuncelle') {
       invalidateCache();
       const { dosyaIsmi, durum } = req.body;
-      const name = dosyaIsmi ? dosyaIsmi.replace(/^qwx/, '').replace(/\.json$/, '') : '';
+      const name = dosyaIsmi ? dosyaIsmi.replace(/^qwx/, '').replace(/\.json$/, '').trim() : '';
+      if (!name) return res.status(400).json({ status: 'eksik' });
       await fb(`studies/${encodeURIComponent(name)}/is_archived`, 'PUT', Boolean(durum));
       return res.status(200).json({ status: 'ok' });
     }
@@ -765,7 +764,7 @@ export default async function handler(req, res) {
       const studies = await fb('studies') || {};
       const list = [];
       for (const s of Object.values(studies)) {
-        if (s.is_archived) list.push(`qwx${s.name}.json`);
+        if (s && typeof s === 'object' && s.name && s.is_archived) list.push(`qwx${s.name}.json`);
       }
       return res.status(200).json(list);
     }
