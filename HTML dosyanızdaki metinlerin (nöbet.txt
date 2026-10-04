@@ -1,0 +1,20 @@
+HTML dosyanızdaki metinlerin (nöbet kurallarının) belirli kısımlarını koyu (kalın), italik (eğik) veya altı çizili göstermek için metinlerin etrafına bazı basit HTML etiketleri eklemeniz yeterlidir.
+
+İşte kullanmanız gereken etiketler ve örnekleri:
+
+1. Koyu (Kalın) Yazmak İçin: <b> veya <strong> etiketini kullanın.
+
+html
+Nöbet esnasında <b>telefon kullanmak kesinlikle yasaktır</b>.
+2. İtalik (Eğik) Yazmak İçin: <i> veya <em> etiketini kullanın.
+
+html
+Nöbet yerinden <i>asla izinsiz ayrılmayınız</i>.
+3. Altı Çizili Yazmak İçin: <u> etiketini kullanın.
+
+html
+Tüm kurallara uyulması <u>zorunludur</u>.
+4. Hepsini Birlikte Kullanmak İçin: Birden fazla özelliği aynı kelimeye uygulamak isterseniz etiketleri iç içe yazabilirsiniz:
+
+html
+<b><i><u>Bu kısım hem koyu, hem italik, hem de altı çizilidir.</u></i></b>

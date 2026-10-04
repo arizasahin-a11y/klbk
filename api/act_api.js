@@ -1,7 +1,7 @@
 // Vercel Serverless Function: Act API (Firebase RTDB Backend for Etkinlik Yönetimi)
 import fs from 'fs';
 import path from 'path';
-import { seedData } from './act_seed_data.js';
+import { seedData } from '../lib/act_seed_data.js';
 
 const FIREBASE_DB_URL = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
 

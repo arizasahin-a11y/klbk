@@ -89,31 +89,99 @@
       "dest": "/404.html"
     },
     {
-      "src": "/giris(\\.html)?$",
+      "src": "/giris",
       "dest": "/act_ogrenci.html"
     },
     {
-      "src": "/21012012(\\.html)?$",
+      "src": "/21012012",
       "dest": "/act_index.html"
     },
     {
-      "src": "/727812(\\.html)?$",
+      "src": "/727812",
       "dest": "/act_admin.html"
     },
     {
-      "src": "/degerlendirme(\\.html)?$",
+      "src": "/degerlendirme",
       "dest": "/degerlendirme.html"
     },
     {
-      "src": "/(calismaGetir|listeCalismalar|grupListesiGetir|calismaKaydet|kaydet|puanKaydet|degerlendirmeBitir|degerlendirmeSifirla|tumCevaplariTemizle|calismaSil|arsivle|arsivdenGeriYukle|arsivGuncelle|arsivListesi|yonetimDosyaListesi|yedekAl|yedekYukle|restart)(.*)",
-      "dest": "/api/$1.js$2"
+      "src": "/calismaGetir",
+      "dest": "/api/act_api.js?action=calismaGetir"
     },
     {
-      "src": "/api/ogrenciPaneli(.*)",
-      "dest": "/api/ogrenciPaneli.js$1"
+      "src": "/listeCalismalar",
+      "dest": "/api/act_api.js?action=listeCalismalar"
     },
     {
-      "src": "/veritabani\\.json",
+      "src": "/grupListesiGetir",
+      "dest": "/api/act_api.js?action=grupListesiGetir"
+    },
+    {
+      "src": "/api/ogrenciPaneli",
+      "dest": "/api/act_api.js?action=ogrenciPaneli"
+    },
+    {
+      "src": "/calismaKaydet",
+      "dest": "/api/act_api.js?action=calismaKaydet"
+    },
+    {
+      "src": "/kaydet",
+      "dest": "/api/act_api.js?action=kaydet"
+    },
+    {
+      "src": "/puanKaydet",
+      "dest": "/api/act_api.js?action=puanKaydet"
+    },
+    {
+      "src": "/degerlendirmeBitir",
+      "dest": "/api/act_api.js?action=degerlendirmeBitir"
+    },
+    {
+      "src": "/degerlendirmeSifirla",
+      "dest": "/api/act_api.js?action=degerlendirmeSifirla"
+    },
+    {
+      "src": "/tumCevaplariTemizle",
+      "dest": "/api/act_api.js?action=tumCevaplariTemizle"
+    },
+    {
+      "src": "/calismaSil",
+      "dest": "/api/act_api.js?action=calismaSil"
+    },
+    {
+      "src": "/arsivle",
+      "dest": "/api/act_api.js?action=arsivle"
+    },
+    {
+      "src": "/arsivdenGeriYukle",
+      "dest": "/api/act_api.js?action=arsivdenGeriYukle"
+    },
+    {
+      "src": "/arsivGuncelle",
+      "dest": "/api/act_api.js?action=arsivGuncelle"
+    },
+    {
+      "src": "/arsivListesi",
+      "dest": "/api/act_api.js?action=arsivListesi"
+    },
+    {
+      "src": "/yonetimDosyaListesi",
+      "dest": "/api/act_api.js?action=yonetimDosyaListesi"
+    },
+    {
+      "src": "/yedekAl",
+      "dest": "/api/act_api.js?action=yedekAl"
+    },
+    {
+      "src": "/yedekYukle",
+      "dest": "/api/act_api.js?action=yedekYukle"
+    },
+    {
+      "src": "/restart",
+      "dest": "/api/act_api.js?action=restart"
+    },
+    {
+      "src": "/veritabani.json",
       "dest": "/veritabani.json"
     },
     {
