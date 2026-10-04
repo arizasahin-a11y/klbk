@@ -5,15 +5,33 @@ import { seedData } from '../lib/act_seed_data.js';
 
 const FIREBASE_DB_URL = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
 
+// High-performance in-memory cache for serverless warmth
+let cache = {
+  studies: null,
+  studiesTime: 0,
+  assignments: null,
+  assignmentsTime: 0
+};
+const CACHE_TTL = 12000; // 12 seconds TTL
+
+function invalidateCache() {
+  cache.studies = null;
+  cache.assignments = null;
+}
+
 function sinifIsmiTemizle(s) {
   if (!s) return "";
   return String(s).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
 }
 
-async function fb(endpoint, method = 'GET', data = null) {
+async function fb(endpoint, method = 'GET', data = null, extraQuery = '') {
   const secret = process.env.FIREBASE_SECRET || '';
-  const authQuery = secret ? `?auth=${encodeURIComponent(secret)}` : '';
-  const url = `${FIREBASE_DB_URL}/app_store/act_store/${endpoint}.json${authQuery}`;
+  let queryParts = [];
+  if (secret) queryParts.push(`auth=${encodeURIComponent(secret)}`);
+  if (extraQuery) queryParts.push(extraQuery.replace(/^[?&]/, ''));
+  const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+
+  const url = `${FIREBASE_DB_URL}/app_store/act_store/${endpoint}.json${qs}`;
 
   const opts = {
     method,
@@ -35,6 +53,28 @@ async function fb(endpoint, method = 'GET', data = null) {
     console.error(`Firebase fetch exception [${method} ${endpoint}]:`, err.message);
     return null;
   }
+}
+
+async function getCachedStudies() {
+  const now = Date.now();
+  if (cache.studies && (now - cache.studiesTime < CACHE_TTL)) {
+    return cache.studies;
+  }
+  const data = await fb('studies') || {};
+  cache.studies = data;
+  cache.studiesTime = now;
+  return data;
+}
+
+async function getCachedAssignments() {
+  const now = Date.now();
+  if (cache.assignments && (now - cache.assignmentsTime < CACHE_TTL)) {
+    return cache.assignments;
+  }
+  const data = await fb('assignments') || {};
+  cache.assignments = data;
+  cache.assignmentsTime = now;
+  return data;
 }
 
 // Auto-seed if database is empty or explicitly requested
@@ -94,10 +134,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Seed data not loaded' });
   }
 
-  // Lazy seed check on first read operations
-  if (req.method === 'GET') {
-    await ensureSeeded();
-  }
+// Database is already live seeded
 
   try {
     // ----------------------------------------------------
@@ -106,6 +143,19 @@ export default async function handler(req, res) {
     if (routeName === 'calismaGetir') {
       const isim = req.query.isim;
       if (!isim) return res.status(400).json({ error: 'Missing isim' });
+
+      // HIGH SPEED BATCH ENDPOINT FOR SEKME3 (Çalışma Süreci)
+      if (isim === 'all_assignments' || isim === 'qqq_all') {
+        const assignments = await getCachedAssignments();
+        const list = Object.values(assignments).map(a => ({
+          id: `qqq${String(a.class_name).replace(/\s/g, '')}${a.study_name}`,
+          sinif: a.class_name,
+          calisma: a.study_name,
+          yontem: a.method || 'Grup',
+          ...(a.settings || {})
+        }));
+        return res.status(200).json(list);
+      }
 
       // Case A: qwx (Study Content)
       if (isim.startsWith('qwx')) {
@@ -223,18 +273,18 @@ export default async function handler(req, res) {
     }
 
     // ----------------------------------------------------
-    // 2. /listeCalismalar
+    // 2. /listeCalismalar (Optimized with Cache & Shallow)
     // ----------------------------------------------------
     if (routeName === 'listeCalismalar') {
       const files = [];
-      const studies = await fb('studies') || {};
+      const studies = await getCachedStudies();
       for (const s of Object.values(studies)) {
         if (!s.is_archived) {
           files.push(`qwx${s.name}.json`);
         }
       }
 
-      const assignments = await fb('assignments') || {};
+      const assignments = await getCachedAssignments();
       for (const a of Object.values(assignments)) {
         const st = studies[a.study_name] || Object.values(studies).find(s => s.name === a.study_name);
         if (!st || !st.is_archived) {
@@ -242,19 +292,23 @@ export default async function handler(req, res) {
         }
       }
 
-      const evals = await fb('evaluations') || {};
-      for (const studyName of Object.keys(evals)) {
+      // Shallow fetch (keys only: 100 bytes instead of 2.2MB!)
+      const evalsKeys = await fb('evaluations', 'GET', null, 'shallow=true') || {};
+      for (const studyName of Object.keys(evalsKeys)) {
         files.push(`www_${studyName}.json`);
       }
 
-      const sGroups = await fb('study_groups') || {};
-      for (const g of Object.values(sGroups)) {
-        files.push(`ggg${g.study_name}${String(g.class_name).replace(/\s/g, '')}.json`);
+      const sGroups = await fb('study_groups', 'GET', null, 'shallow=true') || {};
+      for (const gKey of Object.keys(sGroups)) {
+        const parts = gKey.split('___');
+        if (parts.length === 2) {
+          files.push(`ggg${parts[0]}${String(parts[1]).replace(/\s/g, '')}.json`);
+        }
       }
 
-      const cGroups = await fb('class_groups') || {};
-      for (const cg of Object.values(cGroups)) {
-        files.push(`${cg.class_name}Grupları.json`);
+      const cGroups = await fb('class_groups', 'GET', null, 'shallow=true') || {};
+      for (const cName of Object.keys(cGroups)) {
+        files.push(`${cName}Grupları.json`);
       }
 
       return res.status(200).json(files);
@@ -379,6 +433,7 @@ export default async function handler(req, res) {
     // 5. /calismaKaydet (POST)
     // ----------------------------------------------------
     if (routeName === 'calismaKaydet') {
+      invalidateCache();
       const { calismaIsmi, sorular } = req.body;
       if (!calismaIsmi) return res.status(400).json({ status: 'eksik' });
 
@@ -424,6 +479,7 @@ export default async function handler(req, res) {
     // 6. /kaydet (POST)
     // ----------------------------------------------------
     if (routeName === 'kaydet') {
+      invalidateCache();
       const { dosyaAdi, veri, sinif, gruplar, calisma } = req.body;
 
       if (sinif && gruplar) {
@@ -603,6 +659,7 @@ export default async function handler(req, res) {
     // 11. /calismaSil (POST)
     // ----------------------------------------------------
     if (routeName === 'calismaSil') {
+      invalidateCache();
       const { calismaIsmi, dosyaAdi } = req.body;
       const target = (calismaIsmi || dosyaAdi || '').trim();
 
@@ -643,18 +700,21 @@ export default async function handler(req, res) {
     // 12. /arsivle /arsivdenGeriYukle /arsivGuncelle (POST)
     // ----------------------------------------------------
     if (routeName === 'arsivle') {
+      invalidateCache();
       const name = req.body.calismaIsmi ? req.body.calismaIsmi.replace(/^qwx/, '').replace(/\.json$/, '') : '';
       await fb(`studies/${encodeURIComponent(name)}/is_archived`, 'PUT', true);
       return res.status(200).json({ status: 'ok' });
     }
 
     if (routeName === 'arsivdenGeriYukle') {
+      invalidateCache();
       const name = req.body.dosyaIsmi ? req.body.dosyaIsmi.replace(/^qwx/, '').replace(/\.json$/, '') : '';
       await fb(`studies/${encodeURIComponent(name)}/is_archived`, 'PUT', false);
       return res.status(200).json({ status: 'ok' });
     }
 
     if (routeName === 'arsivGuncelle') {
+      invalidateCache();
       const { dosyaIsmi, durum } = req.body;
       const name = dosyaIsmi ? dosyaIsmi.replace(/^qwx/, '').replace(/\.json$/, '') : '';
       await fb(`studies/${encodeURIComponent(name)}/is_archived`, 'PUT', Boolean(durum));

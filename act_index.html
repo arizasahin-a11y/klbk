@@ -1329,7 +1329,9 @@
                 s3AtamalariCek();
                 s4DosyaListesiYukle();
                 const sonSekme = sessionStorage.getItem('aktifSekme');
-                if (sonSekme) { openTab(null, sonSekme); }
+                if (sonSekme && sonSekme !== 'sekme3') {
+                    openTab(null, sonSekme);
+                }
             });
         };
 
@@ -1805,13 +1807,31 @@
                 dosyalar.filter(d => d.startsWith("qwx")).forEach(d => { const n = d.replace("qwx", "").replace(".json", ""); cS.appendChild(new Option(n.replace("qwx", ""), n)); });
             });
         }
-        function s3AtamalariCek() {
+        async function s3AtamalariCek() {
+            try {
+                // High-performance single batch fetch
+                const res = await fetch("/calismaGetir?isim=all_assignments");
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data)) {
+                        aktifAtamalar = data;
+                        s3TabloCiz();
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn("Batch fetch fallback:", err);
+            }
+
+            // Fallback: parallel Promise.all
             fetch("/listeCalismalar").then(res => res.json()).then(dosyalar => {
                 const qFiles = dosyalar.filter(d => d.startsWith("qqq"));
-                aktifAtamalar = []; let count = 0; if (qFiles.length === 0) return s3TabloCiz();
-                qFiles.forEach(f => {
-                    fetch(`/calismaGetir?isim=${encodeURIComponent(f.replace(".json", ""))}`).then(r => r.json()).then(data => { aktifAtamalar.push(data); count++; if (count === qFiles.length) s3TabloCiz(); })
-                        .catch(() => { count++; if (count === qFiles.length) s3TabloCiz(); });
+                if (qFiles.length === 0) { aktifAtamalar = []; return s3TabloCiz(); }
+                Promise.all(qFiles.map(f => 
+                    fetch(`/calismaGetir?isim=${encodeURIComponent(f.replace(".json", ""))}`).then(r => r.json()).catch(() => null)
+                )).then(results => {
+                    aktifAtamalar = results.filter(Boolean);
+                    s3TabloCiz();
                 });
             });
         }
@@ -1866,7 +1886,7 @@
             });
         }
         async function s3Upd(id, k, v) {
-            const a = aktifAtamalar.find(x => x.id === id);
+            const a = aktifAtamalar.find(x => String(x.id) === String(id));
             if (a) {
                 a[k] = v;
                 // If setting granular permissions, clear legacy 'gorme' to avoid override
@@ -1892,7 +1912,7 @@
             }
         }
         function s3Start(id) {
-            const a = aktifAtamalar.find(x => x.id === id);
+            const a = aktifAtamalar.find(x => String(x.id) === String(id));
             let s = parseInt(document.getElementById("inp_" + id).value) || 0;
 
             // Prevent negative
