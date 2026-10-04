@@ -124,19 +124,20 @@ export default async function handler(req, res) {
         const cleanSearch = isim.replace(/\.json$/, '').toLowerCase();
         let found = null;
         for (const a of Object.values(assignments)) {
-          const c1 = `qqq${a.class_name}${a.study_name}`.replace(/\s/g, '').toLowerCase();
+          const c1 = `qqq${String(a.class_name).replace(/\s/g, '')}${a.study_name}`.toLowerCase();
           const c2 = `qqq${a.class_name}${a.study_name}`.toLowerCase();
-          if (c1 === cleanSearch || c2 === cleanSearch || cleanSearch.includes(c1)) {
+          if (c1 === cleanSearch || c2 === cleanSearch || cleanSearch.includes(c1) || c1.includes(cleanSearch)) {
             found = a;
             break;
           }
         }
         if (found) {
+          const qqqId = `qqq${String(found.class_name).replace(/\s/g, '')}${found.study_name}`;
           return res.status(200).json({
-            id: found.id || 0,
+            id: qqqId,
             sinif: found.class_name,
             calisma: found.study_name,
-            yontem: found.method,
+            yontem: found.method || 'Grup',
             ...(found.settings || {})
           });
         }
@@ -296,6 +297,7 @@ export default async function handler(req, res) {
 
       const studies = await fb('studies') || {};
       const assignments = await fb('assignments') || {};
+      const studyGroups = await fb('study_groups') || {};
       const normSinif = sinifIsmiTemizle(sinif);
 
       const matchedAssignments = Object.values(assignments).filter(a => {
@@ -312,20 +314,57 @@ export default async function handler(req, res) {
       const results = [];
       for (const a of matchedAssignments) {
         const studyEvals = await fb(`evaluations/${encodeURIComponent(a.study_name)}`) || {};
-        const ayarlarObj = studyEvals['AYARLAR'] ? (studyEvals['AYARLAR'].answers || studyEvals['AYARLAR']) : null;
+        const ayarlarObj = studyEvals['AYARLAR'] ? (studyEvals['AYARLAR'].answers || studyEvals['AYARLAR']) : {};
         const studentRec = studyEvals[schoolNo] || null;
 
+        // Find my group if it's a group study
+        let myGroup = null;
+        if (a.method === "Grup") {
+          for (const g of Object.values(studyGroups)) {
+            if (g.study_name === a.study_name && (g.class_name === a.class_name || sinifIsmiTemizle(g.class_name) === normSinif)) {
+              if (Array.isArray(g.groups_data)) {
+                const groupIdx = g.groups_data.findIndex(members =>
+                  Array.isArray(members) && members.some(m => String(m['Okul Numaranız'] || m['Okul Numarası'] || m['school_no'] || m.no).trim() === schoolNo)
+                );
+                if (groupIdx !== -1) {
+                  myGroup = {
+                    groupNo: groupIdx + 1,
+                    members: g.groups_data[groupIdx]
+                  };
+                }
+              }
+              break;
+            }
+          }
+        }
+
+        const settings = a.settings || {};
+        const qqqId = `qqq${String(a.class_name).replace(/\s/g, '')}${a.study_name}`;
+
         results.push({
-          id: a.id || 0,
+          id: qqqId,
           study_id: a.study_id || 0,
-          class_name: a.class_name,
-          method: a.method,
-          settings: a.settings || {},
-          study_name: a.study_name,
           calisma: a.study_name,
+          study_name: a.study_name,
+          sinif: a.class_name,
+          class_name: a.class_name,
+          yontem: a.method || 'Grup',
+          method: a.method || 'Grup',
+          ...settings,
+          degerl: Boolean(settings.degerl),
+          masterDegerl: Boolean(ayarlarObj.degerlendirmeIzni),
+          izin: Boolean(ayarlarObj.izin),
+          settings: settings,
           ayarlar: ayarlarObj,
+          myRecord: studentRec ? {
+            cevaplar: studentRec.answers ? (Array.isArray(studentRec.answers) ? studentRec.answers : (studentRec.answers.cevaplar || [])) : [],
+            puanlar: studentRec.scores || {},
+            degerlendirme: studentRec.evaluation || {},
+            girisSayisi: studentRec.entry_count || 0
+          } : null,
+          myGroup: myGroup,
           ogrenciKaydi: studentRec ? {
-            cevaplar: studentRec.answers ? (studentRec.answers.cevaplar || studentRec.answers || []) : [],
+            cevaplar: studentRec.answers ? (Array.isArray(studentRec.answers) ? studentRec.answers : (studentRec.answers.cevaplar || [])) : [],
             puanlar: studentRec.scores || {},
             degerlendirme: studentRec.evaluation || {},
             girisSayisi: studentRec.entry_count || 0
@@ -348,21 +387,23 @@ export default async function handler(req, res) {
         const studyName = assignment.calisma;
         const className = assignment.sinif;
         const key = `${studyName}___${className}`;
+        const settings = {
+          gorme: Boolean(assignment.gorme),
+          aciklamaIzni: Boolean(assignment.aciklamaIzni),
+          soruIzni: Boolean(assignment.soruIzni),
+          yapma: Boolean(assignment.yapma),
+          degerl: Boolean(assignment.degerl),
+          sure: Number(assignment.sure) || 0,
+          bitis: assignment.bitis || null,
+          karisikSoru: Boolean(assignment.karisikSoru),
+          odakModu: Boolean(assignment.odakModu)
+        };
         const data = {
+          id: `qqq${String(className).replace(/\s/g, '')}${studyName}`,
           study_name: studyName,
           class_name: className,
           method: assignment.yontem || 'Grup',
-          settings: {
-            gorme: assignment.gorme || false,
-            aciklamaIzni: assignment.aciklamaIzni || false,
-            soruIzni: assignment.soruIzni || false,
-            yapma: assignment.yapma || false,
-            degerl: assignment.degerl || false,
-            sure: assignment.sure || 0,
-            bitis: assignment.bitis || null,
-            karisikSoru: assignment.karisikSoru || false,
-            odakModu: assignment.odakModu || false
-          }
+          settings: settings
         };
         await fb(`assignments/${encodeURIComponent(key)}`, 'PUT', data);
         return res.status(200).json({ status: 'ok' });

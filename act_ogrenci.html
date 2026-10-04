@@ -1447,10 +1447,10 @@
                 let badgeClass = "bs-wait";
 
                 // Permission logic for styling
-                const hasGranular = (typeof a.aciklamaIzni === 'boolean' || typeof a.soruIzni === 'boolean');
-                const permAciklama = hasGranular ? (a.aciklamaIzni === true) : (a.gorme === true);
-                const permSoru = hasGranular ? (a.soruIzni === true) : (a.gorme === true);
-                const isActive = (a.yapma === true);
+                const hasGranular = (typeof a.aciklamaIzni === 'boolean' || typeof a.soruIzni === 'boolean' || (a.settings && (typeof a.settings.aciklamaIzni === 'boolean' || typeof a.settings.soruIzni === 'boolean')));
+                const permAciklama = hasGranular ? (a.aciklamaIzni === true || (a.settings && a.settings.aciklamaIzni === true)) : (a.gorme === true || (a.settings && a.settings.gorme === true));
+                const permSoru = hasGranular ? (a.soruIzni === true || (a.settings && a.settings.soruIzni === true)) : (a.gorme === true || (a.settings && a.settings.gorme === true));
+                const isActive = (a.yapma === true || (a.settings && a.settings.yapma === true));
 
                 let isFinished = false;
                 if (a.bitis && (a.bitis - Date.now() < 0)) isFinished = true;
@@ -1565,7 +1565,7 @@
             const container = item.querySelector('.accordion-content');
             if (!container) return;
 
-            const a = atanlar.find(x => x.id === id);
+            const a = atanlar.find(x => String(x.id) === String(id));
             if (!a) return;
 
             // Set global 'atan' for legacy compatibility (saving, etc.)
@@ -1647,10 +1647,10 @@
                 // --- NESTED ACCORDIONS & ACTIONS LOGIC (v2) ---
 
                 // RESTORE MISSING VARIABLES (Fix for ReferenceError: isActive is not defined)
-                const hasGranular = (typeof a.aciklamaIzni === 'boolean' || typeof a.soruIzni === 'boolean');
-                const permAciklama = hasGranular ? (a.aciklamaIzni === true) : (a.gorme === true);
-                const permSoru = hasGranular ? (a.soruIzni === true) : (a.gorme === true);
-                const isActive = (a.yapma === true);
+                const hasGranular = (typeof a.aciklamaIzni === 'boolean' || typeof a.soruIzni === 'boolean' || (a.settings && (typeof a.settings.aciklamaIzni === 'boolean' || typeof a.settings.soruIzni === 'boolean')));
+                const permAciklama = hasGranular ? (a.aciklamaIzni === true || (a.settings && a.settings.aciklamaIzni === true)) : (a.gorme === true || (a.settings && a.settings.gorme === true));
+                const permSoru = hasGranular ? (a.soruIzni === true || (a.settings && a.settings.soruIzni === true)) : (a.gorme === true || (a.settings && a.settings.gorme === true));
+                const isActive = (a.yapma === true || (a.settings && a.settings.yapma === true));
 
                 // 1. Group Info Fetch (Dynamic)
                 if (a.yontem === "Grup") {
@@ -1848,7 +1848,7 @@
         }
 
         function baslaAccordion(id) {
-            const a = atanlar.find(x => x.id === id);
+            const a = atanlar.find(x => String(x.id) === String(id));
             if (a) {
                 atan = a;
                 sIdx = 0; // RESET INDEX
@@ -1857,7 +1857,7 @@
         }
 
         function degerlendirmeAccordion(id) {
-            const a = atanlar.find(x => x.id === id);
+            const a = atanlar.find(x => String(x.id) === String(id));
             if (a) {
                 atan = a;
                 degerlendirmeyeGec();
@@ -1865,7 +1865,7 @@
         }
 
         function ozetAccordion(id) {
-            const a = atanlar.find(x => x.id === id);
+            const a = atanlar.find(x => String(x.id) === String(id));
             if (a) {
                 atan = a;
                 ozetCiz(); // This switches to p_ozet
