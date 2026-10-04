@@ -1159,20 +1159,30 @@
 
                 // 6. Gömülebilir Eğitim Portalları ve Simülasyonları (EBA, PhET, GeoGebra, Scratch)
                 if (cleanUrl.toLowerCase().includes('eba.gov.tr')) {
-                    return `<div class="embedded-wrapper portal-embed-wrapper eba-wrapper">
-                        <div class="embedded-topbar">
-                            <span class="embedded-topbar-title">📚 EBA (Eğitim Bilişim Ağı) İçeriği</span>
-                            <div class="embedded-topbar-btns">
-                                <button type="button" class="embedded-btn" onclick="window.open('${cleanUrl}', 'ebaWin', 'width=1150,height=800,scrollbars=yes,resizable=yes'); return false;" title="Ayrı pencerede aç">🗗 Ayrı Pencere</button>
-                                <a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="embedded-btn" title="Yeni sekmede aç">Yeni Sekme ↗</a>
+                    return `<div class="embedded-wrapper portal-embed-wrapper eba-wrapper" style="border: 2px solid #93c5fd; background: #f0f7ff; border-radius: 12px; padding: 16px; margin: 12px 0;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #bfdbfe;">
+                            <span style="font-weight:bold; color:#1e3a8a; font-size:15px; display:flex; align-items:center; gap:8px;">
+                                📚 EBA (Eğitim Bilişim Ağı) Etkileşimli İçeriği
+                            </span>
+                            <div style="display:flex; gap:8px;">
+                                <a href="${cleanUrl}" target="_blank" rel="noopener" style="background:#2563eb; color:#fff; font-size:13px; font-weight:600; padding:7px 14px; border-radius:6px; text-decoration:none; display:inline-flex; align-items:center; gap:5px;" title="Yeni sekmede aç">🚀 Simülasyonu Aç ↗</a>
+                                <button type="button" onclick="window.open('${cleanUrl}', 'ebaWin', 'width=1150,height=800,scrollbars=yes,resizable=yes'); return false;" style="background:#fff; border:1px solid #cbd5e1; color:#334155; font-size:13px; font-weight:600; padding:7px 12px; border-radius:6px; cursor:pointer;" title="Ayrı pencerede aç">🗗 Ayrı Pencere</button>
                             </div>
                         </div>
-                        <iframe src="${cleanUrl}" class="embedded-iframe eba-iframe" loading="lazy" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
-                        <div class="embed-fallback">
-                            <span>EBA sayfası açılmıyorsa: </span>
-                            <a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">🌐 EBA İçeriğini Yeni Sekmede Aç ↗</a>
-                            <span> veya </span>
-                            <button type="button" class="embedded-btn" onclick="window.open('${cleanUrl}', 'ebaWin', 'width=1150,height=800,scrollbars=yes,resizable=yes'); return false;">🗗 Ayrı Pencerede Aç</button>
+                        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px 14px; color:#1e40af; font-size:13px; line-height:1.6; margin-bottom:12px;">
+                            💡 <b>Önemli Bilgilendirme:</b> MEB EBA güvenlik kuralları gereği simülasyon ve ders içeriklerine yalnızca <b>EBA'ya giriş yapmış</b> kullanıcılar erişebilir.<br>
+                            Eğer <i>"Erişim adres bilgileri alınamadı"</i> uyarısı görürseniz lütfen önce <b>2. Butona</b> tıklayarak EBA'ya giriş yapınız, ardından <b>1. Buton</b> ile simülasyonu açınız:
+                        </div>
+                        <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+                            <a href="${cleanUrl}" target="_blank" rel="noopener" style="background:#16a34a; color:#fff; font-weight:bold; font-size:14px; padding:10px 18px; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                                🎯 1. EBA İçeriğini / Simülasyonunu Aç ↗
+                            </a>
+                            <a href="https://giris.eba.gov.tr/EBA_GIRIS//giris.jsp" target="_blank" rel="noopener" style="background:#ea580c; color:#fff; font-weight:bold; font-size:14px; padding:10px 18px; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                                🔑 2. Önce EBA'ya Giriş Yap (giris.eba.gov.tr) ↗
+                            </a>
+                        </div>
+                        <div style="margin-top:10px; font-size:12px; color:#64748b; word-break:break-all;">
+                            <b>Doğrudan Bağlantı:</b> <a href="${cleanUrl}" target="_blank" rel="noopener" style="color:#2563eb;">${cleanUrl}</a>
                         </div>
                     </div>` + trailingPunct;
                 }

@@ -149,14 +149,22 @@ export default async function handler(req, res) {
 
       // HIGH SPEED BATCH ENDPOINT FOR SEKME3 (Çalışma Süreci)
       if (isim === 'all_assignments' || isim === 'qqq_all') {
-        const assignments = await getCachedAssignments();
-        const list = Object.values(assignments).map(a => ({
-          id: `qqq${String(a.class_name).replace(/\s/g, '')}${a.study_name}`,
-          sinif: a.class_name,
-          calisma: a.study_name,
-          yontem: a.method || 'Grup',
-          ...(a.settings || {})
-        }));
+        const [assignments, studies] = await Promise.all([
+          getCachedAssignments(),
+          getCachedStudies()
+        ]);
+        const list = Object.values(assignments)
+          .filter(a => {
+            const st = studies[a.study_name] || Object.values(studies).find(s => s.name === a.study_name);
+            return st && !st.is_archived;
+          })
+          .map(a => ({
+            id: `qqq${String(a.class_name).replace(/\s/g, '')}${a.study_name}`,
+            sinif: a.class_name,
+            calisma: a.study_name,
+            yontem: a.method || 'Grup',
+            ...(a.settings || {})
+          }));
         res.setHeader('Cache-Control', 'public, max-age=3, s-maxage=6, stale-while-revalidate=15');
         return res.status(200).json(list);
       }
