@@ -1027,7 +1027,30 @@
     <script>
         let sess = null, atan = null, sorular = [], cevaplar = [], sIdx = 0, isTyping = false;
         // Removed globalGrupInfo
-        let studyGroupsCache = {}; // Cache for study-specific groups: { "StudyName": { groupNo: 1, members: [...] } }
+        let studyGroupsCache = {};
+
+    function buildCleanGroupListHtml(sinif, groupNo, members, myNo) {
+        if (!members || !members.length) return '';
+        const items = members.map((m, idx) => {
+            const mNo = String(m['Okul Numaranız'] || m['Okul Numarası'] || m['school_no'] || m.no || '').trim();
+            const isMe = (mNo && String(myNo).trim() === mNo);
+            const name = m['Adınız Soyadınız'] || m['name'] || 'Öğrenci';
+            return `<div style="display:flex; align-items:center; gap:10px; padding:7px 12px; margin-bottom:5px; border-radius:6px; background:${isMe ? '#e8f5e9' : '#ffffff'}; border:1px solid ${isMe ? '#81c784' : '#ffe0b2'}; box-shadow:0 1px 2px rgba(0,0,0,0.03);">
+                <span style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-size:0.75rem; font-weight:700; background:${isMe ? '#2e7d32' : '#ff9800'}; color:#fff; flex-shrink:0;">${idx + 1}</span>
+                <span style="font-size:0.92rem; ${isMe ? 'font-weight:700; color:#1b5e20;' : 'font-weight:500; color:#333;'}">${name}</span>
+                ${isMe ? '<span style="margin-left:auto; font-size:0.75rem; font-weight:700; background:#2e7d32; color:#fff; padding:2px 8px; border-radius:10px;">Siz</span>' : ''}
+            </div>`;
+        }).join('');
+
+        return `<div style="white-space:normal; line-height:normal; margin-bottom:8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #ffe0b2;">
+                <strong style="color:#e65100; font-size:0.98rem; display:flex; align-items:center; gap:6px;">👥 ${sinif} ${groupNo}. Grup Listesi</strong>
+                <span style="font-size:0.78rem; background:#fff3e0; color:#e65100; padding:2px 8px; border-radius:12px; font-weight:700;">${members.length} Kişi</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:2px;">${items}</div>
+        </div>`;
+    }
+ // Cache for study-specific groups: { "StudyName": { groupNo: 1, members: [...] } }
         let isFetchingGroups = {}; // Prevent multiple fetches per study
         let otoKayitYapildi = false, girisSayisi = 0, girisIslandi = false;
 
@@ -1685,14 +1708,7 @@
 
                                 const el = document.getElementById(`group-info-${a.id}`);
                                 if (el && found) {
-                                    const membersHtml = found.members.map(m => {
-                                        const isMe = (String(m['Okul Numaranız']) === String(sess.no));
-                                        return `<li style="${isMe ? 'font-weight:bold; color:var(--yesil);' : ''}">
-                                            ${m['Adınız Soyadınız']} ${isMe ? '(Siz)' : ''}
-                                        </li>`;
-                                    }).join('');
-                                    el.innerHTML = `<strong style="color:#E65100; display:block; margin-bottom:5px;">${sess.sinif} ${found.groupNo}. Grup Listesi:</strong>
-                                        <ul style="margin:0; padding-left:20px; font-size:0.9rem;">${membersHtml}</ul>`;
+                                    el.innerHTML = buildCleanGroupListHtml(sess.sinif, found.groupNo, found.members, sess.no);
                                     el.style.display = "block";
                                 }
 
@@ -1730,21 +1746,12 @@
                         // PREPARE PLACEHOLDER
                         // If cached data exists, render it. If not, render empty placeholder with ID.
                         const cached = studyGroupsCache[a.calisma];
-                        if (cached) {
-                            const membersHtml = cached.members.map(m => {
-                                const isMe = (String(m['Okul Numaranız']) === String(sess.no));
-                                return `<li style="${isMe ? 'font-weight:bold; color:var(--yesil);' : ''}">
-                                    ${m['Adınız Soyadınız']} ${isMe ? '(Siz)' : ''}
-                                </li>`;
-                            }).join('');
-
-                            groupInfoHtml = `<div id="group-info-${a.id}" style="background:#FFF8E1; padding:10px; border:1px solid #FFE0B2; border-radius:6px; margin-bottom:10px;">
-                                <strong style="color:#E65100; display:block; margin-bottom:5px;">${sess.sinif} ${cached.groupNo}. Grup Listesi:</strong>
-                                <ul style="margin:0; padding-left:20px; font-size:0.9rem;">${membersHtml}</ul>
+                        if (cached && cached.members && cached.members.length > 0) {
+                            groupInfoHtml = `<div id="group-info-${a.id}" style="white-space:normal; line-height:normal; background:#fff8e1; padding:12px 14px; border:1px solid #ffe0b2; border-radius:8px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                                ${buildCleanGroupListHtml(sess.sinif, cached.groupNo, cached.members, sess.no)}
                             </div>`;
                         } else {
-                            // Placeholder (will be populated by async fetch above)
-                            groupInfoHtml = `<div id="group-info-${a.id}" style="background:#FFF8E1; padding:10px; border:1px solid #FFE0B2; border-radius:6px; margin-bottom:10px; display:none;">
+                            groupInfoHtml = `<div id="group-info-${a.id}" style="white-space:normal; line-height:normal; background:#fff8e1; padding:12px 14px; border:1px solid #ffe0b2; border-radius:8px; margin-bottom:12px; display:none;">
                                 Yükleniyor...
                             </div>`;
                         }
