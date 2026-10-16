@@ -216,9 +216,21 @@
         }
 
         .desc-content {
-            white-space: pre-wrap;
+            white-space: normal;
             word-break: break-word;
             line-height: 1.5;
+        }
+
+        /* Öğretmenin yazdığı metin: satır ve boş satırlar aynen korunur */
+        .kullanici-metin {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* Gömülü içerikler, metin içindeki pre-wrap'ten etkilenip fazladan boşluk oluşturmasın */
+        .embedded-wrapper,
+        .embed-fallback {
+            white-space: normal;
         }
 
         .mcq-text {
@@ -1064,6 +1076,7 @@
         // --- GELİŞMİŞ VE GÜVENLİ LİNK DÖNÜŞTÜRÜCÜ ---
         function linkleriDonustur(text) {
             if (!text) return "";
+            text = String(text).replace(/\r\n?/g, "\n");
             const urlRegex = /(https?:\/\/[^\s<]+|www\.[^\s<]+|[a-zA-Z0-9.-]*eba\.gov\.tr[^\s<]*|[a-zA-Z0-9.-]*(?:youtube\.com|youtu\.be)[^\s<]*)/gi;
             return text.replace(urlRegex, function (match) {
                 let rawUrl = match.trim();
@@ -1769,10 +1782,7 @@
 
                     html += `<details class="nested-acc">
                         <summary>Açıklama</summary>
-                        <div class="nested-content desc-content">
-                            ${groupInfoHtml}
-                            ${linkleriDonustur(desc)}
-                        </div>
+                        <div class="nested-content desc-content">${groupInfoHtml}<div class="kullanici-metin">${linkleriDonustur(desc)}</div></div>
                     </details>`;
                 }
 
