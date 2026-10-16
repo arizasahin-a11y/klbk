@@ -1623,16 +1623,25 @@
                 aciklama: document.getElementById("calismaAciklama").value,
                 sorular: sorularArr
             };
+            const btn = document.getElementById("btnKaydet");
+            const eskiMetin = btn.textContent;
+            btn.disabled = true; btn.textContent = "⏳ Kaydediliyor...";
             fetch("/calismaKaydet", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ calismaIsmi: seciliDosyaAdi.replace(".json", ""), sorular: v }) })
                 .then(r => r.json())
                 .then(data => {
-                    if (data.status !== "ok") return alert("Kaydedilemedi!");
-                    document.getElementById("editorEkrani").style.display = "none";
-                    document.getElementById("listeEkrani").style.display = "block";
+                    if (data.status !== "ok") throw new Error("kayit");
+                    // Sunucu ismi temizlemiş olabilir; düzenlemeye aynı isimle devam et
+                    if (data.name) seciliDosyaAdi = "qwx" + data.name;
+                    btn.textContent = "✅ Kaydedildi";
+                    // Listeleri arka planda güncelle, editörde kal
                     listeyiYukle();
                     dosyaListeleriniYukle();
                 })
-                .catch(() => alert("Kaydetme hatası!"));
+                .catch(() => { btn.textContent = eskiMetin; alert("Kaydedilemedi!"); })
+                .finally(() => {
+                    btn.disabled = false;
+                    setTimeout(() => { btn.textContent = eskiMetin; }, 1500);
+                });
         };
         document.getElementById("btnSilDosya").onclick = () => { if (seciliDosyaAdi && confirm("Sil?")) fetch("/calismaSil", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ calismaIsmi: seciliDosyaAdi.replace(".json", "") }) }).then(() => listeyiYukle()); };
 
