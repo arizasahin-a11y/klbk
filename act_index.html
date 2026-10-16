@@ -1560,7 +1560,10 @@
         document.getElementById("btnSoruEkle").onclick = () => soruEkle();
 
         document.getElementById("btnYeni").onclick = () => {
-            let isim = prompt("Ad?"); if (isim) { seciliDosyaAdi = "qwx" + isim; document.getElementById("listeEkrani").style.display = "none"; document.getElementById("editorEkrani").style.display = "block"; document.getElementById("editorBaslik").textContent = isim.toUpperCase(); document.getElementById("calismaAciklama").value = ""; document.getElementById("soruAlani").innerHTML = ""; soruEkle(); }
+            let isim = prompt("Ad?");
+            // Firebase anahtarında satır sonu/tab ve . $ # [ ] / olamaz
+            if (isim) isim = isim.replace(/[\u0000-\u001F\u007F]+/g, " ").replace(/[.$#\[\]\/]/g, "").replace(/\s+/g, " ").trim();
+            if (isim) { seciliDosyaAdi = "qwx" + isim; document.getElementById("listeEkrani").style.display = "none"; document.getElementById("editorEkrani").style.display = "block"; document.getElementById("editorBaslik").textContent = isim.toUpperCase(); document.getElementById("calismaAciklama").value = ""; document.getElementById("soruAlani").innerHTML = ""; soruEkle(); }
         };
         document.getElementById("btnDuzenle").onclick = () => {
             if (!seciliDosyaAdi) return alert("Seçin!");

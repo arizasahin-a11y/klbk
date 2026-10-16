@@ -27,6 +27,15 @@ function sinifIsmiTemizle(s) {
   return String(s).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
 }
 
+// Firebase keys cannot contain control chars (newline, tab...) or . $ # [ ] /
+function calismaIsmiTemizle(s) {
+  return String(s || '')
+    .replace(/[\u0000-\u001F\u007F]+/g, ' ')
+    .replace(/[.$#\[\]\/]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 async function fb(endpoint, method = 'GET', data = null, extraQuery = '') {
   const secret = process.env.FIREBASE_SECRET || '';
   let queryParts = [];
@@ -488,18 +497,21 @@ export default async function handler(req, res) {
           method: assignment.yontem || 'Grup',
           settings: settings
         };
-        await fb(`assignments/${encodeURIComponent(key)}`, 'PUT', data);
+        const saved = await fb(`assignments/${encodeURIComponent(key)}`, 'PUT', data);
+        if (saved === null) return res.status(500).json({ status: 'hata', error: 'Firebase kayit hatasi' });
         return res.status(200).json({ status: 'ok' });
       } else {
-        const name = calismaIsmi.replace(/^qwx/, '').replace(/\.json$/, '');
+        const name = calismaIsmiTemizle(calismaIsmi.replace(/^qwx/, '').replace(/\.json$/, ''));
+        if (!name) return res.status(400).json({ status: 'eksik' });
         const data = {
           name,
           content: sorular,
           is_archived: false,
           created_at: new Date().toISOString()
         };
-        await fb(`studies/${encodeURIComponent(name)}`, 'PUT', data);
-        return res.status(200).json({ status: 'ok' });
+        const saved = await fb(`studies/${encodeURIComponent(name)}`, 'PUT', data);
+        if (saved === null) return res.status(500).json({ status: 'hata', error: 'Firebase kayit hatasi' });
+        return res.status(200).json({ status: 'ok', name });
       }
     }
 
@@ -560,13 +572,15 @@ export default async function handler(req, res) {
         }
 
         if (dosyaAdi.startsWith('qwx')) {
-          const name = dosyaAdi.replace(/^qwx/, '').replace(/\.json$/, '');
-          await fb(`studies/${encodeURIComponent(name)}`, 'PUT', {
+          const name = calismaIsmiTemizle(dosyaAdi.replace(/^qwx/, '').replace(/\.json$/, ''));
+          if (!name) return res.status(400).json({ status: 'eksik' });
+          const saved = await fb(`studies/${encodeURIComponent(name)}`, 'PUT', {
             name,
             content: veri,
             is_archived: false,
             created_at: new Date().toISOString()
           });
+          if (saved === null) return res.status(500).json({ status: 'hata', error: 'Firebase kayit hatasi' });
           return res.status(200).json({ status: 'ok' });
         }
 
