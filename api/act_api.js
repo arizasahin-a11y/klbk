@@ -150,8 +150,8 @@ export default async function handler(req, res) {
       // HIGH SPEED BATCH ENDPOINT FOR SEKME3 (Çalışma Süreci)
       if (isim === 'all_assignments' || isim === 'qqq_all') {
         const [assignments, studies] = await Promise.all([
-          getCachedAssignments(),
-          getCachedStudies()
+          fb('assignments').then(r => r || {}),
+          fb('studies').then(r => r || {})
         ]);
         const list = Object.values(assignments)
           .filter(a => {
@@ -165,7 +165,7 @@ export default async function handler(req, res) {
             yontem: a.method || 'Grup',
             ...(a.settings || {})
           }));
-        res.setHeader('Cache-Control', 'public, max-age=3, s-maxage=6, stale-while-revalidate=15');
+        res.setHeader('Cache-Control', 'no-store, max-age=0');
         return res.status(200).json(list);
       }
 
@@ -288,15 +288,11 @@ export default async function handler(req, res) {
     // 2. /listeCalismalar (Optimized with Cache & Shallow)
     // ----------------------------------------------------
     if (routeName === 'listeCalismalar') {
-      const now = Date.now();
-      if (cache.fileList && (now - cache.fileListTime < CACHE_TTL)) {
-        res.setHeader('Cache-Control', 'public, max-age=5, s-maxage=10, stale-while-revalidate=30');
-        return res.status(200).json(cache.fileList);
-      }
-
+      // Always fresh: per-instance caches are not shared across serverless instances,
+      // so a just-saved study could be missing from a cached list.
       const [studies, assignments, evalsKeys, sGroups, cGroups] = await Promise.all([
-        getCachedStudies(),
-        getCachedAssignments(),
+        fb('studies').then(r => r || {}),
+        fb('assignments').then(r => r || {}),
         fb('evaluations', 'GET', null, 'shallow=true').then(r => r || {}),
         fb('study_groups', 'GET', null, 'shallow=true').then(r => r || {}),
         fb('class_groups', 'GET', null, 'shallow=true').then(r => r || {})
@@ -331,10 +327,7 @@ export default async function handler(req, res) {
         files.push(`${cName}Grupları.json`);
       }
 
-      cache.fileList = files;
-      cache.fileListTime = now;
-
-      res.setHeader('Cache-Control', 'public, max-age=5, s-maxage=10, stale-while-revalidate=30');
+      res.setHeader('Cache-Control', 'no-store, max-age=0');
       return res.status(200).json(files);
     }
 

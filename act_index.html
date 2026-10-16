@@ -1389,7 +1389,7 @@
         }
 
         function listeyiYukle() {
-            fetch("/listeCalismalar").then(res => res.json()).then(dosyalar => {
+            fetch("/listeCalismalar", { cache: "no-store" }).then(res => res.json()).then(dosyalar => {
                 const liste = document.getElementById("calismaListesi"); liste.innerHTML = "";
                 dosyalar.filter(d => d.startsWith("qwx")).forEach(d => {
                     const li = document.createElement("li");
@@ -1620,7 +1620,16 @@
                 aciklama: document.getElementById("calismaAciklama").value,
                 sorular: sorularArr
             };
-            fetch("/calismaKaydet", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ calismaIsmi: seciliDosyaAdi.replace(".json", ""), sorular: v }) }).then(() => location.reload());
+            fetch("/calismaKaydet", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ calismaIsmi: seciliDosyaAdi.replace(".json", ""), sorular: v }) })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status !== "ok") return alert("Kaydedilemedi!");
+                    document.getElementById("editorEkrani").style.display = "none";
+                    document.getElementById("listeEkrani").style.display = "block";
+                    listeyiYukle();
+                    dosyaListeleriniYukle();
+                })
+                .catch(() => alert("Kaydetme hatası!"));
         };
         document.getElementById("btnSilDosya").onclick = () => { if (seciliDosyaAdi && confirm("Sil?")) fetch("/calismaSil", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ calismaIsmi: seciliDosyaAdi.replace(".json", "") }) }).then(() => listeyiYukle()); };
 
@@ -1841,7 +1850,7 @@
         async function s3AtamalariCek() {
             try {
                 // High-performance single batch fetch
-                const res = await fetch("/calismaGetir?isim=all_assignments");
+                const res = await fetch("/calismaGetir?isim=all_assignments", { cache: "no-store" });
                 if (res.ok) {
                     const data = await res.json();
                     if (Array.isArray(data)) {
@@ -1856,7 +1865,7 @@
             }
 
             // Fallback: parallel Promise.all
-            fetch("/listeCalismalar").then(res => res.json()).then(dosyalar => {
+            fetch("/listeCalismalar", { cache: "no-store" }).then(res => res.json()).then(dosyalar => {
                 const qFiles = dosyalar.filter(d => d.startsWith("qqq"));
                 if (qFiles.length === 0) {
                     aktifAtamalar = [];
@@ -2010,7 +2019,7 @@
         }, 1000);
 
         function dosyaListeleriniYukle() {
-            fetch("/listeCalismalar").then(r => r.json()).then(dosyalar => {
+            fetch("/listeCalismalar", { cache: "no-store" }).then(r => r.json()).then(dosyalar => {
                 const s3C = document.getElementById("s3CalismaSec");
                 const s4D = document.getElementById("s4DosyaSec");
                 const snC = document.getElementById("sinifCalismaSec");
@@ -2066,7 +2075,7 @@
 
             try {
                 const [dosyalar, rW] = await Promise.all([
-                    fetch("/listeCalismalar").then(r => r.json()),
+                    fetch("/listeCalismalar", { cache: "no-store" }).then(r => r.json()),
                     fetch(`/calismaGetir?isim=www_${calisma}`).catch(() => null)
                 ]);
 
