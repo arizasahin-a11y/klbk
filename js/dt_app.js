@@ -1682,6 +1682,183 @@ window.applyOctoberSwap = function() {
     }
 };
 
+// =========================================================================
+// Gerçek Nöbet Sayacı Hesabı (computeRealDutyTallies)
+// Planın başlangıç tarihinden görüntülenen haftaya kadar olan her takvim haftasını
+// tatiller (Yağış Tatili vb.) ve yapılan nöbet değişimlerini dikkate alarak simüle eder;
+// her öğretmenin o nöbet yerinde gerçekten kaç nöbet tuttuğunu hesaplar.
+// =========================================================================
+function computeRealDutyTallies(originalPlan, startDateStr, dutyType, targetMondayDate) {
+    window.rotationTally = {};
+    if (!startDateStr || !originalPlan) return;
+
+    let parts = startDateStr.split('-');
+    let startMonday = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
+    let sDay = startMonday.getDay();
+    let sDiff = (sDay === 0) ? 1 : ((sDay === 6) ? 2 : (1 - sDay));
+    startMonday.setDate(startMonday.getDate() + sDiff);
+
+    let tDate = new Date(targetMondayDate || new Date());
+    tDate.setHours(12, 0, 0, 0);
+    let tDay = tDate.getDay();
+    let tDiff = (tDay === 0) ? 1 : ((tDay === 6) ? 2 : (1 - tDay));
+    let targetMonday = new Date(tDate);
+    targetMonday.setDate(tDate.getDate() + tDiff);
+
+    let diffMs = targetMonday.getTime() - startMonday.getTime();
+    let weeksToView = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7)));
+
+    let dates = Object.keys(originalPlan).sort();
+    let dir = (nobetSettings && nobetSettings.rotationDir) || 'asc';
+    let cycleWeeks = (dutyType === 'monthly') ? 4 : 1;
+
+    let teacherLocationCounts = {}; // { uname: { locKey: count } }
+
+    for (let w = 0; w <= weeksToView; w++) {
+        let wMonday = new Date(startMonday);
+        wMonday.setDate(startMonday.getDate() + w * 7);
+        let wMondayStr = `${wMonday.getFullYear()}-${String(wMonday.getMonth() + 1).padStart(2, '0')}-${String(wMonday.getDate()).padStart(2, '0')}`;
+        let normalCycle = Math.floor(w / cycleWeeks);
+
+        for (let dIdx = 0; dIdx < dates.length; dIdx++) {
+            let dayKey = dates[dIdx];
+            if (!dayKey || !originalPlan[dayKey]) continue;
+
+            let calDate = new Date(wMonday);
+            calDate.setDate(wMonday.getDate() + dIdx);
+            let calDateStr = `${calDate.getFullYear()}-${String(calDate.getMonth() + 1).padStart(2, '0')}-${String(calDate.getDate()).padStart(2, '0')}`;
+
+            // Tatil kontrolü: Yağış tatili veya resmi tatillerde nöbet tutulmaz
+            let isHol = false;
+            if (typeof window.getHolidayInfo === 'function' && window.getHolidayInfo(calDateStr)) {
+                isHol = true;
+            }
+            if (originalPlan[dayKey] && originalPlan[dayKey]._isHoliday) {
+                isHol = true;
+            }
+            if (isHol) continue; // Tatil gününde nöbet tutulmadı, sayılmıyor!
+
+            // Günün döngü indeksi (12-16 Ekim <-> 19-23 Ekim değişimi dahil)
+            let cycleForThisDay = normalCycle;
+            let dObj = new Date(parseInt(dayKey.split('-')[0]), parseInt(dayKey.split('-')[1]) - 1, parseInt(dayKey.split('-')[2]), 12, 0, 0);
+            let dayOfWeek = dObj.getDay();
+
+            if (window.OCTOBER_2026_SWAP_CONFIG && window.OCTOBER_2026_SWAP_CONFIG.enabled && dutyType === 'weekly') {
+                let cfg = window.OCTOBER_2026_SWAP_CONFIG;
+                let isExcluded = cfg.excludedDaysOfWeek && cfg.excludedDaysOfWeek.includes(dayOfWeek);
+                if (!isExcluded) {
+                    if (wMondayStr === cfg.weekA_Monday) {
+                        cycleForThisDay = cfg.cycleB; // 12-16 Ekim'de 19-23 Ekim döngüsü
+                    } else if (wMondayStr === cfg.weekB_Monday) {
+                        cycleForThisDay = cfg.cycleA; // 19-23 Ekim'de 12-16 Ekim döngüsü
+                    }
+                }
+            }
+
+            let shiftIds = Object.keys(originalPlan[dayKey]).filter(id => id !== '_admin_duty' && !id.startsWith('fixed_'));
+            shiftIds.sort((a, b) => {
+                let locIdA = a.replace('_dilim1', '').replace('_dilim2', '');
+                let locIdB = b.replace('_dilim1', '').replace('_dilim2', '');
+                let pA = nobetSettings.locations?.find(l => l.id === locIdA || locIdA.startsWith(l.id + '_'))?.priority || 99;
+                let pB = nobetSettings.locations?.find(l => l.id === locIdB || locIdB.startsWith(l.id + '_'))?.priority || 99;
+                if (pA !== pB) return pA - pB;
+                return a.localeCompare(b);
+            });
+
+            // 1. Sabit Öğretmenler
+            for (let shiftId of shiftIds) {
+                let cleanLocId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                let baseLocId = cleanLocId.split('_')[0];
+                let teachersInLoc = originalPlan[dayKey][shiftId] || [];
+                for (let uname of teachersInLoc) {
+                    let isFixed = false;
+                    if (teacherData && teacherData[uname] && teacherData[uname].fixedLoc) {
+                        let floc = teacherData[uname].fixedLoc;
+                        if (floc === shiftId || floc === cleanLocId || floc === baseLocId) {
+                            isFixed = true;
+                        }
+                    }
+                    if (isFixed) {
+                        teacherLocationCounts[uname] = teacherLocationCounts[uname] || {};
+                        teacherLocationCounts[uname][cleanLocId] = (teacherLocationCounts[uname][cleanLocId] || 0) + 1;
+                        teacherLocationCounts[uname][shiftId] = (teacherLocationCounts[uname][shiftId] || 0) + 1;
+                        teacherLocationCounts[uname][baseLocId] = (teacherLocationCounts[uname][baseLocId] || 0) + 1;
+                    }
+                }
+            }
+
+            // 2. Dönüşümlü Öğretmenler
+            let dynamicSlots = [];
+            let slotMap = [];
+            for (let shiftId of shiftIds) {
+                let cleanLocId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                let baseLocId = cleanLocId.split('_')[0];
+                let teachersInLoc = originalPlan[dayKey][shiftId] || [];
+                for (let i = 0; i < teachersInLoc.length; i++) {
+                    let uname = teachersInLoc[i];
+                    let isFixed = false;
+                    if (teacherData && teacherData[uname] && teacherData[uname].fixedLoc) {
+                        let floc = teacherData[uname].fixedLoc;
+                        if (floc === shiftId || floc === cleanLocId || floc === baseLocId) {
+                            isFixed = true;
+                        }
+                    }
+                    if (!isFixed) {
+                        dynamicSlots.push(uname);
+                        slotMap.push({ shiftId, cleanLocId, baseLocId, index: i });
+                    }
+                }
+            }
+
+            if (dynamicSlots.length > 0) {
+                let currentSlots = [...dynamicSlots];
+                if (cycleForThisDay > 0 && dutyType !== 'fixed') {
+                    let s = (cycleForThisDay * (dir === 'desc' ? -1 : 1)) % dynamicSlots.length;
+                    if (s < 0) s += dynamicSlots.length;
+                    currentSlots = [...dynamicSlots.slice(dynamicSlots.length - s), ...dynamicSlots.slice(0, dynamicSlots.length - s)];
+                }
+                for (let i = 0; i < currentSlots.length; i++) {
+                    let uname = currentSlots[i];
+                    let { shiftId, cleanLocId, baseLocId } = slotMap[i];
+                    teacherLocationCounts[uname] = teacherLocationCounts[uname] || {};
+                    teacherLocationCounts[uname][cleanLocId] = (teacherLocationCounts[uname][cleanLocId] || 0) + 1;
+                    teacherLocationCounts[uname][shiftId] = (teacherLocationCounts[uname][shiftId] || 0) + 1;
+                    teacherLocationCounts[uname][baseLocId] = (teacherLocationCounts[uname][baseLocId] || 0) + 1;
+                }
+            }
+
+            // 3. İdareci Nöbeti
+            if (originalPlan[dayKey]['_admin_duty']) {
+                for (let uname of originalPlan[dayKey]['_admin_duty']) {
+                    teacherLocationCounts[uname] = teacherLocationCounts[uname] || {};
+                    teacherLocationCounts[uname]['_admin_duty'] = (teacherLocationCounts[uname]['_admin_duty'] || 0) + 1;
+                }
+            }
+        }
+    }
+
+    // Tablo hücrelerinde aranabilecek tüm varyasyonları (shiftId, cleanLocId, baseLocId) doldur
+    dates.forEach(dayKey => {
+        window.rotationTally[dayKey] = {};
+        for (let shiftId in originalPlan[dayKey]) {
+            let cleanLocId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+            let baseLocId = cleanLocId.split('_')[0];
+            window.rotationTally[dayKey][shiftId] = {};
+            window.rotationTally[dayKey][cleanLocId] = {};
+            window.rotationTally[dayKey][baseLocId] = {};
+
+            for (let uname in teacherLocationCounts) {
+                let cnt = teacherLocationCounts[uname][cleanLocId] || teacherLocationCounts[uname][shiftId] || teacherLocationCounts[uname][baseLocId] || 0;
+                if (cnt > 0) {
+                    window.rotationTally[dayKey][shiftId][uname] = cnt;
+                    window.rotationTally[dayKey][cleanLocId][uname] = cnt;
+                    window.rotationTally[dayKey][baseLocId][uname] = cnt;
+                }
+            }
+        }
+    });
+}
+
 function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateObj) {
     if (!startDateStr || !originalPlan) return originalPlan;
     
@@ -1694,7 +1871,7 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateOb
     let cycleWeeks = dutyType === 'monthly' ? 4 : 1;
     let cyclesPassed = Math.floor(weeksPassed / cycleWeeks);
     
-    // Determine the Monday of the week being viewed
+    // Görüntülenen haftanın Pazartesi'sini belirle
     let cDate = new Date(currentDate);
     cDate.setHours(12, 0, 0, 0);
     let cDay = cDate.getDay();
@@ -1704,18 +1881,15 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateOb
     let viewMondayStr = `${viewMonday.getFullYear()}-${String(viewMonday.getMonth()+1).padStart(2,'0')}-${String(viewMonday.getDate()).padStart(2,'0')}`;
 
     let dir = nobetSettings.rotationDir || 'asc';
-    window.rotationTally = {}; 
     let newPlan = JSON.parse(JSON.stringify(originalPlan));
     
     let dates = Object.keys(newPlan);
     for (let day of dates) {
-        window.rotationTally[day] = {};
-        
         let parts = day.split('-');
         let dObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
         let dayOfWeek = dObj.getDay();
 
-        // Check if 12-16 Ekim <-> 19-23 Ekim swap applies for this day
+        // 12-16 Ekim <-> 19-23 Ekim yer değişimi (Salı hariç)
         let targetCycleForDay = cyclesPassed;
         if (window.OCTOBER_2026_SWAP_CONFIG && window.OCTOBER_2026_SWAP_CONFIG.enabled && dutyType === 'weekly') {
             let cfg = window.OCTOBER_2026_SWAP_CONFIG;
@@ -1730,8 +1904,6 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateOb
         }
         
         let shiftIds = Object.keys(newPlan[day]).filter(id => id !== '_admin_duty' && !id.startsWith('fixed_')); 
-        
-        // Sort shiftIds by priority so slots are ordered geographically
         shiftIds.sort((a, b) => {
             let locIdA = a.replace('_dilim1', '').replace('_dilim2', '');
             let locIdB = b.replace('_dilim1', '').replace('_dilim2', '');
@@ -1746,8 +1918,6 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateOb
 
         for (let shiftId of shiftIds) {
             let teachersInLoc = newPlan[day][shiftId];
-            window.rotationTally[day][shiftId] = {};
-            
             for (let i = 0; i < teachersInLoc.length; i++) {
                 let uname = teachersInLoc[i];
                 let isFixed = false;
@@ -1764,67 +1934,20 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateOb
             }
         }
         
-        // Initialize admin tallies
-        if (newPlan[day]['_admin_duty']) {
-            window.rotationTally[day]['_admin_duty'] = {};
-        }
-
-        let maxCycle = Math.max(cyclesPassed, targetCycleForDay);
-
-        // Simulate each cycle to count assignments up to the current cycle
-        for (let cycle = 0; cycle <= maxCycle; cycle++) {
-            let currentSlots = [...dynamicSlots];
-            
-            if (cycle > 0 && dutyType !== 'fixed') {
-                let s = (cycle * (dir === 'desc' ? -1 : 1)) % dynamicSlots.length;
-                if (s < 0) s += dynamicSlots.length;
-                currentSlots = [...dynamicSlots.slice(dynamicSlots.length - s), ...dynamicSlots.slice(0, dynamicSlots.length - s)];
-            }
-            
-            let weeksInThisCycle = (cycle === targetCycleForDay) ? ((weeksPassed % cycleWeeks) + 1) : cycleWeeks;
-            
-            // Record tallies for this cycle (historical up to cyclesPassed)
-            if (cycle <= cyclesPassed) {
-                // 1. Fixed teachers (always at their spot)
-                for (let shiftId of shiftIds) {
-                    let teachersInLoc = newPlan[day][shiftId];
-                    for (let uname of teachersInLoc) {
-                        let isFixed = false;
-                        if (teacherData && teacherData[uname] && teacherData[uname].fixedLoc) {
-                            let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
-                            if (teacherData[uname].fixedLoc === shiftId || teacherData[uname].fixedLoc === baseShift) {
-                                isFixed = true;
-                            }
-                        }
-                        if (isFixed) {
-                            window.rotationTally[day][shiftId][uname] = (window.rotationTally[day][shiftId][uname] || 0) + weeksInThisCycle;
-                        }
-                    }
-                }
-                // 2. Admin duty
-                if (newPlan[day]['_admin_duty']) {
-                    for (let uname of newPlan[day]['_admin_duty']) {
-                        window.rotationTally[day]['_admin_duty'][uname] = (window.rotationTally[day]['_admin_duty'][uname] || 0) + weeksInThisCycle;
-                    }
-                }
-                // 3. Dynamic teachers
-                for (let i = 0; i < currentSlots.length; i++) {
-                    let shiftId = slotMap[i].shiftId;
-                    let uname = currentSlots[i];
-                    window.rotationTally[day][shiftId][uname] = (window.rotationTally[day][shiftId][uname] || 0) + weeksInThisCycle;
-                }
-            }
-            
-            // If this is the target cycle for this day, modify newPlan to reflect it
-            if (cycle === targetCycleForDay) {
-                for (let i = 0; i < currentSlots.length; i++) {
-                    let { shiftId, index } = slotMap[i];
-                    newPlan[day][shiftId][index] = currentSlots[i];
-                }
+        if (targetCycleForDay > 0 && dutyType !== 'fixed' && dynamicSlots.length > 0) {
+            let s = (targetCycleForDay * (dir === 'desc' ? -1 : 1)) % dynamicSlots.length;
+            if (s < 0) s += dynamicSlots.length;
+            let currentSlots = [...dynamicSlots.slice(dynamicSlots.length - s), ...dynamicSlots.slice(0, dynamicSlots.length - s)];
+            for (let i = 0; i < currentSlots.length; i++) {
+                let { shiftId, index } = slotMap[i];
+                newPlan[day][shiftId][index] = currentSlots[i];
             }
         }
     }
     
+    // Gerçek nöbet geçmişini doğru hesapla
+    computeRealDutyTallies(originalPlan, startDateStr, dutyType, currentDate);
+
     return newPlan;
 }
 
@@ -2085,11 +2208,20 @@ function renderWeeklyPlan() {
                     grp.shiftIds.forEach(shiftId => {
                         let teachersInShift = planData[dateStr][shiftId] || [];
                         teachersInShift.forEach(uid => {
-                            let name = klbkUsers[uid]?.name || uid;
-                            let countStr = "";
-                            if (window.rotationTally && window.rotationTally[dateStr] && window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid]) {
-                                countStr = ` <span style="font-size:0.85em; opacity:0.8;">(${window.rotationTally[dateStr][shiftId][uid]})</span>`;
+                            let count = null;
+                            if (window.rotationTally && window.rotationTally[dateStr]) {
+                                if (window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid] !== undefined) {
+                                    count = window.rotationTally[dateStr][shiftId][uid];
+                                } else if (grp && grp.key && window.rotationTally[dateStr][grp.key] && window.rotationTally[dateStr][grp.key][uid] !== undefined) {
+                                    count = window.rotationTally[dateStr][grp.key][uid];
+                                } else {
+                                    let cleanId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                                    if (window.rotationTally[dateStr][cleanId] && window.rotationTally[dateStr][cleanId][uid] !== undefined) {
+                                        count = window.rotationTally[dateStr][cleanId][uid];
+                                    }
+                                }
                             }
+                            let countStr = (count !== null && count !== undefined && count > 0) ? ` <span style="font-size:0.85em; opacity:0.8;">(${count})</span>` : "";
                             let isFixed = false;
                             if (teacherData && teacherData[uid] && teacherData[uid].fixedLoc) {
                                 let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
@@ -3020,12 +3152,20 @@ function renderTeacherWeeklyPlan() {
                     grp.shiftIds.forEach(shiftId => {
                         let teachersInShift = planData[dateStr][shiftId] || [];
                         teachersInShift.forEach(uid => {
-                            let name = klbkUsers[uid]?.name || uid;
-
-                            let countStr = '';
-                            if (window.rotationTally && window.rotationTally[dateStr] && window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid]) {
-                                countStr = ` <span style="font-size:0.85em; opacity:0.8;">(${window.rotationTally[dateStr][shiftId][uid]})</span>`;
+                            let count = null;
+                            if (window.rotationTally && window.rotationTally[dateStr]) {
+                                if (window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid] !== undefined) {
+                                    count = window.rotationTally[dateStr][shiftId][uid];
+                                } else if (grp && grp.key && window.rotationTally[dateStr][grp.key] && window.rotationTally[dateStr][grp.key][uid] !== undefined) {
+                                    count = window.rotationTally[dateStr][grp.key][uid];
+                                } else {
+                                    let cleanId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                                    if (window.rotationTally[dateStr][cleanId] && window.rotationTally[dateStr][cleanId][uid] !== undefined) {
+                                        count = window.rotationTally[dateStr][cleanId][uid];
+                                    }
+                                }
                             }
+                            let countStr = (count !== null && count !== undefined && count > 0) ? ` <span style="font-size:0.85em; opacity:0.8;">(${count})</span>` : "";
 
                             let isFixed = false;
                             if (teacherData && teacherData[uid] && teacherData[uid].fixedLoc) {
