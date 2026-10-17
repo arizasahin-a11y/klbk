@@ -2200,20 +2200,6 @@ function renderWeeklyPlan() {
                         let teachersInShift = planData[dateStr][shiftId] || [];
                         teachersInShift.forEach(uid => {
                             let name = klbkUsers[uid]?.name || uid;
-                            let count = null;
-                            if (window.rotationTally && window.rotationTally[dateStr]) {
-                                if (window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid] !== undefined) {
-                                    count = window.rotationTally[dateStr][shiftId][uid];
-                                } else if (grp && grp.key && window.rotationTally[dateStr][grp.key] && window.rotationTally[dateStr][grp.key][uid] !== undefined) {
-                                    count = window.rotationTally[dateStr][grp.key][uid];
-                                } else {
-                                    let cleanId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
-                                    if (window.rotationTally[dateStr][cleanId] && window.rotationTally[dateStr][cleanId][uid] !== undefined) {
-                                        count = window.rotationTally[dateStr][cleanId][uid];
-                                    }
-                                }
-                            }
-                            let countStr = (count !== null && count !== undefined && count > 0) ? ` <span style="font-size:0.85em; opacity:0.8;">(${count})</span>` : "";
                             let isFixed = false;
                             if (teacherData && teacherData[uid] && teacherData[uid].fixedLoc) {
                                 let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
@@ -2228,15 +2214,15 @@ function renderWeeklyPlan() {
                                 let safeUid = uid.replace(/'/g, "\\'");
                                 let safeDate = dateStr.replace(/'/g, "\\'");
                                 if (shiftId === '_admin_duty') {
-                                    cellTeachersHtml.push(`<span style="cursor:pointer; text-decoration:underline; color:var(--primary); ${baseStyle}" onclick="window.changeAdminDuty('${safeDate}', '${safeUid}')">${name}${countStr}</span>`);
+                                    cellTeachersHtml.push(`<span style="cursor:pointer; text-decoration:underline; color:var(--primary); ${baseStyle}" onclick="window.changeAdminDuty('${safeDate}', '${safeUid}')">${name}</span>`);
                                 } else {
                                     let cleanUid = uid.replace(/[^a-zA-Z0-9]/g, '');
-                                    cellTeachersHtml.push(`<span style="cursor:pointer; display:inline-block; margin:2px 0; ${baseStyle}" oncontextmenu="window.selectTeacherForSwap('${safeDate}', '${safeUid}', event)" onclick="window.handleTeacherClick('${safeDate}', '${safeUid}', event)" id="span_swap_${dateStr}_${cleanUid}">${name}${countStr}</span>`);
+                                    cellTeachersHtml.push(`<span style="cursor:pointer; display:inline-block; margin:2px 0; ${baseStyle}" oncontextmenu="window.selectTeacherForSwap('${safeDate}', '${safeUid}', event)" onclick="window.handleTeacherClick('${safeDate}', '${safeUid}', event)" id="span_swap_${dateStr}_${cleanUid}">${name}</span>`);
                                 }
                             } else if (isFixed) {
-                                cellTeachersHtml.push(`<span style="${baseStyle}">${name}${countStr}</span>`);
+                                cellTeachersHtml.push(`<span style="${baseStyle}">${name}</span>`);
                             } else {
-                                cellTeachersHtml.push(`<span>${name}${countStr}</span>`);
+                                cellTeachersHtml.push(`<span>${name}</span>`);
                             }
                         });
                     });
@@ -3145,20 +3131,6 @@ function renderTeacherWeeklyPlan() {
                         let teachersInShift = planData[dateStr][shiftId] || [];
                         teachersInShift.forEach(uid => {
                             let name = klbkUsers[uid]?.name || uid;
-                            let count = null;
-                            if (window.rotationTally && window.rotationTally[dateStr]) {
-                                if (window.rotationTally[dateStr][shiftId] && window.rotationTally[dateStr][shiftId][uid] !== undefined) {
-                                    count = window.rotationTally[dateStr][shiftId][uid];
-                                } else if (grp && grp.key && window.rotationTally[dateStr][grp.key] && window.rotationTally[dateStr][grp.key][uid] !== undefined) {
-                                    count = window.rotationTally[dateStr][grp.key][uid];
-                                } else {
-                                    let cleanId = shiftId.replace('_dilim1', '').replace('_dilim2', '');
-                                    if (window.rotationTally[dateStr][cleanId] && window.rotationTally[dateStr][cleanId][uid] !== undefined) {
-                                        count = window.rotationTally[dateStr][cleanId][uid];
-                                    }
-                                }
-                            }
-                            let countStr = (count !== null && count !== undefined && count > 0) ? ` <span style="font-size:0.85em; opacity:0.8;">(${count})</span>` : "";
 
                             let isFixed = false;
                             if (teacherData && teacherData[uid] && teacherData[uid].fixedLoc) {
@@ -3171,7 +3143,7 @@ function renderTeacherWeeklyPlan() {
                                 highlightStyle = 'color: #39ff14; font-weight: 900; font-size: 1.15em; background: var(--gray-900); padding: 4px 8px; border-radius: 6px; display:inline-block; margin:2px 0; box-shadow: 0 0 8px rgba(57,255,20,0.4);';
                             }
 
-                            cellTeachersHtml.push(`<span style="${highlightStyle}">${name}${countStr}</span>`);
+                            cellTeachersHtml.push(`<span style="${highlightStyle}">${name}</span>`);
                         });
                     });
                 }
