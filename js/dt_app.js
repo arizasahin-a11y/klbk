@@ -1636,6 +1636,52 @@ window.generatePlan = async function() {
     }, 1500);
 };
 
+// =========================================================================
+// 12-16 Ekim 2026 ile 19-23 Ekim 2026 Haftaları Bir Kerelik Nöbet Değişimi
+// (Salı günü hariç diğer günler yer değiştirmiştir. Yağış Tatili günleri korunmuştur.)
+// Geri dönmek için enabled: false yapabilir veya window.revertOctoberSwap() çağırabilirsiniz.
+// =========================================================================
+window.OCTOBER_2026_SWAP_CONFIG = {
+    enabled: localStorage.getItem('klbk_oct2026_swap') !== 'disabled',
+    weekA_Monday: '2026-10-12', // 12-16 Ekim Haftası
+    weekB_Monday: '2026-10-19', // 19-23 Ekim Haftası
+    excludedDaysOfWeek: [2],    // 2 = Salı günü hariç (Salı günü yer değiştirmez)
+    cycleA: 4,                  // 12-16 Ekim haftalık döngü indeksi
+    cycleB: 5                   // 19-23 Ekim haftalık döngü indeksi
+};
+
+window.revertOctoberSwap = function() {
+    window.OCTOBER_2026_SWAP_CONFIG.enabled = false;
+    localStorage.setItem('klbk_oct2026_swap', 'disabled');
+    if (typeof renderWeeklyPlan === 'function') renderWeeklyPlan();
+    if (typeof renderTeacherWeeklyPlan === 'function') renderTeacherWeeklyPlan();
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'info',
+            title: 'Orijinal Sıraya Dönüldü',
+            text: '12-16 Ekim ve 19-23 Ekim nöbet değişimi iptal edildi. Orijinal nöbet dağılımı gösteriliyor.',
+            timer: 2500,
+            showConfirmButton: false
+        });
+    }
+};
+
+window.applyOctoberSwap = function() {
+    window.OCTOBER_2026_SWAP_CONFIG.enabled = true;
+    localStorage.removeItem('klbk_oct2026_swap');
+    if (typeof renderWeeklyPlan === 'function') renderWeeklyPlan();
+    if (typeof renderTeacherWeeklyPlan === 'function') renderTeacherWeeklyPlan();
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'success',
+            title: 'Değişim Uygulandı',
+            text: '12-16 Ekim ve 19-23 Ekim haftaları (Salı hariç) nöbet değişimi aktif edildi.',
+            timer: 2500,
+            showConfirmButton: false
+        });
+    }
+};
+
 function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateObj) {
     if (!startDateStr || !originalPlan) return originalPlan;
     
@@ -1648,6 +1694,15 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateOb
     let cycleWeeks = dutyType === 'monthly' ? 4 : 1;
     let cyclesPassed = Math.floor(weeksPassed / cycleWeeks);
     
+    // Determine the Monday of the week being viewed
+    let cDate = new Date(currentDate);
+    cDate.setHours(12, 0, 0, 0);
+    let cDay = cDate.getDay();
+    let cDaysToMonday = (cDay === 0) ? 1 : ((cDay === 6) ? 2 : (1 - cDay));
+    let viewMonday = new Date(cDate);
+    viewMonday.setDate(cDate.getDate() + cDaysToMonday);
+    let viewMondayStr = `${viewMonday.getFullYear()}-${String(viewMonday.getMonth()+1).padStart(2,'0')}-${String(viewMonday.getDate()).padStart(2,'0')}`;
+
     let dir = nobetSettings.rotationDir || 'asc';
     window.rotationTally = {}; 
     let newPlan = JSON.parse(JSON.stringify(originalPlan));
@@ -1655,6 +1710,24 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateOb
     let dates = Object.keys(newPlan);
     for (let day of dates) {
         window.rotationTally[day] = {};
+        
+        let parts = day.split('-');
+        let dObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
+        let dayOfWeek = dObj.getDay();
+
+        // Check if 12-16 Ekim <-> 19-23 Ekim swap applies for this day
+        let targetCycleForDay = cyclesPassed;
+        if (window.OCTOBER_2026_SWAP_CONFIG && window.OCTOBER_2026_SWAP_CONFIG.enabled && dutyType === 'weekly') {
+            let cfg = window.OCTOBER_2026_SWAP_CONFIG;
+            let isExcluded = cfg.excludedDaysOfWeek && cfg.excludedDaysOfWeek.includes(dayOfWeek);
+            if (!isExcluded) {
+                if (viewMondayStr === cfg.weekA_Monday) {
+                    targetCycleForDay = cfg.cycleB; // 12-16 Ekim'de 19-23 Ekim döngüsü
+                } else if (viewMondayStr === cfg.weekB_Monday) {
+                    targetCycleForDay = cfg.cycleA; // 19-23 Ekim'de 12-16 Ekim döngüsü
+                }
+            }
+        }
         
         let shiftIds = Object.keys(newPlan[day]).filter(id => id !== '_admin_duty' && !id.startsWith('fixed_')); 
         
@@ -1696,8 +1769,10 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateOb
             window.rotationTally[day]['_admin_duty'] = {};
         }
 
+        let maxCycle = Math.max(cyclesPassed, targetCycleForDay);
+
         // Simulate each cycle to count assignments up to the current cycle
-        for (let cycle = 0; cycle <= cyclesPassed; cycle++) {
+        for (let cycle = 0; cycle <= maxCycle; cycle++) {
             let currentSlots = [...dynamicSlots];
             
             if (cycle > 0 && dutyType !== 'fixed') {
@@ -1706,40 +1781,42 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateOb
                 currentSlots = [...dynamicSlots.slice(dynamicSlots.length - s), ...dynamicSlots.slice(0, dynamicSlots.length - s)];
             }
             
-            let weeksInThisCycle = (cycle === cyclesPassed) ? ((weeksPassed % cycleWeeks) + 1) : cycleWeeks;
+            let weeksInThisCycle = (cycle === targetCycleForDay) ? ((weeksPassed % cycleWeeks) + 1) : cycleWeeks;
             
-            // Record tallies for this cycle
-            // 1. Fixed teachers (always at their spot)
-            for (let shiftId of shiftIds) {
-                let teachersInLoc = newPlan[day][shiftId];
-                for (let uname of teachersInLoc) {
-                    let isFixed = false;
-                    if (teacherData && teacherData[uname] && teacherData[uname].fixedLoc) {
-                        let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
-                        if (teacherData[uname].fixedLoc === shiftId || teacherData[uname].fixedLoc === baseShift) {
-                            isFixed = true;
+            // Record tallies for this cycle (historical up to cyclesPassed)
+            if (cycle <= cyclesPassed) {
+                // 1. Fixed teachers (always at their spot)
+                for (let shiftId of shiftIds) {
+                    let teachersInLoc = newPlan[day][shiftId];
+                    for (let uname of teachersInLoc) {
+                        let isFixed = false;
+                        if (teacherData && teacherData[uname] && teacherData[uname].fixedLoc) {
+                            let baseShift = shiftId.replace('_dilim1', '').replace('_dilim2', '');
+                            if (teacherData[uname].fixedLoc === shiftId || teacherData[uname].fixedLoc === baseShift) {
+                                isFixed = true;
+                            }
+                        }
+                        if (isFixed) {
+                            window.rotationTally[day][shiftId][uname] = (window.rotationTally[day][shiftId][uname] || 0) + weeksInThisCycle;
                         }
                     }
-                    if (isFixed) {
-                        window.rotationTally[day][shiftId][uname] = (window.rotationTally[day][shiftId][uname] || 0) + weeksInThisCycle;
+                }
+                // 2. Admin duty
+                if (newPlan[day]['_admin_duty']) {
+                    for (let uname of newPlan[day]['_admin_duty']) {
+                        window.rotationTally[day]['_admin_duty'][uname] = (window.rotationTally[day]['_admin_duty'][uname] || 0) + weeksInThisCycle;
                     }
                 }
-            }
-            // 2. Admin duty
-            if (newPlan[day]['_admin_duty']) {
-                for (let uname of newPlan[day]['_admin_duty']) {
-                    window.rotationTally[day]['_admin_duty'][uname] = (window.rotationTally[day]['_admin_duty'][uname] || 0) + weeksInThisCycle;
+                // 3. Dynamic teachers
+                for (let i = 0; i < currentSlots.length; i++) {
+                    let shiftId = slotMap[i].shiftId;
+                    let uname = currentSlots[i];
+                    window.rotationTally[day][shiftId][uname] = (window.rotationTally[day][shiftId][uname] || 0) + weeksInThisCycle;
                 }
             }
-            // 3. Dynamic teachers
-            for (let i = 0; i < currentSlots.length; i++) {
-                let shiftId = slotMap[i].shiftId;
-                let uname = currentSlots[i];
-                window.rotationTally[day][shiftId][uname] = (window.rotationTally[day][shiftId][uname] || 0) + weeksInThisCycle;
-            }
             
-            // If this is the FINAL cycle, modify newPlan to reflect it
-            if (cycle === cyclesPassed) {
+            // If this is the target cycle for this day, modify newPlan to reflect it
+            if (cycle === targetCycleForDay) {
                 for (let i = 0; i < currentSlots.length; i++) {
                     let { shiftId, index } = slotMap[i];
                     newPlan[day][shiftId][index] = currentSlots[i];
@@ -1933,10 +2010,23 @@ function renderWeeklyPlan() {
         }
         $('#planStatusBanner').html(`<i class="fa-solid fa-calendar-check"></i> <b>Bu plan yayında. (${_typeName})</b> ${_bannerPeriodText}`).css({background: '#d1fae5', color: '#065f46'}).show();
     }
+    // Special October Swap Badge
+    let isOctSwapWeek = false;
+    let swapBadge = '';
+    if (displayDates.length > 0) {
+        let sStr = `${displayDates[0].getFullYear()}-${String(displayDates[0].getMonth()+1).padStart(2,'0')}-${String(displayDates[0].getDate()).padStart(2,'0')}`;
+        if (sStr === '2026-10-12' || sStr === '2026-10-19') {
+            isOctSwapWeek = true;
+            if (window.OCTOBER_2026_SWAP_CONFIG && window.OCTOBER_2026_SWAP_CONFIG.enabled) {
+                swapBadge = `<span style="background:rgba(245,158,11,0.15); color:#b45309; font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:8px;" title="12-16 Ekim ile 19-23 Ekim haftaları nöbet değişimi yapılmıştır (Salı hariç)"><i class="fa-solid fa-arrows-rotate"></i> Özel Değişim (Salı Hariç)</span>`;
+            }
+        }
+    }
+
     let navHtml = `
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
         <span style="font-weight:700; font-size:1.05rem; color:var(--primary-dark);">
-            <i class="fa-solid fa-${calIcon}"></i> ${weekTitle}${cycleBadge}
+            <i class="fa-solid fa-${calIcon}"></i> ${weekTitle}${cycleBadge}${swapBadge}
         </span>
         <div style="display:flex; gap:8px; align-items:center;">
             <button onclick="window.adminPrevWeek()" title="${prevLabel}"
@@ -2048,6 +2138,25 @@ function renderWeeklyPlan() {
             <i class="fa-solid fa-circle-info"></i> Bu dönem <b>${s.getDate()} ${trMonths[s.getMonth()]}</b> – <b>${e.getDate()} ${trMonths[e.getMonth()]} ${e.getFullYear()}</b> tarihleri arasında geçerlidir. 
             Aynı öğretmenler 4 hafta boyunca aynı nöbet yerinde görev yapar.
         </div>`;
+    }
+
+    // Special October Swap info note
+    if (isOctSwapWeek) {
+        if (window.OCTOBER_2026_SWAP_CONFIG && window.OCTOBER_2026_SWAP_CONFIG.enabled) {
+            html += `<div style="margin-top:10px; padding:8px 14px; background:rgba(245,158,11,0.08); border-radius:8px; font-size:0.85rem; color:#b45309; border:1px solid rgba(245,158,11,0.25); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                <div>
+                    <i class="fa-solid fa-arrows-rotate"></i> <b>12-16 Ekim ile 19-23 Ekim haftaları nöbet değişimi:</b> Salı günü hariç günler yer değiştirmiştir. 15-16 Ekim Yağış Tatili günleri korunmuştur.
+                </div>
+                ${isAdmin ? `<button onclick="window.revertOctoberSwap()" style="background:#fff; border:1px solid #f59e0b; color:#b45309; border-radius:6px; padding:3px 8px; font-size:0.78rem; cursor:pointer;" title="Orijinal nöbet dağılımına geri dön"><i class="fa-solid fa-rotate-left"></i> Değişimi Geri Al</button>` : ''}
+            </div>`;
+        } else if (isAdmin) {
+            html += `<div style="margin-top:10px; padding:8px 14px; background:#f3f4f6; border-radius:8px; font-size:0.85rem; color:#4b5563; border:1px solid #e5e7eb; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                <div>
+                    <i class="fa-solid fa-info-circle"></i> 12-16 Ekim / 19-23 Ekim özel nöbet değişimi şu anda pasif (orijinal sıra geçerli).
+                </div>
+                <button onclick="window.applyOctoberSwap()" style="background:#fff; border:1px solid #6b7280; color:#374151; border-radius:6px; padding:3px 8px; font-size:0.78rem; cursor:pointer;" title="Değişimi tekrar aktif et"><i class="fa-solid fa-arrows-rotate"></i> Değişimi Uygula</button>
+            </div>`;
+        }
     }
     
     $('#weeklyPlanContainer').html(html);
@@ -2840,9 +2949,22 @@ function renderTeacherWeeklyPlan() {
         cycleBadge = `<span style="background:rgba(99,102,241,0.12); color:#4f46e5; font-size:0.78rem; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:8px;">${cycleNum}. Dönem</span>`;
     }
 
+    // Special October Swap Badge
+    let isOctSwapWeek = false;
+    let swapBadge = '';
+    if (displayDates.length > 0) {
+        let sStr = `${displayDates[0].getFullYear()}-${String(displayDates[0].getMonth()+1).padStart(2,'0')}-${String(displayDates[0].getDate()).padStart(2,'0')}`;
+        if (sStr === '2026-10-12' || sStr === '2026-10-19') {
+            isOctSwapWeek = true;
+            if (window.OCTOBER_2026_SWAP_CONFIG && window.OCTOBER_2026_SWAP_CONFIG.enabled) {
+                swapBadge = `<span style="background:rgba(245,158,11,0.15); color:#b45309; font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:8px;" title="12-16 Ekim ile 19-23 Ekim haftaları nöbet değişimi yapılmıştır (Salı hariç)"><i class="fa-solid fa-arrows-rotate"></i> Özel Değişim (Salı Hariç)</span>`;
+            }
+        }
+    }
+
     let navHtml = `<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid var(--gray-200); padding-bottom:10px; flex-wrap:wrap; gap:8px;">
         <h3 style="margin:0; color:var(--primary-dark); font-size:0.95rem;">
-            <i class="fa-solid fa-${isMonthly ? 'calendar-days' : 'table-list'}"></i> ${planTitle}${cycleBadge}
+            <i class="fa-solid fa-${isMonthly ? 'calendar-days' : 'table-list'}"></i> ${planTitle}${cycleBadge}${swapBadge}
         </h3>
         <div style="display:flex; gap:6px; flex-shrink:0;">
             <button onclick="window.teacherPrevWeek()" title="${prevLabel}"
@@ -2937,6 +3059,13 @@ function renderTeacherWeeklyPlan() {
         let s = displayDates[0], e = cycleEndFriday;
         html += `<div style="margin-top:10px; padding:8px 14px; background:rgba(99,102,241,0.07); border-radius:8px; font-size:0.85rem; color:#4f46e5; border:1px solid rgba(99,102,241,0.2);">
             <i class="fa-solid fa-circle-info"></i> Bu dönem <b>${s.getDate()} ${trMonths[s.getMonth()]}</b> – <b>${e.getDate()} ${trMonths[e.getMonth()]} ${e.getFullYear()}</b> tarihleri arasında geçerlidir. Aynı öğretmenler 4 hafta boyunca aynı nöbet yerinde görev yapar.
+        </div>`;
+    }
+
+    // Special October Swap info note
+    if (isOctSwapWeek && window.OCTOBER_2026_SWAP_CONFIG && window.OCTOBER_2026_SWAP_CONFIG.enabled) {
+        html += `<div style="margin-top:10px; padding:8px 14px; background:rgba(245,158,11,0.08); border-radius:8px; font-size:0.85rem; color:#b45309; border:1px solid rgba(245,158,11,0.25);">
+            <i class="fa-solid fa-arrows-rotate"></i> <b>12-16 Ekim ile 19-23 Ekim haftaları nöbet değişimi:</b> Salı günü hariç günler yer değiştirmiştir. 15-16 Ekim Yağış Tatili günleri korunmuştur.
         </div>`;
     }
 
