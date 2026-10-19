@@ -977,6 +977,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                         return n === 'sınıf' || n === 'sinif' || n === 'sınıfı' || n === 'sinifi' || n === 'şube' || n === 'sube' || n === 'şubesi' || n === 'subesi' || n === 'sınıfşube' || n === 'sinifsube' || n === 'derslik';
                     };
 
+                    const isReportFooterRow = (text) => {
+                        let n = normTr(text);
+                        return n.includes('ogrencisayisi') ||
+                               n.includes('öğrencisayısı') ||
+                               n.includes('erkekogrenci') ||
+                               n.includes('erkeköğrenci') ||
+                               n.includes('kizogrenci') ||
+                               n.includes('kızöğrenci') ||
+                               n.includes('geneltoplam') ||
+                               n.includes('toplamogrenci') ||
+                               n.includes('toplamöğrenci') ||
+                               n.includes('toplamsayi') ||
+                               n.includes('raportarihi') ||
+                               n.includes('duzenleyen') ||
+                               n.includes('düzenleyen') ||
+                               n.includes('tasdikolunur') ||
+                               n.includes('okulmuduru') ||
+                               n.includes('okulmüdürü') ||
+                               n.includes('muduryardimcisi') ||
+                               n.includes('müdüryardımcısı') ||
+                               n.includes('sayfa:') ||
+                               n.includes('sayfa:');
+                    };
+
                     const isNoHeader = (s) => {
                         let n = normTr(s);
                         return n.includes('öğrencino') || n.includes('ogrencino') || n.includes('okulno') || n.includes('numara') || n.includes('ogrno') || n.includes('tc') || n.includes('kimlik') || n === 'no' || n === 'numarası' || n === 'numarasi';
@@ -1037,6 +1061,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                             let nonEmpties = row.map(c => cleanStr(c)).filter(Boolean);
                             if (nonEmpties.length === 0) continue;
                             let rowTextStr = nonEmpties.join(' ').toUpperCase();
+
+                            // 0. e-Okul / Excel rapor özet / altbilgi satırlarını atla (örn. "Erkek Öğrenci Sayısı : 8")
+                            if (isReportFooterRow(rowTextStr)) {
+                                continue;
+                            }
 
                             // 1. Check for E-Okul Class Section Banner
                             // Rule: A banner has class title and does NOT look like a student data row (e.g. not 3+ cells with student number)
@@ -1110,6 +1139,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     }
 
                                     if (fullName) {
+                                        let cleanName = fullName.replace(/\s+/g, ' ').trim();
+                                        if (isReportFooterRow(cleanName) || cleanName.includes(':') || !/[a-zA-ZçğıöşüÇĞİÖŞÜ]/.test(cleanName)) {
+                                            continue;
+                                        }
                                         let stdClass = '';
                                         if (colMap.class !== -1 && colMap.class < row.length) {
                                             stdClass = normalizeClass(row[colMap.class]);
@@ -1180,6 +1213,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 }
 
                                 if (noFound && nameFound) {
+                                    let cleanNameFound = nameFound.replace(/\s+/g, ' ').trim();
+                                    if (isReportFooterRow(cleanNameFound) || cleanNameFound.includes(':') || !/[a-zA-ZçğıöşüÇĞİÖŞÜ]/.test(cleanNameFound)) {
+                                        continue;
+                                    }
                                     let gText = genderFound === 'K' ? 'Kız' : (genderFound === 'E' ? 'Erkek' : '');
                                     parsedStudents.push({
                                         no: noFound,
@@ -1194,6 +1231,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             }
                         }
                     }
+
+                    // Son kontrol: DataManager'ın geçersiz öğrenci filtresinden geçir
+                    parsedStudents = parsedStudents.filter(s => !(DataManager && DataManager.isInvalidStudentRecord ? DataManager.isInvalidStudentRecord(s) : isReportFooterRow(s.name)));
 
                     if (parsedStudents.length === 0) {
                         Swal.fire('Hata', 'Excel dosyasında öğrenci verisi bulunamadı veya format tanınmadı.', 'error');

@@ -625,10 +625,71 @@ const DataManager = {
     },
 
     // --- Students API ---
+    isInvalidStudentRecord: function (student) {
+        if (!student) return true;
+        const name = String(student.name || '').trim();
+        const normName = name.toLocaleUpperCase('tr-TR');
+        const no = String(student.no ?? student.ogrNo ?? '').trim();
+
+        // 1. İsim veya numara boş
+        if (!name || !no) return true;
+
+        // 2. İsimde hiç harf yoksa (sadece sayılar, noktalama işaretleri vb.)
+        if (!/[a-zA-ZçğıöşüÇĞİÖŞÜ]/.test(name)) return true;
+
+        // 3. e-Okul / Excel rapor özet veya altbilgi satırları
+        const invalidPhrases = [
+            'ÖĞRENCİ SAYISI', 'OGRENCI SAYISI',
+            'ERKEK ÖĞRENCİ', 'ERKEK OGRENCI',
+            'KIZ ÖĞRENCİ', 'KIZ OGRENCI',
+            'TOPLAM ÖĞRENCİ', 'TOPLAM OGRENCI',
+            'GENEL TOPLAM', 'TOPLAM SAYI',
+            'RAPOR TARİHİ', 'RAPOR TARIHI',
+            'DÜZENLEYEN', 'DUZENLEYEN',
+            'OKUL MÜDÜRÜ', 'OKUL MUDURU',
+            'MÜDÜR YARDIMCISI', 'MUDUR YARDIMCISI',
+            'TASDİK', 'TASDIK',
+            'SAYFA :'
+        ];
+
+        if (invalidPhrases.some(phrase => normName.includes(phrase))) return true;
+
+        // 4. İki nokta üst üste içeren şüpheli etiket satırları
+        if (name.includes(':') && (normName.includes('SAYI') || normName.includes('TOPLAM') || normName.includes('ÖĞRENCİ') || normName.includes('OGRENCI') || normName.includes('KIZ') || normName.includes('ERKEK'))) {
+            return true;
+        }
+
+        // 5. Tam veya başlık eşitlikleri
+        if (normName === 'TOPLAM' || normName === 'GENEL TOPLAM' || normName.startsWith('TOPLAM ') || normName.startsWith('TOPLAM:')) {
+            return true;
+        }
+
+        return false;
+    },
+
     getStudents: function () {
-        const students = this._getData().students;
+        const data = this._getData();
+        const students = data.students;
         if (!students) return [];
-        return Array.isArray(students) ? students : Object.values(students);
+        const arr = Array.isArray(students) ? students : Object.values(students);
+
+        // Otomatik temizleme: Veritabanında kalmış özet/altbilgi satırlarını (örn. "Erkek Öğrenci Sayısı :") temizle
+        let hasInvalid = false;
+        const validStudents = arr.filter(s => {
+            if (this.isInvalidStudentRecord(s)) {
+                hasInvalid = true;
+                return false;
+            }
+            return true;
+        });
+
+        if (hasInvalid) {
+            data.students = validStudents;
+            this._saveData(data);
+            return validStudents;
+        }
+
+        return arr;
     },
 
     getStudentGenderNormalized: function (student) {
@@ -647,6 +708,10 @@ const DataManager = {
     },
 
     addStudent: function (studentObj) {
+        if (this.isInvalidStudentRecord(studentObj)) {
+            console.warn("Geçersiz öğrenci kaydı engellendi:", studentObj);
+            return;
+        }
         const data = this._getData();
         // Check if exists using robust string comparison
         const exists = data.students.findIndex(s => String(s.no).trim() === String(studentObj.no).trim());
@@ -665,6 +730,9 @@ const DataManager = {
 
     bulkImportStudents: function (studentList, mode) {
         const data = this._getData();
+        // Geçersiz veya özet satırlarını filtrele
+        studentList = (studentList || []).filter(s => !this.isInvalidStudentRecord(s));
+
         const stats = {
             totalStudents: 0,
             totalClasses: 0,
