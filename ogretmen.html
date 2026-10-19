@@ -1489,15 +1489,29 @@
                                             <div style="display:inline-flex; align-items:center; gap:8px;">
                                                 <h4 style="margin:0; font-weight:900;">${ses.name}</h4>
                                                 ${(() => {
+                                                    const sActualNos = new Set();
+                                                    if (ses.results && Array.isArray(ses.results)) {
+                                                        ses.results.forEach(r => {
+                                                            if (r && r.seats) {
+                                                                Object.values(r.seats).forEach(seat => {
+                                                                    const std = seat.student || seat;
+                                                                    const no = std?.no ?? std?.ogrNo ?? std?.studentNo;
+                                                                    if (no !== undefined && no !== null && String(no).trim() !== '') {
+                                                                        sActualNos.add(String(no).trim());
+                                                                    }
+                                                                });
+                                                            }
+                                                        });
+                                                    }
                                                     const sStatuses = ses.studentStatuses || {};
-                                                    const sFlagged = Object.keys(sStatuses).length;
+                                                    const sStudentCount = sActualNos.size > 0 ? sActualNos.size : Object.keys(sStatuses).length;
                                                     return `<button type="button" 
-                                                            class="session-attendance-btn ${sFlagged > 0 ? 'has-flagged' : ''}" 
+                                                            class="session-attendance-btn ${sStudentCount > 0 ? 'has-flagged' : ''}" 
                                                             onclick="event.stopPropagation(); window.openSessionAttendanceReport('${ses.id}')" 
-                                                            title="Genel Oturum Yoklama ve Katılım Raporu (İ)" 
+                                                            title="Genel Oturum Yoklama ve Katılım Raporu (İ): ${sStudentCount} Öğrenci" 
                                                             aria-label="Oturum Yoklama ve Durum Bilgisi (İ)">
                                                         <i class="fa-solid fa-circle-info"></i>
-                                                        ${sFlagged > 0 ? `<span class="flagged-count-badge">${sFlagged}</span>` : ''}
+                                                        ${sStudentCount > 0 ? `<span class="flagged-count-badge">${sStudentCount}</span>` : ''}
                                                     </button>`;
                                                 })()}
                                             </div>

@@ -1327,19 +1327,37 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const bgColor = status === 'published' ? `hsla(${hue}, 70%, 97%, 1)` : (status === 'archived' ? '#f1f5f9' : '#fef2f2');
                 const titleColor = status === 'published' ? 'var(--primary)' : 'var(--gray-500)';
                 const titleText = ses.name;
+                // Dağıtımdaki gerçek yerleştirilmiş öğrenci sayısını ve yoklama durumlarını hesapla
+                const actualStudentNos = new Set();
+                if (ses.results && Array.isArray(ses.results)) {
+                    ses.results.forEach(r => {
+                        if (r && r.seats) {
+                            Object.values(r.seats).forEach(seat => {
+                                const std = seat.student || seat;
+                                const no = std?.no ?? std?.ogrNo ?? std?.studentNo;
+                                if (no !== undefined && no !== null && String(no).trim() !== '') {
+                                    actualStudentNos.add(String(no).trim());
+                                }
+                            });
+                        }
+                    });
+                }
+
                 const statuses = ses.studentStatuses || {};
-                const statusKeys = Object.keys(statuses);
-                const flaggedCount = statusKeys.length;
+                const studentCount = actualStudentNos.size > 0 ? actualStudentNos.size : Object.keys(statuses).length;
+
                 let gelmediPreview = 0, kopyaPreview = 0, digerPreview = 0;
-                statusKeys.forEach(k => {
-                    const st = statuses[k];
-                    if (st === 'GELMEDİ') gelmediPreview++;
-                    else if (st === 'KOPYA') kopyaPreview++;
-                    else if (st === 'DİĞER') digerPreview++;
+                Object.entries(statuses).forEach(([k, st]) => {
+                    if (actualStudentNos.size === 0 || actualStudentNos.has(String(k).trim())) {
+                        if (st === 'GELMEDİ') gelmediPreview++;
+                        else if (st === 'KOPYA') kopyaPreview++;
+                        else if (st === 'DİĞER') digerPreview++;
+                    }
                 });
-                const infoTooltip = flaggedCount > 0 
-                    ? `Oturum Yoklama Raporu (İ): ${flaggedCount} Özel Durum (${gelmediPreview} Gelmedi, ${kopyaPreview} Kopya, ${digerPreview} Diğer) - Tıklayıp İnceleyin`
-                    : 'Oturum Yoklama ve Katılım Raporu (İ) - Görüntülemek İçin Tıklayın';
+                const specialFlaggedCount = gelmediPreview + kopyaPreview + digerPreview;
+                const infoTooltip = specialFlaggedCount > 0 
+                    ? `Oturum Yoklama Raporu (İ): ${studentCount} Öğrenci (${specialFlaggedCount} Özel Durum: ${gelmediPreview} Gelmedi, ${kopyaPreview} Kopya, ${digerPreview} Diğer) - Tıklayıp İnceleyin`
+                    : `Oturum Yoklama ve Katılım Raporu (İ): ${studentCount} Öğrenci - Görüntülemek İçin Tıklayın`;
 
                 html += `
                     <tr id="session-row-${ses.id}" class="session-row" style="background: ${bgColor}; ${status === 'archived' ? 'opacity: 0.8;' : ''}">
@@ -1360,12 +1378,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     ${titleText}
                                 </span>
                                 <button type="button" 
-                                        class="session-attendance-btn ${flaggedCount > 0 ? 'has-flagged' : ''}" 
+                                        class="session-attendance-btn ${studentCount > 0 ? 'has-flagged' : ''}" 
                                         onclick="event.stopPropagation(); window.openSessionAttendanceReport('${ses.id}')" 
                                         title="${infoTooltip}"
                                         aria-label="Oturum Yoklama ve Durum Bilgisi (İ)">
                                     <i class="fa-solid fa-circle-info"></i>
-                                    ${flaggedCount > 0 ? `<span class="flagged-count-badge">${flaggedCount}</span>` : ''}
+                                    ${studentCount > 0 ? `<span class="flagged-count-badge">${studentCount}</span>` : ''}
                                 </button>
                             </div>
                             <div class="session-subjects" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:4px;">
@@ -1464,9 +1482,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             return `
                 <div class="archived-list">
                     ${list.map(ses => {
+                        const actualStudentNos = new Set();
+                        if (ses.results && Array.isArray(ses.results)) {
+                            ses.results.forEach(r => {
+                                if (r && r.seats) {
+                                    Object.values(r.seats).forEach(seat => {
+                                        const std = seat.student || seat;
+                                        const no = std?.no ?? std?.ogrNo ?? std?.studentNo;
+                                        if (no !== undefined && no !== null && String(no).trim() !== '') {
+                                            actualStudentNos.add(String(no).trim());
+                                        }
+                                    });
+                                }
+                            });
+                        }
                         const statuses = ses.studentStatuses || {};
-                        const statusKeys = Object.keys(statuses);
-                        const flaggedCount = statusKeys.length;
+                        const studentCount = actualStudentNos.size > 0 ? actualStudentNos.size : Object.keys(statuses).length;
                         return `
                         <div class="archived-item">
                             <div class="archived-item-header" onclick="this.parentElement.classList.toggle('open')">
@@ -1474,13 +1505,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <i class="fa-solid fa-chevron-right arrow"></i>
                                     <span class="session-name">${ses.name}</span>
                                     <button type="button" 
-                                            class="session-attendance-btn ${flaggedCount > 0 ? 'has-flagged' : ''}" 
+                                            class="session-attendance-btn ${studentCount > 0 ? 'has-flagged' : ''}" 
                                             onclick="event.stopPropagation(); window.openSessionAttendanceReport('${ses.id}')" 
-                                            title="Oturum Yoklama ve Durum Bilgisi (İ)"
+                                            title="Oturum Yoklama ve Katılım Raporu (İ): ${studentCount} Öğrenci"
                                             aria-label="Oturum Yoklama ve Durum Bilgisi (İ)"
                                             style="margin-left: 4px;">
                                         <i class="fa-solid fa-circle-info"></i>
-                                        ${flaggedCount > 0 ? `<span class="flagged-count-badge">${flaggedCount}</span>` : ''}
+                                        ${studentCount > 0 ? `<span class="flagged-count-badge">${studentCount}</span>` : ''}
                                     </button>
                                 </div>
                                 <div class="header-right">

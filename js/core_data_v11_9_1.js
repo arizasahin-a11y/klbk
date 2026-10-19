@@ -792,9 +792,45 @@ const DataManager = {
 
     // --- Exam Sessions API ---
     getExamSessions: function () {
-        const sessions = this._getData().examSessions;
+        const data = this._getData();
+        const sessions = data.examSessions;
         if (!sessions) return [];
-        return Array.isArray(sessions) ? sessions : Object.values(sessions);
+        const arr = Array.isArray(sessions) ? sessions : Object.values(sessions);
+
+        // Otomatik temizleme: Dağıtımı yapılmış oturumlarda koltukta bulunmayan eski öğrenci statülerini temizle
+        let mutated = false;
+        arr.forEach(ses => {
+            if (ses && Array.isArray(ses.results) && ses.results.length > 0 && ses.studentStatuses) {
+                const seatStudentNos = new Set();
+                ses.results.forEach(r => {
+                    if (r && r.seats) {
+                        Object.values(r.seats).forEach(seat => {
+                            const std = seat.student || seat;
+                            const no = std?.no ?? std?.ogrNo ?? std?.studentNo;
+                            if (no !== undefined && no !== null && String(no).trim() !== '') {
+                                seatStudentNos.add(String(no).trim());
+                            }
+                        });
+                    }
+                });
+                if (seatStudentNos.size > 0) {
+                    const keys = Object.keys(ses.studentStatuses);
+                    let hadExtra = false;
+                    keys.forEach(k => {
+                        if (!seatStudentNos.has(String(k).trim())) {
+                            delete ses.studentStatuses[k];
+                            hadExtra = true;
+                        }
+                    });
+                    if (hadExtra) mutated = true;
+                }
+            }
+        });
+        if (mutated) {
+            this._saveData(data);
+        }
+
+        return arr;
     },
 
     addExamSession: function (sessionObj) {
@@ -815,36 +851,36 @@ const DataManager = {
             sessionObj.isPublished = false;
         }
 
+        // Dağıtımda (results) yer alan güncel öğrenci numaralarını ve koltuktaki durumları topla
+        const currentSeatStudents = new Map();
+        if (sessionObj.results && Array.isArray(sessionObj.results)) {
+            sessionObj.results.forEach(r => {
+                if (r && r.seats) {
+                    Object.values(r.seats).forEach(seat => {
+                        const std = seat.student || seat;
+                        const no = std?.no ?? std?.ogrNo ?? std?.studentNo;
+                        if (no !== undefined && no !== null && String(no).trim() !== '') {
+                            const sno = String(no).trim();
+                            currentSeatStudents.set(sno, std.status || seat.status || 'Aktif');
+                        }
+                    });
+                }
+            });
+        }
+
         const exists = data.examSessions.findIndex(s => s.id === sessionObj.id);
         if (exists !== -1) {
             const existingSes = data.examSessions[exists];
-            // Öğrenci yoklama ve devamsızlık durumlarının (GELMEDİ, KOPYA vb.) kaybolmaması için birleştir
-            const mergedStatuses = Object.assign({}, existingSes.studentStatuses || {}, sessionObj.studentStatuses || {});
+            const prevStatuses = Object.assign({}, existingSes.studentStatuses || {}, sessionObj.studentStatuses || {});
+            const mergedStatuses = {};
 
-            // Dağıtım sonuçlarındaki (session.results) koltuklardan da mevcut statüleri topla
-            if (sessionObj.results && Array.isArray(sessionObj.results)) {
-                sessionObj.results.forEach(r => {
-                    if (r.seats) {
-                        Object.values(r.seats).forEach(seat => {
-                            const std = seat.student || seat;
-                            if (std && std.no && std.status) {
-                                mergedStatuses[std.no] = std.status;
-                            }
-                        });
-                    }
+            if (currentSeatStudents.size > 0) {
+                // Sadece güncel dağıtımda olan öğrencilerin statülerini koru / ekle
+                currentSeatStudents.forEach((defStatus, sno) => {
+                    mergedStatuses[sno] = prevStatuses[sno] || defStatus || 'Aktif';
                 });
-            }
-            if (existingSes.results && Array.isArray(existingSes.results)) {
-                existingSes.results.forEach(r => {
-                    if (r.seats) {
-                        Object.values(r.seats).forEach(seat => {
-                            const std = seat.student || seat;
-                            if (std && std.no && std.status && !mergedStatuses[std.no]) {
-                                mergedStatuses[std.no] = std.status;
-                            }
-                        });
-                    }
-                });
+            } else {
+                Object.assign(mergedStatuses, prevStatuses);
             }
 
             sessionObj.studentStatuses = mergedStatuses;
@@ -855,10 +891,12 @@ const DataManager = {
                     if (r.seats) {
                         Object.values(r.seats).forEach(seat => {
                             const std = seat.student || seat;
-                            if (std && std.no) {
-                                const st = sessionObj.studentStatuses[std.no];
+                            const no = std?.no ?? std?.ogrNo ?? std?.studentNo;
+                            if (no !== undefined && no !== null) {
+                                const sno = String(no).trim();
+                                const st = sessionObj.studentStatuses[sno];
                                 if (st) {
-                                    std.status = st;
+                                    if (std) std.status = st;
                                     seat.status = st;
                                     if (seat.student) seat.student.status = st;
                                 }
@@ -871,17 +909,24 @@ const DataManager = {
             data.examSessions[exists] = sessionObj;
         } else {
             if (!sessionObj.studentStatuses) sessionObj.studentStatuses = {};
+            if (currentSeatStudents.size > 0) {
+                const freshStatuses = {};
+                currentSeatStudents.forEach((defStatus, sno) => {
+                    freshStatuses[sno] = sessionObj.studentStatuses[sno] || defStatus || 'Aktif';
+                });
+                sessionObj.studentStatuses = freshStatuses;
+            }
             if (sessionObj.results && Array.isArray(sessionObj.results)) {
                 sessionObj.results.forEach(r => {
                     if (r.seats) {
                         Object.values(r.seats).forEach(seat => {
                             const std = seat.student || seat;
-                            if (std && std.no) {
-                                if (std.status) {
-                                    sessionObj.studentStatuses[std.no] = std.status;
-                                } else if (sessionObj.studentStatuses[std.no]) {
-                                    const st = sessionObj.studentStatuses[std.no];
-                                    std.status = st;
+                            const no = std?.no ?? std?.ogrNo ?? std?.studentNo;
+                            if (no !== undefined && no !== null) {
+                                const sno = String(no).trim();
+                                const st = sessionObj.studentStatuses[sno];
+                                if (st) {
+                                    if (std) std.status = st;
                                     seat.status = st;
                                     if (seat.student) seat.student.status = st;
                                 }
