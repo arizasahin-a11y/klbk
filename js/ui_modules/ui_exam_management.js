@@ -570,6 +570,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
 
+                const poolSelectedCount = inf.students.filter(s => !wizardSessionData.excludedStudents.includes(String(s.no))).length;
+                const badgeBg = poolSelectedCount === inf.count ? 'var(--primary)' : (poolSelectedCount > 0 ? '#d97706' : '#dc2626');
+
                 html += `
                     <div class="wizard-class-card">
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
@@ -579,8 +582,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <span style="font-size:0.8rem; color:var(--gray-500);"> ${inf.match}</span>
                             </div>
                         </label>
-                        <button type="button" class="btn btn-secondary btn-sm" style="width:100%; margin-top:0.5rem; font-size:0.75rem;" onclick="window.wizToggleStudents('${inf.pid.replace(/'/g, "\\'")}')">
-                            <i class="fa-solid fa-users"></i> Seçim Yap(${inf.count})
+                        <button type="button" class="btn btn-secondary btn-sm" style="width:100%; margin-top:0.5rem; font-size:0.75rem; display:flex; align-items:center; justify-content:center; gap:6px;" onclick="window.wizToggleStudents('${inf.pid.replace(/'/g, "\\'")}')">
+                            <i class="fa-solid fa-users"></i>
+                            <span>Seçim Yap</span>
+                            <span style="background:${badgeBg}; color:white; padding:1px 6px; border-radius:10px; font-weight:700; font-size:0.7rem;">${poolSelectedCount}/${inf.count}</span>
                         </button>
                     </div>
                 `;
@@ -657,6 +662,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
                     wizardSessionData.excludedStudents.push(...excluded);
                     updateOccupancy();
+                    const scr = container ? container.scrollTop : 0;
+                    populateWizardClasses();
+                    if (container) container.scrollTop = scr;
                 }
             });
         };
@@ -1051,6 +1059,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const allStudents = DataManager.getStudents() || [];
         const studentByNo = new Map(allStudents.map(s => [String(s.no), s]));
 
+        const cleanCls = (c) => String(c || '').trim().toLocaleUpperCase('tr-TR').replace(/[^0-9A-ZÇĞİÖŞÜ]/g, '');
+
         // 1. DERSLER (subjects)
         const srcSubjects = toArr(src.subjects).map(s => typeof s === 'object' && s !== null ? s : { name: String(s), hasGroups: !!src.hasGroups });
         const subjectMap = new Map(); // normName -> { name, hasGroups }
@@ -1062,18 +1072,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // 2. KAYNAK OTURUMDAKİ ÖĞRENCİLER, SINIFLAR VE HAVUZLAR
         const sourceStudentNos = new Set();
-        const sourceClassNames = new Set();
+        const sourceClassClean = new Set();
         const selectedClasses = [];
 
         toArr(src.results).forEach(room => {
             Object.values((room && room.seats) || {}).forEach(seat => {
                 const raw = (seat && seat.student) || seat;
-                if (!raw || !raw.no) return;
-                const sno = String(raw.no);
+                const no = raw?.no ?? raw?.ogrNo ?? raw?.studentNo ?? raw?.number;
+                if (no === undefined || no === null) return;
+                const sno = String(no).trim();
+                if (!sno) return;
                 sourceStudentNos.add(sno);
+
                 const std = studentByNo.get(sno) || raw;
-                const sCls = normCls(std.class);
-                sourceClassNames.add(sCls);
+                const sCls = std.class || raw.class || '';
+                const cCls = cleanCls(sCls);
+                if (cCls) sourceClassClean.add(cCls);
 
                 // Dersi tespit et
                 const matchedSub = raw._matchedSubject || '';
@@ -1091,7 +1105,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (foundSub) {
                     const subN = normSub(foundSub.name);
                     const alanN = normSub(std.alan || 'Genel');
-                    const pid = `${subN}_${sCls}_${alanN}`;
+                    const pid = `${subN}_${normCls(sCls)}_${alanN}`;
                     if (!selectedClasses.includes(pid)) selectedClasses.push(pid);
                 }
             });
@@ -1105,14 +1119,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             if (strItem.includes('_')) {
                 const parts = strItem.split('_');
-                if (parts.length >= 2) sourceClassNames.add(normCls(parts[1]));
+                if (parts.length >= 2) sourceClassClean.add(cleanCls(parts[1]));
             } else {
-                sourceClassNames.add(normCls(strItem));
+                sourceClassClean.add(cleanCls(strItem));
             }
         });
 
         // Sınıf adlarını da selectedClasses içine ekle (fallback eşleşmesi için)
-        sourceClassNames.forEach(cls => {
+        sourceClassClean.forEach(cls => {
             if (!selectedClasses.includes(cls)) selectedClasses.push(cls);
         });
 
@@ -1120,18 +1134,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Kaynak oturumda seçili olan sınıflarda olup koltuğa atanmamış öğrenciler VEYA src.excludedStudents içindekiler
         const excludedStudents = [];
         toArr(src.excludedStudents).forEach(no => {
-            const sno = String(no);
-            if (!excludedStudents.includes(sno)) excludedStudents.push(sno);
+            const sno = String(no).trim();
+            if (sno && !excludedStudents.includes(sno)) excludedStudents.push(sno);
         });
-        allStudents.forEach(s => {
-            const sno = String(s.no);
-            const sCls = normCls(s.class);
-            if (sourceClassNames.has(sCls)) {
-                if (!sourceStudentNos.has(sno)) {
-                    if (!excludedStudents.includes(sno)) excludedStudents.push(sno);
+
+        // Kaynak dağıtımda öğrenciler varsa, o sınıflarda olup kaynak dağıtıma GİRMEMİŞ öğrencileri hariç tut
+        if (sourceStudentNos.size > 0) {
+            allStudents.forEach(s => {
+                const sno = String(s.no).trim();
+                const cCls = cleanCls(s.class);
+                if (sourceClassClean.has(cCls)) {
+                    if (!sourceStudentNos.has(sno)) {
+                        if (!excludedStudents.includes(sno)) excludedStudents.push(sno);
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // 4. DERSLİKLER (SALONLAR)
         const roomKey = (n) => String(n || '').trim().toLocaleUpperCase('tr-TR');
@@ -1163,7 +1181,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             id: 'ws_' + Date.now(),
             _copiedFrom: src.id,
             _sourceStudentNos: Array.from(sourceStudentNos),
-            _sourceClasses: Array.from(sourceClassNames),
+            _sourceClasses: Array.from(sourceClassClean),
             name: baseName,
             date: '', // Tarih kopyalanmaz; kullanıcı yeni tarihi girer
             time: src.time || '',
