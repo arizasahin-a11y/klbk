@@ -1035,7 +1035,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         return raw.replace(/[\/\-\s]+/g, '');
                     };
 
-                    const parsedStudents = [];
+                    let parsedStudents = [];
 
                     // Loop through ALL sheets in workbook
                     for (const sheetName of workbook.SheetNames) {
