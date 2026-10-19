@@ -38,6 +38,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         window._wizAvailableSubjects = null;
         window._wizSeenPools = null;
         window._wizInitialized = false;
+        window._wizSuppressAutoSelect = false;
+        window._wizSuppressRoomAutoAdd = false;
+
+        const wizHeaderTitle = examWizardModal ? examWizardModal.querySelector('.modal-header h2') : null;
+        if (wizHeaderTitle) wizHeaderTitle.textContent = 'Yeni Sınav Oturumu Ekle';
+        if (btnWizardFinish) btnWizardFinish.textContent = 'Oturumu Oluştur';
+        const typeSel = document.getElementById('wizSessionType');
+        if (typeSel) typeSel.value = 'yazili';
 
         const dateInput = document.getElementById('wizSessionDate');
         const today = new Date().toISOString().split('T')[0];
@@ -303,6 +311,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Draft sessions (no date/time) DO NOT block each other to allow planning.
         sessions.forEach(s => {
             if (s.id === wizardSessionData.id) return;
+            // Kopyalanan kaynak oturumun öğrencileri, kopyayı engellemesin
+            if (wizardSessionData._copiedFrom && s.id === wizardSessionData._copiedFrom) return;
             const sDate = (s.date || "").trim();
             const sTime = (s.time || "").trim();
 
@@ -497,6 +507,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             container.innerHTML = `<p style="text-align: center; color: var(--danger); margin-top: 2rem; background: var(--gray-100); padding: 1rem; border-radius: 8px;">
                 <i class="fa-solid fa-circle-exclamation"></i> Seçilen ders(ler)i alan hiçbir öğrenci bulunamadı veya tüm potansiyel öğrenciler daha önce eklenen derslere atandı.</p>`;
             // Initialize occupancy state even if empty
+            window._wizSuppressAutoSelect = false;
             if (!window._wizInitialized) {
                 window._wizInitialized = true;
                 updateOccupancy();
@@ -540,7 +551,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     // Since pools are now strictly Mutually Exclusive, we can safely auto-select 
                     // anything new that appears without fear of conflicts!
-                    if (!wizardSessionData.selectedClasses.includes(inf.pid)) {
+                    // Kopyalama modunda ilk çizimde, kaynak oturumda bilerek seçilmemiş havuzları otomatik işaretleme
+                    if (!window._wizSuppressAutoSelect && !wizardSessionData.selectedClasses.includes(inf.pid)) {
                         wizardSessionData.selectedClasses.push(inf.pid);
                     }
                 }
@@ -642,6 +654,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!window._wizInitialized) {
             window._wizInitialized = true;
         }
+        // Kopyalama modunda yalnızca ilk çizimde otomatik seçim bastırılır; sonradan eklenen dersler normal davranır
+        window._wizSuppressAutoSelect = false;
         updateOccupancy();
     }
 
@@ -666,7 +680,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         allRooms.forEach(room => {
             const isAutoMatch = Array.from(selectedClasses).some(cls => DataManager.getSanitizedClassRoomMapping(cls) === room.name);
-            if (isAutoMatch && !wizardSessionData.selectedClassrooms.includes(room.name)) {
+            if (!window._wizSuppressRoomAutoAdd && isAutoMatch && !wizardSessionData.selectedClassrooms.includes(room.name)) {
                 wizardSessionData.selectedClassrooms.push(room.name);
             }
 
@@ -681,6 +695,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
         });
         container.innerHTML = html;
+        window._wizSuppressRoomAutoAdd = false;
 
         // Bind events
         document.querySelectorAll('.wiz-room-cb').forEach(cb => {
@@ -964,19 +979,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 });
 
+                // Kopyalama bilgisini kaydetmeden önce ayır
+                const copiedFromId = wizardSessionData._copiedFrom || null;
+                delete wizardSessionData._copiedFrom;
+                const savedSessionId = wizardSessionData.id;
+
                 // Save Session
                 DataManager.addExamSession(wizardSessionData);
                 hideExamWizardModal();
 
                 Swal.fire({
                     title: 'Dağıtımı Yapıldı',
-                    text: 'Sınav oturumu kaydedildi ve dağıtım başarıyla tamamlandı.',
+                    text: copiedFromId
+                        ? 'Kopya oturum kaydedildi ve yeniden dağıtım başarıyla tamamlandı.'
+                        : 'Sınav oturumu kaydedildi ve dağıtım başarıyla tamamlandı.',
                     icon: 'success',
                     timer: 1500,
                     showConfirmButton: false
-                }).then(() => {
+                }).then(async () => {
+                    if (copiedFromId) {
+                        await window._handleCopiedSourceSession(copiedFromId, savedSessionId);
+                    }
                     // Show result panel immediately
-                    window.viewSessionDistribution(wizardSessionData.id, 'class');
+                    window.viewSessionDistribution(savedSessionId, 'class');
                 });
 
                 window.renderExamSessionsList();
@@ -986,6 +1011,203 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+
+    // ===== OTURUM KOPYALA VE YENİDEN DAĞIT =====
+    // Mevcut bir oturumun ders / sınıf havuzu / hariç öğrenci / salon seçimlerini sihirbaza
+    // önceden doldurur. Kullanıcı istediğini değiştirip yeni bir dağıtım oluşturur.
+    window.copyExamSession = function (sourceId) {
+        const src = DataManager.getExamSessions().find(s => s.id === sourceId);
+        if (!src) {
+            Swal.fire('Hata', 'Kopyalanacak oturum bulunamadı.', 'error');
+            return;
+        }
+
+        const toArr = (v) => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
+        const normSub = (x) => String(x || '').trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
+        const normCls = (x) => String(x || 'Bilinmeyen').trim().toLocaleUpperCase('tr-TR');
+        const takesSubject = (std, subN) => (std.dersler || []).some(d => {
+            const dn = normSub(d);
+            return dn === subN || dn.startsWith(subN + ' ') || subN.startsWith(dn + ' ');
+        });
+
+        const settingsSubjects = (DataManager.getSchoolSettings() || {}).subjects || [];
+        const allStudents = DataManager.getStudents() || [];
+        const studentByNo = new Map(allStudents.map(s => [String(s.no), s]));
+        const srcSubjects = toArr(src.subjects).map(s => typeof s === 'object' ? s : { name: s, hasGroups: !!src.hasGroups });
+
+        const subjectMap = new Map(); // normName -> {name, hasGroups}
+        const addSubject = (subN, displayName) => {
+            if (subjectMap.has(subN)) return;
+            const srcMatch = srcSubjects.find(s => normSub(s.name).startsWith(subN));
+            subjectMap.set(subN, {
+                name: displayName,
+                hasGroups: srcMatch ? !!srcMatch.hasGroups : !!src.hasGroups
+            });
+        };
+        const findSettingsSubject = (subN) => settingsSubjects.find(s => normSub(s) === subN);
+
+        let selectedClasses = [];
+        let excludedStudents = toArr(src.excludedStudents).map(String);
+        const srcPids = toArr(src.selectedClasses);
+
+        if (srcPids.length > 0) {
+            // 1) Sihirbazda kaydedilmiş havuz seçimlerini kullan
+            srcPids.forEach(pid => {
+                const parts = String(pid).split('_');
+                if (parts.length < 3) return;
+                parts.pop(); parts.pop();
+                const subN = parts.join('_');
+                addSubject(subN, findSettingsSubject(subN) || subN);
+                selectedClasses.push(String(pid));
+            });
+        } else {
+            // 2) Eski oturumlar: dağıtım sonuçlarından havuzları yeniden oluştur
+            const distributedNos = new Set();
+            const sortedSettings = [...settingsSubjects].sort((a, b) => String(b).length - String(a).length);
+            toArr(src.results).forEach(room => {
+                Object.values(room.seats || {}).forEach(seat => {
+                    const raw = (seat && seat.student) || seat;
+                    if (!raw || !raw.no) return;
+                    const sno = String(raw.no);
+                    distributedNos.add(sno);
+                    const std = studentByNo.get(sno) || raw;
+                    const dn = normSub(raw._matchedSubject || '');
+                    let base = sortedSettings.find(s => { const sn = normSub(s); return dn === sn || dn.startsWith(sn + ' '); });
+                    if (!base) base = srcSubjects.map(s => s.name).find(n => { const sn = normSub(n); return dn === sn || dn.startsWith(sn + ' '); });
+                    if (!base) return;
+                    const subN = normSub(base);
+                    addSubject(subN, base);
+                    const pid = `${subN}_${normCls(std.class)}_${normSub(std.alan || 'Genel')}`;
+                    if (!selectedClasses.includes(pid)) selectedClasses.push(pid);
+                });
+            });
+            // Seçili havuzlarda olup dağıtıma girmemiş öğrencileri hariç tut
+            excludedStudents = [];
+            allStudents.forEach(s => {
+                const sno = String(s.no);
+                if (distributedNos.has(sno)) return;
+                const inPool = Array.from(subjectMap.keys()).some(subN =>
+                    takesSubject(s, subN) && selectedClasses.includes(`${subN}_${normCls(s.class)}_${normSub(s.alan || 'Genel')}`)
+                );
+                if (inPool) excludedStudents.push(sno);
+            });
+        }
+
+        const existingRoomNames = new Set((DataManager.getClassrooms() || []).map(r => r.name));
+        let selectedClassrooms = toArr(src.selectedClassrooms);
+        if (selectedClassrooms.length === 0) selectedClassrooms = toArr(src.results).map(r => r.name);
+        selectedClassrooms = [...new Set(selectedClassrooms)].filter(n => existingRoomNames.has(n));
+
+        // --- Sihirbazı sıfırla ve doldur ---
+        resetWizard();
+        const isUyg = src.type === 'uygulama';
+        const baseName = String(src.name || '').replace(/\s*\(UYG\)\s*$/, '').trim();
+
+        let subjectMetadata = {};
+        try { subjectMetadata = JSON.parse(JSON.stringify(src.subjectMetadata || {})); } catch (e) { subjectMetadata = {}; }
+
+        wizardSessionData = {
+            id: 'ws_' + Date.now(),
+            _copiedFrom: src.id,
+            name: baseName + ' (Kopya)',
+            date: src.date || '',
+            time: src.time || '',
+            type: src.type || 'yazili',
+            examNo: String(src.examNo || '1'),
+            hasGroups: !!src.hasGroups,
+            groupCount: parseInt(src.groupCount) || 2,
+            subjects: Array.from(subjectMap.values()),
+            selectedClasses,
+            excludedStudents,
+            selectedClassrooms,
+            subjectMetadata,
+            screenViewEnabled: src.screenViewEnabled !== false,
+            screenViewLimit: src.screenViewLimit || DataManager.getSchoolSettings()?.defaultTimes?.defaultScreenViewLimit || 8
+        };
+        if (src.studentMsg) wizardSessionData.studentMsg = src.studentMsg;
+        if (src.teacherMsg) wizardSessionData.teacherMsg = src.teacherMsg;
+
+        // Kaynak oturumdaki bilinçli seçimleri koru (ilk çizimde otomatik seçim yapma)
+        window._wizSuppressAutoSelect = true;
+        window._wizSuppressRoomAutoAdd = true;
+
+        // Adım 1 alanları
+        document.getElementById('wizSessionName').value = wizardSessionData.name;
+        const examNoEl = document.getElementById('wizSessionExamNo');
+        if (examNoEl) examNoEl.value = wizardSessionData.examNo;
+        const typeEl = document.getElementById('wizSessionType');
+        if (typeEl) typeEl.value = isUyg ? 'uygulama' : 'yazili';
+        const dateEl = document.getElementById('wizSessionDate');
+        if (dateEl) dateEl.value = DataManager.formatDateToInput(src.date || '');
+        const timeEl = document.getElementById('wizSessionTime');
+        if (timeEl) {
+            const t = DataManager.parseSessionDateTime('2000-01-01', src.time || '');
+            timeEl.value = t.getTime() > 0
+                ? `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`
+                : '';
+        }
+        const hasGroupsCheck = document.getElementById('wizSessionHasGroups');
+        const groupCountInput = document.getElementById('wizSessionGroupCount');
+        const groupCountContainer = document.getElementById('wizGroupCountContainer');
+        if (hasGroupsCheck) hasGroupsCheck.checked = wizardSessionData.hasGroups;
+        if (groupCountInput) groupCountInput.value = String(wizardSessionData.groupCount);
+        if (groupCountContainer) groupCountContainer.classList.toggle('hidden', !wizardSessionData.hasGroups);
+
+        const wizHeaderTitle = examWizardModal ? examWizardModal.querySelector('.modal-header h2') : null;
+        if (wizHeaderTitle) wizHeaderTitle.textContent = 'Oturumu Kopyala ve Yeniden Dağıt';
+        if (btnWizardFinish) btnWizardFinish.textContent = 'Kopyayı Oluştur ve Dağıt';
+
+        if (examWizardModal) {
+            if (examWizardModal.parentElement !== document.body) document.body.appendChild(examWizardModal);
+            examWizardModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'info',
+            title: 'Oturum kopyalandı. Ders, öğrenci ve salonları değiştirip yeniden dağıtabilirsiniz.',
+            showConfirmButton: false,
+            timer: 3000
+        });
+    };
+
+    // Kopya aynı tarih/saatteyse orijinal oturumla ne yapılacağını sor
+    window._handleCopiedSourceSession = async function (sourceId, newId) {
+        const sessions = DataManager.getExamSessions();
+        const src = sessions.find(s => s.id === sourceId);
+        const copy = sessions.find(s => s.id === newId);
+        if (!src || !copy) return;
+
+        const sameDate = DataManager.formatDateToStandard(src.date || '') === DataManager.formatDateToStandard(copy.date || '');
+        const sameTime = DataManager.parseSessionDateTime('2000-01-01', src.time || '').getTime() ===
+            DataManager.parseSessionDateTime('2000-01-01', copy.time || '').getTime();
+        if (!sameDate || !sameTime) return;
+
+        const res = await Swal.fire({
+            title: 'Orijinal Oturum',
+            html: `Yeni dağıtım, <b>${src.name}</b> oturumu ile <b>aynı tarih ve saatte</b>.<br>Aynı öğrenciler iki oturumda birden görünebilir. Orijinal oturum ne olsun?`,
+            icon: 'question',
+            showDenyButton: true,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fa-solid fa-trash"></i> Orijinali Sil',
+            denyButtonText: '<i class="fa-solid fa-box-archive"></i> Arşivle',
+            cancelButtonText: 'İkisini de Tut',
+            confirmButtonColor: '#dc2626',
+            denyButtonColor: '#64748b'
+        });
+
+        if (res.isConfirmed) {
+            DataManager.removeExamSession(sourceId);
+            if (window._currentlyOpenSessionId === sourceId) window._currentlyOpenSessionId = null;
+        } else if (res.isDenied) {
+            src.isPublished = false;
+            src.isArchived = true;
+            DataManager.addExamSession(src);
+        }
+        window.renderExamSessionsList();
+    };
 
     // List rendering
     const examSessionsList = document.getElementById('examSessionsList');
@@ -1136,6 +1358,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <button class="btn btn-secondary" style="padding: 0.5rem 0.75rem;" onclick="window.openSessionMetadataEditor('${ses.id}')" title="Düzenle">
                                 <i class="fa-solid fa-pen"></i>
                             </button>
+                            <button class="btn btn-secondary" style="padding: 0.5rem 0.75rem; color:#7c3aed; border-color:#ddd6fe; background:#f5f3ff;" onclick="event.stopPropagation(); window.copyExamSession('${ses.id}')" title="Kopyala ve Yeniden Dağıt (öğrenci / ders / salon değiştir)">
+                                <i class="fa-solid fa-copy"></i>
+                            </button>
                             <button class="btn btn-danger" style="padding: 0.5rem 0.75rem;" onclick="window.deleteExamSession('${ses.id}')" title="Sil">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
@@ -1211,6 +1436,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     </button>
                                     <button onclick="window.openSessionMetadataEditor('${ses.id}')">
                                         <i class="fa-solid fa-pen"></i> Düzenle
+                                    </button>
+                                    <button onclick="window.copyExamSession('${ses.id}')" style="color:#7c3aed;">
+                                        <i class="fa-solid fa-copy"></i> Kopyala &amp; Yeniden Dağıt
                                     </button>
                                     <button class="danger" onclick="window.deleteExamSession('${ses.id}')">
                                         <i class="fa-solid fa-trash"></i> Sil
