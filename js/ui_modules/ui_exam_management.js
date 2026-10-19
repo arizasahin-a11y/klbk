@@ -1109,8 +1109,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         wizardSessionData = {
             id: 'ws_' + Date.now(),
             _copiedFrom: src.id,
-            name: baseName + ' (Kopya)',
-            date: src.date || '',
+            name: baseName,
+            date: '', // Tarih kopyalanmaz; kullanıcı yeni tarihi girer
             time: src.time || '',
             type: src.type || 'yazili',
             examNo: String(src.examNo || '1'),
@@ -1138,13 +1138,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         const typeEl = document.getElementById('wizSessionType');
         if (typeEl) typeEl.value = isUyg ? 'uygulama' : 'yazili';
         const dateEl = document.getElementById('wizSessionDate');
-        if (dateEl) dateEl.value = DataManager.formatDateToInput(src.date || '');
+        if (dateEl) dateEl.value = '';
         const timeEl = document.getElementById('wizSessionTime');
         if (timeEl) {
             const t = DataManager.parseSessionDateTime('2000-01-01', src.time || '');
             timeEl.value = t.getTime() > 0
                 ? `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`
                 : '';
+            // Ders saati hızlı seçimini de eşleştir
+            const lessonSel = document.getElementById('wizSessionLesson');
+            if (lessonSel && timeEl.value && Array.from(lessonSel.options).some(o => o.value === timeEl.value)) {
+                lessonSel.value = timeEl.value;
+            }
         }
         const hasGroupsCheck = document.getElementById('wizSessionHasGroups');
         const groupCountInput = document.getElementById('wizSessionGroupCount');
@@ -1161,15 +1166,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (examWizardModal.parentElement !== document.body) document.body.appendChild(examWizardModal);
             examWizardModal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
+            if (dateEl) setTimeout(() => dateEl.focus(), 100);
         }
 
         Swal.fire({
             toast: true,
             position: 'top-end',
             icon: 'info',
-            title: 'Oturum kopyalandı. Ders, öğrenci ve salonları değiştirip yeniden dağıtabilirsiniz.',
+            title: 'Oturum kopyalandı. Yeni tarihi girin; diğer bilgiler aynı, isterseniz değiştirebilirsiniz.',
             showConfirmButton: false,
-            timer: 3000
+            timer: 3500
         });
     };
 
