@@ -557,7 +557,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
 
-                const isChecked = wizardSessionData.selectedClasses.includes(inf.pid);
+                let isChecked = wizardSessionData.selectedClasses.includes(inf.pid);
+                if (!isChecked && (wizardSessionData.selectedClasses.includes(inf.class) || wizardSessionData.selectedClasses.includes(inf.displayName))) {
+                    isChecked = true;
+                    if (!wizardSessionData.selectedClasses.includes(inf.pid)) wizardSessionData.selectedClasses.push(inf.pid);
+                }
+                if (!isChecked && Array.isArray(wizardSessionData._sourceStudentNos)) {
+                    const hasAny = inf.students.some(s => wizardSessionData._sourceStudentNos.includes(String(s.no)));
+                    if (hasAny) {
+                        isChecked = true;
+                        if (!wizardSessionData.selectedClasses.includes(inf.pid)) wizardSessionData.selectedClasses.push(inf.pid);
+                    }
+                }
 
                 html += `
                     <div class="wizard-class-card">
@@ -684,7 +695,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 wizardSessionData.selectedClassrooms.push(room.name);
             }
 
-            const isChecked = wizardSessionData.selectedClassrooms.includes(room.name);
+            const isChecked = wizardSessionData.selectedClassrooms.some(r => 
+                String(r || '').trim().toLocaleUpperCase('tr-TR') === String(room.name || '').trim().toLocaleUpperCase('tr-TR')
+            );
+            if (isChecked && !wizardSessionData.selectedClassrooms.includes(room.name)) {
+                wizardSessionData.selectedClassrooms.push(room.name);
+            }
+
             html += `
                 <label class="wiz-room-label ${isChecked ? 'active' : ''}">
                     <input type="checkbox" class="wiz-room-cb" value="${room.name}" ${isChecked ? 'checked' : ''}>
@@ -1033,70 +1050,106 @@ document.addEventListener('DOMContentLoaded', async () => {
         const settingsSubjects = (DataManager.getSchoolSettings() || {}).subjects || [];
         const allStudents = DataManager.getStudents() || [];
         const studentByNo = new Map(allStudents.map(s => [String(s.no), s]));
-        const srcSubjects = toArr(src.subjects).map(s => typeof s === 'object' ? s : { name: s, hasGroups: !!src.hasGroups });
 
-        const subjectMap = new Map(); // normName -> {name, hasGroups}
-        const addSubject = (subN, displayName) => {
-            if (subjectMap.has(subN)) return;
-            const srcMatch = srcSubjects.find(s => normSub(s.name).startsWith(subN));
-            subjectMap.set(subN, {
-                name: displayName,
-                hasGroups: srcMatch ? !!srcMatch.hasGroups : !!src.hasGroups
-            });
-        };
-        const findSettingsSubject = (subN) => settingsSubjects.find(s => normSub(s) === subN);
+        // 1. DERSLER (subjects)
+        const srcSubjects = toArr(src.subjects).map(s => typeof s === 'object' && s !== null ? s : { name: String(s), hasGroups: !!src.hasGroups });
+        const subjectMap = new Map(); // normName -> { name, hasGroups }
+        srcSubjects.forEach(s => {
+            if (s && s.name) {
+                subjectMap.set(normSub(s.name), { name: s.name, hasGroups: !!s.hasGroups });
+            }
+        });
 
-        let selectedClasses = [];
-        let excludedStudents = toArr(src.excludedStudents).map(String);
-        const srcPids = toArr(src.selectedClasses);
+        // 2. KAYNAK OTURUMDAKİ ÖĞRENCİLER, SINIFLAR VE HAVUZLAR
+        const sourceStudentNos = new Set();
+        const sourceClassNames = new Set();
+        const selectedClasses = [];
 
-        if (srcPids.length > 0) {
-            // 1) Sihirbazda kaydedilmiş havuz seçimlerini kullan
-            srcPids.forEach(pid => {
-                const parts = String(pid).split('_');
-                if (parts.length < 3) return;
-                parts.pop(); parts.pop();
-                const subN = parts.join('_');
-                addSubject(subN, findSettingsSubject(subN) || subN);
-                selectedClasses.push(String(pid));
-            });
-        } else {
-            // 2) Eski oturumlar: dağıtım sonuçlarından havuzları yeniden oluştur
-            const distributedNos = new Set();
-            const sortedSettings = [...settingsSubjects].sort((a, b) => String(b).length - String(a).length);
-            toArr(src.results).forEach(room => {
-                Object.values(room.seats || {}).forEach(seat => {
-                    const raw = (seat && seat.student) || seat;
-                    if (!raw || !raw.no) return;
-                    const sno = String(raw.no);
-                    distributedNos.add(sno);
-                    const std = studentByNo.get(sno) || raw;
-                    const dn = normSub(raw._matchedSubject || '');
-                    let base = sortedSettings.find(s => { const sn = normSub(s); return dn === sn || dn.startsWith(sn + ' '); });
-                    if (!base) base = srcSubjects.map(s => s.name).find(n => { const sn = normSub(n); return dn === sn || dn.startsWith(sn + ' '); });
-                    if (!base) return;
-                    const subN = normSub(base);
-                    addSubject(subN, base);
-                    const pid = `${subN}_${normCls(std.class)}_${normSub(std.alan || 'Genel')}`;
-                    if (!selectedClasses.includes(pid)) selectedClasses.push(pid);
+        toArr(src.results).forEach(room => {
+            Object.values((room && room.seats) || {}).forEach(seat => {
+                const raw = (seat && seat.student) || seat;
+                if (!raw || !raw.no) return;
+                const sno = String(raw.no);
+                sourceStudentNos.add(sno);
+                const std = studentByNo.get(sno) || raw;
+                const sCls = normCls(std.class);
+                sourceClassNames.add(sCls);
+
+                // Dersi tespit et
+                const matchedSub = raw._matchedSubject || '';
+                let matchedNorm = normSub(matchedSub);
+                let foundSub = Array.from(subjectMap.values()).find(s => {
+                    const sn = normSub(s.name);
+                    return matchedNorm === sn || matchedNorm.startsWith(sn + ' ') || sn.startsWith(matchedNorm + ' ');
                 });
-            });
-            // Seçili havuzlarda olup dağıtıma girmemiş öğrencileri hariç tut
-            excludedStudents = [];
-            allStudents.forEach(s => {
-                const sno = String(s.no);
-                if (distributedNos.has(sno)) return;
-                const inPool = Array.from(subjectMap.keys()).some(subN =>
-                    takesSubject(s, subN) && selectedClasses.includes(`${subN}_${normCls(s.class)}_${normSub(s.alan || 'Genel')}`)
-                );
-                if (inPool) excludedStudents.push(sno);
-            });
-        }
+                if (!foundSub && matchedSub) {
+                    const settingsMatch = settingsSubjects.find(s => normSub(s) === matchedNorm);
+                    foundSub = { name: settingsMatch || matchedSub, hasGroups: !!src.hasGroups };
+                    subjectMap.set(normSub(foundSub.name), foundSub);
+                }
 
-        const existingRoomNames = new Set((DataManager.getClassrooms() || []).map(r => r.name));
-        let selectedClassrooms = toArr(src.selectedClassrooms);
-        if (selectedClassrooms.length === 0) selectedClassrooms = toArr(src.results).map(r => r.name);
-        selectedClassrooms = [...new Set(selectedClassrooms)].filter(n => existingRoomNames.has(n));
+                if (foundSub) {
+                    const subN = normSub(foundSub.name);
+                    const alanN = normSub(std.alan || 'Genel');
+                    const pid = `${subN}_${sCls}_${alanN}`;
+                    if (!selectedClasses.includes(pid)) selectedClasses.push(pid);
+                }
+            });
+        });
+
+        // Eğer src.selectedClasses içinde havuz pid veya sınıf adı varsa onları da dahil et
+        toArr(src.selectedClasses).forEach(item => {
+            const strItem = String(item).trim();
+            if (strItem && !selectedClasses.includes(strItem)) {
+                selectedClasses.push(strItem);
+            }
+            if (strItem.includes('_')) {
+                const parts = strItem.split('_');
+                if (parts.length >= 2) sourceClassNames.add(normCls(parts[1]));
+            } else {
+                sourceClassNames.add(normCls(strItem));
+            }
+        });
+
+        // Sınıf adlarını da selectedClasses içine ekle (fallback eşleşmesi için)
+        sourceClassNames.forEach(cls => {
+            if (!selectedClasses.includes(cls)) selectedClasses.push(cls);
+        });
+
+        // 3. HARİÇ TUTULAN ÖĞRENCİLER (excludedStudents)
+        // Kaynak oturumda seçili olan sınıflarda olup koltuğa atanmamış öğrenciler VEYA src.excludedStudents içindekiler
+        const excludedStudents = [];
+        toArr(src.excludedStudents).forEach(no => {
+            const sno = String(no);
+            if (!excludedStudents.includes(sno)) excludedStudents.push(sno);
+        });
+        allStudents.forEach(s => {
+            const sno = String(s.no);
+            const sCls = normCls(s.class);
+            if (sourceClassNames.has(sCls)) {
+                if (!sourceStudentNos.has(sno)) {
+                    if (!excludedStudents.includes(sno)) excludedStudents.push(sno);
+                }
+            }
+        });
+
+        // 4. DERSLİKLER (SALONLAR)
+        const roomKey = (n) => String(n || '').trim().toLocaleUpperCase('tr-TR');
+        const existingRooms = DataManager.getClassrooms() || [];
+        const existingRoomMap = new Map(existingRooms.map(r => [roomKey(r.name), r.name]));
+
+        const rawRoomNames = [
+            ...toArr(src.selectedClassrooms),
+            ...toArr(src.results).map(r => r && r.name)
+        ];
+        const selectedClassrooms = [];
+        rawRoomNames.forEach(rn => {
+            if (!rn) return;
+            const realName = existingRoomMap.get(roomKey(rn));
+            if (realName && !selectedClassrooms.includes(realName)) {
+                selectedClassrooms.push(realName);
+            }
+        });
 
         // --- Sihirbazı sıfırla ve doldur ---
         resetWizard();
@@ -1109,6 +1162,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         wizardSessionData = {
             id: 'ws_' + Date.now(),
             _copiedFrom: src.id,
+            _sourceStudentNos: Array.from(sourceStudentNos),
+            _sourceClasses: Array.from(sourceClassNames),
             name: baseName,
             date: '', // Tarih kopyalanmaz; kullanıcı yeni tarihi girer
             time: src.time || '',
