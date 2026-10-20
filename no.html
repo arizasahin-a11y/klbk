@@ -168,6 +168,18 @@
                         <button class="btn-icon" onclick="window.changeChunk(1)" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s;"><i class="fa-solid fa-chevron-right" style="color:var(--gray-600);"></i></button>
                     </div>
 
+                    <!-- Hızlı İşlem Rehberi / Bilgi Kutusu -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: rgba(255,255,255,0.7); border: 1px solid rgba(0,0,0,0.06); padding: 10px 16px; border-radius: 10px; margin-bottom: 15px; font-size: 0.85rem; color: var(--gray-700);">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-circle-info" style="color: #3b82f6; font-size: 1rem;"></i>
+                            <span><b>Yer Değiştir (Swap):</b> İlk öğrenciye <span style="background: rgba(245, 158, 11, 0.2); padding: 2px 6px; border-radius: 4px; font-weight: 600; color: #b45309;">Sağ Tık</span>, ikinciye <span style="font-weight: 600;">Sol Tık</span>.</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-angles-right" style="color: #6366f1; font-size: 1rem;"></i>
+                            <span><b>Kaydırarak Ekle:</b> Öğrenciye <span style="background: rgba(37, 99, 235, 0.15); padding: 2px 6px; border-radius: 4px; font-weight: 600; color: #1d4ed8;">Shift + Sağ Tık</span>, hedef yere <span style="font-weight: 600;">Sol Tık</span> (Sonrakiler 1 gün ötelenir).</span>
+                        </div>
+                    </div>
+
                     <div class="table-responsive">
                     <table id="planTable">
                         <thead>
@@ -198,7 +210,7 @@
     <!-- Core App Scripts -->
     <script src="js/auth.js"></script>
     <script src="js/core_data_v11_9_1.js?v=12.1"></script>
-    <script src="js/no_app.js?v=18"></script>
+    <script src="js/no_app.js?v=19"></script>
 
 
 <style>

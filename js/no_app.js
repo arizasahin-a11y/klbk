@@ -9,6 +9,7 @@ window.currentChunkIndex = 0;
 window.planChunks = [];
 window.exemptStudents = []; // Store exempt IDs
 window.swapSource = null; // Store first selected student for manual swap
+window.shiftInsertSource = null; // Store selected student for Shift+Right Click insert mode
 const FIREBASE_DB_URL = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
 
 $(document).ready(async function() {
@@ -85,6 +86,28 @@ $(document).ready(async function() {
         // Eski planları/yerleri çek
         await loadSavedData();
         renderLocations();
+        // ESC tuşuna basıldığında seçimleri iptal et
+        $(document).on('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (window.shiftInsertSource || window.swapSource) {
+                    window.shiftInsertSource = null;
+                    window.swapSource = null;
+                    document.querySelectorAll('.plan-row').forEach(el => {
+                        el.classList.remove('shift-selected-row', 'swap-selected-row');
+                        el.style.background = '';
+                        el.style.outline = '';
+                    });
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'info',
+                        title: 'Seçim iptal edildi.',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                }
+            }
+        });
 
         Swal.close();
     } catch (e) {
@@ -500,15 +523,33 @@ function renderPlan() {
         let pastBadge = isPast ? '<br><span style="font-size:11px; color:var(--gray-500); font-weight:normal;">(Geçmiş)</span>' : '';
         
         dayRows.forEach((p, index) => {
-            let html = `<tr style="cursor:pointer; transition:0.2s; ${pastStyle}" class="plan-row"
-                            oncontextmenu="window.handleRowRightClick(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}')"
-                            onclick="window.handleRowClick(event, '${p.date}', '${p.locName}', '${p.className}', '${p.number}')">`;
+            let displayClass = p.className || p.class || 'Bilinmiyor';
+            let isShiftSelected = window.shiftInsertSource && 
+                                  window.shiftInsertSource.date === p.date && 
+                                  window.shiftInsertSource.locName === p.locName && 
+                                  (window.shiftInsertSource.className === displayClass || window.shiftInsertSource.className === p.className) && 
+                                  String(window.shiftInsertSource.number) === String(p.number);
+            let isSwapSelected = window.swapSource && 
+                                 window.swapSource.date === p.date && 
+                                 window.swapSource.locName === p.locName && 
+                                 (window.swapSource.className === displayClass || window.swapSource.className === p.className) && 
+                                 String(window.swapSource.number) === String(p.number);
+            let selectedClass = isShiftSelected ? 'shift-selected-row' : (isSwapSelected ? 'swap-selected-row' : '');
+            
+            let safeLoc = (p.locName || '').replace(/'/g, "\\'");
+            let safeClass = displayClass.replace(/'/g, "\\'");
+            let safeNumber = (p.number || '').toString().replace(/'/g, "\\'");
+
+            let html = `<tr style="cursor:pointer; transition:0.2s; ${pastStyle}" class="plan-row ${selectedClass}"
+                            data-date="${p.date}" data-loc="${safeLoc}" data-class="${safeClass}" data-no="${safeNumber}"
+                            title="Shift + Sağ Tık: Seç ve 1 gün kaydırarak ekle | Sağ Tık: Karşılıklı yer değiştir"
+                            oncontextmenu="window.handleRowRightClick(event, '${p.date}', '${safeLoc}', '${safeClass}', '${safeNumber}')"
+                            onclick="window.handleRowClick(event, '${p.date}', '${safeLoc}', '${safeClass}', '${safeNumber}')">`;
             
             if (index === 0) {
                 html += `<td rowspan="${dayRows.length}" style="vertical-align: middle; background: ${isPast ? '#f3f4f6' : '#f8fafc'}; border-right: 1px solid #e2e8f0; font-size: 15px; color: ${isPast ? '#9ca3af' : '#1e293b'};"><strong>${displayDate}</strong>${pastBadge}</td>`;
             }
             
-            let displayClass = p.className || p.class || 'Bilinmiyor';
             let std = allStudents.find(s => (s.class === displayClass) && String(s.number || s.no) === String(p.number));
             let gender = p.gender || (std ? getStudentGenderNormalized(std) : '');
             let genderBadge = '<span style="color:#94a3b8; font-size:12px;">-</span>';
@@ -530,16 +571,85 @@ function renderPlan() {
     });
 }
 
-// --- Manuel Yer Değiştirme (Swap) İşlemleri ---
+// --- Takvimde Sonraki Okul Gününü Bulma (Hafta Sonu ve Tatiller Hariç) ---
+function getNextSchoolDay(dateStr) {
+    if (!dateStr) return dateStr;
+    let parts = dateStr.split('-');
+    let d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 12, 0, 0);
+    let safetyCounter = 0;
+    while (safetyCounter < 400) {
+        d.setDate(d.getDate() + 1);
+        safetyCounter++;
+        let dayOfWeek = d.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Hafta sonu değil (0: Pazar, 6: Cumartesi)
+            let y = d.getFullYear();
+            let m = String(d.getMonth() + 1).padStart(2, '0');
+            let day = String(d.getDate()).padStart(2, '0');
+            let dStr = `${y}-${m}-${day}`;
+            let isHoliday = (typeof window.getHolidayInfo === 'function') ? window.getHolidayInfo(dStr) : false;
+            if (!isHoliday) {
+                return dStr;
+            }
+        }
+    }
+    return dateStr;
+}
+
+// --- Manuel Yer Değiştirme (Swap) ve Kaydırmalı Ekleme İşlemleri ---
 window.handleRowRightClick = function(event, date, locName, className, number) {
     event.preventDefault();
+    event.stopPropagation();
+    
+    // Tüm satırların sınıflarını ve inline stillerini sıfırla
+    document.querySelectorAll('.plan-row').forEach(el => {
+        el.classList.remove('shift-selected-row', 'swap-selected-row');
+        el.style.background = '';
+        el.style.outline = '';
+    });
+    
+    let tr = event.currentTarget;
+
+    // === SHIFT + SAĞ TIK: Kaydırmalı Araya Ekleme Modu ===
+    if (event.shiftKey) {
+        window.swapSource = null;
+        
+        let p = generatedPlan.find(item => item.date === date && item.locName === locName && (item.className === className || item.class === className) && String(item.number) === String(number));
+        let std = allStudents.find(s => s.class === className && String(s.number || s.no) === String(number));
+        let stdName = p ? p.name : (std ? `${std.name} ${std.surname || ''}`.trim() : number);
+        let gender = p ? p.gender : (std ? getStudentGenderNormalized(std) : '');
+
+        window.shiftInsertSource = {
+            date,
+            locName,
+            className,
+            number,
+            name: stdName,
+            gender: gender
+        };
+
+        if (tr) {
+            tr.classList.add('shift-selected-row');
+        }
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'info',
+            title: `Seçildi: ${stdName}`,
+            html: `<div style="font-size:12px; margin-top:4px;"><b>${stdName}</b> (${className} - ${number}) seçildi.<br>Şimdi yerleştirilecek <b>hedef öğrenciye sol tıklayın</b>.<br><small style="color:#64748b;">(O nöbet yerindekiler takvimde 1 okul günü kaydırılacak)</small></div>`,
+            showConfirmButton: false,
+            timer: 5000
+        });
+        return;
+    }
+
+    // === NORMAL SAĞ TIK: Karşılıklı Yer Değiştirme (Swap) Modu ===
+    window.shiftInsertSource = null;
     window.swapSource = { date, locName, className, number };
     
-    // Tüm satırların rengini sıfırla
-    document.querySelectorAll('.plan-row').forEach(el => el.style.background = '');
-    // Tıklanan satırı turuncu/sarı yap
-    let tr = event.currentTarget;
-    if (tr) tr.style.background = 'rgba(245, 158, 11, 0.2)'; 
+    if (tr) {
+        tr.classList.add('swap-selected-row');
+    }
     
     Swal.fire({
         toast: true,
@@ -552,12 +662,37 @@ window.handleRowRightClick = function(event, date, locName, className, number) {
 };
 
 window.handleRowClick = async function(event, date, locName, className, number) {
-    if (!window.swapSource) return; // Değişim modu açık değilse normal tıklama (şu an boş)
+    // 1. Shift-Insert (Kaydırmalı Ekleme) Modu Aktifse
+    if (window.shiftInsertSource) {
+        let source = window.shiftInsertSource;
+        
+        // Kendisine tıklandıysa işlemi iptal et
+        if (source.date === date && source.locName === locName && (source.className === className || source.className === (className || '')) && String(source.number) === String(number)) {
+            window.shiftInsertSource = null;
+            document.querySelectorAll('.plan-row').forEach(el => {
+                el.classList.remove('shift-selected-row', 'swap-selected-row');
+                el.style.background = '';
+                el.style.outline = '';
+            });
+            Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Kaydırma işlemi iptal edildi.', showConfirmButton: false, timer: 1500 });
+            return;
+        }
+
+        await window.handleShiftInsert(date, locName, className, number);
+        return;
+    }
+
+    // 2. Normal Swap Modu Aktif Değilse Çık
+    if (!window.swapSource) return;
     
     // Kendisine tıklandıysa iptal et
-    if (window.swapSource.date === date && window.swapSource.locName === locName && window.swapSource.className === className && String(window.swapSource.number) === String(number)) {
+    if (window.swapSource.date === date && window.swapSource.locName === locName && (window.swapSource.className === className || window.swapSource.className === (className || '')) && String(window.swapSource.number) === String(number)) {
         window.swapSource = null;
-        document.querySelectorAll('.plan-row').forEach(el => el.style.background = '');
+        document.querySelectorAll('.plan-row').forEach(el => {
+            el.classList.remove('shift-selected-row', 'swap-selected-row');
+            el.style.background = '';
+            el.style.outline = '';
+        });
         Swal.fire({ toast:true, position:'top-end', icon:'info', title:'Yer değiştirme iptal edildi.', showConfirmButton:false, timer:1500 });
         return;
     }
@@ -565,8 +700,8 @@ window.handleRowClick = async function(event, date, locName, className, number) 
     let p1Data = window.swapSource;
     let p2Data = { date, locName, className, number };
     
-    let idx1 = generatedPlan.findIndex(p => p.date === p1Data.date && p.locName === p1Data.locName && p.className === p1Data.className && String(p.number) === String(p1Data.number));
-    let idx2 = generatedPlan.findIndex(p => p.date === p2Data.date && p.locName === p2Data.locName && p.className === p2Data.className && String(p.number) === String(p2Data.number));
+    let idx1 = generatedPlan.findIndex(p => p.date === p1Data.date && p.locName === p1Data.locName && (p.className === p1Data.className || p.class === p1Data.className) && String(p.number) === String(p1Data.number));
+    let idx2 = generatedPlan.findIndex(p => p.date === p2Data.date && p.locName === p2Data.locName && (p.className === p2Data.className || p.class === p2Data.className) && String(p.number) === String(p2Data.number));
     
     if (idx1 !== -1 && idx2 !== -1) {
         let p1 = generatedPlan[idx1];
@@ -603,7 +738,11 @@ window.handleRowClick = async function(event, date, locName, className, number) 
             });
             if (!confirmRes.isConfirmed) {
                 window.swapSource = null;
-                document.querySelectorAll('.plan-row').forEach(el => el.style.background = '');
+                document.querySelectorAll('.plan-row').forEach(el => {
+                    el.classList.remove('shift-selected-row', 'swap-selected-row');
+                    el.style.background = '';
+                    el.style.outline = '';
+                });
                 return;
             }
         }
@@ -627,12 +766,142 @@ window.handleRowClick = async function(event, date, locName, className, number) 
         p2.note = "<span style='color:#f59e0b;'><i class='fa-solid fa-right-left'></i> Manuel Değiştirildi</span>";
         
         window.swapSource = null;
+        document.querySelectorAll('.plan-row').forEach(el => {
+            el.classList.remove('shift-selected-row', 'swap-selected-row');
+            el.style.background = '';
+            el.style.outline = '';
+        });
         window.savePlan();
         renderPlan();
         if(typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
         
         Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Kişiler yer değiştirdi.', showConfirmButton:false, timer:2000 });
     }
+};
+
+window.handleShiftInsert = async function(targetDate, targetLocName, targetClassName, targetNumber) {
+    let source = window.shiftInsertSource;
+    if (!source) return;
+
+    let targetIdx = generatedPlan.findIndex(p => p.date === targetDate && p.locName === targetLocName && (p.className === targetClassName || p.class === targetClassName) && String(p.number) === String(targetNumber));
+    let targetItem = targetIdx !== -1 ? generatedPlan[targetIdx] : null;
+    let targetName = targetItem ? targetItem.name : `${targetClassName} - ${targetNumber}`;
+
+    // Cinsiyet kuralı uyarısı
+    let locObj = dutyLocations.find(l => l.name === targetLocName);
+    let genderWarning = '';
+    if (locObj && locObj.gender && locObj.gender !== 'Farketmez') {
+        let sourceGender = source.gender;
+        if (!sourceGender) {
+            let std = allStudents.find(s => s.class === source.className && String(s.number || s.no) === String(source.number));
+            sourceGender = std ? getStudentGenderNormalized(std) : '';
+        }
+        if (sourceGender && sourceGender !== locObj.gender) {
+            genderWarning = `
+                <div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:10px; border-radius:8px; margin-top:12px; font-size:13px; text-align:left;">
+                    <i class="fa-solid fa-triangle-exclamation" style="color:#ef4444; margin-right:5px;"></i>
+                    <b>Cinsiyet Uyarısı:</b> <b>${targetLocName}</b> nöbet yeri için kural <b>${locObj.gender}</b>, fakat eklenen <b>${source.name}</b> (${sourceGender}).
+                </div>
+            `;
+        }
+    }
+
+    let affectedEntries = generatedPlan.filter(p => p.locName === targetLocName && p.date >= targetDate);
+    let affectedCount = affectedEntries.length;
+    let affectedDaysCount = new Set(affectedEntries.map(p => p.date)).size;
+
+    let parts = targetDate.split('-');
+    let formattedTargetDate = parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : targetDate;
+
+    const confirmRes = await Swal.fire({
+        title: 'Nöbetçileri 1 Gün Kaydır ve Ekle',
+        html: `
+            <div style="text-align:left; font-size:14px; line-height:1.6; color:#334155;">
+                <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px; margin-bottom:12px;">
+                    <i class="fa-solid fa-user-plus" style="color:#2563eb; margin-right:6px;"></i>
+                    <b>Eklenecek Öğrenci:</b> <span style="color:#1d4ed8; font-weight:700;">${source.name}</span> (${source.className} - ${source.number})
+                </div>
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
+                    <div style="margin-bottom:6px;"><b>Hedef Tarih:</b> ${formattedTargetDate}</div>
+                    <div style="margin-bottom:6px;"><b>Nöbet Yeri:</b> ${targetLocName}</div>
+                    <div style="margin-bottom:6px;"><b>Tıklanan Nöbetçi:</b> ${targetName}</div>
+                    <div style="margin-top:10px; font-size:13px; color:#475569; border-top:1px dashed #cbd5e1; padding-top:8px;">
+                        <i class="fa-solid fa-angles-right" style="color:#f59e0b; margin-right:5px;"></i>
+                        <b>${formattedTargetDate}</b> tarihinden itibaren <b>${targetLocName}</b> yerindeki <b>${affectedCount} nöbetçi (${affectedDaysCount} gün)</b> takvimde 1 okul günü ileri kaydırılacak ve açılan yere <b>${source.name}</b> eklenecektir.
+                    </div>
+                </div>
+                ${genderWarning}
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: '<i class="fa-solid fa-check"></i> Evet, Kaydır ve Ekle',
+        cancelButtonText: 'Vazgeç'
+    });
+
+    if (!confirmRes.isConfirmed) {
+        window.shiftInsertSource = null;
+        document.querySelectorAll('.plan-row').forEach(el => {
+            el.classList.remove('shift-selected-row', 'swap-selected-row');
+            el.style.background = '';
+            el.style.outline = '';
+        });
+        return;
+    }
+
+    // 1. Etkilenen nöbetçileri takvimde 1 okul günü ileri kaydır (çakışmaları önlemek için tarihe göre sondan başa sıralanır)
+    affectedEntries.sort((a, b) => b.date.localeCompare(a.date));
+    affectedEntries.forEach(p => {
+        let oldDate = p.date;
+        p.date = getNextSchoolDay(oldDate);
+        p.note = `<span style='color:#6366f1;' title='${oldDate} tarihinden 1 gün kaydırıldı'><i class='fa-solid fa-angles-right'></i> 1 Gün Kaydırıldı</span>`;
+    });
+
+    // 2. Açılan güne seçilen öğrenciyi ekle (orijinal nöbet kaydı korunur)
+    let newEntry = {
+        date: targetDate,
+        locName: targetLocName,
+        className: source.className,
+        number: source.number,
+        name: source.name,
+        gender: source.gender || '',
+        note: "<span style='color:#10b981;'><i class='fa-solid fa-user-plus'></i> Araya Eklendi</span>"
+    };
+    generatedPlan.push(newEntry);
+
+    // 3. Planı tarihe, nöbet yerine ve numaraya göre sırala
+    generatedPlan.sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        if (a.locName !== b.locName) return a.locName.localeCompare(b.locName, 'tr');
+        return String(a.number).localeCompare(String(b.number), 'tr', { numeric: true });
+    });
+
+    // 4. Benzersiz tarih listesini güncelle
+    window.uniqueDates = [...new Set(generatedPlan.map(p => p.date))].sort();
+
+    // 5. Seçimi sıfırla
+    window.shiftInsertSource = null;
+    document.querySelectorAll('.plan-row').forEach(el => {
+        el.classList.remove('shift-selected-row', 'swap-selected-row');
+        el.style.background = '';
+        el.style.outline = '';
+    });
+
+    // 6. Planı kaydet ve ekrana yansıt
+    await window.savePlan();
+    renderPlan();
+    if (typeof window.renderTodayDuties === 'function') window.renderTodayDuties();
+
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: `${source.name} eklendi ve sonraki nöbetçiler 1 gün kaydırıldı.`,
+        showConfirmButton: false,
+        timer: 3500
+    });
 };
 
 // --- Muaf Öğrenci İşlemleri ---

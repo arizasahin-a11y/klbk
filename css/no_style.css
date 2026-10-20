@@ -364,9 +364,35 @@ tr:hover { background: #f1f5f9; }
     background: var(--primary);
 }
 
-@keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+/* Shift Insert & Swap Selected Rows */
+.plan-row.shift-selected-row {
+    background: rgba(37, 99, 235, 0.18) !important;
+    outline: 2px solid #2563eb !important;
+    outline-offset: -2px;
+    animation: pulseBlue 1.5s infinite;
+}
+.plan-row.shift-selected-row td {
+    color: #1e40af !important;
+    font-weight: 600;
+}
+.plan-row.swap-selected-row {
+    background: rgba(245, 158, 11, 0.22) !important;
+    outline: 2px solid #f59e0b !important;
+    outline-offset: -2px;
+    animation: pulseOrange 1.5s infinite;
+}
+.plan-row.swap-selected-row td {
+    color: #92400e !important;
+    font-weight: 600;
+}
+
+@keyframes pulseBlue {
+    0%, 100% { background: rgba(37, 99, 235, 0.18) !important; }
+    50% { background: rgba(37, 99, 235, 0.32) !important; }
+}
+@keyframes pulseOrange {
+    0%, 100% { background: rgba(245, 158, 11, 0.22) !important; }
+    50% { background: rgba(245, 158, 11, 0.35) !important; }
 }
 
 @media (max-width: 768px) {
