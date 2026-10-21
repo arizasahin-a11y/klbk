@@ -2746,6 +2746,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 }
 
                                 groupsHtml += `<div class="desk" style="width:95px; height:80px; display:flex; flex-direction:column; justify-content:flex-start; align-items:center; ${bg} ${border} border-radius:8px; padding:6px; position:relative; box-shadow:0 3px 5px rgba(0,0,0,0.06); cursor:pointer; overflow:visible; ${studentStatus === 'GELMEDİ' ? 'opacity:0.9; background:#fffafa;' : ''}"
+                                    data-std-no="${student.no}"
+                                    data-session-id="${sessionId}"
+                                    data-room-idx="${idx}"
+                                    data-seat-id="${seatId}"
+                                    title="Shift + Sağ Tık: Bu öğrenciyi dağıtımdan çıkar"
                                     onclick="examDeskClick(event, ${idx}, '${seatId}')" oncontextmenu="examDeskRightClick(event, ${idx}, '${seatId}')">
                                     ${statusBadgeHtml}
                                     <div style="font-size:0.6rem; color:#64748b; font-weight:700; background:rgba(241,245,249,0.6); padding:1px 4px; border-radius:4px; width:100%; text-align:center; margin-bottom:4px;">${student.class} / ${student.no}</div>
@@ -3614,6 +3619,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             return;
         }
+
+        // Shift + Sağ Tık: Doğrudan onay alıp öğrenciyi dağıtımdan çıkar
+        if (e && e.shiftKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            const sesId = window.currentRenderedSession ? window.currentRenderedSession.id : null;
+            if (sesId && typeof window.removeStudentFromSessionDistribution === 'function') {
+                window.removeStudentFromSessionDistribution(sesId, student.no, +roomIdx, seatId);
+                return;
+            }
+        }
+
         // Only prevent default AFTER confirming we'll show our menu
         e.preventDefault();
         e.stopPropagation();
@@ -3688,6 +3705,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         var results = window._currentExamResults;
         var student = results && results[roomIdx] && results[roomIdx].seats[seatId];
         if (!student) return;
+
+        var sesId = window.currentRenderedSession ? window.currentRenderedSession.id : null;
+        if (sesId && typeof window.removeStudentFromSessionDistribution === 'function') {
+            window.removeStudentFromSessionDistribution(sesId, student.no, roomIdx, seatId);
+            return;
+        }
 
         Swal.fire({
             title: 'Öğrenciyi Kaldır',

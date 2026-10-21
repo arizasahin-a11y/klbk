@@ -5369,6 +5369,148 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     };
 
+    // ─── Oturum Dağıtımından Tekil Öğrenci Çıkar (Shift + Sağ Tık) ──────────
+    // Kalan diğer öğrencilerin dağıtımını bozmadan, sadece seçilen öğrencinin koltuğunu boşaltır
+    window.removeStudentFromSessionDistribution = async function (sessionId, studentNo, roomIdx = null, seatId = null) {
+        try {
+            const sessions = DataManager.getExamSessions();
+            let session = sessions.find(s => s.id === sessionId);
+            if (!session && window.currentRenderedSession && window.currentRenderedSession.id === sessionId) {
+                session = window.currentRenderedSession;
+            }
+            if (!session || !session.results) {
+                Swal.fire('Hata', 'Oturum dağıtım verisi bulunamadı.', 'error');
+                return;
+            }
+
+            const targetNoStr = String(studentNo || '').trim();
+            if (!targetNoStr) return;
+
+            let targetRoomIdx = -1;
+            let targetSeatId = null;
+            let targetStudent = null;
+            let targetRoomName = '';
+
+            // 1. Önce verilen roomIdx ve seatId ile eşleştir
+            if (roomIdx !== null && roomIdx !== undefined && seatId && session.results[roomIdx]?.seats?.[seatId]) {
+                const s = session.results[roomIdx].seats[seatId];
+                const sno = String(s.no ?? s.ogrNo ?? '').trim();
+                if (sno === targetNoStr) {
+                    targetRoomIdx = Number(roomIdx);
+                    targetSeatId = seatId;
+                    targetStudent = s;
+                    targetRoomName = session.results[roomIdx].name || `Salon ${targetRoomIdx + 1}`;
+                }
+            }
+
+            // 2. Bulunamadıysa tüm salonları ve koltukları tara
+            if (!targetStudent) {
+                session.results.forEach((room, rIdx) => {
+                    if (!room || !room.seats) return;
+                    Object.entries(room.seats).forEach(([sid, seat]) => {
+                        const std = seat.student || seat;
+                        if (std && String(std.no ?? std.ogrNo ?? '').trim() === targetNoStr) {
+                            targetRoomIdx = rIdx;
+                            targetSeatId = sid;
+                            targetStudent = std;
+                            targetRoomName = room.name || `Salon ${rIdx + 1}`;
+                        }
+                    });
+                });
+            }
+
+            if (!targetStudent || targetRoomIdx === -1 || !targetSeatId) {
+                Swal.fire('Bilgi', 'Öğrenci bu oturumun koltuklarında bulunamadı.', 'info');
+                return;
+            }
+
+            const sName = targetStudent.name || 'Öğrenci #' + targetNoStr;
+            const sClass = targetStudent.class || '-';
+            const sSub = targetStudent._matchedSubject || '-';
+
+            const confirmRes = await Swal.fire({
+                title: 'Öğrenciyi Dağıtımdan Çıkar',
+                html: `
+                    <div style="text-align:left; font-size:0.95rem; line-height:1.6; padding:6px 2px;">
+                        <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:12px 14px; margin-bottom:14px;">
+                            <div style="color:#991b1b; font-weight:800; display:flex; align-items:center; gap:8px;">
+                                <i class="fa-solid fa-triangle-exclamation" style="font-size:1.1rem;"></i>
+                                <span>Bu öğrenci dağıtımdan çıkarılacak.</span>
+                            </div>
+                            <p style="margin:6px 0 0 0; color:#b91c1c; font-size:0.86rem;">
+                                Koltuğu boşaltılacak, <b>kalan diğer öğrencilerin dağıtımı bozulmadan korunacaktır</b>.
+                            </p>
+                        </div>
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px;">
+                            <div style="margin-bottom:6px;"><b>Öğrenci:</b> <span style="color:var(--primary); font-weight:700;">${sName}</span></div>
+                            <div style="margin-bottom:6px;"><b>Numara:</b> ${targetNoStr}</div>
+                            <div style="margin-bottom:6px;"><b>Sınıf:</b> ${sClass}</div>
+                            <div style="margin-bottom:6px;"><b>Derslik / Salon:</b> ${targetRoomName}</div>
+                            <div style="margin-bottom:6px;"><b>Koltuk Kodu:</b> ${targetSeatId}</div>
+                            <div><b>Sınav Dersi:</b> ${sSub}</div>
+                        </div>
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-user-minus"></i> Evet, Dağıtımdan Çıkar',
+                cancelButtonText: 'İptal',
+                reverseButtons: true
+            });
+
+            if (!confirmRes.isConfirmed) return;
+
+            // 1. Koltuktan sil (koltuğu boşalt)
+            delete session.results[targetRoomIdx].seats[targetSeatId];
+
+            // 2. excludedStudents listesine ekle
+            if (!session.excludedStudents) session.excludedStudents = [];
+            if (!session.excludedStudents.includes(targetNoStr)) {
+                session.excludedStudents.push(targetNoStr);
+            }
+
+            // 3. studentStatuses içinden de kaldır
+            if (session.studentStatuses && session.studentStatuses[targetNoStr]) {
+                delete session.studentStatuses[targetNoStr];
+            }
+
+            // 4. Veritabanına kaydet
+            DataManager.addExamSession(session);
+
+            // 5. Bellek referanslarını güncelle
+            window._currentExamResults = session.results;
+            window.currentRenderedSession = session;
+
+            // 6. Oturum listesini yenile (rozet ve öğrenci sayısı güncellensin)
+            if (typeof window.renderExamSessionsList === 'function') {
+                window.renderExamSessionsList();
+            }
+
+            // 7. Mevcut görünümü baştan dağıtım yapmadan aynı modda ve açık akordiyonda yenile
+            if (typeof window.viewSessionDistribution === 'function') {
+                window.viewSessionDistribution(session.id, null, true, true);
+            } else if (typeof window._renderExamResults === 'function') {
+                window._renderExamResults(session, window._activeResultsContainer, true);
+            }
+
+            // 8. Bilgilendirme tostu
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: `${sName} dağıtımdan çıkarıldı. Kalan dağıtım korundu.`,
+                showConfirmButton: false,
+                timer: 3000
+            });
+        } catch (err) {
+            console.error("Error in removeStudentFromSessionDistribution:", err);
+            Swal.fire('Hata', 'Öğrenci çıkarılırken bir hata oluştu: ' + (err.message || err), 'error');
+        }
+    };
+
+
     // ─── Oturuma Boş Salon/Yer Seçerek Öğrenci Ekle ────────────────────────
     window.openAddStudentToDistributionModal = function (sessionId = null) {
         const sid = sessionId || window._currentlyOpenSessionId;
@@ -5822,7 +5964,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const stBadge = st ? `<span style="display:inline-block; font-size:0.65rem; font-weight:800; padding:1px 5px; border-radius:4px; margin-left:6px; color:${st === 'GELMEDİ' ? '#dc2626' : (st === 'KOPYA' ? '#7f1d1d' : '#0284c7')}; background:${st === 'GELMEDİ' || st === 'KOPYA' ? '#fef2f2' : '#f0f9ff'}; border:1px solid ${st === 'GELMEDİ' ? '#fca5a5' : (st === 'KOPYA' ? '#fecaca' : '#bae6fd')};">${st}</span>` : '';
 
             return `
-                <tr style="${st === 'GELMEDİ' ? 'background:#fffafa;' : ''}">
+                <tr style="${st === 'GELMEDİ' ? 'background:#fffafa;' : ''}; cursor:context-menu;"
+                    data-std-no="${s.no}"
+                    data-room-idx="${idx}"
+                    data-seat-id="${seatId}"
+                    data-session-id="${session.id}"
+                    oncontextmenu="if (event.shiftKey) { event.preventDefault(); event.stopPropagation(); window.removeStudentFromSessionDistribution('${session.id}', '${s.no}', ${idx}, '${seatId}'); }"
+                    title="Shift + Sağ Tık: Bu öğrenciyi dağıtımdan çıkar">
                     <td style="padding:8px; border-bottom:1px solid #eee;"><b>${seatToNum[seatId] || '-'}</b></td>
                     <td style="padding:8px; border-bottom:1px solid #eee;">${s.class}</td>
                     <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}</b></td>
@@ -5878,7 +6026,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Flatten with sequence numbers
         const flatList = [];
-        session.results.forEach(room => {
+        session.results.forEach((room, roomIdx) => {
             // Re-calculate visual numbers for this room (Rule: Bottom-Left = 1)
             let roomSeatCounter = 1;
             const seatToNum = {};
@@ -5899,6 +6047,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 flatList.push({
                     ...std,
                     room: room.name,
+                    roomIdx: roomIdx,
+                    seatId: seatId,
                     seatNum: seatToNum[seatId] || '-'
                 });
             });
@@ -5970,7 +6120,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const stBadge = st ? `<span style="display:inline-block; font-size:0.65rem; font-weight:800; padding:1px 5px; border-radius:4px; margin-left:6px; color:${st === 'GELMEDİ' ? '#dc2626' : (st === 'KOPYA' ? '#7f1d1d' : '#0284c7')}; background:${st === 'GELMEDİ' || st === 'KOPYA' ? '#fef2f2' : '#f0f9ff'}; border:1px solid ${st === 'GELMEDİ' ? '#fca5a5' : (st === 'KOPYA' ? '#fecaca' : '#bae6fd')};">${st}</span>` : '';
 
                     return `
-                    <tr style="${st === 'GELMEDİ' ? 'background:#fffafa;' : ''}">
+                    <tr style="${st === 'GELMEDİ' ? 'background:#fffafa;' : ''}; cursor:context-menu;"
+                        data-std-no="${s.no}"
+                        data-room-idx="${s.roomIdx}"
+                        data-seat-id="${s.seatId}"
+                        data-session-id="${session.id}"
+                        oncontextmenu="if (event.shiftKey) { event.preventDefault(); event.stopPropagation(); window.removeStudentFromSessionDistribution('${session.id}', '${s.no}', ${s.roomIdx}, '${s.seatId}'); }"
+                        title="Shift + Sağ Tık: Bu öğrenciyi dağıtımdan çıkar">
                         <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}${s._groupLabel ? ` (${s._groupLabel})` : ''}</b></td>
                         <td style="padding:8px; border-bottom:1px solid #eee;">${s.name}${stBadge}</td>
                         <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${window.shortenSubject(s._matchedSubject || '-', 15)}</td>
@@ -6076,6 +6232,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.warn('js/session_attendance_report.js yükleniyor...');
         };
     }
+
+    // Global Shift + Sağ Tık (Contextmenu) Dinleyicisi: Sınıf listesi, salon listesi ve şemada öğrenciyi doğrudan çıkarma
+    document.addEventListener('contextmenu', function (e) {
+        if (!e.shiftKey) return;
+        const targetEl = e.target.closest('tr[data-std-no], .desk[data-std-no]');
+        if (targetEl) {
+            const stdNo = targetEl.getAttribute('data-std-no');
+            const roomIdx = targetEl.getAttribute('data-room-idx');
+            const seatId = targetEl.getAttribute('data-seat-id');
+            const sessionId = targetEl.getAttribute('data-session-id') || window._currentlyOpenSessionId || window.currentRenderedSession?.id;
+            if (stdNo && sessionId && typeof window.removeStudentFromSessionDistribution === 'function') {
+                e.preventDefault();
+                e.stopPropagation();
+                window.removeStudentFromSessionDistribution(sessionId, stdNo, roomIdx, seatId);
+            }
+        }
+    }, true);
 
     // --- End Exam Session Wizard Logic ---
 });
