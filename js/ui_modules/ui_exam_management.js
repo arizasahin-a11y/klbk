@@ -5369,8 +5369,52 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     };
 
-    // ─── Oturum Dağıtımından Tekil Öğrenci Çıkar (Shift + Sağ Tık) ──────────
+    // ─── Oturum Dağıtımından Tekil Öğrenci Çıkar (Shift + Sağ Tık, Alt + Sağ Tık, Shift + Sol Tık) ──
     // Kalan diğer öğrencilerin dağıtımını bozmadan, sadece seçilen öğrencinin koltuğunu boşaltır
+    window._lastStudentRemovalTriggerTime = 0;
+    window.handleStudentRemovalEvent = function (e, targetEl = null) {
+        if (!e) return false;
+        // Checkbox veya input tıklamalarında sol tık çıkar komutu olarak çalışmasın
+        if (e.target && e.target.tagName === 'INPUT' && e.button !== 2) return false;
+
+        const isRightClick = (e.button === 2);
+        const isLeftClick = (e.button === 0);
+        const hasModifier = (e.shiftKey || e.altKey);
+
+        const isShiftOrAltRight = (isRightClick && hasModifier);
+        const isContextMenu = (e.type === 'contextmenu' && hasModifier);
+        const isShiftLeft = (isLeftClick && e.shiftKey);
+
+        if (!isShiftOrAltRight && !isContextMenu && !isShiftLeft) {
+            return false;
+        }
+
+        const el = targetEl || (e.target && e.target.closest ? e.target.closest('tr[data-std-no], .desk[data-std-no]') : null);
+        if (!el) return false;
+
+        const stdNo = el.getAttribute('data-std-no');
+        const roomIdx = el.getAttribute('data-room-idx');
+        const seatId = el.getAttribute('data-seat-id');
+        const sessionId = el.getAttribute('data-session-id') || window._currentlyOpenSessionId || window.currentRenderedSession?.id;
+
+        if (!stdNo || !sessionId || typeof window.removeStudentFromSessionDistribution !== 'function') {
+            return false;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        // 800ms debounce (mousedown, contextmenu, click ardışık tetiklemelerini engeller)
+        const now = Date.now();
+        if (now - window._lastStudentRemovalTriggerTime < 800) {
+            return true;
+        }
+        window._lastStudentRemovalTriggerTime = now;
+
+        window.removeStudentFromSessionDistribution(sessionId, stdNo, roomIdx, seatId);
+        return true;
+    };
+
     window.removeStudentFromSessionDistribution = async function (sessionId, studentNo, roomIdx = null, seatId = null) {
         try {
             const sessions = DataManager.getExamSessions();
@@ -5969,8 +6013,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     data-room-idx="${idx}"
                     data-seat-id="${seatId}"
                     data-session-id="${session.id}"
-                    oncontextmenu="if (event.shiftKey) { event.preventDefault(); event.stopPropagation(); window.removeStudentFromSessionDistribution('${session.id}', '${s.no}', ${idx}, '${seatId}'); }"
-                    title="Shift + Sağ Tık: Bu öğrenciyi dağıtımdan çıkar">
+                    onmousedown="window.handleStudentRemovalEvent(event, this);"
+                    oncontextmenu="window.handleStudentRemovalEvent(event, this);"
+                    title="Shift + Sağ Tık (veya Alt + Sağ Tık / Shift + Sol Tık): Bu öğrenciyi dağıtımdan çıkar">
                     <td style="padding:8px; border-bottom:1px solid #eee;"><b>${seatToNum[seatId] || '-'}</b></td>
                     <td style="padding:8px; border-bottom:1px solid #eee;">${s.class}</td>
                     <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}</b></td>
@@ -6125,8 +6170,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         data-room-idx="${s.roomIdx}"
                         data-seat-id="${s.seatId}"
                         data-session-id="${session.id}"
-                        oncontextmenu="if (event.shiftKey) { event.preventDefault(); event.stopPropagation(); window.removeStudentFromSessionDistribution('${session.id}', '${s.no}', ${s.roomIdx}, '${s.seatId}'); }"
-                        title="Shift + Sağ Tık: Bu öğrenciyi dağıtımdan çıkar">
+                        onmousedown="window.handleStudentRemovalEvent(event, this);"
+                        oncontextmenu="window.handleStudentRemovalEvent(event, this);"
+                        title="Shift + Sağ Tık (veya Alt + Sağ Tık / Shift + Sol Tık): Bu öğrenciyi dağıtımdan çıkar">
                         <td style="padding:8px; border-bottom:1px solid #eee;"><b>${s.no}${s._groupLabel ? ` (${s._groupLabel})` : ''}</b></td>
                         <td style="padding:8px; border-bottom:1px solid #eee;">${s.name}${stBadge}</td>
                         <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.8rem;">${window.shortenSubject(s._matchedSubject || '-', 15)}</td>
@@ -6233,22 +6279,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     }
 
-    // Global Shift + Sağ Tık (Contextmenu) Dinleyicisi: Sınıf listesi, salon listesi ve şemada öğrenciyi doğrudan çıkarma
-    document.addEventListener('contextmenu', function (e) {
-        if (!e.shiftKey) return;
-        const targetEl = e.target.closest('tr[data-std-no], .desk[data-std-no]');
-        if (targetEl) {
-            const stdNo = targetEl.getAttribute('data-std-no');
-            const roomIdx = targetEl.getAttribute('data-room-idx');
-            const seatId = targetEl.getAttribute('data-seat-id');
-            const sessionId = targetEl.getAttribute('data-session-id') || window._currentlyOpenSessionId || window.currentRenderedSession?.id;
-            if (stdNo && sessionId && typeof window.removeStudentFromSessionDistribution === 'function') {
-                e.preventDefault();
-                e.stopPropagation();
-                window.removeStudentFromSessionDistribution(sessionId, stdNo, roomIdx, seatId);
+    // Global dinleyiciler (Firefox Shift basılıyken contextmenu olayını bastırdığı için mousedown, pointerdown ve auxclick de yakalanır)
+    ['mousedown', 'pointerdown', 'contextmenu', 'auxclick'].forEach(eventType => {
+        document.addEventListener(eventType, function (e) {
+            if ((e.button === 2 && (e.shiftKey || e.altKey)) || (e.type === 'contextmenu' && (e.shiftKey || e.altKey)) || (e.button === 0 && e.shiftKey)) {
+                window.handleStudentRemovalEvent(e);
             }
-        }
-    }, true);
+        }, true);
+    });
 
     // --- End Exam Session Wizard Logic ---
 });

@@ -2750,8 +2750,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     data-session-id="${sessionId}"
                                     data-room-idx="${idx}"
                                     data-seat-id="${seatId}"
-                                    title="Shift + Sağ Tık: Bu öğrenciyi dağıtımdan çıkar"
-                                    onclick="examDeskClick(event, ${idx}, '${seatId}')" oncontextmenu="examDeskRightClick(event, ${idx}, '${seatId}')">
+                                    title="Shift + Sağ Tık (veya Alt + Sağ Tık / Shift + Sol Tık): Bu öğrenciyi dağıtımdan çıkar"
+                                    onmousedown="window.handleStudentRemovalEvent ? window.handleStudentRemovalEvent(event, this) : null;"
+                                    onclick="if (event.shiftKey && window.handleStudentRemovalEvent && window.handleStudentRemovalEvent(event, this)) { return; } examDeskClick(event, ${idx}, '${seatId}');"
+                                    oncontextmenu="if ((event.shiftKey || event.altKey) && window.handleStudentRemovalEvent && window.handleStudentRemovalEvent(event, this)) { return; } examDeskRightClick(event, ${idx}, '${seatId}');">
                                     ${statusBadgeHtml}
                                     <div style="font-size:0.6rem; color:#64748b; font-weight:700; background:rgba(241,245,249,0.6); padding:1px 4px; border-radius:4px; width:100%; text-align:center; margin-bottom:4px;">${student.class} / ${student.no}</div>
                                     <div style="font-size:0.65rem; font-weight:800; color:#1e293b; text-align:center; line-height:1.1; margin-top:2px; height:32px; display:flex; align-items:center; justify-content:center; overflow:hidden;">${student.name}</div>
@@ -3620,8 +3622,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Shift + Sağ Tık: Doğrudan onay alıp öğrenciyi dağıtımdan çıkar
-        if (e && e.shiftKey) {
+        // Shift veya Alt + Sağ Tık: Doğrudan onay alıp öğrenciyi dağıtımdan çıkar
+        if (e && (e.shiftKey || e.altKey)) {
+            if (window.handleStudentRemovalEvent && window.handleStudentRemovalEvent(e)) {
+                return;
+            }
             e.preventDefault();
             e.stopPropagation();
             const sesId = window.currentRenderedSession ? window.currentRenderedSession.id : null;
@@ -3643,6 +3648,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ── Called from onclick="examDeskClick(event, idx, seatId)"
     window.examDeskClick = function (e, roomIdx, seatId) {
+        if (e && e.shiftKey) {
+            if (window.handleStudentRemovalEvent && window.handleStudentRemovalEvent(e)) {
+                return;
+            }
+        }
         if (!_ctx.moveMode) {
             const results = window._currentExamResults || (window.currentRenderedSession && window.currentRenderedSession.results);
             const room = results && results[+roomIdx];
