@@ -1033,10 +1033,6 @@ DataManager._getStorageKey = function () {
                 let limit = parseInt(schoolDefs.studentLocationMinutes);
                 if (isNaN(limit) || limit < 0) limit = 20;
 
-                // Sınav önceden gösterme eşiği: En az 36 saat veya girilen limit süresi kadar
-                const maxLookaheadMins = Math.max(36 * 60, limit);
-                if (diffMins > maxLookaheadMins) return;
-
                 // Sınav biteli gizleme süresinden fazla olduysa GÖSTERME
                 const endHideLimit = parseInt(schoolDefs.studentExamEndHideMinutes) || 30;
                 if (diffEndMins < -endHideLimit) return;
@@ -1070,48 +1066,50 @@ DataManager._getStorageKey = function () {
                 lastStates[ses.id] = stateKey;
 
                 const displayTime = ses.time.includes('. Ders') ? `${ses.time} (${targetTime.getHours().toString().padStart(2, '0')}:${targetTime.getMinutes().toString().padStart(2, '0')})` : ses.time;
-                const isFar = (stateCode === 'far');
-                const isMed = (stateCode === 'med');
                 const isFinished = (stateCode === 'finished');
-                // stateCode can be active or near
                 const isNearOrActive = (stateCode === 'near' || stateCode === 'active' || isFinished); // allow clicking to see results even if finished
                 const isOpen = openSessions.has(ses.id) || (myExams.length === 1 && isNearOrActive);
 
-                let timerDisplayHtml = '';
-                if (isFar) {
-                    timerDisplayHtml = `<span style="font-size: 0.8rem; color: var(--gray-400); font-weight: 700;">HAZIRLANIYOR</span>`;
+                let text = '';
+                let color = '';
+                if (isFinished) {
+                    text = 'BİTTİ';
+                    color = 'var(--gray-500)';
+                } else if (stateCode === 'active') {
+                    text = 'DEVAM EDİYOR';
+                    color = 'var(--danger)';
                 } else {
-                    let text = '';
-                    let color = '';
-                    if (isFinished) {
-                        text = 'BİTTİ';
-                        color = 'var(--gray-500)';
-                    } else if (stateCode === 'active') {
-                        text = 'DEVAM EDİYOR';
-                        color = 'var(--danger)';
-                    } else {
-                        text = formatCountdown(diffMs);
-                    }
-                    timerDisplayHtml = `<div class="countdown" id="cd-${ses.id}" style="${color ? 'color: ' + color : ''}">${text}</div>`;
+                    text = formatCountdown(diffMs);
                 }
+                const timerDisplayHtml = `<div class="countdown" id="cd-${ses.id}" title="Kalan Süre (Gün:Saat:Dakika:Saniye)" style="${color ? 'color: ' + color : ''}">${text}</div>`;
 
-                // ALL upcoming (not expired) cards are clickable
+                const isUpcoming = (diffMins > 0);
+                const subTitle = isUpcoming ? '<i class="fa-solid fa-clock"></i> KALAN SÜRE' : (stateCode === 'active' ? '<i class="fa-solid fa-bolt"></i> SINAV DEVAM EDİYOR' : '<i class="fa-solid fa-check"></i> SINAV TAMAMLANDI');
+
                 html += `<div class="exam-card" data-ses-id="${ses.id}" data-state="${stateCode}" style="${isNearOrActive ? 'border-left: 5px solid var(--primary);' : ''}">
                             <div class="exam-header" onclick="toggleDetails('${ses.id}')" style="cursor: pointer">
                                 <div style="flex:1">
                                     <div style="font-size: 0.75rem; color: var(--primary); font-weight: 700; margin-bottom: 4px;">
-                                        ${isFar ? '<i class="fa-solid fa-calendar-days"></i> GELECEK SINAV' : '<i class="fa-solid fa-clock"></i> SINAV GÜNÜ'}
+                                        ${subTitle}
                                     </div>
                                     <h4 style="margin:0; font-weight:900;">${ses.name}</h4>
                                     <small style="color:var(--gray-500)">${ses.date} ${displayTime}</small>
                                 </div>
                                 <div style="display: flex; align-items:center; gap: 10px;">
                                     ${timerDisplayHtml}
-                                    ${isFar ? '' : `<i class="fa-solid fa-chevron-down" id="arrow-${ses.id}" style="color:var(--gray-400); transition:0.3s; transform: ${isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}"></i>`}
+                                    <i class="fa-solid fa-chevron-down" id="arrow-${ses.id}" style="color:var(--gray-400); transition:0.3s; transform: ${isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}"></i>
                                 </div>
                             </div>
                             <div id="details-${ses.id}" class="${isOpen ? '' : 'hidden'}">
-                                ${isNearOrActive ? generateDetailsHtml(item) : (isMed ? `<div class="glass-panel" style="padding: 1.5rem; text-align: center; margin-top: 10px; border: 1px dashed var(--primary-light); color: var(--primary); font-weight: 600;"><i class="fa-solid fa-user-shield" style="margin-right: 8px;"></i> Sınav yerleri sınavdan ${limit} dakika önce burada açıklanacaktır.</div>` : '')}
+                                ${isNearOrActive ? generateDetailsHtml(item) : `
+                                    <div class="glass-panel" style="padding: 1.5rem; text-align: center; margin-top: 10px; border: 1px dashed var(--primary-light); color: var(--primary); font-weight: 600;">
+                                        <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #10b981; letter-spacing: 1.5px; margin-bottom: 8px;">
+                                            <i class="fa-solid fa-stopwatch" style="margin-right: 6px;"></i> SINAVA KALAN SÜRE
+                                        </div>
+                                        <div id="detail-timer-${ses.id}" style="font-size: clamp(1.6rem, 5vw, 2.5rem); font-weight: 900; font-family: 'JetBrains Mono', 'Courier New', monospace; color: #eab308; letter-spacing: 2px; text-shadow: 0 0 16px rgba(234,179,8,0.4); padding: 8px 0; margin-bottom: 10px;">${formatCountdown(diffMs)}</div>
+                                        <div><i class="fa-solid fa-user-shield" style="margin-right: 8px;"></i> Sınav yerleri sınavdan <b>${limit} dakika önce</b> burada açıklanacaktır.</div>
+                                    </div>
+                                `}
                             </div>
                         </div>`;
             });
@@ -1146,11 +1144,10 @@ DataManager._getStorageKey = function () {
 
                 let limit = parseInt(schoolDefs.studentLocationMinutes);
                 if (isNaN(limit) || limit < 0) limit = 20;
-                const maxLookaheadMins = Math.max(36 * 60, limit);
                 const endHideLimit = parseInt(schoolDefs.studentExamEndHideMinutes) || 30;
 
                 let newState = 'hidden';
-                if (diffMins <= maxLookaheadMins && diffEndMins >= -endHideLimit) {
+                if (diffEndMins >= -endHideLimit) {
                     if (ses.type === 'uygulama') {
                         if (diffEndMins < 0) {
                             newState = 'finished';
@@ -1234,19 +1231,24 @@ DataManager._getStorageKey = function () {
         }
 
         function formatCountdown(ms) {
-            if (ms < 0) return "00:00";
-            const s = Math.floor(ms / 1000);
-            const m = Math.floor(s / 60);
-            return `${m.toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+            if (ms <= 0) return "0 Gün 00:00:00";
+            const totalSec = Math.floor(ms / 1000);
+            const s = totalSec % 60;
+            const totalMin = Math.floor(totalSec / 60);
+            const m = totalMin % 60;
+            const totalHours = Math.floor(totalMin / 60);
+            const h = totalHours % 24;
+            const d = Math.floor(totalHours / 24);
+
+            const hh = h.toString().padStart(2, '0');
+            const mm = m.toString().padStart(2, '0');
+            const ss = s.toString().padStart(2, '0');
+
+            return `${d} Gün ${hh}:${mm}:${ss}`;
         }
 
         function formatCountdownHMS(ms) {
-            if (ms < 0) return '00:00:00';
-            const totalSec = Math.floor(ms / 1000);
-            const h = Math.floor(totalSec / 3600);
-            const m = Math.floor((totalSec % 3600) / 60);
-            const s = totalSec % 60;
-            return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            return formatCountdown(ms);
         }
 
         function toggleDetails(id) {
