@@ -821,11 +821,33 @@
                 }
             }
 
+            let currentRawStatus = (session.studentStatuses && session.studentStatuses[studentNo]) || '';
+            if (!currentRawStatus && session.results) {
+                for (const room of session.results) {
+                    if (room.seats) {
+                        const seatMatch = Object.values(room.seats).find(seat => {
+                            const std = seat.student || seat;
+                            return std && String(std.no) === String(studentNo);
+                        });
+                        if (seatMatch) {
+                            const std = seatMatch.student || seatMatch;
+                            currentRawStatus = std.status || '';
+                            break;
+                        }
+                    }
+                }
+            }
+            const currentStatus = (!currentRawStatus || currentRawStatus === 'Aktif') ? 'GELDİ' : currentRawStatus;
+            const curColor = currentStatus === 'GELMEDİ' ? 'var(--danger)' : (currentStatus === 'KOPYA' ? '#7f1d1d' : (currentStatus === 'DİĞER' ? '#0284c7' : '#059669'));
+            const curBg = currentStatus === 'GELMEDİ' ? '#fef2f2' : (currentStatus === 'KOPYA' ? '#fef2f2' : (currentStatus === 'DİĞER' ? '#f0f9ff' : '#f0fdf4'));
+            const curBorder = currentStatus === 'GELMEDİ' ? 'var(--danger)' : (currentStatus === 'KOPYA' ? '#7f1d1d' : (currentStatus === 'DİĞER' ? '#0284c7' : '#10b981'));
+
             let displayHtml = '';
+            const statusBadgeHtml = `<div style="margin-top:10px; font-size:0.9rem; color:var(--gray-600);">O anki durum: <span style="font-weight:900; padding:3px 10px; border-radius:6px; color:${curColor}; background:${curBg}; border:1px solid ${curBorder};">${currentStatus}</span></div>`;
             if (studentClass && studentName) {
-                displayHtml = `<span style="color:var(--primary); font-weight:900;">${studentClass}/${studentNo}</span> numaralı <span style="font-weight:900;">${studentName}</span> adlı öğrenci için durum seçin:`;
+                displayHtml = `<div><span style="color:var(--primary); font-weight:900;">${studentClass}/${studentNo}</span> numaralı <span style="font-weight:900;">${studentName}</span> adlı öğrenci için durum seçin:</div>${statusBadgeHtml}`;
             } else {
-                displayHtml = `<span style="color:var(--primary); font-weight:900;">${studentNo}</span> numaralı öğrenci için durum seçin:`;
+                displayHtml = `<div><span style="color:var(--primary); font-weight:900;">${studentNo}</span> numaralı öğrenci için durum seçin:</div>${statusBadgeHtml}`;
             }
 
             Swal.fire({
@@ -838,7 +860,7 @@
                         <button id="btn-gelmedi" class="btn" style="background: var(--danger); border: none; padding: 12px; font-weight: 800; color: white; border-radius: 8px; font-size: 0.9rem; cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'"><i class="fa-solid fa-user-xmark" style="margin-right:6px;"></i> GELMEDİ</button>
                         <button id="btn-kopya" class="btn" style="background: #7f1d1d; border: none; padding: 12px; font-weight: 800; color: white; border-radius: 8px; font-size: 0.9rem; cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'"><i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i> KOPYA</button>
                         <button id="btn-diger" class="btn" style="background: #0284c7; border: none; padding: 12px; font-weight: 800; color: white; border-radius: 8px; font-size: 0.9rem; cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'"><i class="fa-solid fa-circle-question" style="margin-right:6px;"></i> DİĞER</button>
-                        <button id="btn-temizle" class="btn" style="background: var(--gray-500); border: none; padding: 12px; font-weight: 800; color: white; border-radius: 8px; font-size: 0.9rem; cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'"><i class="fa-solid fa-rotate-left" style="margin-right:6px;"></i> TEMİZLE (İPTAL)</button>
+                        <button id="btn-temizle" class="btn" style="background: var(--gray-500); border: none; padding: 12px; font-weight: 800; color: white; border-radius: 8px; font-size: 0.9rem; cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'"><i class="fa-solid fa-rotate-left" style="margin-right:6px;"></i> TEMİZLE (VARSAYILAN: GELDİ)</button>
                     </div>
                 `,
                 showConfirmButton: false,
@@ -921,7 +943,7 @@
                         const std = seat.student || seat;
                         if (std && std.no && std._matchedSubject === subName) {
                             const status = ses.studentStatuses[std.no];
-                            if (status) {
+                            if (status && status !== 'Aktif' && status !== 'GELDİ') {
                                 flaggedStudents.push({ ...std, roomName: room.name, status });
                             }
                         }
@@ -1017,7 +1039,7 @@
                         const std = seat.student || seat;
                         if (std && std.no) {
                             const status = ses.studentStatuses[std.no];
-                            if (status) {
+                            if (status && status !== 'Aktif' && status !== 'GELDİ') {
                                 flaggedStudents.push({ ...std, roomName: room.name, status });
                             }
                         }
@@ -1392,18 +1414,19 @@
                                     var std = seat.student || seat;
                                     if (!std || !std.no) return;
                                     studCount++;
-                                    var rawStatus = statuses[std.no] || ((std.status && std.status !== 'Aktif') ? std.status : '');
-                                    var status = (rawStatus === 'GELDİ') ? '' : rawStatus;
-                                    var statusColor = status === 'GELMEDİ' ? 'var(--danger)' : (status === 'KOPYA' ? '#7f1d1d' : (status === 'DİĞER' ? '#0284c7' : ''));
-                                    var statusBg = status === 'GELMEDİ' ? '#fef2f2' : (status === 'KOPYA' ? '#fef2f2' : (status === 'DİĞER' ? '#f0f9ff' : ''));
-                                    var statusBorder = status === 'GELMEDİ' ? 'var(--danger)' : (status === 'KOPYA' ? '#7f1d1d' : (status === 'DİĞER' ? '#0284c7' : ''));
+                                    var rawStatus = statuses[std.no] || std.status || '';
+                                    // 'Aktif' sistem kayıt durumudur; sınav yoklamasında o anki varsayılan durum 'GELDİ'dir
+                                    var status = (!rawStatus || rawStatus === 'Aktif') ? 'GELDİ' : rawStatus;
+                                    var statusColor = status === 'GELMEDİ' ? 'var(--danger)' : (status === 'KOPYA' ? '#7f1d1d' : (status === 'DİĞER' ? '#0284c7' : '#059669'));
+                                    var statusBg = status === 'GELMEDİ' ? '#fef2f2' : (status === 'KOPYA' ? '#fef2f2' : (status === 'DİĞER' ? '#f0f9ff' : '#f0fdf4'));
+                                    var statusBorder = status === 'GELMEDİ' ? 'var(--danger)' : (status === 'KOPYA' ? '#7f1d1d' : (status === 'DİĞER' ? '#0284c7' : '#10b981'));
                                     var rowHighlight = status === 'GELMEDİ' ? 'background:#fff5f5; border-left:3px solid var(--danger); padding-left:6px;' : (status === 'KOPYA' ? 'background:#fffbfb; border-left:3px solid #7f1d1d; padding-left:6px;' : '');
                                     studentsHtml += '<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--gray-100); ' + rowHighlight + '">'
-                                        + '<div style="font-size:0.85rem; font-weight:700; color:var(--dark);">'
+                                        + '<div style="font-size:0.85rem; font-weight:700; color:var(--dark); display:flex; align-items:center; flex-wrap:wrap; gap:4px;">'
                                         + '<span style="color:var(--gray-500); width:40px; display:inline-block;">' + std.class + '</span> '
                                         + '<span style="color:var(--primary); width:45px; display:inline-block;">' + std.no + '</span> '
                                         + std.name + ' ' + (std.surname || '')
-                                        + (status ? ' <span style="font-size:0.7rem; font-weight:800; padding:2px 6px; border-radius:4px; margin-left:6px; color:' + statusColor + '; background:' + statusBg + '; border:1px solid ' + statusBorder + ';">' + status + '</span>' : '')
+                                        + ' <span style="font-size:0.7rem; font-weight:800; padding:2px 7px; border-radius:4px; margin-left:6px; color:' + statusColor + '; background:' + statusBg + '; border:1px solid ' + statusBorder + ';">' + status + '</span>'
                                         + '</div>'
                                         + '<button onclick="window.setStudentStatus(\'' + d.id + '\', \'' + std.no + '\')" title="Öğrenci Durumunu Belirle" style="background:transparent; border:none; padding:0; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:transform 0.15s ease;" onmouseover="this.style.transform=\'scale(1.15)\'" onmouseout="this.style.transform=\'scale(1)\'">'
                                         + '<svg width="28" height="28" viewBox="0 0 100 100" style="filter:drop-shadow(0 2px 3px rgba(220,38,38,0.35));">'
@@ -1680,7 +1703,8 @@
                                                                             Object.values(room.seats).forEach(seat => {
                                                                                 const std = seat.student || seat;
                                                                                 if (std && std.no && (std._matchedSubject === subNameStr || std.subject === subNameStr)) {
-                                                                                    if (ses.studentStatuses[std.no]) subFlagCount++;
+                                                                                    const stVal = ses.studentStatuses[std.no];
+                                                                                if (stVal && stVal !== 'Aktif' && stVal !== 'GELDİ') subFlagCount++;
                                                                                 }
                                                                             });
                                                                         }
@@ -1833,7 +1857,7 @@
                                                 const std = seat.student || seat;
                                                 if (std && std.no && std._matchedSubject === subNameStr) {
                                                     const status = ses.studentStatuses[std.no];
-                                                    if (status) {
+                                                    if (status && status !== 'Aktif' && status !== 'GELDİ') {
                                                         flaggedStudents.push({ ...std, roomName: room.name, status });
                                                     }
                                                 }
@@ -1895,7 +1919,7 @@
                                             const std = seat.student || seat;
                                             if (std && std.no) {
                                                 const status = ses.studentStatuses[std.no];
-                                                if (status) {
+                                                if (status && status !== 'Aktif' && status !== 'GELDİ') {
                                                     sessionFlaggedStudents.push({ ...std, roomName: room.name, status });
                                                 }
                                             }
