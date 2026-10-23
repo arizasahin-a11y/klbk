@@ -1726,8 +1726,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <td style="padding:0.75rem 0.5rem;"><span style="font-size:0.85rem; background:rgba(255,255,255,0.1); padding:0.2rem 0.5rem; border-radius:4px;">${std.alan || '-'}</span></td>
                         <td style="padding:0.75rem 0.5rem;">${std.ogrenciKodu || '-'}</td>
                         <td style="padding:0.75rem 0.5rem; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${(std.dersler || []).join(', ')}">${(std.dersler || []).join(', ') || '-'}</td>
-                        <td style="padding:0.75rem 0.5rem; text-align:right;">
+                        <td style="padding:0.75rem 0.5rem; text-align:right; white-space:nowrap;">
                             <button class="btn btn-secondary btn-sm" title="Düzenle" onclick="window.editStudentDetails('${std.no}')"><i class="fa-solid fa-pen"></i></button>
+                            <button class="btn btn-danger btn-sm" style="margin-left:4px;" title="Sil" onclick="window.deleteStudent('${std.no}')"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     </tr>
                 `;
@@ -3375,22 +3376,77 @@ document.addEventListener('DOMContentLoaded', async () => {
                 Swal.fire('Başarılı', 'Öğrenci bilgileri güncellendi.', 'success');
             } else if (result.isDenied) {
                 Swal.fire({
-                    title: 'Emin misiniz?',
-                    text: `${std.class} sınıfındaki ${std.no} numaralı ${std.name} isimli öğrenci silinecek. Bu işlem geri alınamaz!`,
+                    title: 'Öğrenciyi Silmek İstediğinize Emin Misiniz?',
+                    html: `
+                        <div style="text-align:left; font-size:0.95rem; line-height:1.6;">
+                            <p>${std.class} sınıfındaki <b>${std.no}</b> numaralı <b>${std.name}</b> isimli öğrenci silinecektir.</p>
+                            <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 12px; margin-top:8px; color:#991b1b; font-size:0.86rem;">
+                                <i class="fa-solid fa-circle-exclamation"></i> 
+                                Öğrenci silindiğinde, <b>bugün ve sonraki tarihlerdeki tüm sınav dağıtımlarından da otomatik olarak çıkarılacaktır</b>. Diğer öğrencilerin oturma düzeni korunacaktır.
+                            </div>
+                        </div>
+                    `,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#ef4444',
                     cancelButtonColor: '#6b7280',
-                    confirmButtonText: 'Evet, Sil!',
+                    confirmButtonText: '<i class="fa-solid fa-trash"></i> Evet, Sil!',
                     cancelButtonText: 'İptal'
                 }).then((del) => {
                     if (del.isConfirmed) {
-                        data.students.splice(studentIndex, 1);
-                        DataManager._saveData(data);
-                        document.querySelector('[data-tab="classLists"]').click();
-                        Swal.fire('Silindi!', 'Öğrenci başarıyla silindi.', 'success');
+                        const res = DataManager.removeStudent(std.no, true);
+                        try {
+                            const tab = document.querySelector('[data-tab="classLists"]');
+                            if (tab) tab.click();
+                        } catch (e) {}
+                        let msg = 'Öğrenci başarıyla silindi.';
+                        if (res && res.distributionStats && res.distributionStats.removedSeatsCount > 0) {
+                            msg += ` Ayrıca gelecek tarihli ${res.distributionStats.modifiedSessionsCount} sınav dağıtımındaki koltukları boşaltıldı.`;
+                        }
+                        Swal.fire('Silindi!', msg, 'success');
                     }
                 });
+            }
+        });
+    };
+
+    window.deleteStudent = function (studentNo) {
+        const data = DataManager._getData();
+        const std = (data.students || []).find(s => String(s.no).trim() === String(studentNo).trim());
+        if (!std) {
+            Swal.fire('Hata', 'Öğrenci bulunamadı.', 'error');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Öğrenciyi Silmek İstediğinize Emin Misiniz?',
+            html: `
+                <div style="text-align:left; font-size:0.95rem; line-height:1.6;">
+                    <p>${std.class} sınıfındaki <b>${std.no}</b> numaralı <b>${std.name}</b> isimli öğrenci silinecektir.</p>
+                    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 12px; margin-top:8px; color:#991b1b; font-size:0.86rem;">
+                        <i class="fa-solid fa-circle-exclamation"></i> 
+                        Öğrenci silindiğinde, <b>bugün ve sonraki tarihlerdeki tüm sınav dağıtımlarından da otomatik olarak çıkarılacaktır</b>. Diğer öğrencilerin oturma düzeni korunacaktır.
+                    </div>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: '<i class="fa-solid fa-trash"></i> Evet, Sil!',
+            cancelButtonText: 'İptal'
+        }).then((del) => {
+            if (del.isConfirmed) {
+                const res = DataManager.removeStudent(studentNo, true);
+                try {
+                    const tab = document.querySelector('[data-tab="classLists"]');
+                    if (tab) tab.click();
+                } catch (e) {}
+                let msg = 'Öğrenci başarıyla silindi.';
+                if (res && res.distributionStats && res.distributionStats.removedSeatsCount > 0) {
+                    msg += ` Ayrıca gelecek tarihli ${res.distributionStats.modifiedSessionsCount} sınav dağıtımındaki koltukları boşaltıldı.`;
+                }
+                Swal.fire('Silindi!', msg, 'success');
             }
         });
     };
@@ -3398,7 +3454,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.deleteClassCompletely = function (className) {
         Swal.fire({
             title: 'Sınıfı Silmek İstediğinize Emin Misiniz?',
-            text: `Bu işlem "${className}" sınıfını ve sınıfta bulunan İÇİNDEKİ TÜM ÖĞRENCİLERİ silecektir. Bu işlem geri alınamaz!`,
+            html: `
+                <div style="text-align:left; font-size:0.95rem; line-height:1.6;">
+                    <p>Bu işlem "<b>${className}</b>" sınıfını ve sınıfta bulunan <b>İÇİNDEKİ TÜM ÖĞRENCİLERİ</b> silecektir.</p>
+                    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 12px; margin-top:8px; color:#991b1b; font-size:0.86rem;">
+                        <i class="fa-solid fa-circle-exclamation"></i> 
+                        Bu sınıftaki tüm öğrenciler, <b>bugün ve sonraki tarihlerdeki sınav dağıtımlarından da otomatik olarak çıkarılacaktır</b>.
+                    </div>
+                </div>
+            `,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
@@ -3408,7 +3472,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }).then((result) => {
             if (result.isConfirmed) {
                 const data = DataManager._getData();
-                data.students = data.students.filter(s => s.class !== className);
+                const classStudents = (data.students || []).filter(s => s.class === className);
+                const classStudentNos = classStudents.map(s => s.no);
+
+                data.students = (data.students || []).filter(s => s.class !== className);
                 
                 if (data.classRoomMappings) {
                     const safeCls = DataManager.sanitizeFirebaseKey(className);
@@ -3417,14 +3484,28 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 
                 DataManager._saveData(data);
+
+                let distStats = { modifiedSessionsCount: 0, removedSeatsCount: 0 };
+                if (classStudentNos.length > 0) {
+                    distStats = DataManager.removeStudentFromUpcomingSessions(classStudentNos);
+                }
+
+                // Nöbet planını da güncelle
+                if (typeof window.autoUpdateStudentDuties === 'function') {
+                    try { window.autoUpdateStudentDuties(true); } catch(e) {}
+                }
                 
                 // Refresh list
-                const updateClassesListFn = window.updateClassesList || document.querySelector('[data-tab="classLists"]').click;
                 try {
-                    document.querySelector('[data-tab="classLists"]').click();
+                    const tab = document.querySelector('[data-tab="classLists"]');
+                    if (tab) tab.click();
                 } catch(e) {}
                 
-                Swal.fire('Silindi!', `"${className}" sınıfı ve öğrencileri silindi.`, 'success');
+                let msg = `"${className}" sınıfı ve öğrencileri silindi.`;
+                if (distStats.removedSeatsCount > 0) {
+                    msg += ` Ayrıca gelecek tarihli ${distStats.modifiedSessionsCount} sınav dağıtımındaki koltuklar temizlendi.`;
+                }
+                Swal.fire('Silindi!', msg, 'success');
             }
         });
     };

@@ -728,6 +728,147 @@ const DataManager = {
         }
     },
 
+    /**
+     * Tek bir öğrenciyi siler ve istenirse bugünden itibaren gelecekteki tüm sınav dağıtımlarındaki koltuklarını boşaltır.
+     * @param {string|number} studentNo Öğrenci numarası
+     * @param {boolean} removeFromUpcoming Gelecek sınav dağıtımlarından çıkarılsın mı? (Varsayılan: true)
+     * @returns {{ removedStudent: Object|null, distributionStats: { modifiedSessionsCount: number, removedSeatsCount: number } }}
+     */
+    removeStudent: function (studentNo, removeFromUpcoming = true) {
+        const data = this._getData();
+        const targetNo = String(studentNo ?? '').trim();
+        if (!targetNo) return null;
+
+        const idx = (data.students || []).findIndex(s => String(s.no ?? '').trim() === targetNo);
+        let removedStd = null;
+        if (idx !== -1) {
+            removedStd = data.students.splice(idx, 1)[0];
+            this._saveData(data);
+        }
+
+        let distributionStats = { modifiedSessionsCount: 0, removedSeatsCount: 0 };
+        if (removeFromUpcoming) {
+            distributionStats = this.removeStudentFromUpcomingSessions(targetNo);
+        }
+
+        // Nöbet planını geleceğe yönelik otomatik güncelle
+        if (typeof window.autoUpdateStudentDuties === 'function') {
+            try { window.autoUpdateStudentDuties(true); } catch (e) { console.warn(e); }
+        }
+
+        return { removedStudent: removedStd, distributionStats };
+    },
+
+    /**
+     * Verilen öğrenci(leri) bugünkü ve gelecekteki tüm sınav dağıtımlarından çıkarır.
+     * Geçmiş tarihli sınav dağıtımlarına dokunulmaz.
+     * Diğer öğrencilerin dağıtım düzeni ve koltukları aynen korunur.
+     * @param {string|number|Array<string|number>} studentNos Çıkarılacak öğrenci no veya listesi
+     * @param {Date|string} referenceDate Referans tarih (Varsayılan: bugün)
+     * @returns {{ modifiedSessionsCount: number, removedSeatsCount: number }}
+     */
+    removeStudentFromUpcomingSessions: function (studentNos, referenceDate = new Date()) {
+        if (!studentNos) return { modifiedSessionsCount: 0, removedSeatsCount: 0 };
+        const rawList = Array.isArray(studentNos) ? studentNos : [studentNos];
+        const targetNos = new Set(
+            rawList.map(n => String(n ?? '').trim()).filter(n => n.length > 0)
+        );
+        if (targetNos.size === 0) return { modifiedSessionsCount: 0, removedSeatsCount: 0 };
+
+        const cutoff = new Date(referenceDate);
+        cutoff.setHours(0, 0, 0, 0);
+
+        const data = this._getData();
+        if (!data.examSessions) return { modifiedSessionsCount: 0, removedSeatsCount: 0 };
+
+        const isArray = Array.isArray(data.examSessions);
+        const sessionsList = isArray ? data.examSessions : Object.values(data.examSessions);
+
+        let modifiedSessionsCount = 0;
+        let removedSeatsCount = 0;
+
+        sessionsList.forEach(session => {
+            if (!session) return;
+
+            // Tarih kontrolü: Tarih belirtilmemişse veya geçersizse aktif dağıtım sayılır.
+            // Tarih varsa, referans gününden (bugünden) önce mi kontrol edilir.
+            let isUpcomingOrToday = true;
+            if (session.date) {
+                const sDate = this.parseSessionDateTime(session.date, '00:00');
+                if (sDate.getTime() !== 0) {
+                    const sMidnight = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate(), 0, 0, 0);
+                    isUpcomingOrToday = (sMidnight.getTime() >= cutoff.getTime());
+                }
+            }
+
+            // Geçmiş tarihteki sınav dağıtımlarına dokunma (arşiv/tarihçe bütünlüğü)
+            if (!isUpcomingOrToday) return;
+
+            let sessionChanged = false;
+
+            // 1. Dağıtılmış koltuklardan çıkar (koltuğu boşalt)
+            const resultsRooms = Array.isArray(session.results) ? session.results : Object.values(session.results || {});
+            resultsRooms.forEach(room => {
+                if (!room || !room.seats) return;
+                Object.entries(room.seats).forEach(([seatId, seat]) => {
+                    const std = seat.student || seat;
+                    const no = String(std?.no ?? std?.ogrNo ?? std?.studentNo ?? '').trim();
+                    if (targetNos.has(no)) {
+                        delete room.seats[seatId];
+                        sessionChanged = true;
+                        removedSeatsCount++;
+                    }
+                });
+            });
+
+            // 2. excludedStudents listesine ekle (yeniden hesaplamada veya filtrede hariç kalsın)
+            if (!Array.isArray(session.excludedStudents)) {
+                session.excludedStudents = [];
+            }
+            targetNos.forEach(no => {
+                if (!session.excludedStudents.includes(no)) {
+                    session.excludedStudents.push(no);
+                    sessionChanged = true;
+                }
+            });
+
+            // 3. studentStatuses içinden temizle
+            if (session.studentStatuses) {
+                targetNos.forEach(no => {
+                    if (session.studentStatuses[no] !== undefined) {
+                        delete session.studentStatuses[no];
+                        sessionChanged = true;
+                    }
+                });
+            }
+
+            if (sessionChanged) {
+                modifiedSessionsCount++;
+            }
+        });
+
+        if (modifiedSessionsCount > 0) {
+            this._saveData(data);
+
+            // Bellekteki aktif oturum referanslarını güncelle
+            if (window.currentRenderedSession && window.currentRenderedSession.id) {
+                const updatedCurrent = (Array.isArray(data.examSessions) ? data.examSessions : Object.values(data.examSessions))
+                    .find(s => s && s.id === window.currentRenderedSession.id);
+                if (updatedCurrent) {
+                    window.currentRenderedSession = updatedCurrent;
+                    window._currentExamResults = updatedCurrent.results;
+                }
+            }
+
+            // Oturum listesi UI'ını yenile
+            if (typeof window.renderExamSessionsList === 'function') {
+                try { window.renderExamSessionsList(); } catch (e) { console.warn(e); }
+            }
+        }
+
+        return { modifiedSessionsCount, removedSeatsCount };
+    },
+
     bulkImportStudents: function (studentList, mode) {
         const data = this._getData();
         // Geçersiz veya özet satırlarını filtrele
@@ -765,6 +906,7 @@ const DataManager = {
             studentList.forEach(s => classesInExcel.add(s.class));
 
             const finalStudents = [];
+            const deletedStudentNos = [];
 
             // 1. Process new students and updates from Excel
             studentList.forEach(newStd => {
@@ -797,6 +939,7 @@ const DataManager = {
                     // If their class IS NOT in the Excel file, we KEEP them (Partial update support).
                     if (classesInExcel.has(oldStd.class)) {
                         stats.deletedCount++;
+                        deletedStudentNos.push(oldStd.no);
                     } else {
                         finalStudents.push(oldStd);
                     }
@@ -804,6 +947,10 @@ const DataManager = {
             });
 
             data.students = finalStudents;
+
+            if (deletedStudentNos.length > 0) {
+                this.removeStudentFromUpcomingSessions(deletedStudentNos);
+            }
         }
 
         this._saveData(data);
