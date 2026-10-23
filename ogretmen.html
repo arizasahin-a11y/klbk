@@ -437,21 +437,30 @@
         let openSessions = new Set();
         let openSubjects = new Set();
         let openDuties = new Set();
+        try {
+            const savedDuties = sessionStorage.getItem('klbk_openDuties');
+            if (savedDuties) {
+                JSON.parse(savedDuties).forEach(k => openDuties.add(k));
+            }
+        } catch(e) {}
         let lastSyncSessions = '';
 
-        // Safe Initialization
+        // Safe Initialization with localStorage fallback for mobile devices
         try {
-            currentRole = (sessionStorage.getItem('klbk_role') || '').toLowerCase().trim();
-            currentUser = sessionStorage.getItem('klbk_currentUser') || 'Bilinmeyen Kullanıcı';
-            currentName = DataManager.formatTeacherName(sessionStorage.getItem('klbk_name') || currentUser);
+            currentRole = (sessionStorage.getItem('klbk_role') || localStorage.getItem('klbk_role') || '').toLowerCase().trim();
+            currentUser = (sessionStorage.getItem('klbk_currentUser') || localStorage.getItem('klbk_currentUser') || sessionStorage.getItem('klbk_username') || localStorage.getItem('klbk_username') || 'Bilinmeyen Kullanıcı').trim();
+            currentName = DataManager.formatTeacherName(sessionStorage.getItem('klbk_name') || localStorage.getItem('klbk_name') || currentUser);
             
-            const isLogged = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || sessionStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true';
+            const isLogged = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || 
+                             localStorage.getItem('klbk_isLoggedIn') === 'true' || 
+                             sessionStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true' ||
+                             localStorage.getItem('klbk_faaliyet_isLoggedIn') === 'true';
             if (!isLogged) {
                 console.warn("Auth failure, redirecting to portal login...");
                 window.location.href = 'enter.html';
             }
 
-            const rawBranch = sessionStorage.getItem('klbk_branch') || '';
+            const rawBranch = sessionStorage.getItem('klbk_branch') || localStorage.getItem('klbk_branch') || '';
             try {
                 if (rawBranch.startsWith('[')) myBranches = JSON.parse(rawBranch);
                 else myBranches = rawBranch.split(',').filter(x => x).map(b => b.trim());
@@ -595,8 +604,9 @@
         }
 
         async function backgroundSync() {
-            // Eğer son 5 saniye içinde yerel bir değişiklik yapıldıysa senkronizasyonu atla
+            // Eğer son 5 saniye içinde yerel bir değişiklik yapıldıysa veya modal açıksa senkronizasyonu atla
             if (Date.now() - lastLocalChangeTime < 5000) return;
+            if (typeof Swal !== 'undefined' && Swal.isVisible && Swal.isVisible()) return;
             try {
                 await DataManager.initCloud();
                 const current = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
@@ -645,16 +655,45 @@
         }
 
         window.toggleMyDuties = function() {
-            const open = sessionStorage.getItem('klbk_myDutiesOpen') === 'true';
-            sessionStorage.setItem('klbk_myDutiesOpen', !open);
-            renderExams();
+            const stored = sessionStorage.getItem('klbk_myDutiesOpen');
+            const isOpen = stored === null ? true : (stored === 'true');
+            const nextState = !isOpen;
+            sessionStorage.setItem('klbk_myDutiesOpen', nextState.toString());
+            
+            const listEl = document.getElementById('myDutiesList');
+            const iconEl = document.getElementById('myDutiesChevron');
+            if (listEl) {
+                if (nextState) {
+                    listEl.classList.remove('hidden');
+                    if (iconEl) iconEl.classList.add('fa-rotate-180');
+                } else {
+                    listEl.classList.add('hidden');
+                    if (iconEl) iconEl.classList.remove('fa-rotate-180');
+                }
+            } else {
+                renderExams();
+            }
         };
 
         window.toggleDutyAttendance = function(sesId, roomName) {
             const key = sesId + "|" + roomName;
             if (openDuties.has(key)) openDuties.delete(key);
             else openDuties.add(key);
-            renderExams();
+            try {
+                sessionStorage.setItem('klbk_openDuties', JSON.stringify(Array.from(openDuties)));
+            } catch(e) {}
+            
+            const safeKey = 'duty-att-' + sesId + '-' + String(roomName).replace(/[^a-zA-Z0-9_-]/g, '_');
+            const box = document.getElementById(safeKey);
+            if (box) {
+                if (openDuties.has(key)) {
+                    box.classList.remove('hidden');
+                } else {
+                    box.classList.add('hidden');
+                }
+            } else {
+                renderExams();
+            }
         };
 
         window.showExamDuties = function(sesId) {
@@ -910,7 +949,38 @@
                         DataManager.addExamSession(session);
                         markLocalChange();
                         lastSyncSessions = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
-                        renderExams();
+                        
+                        // In-place UI update so mobile user doesn't lose scroll position or dropdown state
+                        const safeNo = String(studentNo).replace(/\s+/g, '');
+                        const badgeEl = document.getElementById(`std-badge-${sessionId}-${safeNo}`);
+                        const rowEl = document.getElementById(`std-row-${sessionId}-${safeNo}`);
+                        if (badgeEl && rowEl) {
+                            const updatedStatus = (statusVal === 'TEMİZLE' || statusVal === 'Aktif' || !statusVal) ? 'GELDİ' : statusVal;
+                            const statusColor = updatedStatus === 'GELMEDİ' ? 'var(--danger)' : (updatedStatus === 'KOPYA' ? '#7f1d1d' : (updatedStatus === 'DİĞER' ? '#0284c7' : '#059669'));
+                            const statusBg = updatedStatus === 'GELMEDİ' ? '#fef2f2' : (updatedStatus === 'KOPYA' ? '#fef2f2' : (updatedStatus === 'DİĞER' ? '#f0f9ff' : '#f0fdf4'));
+                            const statusBorder = updatedStatus === 'GELMEDİ' ? 'var(--danger)' : (updatedStatus === 'KOPYA' ? '#7f1d1d' : (updatedStatus === 'DİĞER' ? '#0284c7' : '#10b981'));
+                            
+                            badgeEl.innerText = updatedStatus;
+                            badgeEl.style.color = statusColor;
+                            badgeEl.style.backgroundColor = statusBg;
+                            badgeEl.style.borderColor = statusBorder;
+
+                            if (updatedStatus === 'GELMEDİ') {
+                                rowEl.style.background = '#fff5f5';
+                                rowEl.style.borderLeft = '3px solid var(--danger)';
+                                rowEl.style.paddingLeft = '6px';
+                            } else if (updatedStatus === 'KOPYA') {
+                                rowEl.style.background = '#fffbfb';
+                                rowEl.style.borderLeft = '3px solid #7f1d1d';
+                                rowEl.style.paddingLeft = '6px';
+                            } else {
+                                rowEl.style.background = '';
+                                rowEl.style.borderLeft = '';
+                                rowEl.style.paddingLeft = '';
+                            }
+                        } else {
+                            renderExams();
+                        }
                         Swal.close();
                         Swal.fire({
                             toast: true,
@@ -1175,13 +1245,25 @@
 
             // Candidate names to match this teacher against duties
             const candidateNames = new Set();
-            if (myUname) candidateNames.add(myUname);
+            if (myUname) {
+                candidateNames.add(myUname);
+                if (myUname.includes('.')) {
+                    candidateNames.add(myUname.replace(/\./g, ' '));
+                }
+            }
             if (myRawName) candidateNames.add(myRawName);
             if (myFormattedName) candidateNames.add(myFormattedName);
             if (currentName) candidateNames.add(currentName);
 
-            // Also check teacher DB for exact name entry
-            const teachersDb = window.globalTeachersDb || {};
+            // Check teacher DB with local cache fallback for mobile resilience
+            let teachersDb = window.globalTeachersDb || {};
+            if (!teachersDb || Object.keys(teachersDb).length === 0) {
+                try {
+                    const cachedT = localStorage.getItem('klbk_cached_teachers_db');
+                    if (cachedT) teachersDb = JSON.parse(cachedT);
+                } catch(e) {}
+            }
+
             if (myUname && teachersDb[myUname]) {
                 const dbTeacher = teachersDb[myUname];
                 if (dbTeacher && dbTeacher.name) {
@@ -1211,19 +1293,39 @@
                     if (now > removeTime) return;
                 }
 
+                // Check ses.customProctors directly in case teachersDb calculation is pending
+                if (ses.customProctors && typeof ses.customProctors === 'object') {
+                    Object.entries(ses.customProctors).forEach(([roomName, gorevli]) => {
+                        if (gorevli && isTeacherMatch(gorevli, candidateList)) {
+                            if (!duties.some(x => x.id === ses.id && x.room === roomName)) {
+                                duties.push({
+                                    id: ses.id,
+                                    name: ses.name,
+                                    date: ses.date,
+                                    time: ses.time,
+                                    room: roomName,
+                                    role: 'Gözetmen'
+                                });
+                            }
+                        }
+                    });
+                }
+
                 const teachersData = DataManager.calculateExamTeachers(ses, teachersDb);
 
                 // 1. Gözetmenlikleri kontrol et (Classrooms)
                 Object.entries(teachersData.classrooms || {}).forEach(([roomName, info]) => {
                     if (info.gorevli && isTeacherMatch(info.gorevli, candidateList)) {
-                        duties.push({
-                            id: ses.id,
-                            name: ses.name,
-                            date: ses.date,
-                            time: ses.time,
-                            room: roomName,
-                            role: 'Gözetmen'
-                        });
+                        if (!duties.some(x => x.id === ses.id && x.room === roomName)) {
+                            duties.push({
+                                id: ses.id,
+                                name: ses.name,
+                                date: ses.date,
+                                time: ses.time,
+                                room: roomName,
+                                role: 'Gözetmen'
+                            });
+                        }
                     }
                 });
 
@@ -1234,14 +1336,16 @@
                     const spareUnameMatch = spare.uname && isTeacherMatch(spare.uname, candidateList);
 
                     if (unameMatch || nameMatch || spareUnameMatch) {
-                        duties.push({
-                            id: ses.id,
-                            name: ses.name,
-                            date: ses.date,
-                            time: ses.time,
-                            room: 'Yedek Gözetmen',
-                            role: 'Yedek'
-                        });
+                        if (!duties.some(x => x.id === ses.id && x.room === 'Yedek Gözetmen')) {
+                            duties.push({
+                                id: ses.id,
+                                name: ses.name,
+                                date: ses.date,
+                                time: ses.time,
+                                room: 'Yedek Gözetmen',
+                                role: 'Yedek'
+                            });
+                        }
                     }
                 });
             });
@@ -1421,15 +1525,16 @@
                                     var statusBg = status === 'GELMEDİ' ? '#fef2f2' : (status === 'KOPYA' ? '#fef2f2' : (status === 'DİĞER' ? '#f0f9ff' : '#f0fdf4'));
                                     var statusBorder = status === 'GELMEDİ' ? 'var(--danger)' : (status === 'KOPYA' ? '#7f1d1d' : (status === 'DİĞER' ? '#0284c7' : '#10b981'));
                                     var rowHighlight = status === 'GELMEDİ' ? 'background:#fff5f5; border-left:3px solid var(--danger); padding-left:6px;' : (status === 'KOPYA' ? 'background:#fffbfb; border-left:3px solid #7f1d1d; padding-left:6px;' : '');
-                                    studentsHtml += '<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--gray-100); ' + rowHighlight + '">'
-                                        + '<div style="font-size:0.85rem; font-weight:700; color:var(--dark); display:flex; align-items:center; flex-wrap:wrap; gap:4px;">'
+                                    var safeStdNo = String(std.no).replace(/\s+/g, '');
+                                    studentsHtml += '<div id="std-row-' + d.id + '-' + safeStdNo + '" style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--gray-100); ' + rowHighlight + '">'
+                                        + '<div style="font-size:0.85rem; font-weight:700; color:var(--dark); display:flex; align-items:center; flex-wrap:wrap; gap:4px; flex:1; min-width:0; padding-right:8px;">'
                                         + '<span style="color:var(--gray-500); width:40px; display:inline-block;">' + std.class + '</span> '
                                         + '<span style="color:var(--primary); width:45px; display:inline-block;">' + std.no + '</span> '
-                                        + std.name + ' ' + (std.surname || '')
-                                        + ' <span style="font-size:0.7rem; font-weight:800; padding:2px 7px; border-radius:4px; margin-left:6px; color:' + statusColor + '; background:' + statusBg + '; border:1px solid ' + statusBorder + ';">' + status + '</span>'
+                                        + '<span style="word-break:break-word;">' + std.name + ' ' + (std.surname || '') + '</span>'
+                                        + ' <span id="std-badge-' + d.id + '-' + safeStdNo + '" style="font-size:0.7rem; font-weight:800; padding:2px 7px; border-radius:4px; margin-left:6px; color:' + statusColor + '; background:' + statusBg + '; border:1px solid ' + statusBorder + ';">' + status + '</span>'
                                         + '</div>'
-                                        + '<button onclick="window.setStudentStatus(\'' + d.id + '\', \'' + std.no + '\')" title="Öğrenci Durumunu Belirle" style="background:transparent; border:none; padding:0; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:transform 0.15s ease;" onmouseover="this.style.transform=\'scale(1.15)\'" onmouseout="this.style.transform=\'scale(1)\'">'
-                                        + '<svg width="28" height="28" viewBox="0 0 100 100" style="filter:drop-shadow(0 2px 3px rgba(220,38,38,0.35));">'
+                                        + '<button onclick="event.stopPropagation(); window.setStudentStatus(\'' + d.id + '\', \'' + std.no + '\')" title="Öğrenci Durumunu Belirle" style="background:transparent; border:none; padding:8px; cursor:pointer; min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center; transition:transform 0.15s ease; touch-action:manipulation; -webkit-tap-highlight-color:transparent; flex-shrink:0;" onmouseover="this.style.transform=\'scale(1.15)\'" onmouseout="this.style.transform=\'scale(1)\'">'
+                                        + '<svg width="30" height="30" viewBox="0 0 100 100" style="filter:drop-shadow(0 2px 3px rgba(220,38,38,0.35)); pointer-events:none;">'
                                         + '<polygon points="50,4 92,26 92,74 50,96 8,74 8,26" fill="#dc2626" stroke="#991b1b" stroke-width="3"/>'
                                         + '<text x="50" y="53" text-anchor="middle" dominant-baseline="central" fill="#ffffff" font-family=\'\"Outfit\", system-ui, sans-serif\' font-weight="900" font-size="52">İ</text>'
                                         + '</svg>'
@@ -1442,9 +1547,10 @@
                         var leftBarColor = d.role === 'Yedek' ? 'var(--gray-400)' : '#d97706';
                         var roleBg = d.role === 'Yedek' ? 'var(--gray-100)' : '#fef3c7';
                         var roleColor = d.role === 'Yedek' ? 'var(--gray-600)' : '#d97706';
+                        var safeRoomKey = 'duty-att-' + d.id + '-' + String(d.room).replace(/[^a-zA-Z0-9_-]/g, '_');
 
-                        dutiesItemsHtml += '<div style="background: white; border: 1px solid var(--gray-200); border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; margin-bottom: 5px;">'
-                            + '<div onclick="window.toggleDutyAttendance(\'' + d.id + '\', \'' + d.room + '\')" style="padding: 12px 16px 12px 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; position: relative; min-height: 60px; cursor: pointer;">'
+                        dutiesItemsHtml += '<div style="background: white; border: 1px solid var(--gray-200); border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; margin-bottom: 8px;">'
+                            + '<div onclick="window.toggleDutyAttendance(\'' + d.id + '\', \'' + d.room + '\')" style="padding: 12px 16px 12px 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; position: relative; min-height: 60px; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;">'
                             + '<div style="position: absolute; top: 0; left: 0; width: 6px; height: 100%; background: ' + leftBarColor + ';"></div>'
                             + '<div style="flex: 1 1 100%; min-width: 0;"><div style="font-weight: 900; color: var(--dark); font-size: 1.05rem; word-break: break-word;">' + d.name + '</div></div>'
                             + '<div style="display: flex; align-items: center; gap: 6px; flex: 1 1 auto;">'
@@ -1461,19 +1567,19 @@
                             + '<div id="duty-cd-' + d.id + '" style="font-size: 1rem; font-weight: 900; color: #d97706; font-family: monospace; background: #fffbeb; padding: 6px 12px; border-radius: 8px; border: 1px solid #fde68a; min-width: 0; width: 100%; max-width: 160px; text-align: center; box-shadow: inset 0 0 5px rgba(0,0,0,0.02);">' + dutyTimerHtml + '</div>'
                             + '</div>'
                             + '</div>'
-                            + '<div class="' + (isDutyOpen ? '' : 'hidden') + '" style="padding: 10px 15px 15px 22px; background: #fafafa; border-top: 1px solid var(--gray-200);">'
+                            + '<div id="' + safeRoomKey + '" class="' + (isDutyOpen ? '' : 'hidden') + '" style="padding: 10px 15px 15px 22px; background: #fafafa; border-top: 1px solid var(--gray-200);">'
                             + '<h5 style="font-size: 0.85rem; color: var(--gray-500); font-weight: 800; margin-bottom: 10px;">Yoklama ve Öğrenci Listesi</h5>'
                             + (studentsHtml || '<div style="font-size:0.8rem; color:var(--gray-500);">Öğrenci bulunamadı.</div>')
                             + '</div></div>';
                     });
 
                     dutiesHtml += '<div class="glass-panel" style="margin-top: 1rem; margin-bottom: 1.5rem; border: 3px solid #d97706; padding: 0; overflow: hidden;">'
-                        + '<div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(217, 119, 6, 0.05);" onclick="window.toggleMyDuties()">'
+                        + '<div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(217, 119, 6, 0.05); touch-action: manipulation; -webkit-tap-highlight-color: transparent;" onclick="window.toggleMyDuties()">'
                         + '<h3 style="margin: 0; font-size: 1.1rem; font-weight: 900; color: #d97706; display: flex; align-items: center; gap: 10px;">'
                         + '<i class="fa-solid fa-clipboard-check"></i> SINAV GÖREVLERİNİZ'
                         + '<span style="background: #d97706; color: white; font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; font-weight: 700;">' + myDuties.length + '</span>'
                         + '</h3>'
-                        + '<i class="fa-solid fa-chevron-down ' + (isDutiesOpen ? 'fa-rotate-180' : '') + '" style="color: ' + (isDutiesOpen ? '#d97706' : 'var(--gray-400)') + '; font-size: 1.3rem; -webkit-text-stroke: 1.2px currentColor; transition: 0.3s;"></i>'
+                        + '<i id="myDutiesChevron" class="fa-solid fa-chevron-down ' + (isDutiesOpen ? 'fa-rotate-180' : '') + '" style="color: ' + (isDutiesOpen ? '#d97706' : 'var(--gray-400)') + '; font-size: 1.3rem; -webkit-text-stroke: 1.2px currentColor; transition: 0.3s;"></i>'
                         + '</div>'
                         + '<div id="myDutiesList" class="' + (isDutiesOpen ? '' : 'hidden') + '" style="padding: 0 1.25rem 1.25rem 1.25rem; border-top: 1px dashed var(--gray-200); margin-top: 0;">'
                         + '<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">'
@@ -1497,10 +1603,10 @@
 
                         if (diffEndMins < -branchLimit) return;
 
-                        let stateCode = diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : 'near'));
+                        let stateCode = diffEndMins < -30 ? 'archived' : (diffEndMins < 0 ? 'finished' : (diffMins <= 0 ? 'active' : (diffMins > 60 ? 'far' : 'near')));
                         const isOpen = openSessions.has(ses.id);
 
-                        let timerDisplayHtml = stateCode === 'finished' ? `<div class="countdown" id="cd-${ses.id}" data-prev="finished" style="color:var(--gray-500)">BİTTİ</div>`
+                        let timerDisplayHtml = (stateCode === 'archived' || stateCode === 'finished') ? `<div class="countdown" id="cd-${ses.id}" data-prev="${stateCode}" style="color:var(--gray-500)">BİTTİ</div>`
                             : (stateCode === 'active' ? `<div class="countdown" id="cd-${ses.id}" data-prev="active" style="color:var(--danger)">DEVAM EDİYOR</div>`
                                 : `<div class="countdown" id="cd-${ses.id}" data-prev="waiting">${formatCountdown(diffMs)}</div>`);
 
@@ -2022,6 +2128,8 @@
                     const diffEndMins = (endTime - now) / 1000 / 60;
 
                     if (diffEndMins < -30) {
+                        el.innerText = 'BİTTİ';
+                        el.style.color = 'var(--gray-500)';
                         if (el.dataset.prev !== 'archived') {
                             el.dataset.prev = 'archived';
                             needsRender = true;
@@ -2042,7 +2150,7 @@
                         }
                     } else {
                         el.innerText = formatCountdown(diffMs);
-                        if (el.dataset.prev === 'active' || el.dataset.prev === 'finished' || !el.dataset.prev) {
+                        if (el.dataset.prev !== 'waiting') {
                             el.dataset.prev = 'waiting';
                             needsRender = true;
                         }
@@ -2070,7 +2178,8 @@
             });
 
             if (needsRender) {
-                // Sadece kullanıcı bir şey yazmıyorsa yeniden render et (odağı kaybetmemek için)
+                // Sadece kullanıcı modalda değilse ve bir şey yazmıyorsa yeniden render et
+                if (typeof Swal !== 'undefined' && Swal.isVisible && Swal.isVisible()) return;
                 const activeEl = document.activeElement;
                 const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
                 if (!isTyping) renderExams();

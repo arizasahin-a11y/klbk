@@ -939,7 +939,8 @@ const DataManager = {
         const exists = data.examSessions.findIndex(s => s.id === sessionObj.id);
         if (exists !== -1) {
             const existingSes = data.examSessions[exists];
-            const prevStatuses = Object.assign({}, existingSes.studentStatuses || {}, sessionObj.studentStatuses || {});
+            // If studentStatuses is explicitly provided on sessionObj, respect it; otherwise merge from existing
+            const prevStatuses = sessionObj.studentStatuses ? Object.assign({}, sessionObj.studentStatuses) : Object.assign({}, existingSes.studentStatuses || {});
             const mergedStatuses = {};
 
             if (currentSeatStudents.size > 0) {
@@ -963,10 +964,14 @@ const DataManager = {
                             if (no !== undefined && no !== null) {
                                 const sno = String(no).trim();
                                 const st = sessionObj.studentStatuses[sno];
-                                if (st) {
+                                if (st && st !== 'Aktif' && st !== 'GELDİ') {
                                     if (std) std.status = st;
                                     seat.status = st;
                                     if (seat.student) seat.student.status = st;
+                                } else {
+                                    if (std) delete std.status;
+                                    delete seat.status;
+                                    if (seat.student) delete seat.student.status;
                                 }
                             }
                         });
