@@ -1452,16 +1452,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     onclick="window.openAddStudentToDistributionModal('${ses.id}')">
                                     <i class="fa-solid fa-user-plus"></i>
                                 </button>
-                                <button class="btn btn-secondary mode-redistribute-btn" style="padding: 0.5rem 0.75rem; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid #bfdbfe; background: #eff6ff; color: #2563eb; font-size: 0.9rem; cursor: pointer; transition: all 0.2s;" title="Yeniden Dağıt"
-                                    onclick="event.stopPropagation(); window.redistributeExamSession('${ses.id}')">
-                                    <i class="fa-solid fa-arrows-rotate"></i>
-                                </button>
                             </div>
                         </td>
                         <td style="padding:1.25rem; text-align:center; display:flex; gap:0.5rem; justify-content:center;">
-                            <button class="btn btn-secondary" style="padding: 0.5rem 0.75rem; color:#2563eb; border-color:#bfdbfe; background:#eff6ff;" onclick="event.stopPropagation(); window.redistributeExamSession('${ses.id}')" title="Yeniden Dağıt (Mevcut öğrenci ve salon kapasiteleriyle)">
-                                <i class="fa-solid fa-arrows-rotate"></i>
-                            </button>
                             <button class="btn btn-secondary" style="padding: 0.5rem 0.75rem;" onclick="window.openSessionMetadataEditor('${ses.id}')" title="Düzenle">
                                 <i class="fa-solid fa-pen"></i>
                             </button>
@@ -1556,9 +1549,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     </button>
                                     <button onclick="window.openSessionMetadataEditor('${ses.id}')">
                                         <i class="fa-solid fa-pen"></i> Düzenle
-                                    </button>
-                                    <button onclick="window.redistributeExamSession('${ses.id}')" style="color:#2563eb;">
-                                        <i class="fa-solid fa-arrows-rotate"></i> Yeniden Dağıt
                                     </button>
                                     <button onclick="window.copyExamSession('${ses.id}')" style="color:#7c3aed;">
                                         <i class="fa-solid fa-copy"></i> Kopyala &amp; Yeniden Dağıt
@@ -5920,181 +5910,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showConfirmButton: false
             });
         });
-    };
-
-    /**
-     * Oturumu güncel derslik sıra/kapasite düzenine ve güncel öğrenci mevcuduna göre sıfırdan yeniden dağıtır.
-     */
-    window.redistributeExamSession = async function (sessionId) {
-        try {
-            const sessions = DataManager.getExamSessions();
-            const session = sessions.find(s => s.id === sessionId);
-            if (!session) {
-                Swal.fire('Hata', 'Oturum bulunamadı.', 'error');
-                return;
-            }
-
-            const confirmRes = await Swal.fire({
-                title: 'Oturumu Yeniden Dağıt',
-                html: `
-                    <div style="text-align:left; font-size:0.95rem; line-height:1.6;">
-                        <p><b>${session.name}</b> oturumu, <b>güncel derslik sıra kapasitelerine göre</b> sıfırdan yeniden dağıtılacaktır.</p>
-                        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 12px; margin-top:8px; color:#1e40af; font-size:0.86rem;">
-                            <i class="fa-solid fa-circle-check"></i>
-                            Derslik Yönetimi'nde eklenen yeni sıralar ve güncel sınıf kapasiteleri otomatik olarak dahil edilecektir.
-                        </div>
-                    </div>
-                `,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#2563eb',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: '<i class="fa-solid fa-arrows-rotate"></i> Evet, Yeniden Dağıt',
-                cancelButtonText: 'İptal'
-            });
-
-            if (!confirmRes.isConfirmed) return;
-
-            // 1. Güncel Derslikler (Classrooms)
-            const allRooms = DataManager.getClassrooms() || [];
-            const sessionRoomNames = new Set(
-                (session.selectedClassrooms && session.selectedClassrooms.length > 0)
-                    ? session.selectedClassrooms
-                    : (session.results || []).map(r => r.name)
-            );
-            const targetRooms = allRooms.filter(r => sessionRoomNames.has(r.name));
-
-            if (targetRooms.length === 0) {
-                Swal.fire('Hata', 'Oturuma ait geçerli derslik bulunamadı. Lütfen derslik seçimlerini kontrol edin.', 'error');
-                return;
-            }
-
-            // 2. Güncel Öğrenciler
-            const allStudents = DataManager.getStudents() || [];
-            const excludedList = session.excludedStudents || [];
-            const subjects = (session.subjects || []).map(s => typeof s === 'object' ? s.name : s);
-
-            const selectedClassesList = session.selectedClasses || [];
-            const cleanStr = str => String(str || '').trim().toLocaleUpperCase('tr-TR').replace(/[^0-9A-ZÇĞİÖŞÜ]/g, '');
-
-            const targetStudents = allStudents.filter(s => {
-                if (!s || !s.no) return false;
-                if (excludedList.includes(String(s.no))) return false;
-
-                const sCls = (s.class || 'Bilinmeyen').trim();
-                const sAlan = (s.alan || 'Genel').trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
-                const sDersler = (s.dersler || []).map(d => String(d || '').trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ'));
-
-                let matchedSub = null;
-                let matchingPoolSelected = false;
-
-                for (const subName of subjects) {
-                    const subNorm = String(subName || '').trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
-                    const takes = sDersler.some(dn => dn === subNorm || dn.startsWith(subNorm + ' ') || subNorm.startsWith(dn + ' '));
-                    if (takes) {
-                        const pid = `${subNorm}_${sCls.toLocaleUpperCase('tr-TR').replace(/I/g, 'İ')}_${sAlan}`;
-                        if (selectedClassesList.length === 0 || 
-                            selectedClassesList.includes(pid) || 
-                            selectedClassesList.includes(sCls) || 
-                            selectedClassesList.some(sc => cleanStr(sc) === cleanStr(sCls))) {
-                            matchingPoolSelected = true;
-                            matchedSub = subName;
-                            if (!/\d+$/.test(subName)) {
-                                const gradeMatch = sCls.match(/^\d+/);
-                                if (gradeMatch) matchedSub += " " + gradeMatch[0];
-                            }
-                            break;
-                        }
-                    }
-                }
-
-                if (!matchingPoolSelected) return false;
-                s._matchedSubject = matchedSub;
-                return true;
-            });
-
-            if (targetStudents.length === 0) {
-                Swal.fire('Hata', 'Dağıtılacak uygun öğrenci bulunamadı.', 'error');
-                return;
-            }
-
-            let newResults = [];
-            if (session.type === 'uygulama') {
-                const normStr = str => String(str || '').trim().toLocaleUpperCase('tr-TR').replace(/[^0-9A-ZÇĞİÖŞÜ]/g, '');
-                newResults = targetRooms.map(room => {
-                    const roomNorm = normStr(room.name);
-                    const roomMapped = normStr(DataManager.getSanitizedClassRoomMapping(room.name) || '');
-                    const assigned = {};
-                    const roomStudents = targetStudents.filter(s => {
-                        const sClsNorm = normStr(s.class || '');
-                        const sMapped = normStr(DataManager.getSanitizedClassRoomMapping(s.class || '') || '');
-                        return sClsNorm === roomNorm || sMapped === roomNorm || sClsNorm === roomMapped || (roomMapped && sMapped === roomMapped);
-                    });
-
-                    let g = 1, r = 1, c = 1;
-                    let studentIdx = 0;
-                    while(studentIdx < roomStudents.length) {
-                        if (g > (room.groups || 1)) break;
-                        const cf = room.groupConfigs?.[g - 1] || { rows: room.rows || 1, cols: room.cols || 1 };
-                        const seatId = `G${g}-S${r}-C${c}`;
-                        if (!room.disabledSeats?.includes(seatId)) {
-                            assigned[seatId] = roomStudents[studentIdx];
-                            studentIdx++;
-                        }
-                        c++;
-                        if (c > cf.cols) {
-                            c = 1;
-                            r++;
-                            if (r > cf.rows) {
-                                r = 1;
-                                g++;
-                            }
-                        }
-                    }
-
-                    return {
-                        name: room.name, groups: room.groups, groupConfigs: room.groupConfigs,
-                        teacherDeskPos: room.teacherDeskPos || 'right', disabledSeats: room.disabledSeats || [],
-                        rows: room.rows, cols: room.cols, seats: assigned
-                    };
-                });
-            } else {
-                const algo = window.ExamAlgorithm || (typeof ExamAlgorithm !== 'undefined' ? ExamAlgorithm : null);
-                if (!algo || typeof algo.distribute !== 'function') {
-                    throw new Error('ExamAlgorithm yüklenemedi.');
-                }
-                newResults = algo.distribute([...targetStudents], targetRooms, session);
-            }
-
-            let placedCount = 0;
-            newResults.forEach(r => { if (r.seats) placedCount += Object.keys(r.seats).length; });
-
-            session.results = newResults;
-            session.selectedClassrooms = targetRooms.map(r => r.name);
-            DataManager.addExamSession(session);
-
-            window._currentExamResults = newResults;
-            window.currentRenderedSession = session;
-            if (typeof window.renderExamSessionsList === 'function') {
-                window.renderExamSessionsList();
-            }
-            if (typeof window._renderExamResults === 'function') {
-                window._renderExamResults(session);
-            }
-            if (typeof window.viewSessionDistribution === 'function') {
-                window.viewSessionDistribution(sessionId, null, true, true);
-            }
-
-            Swal.fire({
-                title: 'Başarılı',
-                html: `Oturum güncel salon ve sıralara göre başarıyla yeniden dağıtıldı.<br><br><b>${placedCount}</b> öğrenci koltuklara yerleştirildi.`,
-                icon: 'success'
-            });
-
-        } catch (err) {
-            console.error('redistributeExamSession error:', err);
-            Swal.fire('Hata', 'Yeniden dağıtım sırasında hata oluştu: ' + err.message, 'error');
-        }
     };
 
     window.viewSessionDistribution = function (id, forceMode = null, isModeSwitch = false, isAutoRefresh = false) {
