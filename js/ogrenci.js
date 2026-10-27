@@ -147,7 +147,17 @@ DataManager._getStorageKey = function () {
         }
 
         function checkClassroomDisplay() {
-            const devId = localStorage.getItem('klbk_device_id');
+            let devId = localStorage.getItem('klbk_device_id');
+            if (!devId) {
+                // Cookie veya session kurtarma denemesi
+                try {
+                    const match = document.cookie.match(/(?:^|;\s*)klbk_device_id=([^;]+)/);
+                    if (match && match[1]) {
+                        devId = decodeURIComponent(match[1]);
+                        localStorage.setItem('klbk_device_id', devId);
+                    }
+                } catch(e) {}
+            }
             if (!devId) return false;
             
             const mappings = DataManager.getClassDeviceMappings() || {};
@@ -456,75 +466,171 @@ DataManager._getStorageKey = function () {
 
         syncTime();
 
-        // --- Gerçek Cihaz Parmak İzi (Device Fingerprint) ---
-        async function buildDeviceFingerprint() {
-            // 1) localStorage'da kayıtlı varsa kullan (sadece yeni CHZ-XXXX-XXXX formatı)
-            const saved = localStorage.getItem('klbk_device_id');
-            if (saved && /^CHZ-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(saved)) return saved;
-            // Eski formattaki kodu temizle
-            if (saved) localStorage.removeItem('klbk_device_id');
+        // --- Gerçek ve Benzersiz Cihaz Kimliği (High-Entropy Device ID) ---
+        // Eski deterministik (okullarda aynı model akıllı tahtalarda çakışan) kodlar:
+        const LEGACY_COLLIDING_IDS = ['CHZ-7A8D-1589', 'CHZ-3E49-FFD1', 'CHZ-5537-264D', 'CHZ-C660-4E33', 'CHZ-9229'];
 
-            // 2) IndexedDB'de kayıtlı varsa kullan (localStorage temizlense de kalır)
+        async function buildDeviceFingerprint(forceNew = false) {
+            // Eğer zorla yeni kod istenmemişse, kayıtlı geçerli V2 kodunu kontrol et
+            if (!forceNew) {
+                // 1) localStorage kontrolü
+                const saved = localStorage.getItem('klbk_device_id');
+                const isV2 = localStorage.getItem('klbk_device_v') === '2';
+                if (saved && /^CHZ-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(saved) && isV2 && !LEGACY_COLLIDING_IDS.includes(saved)) {
+                    return saved;
+                }
+
+                // 2) IndexedDB kontrolü
+                try {
+                    const idbData = await new Promise((res) => {
+                        const req = indexedDB.open('klbk_device_store', 2);
+                        req.onupgradeneeded = e => {
+                            const db = e.target.result;
+                            if (!db.objectStoreNames.contains('data')) {
+                                db.createObjectStore('data');
+                            }
+                        };
+                        req.onsuccess = e => {
+                            const db = e.target.result;
+                            const tx = db.transaction('data', 'readonly');
+                            const store = tx.objectStore('data');
+                            const getVal = store.get('device_id');
+                            const getV = store.get('device_v');
+                            let val = null, v = null;
+                            getVal.onsuccess = () => { val = getVal.result; };
+                            getV.onsuccess = () => { v = getV.result; };
+                            tx.oncomplete = () => res({ val, v });
+                            tx.onerror = () => res(null);
+                        };
+                        req.onerror = () => res(null);
+                    });
+
+                    if (idbData && idbData.val && /^CHZ-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(idbData.val) && idbData.v === '2' && !LEGACY_COLLIDING_IDS.includes(idbData.val)) {
+                        localStorage.setItem('klbk_device_id', idbData.val);
+                        localStorage.setItem('klbk_device_v', '2');
+                        return idbData.val;
+                    }
+                } catch(e) {}
+
+                // 3) Cookie kontrolü
+                try {
+                    const match = document.cookie.match(/(?:^|;\s*)klbk_device_id=([^;]+)/);
+                    if (match && match[1]) {
+                        const cookieVal = decodeURIComponent(match[1]);
+                        const isCookieV2 = document.cookie.includes('klbk_device_v=2');
+                        if (/^CHZ-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(cookieVal) && isCookieV2 && !LEGACY_COLLIDING_IDS.includes(cookieVal)) {
+                            localStorage.setItem('klbk_device_id', cookieVal);
+                            localStorage.setItem('klbk_device_v', '2');
+                            return cookieVal;
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            // --- YENİ BENZERSİZ CİHAZ KODU ÜRETİMİ (HIGH-ENTROPY ALGORİTMASI) ---
+            // Okullardaki akıllı tahtalar/tabletler aynı model olduğunda sabit donanım parametreleri
+            // birebir aynı çıkmaktadır. Bu yüzden kriptografik rastgelelik (Web Crypto API) +
+            // nanosaniye zaman damgası + donanım parmak izini harmanlayarak 1 trilyonda 1 ihtimalli
+            // benzersiz CHZ-XXXX-XXXX kodu üretiyoruz ve bunu tüm depolama katmanlarına yazıyoruz.
+
+            // 1. Kriptografik Rastgele Entropi (16 Bayt)
+            let randBytes = new Uint8Array(16);
+            if (window.crypto && window.crypto.getRandomValues) {
+                window.crypto.getRandomValues(randBytes);
+            } else {
+                for (let i = 0; i < 16; i++) {
+                    randBytes[i] = Math.floor(Math.random() * 256);
+                }
+            }
+
+            // 2. Zaman, Donanım ve Çevre Sinyalleri
+            const entropyParts = [
+                Date.now(),
+                performance.now(),
+                Math.random(),
+                screen.width, screen.height, screen.colorDepth,
+                Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+                navigator.hardwareConcurrency || 0,
+                navigator.platform || '',
+                navigator.language || '',
+                navigator.maxTouchPoints || 0
+            ];
+
+            // 3. Canvas Entropisi
             try {
-                const idbVal = await new Promise((res) => {
-                    const req = indexedDB.open('klbk_device_store', 1);
-                    req.onupgradeneeded = e => e.target.result.createObjectStore('data');
-                    req.onsuccess = e => {
-                        const db = e.target.result;
-                        const tx = db.transaction('data', 'readonly');
-                        const get = tx.objectStore('data').get('device_id');
-                        get.onsuccess = () => res(get.result);
-                        get.onerror = () => res(null);
-                    };
-                    req.onerror = () => res(null);
-                });
-                if (idbVal && /^CHZ-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(idbVal)) {
-                    localStorage.setItem('klbk_device_id', idbVal);
-                    return idbVal;
+                const canvas = document.createElement('canvas');
+                canvas.width = 120;
+                canvas.height = 30;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.textBaseline = 'top';
+                    ctx.font = '14px Arial';
+                    ctx.fillStyle = '#f60';
+                    ctx.fillRect(10, 5, 60, 20);
+                    ctx.fillStyle = '#069';
+                    ctx.fillText('KLBK-ID-V2', 12, 8);
+                    entropyParts.push(canvas.toDataURL().slice(-40));
                 }
             } catch(e) {}
 
-            // 3) Donanıma özgü SABIT verilerden fingerprint hesapla
-            //    NOT: Canvas/WebGL/userAgent gibi tarayıcıya göre değişen veriler KULLANILMAZ
-            const parts = [];
-            // Ekran boyutu — cihaza özgü, tarayıcıdan bağımsız
-            parts.push(`${screen.width}x${screen.height}x${screen.colorDepth}`);
-            // Saat dilimi — cihaza özgü
-            parts.push(Intl.DateTimeFormat().resolvedOptions().timeZone || 'notz');
-            // CPU çekirdek sayısı — donanıma özgü
-            parts.push(`cpu${navigator.hardwareConcurrency || 0}`);
-            // Platform — işletim sistemine özgü
-            parts.push(navigator.platform || 'noplat');
-            // Dil — genelde cihaza özgü
-            parts.push(navigator.language || 'nolang');
-            // Dokunmatik nokta sayısı — cihaz donanımına özgü
-            parts.push(`touch${navigator.maxTouchPoints || 0}`);
+            const rawEntropy = Array.from(randBytes).join(',') + '|' + entropyParts.join('|');
 
-            const raw = parts.join('|');
-
-            // djb2 hash — senkron, tüm tarayıcılarda aynı sonuç
-            let hash1 = 5381;
-            let hash2 = 52711;
-            for (let i = 0; i < raw.length; i++) {
-                const c = raw.charCodeAt(i);
-                hash1 = ((hash1 << 5) + hash1) + c;
-                hash2 = ((hash2 << 5) + hash2) + c;
+            // 4. Okunması kolay ve karışmayan 32 karakterlik alfabe (0/O, 1/I yok)
+            const CHARSET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+            
+            let h1 = 2166136261;
+            let h2 = 2654435761;
+            for (let i = 0; i < rawEntropy.length; i++) {
+                const c = rawEntropy.charCodeAt(i);
+                h1 ^= c;
+                h1 = Math.imul(h1, 16777619);
+                h2 = (h2 << 5) - h2 + c;
+                h2 |= 0;
             }
-            hash1 = Math.abs(hash1 | 0);
-            hash2 = Math.abs(hash2 | 0);
-            const h1 = hash1.toString(16).toUpperCase().padStart(4, '0').slice(0, 4);
-            const h2 = hash2.toString(16).toUpperCase().padStart(4, '0').slice(0, 4);
-            const devId = `CHZ-${h1}-${h2}`;
 
-            // localStorage + IndexedDB'ye kaydet
+            // Kriptografik rastgele baytlarla XOR harmanı
+            h1 = Math.abs(h1 ^ ((randBytes[0] << 24) | (randBytes[1] << 16) | (randBytes[2] << 8) | randBytes[3]));
+            h2 = Math.abs(h2 ^ ((randBytes[4] << 24) | (randBytes[5] << 16) | (randBytes[6] << 8) | randBytes[7]));
+
+            let p1 = '';
+            let p2 = '';
+            for (let i = 0; i < 4; i++) {
+                p1 += CHARSET[(h1 >>> (i * 5)) % CHARSET.length];
+                p2 += CHARSET[(h2 >>> (i * 5)) % CHARSET.length];
+            }
+
+            const devId = `CHZ-${p1}-${p2}`;
+
+            // 5. Çok Katmanlı Kalıcı Depolama
+            // A) localStorage
             localStorage.setItem('klbk_device_id', devId);
+            localStorage.setItem('klbk_device_v', '2');
+            localStorage.setItem('klbk_device_seed', rawEntropy.slice(0, 40));
+
+            // B) IndexedDB
             try {
-                const r = indexedDB.open('klbk_device_store', 1);
-                r.onsuccess = e => {
+                const req = indexedDB.open('klbk_device_store', 2);
+                req.onupgradeneeded = e => {
                     const db = e.target.result;
-                    db.transaction('data', 'readwrite').objectStore('data').put(devId, 'device_id');
+                    if (!db.objectStoreNames.contains('data')) {
+                        db.createObjectStore('data');
+                    }
+                };
+                req.onsuccess = e => {
+                    const db = e.target.result;
+                    const tx = db.transaction('data', 'readwrite');
+                    const store = tx.objectStore('data');
+                    store.put(devId, 'device_id');
+                    store.put('2', 'device_v');
                 };
             } catch(e) {}
+
+            // C) Cookie (Tarayıcı geçmişi/localStorage silinse bile korunur)
+            try {
+                document.cookie = `klbk_device_id=${devId}; path=/; max-age=315360000; SameSite=Lax`;
+                document.cookie = `klbk_device_v=2; path=/; max-age=315360000; SameSite=Lax`;
+            } catch(e) {}
+
             return devId;
         }
 
@@ -745,16 +851,15 @@ DataManager._getStorageKey = function () {
                 
                 // --- Cihaz Eşleştirme Modu (00000) ---
                 if (studentNo === '00000') {
-                    const devId = await buildDeviceFingerprint();
+                    let devId = await buildDeviceFingerprint();
                     const beaconUrl = 'https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users/device_assign_00000.json';
-                    const beaconBody = JSON.stringify({ deviceId: devId, timestamp: Date.now() });
 
                     // İlk sinyali HEMEN gönder (2 sn beklemeden)
-                    const sendBeacon = () => {
+                    const sendBeacon = (targetId) => {
                         return fetch(beaconUrl, {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ deviceId: devId, timestamp: Date.now() })
+                            body: JSON.stringify({ deviceId: targetId || devId, timestamp: Date.now() })
                         });
                     };
 
@@ -800,7 +905,7 @@ DataManager._getStorageKey = function () {
 
                     // İlk sinyali hemen gönder
                     try {
-                        await sendBeacon();
+                        await sendBeacon(devId);
                         console.log('İlk sinyal gönderildi:', devId);
                     } catch(e) {
                         console.error('İlk sinyal hatası:', e);
@@ -809,7 +914,7 @@ DataManager._getStorageKey = function () {
                     // Sonra her 2 saniyede tekrarla
                     let beaconInterval = setInterval(async () => {
                         try {
-                            await sendBeacon();
+                            await sendBeacon(devId);
                         } catch(e) {
                             console.error('Beacon hatası:', e);
                         }
@@ -818,11 +923,46 @@ DataManager._getStorageKey = function () {
 
                     Swal.fire({
                         title: 'Cihaz Eşleştirme',
-                        html: `Sinyal gönderiliyor... <br><br>Cihaz Kodunuz: <b style="color:var(--primary); font-size:1.2rem;">${devId}</b><br><br>Bu kodu yönetici panelinden 'Cihaz Ata' diyerek eşleştirin.<br><br><div class="spinner-border text-primary" role="status"></div>`,
+                        html: `
+                            <div style="font-size:0.95rem; color:#475569; margin-bottom:12px;">
+                                Sinyal panele gönderiliyor...
+                            </div>
+                            <div style="margin:14px 0;">
+                                <div style="font-size:0.8rem; color:#64748b; font-weight:600; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Cihaz Kodunuz:</div>
+                                <div id="displayDevId" style="color:var(--primary); font-size:1.5rem; font-weight:800; letter-spacing:2px; padding:10px 18px; background:#f8fafc; border-radius:12px; display:inline-block; border:2px solid #cbd5e1; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                                    ${devId}
+                                </div>
+                            </div>
+                            <div style="margin-bottom:14px;">
+                                <button type="button" id="btnRegenDevId" style="border:1px solid #cbd5e1; padding:6px 14px; border-radius:8px; font-size:0.82rem; cursor:pointer; background:#fff; color:#334155; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
+                                    <i class="fa-solid fa-arrows-rotate"></i> Farklı / Yeni Kod Üret
+                                </button>
+                            </div>
+                            <div style="font-size:0.85rem; color:#64748b; line-height:1.45;">
+                                Bu cihazı yönetici panelindeki <b>Sınıf / Öğrenci</b> sekmesinde ilgili sınıfın <b>'Cihaz Ata'</b> butonuna basarak eşleştirin.
+                            </div>
+                            <br>
+                            <div class="spinner-border text-primary" role="status" style="width:2rem; height:2rem;"></div>
+                        `,
                         allowOutsideClick: false,
                         showConfirmButton: true,
                         confirmButtonText: 'İptal',
-                        confirmButtonColor: '#ef4444'
+                        confirmButtonColor: '#ef4444',
+                        didOpen: () => {
+                            const btnRegen = document.getElementById('btnRegenDevId');
+                            if (btnRegen) {
+                                btnRegen.onclick = async () => {
+                                    btnRegen.disabled = true;
+                                    btnRegen.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Üretiliyor...';
+                                    devId = await buildDeviceFingerprint(true); // forceNew = true
+                                    const disp = document.getElementById('displayDevId');
+                                    if (disp) disp.textContent = devId;
+                                    await sendBeacon(devId);
+                                    btnRegen.disabled = false;
+                                    btnRegen.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Farklı / Yeni Kod Üret';
+                                };
+                            }
+                        }
                     }).then(() => {
                         if (beaconInterval) { clearInterval(beaconInterval); beaconInterval = null; }
                         if (noInput) noInput.value = '';

@@ -1398,6 +1398,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                     clearInterval(assignDeviceInterval);
                     Swal.close();
                     
+                    const mappings = DataManager.getClassDeviceMappings() || {};
+                    let previousClass = null;
+                    for (let c in mappings) {
+                        if (mappings[c] === data.deviceId && c !== className && DataManager.sanitizeFirebaseKey(c) !== DataManager.sanitizeFirebaseKey(className)) {
+                            previousClass = c;
+                            break;
+                        }
+                    }
+                    if (previousClass) {
+                        // Aynı kodun iki sınıfta çakışmasını engellemek için eski sınıftan kaldır
+                        DataManager.saveClassDeviceMapping(previousClass, '');
+                    }
+
                     DataManager.saveClassDeviceMapping(className, data.deviceId);
                     
                     fetch(`https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/app_store/klbk_users/${pairingChannel}.json`, {
@@ -1408,9 +1421,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         toast: true,
                         position: 'top-end',
                         icon: 'success',
-                        title: `Cihaz başarıyla '${className}' sınıfına atandı! (Kod: ${data.deviceId})`,
+                        title: previousClass 
+                            ? `Cihaz '${className}' sınıfına atandı! ('${previousClass}' sınıfından aktarıldı - Kod: ${data.deviceId})`
+                            : `Cihaz başarıyla '${className}' sınıfına atandı! (Kod: ${data.deviceId})`,
                         showConfirmButton: false,
-                        timer: 2000
+                        timer: 2500
                     });
                     
                     updateClassesList();
@@ -1492,7 +1507,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (result.isConfirmed && result.value !== undefined) {
             const newId = result.value;
             if (newId !== currentId) {
-                DataManager.saveClassDeviceMapping(className, newId.trim().toUpperCase());
+                const cleanedId = newId.trim().toUpperCase();
+                // Eğer bu kod başka bir sınıfta kullanılıyorsa, çift atamayı önlemek için eski sınıftan kaldır
+                if (cleanedId) {
+                    const mappings = DataManager.getClassDeviceMappings() || {};
+                    for (let c in mappings) {
+                        if (mappings[c] === cleanedId && c !== className && DataManager.sanitizeFirebaseKey(c) !== DataManager.sanitizeFirebaseKey(className)) {
+                            DataManager.saveClassDeviceMapping(c, '');
+                            break;
+                        }
+                    }
+                }
+                DataManager.saveClassDeviceMapping(className, cleanedId);
                 Swal.fire({
                     toast: true,
                     position: 'top-end',
@@ -1598,6 +1624,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const bgColors = ['#f8fafc', '#f0fdf4', '#fdf2f8', '#fffbeb', '#f5f3ff'];
         const borderColors = ['#cbd5e1', '#bbf7d0', '#fbcfe8', '#fde68a', '#ddd6fe'];
 
+        // Çakışan (birden fazla sınıfa atanmış) cihaz kodlarını tespit et
+        const allDeviceMappings = DataManager.getClassDeviceMappings() || {};
+        const deviceCodeCounts = {};
+        for (let c in allDeviceMappings) {
+            const dev = allDeviceMappings[c];
+            if (dev) deviceCodeCounts[dev] = (deviceCodeCounts[dev] || 0) + 1;
+        }
+
         let html = '<div class="accordion-container" style="display:flex; flex-direction:column; gap:1rem;">';
         let widgetHtml = '';
 
@@ -1623,6 +1657,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const g = String(s.cinsiyet || s.gender || s.extra1 || '').trim().toUpperCase();
                 return g === 'E' || g === 'ERKEK' || g === 'MALE';
             }).length;
+
+            const currentDevId = DataManager.getSanitizedClassDeviceMapping(cls);
+            const isCollidingDev = currentDevId && (deviceCodeCounts[currentDevId] > 1);
+            const badgeBorder = isCollidingDev ? '#ef4444' : (currentDevId ? '#cbd5e1' : '#e2e8f0');
+            const badgeBg = isCollidingDev ? '#fef2f2' : (currentDevId ? '#f8fafc' : 'transparent');
+            const badgeColor = isCollidingDev ? '#b91c1c' : 'var(--primary)';
+            const badgeTitle = isCollidingDev 
+                ? `UYARI: Bu cihaz kodu (${currentDevId}) birden fazla sınıfta tanımlı! Yeniden 'Cihaz Ata' yaparak benzersiz kod atayınız.` 
+                : (currentDevId ? 'Değiştirmek için tıklayın, takas için sağ tıklayın veya basılı tutun' : 'Cihaz atamak için tıklayın veya sağ tık ile takas yapın');
+            const badgeIcon = isCollidingDev ? '<i class="fa-solid fa-triangle-exclamation" style="color:#ef4444;"></i> ' : '<i class="fa-solid fa-mobile-screen-button"></i> ';
 
             // Accordion Header
             html += `
@@ -1672,7 +1716,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <button class="btn btn-secondary btn-sm" style="height:38px; width:110px; min-width:110px; flex-shrink:0; padding:0 0.5rem; font-size:0.85rem; font-weight:600; border-radius:8px; background-color:var(--primary); color:white; border:none; display:inline-flex; align-items:center; justify-content:center; gap:5px; box-sizing:border-box; white-space:nowrap;" onclick="event.stopPropagation(); window.assignDeviceToClass('${cls}')">
                                 <i class="fa-solid fa-tablet-screen-button"></i> Cihaz Ata
                             </button>
-                            <span data-device-class="${cls}" onclick="event.stopPropagation(); window.editDeviceMapping('${cls}')" oncontextmenu="window.selectDeviceForSwap('${cls}', event)" ontouchstart="window.deviceTouchTimer = setTimeout(() => window.selectDeviceForSwap('${cls}', null), 800)" ontouchend="clearTimeout(window.deviceTouchTimer)" ontouchmove="clearTimeout(window.deviceTouchTimer)" style="height:38px; width:140px; min-width:140px; flex-shrink:0; padding:0 8px; border-radius:8px; border:1px solid ${DataManager.getSanitizedClassDeviceMapping(cls) ? '#cbd5e1' : '#e2e8f0'}; background:${DataManager.getSanitizedClassDeviceMapping(cls) ? '#f8fafc' : 'transparent'}; font-size:0.82rem; color:var(--primary); white-space:nowrap; display:inline-flex; align-items:center; justify-content:center; gap:5px; box-sizing:border-box; cursor:pointer;" title="${DataManager.getSanitizedClassDeviceMapping(cls) ? 'Değiştirmek için tıklayın, takas için sağ tıklayın veya basılı tutun' : 'Cihaz atamak için tıklayın veya sağ tık ile takas yapın'}">${DataManager.getSanitizedClassDeviceMapping(cls) ? '<i class="fa-solid fa-mobile-screen-button"></i>' + DataManager.getSanitizedClassDeviceMapping(cls) : ''}</span>
+                            <span data-device-class="${cls}" onclick="event.stopPropagation(); window.editDeviceMapping('${cls}')" oncontextmenu="window.selectDeviceForSwap('${cls}', event)" ontouchstart="window.deviceTouchTimer = setTimeout(() => window.selectDeviceForSwap('${cls}', null), 800)" ontouchend="clearTimeout(window.deviceTouchTimer)" ontouchmove="clearTimeout(window.deviceTouchTimer)" style="height:38px; width:140px; min-width:140px; flex-shrink:0; padding:0 8px; border-radius:8px; border:1.5px solid ${badgeBorder}; background:${badgeBg}; font-size:0.82rem; font-weight:${isCollidingDev ? '700' : 'normal'}; color:${badgeColor}; white-space:nowrap; display:inline-flex; align-items:center; justify-content:center; gap:5px; box-sizing:border-box; cursor:pointer;" title="${badgeTitle}">${currentDevId ? badgeIcon + currentDevId : ''}</span>
 
                             <button class="btn btn-danger btn-sm" style="height:38px; width:38px; min-width:38px; flex-shrink:0; padding:0; font-size:0.95rem; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; margin-left:2px;" onclick="event.stopPropagation(); window.deleteClassCompletely('${cls}')" title="Sınıfı Sil">
                                 <i class="fa-solid fa-trash-can"></i>
