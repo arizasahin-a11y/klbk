@@ -437,11 +437,10 @@
         let openSessions = new Set();
         let openSubjects = new Set();
         let openDuties = new Set();
+        // Başlangıçta tüm akordiyon listeler kapalı gelsin
         try {
-            const savedDuties = sessionStorage.getItem('klbk_openDuties');
-            if (savedDuties) {
-                JSON.parse(savedDuties).forEach(k => openDuties.add(k));
-            }
+            sessionStorage.removeItem('klbk_openDuties');
+            sessionStorage.removeItem('klbk_myDutiesOpen');
         } catch(e) {}
         let lastSyncSessions = '';
 
@@ -656,7 +655,7 @@
 
         window.toggleMyDuties = function() {
             const stored = sessionStorage.getItem('klbk_myDutiesOpen');
-            const isOpen = stored === null ? true : (stored === 'true');
+            const isOpen = stored === 'true';
             const nextState = !isOpen;
             sessionStorage.setItem('klbk_myDutiesOpen', nextState.toString());
             
@@ -1499,7 +1498,7 @@
                     if (myDuties.length === 0) return;
 
                     var storedDutiesOpen = sessionStorage.getItem('klbk_myDutiesOpen');
-                    var isDutiesOpen = storedDutiesOpen === null ? true : (storedDutiesOpen === 'true');
+                    var isDutiesOpen = (storedDutiesOpen === 'true');
                     var dutiesItemsHtml = '';
 
                     myDuties.forEach(function(d) {
@@ -1573,7 +1572,7 @@
                             + '</div></div>';
                     });
 
-                    dutiesHtml += '<div class="glass-panel" style="margin-top: 1rem; margin-bottom: 1.5rem; border: 3px solid #d97706; padding: 0; overflow: hidden;">'
+                    dutiesHtml += '<div class="glass-panel" style="margin-top: 1.5rem; margin-bottom: 2rem; border: 3px solid #d97706; padding: 0; overflow: hidden;">'
                         + '<div style="padding: 1.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(217, 119, 6, 0.05); touch-action: manipulation; -webkit-tap-highlight-color: transparent;" onclick="window.toggleMyDuties()">'
                         + '<h3 style="margin: 0; font-size: 1.1rem; font-weight: 900; color: #d97706; display: flex; align-items: center; gap: 10px;">'
                         + '<i class="fa-solid fa-clipboard-check"></i> SINAV GÖREVLERİNİZ'
@@ -2103,7 +2102,7 @@
                         }
                     }
                 }
-                html = dutiesHtml ? (dutiesHtml + html) : html;
+                html = dutiesHtml ? (html + dutiesHtml) : html;
                 listContainer.innerHTML = html;
             } catch (err) {
                 console.error("renderExams error:", err);
