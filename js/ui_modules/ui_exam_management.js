@@ -1050,6 +1050,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        const isUyg = src.type === 'uygulama';
         const toArr = (v) => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
         const normSub = (x) => String(x || '').trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
         const normCls = (x) => String(x || 'Bilinmeyen').trim().toLocaleUpperCase('tr-TR');
@@ -1174,7 +1175,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // --- Sihirbazı sıfırla ve doldur ---
         resetWizard();
-        const isUyg = src.type === 'uygulama';
         const baseName = String(src.name || '').replace(/\s*\(UYG\)\s*$/, '').trim();
 
         let subjectMetadata = {};
