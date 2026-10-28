@@ -2732,6 +2732,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!appendMode) view.innerHTML = '';
 
         results.forEach((room, idx) => {
+            if (!room) return;
+            if (!room.seats) room.seats = {};
             const roomId = `nested-room-schema-${sessionId}-${idx}`;
             const roomEl = document.createElement('div');
             roomEl.className = 'exam-room-result';
@@ -2759,7 +2761,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 for (let r = conf.rows; r >= 1; r--) {
                     for (let c = 1; c <= conf.cols; c++) {
                         const seatId = `G${g}-S${r}-C${c}`;
-                        const student = room.seats[seatId];
+                        const student = room.seats ? room.seats[seatId] : null;
                         const isDisabled = room.disabledSeats && room.disabledSeats.includes(seatId);
 
                         if (isDisabled) {
@@ -2775,7 +2777,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 let hs = false, hv = false;
                                 neighbors.forEach(n => {
                                     const nid = `G${g}-S${r + n.dr}-C${c + n.dc}`;
-                                    const nstd = room.seats[nid];
+                                    const nstd = room.seats ? room.seats[nid] : null;
                                     if (nstd && (nstd._matchedSubject || '-') === sub) { if (n.v) hv = true; else hs = true; }
                                 });
                                 if (hs) { bg = 'background:#fee2e2;'; border = 'border:2px solid #ef4444;'; }

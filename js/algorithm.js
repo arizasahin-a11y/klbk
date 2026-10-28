@@ -805,8 +805,8 @@ var ExamAlgorithm = window.ExamAlgorithm = {
             for (const seats of Object.values(seatsByCol)) {
                 seats.sort((a, b) => a.r - b.r);
                 for (let i = 0; i < seats.length - 1; i++) {
-                    const s1 = room.seats[seats[i].id];
-                    const s2 = room.seats[seats[i + 1].id];
+                    const s1 = room.seats?.[seats[i].id];
+                    const s2 = room.seats?.[seats[i + 1].id];
                     if (s1 && s2 && s1._matchedSubject && s2._matchedSubject &&
                         s1._matchedSubject === s2._matchedSubject) {
                         total++;

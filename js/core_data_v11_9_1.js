@@ -1015,6 +1015,11 @@ const DataManager = {
         // Otomatik temizleme: Dağıtımı yapılmış oturumlarda koltukta bulunmayan eski öğrenci statülerini temizle
         let mutated = false;
         arr.forEach(ses => {
+            if (ses && Array.isArray(ses.results)) {
+                ses.results.forEach(r => {
+                    if (r && !r.seats) r.seats = {};
+                });
+            }
             if (ses && Array.isArray(ses.results) && ses.results.length > 0 && ses.studentStatuses) {
                 const seatStudentNos = new Set();
                 ses.results.forEach(r => {
@@ -1051,6 +1056,12 @@ const DataManager = {
     addExamSession: function (sessionObj) {
         const data = this._getData();
         if (!data.examSessions) data.examSessions = [];
+
+        if (sessionObj && Array.isArray(sessionObj.results)) {
+            sessionObj.results.forEach(r => {
+                if (r && !r.seats) r.seats = {};
+            });
+        }
 
         // Apply default messages if empty
         if (!sessionObj.studentMsg) {

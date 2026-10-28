@@ -1147,8 +1147,8 @@ DataManager._getStorageKey = function () {
                             }
                         }
                     }
-                    Object.entries(room.seats).forEach(([sid, std]) => {
-                        if (std.no.toString() === currentStudent.no.toString()) {
+                    Object.entries(room.seats || {}).forEach(([sid, std]) => {
+                        if (std && std.no && std.no.toString() === currentStudent.no.toString()) {
                             foundRoom = room; foundSeatId = sid; seatNum = seatToNum[sid];
                         }
                     });
@@ -2177,9 +2177,9 @@ DataManager._getStorageKey = function () {
                     let info = null;
                     if (session && session.results) {
                         for (const room of session.results) {
-                            const seatId = Object.keys(room.seats || {}).find(sid => room.seats[sid].no === stdUser.no);
+                            const seatId = Object.keys(room.seats || {}).find(sid => room.seats && room.seats[sid] && room.seats[sid].no === stdUser.no);
                             if (seatId) {
-                                const stdData = room.seats[seatId];
+                                const stdData = (room.seats || {})[seatId];
                                 let seatNum = '-';
                                 let ctr = 1;
                                 for (let g = 1; g <= room.groups; g++) {
@@ -2254,12 +2254,12 @@ DataManager._getStorageKey = function () {
             sessions.forEach(ses => {
                 if (!ses.results) return;
                 ses.results.forEach(room => {
-                    const isStudentInThisRoom = Object.values(room.seats).some(seat =>
-                        seat.no.toString() === currentStudent.no.toString()
+                    const isStudentInThisRoom = Object.values(room.seats || {}).some(seat =>
+                        seat && seat.no && seat.no.toString() === currentStudent.no.toString()
                     );
                     if (isStudentInThisRoom) {
-                        Object.values(room.seats).forEach(seat => {
-                            if (seat._matchedSubject) subjectsInMyRooms.add(seat._matchedSubject);
+                        Object.values(room.seats || {}).forEach(seat => {
+                            if (seat && seat._matchedSubject) subjectsInMyRooms.add(seat._matchedSubject);
                         });
                     }
                 });

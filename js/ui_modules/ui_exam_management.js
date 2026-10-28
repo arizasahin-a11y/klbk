@@ -3100,7 +3100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             if (!(room.disabledSeats || []).includes(sid)) seatToNum[sid] = ctr++;
                         }
                 }
-                Object.entries(room.seats).forEach(([sid, s]) => {
+                Object.entries(room.seats || {}).forEach(([sid, s]) => {
                     allStudentsInSession.push({ ...s, room: room.name, seat: seatToNum[sid] || '-' });
                 });
             });
@@ -3399,7 +3399,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 if (!(room.disabledSeats || []).includes(sid)) seatToNum[sid] = ctr++;
                             }
                     }
-                    Object.entries(room.seats).forEach(([sid, std]) =>
+                    Object.entries(room.seats || {}).forEach(([sid, std]) =>
                         flatList.push({ ...std, room: room.name, seatNum: seatToNum[sid] || '-' }));
                 });
                 const byClass = {};
@@ -3490,7 +3490,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const totalPages = Math.ceil(sortedSeatIds.length / PAGE_SIZE);
 
                         const rows = chunk.map(sid => {
-                            const s = room.seats[sid];
+                            const s = (room.seats || {})[sid];
                             if (s) {
                                 const effCount = getEffectiveSubjectGroupCount(session, s._matchedSubject);
                                 const groupSuffix = (effCount > 1 && (s._groupLabel || s.group)) ? ` (${s._groupLabel || s.group})` : '';
@@ -3606,7 +3606,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     let hasStrict = false, hasVertical = false;
                                     const neighbors = [{ dr: 0, dc: -1, type: 'h' }, { dr: 0, dc: 1, type: 'h' }, { dr: -1, dc: -1, type: 'd' }, { dr: -1, dc: 1, type: 'd' }, { dr: 1, dc: -1, type: 'd' }, { dr: 1, dc: 1, type: 'd' }, { dr: -1, dc: 0, type: 'v' }, { dr: 1, dc: 0, type: 'v' }];
                                     neighbors.forEach(n => {
-                                        const nstd = room.seats[`G${g}-S${r + n.dr}-C${c + n.dc}`];
+                                        const nstd = (room.seats || {})[`G${g}-S${r + n.dr}-C${c + n.dc}`];
                                         if (nstd && (nstd._matchedSubject || '-') === sub) { if (n.type === 'v') hasVertical = true; else hasStrict = true; }
                                     });
                                     if (hasStrict) bg = 'background-color:#fee2e2;'; else if (hasVertical) bg = 'background-color:#fef9c3;';
@@ -5959,6 +5959,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return window.startSessionDistribution(id);
             }
 
+            if (Array.isArray(session.results)) {
+                session.results.forEach(r => {
+                    if (r && !r.seats) r.seats = {};
+                });
+            }
+
             window.currentRenderedSession = session;
 
             let examTeachersData = { classrooms: {}, globalSpares: [] };
@@ -5991,6 +5997,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!appendMode) view.innerHTML = '';
 
         session.results.forEach((room, idx) => {
+            if (!room) return;
+            if (!room.seats) room.seats = {};
             const roomId = `nested-room-list-${idx}-${Math.random().toString(36).substr(2, 5)}`;
             const roomPanel = document.createElement('div');
             roomPanel.style.marginBottom = '1rem';
@@ -6013,7 +6021,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Extract students from seats and sort by seat ID (G..S..C..)
             let allHavePdf = true;
-            const sortedSeats = Object.keys(room.seats).sort((a, b) => {
+            const sortedSeats = Object.keys(room.seats || {}).sort((a, b) => {
                 const partsA = a.match(/\d+/g).map(Number);
                 const partsB = b.match(/\d+/g).map(Number);
                 for (let i = 0; i < partsA.length; i++) {
@@ -6025,7 +6033,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const metadata = session.subjectMetadata || {};
 
         let tableRows = sortedSeats.map(seatId => {
-            const s = room.seats[seatId];
+            const s = (room.seats || {})[seatId];
+            if (!s) return '';
             
             const subName = s._matchedSubject || '-';
             const group = s._groupLabel || s.group || 'default';
@@ -6121,6 +6130,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Flatten with sequence numbers
         const flatList = [];
         session.results.forEach((room, roomIdx) => {
+            if (!room) return;
+            if (!room.seats) room.seats = {};
             // Re-calculate visual numbers for this room (Rule: Bottom-Left = 1)
             let roomSeatCounter = 1;
             const seatToNum = {};
@@ -6137,7 +6148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            Object.entries(room.seats).forEach(([seatId, std]) => {
+            Object.entries(room.seats || {}).forEach(([seatId, std]) => {
                 flatList.push({
                     ...std,
                     room: room.name,
