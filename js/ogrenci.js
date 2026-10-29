@@ -1492,6 +1492,8 @@ DataManager._getStorageKey = function () {
                 // Arka planda dosyaları IndexedDB önbelleğine almaya başla (Hızlı oynatma için, kademeli ve akıllı gecikmeli)
                 if (files && files.length > 0) {
                     files.forEach((fUrl, index) => {
+                        const mInfo = DataManager.classifyMedia ? DataManager.classifyMedia(fUrl) : {};
+                        if (mInfo.type === 'youtube' || mInfo.type === 'vimeo') return; // YouTube ve Vimeo platform akışları önbelleğe indirilmez
                         // Bellek önbelleğinde varsa zaten işlem yapmaya gerek yok
                         if (DataManager._fileBytesCache[fUrl]) return;
                         
@@ -1542,17 +1544,44 @@ DataManager._getStorageKey = function () {
                                 </label>
                                 <div style="display: flex; flex-direction: column; gap: 12px;">
                                     ${files.map((fileUrl, fIdx) => {
+                                        const mInfo = DataManager.classifyMedia ? DataManager.classifyMedia(fileUrl) : {};
                                         const labelName = `${turkishNumbers[fIdx] || (fIdx + 1) + '.'} DOSYA`;
                                         const encodedUrl = encodeURIComponent(fileUrl);
+                                        
+                                        let badgeHtml = '';
+                                        let iconClass = 'fa-solid fa-circle-play';
+                                        let btnBg = 'linear-gradient(135deg, var(--secondary), #059669)';
+
+                                        if (mInfo.type === 'youtube') {
+                                            badgeHtml = '<span style="font-size:0.75rem; font-weight:700; background:rgba(239,68,68,0.2); color:#fca5a5; padding:3px 8px; border-radius:6px; margin-left:8px; border:1px solid rgba(239,68,68,0.3);"><i class="fa-brands fa-youtube" style="margin-right:4px;"></i>YouTube Video</span>';
+                                            iconClass = 'fa-brands fa-youtube';
+                                            btnBg = 'linear-gradient(135deg, #b91c1c, #991b1b)';
+                                        } else if (mInfo.type === 'vimeo') {
+                                            badgeHtml = '<span style="font-size:0.75rem; font-weight:700; background:rgba(0,173,239,0.2); color:#bae6fd; padding:3px 8px; border-radius:6px; margin-left:8px; border:1px solid rgba(0,173,239,0.3);"><i class="fa-brands fa-vimeo" style="margin-right:4px;"></i>Vimeo</span>';
+                                            iconClass = 'fa-brands fa-vimeo';
+                                            btnBg = 'linear-gradient(135deg, #0284c7, #0369a1)';
+                                        } else if (mInfo.type === 'video') {
+                                            badgeHtml = '<span style="font-size:0.75rem; font-weight:700; background:rgba(139,92,246,0.2); color:#d8b4fe; padding:3px 8px; border-radius:6px; margin-left:8px; border:1px solid rgba(139,92,246,0.3);"><i class="fa-solid fa-video" style="margin-right:4px;"></i>Video</span>';
+                                            iconClass = 'fa-solid fa-file-video';
+                                            btnBg = 'linear-gradient(135deg, #6d28d9, #5b21b6)';
+                                        } else if (mInfo.type === 'audio') {
+                                            badgeHtml = '<span style="font-size:0.75rem; font-weight:700; background:rgba(6,182,212,0.2); color:#a5f3fc; padding:3px 8px; border-radius:6px; margin-left:8px; border:1px solid rgba(6,182,212,0.3);"><i class="fa-solid fa-headphones" style="margin-right:4px;"></i>Ses Kaydı</span>';
+                                            iconClass = 'fa-solid fa-file-audio';
+                                            btnBg = 'linear-gradient(135deg, #0284c7, #0369a1)';
+                                        }
+
                                         return `
-                                            <button type="button" class="btn btn-primary" onclick="window.playUygulamaMediaStudent(decodeURIComponent('${encodedUrl}'))" style="width: 100%; padding: 1rem 1.5rem; border-radius: 12px; font-weight: 800; font-size: 1rem; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, var(--secondary), #059669); border: none; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15); transition: all 0.2s; text-align: left; color: white; cursor: pointer;">
+                                            <button type="button" class="btn btn-primary" onclick="window.playUygulamaMediaStudent(decodeURIComponent('${encodedUrl}'))" style="width: 100%; padding: 1rem 1.5rem; border-radius: 12px; font-weight: 800; font-size: 1rem; display: flex; align-items: center; justify-content: space-between; background: ${btnBg}; border: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); transition: all 0.2s; text-align: left; color: white; cursor: pointer;">
                                                 <span style="display: flex; align-items: center; gap: 12px;">
                                                     <span style="width: 32px; height: 32px; background: rgba(255, 255, 255, 0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 900;">
                                                         ${fIdx + 1}
                                                     </span>
-                                                    <span>${labelName}</span>
+                                                    <span style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                                                        <span>${labelName}</span>
+                                                        ${badgeHtml}
+                                                    </span>
                                                 </span>
-                                                <i class="fa-solid fa-circle-play" style="font-size: 1.3rem; opacity: 0.9;"></i>
+                                                <i class="${iconClass}" style="font-size: 1.3rem; opacity: 0.95;"></i>
                                             </button>
                                         `;
                                     }).join('')}
@@ -1824,36 +1853,60 @@ DataManager._getStorageKey = function () {
         }
 
         // --- APPLICATION EXAM MEDIA PLAYER FOR STUDENTS ---
+        window.switchKlbkStudentPlayerTab = function(tabName) {
+            const btnNative = document.getElementById('student-tab-btn-native');
+            const btnIframe = document.getElementById('student-tab-btn-iframe');
+            const contentNative = document.getElementById('student-player-content-native');
+            const contentIframe = document.getElementById('student-player-content-iframe');
+            
+            const nativeAudio = document.getElementById('klbk-native-audio');
+            const nativeVideo = document.getElementById('klbk-native-video');
+            if (nativeAudio) nativeAudio.pause();
+            if (nativeVideo) nativeVideo.pause();
+            
+            if (tabName === 'native') {
+                if (btnNative) { btnNative.style.background = '#6366f1'; btnNative.style.color = '#fff'; }
+                if (btnIframe) { btnIframe.style.background = '#334155'; btnIframe.style.color = '#94a3b8'; }
+                if (contentNative) contentNative.style.display = 'flex';
+                if (contentIframe) contentIframe.style.display = 'none';
+            } else {
+                if (btnNative) { btnNative.style.background = '#334155'; btnNative.style.color = '#94a3b8'; }
+                if (btnIframe) { btnIframe.style.background = '#6366f1'; btnIframe.style.color = '#fff'; }
+                if (contentNative) contentNative.style.display = 'none';
+                if (contentIframe) contentIframe.style.display = 'block';
+            }
+        };
+
         window.playUygulamaMediaStudent = async function(url) {
             if (!url) {
                 Swal.fire('Eksik', 'Geçersiz dosya bağlantısı', 'warning');
                 return;
             }
-            const lowerUrl = url.toLowerCase();
+            const cleanUrl = url.trim();
+            const lowerUrl = cleanUrl.toLowerCase();
+            const media = DataManager.classifyMedia ? DataManager.classifyMedia(cleanUrl) : {};
 
-            // YouTube detection
-            const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/i);
-            // Vimeo detection
-            const vimeoMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/i);
-
-            if (ytMatch) {
-                const videoId = ytMatch[1];
-                const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&controls=1`;
+            // 1. YouTube Oynatıcı
+            if (media.type === 'youtube') {
+                const embedUrl = media.embedUrl;
                 Swal.fire({
-                    title: 'YouTube Medya Oynatıcı',
+                    title: '<div style="display:flex; align-items:center; gap:8px;"><i class="fa-brands fa-youtube" style="color:#ef4444; font-size:1.4rem;"></i> <span>YouTube Medya Oynatıcı</span></div>',
                     html: `
-                    <div style="background:#1e293b; color:#fff; border-radius:12px; padding:15px; text-align:center;">
+                    <div style="background:#0f172a; color:#fff; border-radius:12px; padding:15px; text-align:center;">
                         <div style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:8px; background:#000; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
-                            <iframe src="${embedUrl}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+                            <iframe src="${embedUrl}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
                         </div>
-                        <div style="margin-top:15px; border-top:1px solid #334155; padding-top:12px; display:flex; flex-direction:column; gap:8px;">
-                            <div style="text-align:left; font-size:0.75rem; color:#94a3b8; line-height:1.4;">
-                                <i class="fa-brands fa-youtube" style="color:#ef4444; font-size: 0.95rem; margin-right:4px;"></i> 
-                                YouTube bağlantısı gömülü güvenli oynatıcı aracılığıyla yürütülüyor.
+                        <div style="margin-top:15px; border-top:1px solid #334155; padding-top:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                            <div style="text-align:left; font-size:0.75rem; color:#94a3b8; line-height:1.4; display:flex; align-items:center; gap:6px;">
+                                <i class="fa-brands fa-youtube" style="color:#ef4444; font-size: 1rem;"></i> 
+                                <span>YouTube video akışı devrede</span>
                             </div>
+                            <a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="background:#ef4444; color:#fff; font-size:0.75rem; padding:6px 14px; border-radius:6px; text-decoration:none; font-weight:700; display:inline-flex; align-items:center; gap:5px; border:none; box-shadow:0 2px 8px rgba(239,68,68,0.3);">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> YouTube'da Aç
+                            </a>
                         </div>
                     </div>`,
-                    width: '720px',
+                    width: '740px',
                     background: '#1e293b',
                     showCloseButton: true,
                     showConfirmButton: false
@@ -1861,24 +1914,27 @@ DataManager._getStorageKey = function () {
                 return;
             }
 
-            if (vimeoMatch) {
-                const videoId = vimeoMatch[1];
-                const embedUrl = `https://player.vimeo.com/video/${videoId}?autoplay=1`;
+            // 2. Vimeo Oynatıcı
+            if (media.type === 'vimeo') {
+                const embedUrl = media.embedUrl;
                 Swal.fire({
-                    title: 'Vimeo Medya Oynatıcı',
+                    title: '<div style="display:flex; align-items:center; gap:8px;"><i class="fa-brands fa-vimeo" style="color:#00adef; font-size:1.4rem;"></i> <span>Vimeo Medya Oynatıcı</span></div>',
                     html: `
-                    <div style="background:#1e293b; color:#fff; border-radius:12px; padding:15px; text-align:center;">
+                    <div style="background:#0f172a; color:#fff; border-radius:12px; padding:15px; text-align:center;">
                         <div style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:8px; background:#000; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
-                            <iframe src="${embedUrl}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" allow="autoplay; fullscreen; picture-in-picture" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+                            <iframe src="${embedUrl}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
                         </div>
-                        <div style="margin-top:15px; border-top:1px solid #334155; padding-top:12px; display:flex; flex-direction:column; gap:8px;">
-                            <div style="text-align:left; font-size:0.75rem; color:#94a3b8; line-height:1.4;">
-                                <i class="fa-brands fa-vimeo" style="color:#00adef; font-size: 0.95rem; margin-right:4px;"></i> 
-                                Vimeo bağlantısı gömülü güvenli oynatıcı aracılığıyla yürütülüyor.
+                        <div style="margin-top:15px; border-top:1px solid #334155; padding-top:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                            <div style="text-align:left; font-size:0.75rem; color:#94a3b8; line-height:1.4; display:flex; align-items:center; gap:6px;">
+                                <i class="fa-brands fa-vimeo" style="color:#00adef; font-size: 1rem;"></i> 
+                                <span>Vimeo video akışı devrede</span>
                             </div>
+                            <a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="background:#00adef; color:#fff; font-size:0.75rem; padding:6px 14px; border-radius:6px; text-decoration:none; font-weight:700; display:inline-flex; align-items:center; gap:5px; border:none;">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> Vimeo'da Aç
+                            </a>
                         </div>
                     </div>`,
-                    width: '720px',
+                    width: '740px',
                     background: '#1e293b',
                     showCloseButton: true,
                     showConfirmButton: false
@@ -1888,32 +1944,32 @@ DataManager._getStorageKey = function () {
 
             // Extract Google Drive ID if present
             let isGoogleDrive = false;
-            let fileId = '';
-            if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
-                isGoogleDrive = true;
-                const parts = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || 
-                              url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || 
-                              url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
-                              url.match(/\/open\?id=([a-zA-Z0-9_-]+)/);
-                if (parts) {
-                    fileId = parts[1];
-                }
+            let fileId = media.driveId || '';
+            if (!fileId && (cleanUrl.includes('drive.google.com') || cleanUrl.includes('docs.google.com'))) {
+                const parts = cleanUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || 
+                              cleanUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/) || 
+                              cleanUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+                              cleanUrl.match(/\/open\?id=([a-zA-Z0-9_-]+)/);
+                if (parts) fileId = parts[1];
             }
+            if (fileId) isGoogleDrive = true;
+
+            const iframeUrl = isGoogleDrive && fileId ? `https://drive.google.com/file/d/${fileId}/preview` : '';
 
             // Proactive Cache (IndexedDB) Lookup
-            let downloadUrl = isGoogleDrive && fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : url;
+            let downloadUrl = isGoogleDrive && fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : cleanUrl;
             let cacheInfoHtml = `
                 <div id="klbk-player-status" style="font-size:0.8rem; color:#94a3b8; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px;">
                     <i class="fa-solid fa-bolt" style="color:#eab308;"></i> <span>Anında Akış Modu</span>
                 </div>`;
 
             // Hızlı yerel önbellek kontrolü (Arayüzün açılmasını geciktirmez, <5ms)
-            let cachedBytes = DataManager._fileBytesCache[url];
+            let cachedBytes = DataManager._fileBytesCache[cleanUrl];
             if (!cachedBytes) {
                 try {
-                    const idbBuffer = await DataManager._getIdbCache(url);
+                    const idbBuffer = await DataManager._getIdbCache(cleanUrl);
                     if (idbBuffer && DataManager.validateBuffer(idbBuffer)) {
-                        DataManager._fileBytesCache[url] = idbBuffer;
+                        DataManager._fileBytesCache[cleanUrl] = idbBuffer;
                         cachedBytes = idbBuffer;
                     }
                 } catch (e) {
@@ -1921,9 +1977,10 @@ DataManager._getStorageKey = function () {
                 }
             }
 
+            let detectedMime = '';
             if (cachedBytes && cachedBytes.byteLength > 0) {
-                const mime = DataManager.detectMimeType(cachedBytes);
-                const blob = new Blob([cachedBytes], { type: mime });
+                detectedMime = DataManager.detectMimeType(cachedBytes);
+                const blob = new Blob([cachedBytes], { type: detectedMime });
                 downloadUrl = URL.createObjectURL(blob);
                 cacheInfoHtml = `
                     <div id="klbk-player-status" style="font-size:0.8rem; color:#34d399; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px;">
@@ -1931,7 +1988,7 @@ DataManager._getStorageKey = function () {
                     </div>`;
             } else {
                 // Önbellekte yoksa, arka planda indirmeyi başlatıyoruz (oynatıcı akışla oynatırken arka planda önbelleğe alınır)
-                DataManager.getFileBytes(url).catch(err => console.warn("Background caching failed:", err));
+                DataManager.getFileBytes(cleanUrl).catch(err => console.warn("Background caching failed:", err));
             }
 
             const showMediaError = () => {
@@ -2057,36 +2114,67 @@ DataManager._getStorageKey = function () {
                 }
             };
 
-            // Guess MIME type synchronously to display player instantly
-            const guessMimeType = (u) => {
-                const lower = u.toLowerCase();
-                if (lower.match(/\.(mp4|m4v|webm)$/) || lower.includes('video') || lower.includes('mp4')) return 'video/mp4';
-                if (lower.match(/\.(mp3|mpeg|wav|ogg|m4a)$/) || lower.includes('audio') || lower.includes('ses') || lower.includes('sound') || lower.includes('mp3')) return 'audio/mpeg';
-                if (lower.match(/\.(jpg|jpeg|png|gif|webp)$/) || lower.includes('gorsel') || lower.includes('resim')) return 'image/jpeg';
-                if (lower.match(/\.pdf$/) || lower.includes('pdf')) return 'application/pdf';
-                if (u.includes('drive.google.com') || u.includes('docs.google.com')) return 'audio/mpeg'; // Default to audio for Google Drive
-                return 'audio/mpeg'; // Safe default for listening exam application links
-            };
-            const mimeType = guessMimeType(url);
-
-            const isAudio = mimeType.startsWith('audio/') || lowerUrl.includes('.mp3') || lowerUrl.includes('.wav') || lowerUrl.includes('.m4a') || lowerUrl.includes('.ogg') || lowerUrl.includes('audio') || lowerUrl.includes('ses');
-            const isVideo = mimeType.startsWith('video/') || lowerUrl.includes('.mp4') || lowerUrl.includes('.webm') || lowerUrl.includes('.m4v') || lowerUrl.includes('video');
-            const isImage = mimeType.startsWith('image/') || lowerUrl.includes('.jpg') || lowerUrl.includes('.jpeg') || lowerUrl.includes('.png') || lowerUrl.includes('.gif') || lowerUrl.includes('.webp') || lowerUrl.includes('gorsel') || lowerUrl.includes('resim');
-            const isPdf = mimeType === 'application/pdf' || lowerUrl.includes('.pdf');
+            const isAudio = detectedMime.startsWith('audio/') || media.type === 'audio' || lowerUrl.includes('.mp3') || lowerUrl.includes('.wav') || lowerUrl.includes('.m4a') || lowerUrl.includes('.ogg') || lowerUrl.includes('ses') || lowerUrl.includes('sound');
+            const isVideo = detectedMime.startsWith('video/') || media.type === 'video' || lowerUrl.includes('.mp4') || lowerUrl.includes('.webm') || lowerUrl.includes('.m4v') || lowerUrl.includes('video');
+            const isImage = detectedMime.startsWith('image/') || media.type === 'image' || lowerUrl.includes('.jpg') || lowerUrl.includes('.jpeg') || lowerUrl.includes('.png') || lowerUrl.includes('.gif') || lowerUrl.includes('.webp');
+            const isPdf = detectedMime === 'application/pdf' || media.type === 'pdf' || lowerUrl.includes('.pdf');
 
             let swalConfig = {};
 
-            if (isVideo) {
+            if (isGoogleDrive && fileId) {
+                // Google Drive Çift Sekmeli Oynatıcı (Tarayıcı Akışı + Google Drive Önizleme)
+                const iframeHeight = isAudio ? '200px' : '450px';
+                swalConfig = {
+                    title: 'Google Drive Medya Oynatıcı',
+                    html: `
+                    <div class="klbk-player-container" style="background:#1e293b; color:#fff; border-radius:12px; padding:15px; text-align:center;">
+                        <div class="klbk-player-tabs" style="display:flex; justify-content:center; gap:10px; margin-bottom:15px; border-bottom:1px solid #334155; padding-bottom:10px;">
+                            <button type="button" class="player-tab-btn active" onclick="window.switchKlbkStudentPlayerTab('native')" id="student-tab-btn-native" style="background:#6366f1; color:#fff; border:none; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
+                                <i class="fa-solid fa-play"></i> Tarayıcı Oynatıcısı
+                            </button>
+                            <button type="button" class="player-tab-btn" onclick="window.switchKlbkStudentPlayerTab('iframe')" id="student-tab-btn-iframe" style="background:#334155; color:#94a3b8; border:none; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
+                                <i class="fa-brands fa-google-drive"></i> Drive Önizleme
+                            </button>
+                        </div>
+                        
+                        <div id="student-player-content-native" class="player-tab-content" style="display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:120px;">
+                            ${cacheInfoHtml}
+                            ${isVideo ? `
+                                <video id="klbk-native-video" src="${downloadUrl}" controls controlsList="nodownload noplaybackrate" disablePictureInPicture oncontextmenu="return false;" autoplay style="width:100%; max-height:360px; border-radius:8px; background:#000;" onerror="window.handleKlbkPlayerError(this, '${cleanUrl}')">
+                                    Tarayıcınız video etiketini desteklemiyor.
+                                </video>
+                            ` : `
+                                <audio id="klbk-native-audio" src="${downloadUrl}" controls controlsList="nodownload noplaybackrate" oncontextmenu="return false;" autoplay style="width:100%; max-width:500px; margin:20px 0;" onerror="window.handleKlbkPlayerError(this, '${cleanUrl}')">
+                                    Tarayıcınız ses etiketini desteklemiyor.
+                                </audio>
+                            `}
+                        </div>
+                        
+                        <div id="student-player-content-iframe" class="player-tab-content" style="display:none;">
+                            <iframe src="${iframeUrl}" style="width:100%; height:${iframeHeight}; border:none; border-radius:8px; background:#000;" allow="autoplay" allowfullscreen></iframe>
+                        </div>
+                        
+                        <div style="margin-top:15px; border-top:1px solid #334155; padding-top:12px; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="text-align:left; font-size:0.75rem; color:#94a3b8; line-height:1.4;">
+                                <i class="fa-solid fa-circle-info" style="color:#6366f1;"></i> 
+                                Tarayıcı doğrudan akış yapar. Sorun yaşarsanız 'Drive Önizleme' sekmesine geçebilirsiniz.
+                            </div>
+                        </div>
+                    </div>`,
+                    width: '720px',
+                    background: '#1e293b'
+                };
+            } else if (isVideo) {
                 swalConfig = {
                     title: 'Video Oynatıcı',
                     html: `
                     <div style="background:#1e293b; color:#fff; border-radius:12px; padding:15px; text-align:center;">
                         ${cacheInfoHtml}
-                        <video id="klbk-native-video" src="${downloadUrl}" controls controlsList="nodownload noplaybackrate" disablePictureInPicture oncontextmenu="return false;" autoplay style="width:100%; max-height:400px; border-radius:8px;" onerror="window.handleKlbkPlayerError(this, '${url}')">
+                        <video id="klbk-native-video" src="${downloadUrl}" controls controlsList="nodownload noplaybackrate" disablePictureInPicture oncontextmenu="return false;" autoplay style="width:100%; max-height:400px; border-radius:8px; background:#000;" onerror="window.handleKlbkPlayerError(this, '${cleanUrl}')">
                             Tarayıcınız video etiketini desteklemiyor.
                         </video>
                     </div>`,
-                    width: '600px',
+                    width: '640px',
                     background: '#1e293b'
                 };
             } else if (isAudio) {
@@ -2095,11 +2183,11 @@ DataManager._getStorageKey = function () {
                     html: `
                     <div style="background:#1e293b; color:#fff; border-radius:12px; padding:15px; text-align:center;">
                         ${cacheInfoHtml}
-                        <audio id="klbk-native-audio" src="${downloadUrl}" controls controlsList="nodownload noplaybackrate" oncontextmenu="return false;" autoplay style="width:100%; margin-top:10px;" onerror="window.handleKlbkPlayerError(this, '${url}')">
+                        <audio id="klbk-native-audio" src="${downloadUrl}" controls controlsList="nodownload noplaybackrate" oncontextmenu="return false;" autoplay style="width:100%; margin-top:10px;" onerror="window.handleKlbkPlayerError(this, '${cleanUrl}')">
                             Tarayıcınız ses etiketini desteklemiyor.
                         </audio>
                     </div>`,
-                    width: '400px',
+                    width: '450px',
                     background: '#1e293b'
                 };
             } else if (isImage) {
@@ -2115,10 +2203,18 @@ DataManager._getStorageKey = function () {
                     width: '700px',
                 };
             } else {
+                // Genel Medya (Varsayılan olarak video etiketi denenir, audio'yu da oynatır)
                 swalConfig = {
-                    title: 'Dosya Önizleme',
-                    html: `<iframe src="${downloadUrl}" style="width:100%; height:550px; border:none; border-radius:8px;" oncontextmenu="return false;" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>`,
-                    width: '700px',
+                    title: 'Medya Oynatıcı',
+                    html: `
+                    <div style="background:#1e293b; color:#fff; border-radius:12px; padding:15px; text-align:center;">
+                        ${cacheInfoHtml}
+                        <video id="klbk-native-video" src="${downloadUrl}" controls controlsList="nodownload noplaybackrate" disablePictureInPicture oncontextmenu="return false;" autoplay style="width:100%; max-height:400px; border-radius:8px; background:#000;" onerror="window.handleKlbkPlayerError(this, '${cleanUrl}')">
+                            Tarayıcınız medya etiketini desteklemiyor.
+                        </video>
+                    </div>`,
+                    width: '640px',
+                    background: '#1e293b'
                 };
             }
 

@@ -1452,6 +1452,150 @@ const DataManager = {
         return defaultType;
     },
 
+    getYouTubeInfo: function (url) {
+        if (!url || typeof url !== 'string') return null;
+        const cleanUrl = url.trim();
+        if (!/(?:youtube\.com|youtu\.be|youtube-nocookie\.com)/i.test(cleanUrl)) {
+            return null;
+        }
+
+        let videoId = '';
+        const shortMatch = cleanUrl.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/i);
+        if (shortMatch) {
+            videoId = shortMatch[1];
+        }
+        if (!videoId) {
+            const pathMatch = cleanUrl.match(/\/(?:shorts|live|embed|v)\/([a-zA-Z0-9_-]{11})/i);
+            if (pathMatch) {
+                videoId = pathMatch[1];
+            }
+        }
+        if (!videoId) {
+            const vParamMatch = cleanUrl.match(/[?&]v=([a-zA-Z0-9_-]{11})/i);
+            if (vParamMatch) {
+                videoId = vParamMatch[1];
+            }
+        }
+        if (!videoId) {
+            const fallbackMatch = cleanUrl.match(/(?:youtube(?:-nocookie)?\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/i);
+            if (fallbackMatch) {
+                videoId = fallbackMatch[1];
+            }
+        }
+        if (!videoId) return null;
+
+        let startSec = 0;
+        const tMatch = cleanUrl.match(/[?&](?:t|start)=([0-9hms]+)/i);
+        if (tMatch) {
+            const tVal = tMatch[1];
+            if (/^\d+$/.test(tVal)) {
+                startSec = parseInt(tVal, 10);
+            } else {
+                const h = (tVal.match(/(\d+)h/i) || [])[1] || 0;
+                const m = (tVal.match(/(\d+)m/i) || [])[1] || 0;
+                const s = (tVal.match(/(\d+)s/i) || [])[1] || 0;
+                startSec = (parseInt(h, 10) * 3600) + (parseInt(m, 10) * 60) + parseInt(s, 10);
+            }
+        }
+
+        const embedParams = ['autoplay=1', 'rel=0', 'controls=1', 'modestbranding=1'];
+        if (startSec > 0) embedParams.push(`start=${startSec}`);
+
+        return {
+            videoId: videoId,
+            start: startSec,
+            embedUrl: `https://www.youtube.com/embed/${videoId}?${embedParams.join('&')}`
+        };
+    },
+
+    getVimeoInfo: function (url) {
+        if (!url || typeof url !== 'string') return null;
+        const cleanUrl = url.trim();
+        const vimeoMatch = cleanUrl.match(/(?:vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/[^\/]*\/videos\/|album\/(?:\d+\/)?video\/|video\/|)(\d+)|player\.vimeo\.com\/video\/(\d+))/i);
+        const vimeoId = vimeoMatch ? (vimeoMatch[1] || vimeoMatch[2]) : null;
+        if (!vimeoId) return null;
+        return {
+            videoId: vimeoId,
+            embedUrl: `https://player.vimeo.com/video/${vimeoId}?autoplay=1`
+        };
+    },
+
+    classifyMedia: function (url) {
+        if (!url || typeof url !== 'string') {
+            return { type: 'unknown', icon: 'fa-solid fa-file', color: '#64748b', badge: 'Dosya', title: 'Dosya' };
+        }
+        const u = url.trim();
+        const lower = u.toLowerCase();
+
+        // 1. YouTube
+        const yt = this.getYouTubeInfo(u);
+        if (yt) {
+            return {
+                type: 'youtube',
+                videoId: yt.videoId,
+                start: yt.start,
+                embedUrl: yt.embedUrl,
+                icon: 'fa-brands fa-youtube',
+                color: '#ef4444',
+                badge: 'YouTube Video',
+                title: 'YouTube Medya Oynatıcı'
+            };
+        }
+
+        // 2. Vimeo
+        const vm = this.getVimeoInfo(u);
+        if (vm) {
+            return {
+                type: 'vimeo',
+                videoId: vm.videoId,
+                embedUrl: vm.embedUrl,
+                icon: 'fa-brands fa-vimeo',
+                color: '#00adef',
+                badge: 'Vimeo Video',
+                title: 'Vimeo Medya Oynatıcı'
+            };
+        }
+
+        // 3. Google Drive ID
+        let driveId = null;
+        if (lower.includes('drive.google.com') || lower.includes('docs.google.com')) {
+            const parts = u.match(/\/d\/([a-zA-Z0-9_-]+)/) || 
+                          u.match(/[?&]id=([a-zA-Z0-9_-]+)/) || 
+                          u.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+                          u.match(/\/open\?id=([a-zA-Z0-9_-]+)/);
+            if (parts) driveId = parts[1];
+        }
+
+        // 4. Extensions and URL semantic hints
+        const isVideoExt = /\.(mp4|m4v|webm|mov|avi|mkv|ogv)(\?|#|$)/i.test(u);
+        const hasVideoHint = lower.includes('video') && !lower.includes('audio') && !lower.includes('ses');
+
+        const isAudioExt = /\.(mp3|wav|ogg|m4a|aac|flac|wma|opus|mpeg)(\?|#|$)/i.test(u);
+        const hasAudioHint = (lower.includes('audio') || lower.includes('ses') || lower.includes('sound') || lower.includes('dinleme') || lower.includes('listening')) && !lower.includes('video');
+
+        const isImage = /\.(jpg|jpeg|png|gif|webp|svg)(\?|#|$)/i.test(u) || lower.includes('gorsel') || lower.includes('resim');
+        const isPdf = /\.pdf(\?|#|$)/i.test(u) || lower.includes('pdf');
+
+        if (isImage) {
+            return { type: 'image', icon: 'fa-solid fa-image', color: '#10b981', badge: 'Görsel', title: 'Görsel Önizleme', driveId: driveId };
+        }
+        if (isPdf) {
+            return { type: 'pdf', icon: 'fa-solid fa-file-pdf', color: '#ef4444', badge: 'PDF Belgesi', title: 'PDF Önizleme', driveId: driveId };
+        }
+        if (isVideoExt || hasVideoHint) {
+            return { type: 'video', icon: 'fa-solid fa-file-video', color: '#8b5cf6', badge: 'Video', title: 'Video Oynatıcı', driveId: driveId };
+        }
+        if (isAudioExt || hasAudioHint) {
+            return { type: 'audio', icon: 'fa-solid fa-file-audio', color: '#06b6d4', badge: 'Ses Kaydı', title: 'Ses Oynatıcı', driveId: driveId };
+        }
+
+        if (driveId) {
+            return { type: 'drive_media', icon: 'fa-brands fa-google-drive', color: '#3b82f6', badge: 'Drive Medya', title: 'Google Drive Medya', driveId: driveId };
+        }
+
+        return { type: 'generic_media', icon: 'fa-solid fa-play', color: '#10b981', badge: 'Medya', title: 'Medya Oynatıcı', driveId: null };
+    },
+
     detectMimeTypeOnline: async function (url) {
         if (!url) return 'application/octet-stream';
         const lowerUrl = url.toLowerCase();
@@ -1589,6 +1733,10 @@ const DataManager = {
                 console.warn("[getFileBytes] Web ortamında yerel dosya yolu (file:///) güvenlik nedeniyle taranamaz:", url);
                 return null;
             }
+        }
+        if (typeof url === 'string' && /(?:youtube\.com|youtu\.be|youtube-nocookie\.com|vimeo\.com)/i.test(url)) {
+            console.warn("[getFileBytes] Harici platform URL'leri doğrudan indirilemez:", url);
+            return null;
         }
         if (this._fileBytesCache[url]) return this._fileBytesCache[url];
 

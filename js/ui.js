@@ -4044,38 +4044,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         const url = inp.value;
         const lowerUrl = url.toLowerCase();
         
-        // YouTube / Vimeo Embed check
-        const getYoutubeOrVimeoEmbed = (u) => {
-            const lower = u.toLowerCase();
-            if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
-                let videoId = '';
-                if (lower.includes('youtu.be/')) {
-                    videoId = u.split('youtu.be/')[1]?.split(/[?#]/)[0];
-                } else if (lower.includes('youtube.com/shorts/')) {
-                    videoId = u.split('/shorts/')[1]?.split(/[?#]/)[0];
-                } else {
-                    const match = u.match(/[?&]v=([^&#]+)/);
-                    if (match) videoId = match[1];
-                    else {
-                        const embedMatch = u.match(/\/embed\/([^&#?]+)/);
-                        if (embedMatch) videoId = embedMatch[1];
-                    }
-                }
-                if (videoId) return `https://www.youtube.com/embed/${videoId}`;
-            }
-            if (lower.includes('vimeo.com')) {
-                const match = u.match(/vimeo\.com\/(\d+)/);
-                if (match) return `https://player.vimeo.com/video/${match[1]}`;
-            }
-            return null;
-        };
+        const media = DataManager.classifyMedia ? DataManager.classifyMedia(url) : {};
 
-        const embedUrl = getYoutubeOrVimeoEmbed(url);
-        if (embedUrl) {
+        if (media.type === 'youtube') {
             Swal.fire({
-                title: 'Video Önizleme',
-                html: `<iframe src="${embedUrl}" style="width:100%; height:450px; border:none; border-radius:8px;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`,
-                width: '700px',
+                title: '<div style="display:flex; align-items:center; gap:8px;"><i class="fa-brands fa-youtube" style="color:#ef4444; font-size:1.4rem;"></i> <span>YouTube Medya Oynatıcı (Test)</span></div>',
+                html: `
+                <div style="background:#0f172a; color:#fff; border-radius:12px; padding:15px; text-align:center;">
+                    <div style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:8px; background:#000; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+                        <iframe src="${media.embedUrl}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                    </div>
+                    <div style="margin-top:15px; border-top:1px solid #334155; padding-top:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <span style="font-size:0.75rem; color:#94a3b8;"><i class="fa-brands fa-youtube" style="color:#ef4444; margin-right:4px;"></i> YouTube video akışı devrede</span>
+                        <a href="${url.trim()}" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="background:#ef4444; color:#fff; font-size:0.75rem; padding:4px 10px; border-radius:6px; text-decoration:none; font-weight:700;"><i class="fa-solid fa-external-link"></i> YouTube'da Aç</a>
+                    </div>
+                </div>`,
+                width: '740px',
+                background: '#1e293b',
+                showCloseButton: true,
+                showConfirmButton: false
+            });
+            return;
+        }
+
+        if (media.type === 'vimeo') {
+            Swal.fire({
+                title: '<div style="display:flex; align-items:center; gap:8px;"><i class="fa-brands fa-vimeo" style="color:#00adef; font-size:1.4rem;"></i> <span>Vimeo Medya Oynatıcı (Test)</span></div>',
+                html: `
+                <div style="background:#0f172a; color:#fff; border-radius:12px; padding:15px; text-align:center;">
+                    <div style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:8px; background:#000; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+                        <iframe src="${media.embedUrl}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                    <div style="margin-top:15px; border-top:1px solid #334155; padding-top:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <span style="font-size:0.75rem; color:#94a3b8;"><i class="fa-brands fa-vimeo" style="color:#00adef; margin-right:4px;"></i> Vimeo video akışı devrede</span>
+                        <a href="${url.trim()}" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="background:#00adef; color:#fff; font-size:0.75rem; padding:4px 10px; border-radius:6px; text-decoration:none; font-weight:700;"><i class="fa-solid fa-external-link"></i> Vimeo'da Aç</a>
+                    </div>
+                </div>`,
+                width: '740px',
+                background: '#1e293b',
                 showCloseButton: true,
                 showConfirmButton: false
             });
