@@ -985,10 +985,17 @@ const DataManager = {
     getClassrooms: function () {
         const rooms = this._getData().classrooms;
         if (!rooms) return [];
-        return Array.isArray(rooms) ? rooms : Object.values(rooms);
+        const arr = Array.isArray(rooms) ? rooms : Object.values(rooms);
+        arr.forEach(r => {
+            if (r && !r.teacherDeskPos) r.teacherDeskPos = 'right';
+        });
+        return arr;
     },
 
     addClassroom: function (roomObj) {
+        if (roomObj && !roomObj.teacherDeskPos) {
+            roomObj.teacherDeskPos = 'right';
+        }
         const data = this._getData();
         const exists = data.classrooms.findIndex(r => r.name === roomObj.name);
         if (exists !== -1) {
@@ -1012,12 +1019,27 @@ const DataManager = {
         if (!sessions) return [];
         const arr = Array.isArray(sessions) ? sessions : Object.values(sessions);
 
+        const classrooms = (data.classrooms && Array.isArray(data.classrooms)) ? data.classrooms : Object.values(data.classrooms || {});
+        const normRoom = (s) => String(s || '').trim().toLocaleUpperCase('tr-TR').replace(/[^0-9A-ZÇĞİÖŞÜ]/g, '');
+        const classroomMap = new Map();
+        classrooms.forEach(c => {
+            if (c && c.name) classroomMap.set(normRoom(c.name), c.teacherDeskPos || 'right');
+        });
+
         // Otomatik temizleme: Dağıtımı yapılmış oturumlarda koltukta bulunmayan eski öğrenci statülerini temizle
         let mutated = false;
         arr.forEach(ses => {
             if (ses && Array.isArray(ses.results)) {
                 ses.results.forEach(r => {
-                    if (r && !r.seats) r.seats = {};
+                    if (r) {
+                        if (!r.seats) r.seats = {};
+                        const mappedDesk = classroomMap.get(normRoom(r.name));
+                        if (mappedDesk) {
+                            r.teacherDeskPos = mappedDesk;
+                        } else if (!r.teacherDeskPos) {
+                            r.teacherDeskPos = 'right';
+                        }
+                    }
                 });
             }
             if (ses && Array.isArray(ses.results) && ses.results.length > 0 && ses.studentStatuses) {

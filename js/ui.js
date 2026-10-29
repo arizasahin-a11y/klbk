@@ -2089,6 +2089,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     { cols: 2, rows: 5 },
                                     { cols: 2, rows: 5 }
                                 ],
+                                teacherDeskPos: 'right',
                                 disabledSeats: [],
                                 deskNotes: {}
                             });
@@ -2822,10 +2823,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             groupsHtml += '</div>';
 
-            const teacherDeskHtml = `<div style="width:100px; height:60px; background:#f1f5f9; border:3px solid #64748b; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:bold; color:#1e293b; box-shadow:0 4px 6px rgba(0,0,0,0.1);">MASA</div>`;
-            const boardHtml = `<div style="flex:1; max-width:60%; height:40px; background:#0f172a; border:4px solid #475569; border-radius:4px; color:white; display:flex; align-items:center; justify-content:center; font-weight:bold; letter-spacing:4px; font-size:0.9rem; box-shadow:0 6px 12px rgba(0,0,0,0.2);">TAHTA</div>`;
-            const frontAreaHtml = `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:30px; padding:0 10px; width:100%;">
-                ${room.teacherDeskPos === 'left' ? teacherDeskHtml + boardHtml + '<div style="width:100px;"></div>' : '<div style="width:100px;"></div>' + boardHtml + teacherDeskHtml}
+            const normRoomName = (s) => String(s || '').trim().toLocaleUpperCase('tr-TR').replace(/[^0-9A-ZÇĞİÖŞÜ]/g, '');
+            const actualClassroom = (DataManager.getClassrooms() || []).find(c => normRoomName(c.name) === normRoomName(room.name));
+            const deskPos = (actualClassroom && actualClassroom.teacherDeskPos) || room.teacherDeskPos || 'right';
+
+            const teacherDeskHtml = `<div style="width:100px; height:60px; background:#f1f5f9; border:3px solid #64748b; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:bold; color:#1e293b; box-shadow:0 4px 6px rgba(0,0,0,0.1); flex-shrink:0;">MASA</div>`;
+            const boardHtml = `<div style="flex:1; max-width:60%; height:40px; background:#0f172a; border:4px solid #475569; border-radius:4px; color:white; display:flex; align-items:center; justify-content:center; font-weight:bold; letter-spacing:4px; font-size:0.9rem; box-shadow:0 6px 12px rgba(0,0,0,0.2); margin:0 10px;">TAHTA</div>`;
+            const spacerHtml = `<div style="width:100px; height:60px; flex-shrink:0;"></div>`;
+            const frontAreaHtml = `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:30px; padding:0 10px; width:100%; box-sizing:border-box;">
+                ${deskPos === 'left' ? teacherDeskHtml + boardHtml + spacerHtml : spacerHtml + boardHtml + teacherDeskHtml}
             </div>`;
 
             roomEl.innerHTML = `
@@ -3561,6 +3567,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!room) return;
         room.teacherDeskPos = pos;
         DataManager.addClassroom(room);
+
+        // Oturumlardaki ilgili salonun teacherDeskPos bilgisini de senkronize et
+        const norm = (s) => String(s || '').trim().toLocaleUpperCase('tr-TR').replace(/[^0-9A-ZÇĞİÖŞÜ]/g, '');
+        const rName = norm(roomName);
+        const sessions = DataManager.getExamSessions() || [];
+        sessions.forEach(ses => {
+            if (ses && Array.isArray(ses.results)) {
+                let anyUpdated = false;
+                ses.results.forEach(r => {
+                    if (r && norm(r.name) === rName) {
+                        r.teacherDeskPos = pos;
+                        anyUpdated = true;
+                    }
+                });
+                if (anyUpdated) {
+                    DataManager.addExamSession(ses);
+                }
+            }
+        });
+
         window.updateClassroomsList();
     };
 
