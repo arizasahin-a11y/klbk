@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 storeKey: storeKey,
                 role: role,
                 timestamp: Date.now(),
-                expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+                expiresAt: Date.now() + (60 * 60 * 1000) // 1 saat (Firebase token erişim sınırı)
             };
             
             await fetch(`${firebaseDatabaseUrl}/app_store/active_sessions/${token}.json`, {
@@ -164,6 +164,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const now = new Date();
             const diffDays = (now - loginDate) / (1000 * 60 * 60 * 24);
 
+            const lastActivity = parseInt(localStorage.getItem('klbk_last_activity') || '0', 10);
+            const loginTimeMs = loginDate ? loginDate.getTime() : 0;
+            const refTime = lastActivity || loginTimeMs;
+            const FIREBASE_SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 saat
+            if (!refTime || (now.getTime() - refTime) >= FIREBASE_SESSION_TIMEOUT_MS) {
+                console.warn("Persistent session expired due to inactivity (> 1 hour).");
+                localStorage.removeItem('klbk_persistent_session');
+                localStorage.removeItem('klbk_isLoggedIn');
+                localStorage.removeItem('klbk_session_token');
+                sessionStorage.clear();
+                return;
+            }
             if (diffDays < 30) {
                 // Restore session
                 for (const [key, value] of Object.entries(data)) {
@@ -449,6 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         sessionStorage.setItem('klbk_branch', userData.branch);
                     }
                     sessionStorage.setItem('klbk_loginTime', new Date().toISOString());
+                    localStorage.setItem('klbk_last_activity', Date.now().toString());
 
                     // === SECURITY: Save server-generated session token ===
                     try {

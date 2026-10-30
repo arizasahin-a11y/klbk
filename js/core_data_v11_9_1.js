@@ -3,7 +3,9 @@
  * Manages school settings, classes, students, and classrooms using LocalStorage
  */
 
-// --- SESSION RESTORATION (AUTO-LOGIN) ---
+// --- SESSION RESTORATION (AUTO-LOGIN) & WATCHDOG ---
+const FIREBASE_SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 saat (Firebase token erişim sınırı)
+
 (function() {
     // Öğrenci sayfalarında (obfuscated veya değil) oturum geri yükleme yapma
     const path = window.location.pathname;
@@ -15,22 +17,26 @@
         if (persistent) {
             try {
                 const data = JSON.parse(persistent);
-                // Ensure we have a valid login time
-                const loginTime = data.klbk_loginTime ? new Date(data.klbk_loginTime) : new Date();
-                const now = new Date();
-                const diffDays = (now - loginTime) / (1000 * 60 * 60 * 24);
+                const lastActivity = parseInt(localStorage.getItem('klbk_last_activity') || '0', 10);
+                const loginTime = data.klbk_loginTime ? new Date(data.klbk_loginTime).getTime() : 0;
+                const refTime = lastActivity || loginTime;
+                const now = Date.now();
 
-                // Session valid for 30 days
-                if (diffDays < 30) {
-                    for (const [key, value] of Object.entries(data)) {
-                        sessionStorage.setItem(key, value);
-                    }
-                    sessionStorage.setItem('klbk_isLoggedIn', 'true');
-                    console.log("Session restored from persistent storage.");
-                } else {
+                // 1 saatten uzun süre hareketsiz kalınmışsa oturumu açma (Firebase token süresi)
+                if (!refTime || (now - refTime) >= FIREBASE_SESSION_TIMEOUT_MS) {
+                    console.warn("[core_data] Persistent session expired due to inactivity (> 1 hour).");
                     localStorage.removeItem('klbk_persistent_session');
-                    console.log("Persistent session expired.");
+                    localStorage.removeItem('klbk_isLoggedIn');
+                    localStorage.removeItem('klbk_session_token');
+                    sessionStorage.clear();
+                    return;
                 }
+
+                for (const [key, value] of Object.entries(data)) {
+                    sessionStorage.setItem(key, value);
+                }
+                sessionStorage.setItem('klbk_isLoggedIn', 'true');
+                console.log("Session restored from persistent storage.");
             } catch (e) {
                 console.error("Persistent session restoration failed", e);
                 localStorage.removeItem('klbk_persistent_session');
@@ -66,6 +72,37 @@ const initialState = {
 };
 
 const DataManager = {
+    FIREBASE_SESSION_TIMEOUT_MS: 60 * 60 * 1000,
+
+    logout: function (reason = 'manual') {
+        try {
+            sessionStorage.clear();
+            const keysToRemove = [
+                'klbk_isLoggedIn',
+                'klbk_faaliyet_isLoggedIn',
+                'klbk_username',
+                'klbk_currentUser',
+                'klbk_name',
+                'klbk_role',
+                'klbk_session_token',
+                'klbk_sessionToken',
+                'klbk_storeKey',
+                'klbk_schoolName',
+                'klbk_branch',
+                'klbk_persistent_session',
+                'klbk_last_activity',
+                'klbk_token_last_refresh'
+            ];
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+        } catch(e) {}
+
+        const targetUrl = `/enter.html?logout=true&reason=${encodeURIComponent(reason)}`;
+        if (window.location.pathname.endsWith('enter.html')) {
+            window.location.search = `?logout=true&reason=${encodeURIComponent(reason)}`;
+        } else {
+            window.location.href = targetUrl;
+        }
+    },
 
     // Cloud Configuration (Firebase DB & Google Drive Storage)
     firebaseDatabaseUrl: "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app", 
@@ -228,7 +265,7 @@ const DataManager = {
                             username: username,
                             storeKey: key,
                             timestamp: Date.now(),
-                            expiresAt: Date.now() + (24 * 60 * 60 * 1000)
+                            expiresAt: Date.now() + FIREBASE_SESSION_TIMEOUT_MS
                         })
                     });
                 } catch(e) { console.error('Auto-recovery token registration failed', e); }
@@ -263,6 +300,27 @@ const DataManager = {
                     if (errObj.error) serverMsg = errObj.error;
                 } catch(e) {}
 
+                // Firebase oturum/yetki süresi dolma kontrolü (401, 403 veya permission denied)
+                const isAuthError = res.status === 401 || res.status === 403 || 
+                                    /permission_denied|unauthorized|expired/i.test(serverMsg);
+                if (isAuthError) {
+                    console.error("Firebase auth/session expired. Forcing logout.");
+                    if (window.Swal) {
+                        Swal.fire({
+                            title: 'Oturum Süresi Doldu',
+                            html: 'Firebase güvenlik doğrulaması süresi dolduğu için veriler kaydedilemedi.<br>Güvenliğiniz için giriş sayfasına yönlendiriliyorsunuz.',
+                            icon: 'warning',
+                            confirmButtonColor: '#4f46e5',
+                            confirmButtonText: 'Giriş Yap'
+                        }).then(() => {
+                            DataManager.logout('session_expired');
+                        });
+                    } else {
+                        DataManager.logout('session_expired');
+                    }
+                    return;
+                }
+
                 const errMsg = `Firebase Kayıt Hatası (${res.status}): ${serverMsg}`;
                 console.error(errMsg, "Key:", key);
                 
@@ -294,6 +352,21 @@ const DataManager = {
                 }
             } else {
                 console.log("Data successfully synced to cloud for:", key);
+                try {
+                    localStorage.setItem('klbk_last_activity', Date.now().toString());
+                    if (sessionToken) {
+                        const now = Date.now();
+                        const lastRefresh = parseInt(sessionStorage.getItem('klbk_token_last_refresh') || '0', 10);
+                        if (now - lastRefresh > 15 * 60 * 1000) {
+                            sessionStorage.setItem('klbk_token_last_refresh', now.toString());
+                            fetch(`${this.firebaseDatabaseUrl}/app_store/active_sessions/${sessionToken}/expiresAt.json`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(now + FIREBASE_SESSION_TIMEOUT_MS)
+                            }).catch(() => {});
+                        }
+                    }
+                } catch(e) {}
             }
         } catch (e) {
             console.error("Cloud sync failed for:", key, e);
@@ -2757,3 +2830,73 @@ window.renderQuickHolidayButton = function(containerId, retries = 0) {
         }
     }
 };
+
+// --- UNIVERSAL FIREBASE INACTIVITY WATCHDOG ---
+(function initKlbkSessionWatchdog() {
+    if (typeof window === 'undefined') return;
+
+    const path = window.location.pathname;
+    const isStudentPage = path.includes('ogrenci') || path.includes('j2k5l0p8') || path.includes('j2k5');
+    if (isStudentPage) return; // Öğrenci portalının kendi 3 saatlik süresi vardır
+
+    const FIREBASE_TIMEOUT = 60 * 60 * 1000; // 1 saat (Firebase token erişim sınırı)
+
+    // Kullanıcı etkileşimlerini dinleyip son işlem zamanını güncelle
+    let lastRecordedActivity = 0;
+    const recordUserActivity = () => {
+        const now = Date.now();
+        // 10 saniyede bir defadan fazla disk yazma işlemi yapma (performans koruması)
+        if (now - lastRecordedActivity >= 10000) {
+            lastRecordedActivity = now;
+            try {
+                localStorage.setItem('klbk_last_activity', now.toString());
+            } catch(e) {}
+        }
+    };
+
+    ['mousedown', 'keydown', 'touchstart', 'scroll', 'click'].forEach(evt => {
+        window.addEventListener(evt, recordUserActivity, { passive: true });
+    });
+
+    // Oturum hareketsizlik kontrolü
+    const checkInactivity = () => {
+        const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || 
+                           localStorage.getItem('klbk_isLoggedIn') === 'true';
+        if (!isLoggedIn) return;
+
+        const now = Date.now();
+        let lastActivity = parseInt(localStorage.getItem('klbk_last_activity') || '0', 10);
+        if (!lastActivity) {
+            lastActivity = now;
+            localStorage.setItem('klbk_last_activity', now.toString());
+        }
+
+        if ((now - lastActivity) >= FIREBASE_TIMEOUT) {
+            console.warn(`[SessionWatchdog] Hareketsizlik süresi (${FIREBASE_TIMEOUT / 60000} dk) doldu. Güvenli çıkış yapılıyor...`);
+            if (window.DataManager && typeof window.DataManager.logout === 'function') {
+                window.DataManager.logout('timeout');
+            } else {
+                sessionStorage.clear();
+                localStorage.removeItem('klbk_isLoggedIn');
+                localStorage.removeItem('klbk_persistent_session');
+                window.location.href = '/enter.html?logout=true&reason=timeout';
+            }
+        }
+    };
+
+    // 15 saniyede bir kontrol et
+    setInterval(checkInactivity, 15000);
+
+    // Sekmeye dönüldüğünde veya ekran açıldığında anında kontrol et
+    window.addEventListener('visibilitychange', () => {
+        if (!document.hidden) checkInactivity();
+    });
+    window.addEventListener('focus', checkInactivity);
+
+    // Başka bir sekmede çıkış yapılırsa bu sekmede de anında çıkış yap
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'klbk_isLoggedIn' && !e.newValue) {
+            window.location.href = '/enter.html?logout=true&reason=timeout';
+        }
+    });
+})();

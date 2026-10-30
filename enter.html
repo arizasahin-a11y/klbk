@@ -456,6 +456,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('logout') === 'true') {
+                const logoutReason = urlParams.get('reason');
                 sessionStorage.clear();
                 localStorage.removeItem('klbk_isLoggedIn');
                 localStorage.removeItem('klbk_faaliyet_isLoggedIn');
@@ -471,7 +472,35 @@
                 localStorage.removeItem('klbk_rememberedUser');
                 localStorage.removeItem('klbk_teacher_token');
                 localStorage.removeItem('klbk_teacher_user');
+                localStorage.removeItem('klbk_last_activity');
+                localStorage.removeItem('klbk_token_last_refresh');
                 window.history.replaceState({}, document.title, window.location.pathname);
+
+                if (logoutReason === 'timeout') {
+                    setTimeout(() => {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Oturum Süresi Doldu',
+                                text: 'Güvenliğiniz için (1 saat işlem yapılmadığından) oturumunuz sonlandırıldı. Lütfen tekrar giriş yapın.',
+                                confirmButtonColor: '#4f46e5',
+                                confirmButtonText: 'Tamam'
+                            });
+                        }
+                    }, 400);
+                } else if (logoutReason === 'session_expired') {
+                    setTimeout(() => {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Güvenlik Doğrulaması Süresi Doldu',
+                                text: 'Firebase erişim oturumunuzun süresi doldu. Veri güvenliğiniz için oturum sonlandırıldı, lütfen tekrar giriş yapın.',
+                                confirmButtonColor: '#4f46e5',
+                                confirmButtonText: 'Tamam'
+                            });
+                        }
+                    }, 400);
+                }
             }
 
             const isLoggedIn = sessionStorage.getItem('klbk_isLoggedIn') === 'true' || localStorage.getItem('klbk_isLoggedIn') === 'true';
