@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 storeKey: storeKey,
                 role: role,
                 timestamp: Date.now(),
-                expiresAt: Date.now() + (60 * 60 * 1000) // 1 saat (Firebase token erişim sınırı)
+                expiresAt: Date.now() + (8 * 60 * 60 * 1000) // 8 saat (Öğretmen ve Admin token süresi)
             };
             
             await fetch(`${firebaseDatabaseUrl}/app_store/active_sessions/${token}.json`, {
@@ -167,9 +167,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const lastActivity = parseInt(localStorage.getItem('klbk_last_activity') || '0', 10);
             const loginTimeMs = loginDate ? loginDate.getTime() : 0;
             const refTime = lastActivity || loginTimeMs;
-            const FIREBASE_SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 saat
+            const FIREBASE_SESSION_TIMEOUT_MS = 8 * 60 * 60 * 1000; // 8 saat (Öğretmen ve Admin)
             if (!refTime || (now.getTime() - refTime) >= FIREBASE_SESSION_TIMEOUT_MS) {
-                console.warn("Persistent session expired due to inactivity (> 1 hour).");
+                console.warn("Persistent session expired due to inactivity (> 8 hours).");
                 localStorage.removeItem('klbk_persistent_session');
                 localStorage.removeItem('klbk_isLoggedIn');
                 localStorage.removeItem('klbk_session_token');

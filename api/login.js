@@ -169,7 +169,7 @@ export default async function handler(req, res) {
         
         // Generate a secure session token
         const sessionToken = crypto.randomUUID();
-        const expiresAt = Date.now() + (60 * 60 * 1000); // 1 saat (Firebase token erişim sınırı)
+        const expiresAt = Date.now() + (8 * 60 * 60 * 1000); // 8 saat (Öğretmen ve Admin token süresi)
         
         const sessionData = {
             username: actualUsername,

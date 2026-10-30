@@ -4,7 +4,7 @@
  */
 
 // --- SESSION RESTORATION (AUTO-LOGIN) & WATCHDOG ---
-const FIREBASE_SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 saat (Firebase token erişim sınırı)
+const FIREBASE_SESSION_TIMEOUT_MS = 8 * 60 * 60 * 1000; // 8 saat (Öğretmen ve Admin token süresi)
 
 (function() {
     // Öğrenci sayfalarında (obfuscated veya değil) oturum geri yükleme yapma
@@ -24,7 +24,7 @@ const FIREBASE_SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 saat (Firebase token er
 
                 // 1 saatten uzun süre hareketsiz kalınmışsa oturumu açma (Firebase token süresi)
                 if (!refTime || (now - refTime) >= FIREBASE_SESSION_TIMEOUT_MS) {
-                    console.warn("[core_data] Persistent session expired due to inactivity (> 1 hour).");
+                    console.warn("[core_data] Persistent session expired due to inactivity (> 8 hours).");
                     localStorage.removeItem('klbk_persistent_session');
                     localStorage.removeItem('klbk_isLoggedIn');
                     localStorage.removeItem('klbk_session_token');
@@ -72,7 +72,7 @@ const initialState = {
 };
 
 const DataManager = {
-    FIREBASE_SESSION_TIMEOUT_MS: 60 * 60 * 1000,
+    FIREBASE_SESSION_TIMEOUT_MS: 8 * 60 * 60 * 1000, // 8 saat
 
     logout: function (reason = 'manual') {
         try {
@@ -2839,7 +2839,7 @@ window.renderQuickHolidayButton = function(containerId, retries = 0) {
     const isStudentPage = path.includes('ogrenci') || path.includes('j2k5l0p8') || path.includes('j2k5');
     if (isStudentPage) return; // Öğrenci portalının kendi 3 saatlik süresi vardır
 
-    const FIREBASE_TIMEOUT = 60 * 60 * 1000; // 1 saat (Firebase token erişim sınırı)
+    const FIREBASE_TIMEOUT = 8 * 60 * 60 * 1000; // 8 saat (Öğretmen ve Admin token süresi)
 
     // Kullanıcı etkileşimlerini dinleyip son işlem zamanını güncelle
     let lastRecordedActivity = 0;
