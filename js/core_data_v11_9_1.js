@@ -1115,6 +1115,53 @@ const DataManager = {
                     }
                 });
             }
+            // Otomatik temizleme: Dağıtımı yapılmış oturumlarda koltuklarda hiçbir öğrencinin almadığı dersleri ses.subjects'ten temizle
+            if (ses && Array.isArray(ses.results) && ses.results.length > 0 && Array.isArray(ses.subjects) && ses.subjects.length > 0) {
+                const activeSubjectNames = new Set();
+                const activeGrades = new Set();
+                let hasAnySeat = false;
+                ses.results.forEach(r => {
+                    if (r && r.seats) {
+                        Object.values(r.seats).forEach(seat => {
+                            const std = seat.student || seat;
+                            if (std) {
+                                hasAnySeat = true;
+                                const sub = std._matchedSubject || std.subject;
+                                if (sub && typeof sub === 'string' && sub.trim()) {
+                                    activeSubjectNames.add(sub.trim());
+                                }
+                                const cls = std.class || std.sinif || '';
+                                const gm = String(cls).match(/\b(\d+)/);
+                                if (gm) activeGrades.add(gm[1]);
+                            }
+                        });
+                    }
+                });
+
+                if (hasAnySeat && activeSubjectNames.size > 0) {
+                    const filtered = ses.subjects.filter(s => {
+                        const sName = typeof s === 'object' ? s.name : s;
+                        if (!sName || typeof sName !== 'string') return false;
+                        const trimmed = sName.trim();
+                        // 1. Doğrudan veya parçalı eşleşme
+                        const matchesActiveSub = Array.from(activeSubjectNames).some(act => 
+                            act === trimmed || act.startsWith(trimmed + " ") || trimmed.startsWith(act + " ")
+                        );
+                        if (!matchesActiveSub) return false;
+                        // 2. Eğer ders adında belirli bir sınıf derecesi geçiyorsa (örn. Fizik 12), bu derecenin aktif koltuklarda olup olmadığını kontrol et
+                        const gradeMatch = trimmed.match(/\b(\d+)\b/);
+                        if (gradeMatch && activeGrades.size > 0 && !activeGrades.has(gradeMatch[1])) {
+                            return false;
+                        }
+                        return true;
+                    });
+                    if (filtered.length > 0 && filtered.length !== ses.subjects.length) {
+                        ses.subjects = filtered;
+                        mutated = true;
+                    }
+                }
+            }
+
             if (ses && Array.isArray(ses.results) && ses.results.length > 0 && ses.studentStatuses) {
                 const seatStudentNos = new Set();
                 ses.results.forEach(r => {

@@ -4803,6 +4803,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                     updatedSes.excludedStudents = newExcludedStudents;
                     updatedSes.selectedClasses = sortedClassNames.filter(cls => editClassSelection[cls] && editClassSelection[cls].size > 0);
 
+                    const syncSessionSubjectsWithStudents = (targetSes, stList) => {
+                        if (!stList || !stList.length) return;
+                        const actualSubs = [...new Set(stList.map(s => s._matchedSubject || s.subject))].filter(Boolean);
+                        if (actualSubs.length > 0) {
+                            const originalSubs = targetSes.subjects || [];
+                            targetSes.subjects = actualSubs.map(subName => {
+                                const baseMatch = originalSubs.find(s => {
+                                    const sName = (typeof s === 'object' ? s.name : s);
+                                    return sName === subName || subName.startsWith(sName + ' ') || sName.startsWith(subName + ' ');
+                                });
+                                if (baseMatch && typeof baseMatch === 'object') {
+                                    return { ...baseMatch, name: subName };
+                                }
+                                return { name: subName, hasGroups: targetSes.hasGroups || false };
+                            });
+                        }
+                    };
+
                     const runFullRedistribution = () => {
                         try {
                             let newResults = [];
@@ -4857,6 +4875,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 throw new Error('Dağıtım algoritması geçerli bir yerleşim üretemedi.');
                             }
 
+                            syncSessionSubjectsWithStudents(updatedSes, newTargetStudents);
                             updatedSes.results = newResults;
                             DataManager.addExamSession(updatedSes);
                             window._currentExamResults = newResults;
@@ -4959,6 +4978,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                         }
                                     });
 
+                                    syncSessionSubjectsWithStudents(updatedSes, newTargetStudents);
                                     updatedSes.results = preservedResults;
                                     DataManager.addExamSession(updatedSes);
                                     window._currentExamResults = preservedResults;

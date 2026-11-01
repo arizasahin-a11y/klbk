@@ -1386,16 +1386,37 @@
 
                     // Pre-scan to see if teacher has any branch match in this specific session
                     const allSessionSubjectNames = new Set();
-                    if (ses.results) {
+                    let hasSeatedStudents = false;
+                    if (ses.results && Array.isArray(ses.results)) {
                         ses.results.forEach(room => {
                             Object.values(room.seats || {}).forEach(std => {
-                                if (std._matchedSubject) allSessionSubjectNames.add(std._matchedSubject);
+                                const sub = std?._matchedSubject || std?.subject;
+                                if (sub && typeof sub === 'string' && sub.trim()) {
+                                    hasSeatedStudents = true;
+                                    allSessionSubjectNames.add(sub.trim());
+                                }
                             });
                         });
                     }
-                    (ses.subjects || []).forEach(sub => {
-                        allSessionSubjectNames.add(typeof sub === 'object' ? sub.name : sub);
-                    });
+                    if (!hasSeatedStudents) {
+                        const selectedGrades = new Set();
+                        if (Array.isArray(ses.selectedClasses) && ses.selectedClasses.length > 0) {
+                            ses.selectedClasses.forEach(cls => {
+                                const m = String(cls).match(/\b(\d+)/);
+                                if (m) selectedGrades.add(m[1]);
+                            });
+                        }
+                        (ses.subjects || []).forEach(sub => {
+                            const subName = (typeof sub === 'object' ? sub?.name : sub);
+                            if (!subName || typeof subName !== 'string') return;
+                            const trimmed = subName.trim();
+                            if (selectedGrades.size > 0) {
+                                const m = trimmed.match(/\b(\d+)\b/);
+                                if (m && !selectedGrades.has(m[1])) return;
+                            }
+                            allSessionSubjectNames.add(trimmed);
+                        });
+                    }
                     const hasAnyBranchMatchInSession = isAdmin || Array.from(allSessionSubjectNames).some(s => branchMatches(s));
 
                     const processSubject = (subName, orig) => {
@@ -1418,22 +1439,39 @@
                         else if (isShared) otherSharedSubjects.push(subObj);
                     };
 
-                    if (ses.results) {
+                    if (hasSeatedStudents) {
                         ses.results.forEach(room => {
                             Object.values(room.seats || {}).forEach(std => {
-                                const subName = std._matchedSubject || "";
-                                if (subName) {
-                                    const orig = (ses.subjects || []).find(s => subName.startsWith(typeof s === 'object' ? s.name : s));
-                                    processSubject(subName, orig);
+                                const subName = std?._matchedSubject || std?.subject || "";
+                                if (subName && typeof subName === 'string') {
+                                    const trimmed = subName.trim();
+                                    const orig = (ses.subjects || []).find(s => {
+                                        const sName = typeof s === 'object' ? s?.name : s;
+                                        return sName && (trimmed === sName || trimmed.startsWith(sName + " ") || sName.startsWith(trimmed + " "));
+                                    });
+                                    processSubject(trimmed, orig);
                                 }
                             });
                         });
+                    } else {
+                        const selectedGrades = new Set();
+                        if (Array.isArray(ses.selectedClasses) && ses.selectedClasses.length > 0) {
+                            ses.selectedClasses.forEach(cls => {
+                                const m = String(cls).match(/\b(\d+)/);
+                                if (m) selectedGrades.add(m[1]);
+                            });
+                        }
+                        (ses.subjects || []).forEach(sub => {
+                            const subName = (typeof sub === 'object' ? sub?.name : sub);
+                            if (!subName || typeof subName !== 'string') return;
+                            const trimmed = subName.trim();
+                            if (selectedGrades.size > 0) {
+                                const m = trimmed.match(/\b(\d+)\b/);
+                                if (m && !selectedGrades.has(m[1])) return;
+                            }
+                            processSubject(trimmed, sub);
+                        });
                     }
-
-                    (ses.subjects || []).forEach(sub => {
-                        const subName = (typeof sub === 'object' ? sub.name : sub);
-                        processSubject(subName, sub);
-                    });
 
                     const getGradeScore = (name) => {
                         const m = name.match(/\d+/);
@@ -1658,23 +1696,35 @@
                                                         ${(() => {
                                                              let hasPdf = false;
                                                              if (ses.subjectMetadata) {
-                                                                 const activeSubs = new Set();
-                                                                 if (Array.isArray(ses.subjects)) {
-                                                                     ses.subjects.forEach(s => {
-                                                                         const name = typeof s === 'object' ? s.name : s;
-                                                                         if (name) activeSubs.add(name);
-                                                                     });
-                                                                 }
-                                                                 if (Array.isArray(ses.results)) {
-                                                                     ses.results.forEach(room => {
-                                                                         Object.values(room.seats || {}).forEach(std => {
-                                                                             const name = std._matchedSubject;
-                                                                             if (name) activeSubs.add(name);
-                                                                         });
-                                                                     });
-                                                                 }
+                                                                  const activeSubs = new Set();
+                                                                  const hasSeated = Array.isArray(ses.results) && ses.results.some(r => r && r.seats && Object.keys(r.seats).length > 0);
+                                                                  if (hasSeated) {
+                                                                      ses.results.forEach(room => {
+                                                                          Object.values(room.seats || {}).forEach(std => {
+                                                                              const name = std?._matchedSubject || std?.subject;
+                                                                              if (name) activeSubs.add(name);
+                                                                          });
+                                                                      });
+                                                                  } else if (Array.isArray(ses.subjects)) {
+                                                                      const selectedGrades = new Set();
+                                                                      if (Array.isArray(ses.selectedClasses) && ses.selectedClasses.length > 0) {
+                                                                          ses.selectedClasses.forEach(cls => {
+                                                                              const m = String(cls).match(/\b(\d+)/);
+                                                                              if (m) selectedGrades.add(m[1]);
+                                                                          });
+                                                                      }
+                                                                      ses.subjects.forEach(s => {
+                                                                          const name = typeof s === 'object' ? s.name : s;
+                                                                          if (!name || typeof name !== 'string') return;
+                                                                          if (selectedGrades.size > 0) {
+                                                                              const m = name.match(/\b(\d+)\b/);
+                                                                              if (m && !selectedGrades.has(m[1])) return;
+                                                                          }
+                                                                          activeSubs.add(name);
+                                                                      });
+                                                                  }
 
-                                                                 hasPdf = Array.from(activeSubs).some(subName => {
+                                                                  hasPdf = Array.from(activeSubs).some(subName => {
                                                                      const meta = DataManager.getSanitizedSubjectMetadata(ses, subName);
                                                                      if (!meta || !meta.papers) return false;
                                                                      const papers = meta.papers;
