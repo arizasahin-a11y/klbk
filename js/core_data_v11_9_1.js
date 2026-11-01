@@ -783,8 +783,14 @@ const DataManager = {
     addStudent: function (studentObj) {
         if (this.isInvalidStudentRecord(studentObj)) {
             console.warn("Geçersiz öğrenci kaydı engellendi:", studentObj);
-            return;
+            return null;
         }
+
+        // 1. Öğrencinin sorumlu olduğu dersler tanımlı değilse sınıf/alan derslerini otomatik bağla
+        if (!Array.isArray(studentObj.dersler) || studentObj.dersler.length === 0) {
+            studentObj.dersler = this.resolveStudentDefaultSubjects(studentObj.class, studentObj.alan);
+        }
+
         const data = this._getData();
         // Check if exists using robust string comparison
         const exists = data.students.findIndex(s => String(s.no).trim() === String(studentObj.no).trim());
@@ -794,11 +800,20 @@ const DataManager = {
             data.students.push(studentObj);
         }
         this._saveData(data);
+
+        // 2. Henüz yapılmamış (bugün ve gelecekteki) sınav oturumlarındaki uygun boş yerlere otomatik yerleştir
+        const assignResult = this.autoAssignStudentToUpcomingSessions(studentObj);
         
         // Nöbet planını geleceğe yönelik otomatik güncelle
         if (typeof window.autoUpdateStudentDuties === 'function') {
-            window.autoUpdateStudentDuties(true);
+            try { window.autoUpdateStudentDuties(true); } catch (e) { console.warn(e); }
         }
+
+        return {
+            student: studentObj,
+            assignedSessionsCount: assignResult.modifiedCount,
+            placedDetails: assignResult.placedDetails
+        };
     },
 
     /**
@@ -942,6 +957,346 @@ const DataManager = {
         return { modifiedSessionsCount, removedSeatsCount };
     },
 
+    /**
+     * Verilen sınıf ve alan için okulda mevcut akran öğrencilerinden veya okul ayarlarından varsayılan ders listesini çıkarır.
+     * @param {string} className Sınıf adı (örn: "10-A")
+     * @param {string} [alanName] Alan/dal adı (örn: "Sayısal", "Eşit Ağırlık")
+     * @returns {string[]} Ders isimleri listesi
+     */
+    resolveStudentDefaultSubjects: function (className, alanName) {
+        if (!className) return [];
+        const data = this._getData();
+        const students = data.students || [];
+        const normCls = String(className).trim().toLocaleUpperCase('tr-TR');
+        const normAlan = String(alanName || '').trim().toLocaleUpperCase('tr-TR');
+
+        // 1. Aynı sınıf ve aynı alandaki bir öğrencinin dersleri
+        if (normAlan) {
+            const peerWithAlan = students.find(s => {
+                const sc = String(s.class || '').trim().toLocaleUpperCase('tr-TR');
+                const sa = String(s.alan || '').trim().toLocaleUpperCase('tr-TR');
+                return sc === normCls && sa === normAlan && Array.isArray(s.dersler) && s.dersler.length > 0;
+            });
+            if (peerWithAlan && peerWithAlan.dersler && peerWithAlan.dersler.length > 0) {
+                return [...peerWithAlan.dersler];
+            }
+        }
+
+        // 2. Aynı sınıftaki herhangi bir öğrencinin dersleri
+        const peerInClass = students.find(s => {
+            const sc = String(s.class || '').trim().toLocaleUpperCase('tr-TR');
+            return sc === normCls && Array.isArray(s.dersler) && s.dersler.length > 0;
+        });
+        if (peerInClass && peerInClass.dersler && peerInClass.dersler.length > 0) {
+            return [...peerInClass.dersler];
+        }
+
+        // 3. Aynı sınıf kademesinde (örn. 11. sınıflar) aynı alandaki bir öğrencinin dersleri
+        const gradeMatch = normCls.match(/\b(\d+)/);
+        const grade = gradeMatch ? gradeMatch[1] : '';
+        if (grade && normAlan) {
+            const gradePeerWithAlan = students.find(s => {
+                const sc = String(s.class || '').trim().toLocaleUpperCase('tr-TR');
+                const sa = String(s.alan || '').trim().toLocaleUpperCase('tr-TR');
+                const gm = sc.match(/\b(\d+)/);
+                return gm && gm[1] === grade && sa === normAlan && Array.isArray(s.dersler) && s.dersler.length > 0;
+            });
+            if (gradePeerWithAlan && gradePeerWithAlan.dersler && gradePeerWithAlan.dersler.length > 0) {
+                return [...gradePeerWithAlan.dersler];
+            }
+        }
+
+        // 4. Aynı sınıf kademesindeki herhangi bir öğrencinin dersleri
+        if (grade) {
+            const anyGradePeer = students.find(s => {
+                const sc = String(s.class || '').trim().toLocaleUpperCase('tr-TR');
+                const gm = sc.match(/\b(\d+)/);
+                return gm && gm[1] === grade && Array.isArray(s.dersler) && s.dersler.length > 0;
+            });
+            if (anyGradePeer && anyGradePeer.dersler && anyGradePeer.dersler.length > 0) {
+                return [...anyGradePeer.dersler];
+            }
+        }
+
+        // 5. Okul ayarlarında tanımlı dersler (kademe eki eklenerek)
+        const schoolSettings = this.getSchoolSettings();
+        if (schoolSettings && Array.isArray(schoolSettings.subjects) && schoolSettings.subjects.length > 0) {
+            return schoolSettings.subjects.map(sub => grade ? `${sub.trim()} ${grade}` : sub.trim());
+        }
+
+        return [];
+    },
+
+    /**
+     * Yeni veya güncellenen bir öğrenciyi, referans tarihten sonraki (henüz yapılmamış)
+     * ve sınıfının dahil olduğu sınav oturumlarındaki uygun boş koltuklara otomatik yerleştirir.
+     * Mevcut dağıtım kesinlikle bozulmaz, diğer öğrencilerin yerleri aynen korunur.
+     * @param {Object} studentObj Öğrenci objesi
+     * @param {Date|string} [referenceDate] Referans tarih (Varsayılan: bugün)
+     * @returns {{ modifiedCount: number, placedDetails: Array<{sessionId: string, sessionName: string, sessionDate: string, roomName: string, seatId: string, subject: string}> }}
+     */
+    autoAssignStudentToUpcomingSessions: function (studentObj, referenceDate = new Date()) {
+        if (!studentObj || !studentObj.no || !studentObj.class) {
+            return { modifiedCount: 0, placedDetails: [] };
+        }
+
+        const data = this._getData();
+        if (!data.examSessions) return { modifiedCount: 0, placedDetails: [] };
+
+        const targetNo = String(studentObj.no).trim();
+        const targetCls = String(studentObj.class || '').trim().toLocaleUpperCase('tr-TR');
+        const targetAlan = String(studentObj.alan || '').trim().toLocaleUpperCase('tr-TR');
+
+        // Öğrencinin dersleri boşsa otomatik sınıf/alan derslerini bağla
+        if (!Array.isArray(studentObj.dersler) || studentObj.dersler.length === 0) {
+            studentObj.dersler = this.resolveStudentDefaultSubjects(studentObj.class, studentObj.alan);
+        }
+
+        const cutoff = new Date(referenceDate);
+        cutoff.setHours(0, 0, 0, 0);
+
+        const sessionsList = Array.isArray(data.examSessions) ? data.examSessions : Object.values(data.examSessions);
+        let modifiedCount = 0;
+        const placedDetails = [];
+
+        sessionsList.forEach(session => {
+            if (!session || !session.results || !Array.isArray(session.results) || session.results.length === 0) {
+                return;
+            }
+
+            // 1. Tarih kontrolü: Henüz yapılmamış (bugün veya gelecekteki) oturumlar
+            let isUpcomingOrToday = true;
+            if (session.date) {
+                const sDate = this.parseSessionDateTime(session.date, '00:00');
+                if (sDate.getTime() !== 0) {
+                    const sMidnight = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate(), 0, 0, 0);
+                    isUpcomingOrToday = (sMidnight.getTime() >= cutoff.getTime());
+                }
+            }
+            if (!isUpcomingOrToday) return;
+
+            // 2. Öğrenci zaten bu oturumda bir koltuğa yerleştirilmiş mi?
+            let alreadySeated = false;
+            session.results.forEach(r => {
+                if (r && r.seats) {
+                    Object.values(r.seats).forEach(seat => {
+                        const std = seat.student || seat;
+                        if (std && String(std.no ?? '').trim() === targetNo) {
+                            alreadySeated = true;
+                        }
+                    });
+                }
+            });
+            if (alreadySeated) return;
+
+            // 3. Bu oturum öğrencinin sınıfını kapsıyor mu?
+            let classInSession = false;
+            if (Array.isArray(session.selectedClasses)) {
+                classInSession = session.selectedClasses.some(c => {
+                    const cNorm = String(c || '').trim().toLocaleUpperCase('tr-TR');
+                    return cNorm === targetCls ||
+                           cNorm.includes('_' + targetCls + '_') ||
+                           cNorm.startsWith(targetCls + '|') ||
+                           cNorm === targetCls + '|' + (targetAlan || 'GENEL');
+                });
+            }
+
+            // Oturumda oturan akran öğrenci var mı kontrolü
+            if (!classInSession && session.results) {
+                session.results.forEach(r => {
+                    if (classInSession || !r.seats) return;
+                    Object.values(r.seats).forEach(seat => {
+                        const std = seat.student || seat;
+                        if (std && String(std.class || '').trim().toLocaleUpperCase('tr-TR') === targetCls) {
+                            classInSession = true;
+                        }
+                    });
+                });
+            }
+
+            if (!classInSession) return; // Oturum bu sınıfı içermiyor
+
+            // 4. Öğrencinin oturumdaki sınav dersini (_matchedSubject) tespit et
+            let matchedSubject = null;
+
+            // 4a. Aynı sınıf ve aynı alandaki akran öğrencinin dersini bul
+            session.results.forEach(r => {
+                if (matchedSubject || !r.seats) return;
+                Object.values(r.seats).forEach(seat => {
+                    if (matchedSubject) return;
+                    const std = seat.student || seat;
+                    if (!std) return;
+                    const sCls = String(std.class || '').trim().toLocaleUpperCase('tr-TR');
+                    const sAlan = String(std.alan || '').trim().toLocaleUpperCase('tr-TR');
+                    if (sCls === targetCls && (!targetAlan || sAlan === targetAlan)) {
+                        matchedSubject = std._matchedSubject || std.subject;
+                    }
+                });
+            });
+
+            // 4b. Aynı sınıftaki herhangi bir akranın dersini bul
+            if (!matchedSubject) {
+                session.results.forEach(r => {
+                    if (matchedSubject || !r.seats) return;
+                    Object.values(r.seats).forEach(seat => {
+                        if (matchedSubject) return;
+                        const std = seat.student || seat;
+                        if (std && String(std.class || '').trim().toLocaleUpperCase('tr-TR') === targetCls) {
+                            matchedSubject = std._matchedSubject || std.subject;
+                        }
+                    });
+                });
+            }
+
+            // 4c. Öğrencinin sorumlu olduğu dersler ile oturum derslerini eşleştir
+            if (!matchedSubject && studentObj.dersler && studentObj.dersler.length > 0) {
+                const sesSubs = [];
+                (session.subjects || []).forEach(sub => {
+                    const sn = typeof sub === 'object' ? sub.name : sub;
+                    if (sn) sesSubs.push(sn);
+                });
+                const norm = str => String(str || '').trim().toLocaleUpperCase('tr-TR').replace(/I/g, 'İ');
+                for (const d of studentObj.dersler) {
+                    const dn = norm(d);
+                    const found = sesSubs.find(s => {
+                        const sn = norm(s);
+                        return dn === sn || dn.startsWith(sn + ' ') || sn.startsWith(dn + ' ');
+                    });
+                    if (found) {
+                        matchedSubject = found;
+                        break;
+                    }
+                }
+            }
+
+            // 4d. Oturumda tek ders varsa varsayılan al
+            if (!matchedSubject) {
+                if (session.subject) matchedSubject = session.subject;
+                else if (Array.isArray(session.subjects) && session.subjects.length === 1) {
+                    matchedSubject = typeof session.subjects[0] === 'object' ? session.subjects[0].name : session.subjects[0];
+                }
+            }
+
+            if (!matchedSubject) return; // Uygun sınav dersi bulunamadı
+
+            // 5. Oturumdaki tüm salonlardan uygun boş koltukları topla
+            const candidateSeats = [];
+            session.results.forEach((room, rIdx) => {
+                for (let g = 1; g <= (room.groups || 1); g++) {
+                    const conf = room.groupConfigs ? room.groupConfigs[g - 1] : { rows: room.rows || 1, cols: room.cols || 1 };
+                    for (let row = 1; row <= (conf.rows || 1); row++) {
+                        for (let col = 1; col <= (conf.cols || 1); col++) {
+                            const sid = `G${g}-S${row}-C${col}`;
+                            if (room.disabledSeats && room.disabledSeats.includes(sid)) continue;
+                            if (room.seats && room.seats[sid]) continue; // Koltuk dolu
+
+                            // Çakışma puanı hesapla: Komşularda aynı sınıf veya aynı ders varsa puan artar
+                            let clashScore = 0;
+                            const neighbors = [
+                                `G${g}-S${row - 1}-C${col}`,
+                                `G${g}-S${row + 1}-C${col}`,
+                                `G${g}-S${row}-C${col - 1}`,
+                                `G${g}-S${row}-C${col + 1}`
+                            ];
+                            neighbors.forEach(nSid => {
+                                const nSeat = room.seats ? room.seats[nSid] : null;
+                                if (nSeat) {
+                                    const nStd = nSeat.student || nSeat;
+                                    if (nStd) {
+                                        if (String(nStd.class || '').trim().toLocaleUpperCase('tr-TR') === targetCls) {
+                                            clashScore += 10;
+                                        }
+                                        if (nStd._matchedSubject && nStd._matchedSubject === matchedSubject) {
+                                            clashScore += 5;
+                                        }
+                                    }
+                                }
+                            });
+
+                            candidateSeats.push({
+                                roomIdx: rIdx,
+                                room: room,
+                                seatId: sid,
+                                row: row,
+                                col: col,
+                                clashScore: clashScore
+                            });
+                        }
+                    }
+                }
+            });
+
+            if (candidateSeats.length === 0) {
+                console.warn(`[autoAssignStudentToUpcomingSessions] "${session.name || session.id}" oturumunda boş koltuk bulunamadı.`);
+                return;
+            }
+
+            // En uygun (en az çakışmalı) koltuğu seç
+            candidateSeats.sort((a, b) => a.clashScore - b.clashScore);
+            const bestSeat = candidateSeats[0];
+
+            let groupLabel = 'A';
+            if (session.hasGroups) {
+                const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                groupLabel = alphabet[(bestSeat.col - 1) % (session.groupCount || 2)] || 'A';
+            }
+
+            if (!bestSeat.room.seats) bestSeat.room.seats = {};
+            const studentEntry = {
+                no: studentObj.no,
+                name: studentObj.name,
+                class: studentObj.class,
+                alan: studentObj.alan || '',
+                _matchedSubject: matchedSubject,
+                _groupLabel: groupLabel,
+                dersler: studentObj.dersler || [matchedSubject],
+                status: 'Aktif'
+            };
+            if (studentObj.ogrenciKodu) studentEntry.ogrenciKodu = studentObj.ogrenciKodu;
+            bestSeat.room.seats[bestSeat.seatId] = studentEntry;
+
+            // Oturum sınıf/hariç listesini güncelle
+            if (!Array.isArray(session.selectedClasses)) session.selectedClasses = [];
+            if (!session.selectedClasses.includes(studentObj.class)) {
+                session.selectedClasses.push(studentObj.class);
+            }
+            if (Array.isArray(session.excludedStudents)) {
+                session.excludedStudents = session.excludedStudents.filter(no => String(no).trim() !== targetNo);
+            }
+
+            // Gerekirse oturum ders listesinde görünmesini sağla
+            if (Array.isArray(session.subjects)) {
+                const existsInSesSubs = session.subjects.some(s => {
+                    const sn = typeof s === 'object' ? s.name : s;
+                    return sn === matchedSubject;
+                });
+                if (!existsInSesSubs) {
+                    session.subjects.push({ name: matchedSubject, hasGroups: session.hasGroups || false });
+                }
+            }
+
+            modifiedCount++;
+            placedDetails.push({
+                sessionId: session.id,
+                sessionName: session.name || session.id,
+                sessionDate: session.date || '',
+                sessionTime: session.time || '',
+                roomName: bestSeat.room.name,
+                seatId: bestSeat.seatId,
+                subject: matchedSubject
+            });
+        });
+
+        if (modifiedCount > 0) {
+            this._saveData(data);
+            if (typeof window.renderExamSessionsList === 'function') {
+                try { window.renderExamSessionsList(); } catch (e) { console.warn(e); }
+            }
+        }
+
+        return { modifiedCount, placedDetails };
+    },
+
     bulkImportStudents: function (studentList, mode) {
         const data = this._getData();
         // Geçersiz veya özet satırlarını filtrele
@@ -980,6 +1335,7 @@ const DataManager = {
 
             const finalStudents = [];
             const deletedStudentNos = [];
+            const newAddedStudents = [];
 
             // 1. Process new students and updates from Excel
             studentList.forEach(newStd => {
@@ -999,7 +1355,11 @@ const DataManager = {
                 } else {
                     // New student
                     stats.addedCount++;
+                    if (!Array.isArray(newStd.dersler) || newStd.dersler.length === 0) {
+                        newStd.dersler = this.resolveStudentDefaultSubjects(newStd.class, newStd.alan);
+                    }
                     finalStudents.push(newStd);
+                    newAddedStudents.push(newStd);
                 }
             });
 
@@ -1023,6 +1383,15 @@ const DataManager = {
 
             if (deletedStudentNos.length > 0) {
                 this.removeStudentFromUpcomingSessions(deletedStudentNos);
+            }
+
+            if (newAddedStudents.length > 0) {
+                let autoPlacedCount = 0;
+                newAddedStudents.forEach(st => {
+                    const res = this.autoAssignStudentToUpcomingSessions(st);
+                    if (res && res.modifiedCount > 0) autoPlacedCount += res.modifiedCount;
+                });
+                stats.autoPlacedCount = autoPlacedCount;
             }
         }
 

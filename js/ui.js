@@ -897,25 +897,78 @@ document.addEventListener('DOMContentLoaded', async () => {
             status: 'Aktif'
         };
 
-        DataManager.addStudent(std);
+        const addResult = DataManager.addStudent(std);
+
+        let placedHtml = '';
+        if (addResult && addResult.placedDetails && addResult.placedDetails.length > 0) {
+            placedHtml = `
+                <div style="margin-top:12px; font-size:0.83rem; text-align:left; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:10px 12px; color:#065f46;">
+                    <div style="font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+                        <i class="fa-solid fa-chair" style="color:#10b981;"></i> Henüz Yapılmamış Sınavlara Otomatik Yerleştirildi:
+                    </div>
+                    <ul style="margin:2px 0 0 16px; padding:0; line-height:1.5;">
+                        ${addResult.placedDetails.map(p => `<li><b>${p.sessionName || p.sessionId}</b>: ${p.roomName} (${p.seatId}) - <i>${p.subject}</i></li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
 
         Swal.fire({
             icon: 'success',
             title: 'Öğrenci Kaydedildi',
-            text: `${std.name} (${std.no}) - ${stdClass} sınıfına eklendi.`,
-            timer: 2000,
-            showConfirmButton: false
+            html: `<b>${std.name}</b> (${std.no}) - <b>${stdClass}</b> sınıfına başarıyla kaydedildi.<br><small style="color:var(--gray-500);">Dersler: ${(std.dersler || []).join(', ') || 'Belirtilmedi'}</small>${placedHtml}`,
+            confirmButtonText: 'Tamam'
         });
 
         // Reset specific fields only
         document.getElementById('stdNo').value = '';
         document.getElementById('stdName').value = '';
+        const stdSubjectsInputEl = document.getElementById('stdSubjects');
+        if (stdSubjectsInputEl) {
+            stdSubjectsInputEl.value = '';
+            stdSubjectsInputEl.dataset.autoFilled = 'false';
+        }
         document.getElementById('stdNo').focus();
 
         // Refresh stats
         updateDashboardStats();
         updateClassesList();
     });
+
+    // Otomatik Sınıf/Alan Dersleri Doldurma Dinleyicisi
+    (function () {
+        const stdClassEl = document.getElementById('stdClass');
+        const stdFieldEl = document.getElementById('stdField');
+        const stdSubjectsEl = document.getElementById('stdSubjects');
+
+        const autoFillSubjects = () => {
+            if (!stdSubjectsEl) return;
+            const cls = stdClassEl ? stdClassEl.value.trim() : '';
+            const fld = stdFieldEl ? stdFieldEl.value.trim() : '';
+            if (!cls) return;
+            if (!stdSubjectsEl.value.trim() || stdSubjectsEl.dataset.autoFilled === 'true') {
+                const subs = DataManager.resolveStudentDefaultSubjects(cls, fld);
+                if (subs && subs.length > 0) {
+                    stdSubjectsEl.value = subs.join(', ');
+                    stdSubjectsEl.dataset.autoFilled = 'true';
+                }
+            }
+        };
+
+        if (stdClassEl) {
+            stdClassEl.addEventListener('blur', autoFillSubjects);
+            stdClassEl.addEventListener('change', autoFillSubjects);
+        }
+        if (stdFieldEl) {
+            stdFieldEl.addEventListener('blur', autoFillSubjects);
+            stdFieldEl.addEventListener('change', autoFillSubjects);
+        }
+        if (stdSubjectsEl) {
+            stdSubjectsEl.addEventListener('input', () => {
+                stdSubjectsEl.dataset.autoFilled = 'false';
+            });
+        }
+    })();
 
     // --- 5.5 Bulk Import via Excel ---
     const excelFileInput = document.getElementById('excelFileInput');
@@ -3094,10 +3147,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const liveData = DataManager._getData();
                     liveData.students = currentStudents;
                     DataManager._saveData(liveData);
+
+                    // Sınıfın dersleri tanımlandığında henüz yapılmamış oturumlardaki boş koltuklara yerleştir
+                    let newlyAssignedCount = 0;
+                    currentStudents.filter(s => targetClasses.includes(s.class)).forEach(st => {
+                        const r = DataManager.autoAssignStudentToUpcomingSessions(st);
+                        if (r && r.modifiedCount > 0) newlyAssignedCount += r.modifiedCount;
+                    });
                 });
 
+                let autoAssignMsg = '';
+                if (typeof newlyAssignedCount !== 'undefined' && newlyAssignedCount > 0) {
+                    autoAssignMsg = `<br><br><span style="color:#059669; font-weight:700;"><i class="fa-solid fa-chair"></i> Ayrıca henüz yapılmamış <b>${newlyAssignedCount}</b> sınav oturumundaki boş koltuklara otomatik yerleşim yapıldı.</span>`;
+                }
                 document.querySelector('[data-tab="classLists"]').click();
-                Swal.fire('Başarılı', `Seçilen dersler, ${targetClasses.length} sınıftaki ilgili ${updatedStudentsCount} öğrenciye başarıyla tanımlandı.`, 'success');
+                Swal.fire('Başarılı', `Seçilen dersler, ${targetClasses.length} sınıftaki ilgili ${updatedStudentsCount} öğrenciye başarıyla tanımlandı.${autoAssignMsg}`, 'success');
             }
         });
     };
@@ -3422,10 +3486,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }).then((result) => {
             if (result.isConfirmed) {
-                data.students[studentIndex] = { ...data.students[studentIndex], ...result.value };
+                const updatedStd = { ...data.students[studentIndex], ...result.value };
+                if (!Array.isArray(updatedStd.dersler) || updatedStd.dersler.length === 0) {
+                    updatedStd.dersler = DataManager.resolveStudentDefaultSubjects(updatedStd.class, updatedStd.alan);
+                }
+                data.students[studentIndex] = updatedStd;
                 DataManager._saveData(data);
+
+                const placeRes = DataManager.autoAssignStudentToUpcomingSessions(updatedStd);
+                let placeMsg = '';
+                if (placeRes && placeRes.modifiedCount > 0) {
+                    placeMsg = `<br><br><span style="color:#059669; font-weight:700;"><i class="fa-solid fa-chair"></i> Henüz yapılmamış <b>${placeRes.modifiedCount}</b> sınav oturumundaki uygun boş koltuklara otomatik yerleştirildi.</span>`;
+                }
+
                 document.querySelector('[data-tab="classLists"]').click();
-                Swal.fire('Başarılı', 'Öğrenci bilgileri güncellendi.', 'success');
+                Swal.fire('Başarılı', `Öğrenci bilgileri güncellendi.${placeMsg}`, 'success');
             } else if (result.isDenied) {
                 Swal.fire({
                     title: 'Öğrenciyi Silmek İstediğinize Emin Misiniz?',
