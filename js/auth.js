@@ -203,11 +203,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     // We don't reload here because enter.html's own script will show the portal UI
                     // since we just populated sessionStorage.
-                } else {
+                } else if (currentPath === '/' || currentPath.endsWith('index.html') || currentPath.endsWith('k9x7v2m4')) {
                     let targetUrl = '/enter.html';
                     
-                    // If we are already on the login page and have a session, 
-                    // we only redirect if we didn't just come from that page (to allow 'Back' button)
+                    // Sadece giriş (login) sayfasındaysak ve aktif oturum varsa enter.html portalına yönlendir
                     const lastRedirect = sessionStorage.getItem('klbk_last_redirect');
                     if (lastRedirect !== targetUrl) {
                         sessionStorage.setItem('klbk_last_redirect', targetUrl);

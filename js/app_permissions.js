@@ -5,17 +5,29 @@
     style.innerHTML = 'body { display: none !important; }';
     document.head.appendChild(style);
 
+    function removeHideStyle() {
+        const s = document.getElementById('app-permissions-style');
+        if (s && s.parentNode) s.parentNode.removeChild(s);
+    }
+    // Fail-safe: Asla 1.5 saniyeden fazla body'yi gizli tutma (özellikle mobil Safari ve zayıf bağlantılar için)
+    const safetyTimer = setTimeout(removeHideStyle, 1500);
+
     const firebaseDatabaseUrl = "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
     const currentPath = window.location.pathname;
     
     // Ignore script execution completely for login and security_error
     if (currentPath === '/' || currentPath.endsWith('index.html') || currentPath.endsWith('security_error.html') || currentPath.endsWith('master.html')) {
-        document.head.removeChild(style);
+        clearTimeout(safetyTimer);
+        removeHideStyle();
         return;
     }
 
     try {
-        const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_app_permissions.json?_=${Date.now()}`);
+        const controller = new AbortController();
+        const fetchTimeout = setTimeout(() => controller.abort(), 2500);
+        const res = await fetch(`${firebaseDatabaseUrl}/app_store/klbk_app_permissions.json?_=${Date.now()}`, { signal: controller.signal });
+        clearTimeout(fetchTimeout);
+
         if (res.ok) {
             const data = await res.json();
             
@@ -82,12 +94,14 @@
     } catch (e) {
         console.error("App permissions check failed:", e);
         // On failure, we fail open (allow access based on normal auth)
+    } finally {
+        clearTimeout(safetyTimer);
+        removeHideStyle();
     }
 
-    // Allow body to show
-    document.head.removeChild(style);
-
     function showAccessDenied() {
+        clearTimeout(safetyTimer);
+        removeHideStyle();
         document.body.innerHTML = `
             <div style="display:flex; justify-content:center; align-items:center; height:100vh; background-color:#f8fafc; font-family:'Outfit', sans-serif; text-align:center; padding:20px;">
                 <div style="background:white; padding:40px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.1); max-width:500px;">
@@ -104,6 +118,5 @@
                 </div>
             </div>
         `;
-        document.head.removeChild(style);
     }
 })();

@@ -17,8 +17,8 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
     <!-- PDF Modification Libraries -->
-    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js" defer></script>
-    <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.9/dist/pdf-lib.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@0.0.4/dist/fontkit.umd.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
     <!-- Ortak PDF Başlık render fonksiyonu (dashboard ile aynı tema desteği) -->
     <script src="js/pdf_engine_v11_9_1.js"></script>
@@ -412,9 +412,9 @@
     <script src="js/session_attendance_report.js?v=1.2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        // Rescue Error Handler: Catch errors before anything else fails
+        // Rescue Error Handler: Log errors safely without freezing mobile browsers
         window.onerror = function(msg, url, lineNo, columnNo, error) {
-            alert("KRİTİK HATA: " + msg + "\nSatır: " + lineNo + "\nLütfen bu hatayı bildirin.");
+            console.error("KRİTİK HATA:", msg, "Satır:", lineNo, error);
             return false;
         };
 
@@ -5563,13 +5563,17 @@
 </style>
 <div id="appLoader" class="loader-wrapper"><div class="loader-content"><div class="loader-grid"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
 <script>
-window.addEventListener('DOMContentLoaded', () => {
+function dismissAppLoader() {
     const loader = document.getElementById('appLoader');
     if (loader) {
         loader.classList.add('fade-out');
-        setTimeout(() => loader.remove(), 600);
+        setTimeout(() => { if (loader && loader.parentNode) loader.remove(); }, 400);
     }
-});
+}
+window.addEventListener('DOMContentLoaded', dismissAppLoader);
+window.addEventListener('load', dismissAppLoader);
+// Fail-safe: Harici kaynaklar mobilde gecikse bile loader en geç 1.2 sn içinde kalkar
+setTimeout(dismissAppLoader, 1200);
 </script>
 
 </body>
