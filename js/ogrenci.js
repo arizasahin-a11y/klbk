@@ -229,24 +229,38 @@ DataManager._getStorageKey = function () {
 
             if (!assignedClass) return false;
             
-            const roomMappings = DataManager.getClassRoomMappings() || {};
-            const safeClass = DataManager.sanitizeFirebaseKey(assignedClass);
-            let roomName = roomMappings[safeClass] || roomMappings[assignedClass];
-            if (!roomName) {
-                for(let key in roomMappings) {
-                    if (key === safeClass || key === assignedClass) {
-                        roomName = roomMappings[key];
+            const displayClass = String(assignedClass).replace(/_SLASH_/g, '/');
+            const roomName = DataManager.getSanitizedClassRoomMapping(displayClass) || DataManager.getSanitizedClassRoomMapping(assignedClass);
+            if (!roomName) return false;
+            
+            const sessions = DataManager.getSortedExamSessions() || [];
+            const now = getNow();
+            const defaultScreenLimit = DataManager.getSchoolSettings()?.defaultTimes?.defaultScreenViewLimit || 8;
+            let activeSession = null;
+            let roomData = null;
+
+            for (let ses of sessions) {
+                if (!ses || !ses.isPublished || !ses.screenViewEnabled || !Array.isArray(ses.results) || ses.type === 'uygulama') continue;
+                const targetTime = DataManager.parseSessionDateTime(ses.date, ses.time);
+                const durationMins = ses.examDuration || 40;
+                const endTime = new Date(targetTime.getTime() + durationMins * 60 * 1000);
+                const diffMins = (targetTime - now) / 1000 / 60;
+                const diffEndMins = (endTime - now) / 1000 / 60;
+                const limit = (ses.screenViewLimit === 0) ? 999999 : ((ses.screenViewLimit === undefined) ? defaultScreenLimit : ses.screenViewLimit);
+
+                if (Math.floor(diffMins) <= limit && diffEndMins >= -3) {
+                    const matchedRoom = ses.results.find(r => r && r.name === roomName);
+                    if (matchedRoom) {
+                        activeSession = ses;
+                        roomData = matchedRoom;
                         break;
                     }
                 }
             }
-            if (!roomName) return false;
+
+            if (!roomData || !activeSession) return false;
             
-            const exams = DataManager.getExams() || [];
-            const roomData = exams.find(e => e.name === roomName);
-            if (!roomData) return false;
-            
-            renderClassroomDisplay(roomData, assignedClass);
+            renderFullScreenPlan(roomData, activeSession, displayClass);
             return true;
         }
 
@@ -2651,9 +2665,16 @@ DataManager._getStorageKey = function () {
                 window.fullScreenTimerInterval = null;
             }
 
-            // Restore student info UI
+            // Restore student info UI or login screen
             const resultsView = document.getElementById('resultsView');
-            if (resultsView && currentStudent) resultsView.style.display = 'block';
+            if (resultsView && currentStudent) {
+                resultsView.style.display = 'block';
+                resultsView.classList.remove('hidden');
+            } else {
+                const loginView = document.getElementById('loginView');
+                if (loginView) loginView.classList.remove('hidden');
+                document.body.classList.add('login-body');
+            }
 
             currentFullScreenSessionId = null; // Reset so it doesn't immediately re-open on retick
 
@@ -2665,7 +2686,8 @@ DataManager._getStorageKey = function () {
             window.removeEventListener('resize', scaleFullScreenPlan);
         }
 
-        function renderFullScreenPlan(roomData, sessionData) {
+        function renderFullScreenPlan(roomData, sessionData, classOverride = '') {
+            const targetClassName = classOverride || (currentStudent ? currentStudent.class : '');
             // Cleanup existing timer if any
             window.currentRenderedSession = sessionData;
             // Clear current student to ensure smartboard view doesn't use stale student info
@@ -2812,9 +2834,12 @@ DataManager._getStorageKey = function () {
                 document.body.appendChild(overlay);
             }
 
-            // Hide personal student info completely
+            // Hide personal student info and login screen completely
             const resultsView = document.getElementById('resultsView');
             if (resultsView) resultsView.style.display = 'none';
+            const loginView = document.getElementById('loginView');
+            if (loginView) loginView.classList.add('hidden');
+            document.body.classList.remove('login-body');
 
 
             // Floating Info Panel Layer (Zaman Sayacı Seçeneği)
@@ -2824,7 +2849,7 @@ DataManager._getStorageKey = function () {
                     <div style="display: flex; align-items: center; gap: 20px;">
                         <div>
                             <h2 style="margin: 0; font-weight: 800; font-size: 1.25rem;">${sessionData.name}</h2>
-                            <div style="font-size: 0.85rem; color: var(--gray-400);">${currentStudent.class} Sınıfı - ${roomData.name} Salonu Oturma Planı</div>
+                            <div style="font-size: 0.85rem; color: var(--gray-400);">${targetClassName ? targetClassName + " Sınıfı - " : ""}${roomData.name} Salonu Oturma Planı</div>
                         </div>
                         <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                             ${pdfLinksHtml}
@@ -2952,7 +2977,7 @@ DataManager._getStorageKey = function () {
                             groupsHtml += `<div class="desk" style="opacity:0.2; border: 1px dashed var(--gray-300);"></div>`;
                         } else if (std) {
                             let deskBg = 'white';
-                            if (std.class === currentStudent.class) {
+                            if (targetClassName && std.class === targetClassName) {
                                 deskBg = '#ecfdf5'; // Highlight own class slightly
                             }
 
