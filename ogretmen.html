@@ -21,7 +21,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js'"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
     <!-- Ortak PDF Başlık render fonksiyonu (dashboard ile aynı tema desteği) -->
-    <script src="js/pdf_engine_v11_9_1.js"></script>
+    <script src="js/pdf_engine_v11_9_1.js?v=12.4"></script>
 
     <style>
         .print-mode-select {
@@ -3814,7 +3814,7 @@
 
         // Font ve PDF Header fonksiyonları artık merkezi js/data.js ve js/ui.js üzerinden kullanılıyor.
 
-        async function printPapersForGroupBatch(targetStudents, session, groupLabel) {
+        async function printPapersForGroupBatch(targetStudents, session, groupLabel, isOyss = false) {
             const { PDFDocument } = PDFLib;
             Swal.fire({
                 title: `${groupLabel} Hazırlanıyor...`,
@@ -3915,7 +3915,7 @@
                         const { width, height } = firstPage.getSize();
                         const A4_W = 595.28, A4_H = 841.89;
                         const sf = 1 / Math.min(A4_W / width, A4_H / height);
-                        await window.renderStudentPDFHeader(mergedPdf, firstPage, studentInfo, { ...fonts, sf, session, metadata: meta, imageCache });
+                        await window.renderStudentPDFHeader(mergedPdf, firstPage, studentInfo, { ...fonts, sf, session, metadata: meta, imageCache, isOyss });
 
                         pages.forEach(p => mergedPdf.addPage(p));
                         if (isDoubleSidedMode && pages.length % 2 !== 0) {
@@ -4519,6 +4519,7 @@
             `).join('');
 
             let singleSelectedEntity = null;
+            let isOyssSelectedForDeny = false;
 
             Swal.fire({
                 title: `Yazdırılacak ${entityTypeStr}`,
@@ -4530,6 +4531,9 @@
                                 <span style="font-size: 1.1rem; font-weight: 900; color: var(--primary);">Tümünü Seç</span>
                             </label>
                             ${(mode === 'class' || mode === 'room') && hasPdf ? `
+                            <label id="swal-oyss-label" style="display: none; align-items: center; gap: 8px; cursor: pointer; color: var(--primary); font-weight: bold; font-size: 1.05rem; margin: 0; user-select: none;">
+                                <input type="checkbox" id="swal-oyss-check" style="accent-color: var(--primary); width: 20px; height: 20px; cursor: pointer;"> <span>OYSS</span>
+                            </label>
                             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--primary); font-weight: bold; font-size: 1.05rem; margin: 0; user-select: none;">
                                 <input type="checkbox" id="swal-paper-check" style="accent-color: var(--primary); width: 20px; height: 20px; cursor: pointer;"> <span>Soru Kağıdı</span>
                             </label>
@@ -4561,9 +4565,16 @@
                 width: 600,
                 didOpen: () => {
                     const paperCheck = document.getElementById('swal-paper-check');
+                    const oyssLabel = document.getElementById('swal-oyss-label');
+                    const oyssCheck = document.getElementById('swal-oyss-check');
 
                     const toggleDenyButton = () => {
-                        const isPaperChecked = paperCheck && paperCheck.checked;
+                        const isPaperChecked = !!(paperCheck && paperCheck.checked);
+                        if (oyssLabel) {
+                            oyssLabel.style.display = isPaperChecked ? 'flex' : 'none';
+                            if (!isPaperChecked && oyssCheck) oyssCheck.checked = false;
+                        }
+                        isOyssSelectedForDeny = !!(isPaperChecked && oyssCheck && oyssCheck.checked);
                         const checkedBoxes = Array.from(document.querySelectorAll('input[name="printEntity"]:checked')).map(cb => cb.value);
                         const dBtn = Swal.getDenyButton();
                         if (dBtn) {
@@ -4584,6 +4595,9 @@
                     if (paperCheck) {
                         paperCheck.addEventListener('change', toggleDenyButton);
                     }
+                    if (oyssCheck) {
+                        oyssCheck.addEventListener('change', toggleDenyButton);
+                    }
                     toggleDenyButton();
                 },
                 preConfirm: () => {
@@ -4596,15 +4610,17 @@
                     const tMsg = document.getElementById('printTeacherMsg').value;
                     const pSize = parseInt(localStorage.getItem('printPageSize')) || 50;
                     const paperCheck = document.getElementById('swal-paper-check');
+                    const oyssCheck = document.getElementById('swal-oyss-check');
                     const isPaperChecked = !!(paperCheck && paperCheck.checked);
+                    const isOyssChecked = !!(isPaperChecked && oyssCheck && oyssCheck.checked);
 
-                    return { selected, sMsg, tMsg, pSize, isPaperChecked };
+                    return { selected, sMsg, tMsg, pSize, isPaperChecked, isOyssChecked };
                 }
             }).then((result) => {
                 if (result.isConfirmed && result.value.selected.length > 0) {
-                    executePrintSession(id, mode, result.value.selected, result.value.sMsg, result.value.tMsg, result.value.pSize, result.value.isPaperChecked);
+                    executePrintSession(id, mode, result.value.selected, result.value.sMsg, result.value.tMsg, result.value.pSize, result.value.isPaperChecked, result.value.isOyssChecked);
                 } else if (result.isDenied && singleSelectedEntity) {
-                    openStudentSelectionModal(id, mode, singleSelectedEntity);
+                    openStudentSelectionModal(id, mode, singleSelectedEntity, isOyssSelectedForDeny);
                 }
             });
         };
@@ -4645,7 +4661,7 @@
             }
         };
 
-        async function openStudentSelectionModal(id, mode, entityName) {
+        async function openStudentSelectionModal(id, mode, entityName, isOyss = false) {
             const _studentModalSessions = DataManager.getExamSessions();
             const session = _studentModalSessions.find(s => s.id === id);
             if (!session || !session.results) return;
@@ -4775,13 +4791,13 @@
                             if (!confirm.isConfirmed) return;
                         }
 
-                        await printPapersForGroupBatch(finalStudents, session, `Özel Yazdırma - ${entityName}`);
+                        await printPapersForGroupBatch(finalStudents, session, `Özel Yazdırma - ${entityName}`, isOyss);
                     }
                 }
             });
         }
 
-        async function executePrintSession(id, mode, filterArray, studentMsgOverride, teacherMsgOverride, pageSizeOverride, isPaperCheckedOverride = false) {
+        async function executePrintSession(id, mode, filterArray, studentMsgOverride, teacherMsgOverride, pageSizeOverride, isPaperCheckedOverride = false, isOyssChecked = false) {
             const _executePrintSessions = DataManager.getExamSessions();
             const session = _executePrintSessions.find(s => s.id === id);
             if (!session || !session.results || session.results.length === 0) return;
@@ -4988,7 +5004,7 @@
                             });
 
                             if (confirmEach.isConfirmed) {
-                                await printPapersForGroupBatch(groupStudents, session, `Soru Kağıtları - ${item}`);
+                                await printPapersForGroupBatch(groupStudents, session, `Soru Kağıtları - ${item}`, isOyssChecked);
                             }
                         }
                         return;
@@ -4996,7 +5012,7 @@
                 }
 
                 // SÜREKLİ MOD (Varsayılan veya Denied seçimi): Tümünü tek seferde yazdır
-                await printPapersForGroupBatch(finalStudentsToPrint, session, "Soru Kağıtları");
+                await printPapersForGroupBatch(finalStudentsToPrint, session, "Soru Kağıtları", isOyssChecked);
                 return; // Exit, don't print normal lists
             }
 

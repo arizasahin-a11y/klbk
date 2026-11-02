@@ -583,14 +583,25 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         options.infoFont = infoFont;
     } catch(e) { console.warn("Dinamik font yükleme hatası", e); }
 
+    const isOyss = !!options.isOyss;
     const margin = 14.17 * sf;
-    const limitY = 85.04 * sf;
+    const limitY = (isOyss ? 114 : 85.04) * sf;
     const outerStroke = 1.6 * sf;
     const strokeOffset = outerStroke / 2 + (1 * sf);
     const ox = margin + strokeOffset;
     const oy = height - limitY + strokeOffset;
     const ow = width - (margin * 2) - (strokeOffset * 2);
     const oh = limitY - margin - (strokeOffset * 2);
+
+    if (isOyss) {
+        page.drawRectangle({
+            x: 0,
+            y: height - limitY - (2 * sf),
+            width: width,
+            height: limitY + (2 * sf),
+            color: rgb(1, 1, 1)
+        });
+    }
 
     const gap = 2 * sf;
     const ix = ox + gap;
@@ -602,8 +613,9 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
     const rightW = 85 * sf;
     const midW = iw - leftW - rightW;
 
-    const row3H = 25 * sf;
-    const row2H = 19 * sf;
+    const oyssScale = isOyss ? (ih / (63.27 * sf)) : 1;
+    const row3H = 25 * sf * oyssScale;
+    const row2H = 19 * sf * oyssScale;
     const row1H = ih - row3H - row2H;
 
     const midCol2W = 44.17 * sf; // 30 + 14.17 (0.5cm)
@@ -1022,7 +1034,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         // Atatürk Teması (v3 Görsel Çerçeve + Düzenlemeler)
         const cmToPt = 28.35;
         const cropBottom = 0.5 * cmToPt * sf;
-        const targetH = (3 * cmToPt + 4.17) * sf - cropBottom; // Expansion +1mm (Total +4.17 points from base)
+        const baseLimitPt = isOyss ? 114 : (3 * cmToPt);
+        const targetH = (baseLimitPt + 4.17) * sf - cropBottom; // Expansion +1mm (Total +4.17 points from base)
         const extraW = 1.0 * cmToPt * sf;
         const shiftLeft = 5.67 * sf; // 2mm move to left
 
@@ -1030,8 +1043,8 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
         const drawW = ow + extraW + shiftLeft;
         const drawX = ox - shiftLeft;
 
-        // Move bottom limit to precisely 3cm (height - 85.05pt) from top
-        const drawY = height - (3 * cmToPt * sf); 
+        // Move bottom limit to precisely 3cm (height - 85.05pt) or OYSS limit from top
+        const drawY = height - (baseLimitPt * sf); 
 
         try {
             const headerUrl = 'img/ata_header_v4.png';
@@ -1055,7 +1068,7 @@ window.renderStudentPDFHeader = async function (pdfDoc, page, info, options = {}
 
         // Stabilized contentBaseY to keep text fixed while header grows up
         const d9LowTextShift = 4.8 * sf; // Adjusted shift for 3cm height
-        const contentBaseY = drawY - cropBottom + (oh * 0.15) + textUp + (10.5 * sf) - d9LowTextShift; 
+        const contentBaseY = drawY - cropBottom + (oh * 0.15) + textUp + (10.5 * sf) - d9LowTextShift + (isOyss ? (row3H - 25 * sf) : 0); 
         const d9Oy = drawY + 2.835 * sf; // Moved student info box 1mm (2.835pt) UP from bottom limit
 
         // School name position: 1mm down relative to the content base
