@@ -178,60 +178,74 @@ const DataManager = {
     },
 
     // Initialize Cloud Data (Must be called on page load)
-    initCloud: async function () {
-        const key = this._getStorageKey();
-        let explicitEmptyCloud = false;
-        try {
-            const encodedKey = encodeURIComponent(key);
-            const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/${encodedKey}.json?t=${Date.now()}`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data) { 
-                    // Race Condition Check: Don't overwrite memory if a local change just happened
-                    const lastLocal = parseInt(localStorage.getItem('klbk_lastLocalChange') || '0');
-                    if (Date.now() - lastLocal < 5000) {
-                        console.log("Skipping cloud load: Local change in progress...");
-                        return;
-                    }
+    initCloud: async function (isSilent = false) {
+        if (this._initCloudInProgress && this._initCloudPromise) {
+            return this._initCloudPromise;
+        }
+        this._initCloudInProgress = true;
+        this._initCloudPromise = (async () => {
+            const key = this._getStorageKey();
+            let explicitEmptyCloud = false;
+            const wasLoadedBefore = this._isCloudLoaded;
+            try {
+                const encodedKey = encodeURIComponent(key);
+                const res = await fetch(`${this.firebaseDatabaseUrl}/app_store/${encodedKey}.json?t=${Date.now()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data) { 
+                        // Race Condition Check: Don't overwrite memory if a local change just happened
+                        const lastLocal = parseInt(localStorage.getItem('klbk_lastLocalChange') || '0');
+                        if (Date.now() - lastLocal < 5000) {
+                            return;
+                        }
 
-                    this._memoryData = data;
+                        this._memoryData = data;
+                        this._isCloudLoaded = true;
+                        try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {}
+                        if (!wasLoadedBefore && !isSilent) {
+                            console.log("%c CLOUD SUCCESS: Loaded data for " + key, "background: #22c55e; color: white; padding: 2px 5px;");
+                        }
+                        this._migrateDateFormats(); 
+                        return;
+                    } else {
+                        explicitEmptyCloud = true;
+                    }
+                }
+            } catch (e) {
+                if (!isSilent) console.error("Cloud fetch failed for:", key, e);
+            }
+
+            if (!isSilent) console.log("Checking LocalStorage fallback for:", key);
+            // Fallback to LocalStorage if cloud fails
+            const local = localStorage.getItem(key);
+            if (local) {
+                try {
+                    this._memoryData = JSON.parse(local);
                     this._isCloudLoaded = true;
-                    localStorage.setItem(key, JSON.stringify(data)); // Sync cloud to local
-                    console.log("%c CLOUD SUCCESS: Loaded data for " + key, "background: #22c55e; color: white; padding: 2px 5px;");
-                    this._migrateDateFormats(); 
+                    if (!wasLoadedBefore && !isSilent) {
+                        console.log("Offline mode: Loaded data from local storage for:", key);
+                    }
+                    this._migrateDateFormats();
                     return;
-                } else {
-                    explicitEmptyCloud = true;
+                } catch (e) { 
+                    if (!isSilent) console.error("Local storage parse failed:", e);
                 }
             }
-        } catch (e) {
-            console.error("Cloud fetch failed for:", key, e);
-        }
 
-        console.log("Checking LocalStorage fallback for:", key);
-        // Fallback to LocalStorage if cloud fails
-        const local = localStorage.getItem(key);
-        if (local) {
-            try {
-                this._memoryData = JSON.parse(local);
+            // Final fallback: Initial state
+            this._memoryData = JSON.parse(JSON.stringify(initialState));
+            if (explicitEmptyCloud) {
                 this._isCloudLoaded = true;
-                console.log("Offline mode: Loaded data from local storage for:", key);
-                this._migrateDateFormats();
-                return;
-            } catch (e) { 
-                console.error("Local storage parse failed:", e);
+                if (!isSilent) console.log("Cloud explicitly reported empty data. Safe to start fresh.");
+            } else if (!isSilent) {
+                console.error("Network/Auth failed and no local backup! Locking saves to prevent data wipe.");
+                if (typeof Swal !== 'undefined') Swal.fire('Bağlantı Hatası', 'Sunucuya bağlanılamadı. Veri kaybını önlemek için sistem salt okunur modda açıldı.', 'warning');
             }
-        }
-
-        // Final fallback: Initial state
-        this._memoryData = JSON.parse(JSON.stringify(initialState));
-        if (explicitEmptyCloud) {
-            this._isCloudLoaded = true;
-            console.log("Cloud explicitly reported empty data. Safe to start fresh.");
-        } else {
-            console.error("Network/Auth failed and no local backup! Locking saves to prevent data wipe.");
-            if (typeof Swal !== 'undefined') Swal.fire('Bağlantı Hatası', 'Sunucuya bağlanılamadı. Veri kaybını önlemek için sistem salt okunur modda açıldı.', 'warning');
-        }
+        })().finally(() => {
+            this._initCloudInProgress = false;
+            this._initCloudPromise = null;
+        });
+        return this._initCloudPromise;
     },
 
     // Sync Memory Data to Cloud
@@ -498,7 +512,15 @@ const DataManager = {
         // Ensure core structure always exists to prevent crashes
         const base = JSON.parse(JSON.stringify(initialState));
         if (!this._memoryData) {
-            console.warn("DataManager accessed before initCloud! Returning default state.");
+            try {
+                const key = this._getStorageKey();
+                const local = localStorage.getItem(key);
+                if (local) {
+                    this._memoryData = JSON.parse(local);
+                }
+            } catch (e) {}
+        }
+        if (!this._memoryData) {
             return base;
         }
 
@@ -1557,8 +1579,11 @@ const DataManager = {
                 }
             }
         });
-        if (mutated) {
-            this._saveData(data);
+        if (mutated && this._memoryData) {
+            this._memoryData.examSessions = arr;
+            try {
+                localStorage.setItem(this._getStorageKey(), JSON.stringify(this._memoryData));
+            } catch (e) {}
         }
 
         return arr;

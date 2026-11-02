@@ -140,7 +140,15 @@ DataManager._getStorageKey = function () {
             // "Sınav verileri indiriliyor" metnini tamamen kaldırmak için
             const statusEl2 = document.getElementById('timeSyncStatus');
             if (statusEl2) statusEl2.classList.add('hidden');
-                    // Ensure body is visible after initial sync/check
+
+            // Cihaz ataması veya aktif öğrenci oturumu kontrolünden önce veritabanı belleğe yüklenmiş olsun
+            if (typeof DataManager !== 'undefined' && !DataManager._isCloudLoaded) {
+                try {
+                    await DataManager.initCloud(true);
+                } catch (e) {}
+            }
+
+            // Ensure body is visible after initial sync/check
             document.body.style.visibility = 'visible';
             // Check for persistent session after time sync
             checkPersistentSession();
@@ -1078,8 +1086,9 @@ DataManager._getStorageKey = function () {
 
             if (window.cloudSyncInterval) clearInterval(window.cloudSyncInterval);
             window.cloudSyncInterval = setInterval(async () => {
+                if (document.hidden) return;
                 const oldData = JSON.stringify(DataManager.getExamSessions());
-                await DataManager.initCloud();
+                await DataManager.initCloud(true);
                 const newData = JSON.stringify(DataManager.getExamSessions());
                 
                 // Eğer veriler değişmişse listeyi tekrar çiz (Anlık yansıma)
@@ -1088,7 +1097,7 @@ DataManager._getStorageKey = function () {
                     checkFullScreenTriggers();
                 }
                 checkLiveMessages();
-            }, 2000);
+            }, 5000);
         }
 
         function logout() {

@@ -607,7 +607,8 @@
             if (Date.now() - lastLocalChangeTime < 5000) return;
             if (typeof Swal !== 'undefined' && Swal.isVisible && Swal.isVisible()) return;
             try {
-                await DataManager.initCloud();
+                if (document.hidden) return;
+                await DataManager.initCloud(true);
                 const current = JSON.stringify(DataManager.getExamSessions().filter(s => s.isPublished));
                 if (current !== lastSyncSessions) {
                     console.log("Oturum verileri değişmiş, yenileniyor...");
