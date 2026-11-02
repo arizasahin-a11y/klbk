@@ -25,6 +25,10 @@
   ],
   "routes": [
     {
+      "src": "^/$",
+      "dest": "/enter.html"
+    },
+    {
       "src": "/master(\\.html)?$",
       "status": 302,
       "headers": {

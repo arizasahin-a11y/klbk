@@ -193,17 +193,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Do not auto-redirect away from yoklama_idareci if they are authorized for it.
                     // Instead, just clear the last_redirect to ensure normal behavior.
                     sessionStorage.removeItem('klbk_last_redirect');
-                } else if (currentPath.includes('enter.html')) {
+                } else if (currentPath.includes('enter.html') || currentPath === '/') {
                     // Do not auto-redirect away from enter.html (portal).
                     sessionStorage.removeItem('klbk_last_redirect');
                     const intended = sessionStorage.getItem('klbk_intended_url');
-                    if (intended && intended !== '/enter.html' && intended !== '/index.html') {
+                    if (intended && intended !== '/enter.html' && intended !== '/index.html' && intended !== '/') {
                         sessionStorage.removeItem('klbk_intended_url');
                         window.location.href = intended;
                     }
                     // We don't reload here because enter.html's own script will show the portal UI
                     // since we just populated sessionStorage.
-                } else if (currentPath === '/' || currentPath.endsWith('index.html') || currentPath.endsWith('k9x7v2m4')) {
+                } else if (currentPath.endsWith('index.html') || currentPath.endsWith('k9x7v2m4')) {
                     let targetUrl = '/enter.html';
                     
                     // Sadece giriş (login) sayfasındaysak ve aktif oturum varsa enter.html portalına yönlendir
@@ -488,10 +488,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (currentPath.includes('yoklama_idareci') && (role === 'admin' || role === 'master' || role === 'idareci' || role === 'mudur' || role === 'mudur_basyardimcisi' || role === 'mudur_yardimcisi')) {
                             // If they are logging in directly from yoklama_idareci and have sufficient privileges, just reload
                             window.location.reload();
-                        } else if (currentPath.includes('enter.html')) {
+                        } else if (currentPath.includes('enter.html') || currentPath === '/') {
                             // If they are logging in directly from enter.html portal, just reload to show portal UI
                             const intended = sessionStorage.getItem('klbk_intended_url');
-                            if (intended && intended !== '/enter.html' && intended !== '/index.html') {
+                            if (intended && intended !== '/enter.html' && intended !== '/index.html' && intended !== '/') {
                                 sessionStorage.removeItem('klbk_intended_url');
                                 window.location.href = intended;
                             } else {
