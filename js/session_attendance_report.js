@@ -200,6 +200,55 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
         `;
     }).join('');
 
+    // 3. Sınav Düzeyi / Ders Özeti ve Haritası (Subject Level Summary)
+    const subjectsMap = {};
+    targetStudents.forEach(s => {
+        const subKey = (s.subject && s.subject !== '-') ? s.subject.trim() : 'Belirtilmemiş';
+        if (!subjectsMap[subKey]) {
+            subjectsMap[subKey] = { total: 0, geldi: 0, gelmedi: 0, kopya: 0, diger: 0 };
+        }
+        subjectsMap[subKey].total++;
+        if (s.status === 'GELDİ') subjectsMap[subKey].geldi++;
+        else if (s.status === 'GELMEDİ') subjectsMap[subKey].gelmedi++;
+        else if (s.status === 'KOPYA') subjectsMap[subKey].kopya++;
+        else if (s.status === 'DİĞER') subjectsMap[subKey].diger++;
+    });
+
+    const subjectNamesSorted = Object.keys(subjectsMap).sort((a, b) => a.localeCompare(b, 'tr', { numeric: true }));
+
+    const subjectHeaderChipsHtml = subjectNamesSorted.map(subName => {
+        const sc = subjectsMap[subName];
+        return `<div class="meta-chip meta-chip-highlight subject-count-chip" data-subject-chip="${subName}" onclick="selectSubjectFromSummary('${subName.replace(/'/g, "\\'") }')" style="cursor:pointer;" title="${subName} düzeyindeki öğrencileri filtrelemek için tıklayın"><i class="fa-solid fa-book-open" style="color:#4338ca;"></i> <b>${subName}:</b> <span class="sub-chip-count">${sc.total} Kişi</span></div>`;
+    }).join('');
+
+    const subjectOptionsHtml = subjectNamesSorted.map(subName => {
+        const sc = subjectsMap[subName];
+        const sFlagged = sc.gelmedi + sc.kopya + sc.diger;
+        const note = sFlagged > 0 ? ` (${sFlagged} devamsız)` : '';
+        return `<option value="${subName}">${subName} (${sc.total} Kişi${note})</option>`;
+    }).join('');
+
+    const subjectSummaryHtml = subjectNamesSorted.map(subName => {
+        const sc = subjectsMap[subName];
+        const sFlagged = sc.gelmedi + sc.kopya + sc.diger;
+        return `
+            <tr class="summary-click-row" onclick="selectSubjectFromSummary('${subName.replace(/'/g, "\\'") }')" title="${subName} sınav düzeyini filtrelemek için tıklayın">
+                <td style="font-weight:700; padding:8px 12px; border:1px solid #e2e8f0; color:#7c3aed;">
+                    <i class="fa-solid fa-book-open" style="margin-right:6px;"></i>${subName}
+                </td>
+                <td style="text-align:center; font-weight:800; padding:8px 12px; border:1px solid #e2e8f0;">${sc.total} Kişi</td>
+                <td style="text-align:center; color:#059669; font-weight:700; padding:8px 12px; border:1px solid #e2e8f0;">${sc.geldi}</td>
+                <td style="text-align:center; color:#dc2626; font-weight:700; padding:8px 12px; border:1px solid #e2e8f0;">${sc.gelmedi}</td>
+                <td style="text-align:center; color:#7f1d1d; font-weight:700; padding:8px 12px; border:1px solid #e2e8f0;">${sc.kopya}</td>
+                <td style="text-align:center; color:#0284c7; font-weight:700; padding:8px 12px; border:1px solid #e2e8f0;">${sc.diger}</td>
+                <td style="text-align:center; font-weight:800; color:${sFlagged > 0 ? '#dc2626' : '#64748b'}; padding:8px 12px; border:1px solid #e2e8f0;">${sFlagged}</td>
+                <td style="text-align:center; padding:8px 12px; border:1px solid #e2e8f0;">
+                    <span class="btn-mini-filter"><i class="fa-solid fa-arrow-down"></i> Listele</span>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
     // Student rows
     const studentRowsHtml = targetStudents.map((s, idx) => {
         let badgeClass = 'badge-geldi';
@@ -215,6 +264,7 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
                 data-status="${s.status}" 
                 data-class="${s.class}"
                 data-room="${s.room}"
+                data-subject="${(s.subject && s.subject !== '-') ? s.subject.trim() : 'Belirtilmemiş'}"
                 data-flagged="${isFlagged ? '1' : '0'}"
                 data-search="${searchStr}">
                 <td class="row-idx" style="text-align:center; color:#64748b; font-size:0.85rem; padding:8px 10px; border:1px solid #e2e8f0;">${idx + 1}</td>
@@ -845,7 +895,8 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
             </h1>
             <div class="meta-chips-row">
                 <div class="meta-chip"><i class="fa-solid fa-calendar-check"></i> <b>Sınav:</b> ${ses.name}</div>
-                ${filterSubject ? `<div class="meta-chip"><i class="fa-solid fa-book"></i> <b>Ders:</b> ${filterSubject}</div>` : ''}
+                ${filterSubject ? `<div class="meta-chip"><i class="fa-solid fa-book"></i> <b>Ders:</b> ${filterSubject} (${totalCount} Kişi)</div>` : ''}
+                <div class="meta-chip" id="printSubjectChip" style="display:none;"><i class="fa-solid fa-book-open"></i> <b>Sınav Düzeyi:</b> <span id="printSubjectVal"></span></div>
                 <div class="meta-chip" id="printClassChip" style="display:none;"><i class="fa-solid fa-graduation-cap"></i> <b>Sınıf:</b> <span id="printClassVal"></span></div>
                 <div class="meta-chip" id="printRoomChip" style="display:none;"><i class="fa-solid fa-door-open"></i> <b>Salon:</b> <span id="printRoomVal"></span></div>
                 <div class="meta-chip" id="printStatusChip" style="display:none;"><i class="fa-solid fa-filter"></i> <b>Durum:</b> <span id="printStatusVal"></span></div>
@@ -854,6 +905,14 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
                 <div class="meta-chip"><i class="fa-solid fa-shapes"></i> <b>Tür:</b> ${ses.type === 'uygulama' ? 'Uygulama Sınavı' : 'Yazılı Sınav'}</div>
                 <div class="meta-chip"><i class="fa-solid fa-print"></i> <b>Rapor Zamanı:</b> ${nowStr}</div>
             </div>
+            ${subjectNamesSorted.length > 0 ? `
+            <div class="meta-chips-row" id="subjectLevelChipsRow" style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--gray-200);">
+                <span style="font-size: 0.85rem; font-weight: 800; color: var(--gray-700); display: inline-flex; align-items: center; gap: 5px;">
+                    <i class="fa-solid fa-layer-group" style="color: var(--primary);"></i> Sınav Düzeyi Öğrenci Sayıları:
+                </span>
+                ${subjectHeaderChipsHtml}
+            </div>
+            ` : ''}
         </div>
 
         <!-- KPI Stat Cards -->
@@ -969,6 +1028,38 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
                     </div>
                 </div>
             </div>
+
+            <!-- 3. Sınav Düzeyi / Ders Bazında Özet Panel -->
+            <div class="summary-box" style="grid-column: 1 / -1;">
+                <div class="summary-header" onclick="toggleSummary('subjectSummaryContent', 'subjectSummaryChevron')">
+                    <span>
+                        <i class="fa-solid fa-book-open" style="color:#7c3aed; margin-right:8px;"></i>
+                        Sınav Düzeyi / Ders Bazında Katılım Dağılımı (${subjectNamesSorted.length} Düzey)
+                    </span>
+                    <i class="fa-solid fa-chevron-down" id="subjectSummaryChevron"></i>
+                </div>
+                <div id="subjectSummaryContent" style="display:block; padding:10px 14px;">
+                    <div class="table-responsive">
+                        <table class="report-table" style="font-size:0.83rem;">
+                            <thead>
+                                <tr>
+                                    <th>Sınav Düzeyi / Ders</th>
+                                    <th style="text-align:center;">Öğrenci Sayısı</th>
+                                    <th style="text-align:center; color:#059669;">Geldi</th>
+                                    <th style="text-align:center; color:#dc2626;">Gelmedi</th>
+                                    <th style="text-align:center; color:#7f1d1d;">Kopya</th>
+                                    <th style="text-align:center; color:#0284c7;">Diğer</th>
+                                    <th style="text-align:center;">Özel Durum</th>
+                                    <th style="text-align:center;">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${subjectSummaryHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Filter Bar -->
@@ -1012,6 +1103,17 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
                         ${roomOptionsHtml}
                     </select>
                 </div>
+
+                ${subjectNamesSorted.length > 1 ? `
+                <div class="filter-select-group">
+                    <i class="fa-solid fa-book-open" style="color:#7c3aed;"></i>
+                    <label for="subjectFilter" style="font-weight:700; font-size:0.82rem; color:var(--gray-700);">Sınav Düzeyi:</label>
+                    <select id="subjectFilter" class="filter-select" onchange="onSubjectSelectChange(this.value)">
+                        <option value="ALL">Tüm Sınav Düzeyleri (${subjectNamesSorted.length} Düzey)</option>
+                        ${subjectOptionsHtml}
+                    </select>
+                </div>
+                ` : ''}
 
                 <button class="btn btn-light" id="resetFiltersBtn" onclick="resetAllFilters()" style="padding:6px 14px; font-size:0.82rem; display:none;">
                     <i class="fa-solid fa-filter-circle-xmark" style="color:#dc2626;"></i> Filtreleri Temizle
@@ -1082,6 +1184,7 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
         let currentStatusFilter = 'ALL';
         let currentClassFilter = ${safeDefaultClass};
         let currentRoomFilter = 'ALL';
+        let currentSubjectFilter = 'ALL';
         const baseScopeTitle = ${safeScopeTitle};
         const totalSessionStudents = ${totalCount};
 
@@ -1134,6 +1237,20 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
             filterTable();
         }
 
+        function onSubjectSelectChange(val) {
+            currentSubjectFilter = val;
+            filterTable();
+        }
+
+        function selectSubjectFromSummary(sub) {
+            currentSubjectFilter = (currentSubjectFilter === sub) ? 'ALL' : sub;
+            const selectEl = document.getElementById('subjectFilter');
+            if (selectEl) selectEl.value = currentSubjectFilter;
+            filterTable();
+            const filterSec = document.getElementById('filterBarSection');
+            if (filterSec) filterSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
         function selectClassFromSummary(cls) {
             applyClassFilter(cls);
             // Scroll smoothly to filter section
@@ -1154,6 +1271,7 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
             currentStatusFilter = 'ALL';
             currentClassFilter = 'ALL';
             currentRoomFilter = 'ALL';
+            currentSubjectFilter = 'ALL';
 
             const searchInput = document.getElementById('searchInput');
             if (searchInput) searchInput.value = '';
@@ -1163,6 +1281,9 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
 
             const roomSelect = document.getElementById('roomFilter');
             if (roomSelect) roomSelect.value = 'ALL';
+
+            const subjectSelect = document.getElementById('subjectFilter');
+            if (subjectSelect) subjectSelect.value = 'ALL';
 
             document.querySelectorAll('.tab-btn').forEach(b => {
                 if (b.getAttribute('data-status') === 'ALL') b.classList.add('active');
@@ -1191,6 +1312,7 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
                 const status = row.getAttribute('data-status');
                 const sClass = row.getAttribute('data-class');
                 const sRoom = row.getAttribute('data-room');
+                const sSubject = row.getAttribute('data-subject');
                 const isFlagged = row.getAttribute('data-flagged') === '1';
                 const searchStr = row.getAttribute('data-search') || '';
 
@@ -1210,13 +1332,16 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
                 // Room match
                 const roomMatches = (currentRoomFilter === 'ALL' || sRoom === currentRoomFilter);
 
+                // Subject match
+                const subjectMatches = (currentSubjectFilter === 'ALL' || sSubject === currentSubjectFilter);
+
                 // Search match
                 let searchMatches = true;
                 if (searchVal.length > 0) {
                     searchMatches = searchStr.includes(searchVal);
                 }
 
-                if (statusMatches && classMatches && roomMatches && searchMatches) {
+                if (statusMatches && classMatches && roomMatches && subjectMatches && searchMatches) {
                     row.style.display = '';
                     visibleCount++;
                     if (status === 'GELDİ') visibleGeldi++;
@@ -1266,6 +1391,7 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
             const statEl = document.getElementById('filterStatusText');
             if (statEl) {
                 let filterNotes = [];
+                if (currentSubjectFilter !== 'ALL') filterNotes.push('Sınav Düzeyi: <b>' + currentSubjectFilter + '</b>');
                 if (currentClassFilter !== 'ALL') filterNotes.push('Sınıf: <b>' + currentClassFilter + '</b>');
                 if (currentRoomFilter !== 'ALL') filterNotes.push('Salon: <b>' + currentRoomFilter + '</b>');
                 if (currentStatusFilter !== 'ALL') filterNotes.push('Durum: <b>' + currentStatusFilter + '</b>');
@@ -1275,8 +1401,31 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
                 statEl.innerHTML = 'Gösterilen Öğrenci: <b>' + visibleCount + '</b> / ' + totalSessionStudents + filterSuffix;
             }
 
+            // Highlight active subject chip if filtered
+            document.querySelectorAll('.subject-count-chip').forEach(chip => {
+                const cSub = chip.getAttribute('data-subject-chip');
+                if (currentSubjectFilter !== 'ALL' && cSub === currentSubjectFilter) {
+                    chip.style.background = '#4f46e5';
+                    chip.style.color = '#ffffff';
+                } else {
+                    chip.style.background = '';
+                    chip.style.color = '';
+                }
+            });
+
+            const printSubjectChip = document.getElementById('printSubjectChip');
+            const printSubjectVal = document.getElementById('printSubjectVal');
+            if (printSubjectChip && printSubjectVal) {
+                if (currentSubjectFilter !== 'ALL') {
+                    printSubjectVal.textContent = currentSubjectFilter;
+                    printSubjectChip.style.display = 'inline-flex';
+                } else {
+                    printSubjectChip.style.display = 'none';
+                }
+            }
+
             // Reset filters button visibility
-            const isAnyFilterActive = (currentStatusFilter !== 'ALL' || currentClassFilter !== 'ALL' || currentRoomFilter !== 'ALL' || searchVal.length > 0);
+            const isAnyFilterActive = (currentStatusFilter !== 'ALL' || currentClassFilter !== 'ALL' || currentRoomFilter !== 'ALL' || currentSubjectFilter !== 'ALL' || searchVal.length > 0);
             const resetBtn = document.getElementById('resetFiltersBtn');
             if (resetBtn) {
                 resetBtn.style.display = isAnyFilterActive ? 'inline-flex' : 'none';
