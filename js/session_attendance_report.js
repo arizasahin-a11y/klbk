@@ -218,14 +218,14 @@ window.openSessionAttendanceReport = async function (sesId, encodedSub = null, d
 
     const subjectHeaderChipsHtml = subjectNamesSorted.map(subName => {
         const sc = subjectsMap[subName];
-        return `<div class="meta-chip meta-chip-highlight subject-count-chip" data-subject-chip="${subName}" onclick="selectSubjectFromSummary('${subName.replace(/'/g, "\\'") }')" style="cursor:pointer;" title="${subName} düzeyindeki öğrencileri filtrelemek için tıklayın"><i class="fa-solid fa-book-open" style="color:#4338ca;"></i> <span class="sub-chip-count"><b>${subName}:</b>${sc.total} Kişi</span></div>`;
+        return `<div class="meta-chip meta-chip-highlight subject-count-chip" data-subject-chip="${subName}" onclick="selectSubjectFromSummary('${subName.replace(/'/g, "\\'") }')" style="cursor:pointer;" title="${subName} düzeyindeki öğrencileri filtrelemek için tıklayın"><i class="fa-solid fa-book-open" style="color:#4338ca;"></i> <span class="sub-chip-count"><b>${subName} &gt;</b> ${sc.total} Kişi</span></div>`;
     }).join('');
 
     const subjectOptionsHtml = subjectNamesSorted.map(subName => {
         const sc = subjectsMap[subName];
         const sFlagged = sc.gelmedi + sc.kopya + sc.diger;
         const note = sFlagged > 0 ? ` (${sFlagged} devamsız)` : '';
-        return `<option value="${subName}">${subName}:${sc.total} Kişi${note}</option>`;
+        return `<option value="${subName}">${subName} &gt; ${sc.total} Kişi${note}</option>`;
     }).join('');
 
     const subjectSummaryHtml = subjectNamesSorted.map(subName => {
