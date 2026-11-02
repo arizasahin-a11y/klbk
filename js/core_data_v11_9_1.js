@@ -2361,13 +2361,17 @@ const DataManager = {
                     directUrls.push(url);
                 }
 
-                for (const dUrl of directUrls) {
-                    promises.push(
-                        fetchWithRetry(dUrl, true).then(buf => {
-                            if (buf && this.validateBuffer(buf)) return buf;
-                            throw new Error("Invalid buffer from direct URL");
-                        })
-                    );
+                // Google Drive bağlantıları tarayıcıdan doğrudan fetch edildiğinde her zaman CORS hatası verir;
+                // bu nedenle Drive dosyalarında önce GAS Proxy kullanılır, yalnızca Drive dışı linklerde doğrudan fetch denenir.
+                if (!driveId) {
+                    for (const dUrl of directUrls) {
+                        promises.push(
+                            fetchWithRetry(dUrl, true).then(buf => {
+                                if (buf && this.validateBuffer(buf)) return buf;
+                                throw new Error("Invalid buffer from direct URL");
+                            })
+                        );
+                    }
                 }
 
                 // 3. CORS Proxies (Only used as a fallback if everything else fails)
