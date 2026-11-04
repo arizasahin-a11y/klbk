@@ -516,7 +516,7 @@
         }
 
         .btn-play-exam i {
-            margin-left: 3px; /* Optical center for play icon */
+            margin-left: 3px;
         }
 
         .btn-play-exam:hover {
@@ -1191,7 +1191,7 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
                     <button type="button" id="btnToggleTts" onclick="toggleTtsVoice()" class="btn-ep" style="padding:0.4rem 0.75rem; font-size:0.78rem; background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);" title="Soruları sesli okuma açık/kapalı">
-                        <i class="fa-solid fa-volume-high" id="ttsIcon"></i> <span id="ttsStatusText">Sesli Okuma: Açık</span>
+                        <i class="fa-solid fa-volume-xmark" id="ttsIcon"></i> <span id="ttsStatusText">Sesli Okuma: Kapalı</span>
                     </button>
                     <button type="button" class="btn-close-voice" onclick="closeVoiceGradingModal()" title="Kapat">
                         <i class="fa-solid fa-xmark"></i>
@@ -1344,7 +1344,7 @@
         let activeTeacherObject = null;
         let allStudents = [];
         let schoolData = {};
-        let examPointList = []; // Array of exam objects
+        let examPointList = [];
 
         // Voice Grading State
         let currentVoiceExamId = null;
@@ -1354,14 +1354,17 @@
         let transitionMode = "auto15"; // "auto15" | "confirm"
         let autoAdvanceTimer = null;
         let autoAdvanceInterval = null;
-        let ttsEnabled = true;
-        let isSpeakingTts = false;
+        let ttsEnabled = false;
 
-        // Web Speech API
+        // Web Speech API State
         let recognition = null;
         let isMicListening = false;
         let shouldKeepListening = false;
-        let lastProcessedResultIndex = -1;
+        let interimDebounceTimer = null;
+        let pendingInterimText = "";
+        let lastHandledUtteranceSignature = "";
+        let ignoreSpeechUntil = 0;
+        let sessionCounter = 0;
 
         function escapeHtml(str) {
             return String(str || '')
@@ -1406,7 +1409,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // Restore session variables from sessionStorage or localStorage
             activeTeacherUsername = (
                 sessionStorage.getItem('klbk_currentUser') ||
                 localStorage.getItem('klbk_currentUser') ||
@@ -1440,7 +1442,6 @@
                 const [usersData] = await Promise.all([usersPromise, cloudPromise]);
 
                 if (usersData && typeof usersData === 'object') {
-                    // Match logged-in teacher
                     if (activeTeacherUsername && usersData[activeTeacherUsername]) {
                         activeTeacherObject = usersData[activeTeacherUsername];
                     } else {
@@ -1487,7 +1488,6 @@
             classSelect.innerHTML = '';
             subjectSelect.innerHTML = '';
 
-            // 1. Collect all school classes from students
             const schoolClassesSet = new Set();
             allStudents.forEach(s => {
                 if (s && s.class && String(s.class).trim()) {
@@ -1498,7 +1498,6 @@
                 a.localeCompare(b, 'tr', { numeric: true, sensitivity: 'base' })
             );
 
-            // 2. Extract classes taught by this teacher from schedule
             const teacherClassesSet = new Set();
             const scheduleSubjectsSet = new Set();
 
@@ -1511,12 +1510,10 @@
                         const rawCell = String(cellVal).trim();
                         if (!rawCell) continue;
 
-                        // Cell might be "9A" or "10B - Fizik" or "9/A"
                         const parts = rawCell.split(/\s*[-–:]\s*/);
                         const potentialClass = parts[0].trim();
                         const cleanPot = cleanClassToken(potentialClass);
 
-                        // Match with school classes if possible
                         const matchedSchoolCls = allSchoolClasses.find(c => cleanClassToken(c) === cleanPot);
                         if (matchedSchoolCls) {
                             teacherClassesSet.add(matchedSchoolCls);
@@ -1577,7 +1574,6 @@
                 classSelect.appendChild(grpAll);
                 classSelect.value = allSchoolClasses[0];
             } else {
-                // Fallback default classes if database has no students yet
                 ['9A', '9B', '10A', '10B', '11A', '11B', '12A', '12B'].forEach(cls => {
                     const opt = document.createElement('option');
                     opt.value = cls;
@@ -1586,7 +1582,6 @@
                 });
             }
 
-            // 3. Extract subjects taught by this teacher
             const teacherSubjectsSet = new Set();
             if (activeTeacherObject && activeTeacherObject.branch) {
                 const br = activeTeacherObject.branch;
@@ -1610,7 +1605,6 @@
 
             scheduleSubjectsSet.forEach(s => teacherSubjectsSet.add(s));
 
-            // Also check subjectOverrides from DataManager if any
             const dbData = DataManager._getData();
             if (dbData && dbData.subjectOverrides && activeTeacherUsername && dbData.subjectOverrides[activeTeacherUsername]) {
                 Object.values(dbData.subjectOverrides[activeTeacherUsername]).forEach(sub => {
@@ -1712,7 +1706,6 @@
             }
             if (!Array.isArray(rawExams)) rawExams = [];
 
-            // Also merge from localStorage backup if cloud was empty
             try {
                 const localBackup = JSON.parse(localStorage.getItem('klbk_exampoint_backup') || '[]');
                 if (Array.isArray(localBackup) && localBackup.length > 0 && rawExams.length === 0) {
@@ -1784,7 +1777,6 @@
             examPointList.unshift(newExam);
             await saveExamsToStore();
 
-            // Close add form, open accordion, and render
             toggleAddExamForm(false);
             const acc = document.getElementById('examsAccordion');
             if (acc && !acc.classList.contains('open')) {
@@ -1886,7 +1878,6 @@
             const qCount = Number(exam.questionCount) || 1;
             const scoresMap = exam.scores || {};
 
-            // Merge classStudents with any extra students recorded in scoresMap
             const studentRows = [...classStudents];
             const seenNos = new Set(classStudents.map(s => String(s.no).trim()));
 
@@ -1894,7 +1885,7 @@
                 if (!seenNos.has(String(stNo).trim())) {
                     studentRows.push({
                         no: stNo,
-                        name: rec.studentName || `Öğrenci #${stNo}`,
+                        name: rec.studentName || `${stNo} Nolu Öğrenci`,
                         class: exam.className
                     });
                 }
@@ -1999,7 +1990,6 @@
                 }
             }
 
-            // Recompute total
             let sum = 0;
             let count = 0;
             for (const v of Object.values(exam.scores[stKey].questions)) {
@@ -2062,7 +2052,6 @@
                 if ('speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
                 }
-                isSpeakingTts = false;
             }
         }
 
@@ -2072,18 +2061,17 @@
                 window.speechSynthesis.cancel();
                 const utter = new SpeechSynthesisUtterance(text);
                 utter.lang = 'tr-TR';
-                utter.rate = 1.08;
-                isSpeakingTts = true;
-                utter.onend = () => {
-                    setTimeout(() => { isSpeakingTts = false; }, 220);
-                };
-                utter.onerror = () => {
-                    isSpeakingTts = false;
-                };
+                utter.rate = 1.15;
                 window.speechSynthesis.speak(utter);
-            } catch (e) {
-                isSpeakingTts = false;
+            } catch (e) {}
+        }
+
+        function clearInterimDebounce() {
+            if (interimDebounceTimer) {
+                clearTimeout(interimDebounceTimer);
+                interimDebounceTimer = null;
             }
+            pendingInterimText = "";
         }
 
         function startVoiceGradingForExam(examId) {
@@ -2096,7 +2084,6 @@
                 <span>${escapeHtml(exam.className)} • ${escapeHtml(exam.subject)} • ${escapeHtml(exam.examNo)} (${Number(exam.questionCount)} Soru)</span>
             `;
 
-            // Populate quick student dropdown for this class
             const quickSelect = document.getElementById('quickClassStudentSelect');
             quickSelect.innerHTML = '<option value="">Veya sınıftan öğrenci seçin...</option>';
             const classStudents = getStudentsForExamClass(exam.className);
@@ -2114,6 +2101,7 @@
 
         function closeVoiceGradingModal() {
             cancelAutoAdvanceTimer();
+            clearInterimDebounce();
             stopMicrophoneListening();
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
@@ -2124,6 +2112,10 @@
 
         function resetToStudentStep() {
             cancelAutoAdvanceTimer();
+            clearInterimDebounce();
+            ignoreSpeechUntil = Date.now() + 300;
+            lastHandledUtteranceSignature = "";
+
             voiceStep = "student_no";
             currentStudentObj = null;
             currentQuestionIndex = 1;
@@ -2138,9 +2130,8 @@
 
             const promptText = "Notu girilecek öğrenci numarasını söyleyin";
             document.getElementById('voicePromptHeadline').textContent = promptText;
-            document.getElementById('voiceStatusSubtext').textContent = isMicListening
-                ? "Mikrofon dinliyor... Öğrenci numarasını söyleyin."
-                : "Mikrofonu başlatmak için mikrofon simgesine dokunun veya numarayı yazın.";
+            document.getElementById('voiceStatusSubtext').innerHTML =
+                `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon dinliyor...</span> Lütfen öğrenci numarasını söyleyin.`;
 
             speakTurkishPrompt(promptText);
         }
@@ -2155,33 +2146,26 @@
             const classStudents = getStudentsForExamClass(exam.className);
             let matchedStudent = classStudents.find(s => String(s.no).trim() === cleanNo);
 
-            // Fallback: look across all school students if not found in class filter
+            // Fallback 1: look across all school students if not found in class filter
             if (!matchedStudent) {
                 matchedStudent = allStudents.find(s => s && String(s.no).trim() === cleanNo);
             }
 
-            // If still not in allStudents (e.g., new student number), allow grading by creating a student record stub
+            // Fallback 2: if student is not in uploaded list yet, still allow grading by creating a student entry for this number
             if (!matchedStudent) {
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'warning',
-                    title: `${cleanNo} numaralı öğrenci listede bulunamadı!`,
-                    text: 'Lütfen öğrenci numarasını tekrar söyleyin.',
-                    showConfirmButton: false,
-                    timer: 2500
-                });
-                document.getElementById('voiceStatusSubtext').textContent = `${cleanNo} numaralı öğrenci bulunamadı. Lütfen tekrar öğrenci numarasını söyleyin.`;
-                return false;
+                matchedStudent = {
+                    no: cleanNo,
+                    name: `${cleanNo} Nolu Öğrenci`,
+                    class: exam.className
+                };
             }
 
             currentStudentObj = {
                 no: String(matchedStudent.no).trim(),
-                name: matchedStudent.name || `Öğrenci #${cleanNo}`,
+                name: matchedStudent.name || `${cleanNo} Nolu Öğrenci`,
                 class: matchedStudent.class || exam.className
             };
 
-            // Ensure exam.scores entry exists
             exam.scores = exam.scores || {};
             if (!exam.scores[currentStudentObj.no]) {
                 exam.scores[currentStudentObj.no] = {
@@ -2193,7 +2177,6 @@
                 };
             }
 
-            // Show Student Card
             document.getElementById('activeStudentNoBadge').textContent = currentStudentObj.no;
             document.getElementById('activeStudentNameText').textContent = currentStudentObj.name;
             document.getElementById('activeStudentClassText').textContent = `${currentStudentObj.class} Sınıfı`;
@@ -2210,6 +2193,10 @@
 
         function goToQuestion(qIndex) {
             cancelAutoAdvanceTimer();
+            clearInterimDebounce();
+            ignoreSpeechUntil = Date.now() + 350;
+            lastHandledUtteranceSignature = "";
+
             const exam = examPointList.find(e => e.id === currentVoiceExamId);
             if (!exam || !currentStudentObj) return;
 
@@ -2222,14 +2209,13 @@
 
             currentQuestionIndex = qIndex;
 
-            // Prompt phrasing as requested:
-            // "1. sorudan kaç puan aldığını söyleyin", "2. sorudan aldığı puanı söyleyin"....
             const promptText = qIndex === 1
                 ? "1. sorudan kaç puan aldığını söyleyin"
                 : `${qIndex}. sorudan aldığı puanı söyleyin`;
 
             document.getElementById('voicePromptHeadline').textContent = promptText;
-            document.getElementById('voiceStatusSubtext').textContent = "Puanı söyleyin (Bir şey söylemezseniz sistem bekler)...";
+            document.getElementById('voiceStatusSubtext').innerHTML =
+                `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon dinliyor...</span> Puanı söyleyin (Bir şey söylemezseniz sistem bekler).`;
 
             const stRec = exam.scores[currentStudentObj.no] || { questions: {} };
             const existingScore = stRec.questions ? stRec.questions[String(qIndex)] : undefined;
@@ -2307,10 +2293,8 @@
                 saveInd.innerHTML = `<i class="fa-solid fa-check-double"></i> ${currentQuestionIndex}. Soru: ${numScore} Puan kaydedildi`;
             }
 
-            // Persist to Firebase + LocalStorage immediately
             saveExamsToStore();
 
-            // Handle transition to next question
             if (transitionMode === 'auto15') {
                 startAutoAdvanceCountdown(1500);
             } else {
@@ -2393,7 +2377,6 @@
                 timer: 2600
             });
 
-            // Loop back to student number prompt for the next paper
             resetToStudentStep();
         }
 
@@ -2418,21 +2401,18 @@
             if (!rawText) return null;
             let text = String(rawText).toLocaleLowerCase('tr-TR').trim();
 
-            // Check special zero words
             if (/\b(sıfır|sifir|boş|bos)\b/.test(text)) {
                 return 0;
             }
-            if (/\byarım|yarim\b/.test(text) && !/\d/.test(text)) {
+            if (/\b(yarım|yarim)\b/.test(text) && !/\d/.test(text)) {
                 return 0.5;
             }
 
-            // Handle "X buçuk" -> X.5
-            const bucukMatch = text.match(/(\d+)\s*buçuk/);
+            const bucukMatch = text.match(/(\d+)\s*(buçuk|bucuk)/);
             if (bucukMatch) {
                 return parseFloat(bucukMatch[1]) + 0.5;
             }
 
-            // Direct digits in string (e.g. "125", "10", "7,5", "1. sorudan 15")
             const decimalMatch = text.match(/\d+[.,]\d+/);
             if (decimalMatch) {
                 return parseFloat(decimalMatch[0].replace(',', '.'));
@@ -2440,21 +2420,19 @@
 
             const digitGroups = text.match(/\d+/g);
             if (digitGroups && digitGroups.length > 0) {
-                // If multiple single digits spoken separately for student no like "1 2 5" -> "125"
                 if (digitGroups.length > 1 && digitGroups.every(d => d.length === 1)) {
                     return parseInt(digitGroups.join(''), 10);
                 }
                 return parseInt(digitGroups[digitGroups.length - 1], 10);
             }
 
-            // Parse Turkish number words
             const units = {
                 'sıfır': 0, 'sifir': 0,
                 'bir': 1, 'iki': 2, 'üç': 3, 'uc': 3, 'dört': 4, 'dort': 4,
                 'beş': 5, 'bes': 5, 'altı': 6, 'alti': 6, 'yedi': 7, 'sekiz': 8, 'dokuz': 9
             };
             const tens = {
-                'on': 10, 'yirmi': 20, 'otuz': 30, 'kırk': 40, 'kirk': 40,
+                'on': 10, 'un': 10, 'yirmi': 20, 'otuz': 30, 'kırk': 40, 'kirk': 40,
                 'elli': 50, 'altmış': 60, 'altmis': 60, 'yetmiş': 70, 'yetmis': 70,
                 'seksen': 80, 'doksan': 90
             };
@@ -2488,65 +2466,131 @@
             return total;
         }
 
-        function handleSpokenTranscript(transcript) {
-            if (!transcript || isSpeakingTts) return;
-            const cleanText = transcript.trim();
-            if (!cleanText) return;
+        function processRecognizedAlternatives(alternativesList, isFinal, signatureKey) {
+            if (!alternativesList || alternativesList.length === 0) return false;
+            if (Date.now() < ignoreSpeechUntil) return false;
 
+            const primaryText = String(alternativesList[0] || '').trim();
+            if (!primaryText) return false;
+
+            // Show live feedback bubble so user sees microphone is picking up voice
             const bubbleWrap = document.getElementById('recognizedTranscriptWrap');
             const bubbleText = document.getElementById('recognizedTranscriptText');
             bubbleWrap.style.display = 'block';
-            bubbleText.innerHTML = `<i class="fa-solid fa-comment-dots" style="color:#4f46e5;"></i> Algılanan: "${escapeHtml(cleanText)}"`;
+            bubbleText.innerHTML = `<i class="fa-solid fa-microphone-lines" style="color:${isFinal ? '#10b981' : '#6366f1'};"></i> ${isFinal ? 'Algılanan' : 'Dinleniyor'}: "${escapeHtml(primaryText)}"`;
 
-            const lower = cleanText.toLocaleLowerCase('tr-TR');
+            if (signatureKey && signatureKey === lastHandledUtteranceSignature) {
+                return true;
+            }
 
-            // Voice navigation commands during question grading
+            // 1. Check voice navigation commands across alternatives during question step
             if (voiceStep === "question") {
-                if (/\b(onayla|tamam|geç|gec|sonraki|devam)\b/.test(lower) && parseTurkishSpokenNumber(cleanText) === null) {
-                    confirmAndAdvanceQuestion();
-                    return;
-                }
-                if (/\b(önceki|onceki|geri)\b/.test(lower) && parseTurkishSpokenNumber(cleanText) === null) {
-                    goToPrevQuestion();
-                    return;
+                for (const alt of alternativesList) {
+                    const lower = String(alt || '').toLocaleLowerCase('tr-TR').trim();
+                    if (/\b(onayla|tamam|geç|gec|sonraki|devam)\b/.test(lower) && parseTurkishSpokenNumber(lower) === null) {
+                        lastHandledUtteranceSignature = signatureKey || lower;
+                        clearInterimDebounce();
+                        confirmAndAdvanceQuestion();
+                        return true;
+                    }
+                    if (/\b(önceki|onceki|geri)\b/.test(lower) && parseTurkishSpokenNumber(lower) === null) {
+                        lastHandledUtteranceSignature = signatureKey || lower;
+                        clearInterimDebounce();
+                        goToPrevQuestion();
+                        return true;
+                    }
                 }
             }
 
-            const parsedNumber = parseTurkishSpokenNumber(cleanText);
-            if (parsedNumber === null || isNaN(parsedNumber)) {
+            // 2. Check all alternatives for a valid spoken number
+            let detectedNumber = null;
+            for (const alt of alternativesList) {
+                const parsed = parseTurkishSpokenNumber(alt);
+                if (parsed !== null && !isNaN(parsed)) {
+                    detectedNumber = parsed;
+                    break;
+                }
+            }
+
+            if (detectedNumber === null) {
+                return false;
+            }
+
+            lastHandledUtteranceSignature = signatureKey || String(detectedNumber);
+            clearInterimDebounce();
+
+            if (voiceStep === "student_no") {
+                findAndSelectStudentByNo(Math.round(detectedNumber));
+            } else if (voiceStep === "question") {
+                applyQuestionScore(detectedNumber, true);
+            }
+            return true;
+        }
+
+        function createAndStartRecognition() {
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRec) {
+                document.getElementById('voiceStatusSubtext').innerHTML =
+                    `<span style="color:#ef4444; font-weight:700;">Tarayıcınız ses tanımayı desteklemiyor (Chrome veya Edge kullanın).</span>`;
                 return;
             }
 
-            if (voiceStep === "student_no") {
-                findAndSelectStudentByNo(Math.round(parsedNumber));
-            } else if (voiceStep === "question") {
-                applyQuestionScore(parsedNumber, true);
+            if (recognition) {
+                try {
+                    recognition.onend = null;
+                    recognition.onresult = null;
+                    recognition.onerror = null;
+                    recognition.abort();
+                } catch (e) {}
+                recognition = null;
             }
-        }
-
-        function initSpeechRecognition() {
-            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRec) return null;
 
             const rec = new SpeechRec();
+            recognition = rec;
+            const currentSessionId = ++sessionCounter;
+
             rec.lang = 'tr-TR';
-            rec.continuous = true;
-            rec.interimResults = false;
-            rec.maxAlternatives = 1;
+            // Single utterance mode + auto-restart on end is much faster and more accurate for short numbers on Chrome/Android
+            rec.continuous = false;
+            rec.interimResults = true;
+            rec.maxAlternatives = 5;
 
             rec.onstart = () => {
                 isMicListening = true;
-                lastProcessedResultIndex = -1;
                 updateMicUiState();
             };
 
             rec.onresult = (event) => {
-                if (isSpeakingTts) return;
+                if (Date.now() < ignoreSpeechUntil) return;
+
                 for (let i = event.resultIndex; i < event.results.length; i++) {
-                    if (event.results[i].isFinal && i > lastProcessedResultIndex) {
-                        lastProcessedResultIndex = i;
-                        const spoken = event.results[i][0].transcript;
-                        handleSpokenTranscript(spoken);
+                    const res = event.results[i];
+                    const alts = [];
+                    for (let j = 0; j < res.length; j++) {
+                        if (res[j] && res[j].transcript) {
+                            alts.push(res[j].transcript);
+                        }
+                    }
+                    if (alts.length === 0) continue;
+
+                    const sig = `${currentSessionId}_${i}_${voiceStep}_${currentQuestionIndex}`;
+
+                    if (res.isFinal) {
+                        clearInterimDebounce();
+                        processRecognizedAlternatives(alts, true, sig);
+                    } else {
+                        const bubbleWrap = document.getElementById('recognizedTranscriptWrap');
+                        const bubbleText = document.getElementById('recognizedTranscriptText');
+                        bubbleWrap.style.display = 'block';
+                        bubbleText.innerHTML = `<i class="fa-solid fa-wave-square" style="color:#6366f1;"></i> Duyulan: "${escapeHtml(alts[0].trim())}"`;
+
+                        // Debounced interim fallback: if browser holds short number as interim for >600ms without finalizing, process it!
+                        clearInterimDebounce();
+                        pendingInterimText = alts[0];
+                        const capturedAlts = [...alts];
+                        interimDebounceTimer = setTimeout(() => {
+                            processRecognizedAlternatives(capturedAlts, true, sig);
+                        }, 600);
                     }
                 }
             };
@@ -2556,52 +2600,59 @@
                     shouldKeepListening = false;
                     isMicListening = false;
                     updateMicUiState();
-                    document.getElementById('voiceStatusSubtext').textContent =
-                        "Mikrofon izni reddedildi. Tarayıcı adres çubuğundan mikrofon izni verin veya manuel girişi kullanın.";
+                    document.getElementById('voiceStatusSubtext').innerHTML =
+                        `<span style="color:#ef4444; font-weight:700;">Mikrofon izni reddedildi!</span> Tarayıcı adres çubuğundaki kilit/mikrofon simgesinden mikrofon izni verin.`;
+                } else if (event.error === 'audio-capture') {
+                    shouldKeepListening = false;
+                    isMicListening = false;
+                    updateMicUiState();
+                    document.getElementById('voiceStatusSubtext').innerHTML =
+                        `<span style="color:#ef4444; font-weight:700;">Mikrofon bulunamadı veya başka bir uygulama tarafından kullanılıyor.</span>`;
                 }
             };
 
             rec.onend = () => {
+                if (pendingInterimText && interimDebounceTimer) {
+                    const textToRun = pendingInterimText;
+                    const sig = `${currentSessionId}_end_${voiceStep}_${currentQuestionIndex}`;
+                    clearInterimDebounce();
+                    processRecognizedAlternatives([textToRun], true, sig);
+                }
+
                 isMicListening = false;
                 updateMicUiState();
-                // If user didn't speak (silence timeout on mobile/desktop), automatically keep listening without advancing!
+
+                // Automatically restart listening if modal is still open (waits indefinitely on silence without skipping questions)
                 if (shouldKeepListening && document.getElementById('voiceGradingModal').classList.contains('active')) {
                     setTimeout(() => {
-                        if (shouldKeepListening && !isMicListening) {
-                            try {
-                                rec.start();
-                            } catch (e) {}
+                        if (shouldKeepListening && document.getElementById('voiceGradingModal').classList.contains('active')) {
+                            createAndStartRecognition();
                         }
-                    }, 250);
+                    }, 120);
                 }
             };
 
-            return rec;
+            try {
+                rec.start();
+            } catch (e) {
+                console.warn("SpeechRecognition start error:", e);
+            }
         }
 
         function startMicrophoneListening() {
-            if (!recognition) {
-                recognition = initSpeechRecognition();
-            }
-            if (!recognition) {
-                document.getElementById('voiceStatusSubtext').textContent =
-                    "Cihaz/tarayıcı ses tanımayı desteklemiyor (Chrome veya Edge önerilir). Manuel girişi kullanabilirsiniz.";
-                return;
-            }
             shouldKeepListening = true;
-            if (!isMicListening) {
-                try {
-                    recognition.start();
-                } catch (e) {}
-            }
+            createAndStartRecognition();
         }
 
         function stopMicrophoneListening() {
             shouldKeepListening = false;
-            if (recognition && isMicListening) {
+            clearInterimDebounce();
+            if (recognition) {
                 try {
-                    recognition.stop();
+                    recognition.onend = null;
+                    recognition.abort();
                 } catch (e) {}
+                recognition = null;
             }
             isMicListening = false;
             updateMicUiState();
@@ -2613,7 +2664,8 @@
                 document.getElementById('voiceStatusSubtext').textContent = "Mikrofon duraklatıldı. Tekrar başlatmak için mikrofona dokunun.";
             } else {
                 startMicrophoneListening();
-                document.getElementById('voiceStatusSubtext').textContent = "Mikrofon dinliyor... Lütfen konuşun.";
+                document.getElementById('voiceStatusSubtext').innerHTML =
+                    `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon dinliyor...</span> Lütfen konuşun.`;
             }
         }
 
@@ -2621,7 +2673,7 @@
             const btn = document.getElementById('micToggleBtn');
             const icon = document.getElementById('micToggleIcon');
             if (!btn || !icon) return;
-            if (isMicListening) {
+            if (isMicListening || shouldKeepListening) {
                 btn.classList.add('listening');
                 icon.className = 'fa-solid fa-microphone';
             } else {
