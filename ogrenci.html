@@ -578,6 +578,10 @@
                     </div>
                 </div>
                 <button class="btn btn-primary btn-block" onclick="queryExams()">Sorgula</button>
+                <button type="button" class="btn btn-block hidden" id="loginScreenViewBtn" onclick="openManualFullScreenPlan()"
+                    style="margin-top: 10px; background: #10b981; color: white; font-weight: 700; border-radius: 12px; padding: 0.85rem;">
+                    <i class="fa-solid fa-tv" style="margin-right: 6px;"></i> Ekran Görünümünü Aç
+                </button>
             </div>
         </div>
     </div>
@@ -591,10 +595,16 @@
                 </h2>
                 <p id="studentClassDisplay" style="margin:0; opacity: 0.9; font-size: 0.95rem; font-weight: 600;"></p>
             </div>
-            <button class="btn" onclick="logout()"
-                style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem; border-radius: 10px; font-weight: 600;">
-                <i class="fa-solid fa-right-from-bracket"></i> Çıkış
-            </button>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <button type="button" class="btn hidden" id="openScreenViewBtn" onclick="openManualFullScreenPlan()"
+                    style="background: #10b981; color: white; border: 1px solid rgba(255,255,255,0.4); padding: 0.5rem 1rem; border-radius: 10px; font-weight: 700; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
+                    <i class="fa-solid fa-tv"></i> Ekran Görünümü
+                </button>
+                <button class="btn" onclick="logout()"
+                    style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem; border-radius: 10px; font-weight: 600;">
+                    <i class="fa-solid fa-right-from-bracket"></i> Çıkış
+                </button>
+            </div>
         </div>
 
         <div class="query-container" style="margin-top: 0;">
@@ -732,7 +742,7 @@
     <script defer src="js/pdf_engine_v11_9_1.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/core_data_v11_9_1.js?v=12.3"></script>
-    <script src="js/ogrenci.js?v=35"></script>
+    <script src="js/ogrenci.js?v=36"></script>
 
 
 <style>

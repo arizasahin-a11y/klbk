@@ -216,9 +216,13 @@ DataManager._getStorageKey = function () {
                                 const isUserTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
                                 const loginView = document.getElementById('loginView');
                                 const isLoginVisible = loginView && !loginView.classList.contains('hidden');
+                                const resultsView = document.getElementById('resultsView');
+                                const isResultsVisible = resultsView && !resultsView.classList.contains('hidden') && resultsView.style.display !== 'none';
+                                const rulesView = document.getElementById('rulesView');
+                                const isRulesVisible = rulesView && !rulesView.classList.contains('hidden');
                                 
-                                // Do not interrupt user while entering number or on login view
-                                if (!isUserTyping && !isLoginVisible) {
+                                // Do not interrupt user while entering number, on login view, or viewing student exam seat
+                                if (!isUserTyping && !isLoginVisible && !isResultsVisible && !isRulesVisible) {
                                     location.reload();
                                 }
                             }
@@ -258,8 +262,20 @@ DataManager._getStorageKey = function () {
                 }
             }
 
-            if (!roomData || !activeSession) return false;
+            if (!roomData || !activeSession) {
+                window._availableClassroomDisplay = null;
+                if (typeof updateScreenViewButtons === 'function') updateScreenViewButtons();
+                return false;
+            }
+
+            window._availableClassroomDisplay = { roomData, activeSession, displayClass };
+            if (typeof updateScreenViewButtons === 'function') updateScreenViewButtons();
+
+            if (userClosedFullScreen || sessionStorage.getItem('klbk_user_closed_fs') === 'true') {
+                return false;
+            }
             
+            currentFullScreenSessionId = activeSession.id;
             renderFullScreenPlan(roomData, activeSession, displayClass);
             return true;
         }
@@ -376,9 +392,7 @@ DataManager._getStorageKey = function () {
 
             // Çift tıklayarak öğrenci girişine dönülebilir
             overlay.ondblclick = function() {
-                overlay.style.display = 'none';
-                if (loginView) loginView.classList.remove('hidden');
-                document.body.classList.add('login-body');
+                closeFullScreenPlan(true);
             };
         }
 
@@ -1018,6 +1032,13 @@ DataManager._getStorageKey = function () {
             localStorage.setItem('klbk_student_session', no);
             startStudentSession();
 
+            // Eğer kullanıcı giriş ekranından manuel numara girdiyse, ekran görünümüne direkt atlamayıp
+            // önce öğrencinin kendi sınav yerini (#resultsView) göster.
+            if (!isAutoLogin) {
+                userClosedFullScreen = true;
+                sessionStorage.setItem('klbk_user_closed_fs', 'true');
+            }
+
             document.getElementById('studentNameDisplay').textContent = currentStudent.name;
             document.getElementById('studentClassDisplay').textContent = currentStudent.class + (currentStudent.alan ? ` / ${currentStudent.alan}` : '');
 
@@ -1048,7 +1069,11 @@ DataManager._getStorageKey = function () {
                 // Show rules
                 renderRulesList();
                 document.getElementById('rulesView').classList.remove('hidden');
-                document.getElementById('resultsView').classList.add('hidden');
+                const rv = document.getElementById('resultsView');
+                if (rv) {
+                    rv.style.display = '';
+                    rv.classList.add('hidden');
+                }
             } else {
                 // Show results directly
                 showResultsScreen();
@@ -1092,9 +1117,18 @@ DataManager._getStorageKey = function () {
         }
 
         function showResultsScreen() {
-            document.getElementById('resultsView').classList.remove('hidden');
+            const rv = document.getElementById('resultsView');
+            if (rv) {
+                rv.style.display = 'block';
+                rv.classList.remove('hidden');
+            }
+            const overlay = document.getElementById('fullScreenPlanOverlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
             lastStates = {};
             renderExams();
+            if (typeof updateScreenViewButtons === 'function') updateScreenViewButtons();
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(updateAllTimers, 1000);
 
@@ -1124,13 +1158,18 @@ DataManager._getStorageKey = function () {
                 sessionTimeoutTimer = null;
             }
             currentStudent = null;
+            currentFullScreenSessionId = null;
             window.currentSrhStudent = null;
             window.publishedSrhApps = null;
             window.completedSrhApps = new Set();
             clearInterval(timerInterval);
             if (window.cloudSyncInterval) clearInterval(window.cloudSyncInterval);
             document.getElementById('loginView').classList.remove('hidden');
-            document.getElementById('resultsView').classList.add('hidden');
+            const rv = document.getElementById('resultsView');
+            if (rv) {
+                rv.style.display = '';
+                rv.classList.add('hidden');
+            }
             document.getElementById('rulesView').classList.add('hidden');
             if (document.getElementById('dutyView')) document.getElementById('dutyView').classList.add('hidden');
             if (document.getElementById('srhListView')) document.getElementById('srhListView').classList.add('hidden');
@@ -1140,6 +1179,7 @@ DataManager._getStorageKey = function () {
             document.getElementById('studentNo').value = '';
             openSessions.clear();
             document.body.classList.add('login-body');
+            if (typeof updateScreenViewButtons === 'function') updateScreenViewButtons();
         }
 
 
@@ -2256,9 +2296,96 @@ DataManager._getStorageKey = function () {
 
         // --- FULL SCREEN SEATING PLAN LOGIC ---
         let currentFullScreenSessionId = null;
-        let userClosedFullScreen = false;
+        let userClosedFullScreen = sessionStorage.getItem('klbk_user_closed_fs') === 'true';
         let activeMessages = new Map(); // Store active message windows
         window.pdfTabs = window.pdfTabs || []; // To track opened PDF tabs for automatic closing
+
+        function getActiveFullScreenTarget() {
+            const sessions = DataManager.getSortedExamSessions() || [];
+            const now = getNow();
+            const defaultScreenLimit = DataManager.getSchoolSettings()?.defaultTimes?.defaultScreenViewLimit || 8;
+
+            // 1. Cihaz sınıf eşleşmesi varsa kontrol et
+            const devId = localStorage.getItem('klbk_device_id');
+            if (devId) {
+                const mappings = DataManager.getClassDeviceMappings() || {};
+                let assignedClass = null;
+                for (let cls in mappings) {
+                    if (mappings[cls] === devId) {
+                        assignedClass = cls;
+                        break;
+                    }
+                }
+                if (assignedClass) {
+                    const displayClass = String(assignedClass).replace(/_SLASH_/g, '/');
+                    const roomName = DataManager.getSanitizedClassRoomMapping(displayClass) || DataManager.getSanitizedClassRoomMapping(assignedClass);
+                    if (roomName) {
+                        for (let ses of sessions) {
+                            if (!ses || !ses.isPublished || !ses.screenViewEnabled || !Array.isArray(ses.results) || ses.type === 'uygulama') continue;
+                            const targetTime = DataManager.parseSessionDateTime(ses.date, ses.time);
+                            const durationMins = ses.examDuration || 40;
+                            const endTime = new Date(targetTime.getTime() + durationMins * 60 * 1000);
+                            const diffMins = (targetTime - now) / 1000 / 60;
+                            const diffEndMins = (endTime - now) / 1000 / 60;
+                            const limit = (ses.screenViewLimit === 0) ? 999999 : ((ses.screenViewLimit === undefined) ? defaultScreenLimit : ses.screenViewLimit);
+                            if (Math.floor(diffMins) <= limit && diffEndMins >= -3) {
+                                const matchedRoom = ses.results.find(r => r && r.name === roomName);
+                                if (matchedRoom) {
+                                    return { roomData: matchedRoom, activeSession: ses, displayClass };
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Giriş yapmış öğrenci varsa sınıfının dersliğini kontrol et
+            if (currentStudent && currentStudent.class) {
+                const myRoomName = DataManager.getSanitizedClassRoomMapping(currentStudent.class);
+                if (myRoomName) {
+                    for (let ses of sessions) {
+                        if (!ses || !ses.isPublished || !ses.screenViewEnabled || !Array.isArray(ses.results) || ses.type === 'uygulama') continue;
+                        const targetTime = DataManager.parseSessionDateTime(ses.date, ses.time);
+                        const durationMins = ses.examDuration || 40;
+                        const endTime = new Date(targetTime.getTime() + durationMins * 60 * 1000);
+                        const diffMins = (targetTime - now) / 1000 / 60;
+                        const diffEndMins = (endTime - now) / 1000 / 60;
+                        const limit = (ses.screenViewLimit === 0) ? 999999 : ((ses.screenViewLimit === undefined) ? defaultScreenLimit : ses.screenViewLimit);
+                        if (Math.floor(diffMins) <= limit && diffEndMins >= -3) {
+                            const matchedRoom = ses.results.find(r => r && r.name === myRoomName);
+                            if (matchedRoom) {
+                                return { roomData: matchedRoom, activeSession: ses, displayClass: currentStudent.class };
+                            }
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        function updateScreenViewButtons() {
+            const target = getActiveFullScreenTarget();
+            const openBtn = document.getElementById('openScreenViewBtn');
+            const loginBtn = document.getElementById('loginScreenViewBtn');
+            if (openBtn) {
+                if (target) openBtn.classList.remove('hidden');
+                else openBtn.classList.add('hidden');
+            }
+            if (loginBtn) {
+                if (target) loginBtn.classList.remove('hidden');
+                else loginBtn.classList.add('hidden');
+            }
+        }
+
+        window.openManualFullScreenPlan = function () {
+            const target = getActiveFullScreenTarget();
+            if (!target) return;
+            userClosedFullScreen = false;
+            sessionStorage.removeItem('klbk_user_closed_fs');
+            currentFullScreenSessionId = target.activeSession.id;
+            renderFullScreenPlan(target.roomData, target.activeSession, target.displayClass);
+        };
 
         window.openPdfTab = async function (url) {
             if (!url) return;
@@ -2279,7 +2406,8 @@ DataManager._getStorageKey = function () {
                 let blobUrl;
                 let title = 'Soru Kağıdı';
 
-                const stdUser = window.currentStudent;
+                const isFullScreenOpen = document.getElementById('fullScreenPlanOverlay')?.style.display === 'flex';
+                const stdUser = isFullScreenOpen ? null : currentStudent;
                 const session = window.currentRenderedSession;
 
                 if (!stdUser) {
@@ -2622,8 +2750,10 @@ DataManager._getStorageKey = function () {
                     _active: isExamActive
                 };
                 const sessionHash = JSON.stringify(sessionHashData);
+                if (typeof updateScreenViewButtons === 'function') updateScreenViewButtons();
+                const isClosedByUser = userClosedFullScreen || sessionStorage.getItem('klbk_user_closed_fs') === 'true';
                 // Eğer seans değişmişse VEYA seans içindeki veriler (örn: PDF paylaşımı) değişmişse VEYA sınav başladığı/bittiği an ise yeniden çiz
-                if ((currentFullScreenSessionId !== activeSession.id || window._lastActiveSessionHash !== sessionHash) && !userClosedFullScreen) {
+                if ((currentFullScreenSessionId !== activeSession.id || window._lastActiveSessionHash !== sessionHash) && !isClosedByUser) {
                     window._lastActiveSessionHash = sessionHash;
                     
                     // Close previous session's PDF tabs if switching sessions
@@ -2642,15 +2772,18 @@ DataManager._getStorageKey = function () {
                 }
             } else {
                 // Exam ended or no active session for this classroom
-                if (window.currentFullScreenSessionId) {
-                    window.closeFullScreenPlan();
+                if (typeof updateScreenViewButtons === 'function') updateScreenViewButtons();
+                if (currentFullScreenSessionId) {
+                    closeFullScreenPlan(false);
                     if (pdfTabs.length > 0) {
                         pdfTabs.forEach(win => { try { win.close(); } catch (e) { } });
                         pdfTabs = [];
                     }
                 }
                 currentFullScreenSessionId = null;
-                userClosedFullScreen = false;
+                if (sessionStorage.getItem('klbk_user_closed_fs') !== 'true') {
+                    userClosedFullScreen = false;
+                }
             }
         }
 
@@ -2665,24 +2798,31 @@ DataManager._getStorageKey = function () {
                 window.fullScreenTimerInterval = null;
             }
 
+            currentFullScreenSessionId = null; // Reset so it doesn't immediately re-open on retick
+
+            if (isManual) {
+                userClosedFullScreen = true;
+                sessionStorage.setItem('klbk_user_closed_fs', 'true');
+            } else if (sessionStorage.getItem('klbk_user_closed_fs') !== 'true') {
+                userClosedFullScreen = false; // Allow reopening if closed automatically
+            }
+
             // Restore student info UI or login screen
             const resultsView = document.getElementById('resultsView');
+            if (resultsView) {
+                resultsView.style.display = '';
+            }
             if (resultsView && currentStudent) {
                 resultsView.style.display = 'block';
                 resultsView.classList.remove('hidden');
             } else {
+                if (resultsView) resultsView.classList.add('hidden');
                 const loginView = document.getElementById('loginView');
                 if (loginView) loginView.classList.remove('hidden');
                 document.body.classList.add('login-body');
             }
 
-            currentFullScreenSessionId = null; // Reset so it doesn't immediately re-open on retick
-
-            if (isManual) {
-                userClosedFullScreen = true;
-            } else {
-                userClosedFullScreen = false; // Allow reopening if closed automatically
-            }
+            if (typeof updateScreenViewButtons === 'function') updateScreenViewButtons();
             window.removeEventListener('resize', scaleFullScreenPlan);
         }
 
@@ -2690,8 +2830,6 @@ DataManager._getStorageKey = function () {
             const targetClassName = classOverride || (currentStudent ? currentStudent.class : '');
             // Cleanup existing timer if any
             window.currentRenderedSession = sessionData;
-            // Clear current student to ensure smartboard view doesn't use stale student info
-            window.currentStudent = null;
 
             if (window.fullScreenTimerInterval) clearInterval(window.fullScreenTimerInterval);
 
