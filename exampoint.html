@@ -2706,7 +2706,18 @@
 
             rec.onaudiostart = () => micDbg('audiostart (mikrofon açıldı)');
             rec.onsoundstart = () => micDbg('soundstart (ses geldi)');
-            rec.onspeechend = () => micDbg('speechend (konuşma bitti, sonuç bekleniyor)');
+            let noResultWatchdog = null;
+            rec.onspeechend = () => {
+                micDbg('speechend (konuşma bitti, sonuç bekleniyor)');
+                if (noResultWatchdog) clearTimeout(noResultWatchdog);
+                noResultWatchdog = setTimeout(() => {
+                    if (recognition === rec && !sessionHandled && !pendingAlts) {
+                        setMicStatus(`<span style="color:#f59e0b; font-weight:700;">Tarayıcı sesi metne çeviremedi (sunucu yanıt vermedi).</span> Chrome veya Edge ile açın; yeniden dinleniyor...`);
+                        micDbg('sonuç gelmedi, oturum yenileniyor');
+                        try { rec.abort(); } catch (e) {}
+                    }
+                }, 4000);
+            };
             rec.onnomatch = () => micDbg('nomatch (anlaşılamadı)');
             rec.onresult = (event) => {
                 try { micDbg('result n=' + (event.results ? event.results.length : 0) + ' "' + (event.results[event.results.length-1][0].transcript) + '" final=' + event.results[event.results.length-1].isFinal); } catch (e) {}
