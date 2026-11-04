@@ -89,6 +89,10 @@
       "dest": "/zumreci.html"
     },
     {
+      "src": "/exampoint(\\.html)?$",
+      "dest": "/exampoint.html"
+    },
+    {
       "src": "/security_error(\\.html)?$",
       "dest": "/404.html"
     },

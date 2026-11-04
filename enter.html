@@ -615,6 +615,18 @@
 
             // Sadece veritabanından gelen portalLinks kullanılır. (Güvenlik amaçlı tüm linkler veritabanında tutulur)
             
+            if (!portalLinks.some(l => l && l.url && l.url.toLowerCase().includes('exampoint'))) {
+                portalLinks.push({
+                    id: 'exampoint_default',
+                    title: 'Sınav Notu İşleme Ekranı',
+                    desc: 'Sesli komutla hızlı sınav ve soru bazlı puan giriş ekranı',
+                    url: '/exampoint.html',
+                    icon: 'fa-microphone-lines',
+                    active: true,
+                    guideUrl: ''
+                });
+            }
+
             // Deduplicate links by URL so duplicate cards never show up
             const seenUrls = new Set();
             portalLinks = portalLinks.filter(link => {

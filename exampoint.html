@@ -1,0 +1,2634 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Sınav Notu İşleme Ekranı</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="img/amblem.jpg">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- Base Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Core DataManager -->
+    <script src="js/core_data_v11_9_1.js"></script>
+    <!-- Auth Check -->
+    <script>
+        if (sessionStorage.getItem('klbk_isLoggedIn') !== 'true' && localStorage.getItem('klbk_isLoggedIn') !== 'true') {
+            sessionStorage.setItem('klbk_intended_url', window.location.pathname);
+            window.location.href = '/enter.html';
+        }
+    </script>
+    <style>
+        :root {
+            --ep-primary: #4f46e5;
+            --ep-primary-dark: #3730a3;
+            --ep-primary-light: #e0e7ff;
+            --ep-accent: #10b981;
+            --ep-accent-dark: #059669;
+            --ep-danger: #ef4444;
+            --ep-warning: #f59e0b;
+            --ep-bg: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 50%, #f0fdf4 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--ep-bg);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            color: #1e293b;
+        }
+
+        .ep-container {
+            max-width: 1020px;
+            margin: 1.5rem auto 3rem;
+            padding: 0 1rem;
+        }
+
+        /* Header */
+        .ep-header {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border-radius: 18px;
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .ep-header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .ep-header-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
+            flex-shrink: 0;
+        }
+
+        .ep-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #1e1b4b;
+            margin: 0;
+            letter-spacing: -0.3px;
+        }
+
+        .ep-subtitle {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin: 3px 0 0;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .ep-teacher-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #eef2ff;
+            color: #4338ca;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.82rem;
+            border: 1px solid #c7d2fe;
+        }
+
+        .ep-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-ep {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0.65rem 1.15rem;
+            border-radius: 12px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.92rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-ep-portal {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+        .btn-ep-portal:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .btn-ep-logout {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        .btn-ep-logout:hover {
+            background: #fee2e2;
+        }
+
+        /* Top Action Bar: Yeni Sınav Ekle */
+        .ep-top-action {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-add-exam-main {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            color: #fff;
+            padding: 0.95rem 1.75rem;
+            border-radius: 14px;
+            font-size: 1.05rem;
+            font-weight: 800;
+            box-shadow: 0 8px 20px -4px rgba(79, 70, 229, 0.45);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.22s ease;
+        }
+
+        .btn-add-exam-main:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -4px rgba(79, 70, 229, 0.55);
+            background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+        }
+
+        /* Add Exam Panel */
+        .add-exam-panel {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 12px 30px -5px rgba(30, 27, 75, 0.1);
+            border: 2px solid #c7d2fe;
+            display: none;
+            animation: slideDownFade 0.25s ease-out;
+        }
+
+        .add-exam-panel.open {
+            display: block;
+        }
+
+        @keyframes slideDownFade {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .add-exam-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .add-exam-header h3 {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #1e1b4b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .ep-field label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .ep-select, .ep-input {
+            width: 100%;
+            padding: 0.8rem 0.95rem;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 0.98rem;
+            font-weight: 600;
+            color: #0f172a;
+            background: #f8fafc;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .ep-select:focus, .ep-input:focus {
+            border-color: var(--ep-primary);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+        }
+
+        .quick-q-chips {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+
+        .q-chip {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+            border-radius: 8px;
+            padding: 3px 9px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .q-chip:hover, .q-chip.active {
+            background: var(--ep-primary);
+            color: #fff;
+            border-color: var(--ep-primary);
+        }
+
+        .add-exam-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-save-exam {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #fff;
+            padding: 0.8rem 1.75rem;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 6px 15px rgba(16, 185, 129, 0.35);
+            transition: all 0.2s;
+        }
+
+        .btn-save-exam:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(16, 185, 129, 0.45);
+        }
+
+        /* Accordion: Sınavlar */
+        .ep-accordion {
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.07);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+
+        .ep-accordion-header {
+            width: 100%;
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+            color: #ffffff;
+            padding: 1.15rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+            text-align: left;
+            transition: background 0.2s;
+        }
+
+        .ep-accordion-header:hover {
+            background: linear-gradient(135deg, #312e81 0%, #3730a3 100%);
+        }
+
+        .ep-accordion-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.2rem;
+            font-weight: 800;
+        }
+
+        .ep-exam-count-badge {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 2px 11px;
+            border-radius: 999px;
+            font-size: 0.88rem;
+            font-weight: 700;
+        }
+
+        .ep-accordion-chevron {
+            font-size: 1.1rem;
+            transition: transform 0.25s ease;
+        }
+
+        .ep-accordion.open .ep-accordion-chevron {
+            transform: rotate(180deg);
+        }
+
+        .ep-accordion-body {
+            display: none;
+            padding: 1.25rem;
+            background: #f8fafc;
+        }
+
+        .ep-accordion.open .ep-accordion-body {
+            display: block;
+        }
+
+        /* Exam Card inside Accordion */
+        .exam-item-card {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            margin-bottom: 0.9rem;
+            transition: all 0.2s ease;
+            overflow: hidden;
+        }
+
+        .exam-item-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .exam-item-card:hover {
+            border-color: #a5b4fc;
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.08);
+        }
+
+        .exam-item-main {
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .exam-item-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .exam-class-badge {
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            color: #fff;
+            font-weight: 800;
+            font-size: 1.05rem;
+            padding: 0.45rem 0.9rem;
+            border-radius: 10px;
+            min-width: 58px;
+            text-align: center;
+            box-shadow: 0 3px 8px rgba(79, 70, 229, 0.25);
+        }
+
+        .exam-meta-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .exam-subject-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .exam-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .exam-tag-no {
+            background: #fef3c7;
+            color: #b45309;
+            border: 1px solid #fde68a;
+        }
+
+        .exam-tag-q {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+
+        .exam-tag-graded {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+
+        .exam-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* PLAY BUTTON */
+        .btn-play-exam {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .btn-play-exam i {
+            margin-left: 3px; /* Optical center for play icon */
+        }
+
+        .btn-play-exam:hover {
+            transform: scale(1.08);
+            box-shadow: 0 8px 22px rgba(16, 185, 129, 0.55);
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+
+        .btn-table-toggle {
+            background: #eef2ff;
+            color: #4f46e5;
+            border: 1px solid #c7d2fe;
+            padding: 0.55rem 0.9rem;
+            border-radius: 10px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+
+        .btn-table-toggle:hover {
+            background: #e0e7ff;
+        }
+
+        .btn-delete-exam {
+            background: #fef2f2;
+            color: #ef4444;
+            border: 1px solid #fecaca;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-delete-exam:hover {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        /* Expandable Student Scores Table inside Exam Card */
+        .exam-scores-drawer {
+            display: none;
+            border-top: 1px solid #e2e8f0;
+            padding: 1rem 1.25rem;
+            background: #f8fafc;
+            overflow-x: auto;
+        }
+
+        .exam-scores-drawer.open {
+            display: block;
+        }
+
+        .scores-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            font-size: 0.88rem;
+            border: 1px solid #cbd5e1;
+        }
+
+        .scores-table th, .scores-table td {
+            padding: 0.55rem 0.65rem;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+        }
+
+        .scores-table th {
+            background: #f1f5f9;
+            color: #334155;
+            font-weight: 800;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        .scores-table td.st-left {
+            text-align: left;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .scores-table tr:hover {
+            background: #f8fafc;
+        }
+
+        .score-cell-input {
+            width: 46px;
+            padding: 4px;
+            text-align: center;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #1e293b;
+        }
+
+        .score-cell-input:focus {
+            border-color: var(--ep-primary);
+            outline: none;
+            background: #eef2ff;
+        }
+
+        .total-score-badge {
+            display: inline-block;
+            min-width: 38px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 800;
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        /* =====================================================
+           VOICE GRADING OVERLAY / MODAL
+           ===================================================== */
+        .voice-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(8px);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem;
+            overflow-y: auto;
+        }
+
+        .voice-modal-backdrop.active {
+            display: flex;
+        }
+
+        .voice-modal-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 720px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+            overflow: hidden;
+            border: 2px solid #e0e7ff;
+            display: flex;
+            flex-direction: column;
+            max-height: 95vh;
+        }
+
+        .voice-modal-top {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%);
+            color: #fff;
+            padding: 1rem 1.35rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .voice-modal-exam-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-close-voice {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-close-voice:hover {
+            background: #ef4444;
+            border-color: #ef4444;
+        }
+
+        .voice-modal-body {
+            padding: 1.25rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Transition Mode Bar */
+        .transition-mode-bar {
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .transition-mode-title {
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .transition-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        @media (max-width: 520px) {
+            .transition-options {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .mode-option-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0.6rem 0.85rem;
+            border-radius: 10px;
+            border: 2px solid #cbd5e1;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.86rem;
+            color: #334155;
+            transition: all 0.15s;
+        }
+
+        .mode-option-label input[type="radio"] {
+            accent-color: var(--ep-primary);
+            width: 17px;
+            height: 17px;
+            margin: 0;
+        }
+
+        .mode-option-label.selected {
+            border-color: var(--ep-primary);
+            background: #eef2ff;
+            color: #1e1b4b;
+        }
+
+        .silence-note {
+            font-size: 0.78rem;
+            color: #059669;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Prompt Stage */
+        .voice-prompt-box {
+            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+            border: 2.5px solid #818cf8;
+            border-radius: 18px;
+            padding: 1.35rem 1.25rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .mic-pulse-btn {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            margin: 0 auto 0.85rem;
+            cursor: pointer;
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+            transition: all 0.2s;
+        }
+
+        .mic-pulse-btn.listening {
+            animation: micPulse 1.6s infinite;
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        @keyframes micPulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55);
+            }
+            70% {
+                box-shadow: 0 0 0 18px rgba(16, 185, 129, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+        .voice-prompt-text {
+            font-size: 1.45rem;
+            font-weight: 900;
+            color: #1e1b4b;
+            margin: 0 0 0.5rem;
+            line-height: 1.3;
+        }
+
+        .voice-status-sub {
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: #475569;
+            min-height: 1.4em;
+        }
+
+        .recognized-bubble {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #ffffff;
+            border: 2px solid #6366f1;
+            color: #1e1b4b;
+            padding: 6px 16px;
+            border-radius: 999px;
+            font-weight: 800;
+            font-size: 1rem;
+            margin-top: 8px;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.12);
+        }
+
+        /* Auto-advance 1.5s progress bar */
+        .auto-timer-wrap {
+            margin-top: 10px;
+            display: none;
+        }
+
+        .auto-timer-wrap.active {
+            display: block;
+        }
+
+        .auto-timer-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: #cbd5e1;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .auto-timer-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #10b981, #059669);
+            transition: width 0.05s linear;
+        }
+
+        .auto-timer-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #047857;
+            margin-top: 4px;
+        }
+
+        /* Active Student Card */
+        .active-student-card {
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            border-radius: 14px;
+            padding: 0.9rem 1.15rem;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .active-student-card.visible {
+            display: flex;
+        }
+
+        .st-card-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .st-no-circle {
+            background: #16a34a;
+            color: #fff;
+            font-weight: 900;
+            font-size: 1.1rem;
+            padding: 0.45rem 0.85rem;
+            border-radius: 10px;
+        }
+
+        .st-name-title {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #064e3b;
+        }
+
+        .st-class-sub {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #15803d;
+        }
+
+        /* Questions Progress Strip */
+        .questions-strip-box {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .questions-strip-box.visible {
+            display: flex;
+        }
+
+        .questions-grid-pills {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+            gap: 8px;
+        }
+
+        .q-pill-box {
+            background: #f8fafc;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 6px 4px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .q-pill-box.current {
+            border-color: #4f46e5;
+            background: #eef2ff;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .q-pill-box.done {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+
+        .q-pill-label {
+            font-size: 0.73rem;
+            font-weight: 700;
+            color: #64748b;
+        }
+
+        .q-pill-val {
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #0f172a;
+            margin-top: 2px;
+        }
+
+        /* Manual / Quick Fallback Controls */
+        .manual-assist-bar {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 0.85rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .manual-input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .quick-score-btns {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .btn-quick-num {
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 6px 11px;
+            font-family: inherit;
+            font-weight: 800;
+            font-size: 0.88rem;
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-quick-num:hover {
+            background: #4f46e5;
+            color: #fff;
+            border-color: #4f46e5;
+        }
+
+        .btn-confirm-next {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 0.8rem 1.35rem;
+            font-family: inherit;
+            font-weight: 800;
+            font-size: 0.98rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 6px 14px rgba(16, 185, 129, 0.35);
+            transition: all 0.15s;
+        }
+
+        .btn-confirm-next:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+        }
+
+        .empty-exams-placeholder {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="ep-container">
+        <!-- HEADER -->
+        <header class="ep-header">
+            <div class="ep-header-left">
+                <div class="ep-header-icon">
+                    <i class="fa-solid fa-microphone-lines"></i>
+                </div>
+                <div>
+                    <h1 class="ep-title">Sınav Notu İşleme Ekranı</h1>
+                    <div class="ep-subtitle">
+                        <span class="ep-teacher-badge" id="teacherNameBadge">
+                            <i class="fa-solid fa-chalkboard-user"></i>
+                            <span id="teacherNameText">Yükleniyor...</span>
+                        </span>
+                        <span id="teacherBranchBadge" style="font-size:0.82rem; color:#475569; font-weight:600;"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="ep-header-actions">
+                <a href="enter.html" class="btn-ep btn-ep-portal">
+                    <i class="fa-solid fa-table-cells-large"></i> Portal'a Dön
+                </a>
+                <button type="button" class="btn-ep btn-ep-logout" onclick="logoutExamPoint()">
+                    <i class="fa-solid fa-right-from-bracket"></i> Çıkış
+                </button>
+            </div>
+        </header>
+
+        <!-- YENİ SINAV EKLE BUTTON -->
+        <div class="ep-top-action">
+            <button type="button" class="btn-add-exam-main" id="btnToggleAddExam" onclick="toggleAddExamForm()">
+                <i class="fa-solid fa-circle-plus"></i> Yeni Sınav Ekle
+            </button>
+        </div>
+
+        <!-- YENİ SINAV EKLE FORM PANEL -->
+        <section class="add-exam-panel" id="addExamPanel">
+            <div class="add-exam-header">
+                <h3><i class="fa-solid fa-file-circle-plus" style="color:#4f46e5;"></i> Yeni Sınav Tanımla</h3>
+                <button type="button" class="btn-ep btn-ep-portal" style="padding:0.4rem 0.75rem; font-size:0.82rem;" onclick="toggleAddExamForm(false)">
+                    <i class="fa-solid fa-xmark"></i> Kapat
+                </button>
+            </div>
+
+            <div class="form-grid-4">
+                <!-- 1. Öğretmenin Girdiği Sınıf (Ayrı Seçim) -->
+                <div class="ep-field">
+                    <label for="examClassSelect"><i class="fa-solid fa-users-rectangle" style="color:#4f46e5;"></i> Sınıf Seçin</label>
+                    <select id="examClassSelect" class="ep-select">
+                        <option value="">Sınıf Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- 2. Öğretmenin Girdiği Ders (Ayrı Seçim) -->
+                <div class="ep-field">
+                    <label for="examSubjectSelect"><i class="fa-solid fa-book-open" style="color:#4f46e5;"></i> Ders Seçin</label>
+                    <select id="examSubjectSelect" class="ep-select">
+                        <option value="">Ders Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- 3. Kaçıncı Sınav Olduğu -->
+                <div class="ep-field">
+                    <label for="examNumberSelect"><i class="fa-solid fa-list-ol" style="color:#4f46e5;"></i> Kaçıncı Sınav</label>
+                    <select id="examNumberSelect" class="ep-select">
+                        <option value="1. Sınav">1. Sınav</option>
+                        <option value="2. Sınav">2. Sınav</option>
+                        <option value="3. Sınav">3. Sınav</option>
+                        <option value="4. Sınav">4. Sınav</option>
+                    </select>
+                </div>
+
+                <!-- 4. Kaç Soru Olduğu -->
+                <div class="ep-field">
+                    <label for="examQuestionCount"><i class="fa-solid fa-circle-question" style="color:#4f46e5;"></i> Soru Sayısı</label>
+                    <input type="number" id="examQuestionCount" class="ep-input" min="1" max="100" value="10" placeholder="Örn: 10">
+                    <div class="quick-q-chips">
+                        <span class="q-chip" onclick="setQuickQuestionCount(5)">5</span>
+                        <span class="q-chip" onclick="setQuickQuestionCount(8)">8</span>
+                        <span class="q-chip active" onclick="setQuickQuestionCount(10)">10</span>
+                        <span class="q-chip" onclick="setQuickQuestionCount(12)">12</span>
+                        <span class="q-chip" onclick="setQuickQuestionCount(15)">15</span>
+                        <span class="q-chip" onclick="setQuickQuestionCount(20)">20</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="add-exam-footer">
+                <button type="button" class="btn-save-exam" onclick="handleAddExam()">
+                    <i class="fa-solid fa-check"></i> Ekle
+                </button>
+            </div>
+        </section>
+
+        <!-- SINAVLAR AKORDİON MENÜ -->
+        <section class="ep-accordion open" id="examsAccordion">
+            <button type="button" class="ep-accordion-header" onclick="toggleExamsAccordion()">
+                <div class="ep-accordion-title">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <span>Sınavlar</span>
+                    <span class="ep-exam-count-badge" id="examsCountBadge">0</span>
+                </div>
+                <i class="fa-solid fa-chevron-down ep-accordion-chevron"></i>
+            </button>
+            <div class="ep-accordion-body" id="examsAccordionList">
+                <div class="empty-exams-placeholder">
+                    <i class="fa-solid fa-spinner fa-spin" style="font-size:2rem; margin-bottom:0.5rem; color:#6366f1;"></i>
+                    <p>Sınavlar yükleniyor...</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- =====================================================
+         SESLİ NOT GİRİŞ ASİSTANI MODAL (PLAY TUŞU EKRANI)
+         ===================================================== -->
+    <div class="voice-modal-backdrop" id="voiceGradingModal">
+        <div class="voice-modal-card">
+            <div class="voice-modal-top">
+                <div class="voice-modal-exam-title" id="voiceModalExamHeader">
+                    <i class="fa-solid fa-microphone-lines"></i>
+                    <span>Sesli Sınav Notu İşleme</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button type="button" id="btnToggleTts" onclick="toggleTtsVoice()" class="btn-ep" style="padding:0.4rem 0.75rem; font-size:0.78rem; background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);" title="Soruları sesli okuma açık/kapalı">
+                        <i class="fa-solid fa-volume-high" id="ttsIcon"></i> <span id="ttsStatusText">Sesli Okuma: Açık</span>
+                    </button>
+                    <button type="button" class="btn-close-voice" onclick="closeVoiceGradingModal()" title="Kapat">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="voice-modal-body">
+                <!-- Sorular Arası Geçiş Seçeneği -->
+                <div class="transition-mode-bar">
+                    <div class="transition-mode-title">
+                        <span><i class="fa-solid fa-sliders"></i> Sorular Arası Geçiş Seçeneği</span>
+                        <span class="silence-note"><i class="fa-solid fa-hourglass-half"></i> Bir şey söylenmezse sistem geçmez, bekler</span>
+                    </div>
+                    <div class="transition-options">
+                        <label class="mode-option-label selected" id="lblModeAuto">
+                            <input type="radio" name="voiceTransitionMode" value="auto15" checked onchange="setTransitionMode('auto15')">
+                            <span><i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> Notu Söyledikten 1.5 Sn Sonra Otomatik Geç</span>
+                        </label>
+                        <label class="mode-option-label" id="lblModeConfirm">
+                            <input type="radio" name="voiceTransitionMode" value="confirm" onchange="setTransitionMode('confirm')">
+                            <span><i class="fa-solid fa-hand-pointer" style="color:#4f46e5;"></i> Onay Tuşuna Basınca Diğer Soruya Geç</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Seçili Öğrenci Kartı -->
+                <div class="active-student-card" id="activeStudentCard">
+                    <div class="st-card-left">
+                        <div class="st-no-circle" id="activeStudentNoBadge">-</div>
+                        <div>
+                            <div class="st-name-title" id="activeStudentNameText">-</div>
+                            <div class="st-class-sub" id="activeStudentClassText">-</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="text-align:right;">
+                            <div style="font-size:0.72rem; font-weight:800; color:#15803d; text-transform:uppercase;">Toplam Puan</div>
+                            <div style="font-size:1.45rem; font-weight:900; color:#166534;" id="activeStudentTotalScore">0</div>
+                        </div>
+                        <button type="button" class="btn-ep btn-ep-portal" style="padding:0.45rem 0.8rem; font-size:0.8rem;" onclick="resetToStudentStep()">
+                            <i class="fa-solid fa-user-pen"></i> Öğrenci Değiştir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ANA SESLİ KOMUT VE SORU EKRANI -->
+                <div class="voice-prompt-box">
+                    <button type="button" class="mic-pulse-btn" id="micToggleBtn" onclick="toggleMicrophoneListening()" title="Mikrofonu Aç / Kapat">
+                        <i class="fa-solid fa-microphone" id="micToggleIcon"></i>
+                    </button>
+
+                    <h2 class="voice-prompt-text" id="voicePromptHeadline">
+                        Notu girilecek öğrenci numarasını söyleyin
+                    </h2>
+
+                    <div class="voice-status-sub" id="voiceStatusSubtext">
+                        Mikrofon dinliyor... Lütfen konuşun.
+                    </div>
+
+                    <div id="recognizedTranscriptWrap" style="display:none;">
+                        <span class="recognized-bubble" id="recognizedTranscriptText"></span>
+                    </div>
+
+                    <!-- 1.5 Saniye Otomatik Geçiş Çubuğu -->
+                    <div class="auto-timer-wrap" id="autoTimerWrap">
+                        <div class="auto-timer-bar-bg">
+                            <div class="auto-timer-bar-fill" id="autoTimerBarFill"></div>
+                        </div>
+                        <div class="auto-timer-label" id="autoTimerLabel">1.5 saniye içinde diğer soruya geçiliyor...</div>
+                    </div>
+                </div>
+
+                <!-- Soru Kutucukları (1..N) -->
+                <div class="questions-strip-box" id="questionsStripBox">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:0.8rem; font-weight:800; color:#475569; text-transform:uppercase;">
+                            <i class="fa-solid fa-list-check"></i> Soru Bazlı Puanlar (Düzenlemek istediğiniz soruya tıklayabilirsiniz)
+                        </span>
+                        <span id="saveIndicatorText" style="font-size:0.8rem; font-weight:700; color:#059669;"></span>
+                    </div>
+                    <div class="questions-grid-pills" id="questionsGridPills"></div>
+                </div>
+
+                <!-- Manuel Giriş & Onay Tuşu Alanı -->
+                <div class="manual-assist-bar">
+                    <!-- Öğrenci Seçim Yardımı (Step = student_no iken görünür) -->
+                    <div id="studentManualAssistRow" class="manual-input-row">
+                        <input type="number" id="manualStudentNoInput" class="ep-input" style="max-width:180px; padding:0.6rem 0.8rem;" placeholder="Öğrenci No yazın..." onkeydown="if(event.key==='Enter') submitManualStudentNo()">
+                        <button type="button" class="btn-ep" style="background:#4f46e5; color:#fff;" onclick="submitManualStudentNo()">
+                            <i class="fa-solid fa-magnifying-glass"></i> Öğrenciyi Getir
+                        </button>
+                        <select id="quickClassStudentSelect" class="ep-select" style="flex:1; min-width:190px; padding:0.6rem 0.8rem;" onchange="if(this.value) findAndSelectStudentByNo(this.value)">
+                            <option value="">Veya sınıftan öğrenci seçin...</option>
+                        </select>
+                    </div>
+
+                    <!-- Soru Puanı Giriş & Onay Tuşu (Step = question iken görünür) -->
+                    <div id="questionManualAssistRow" style="display:none; flex-direction:column; gap:10px;">
+                        <div class="quick-score-btns">
+                            <span style="font-size:0.78rem; font-weight:700; color:#64748b; align-self:center; margin-right:4px;">Hızlı Puan:</span>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(0, true)">0</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(1, true)">1</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(2, true)">2</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(3, true)">3</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(4, true)">4</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(5, true)">5</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(6, true)">6</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(7, true)">7</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(8, true)">8</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(9, true)">9</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(10, true)">10</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(15, true)">15</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(20, true)">20</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(25, true)">25</button>
+                        </div>
+                        <div class="manual-input-row" style="justify-content:space-between;">
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <input type="number" id="manualScoreInput" class="ep-input" style="width:120px; padding:0.6rem 0.8rem;" min="0" max="100" step="0.5" placeholder="Puan..." onkeydown="if(event.key==='Enter') submitManualQuestionScore()">
+                                <button type="button" class="btn-ep" style="background:#4f46e5; color:#fff; padding:0.6rem 1rem;" onclick="submitManualQuestionScore()">
+                                    <i class="fa-solid fa-pen"></i> Kaydet
+                                </button>
+                            </div>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <button type="button" class="btn-ep btn-ep-portal" onclick="goToPrevQuestion()" id="btnPrevQuestion" style="padding:0.65rem 0.9rem;">
+                                    <i class="fa-solid fa-arrow-left"></i> Önceki Soru
+                                </button>
+                                <button type="button" class="btn-confirm-next" id="btnConfirmNextQuestion" onclick="confirmAndAdvanceQuestion()">
+                                    <i class="fa-solid fa-circle-check"></i> Onayla / Sonraki Soru
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================
+        // GLOBAL STATE & INITIALIZATION
+        // =========================================================
+        const FIREBASE_DB_URL = (window.DataManager && window.DataManager.firebaseDatabaseUrl)
+            ? window.DataManager.firebaseDatabaseUrl
+            : "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
+
+        let activeTeacherUsername = "";
+        let activeTeacherName = "";
+        let activeTeacherRole = "ogretmen";
+        let activeTeacherObject = null;
+        let allStudents = [];
+        let schoolData = {};
+        let examPointList = []; // Array of exam objects
+
+        // Voice Grading State
+        let currentVoiceExamId = null;
+        let voiceStep = "student_no"; // "student_no" | "question"
+        let currentStudentObj = null; // { no, name, class }
+        let currentQuestionIndex = 1; // 1..N
+        let transitionMode = "auto15"; // "auto15" | "confirm"
+        let autoAdvanceTimer = null;
+        let autoAdvanceInterval = null;
+        let ttsEnabled = true;
+        let isSpeakingTts = false;
+
+        // Web Speech API
+        let recognition = null;
+        let isMicListening = false;
+        let shouldKeepListening = false;
+        let lastProcessedResultIndex = -1;
+
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function logoutExamPoint() {
+            if (window.DataManager && typeof window.DataManager.logout === 'function') {
+                window.DataManager.logout('manual');
+            } else {
+                sessionStorage.clear();
+                localStorage.removeItem('klbk_isLoggedIn');
+                window.location.href = '/enter.html?logout=true';
+            }
+        }
+
+        function normalizeScheduleDays(rawSchedule) {
+            if (!rawSchedule || typeof rawSchedule !== 'object') return {};
+            const normalized = {};
+            for (const [key, val] of Object.entries(rawSchedule)) {
+                if (!key) continue;
+                const k = key.trim().toLowerCase();
+                let targetKey = null;
+                if (k.startsWith('pa') || k === 'pt' || k.includes('paz')) targetKey = 'Pa';
+                else if (k.startsWith('sa') || k.includes('sal')) targetKey = 'Sa';
+                else if (k.startsWith('ça') || k.startsWith('ca') || k.includes('çar') || k.includes('car')) targetKey = 'Ça';
+                else if (k.startsWith('pe') || k.includes('per')) targetKey = 'Pe';
+                else if (k.startsWith('cu') || k.includes('cum')) targetKey = 'Cu';
+                else if (k.startsWith('ct') || k.includes('cumartesi')) targetKey = 'Ct';
+                else if (k.startsWith('pz') || k.includes('pazar')) targetKey = 'Pz';
+                if (targetKey) normalized[targetKey] = val;
+            }
+            return normalized;
+        }
+
+        function cleanClassToken(str) {
+            return String(str || '').toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ÇĞİÖŞÜ]/g, '');
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Restore session variables from sessionStorage or localStorage
+            activeTeacherUsername = (
+                sessionStorage.getItem('klbk_currentUser') ||
+                localStorage.getItem('klbk_currentUser') ||
+                sessionStorage.getItem('klbk_username') ||
+                localStorage.getItem('klbk_username') ||
+                ''
+            ).trim();
+
+            activeTeacherName = (
+                sessionStorage.getItem('klbk_name') ||
+                localStorage.getItem('klbk_name') ||
+                activeTeacherUsername ||
+                'Öğretmen'
+            ).trim();
+
+            activeTeacherRole = (
+                sessionStorage.getItem('klbk_role') ||
+                localStorage.getItem('klbk_role') ||
+                'ogretmen'
+            ).toLowerCase().trim();
+
+            document.getElementById('teacherNameText').textContent = activeTeacherName;
+
+            try {
+                const usersPromise = fetch(`${FIREBASE_DB_URL}/app_store/klbk_users.json?_t=${Date.now()}`)
+                    .then(r => r.ok ? r.json() : null)
+                    .catch(() => null);
+
+                const cloudPromise = DataManager.initCloud();
+
+                const [usersData] = await Promise.all([usersPromise, cloudPromise]);
+
+                if (usersData && typeof usersData === 'object') {
+                    // Match logged-in teacher
+                    if (activeTeacherUsername && usersData[activeTeacherUsername]) {
+                        activeTeacherObject = usersData[activeTeacherUsername];
+                    } else {
+                        const targetLower = activeTeacherUsername.toLowerCase();
+                        const nameLower = activeTeacherName.toLowerCase();
+                        for (const [uname, uObj] of Object.entries(usersData)) {
+                            if (!uObj || typeof uObj !== 'object') continue;
+                            if (
+                                (targetLower && uname.toLowerCase() === targetLower) ||
+                                (nameLower && uObj.name && uObj.name.toLowerCase().trim() === nameLower)
+                            ) {
+                                activeTeacherObject = uObj;
+                                activeTeacherUsername = uname;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (activeTeacherObject && activeTeacherObject.name) {
+                    activeTeacherName = activeTeacherObject.name;
+                    document.getElementById('teacherNameText').textContent = activeTeacherName;
+                }
+
+                schoolData = DataManager.getSchoolSettings() || {};
+                allStudents = DataManager.getStudents() || [];
+
+                populateTeacherClassesAndSubjects();
+                loadExamsFromStore();
+                renderExamsAccordion();
+            } catch (err) {
+                console.error("ExamPoint init error:", err);
+                loadExamsFromStore();
+                renderExamsAccordion();
+            }
+        });
+
+        // =========================================================
+        // POPULATE TEACHER'S CLASSES & SUBJECTS SEPARATELY
+        // =========================================================
+        function populateTeacherClassesAndSubjects() {
+            const classSelect = document.getElementById('examClassSelect');
+            const subjectSelect = document.getElementById('examSubjectSelect');
+            classSelect.innerHTML = '';
+            subjectSelect.innerHTML = '';
+
+            // 1. Collect all school classes from students
+            const schoolClassesSet = new Set();
+            allStudents.forEach(s => {
+                if (s && s.class && String(s.class).trim()) {
+                    schoolClassesSet.add(String(s.class).trim());
+                }
+            });
+            const allSchoolClasses = Array.from(schoolClassesSet).sort((a, b) =>
+                a.localeCompare(b, 'tr', { numeric: true, sensitivity: 'base' })
+            );
+
+            // 2. Extract classes taught by this teacher from schedule
+            const teacherClassesSet = new Set();
+            const scheduleSubjectsSet = new Set();
+
+            if (activeTeacherObject && activeTeacherObject.schedule) {
+                const normSched = normalizeScheduleDays(activeTeacherObject.schedule);
+                for (const dayObj of Object.values(normSched)) {
+                    if (!dayObj || typeof dayObj !== 'object') continue;
+                    for (const cellVal of Object.values(dayObj)) {
+                        if (!cellVal || cellVal === '-') continue;
+                        const rawCell = String(cellVal).trim();
+                        if (!rawCell) continue;
+
+                        // Cell might be "9A" or "10B - Fizik" or "9/A"
+                        const parts = rawCell.split(/\s*[-–:]\s*/);
+                        const potentialClass = parts[0].trim();
+                        const cleanPot = cleanClassToken(potentialClass);
+
+                        // Match with school classes if possible
+                        const matchedSchoolCls = allSchoolClasses.find(c => cleanClassToken(c) === cleanPot);
+                        if (matchedSchoolCls) {
+                            teacherClassesSet.add(matchedSchoolCls);
+                        } else if (cleanPot && /\d/.test(cleanPot)) {
+                            teacherClassesSet.add(potentialClass);
+                        }
+
+                        if (parts.length > 1 && parts[1].trim()) {
+                            scheduleSubjectsSet.add(parts[1].trim());
+                        }
+                    }
+                }
+            }
+
+            if (activeTeacherObject && Array.isArray(activeTeacherObject.classes)) {
+                activeTeacherObject.classes.forEach(c => {
+                    if (c && String(c).trim()) teacherClassesSet.add(String(c).trim());
+                });
+            }
+
+            const teacherClasses = Array.from(teacherClassesSet).sort((a, b) =>
+                a.localeCompare(b, 'tr', { numeric: true, sensitivity: 'base' })
+            );
+
+            if (teacherClasses.length > 0) {
+                const grpTeacher = document.createElement('optgroup');
+                grpTeacher.label = 'Girdiğiniz Sınıflar';
+                teacherClasses.forEach(cls => {
+                    const opt = document.createElement('option');
+                    opt.value = cls;
+                    opt.textContent = cls;
+                    grpTeacher.appendChild(opt);
+                });
+                classSelect.appendChild(grpTeacher);
+
+                const otherClasses = allSchoolClasses.filter(c => !teacherClasses.includes(c));
+                if (otherClasses.length > 0) {
+                    const grpOther = document.createElement('optgroup');
+                    grpOther.label = 'Diğer Sınıflar';
+                    otherClasses.forEach(cls => {
+                        const opt = document.createElement('option');
+                        opt.value = cls;
+                        opt.textContent = cls;
+                        grpOther.appendChild(opt);
+                    });
+                    classSelect.appendChild(grpOther);
+                }
+                classSelect.value = teacherClasses[0];
+            } else if (allSchoolClasses.length > 0) {
+                const grpAll = document.createElement('optgroup');
+                grpAll.label = 'Sınıflar';
+                allSchoolClasses.forEach(cls => {
+                    const opt = document.createElement('option');
+                    opt.value = cls;
+                    opt.textContent = cls;
+                    grpAll.appendChild(opt);
+                });
+                classSelect.appendChild(grpAll);
+                classSelect.value = allSchoolClasses[0];
+            } else {
+                // Fallback default classes if database has no students yet
+                ['9A', '9B', '10A', '10B', '11A', '11B', '12A', '12B'].forEach(cls => {
+                    const opt = document.createElement('option');
+                    opt.value = cls;
+                    opt.textContent = cls;
+                    classSelect.appendChild(opt);
+                });
+            }
+
+            // 3. Extract subjects taught by this teacher
+            const teacherSubjectsSet = new Set();
+            if (activeTeacherObject && activeTeacherObject.branch) {
+                const br = activeTeacherObject.branch;
+                if (Array.isArray(br)) {
+                    br.forEach(b => { if (b && String(b).trim()) teacherSubjectsSet.add(String(b).trim()); });
+                } else if (typeof br === 'string' && br.trim()) {
+                    br.split(',').forEach(b => { if (b.trim()) teacherSubjectsSet.add(b.trim()); });
+                }
+            }
+
+            const storedBranch = sessionStorage.getItem('klbk_branch') || localStorage.getItem('klbk_branch');
+            if (storedBranch) {
+                try {
+                    const parsed = JSON.parse(storedBranch);
+                    if (Array.isArray(parsed)) parsed.forEach(b => b && teacherSubjectsSet.add(String(b).trim()));
+                    else if (typeof parsed === 'string' && parsed.trim()) teacherSubjectsSet.add(parsed.trim());
+                } catch (e) {
+                    storedBranch.split(',').forEach(b => { if (b.trim()) teacherSubjectsSet.add(b.trim()); });
+                }
+            }
+
+            scheduleSubjectsSet.forEach(s => teacherSubjectsSet.add(s));
+
+            // Also check subjectOverrides from DataManager if any
+            const dbData = DataManager._getData();
+            if (dbData && dbData.subjectOverrides && activeTeacherUsername && dbData.subjectOverrides[activeTeacherUsername]) {
+                Object.values(dbData.subjectOverrides[activeTeacherUsername]).forEach(sub => {
+                    if (sub && String(sub).trim()) teacherSubjectsSet.add(String(sub).trim());
+                });
+            }
+
+            const teacherSubjects = Array.from(teacherSubjectsSet);
+            if (teacherSubjects.length > 0) {
+                const branchBadge = document.getElementById('teacherBranchBadge');
+                if (branchBadge) {
+                    branchBadge.textContent = `Branş: ${teacherSubjects.join(', ')}`;
+                }
+            }
+
+            const schoolSubjects = Array.isArray(schoolData.subjects) ? schoolData.subjects : [];
+            const studentSubjectsSet = new Set(schoolSubjects);
+            allStudents.forEach(s => {
+                if (Array.isArray(s.dersler)) {
+                    s.dersler.forEach(d => {
+                        if (d && String(d).trim()) studentSubjectsSet.add(String(d).trim());
+                    });
+                }
+            });
+            const allSchoolSubjects = Array.from(studentSubjectsSet).sort((a, b) =>
+                a.localeCompare(b, 'tr', { sensitivity: 'base' })
+            );
+
+            if (teacherSubjects.length > 0) {
+                const grpTSub = document.createElement('optgroup');
+                grpTSub.label = 'Girdiğiniz Dersler';
+                teacherSubjects.forEach(sub => {
+                    const opt = document.createElement('option');
+                    opt.value = sub;
+                    opt.textContent = sub;
+                    grpTSub.appendChild(opt);
+                });
+                subjectSelect.appendChild(grpTSub);
+
+                const otherSubs = allSchoolSubjects.filter(s => !teacherSubjects.includes(s));
+                if (otherSubs.length > 0) {
+                    const grpOSub = document.createElement('optgroup');
+                    grpOSub.label = 'Diğer Dersler';
+                    otherSubs.forEach(sub => {
+                        const opt = document.createElement('option');
+                        opt.value = sub;
+                        opt.textContent = sub;
+                        grpOSub.appendChild(opt);
+                    });
+                    subjectSelect.appendChild(grpOSub);
+                }
+                subjectSelect.value = teacherSubjects[0];
+            } else if (allSchoolSubjects.length > 0) {
+                const grpAllSub = document.createElement('optgroup');
+                grpAllSub.label = 'Dersler';
+                allSchoolSubjects.forEach(sub => {
+                    const opt = document.createElement('option');
+                    opt.value = sub;
+                    opt.textContent = sub;
+                    grpAllSub.appendChild(opt);
+                });
+                subjectSelect.appendChild(grpAllSub);
+                subjectSelect.value = allSchoolSubjects[0];
+            } else {
+                ['Türk Dili ve Edebiyatı', 'Matematik', 'Fizik', 'Kimya', 'Biyoloji', 'Tarih', 'Coğrafya', 'İngilizce', 'Din Kültürü ve Ahlak Bilgisi'].forEach(sub => {
+                    const opt = document.createElement('option');
+                    opt.value = sub;
+                    opt.textContent = sub;
+                    subjectSelect.appendChild(opt);
+                });
+            }
+        }
+
+        // =========================================================
+        // ADD EXAM & PERSISTENCE
+        // =========================================================
+        function toggleAddExamForm(forceState) {
+            const panel = document.getElementById('addExamPanel');
+            if (typeof forceState === 'boolean') {
+                panel.classList.toggle('open', forceState);
+            } else {
+                panel.classList.toggle('open');
+            }
+        }
+
+        function setQuickQuestionCount(count) {
+            const input = document.getElementById('examQuestionCount');
+            input.value = count;
+            document.querySelectorAll('.q-chip').forEach(chip => {
+                chip.classList.toggle('active', parseInt(chip.textContent, 10) === count);
+            });
+        }
+
+        function loadExamsFromStore() {
+            const dbData = DataManager._getData();
+            let rawExams = dbData.examPointExams || [];
+            if (rawExams && !Array.isArray(rawExams) && typeof rawExams === 'object') {
+                rawExams = Object.values(rawExams);
+            }
+            if (!Array.isArray(rawExams)) rawExams = [];
+
+            // Also merge from localStorage backup if cloud was empty
+            try {
+                const localBackup = JSON.parse(localStorage.getItem('klbk_exampoint_backup') || '[]');
+                if (Array.isArray(localBackup) && localBackup.length > 0 && rawExams.length === 0) {
+                    rawExams = localBackup;
+                }
+            } catch (e) {}
+
+            examPointList = rawExams.filter(Boolean);
+        }
+
+        async function saveExamsToStore() {
+            try {
+                localStorage.setItem('klbk_exampoint_backup', JSON.stringify(examPointList));
+            } catch (e) {}
+
+            if (window.DataManager && DataManager._isCloudLoaded) {
+                const dbData = DataManager._getData();
+                dbData.examPointExams = examPointList;
+                await DataManager._saveData(dbData);
+            }
+        }
+
+        function getVisibleExamsForCurrentUser() {
+            const isAdmin = ['admin', 'master', 'idareci', 'mudur', 'mudur_basyardimcisi', 'mudur_yardimcisi'].includes(activeTeacherRole);
+            if (isAdmin) return examPointList;
+            return examPointList.filter(ex => {
+                if (!ex.teacherUsername && !ex.teacherName) return true;
+                const uMatch = ex.teacherUsername && activeTeacherUsername && ex.teacherUsername.toLowerCase() === activeTeacherUsername.toLowerCase();
+                const nMatch = ex.teacherName && activeTeacherName && ex.teacherName.toLowerCase() === activeTeacherName.toLowerCase();
+                return uMatch || nMatch;
+            });
+        }
+
+        async function handleAddExam() {
+            const selectedClass = document.getElementById('examClassSelect').value.trim();
+            const selectedSubject = document.getElementById('examSubjectSelect').value.trim();
+            const selectedExamNo = document.getElementById('examNumberSelect').value.trim();
+            const questionCount = parseInt(document.getElementById('examQuestionCount').value, 10);
+
+            if (!selectedClass) {
+                Swal.fire('Uyarı', 'Lütfen sınıf seçiniz.', 'warning');
+                return;
+            }
+            if (!selectedSubject) {
+                Swal.fire('Uyarı', 'Lütfen ders seçiniz.', 'warning');
+                return;
+            }
+            if (!selectedExamNo) {
+                Swal.fire('Uyarı', 'Lütfen kaçıncı sınav olduğunu seçiniz.', 'warning');
+                return;
+            }
+            if (!questionCount || questionCount < 1 || questionCount > 100) {
+                Swal.fire('Uyarı', 'Lütfen geçerli bir soru sayısı giriniz (1 - 100).', 'warning');
+                return;
+            }
+
+            const newExam = {
+                id: 'ep_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+                teacherUsername: activeTeacherUsername,
+                teacherName: activeTeacherName,
+                className: selectedClass,
+                subject: selectedSubject,
+                examNo: selectedExamNo,
+                questionCount: questionCount,
+                createdAt: new Date().toISOString(),
+                scores: {}
+            };
+
+            examPointList.unshift(newExam);
+            await saveExamsToStore();
+
+            // Close add form, open accordion, and render
+            toggleAddExamForm(false);
+            const acc = document.getElementById('examsAccordion');
+            if (acc && !acc.classList.contains('open')) {
+                acc.classList.add('open');
+            }
+            renderExamsAccordion();
+
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: `${selectedClass} - ${selectedSubject} (${selectedExamNo}) eklendi!`,
+                showConfirmButton: false,
+                timer: 2200
+            });
+        }
+
+        function toggleExamsAccordion() {
+            const acc = document.getElementById('examsAccordion');
+            if (acc) acc.classList.toggle('open');
+        }
+
+        function getStudentsForExamClass(className) {
+            const targetClean = cleanClassToken(className);
+            const matched = allStudents.filter(s => s && s.class && cleanClassToken(s.class) === targetClean);
+            return matched.sort((a, b) => (parseInt(a.no, 10) || 0) - (parseInt(b.no, 10) || 0));
+        }
+
+        function renderExamsAccordion() {
+            const container = document.getElementById('examsAccordionList');
+            const badge = document.getElementById('examsCountBadge');
+            const visibleExams = getVisibleExamsForCurrentUser();
+
+            if (badge) badge.textContent = visibleExams.length;
+
+            if (visibleExams.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-exams-placeholder">
+                        <i class="fa-solid fa-folder-plus" style="font-size:2.5rem; color:#94a3b8; margin-bottom:0.75rem;"></i>
+                        <div style="font-weight:800; font-size:1.05rem; color:#334155;">Henüz eklenmiş bir sınav bulunmuyor</div>
+                        <p style="margin:6px 0 0; font-size:0.9rem;">Yukarıdaki <b>"Yeni Sınav Ekle"</b> tuşuna basarak sınıf, ders, sınav numarası ve soru sayısını seçip ekleyebilirsiniz.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            visibleExams.forEach(exam => {
+                const classStudents = getStudentsForExamClass(exam.className);
+                const scoresMap = exam.scores || {};
+                const gradedCount = Object.keys(scoresMap).length;
+                const totalClassCount = classStudents.length;
+                const gradedText = totalClassCount > 0
+                    ? `${gradedCount} / ${totalClassCount} Öğrenci Girildi`
+                    : `${gradedCount} Öğrenci Girildi`;
+
+                html += `
+                    <div class="exam-item-card" id="examCard_${escapeHtml(exam.id)}">
+                        <div class="exam-item-main">
+                            <div class="exam-item-info" onclick="toggleExamScoresTable('${escapeHtml(exam.id)}')" title="Not çizelgesini açmak için tıklayın">
+                                <div class="exam-class-badge">${escapeHtml(exam.className)}</div>
+                                <div class="exam-meta-group">
+                                    <div class="exam-subject-title">
+                                        <span>${escapeHtml(exam.subject)}</span>
+                                        <span class="exam-tag exam-tag-no"><i class="fa-solid fa-award"></i> ${escapeHtml(exam.examNo)}</span>
+                                        <span class="exam-tag exam-tag-q"><i class="fa-solid fa-list-ol"></i> ${Number(exam.questionCount) || 0} Soru</span>
+                                        <span class="exam-tag exam-tag-graded"><i class="fa-solid fa-user-check"></i> ${gradedText}</span>
+                                    </div>
+                                    <div style="font-size:0.78rem; color:#64748b; font-weight:600;">
+                                        <i class="fa-solid fa-chalkboard-user"></i> ${escapeHtml(exam.teacherName || '')}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="exam-item-actions">
+                                <button type="button" class="btn-table-toggle" onclick="toggleExamScoresTable('${escapeHtml(exam.id)}')" title="Öğrenci Puan Tablosunu Göster/Gizle">
+                                    <i class="fa-solid fa-table-list"></i> Not Çizelgesi
+                                </button>
+                                <button type="button" class="btn-delete-exam" onclick="deleteExamItem('${escapeHtml(exam.id)}')" title="Sınavı Sil">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                                <button type="button" class="btn-play-exam" onclick="startVoiceGradingForExam('${escapeHtml(exam.id)}')" title="Sesli Not Girişini Başlat (Play)">
+                                    <i class="fa-solid fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="exam-scores-drawer" id="drawer_${escapeHtml(exam.id)}">
+                            ${buildExamScoresTableHtml(exam, classStudents)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function buildExamScoresTableHtml(exam, classStudents) {
+            const qCount = Number(exam.questionCount) || 1;
+            const scoresMap = exam.scores || {};
+
+            // Merge classStudents with any extra students recorded in scoresMap
+            const studentRows = [...classStudents];
+            const seenNos = new Set(classStudents.map(s => String(s.no).trim()));
+
+            for (const [stNo, rec] of Object.entries(scoresMap)) {
+                if (!seenNos.has(String(stNo).trim())) {
+                    studentRows.push({
+                        no: stNo,
+                        name: rec.studentName || `Öğrenci #${stNo}`,
+                        class: exam.className
+                    });
+                }
+            }
+
+            if (studentRows.length === 0) {
+                return `<div style="padding:1rem; text-align:center; color:#64748b; font-weight:600;">Bu sınıfta henüz kayıtlı öğrenci veya girilmiş not bulunmuyor. Sağdaki <b>Play (▶)</b> tuşuna basarak öğrenci numarasıyla not girebilirsiniz.</div>`;
+            }
+
+            let thQuestions = '';
+            for (let q = 1; q <= qCount; q++) {
+                thQuestions += `<th>S.${q}</th>`;
+            }
+
+            let rowsHtml = '';
+            studentRows.forEach(st => {
+                const stNo = String(st.no).trim();
+                const rec = scoresMap[stNo] || { questions: {}, total: null };
+                const qScores = rec.questions || {};
+                let hasAnyScore = false;
+                let sum = 0;
+
+                let tdQuestions = '';
+                for (let q = 1; q <= qCount; q++) {
+                    const val = qScores[String(q)] !== undefined && qScores[String(q)] !== null && qScores[String(q)] !== ''
+                        ? qScores[String(q)]
+                        : '';
+                    if (val !== '') {
+                        hasAnyScore = true;
+                        sum += Number(val) || 0;
+                    }
+                    tdQuestions += `
+                        <td>
+                            <input type="number" class="score-cell-input" value="${val !== '' ? escapeHtml(val) : ''}"
+                                min="0" max="100" step="0.5"
+                                onchange="handleTableCellScoreChange('${escapeHtml(exam.id)}', '${escapeHtml(stNo)}', '${escapeHtml(st.name)}', ${q}, this.value)">
+                        </td>
+                    `;
+                }
+
+                const totalDisplay = hasAnyScore ? sum : '-';
+                rowsHtml += `
+                    <tr>
+                        <td style="font-weight:800; color:#4f46e5;">${escapeHtml(stNo)}</td>
+                        <td class="st-left">${escapeHtml(st.name)}</td>
+                        ${tdQuestions}
+                        <td><span class="total-score-badge" id="tot_${escapeHtml(exam.id)}_${escapeHtml(stNo)}">${totalDisplay}</span></td>
+                    </tr>
+                `;
+            });
+
+            return `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.65rem; flex-wrap:wrap; gap:8px;">
+                    <span style="font-weight:800; font-size:0.88rem; color:#334155;">
+                        <i class="fa-solid fa-users"></i> ${escapeHtml(exam.className)} - ${escapeHtml(exam.subject)} (${escapeHtml(exam.examNo)}) Puan Çizelgesi
+                    </span>
+                    <span style="font-size:0.78rem; color:#64748b; font-weight:600;">Hücrelere tıklayarak manuel düzeltme de yapabilirsiniz</span>
+                </div>
+                <table class="scores-table">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th style="text-align:left;">Adı Soyadı</th>
+                            ${thQuestions}
+                            <th>Toplam</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function toggleExamScoresTable(examId) {
+            const drawer = document.getElementById('drawer_' + examId);
+            if (drawer) {
+                drawer.classList.toggle('open');
+            }
+        }
+
+        async function handleTableCellScoreChange(examId, studentNo, studentName, qNum, rawValue) {
+            const exam = examPointList.find(e => e.id === examId);
+            if (!exam) return;
+            exam.scores = exam.scores || {};
+            const stKey = String(studentNo).trim();
+            if (!exam.scores[stKey]) {
+                exam.scores[stKey] = {
+                    studentNo: stKey,
+                    studentName: studentName,
+                    questions: {},
+                    total: 0,
+                    updatedAt: new Date().toISOString()
+                };
+            }
+            if (rawValue === '' || rawValue === null) {
+                delete exam.scores[stKey].questions[String(qNum)];
+            } else {
+                const num = parseFloat(String(rawValue).replace(',', '.'));
+                if (!isNaN(num)) {
+                    exam.scores[stKey].questions[String(qNum)] = num;
+                }
+            }
+
+            // Recompute total
+            let sum = 0;
+            let count = 0;
+            for (const v of Object.values(exam.scores[stKey].questions)) {
+                if (v !== '' && v !== null && !isNaN(Number(v))) {
+                    sum += Number(v);
+                    count++;
+                }
+            }
+            exam.scores[stKey].total = sum;
+            exam.scores[stKey].updatedAt = new Date().toISOString();
+
+            const badge = document.getElementById(`tot_${examId}_${stKey}`);
+            if (badge) badge.textContent = count > 0 ? sum : '-';
+
+            await saveExamsToStore();
+        }
+
+        async function deleteExamItem(examId) {
+            const exam = examPointList.find(e => e.id === examId);
+            if (!exam) return;
+
+            const res = await Swal.fire({
+                title: 'Sınavı Sil?',
+                html: `<b>${escapeHtml(exam.className)} - ${escapeHtml(exam.subject)} (${escapeHtml(exam.examNo)})</b> sınavını ve girilen notları silmek istediğinize emin misiniz?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal'
+            });
+
+            if (res.isConfirmed) {
+                examPointList = examPointList.filter(e => e.id !== examId);
+                await saveExamsToStore();
+                renderExamsAccordion();
+            }
+        }
+
+        // =========================================================
+        // VOICE GRADING ASSISTANT (PLAY BUTTON FLOW)
+        // =========================================================
+        function setTransitionMode(mode) {
+            transitionMode = mode;
+            document.getElementById('lblModeAuto').classList.toggle('selected', mode === 'auto15');
+            document.getElementById('lblModeConfirm').classList.toggle('selected', mode === 'confirm');
+            cancelAutoAdvanceTimer();
+        }
+
+        function toggleTtsVoice() {
+            ttsEnabled = !ttsEnabled;
+            const icon = document.getElementById('ttsIcon');
+            const txt = document.getElementById('ttsStatusText');
+            if (ttsEnabled) {
+                icon.className = 'fa-solid fa-volume-high';
+                txt.textContent = 'Sesli Okuma: Açık';
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark';
+                txt.textContent = 'Sesli Okuma: Kapalı';
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                }
+                isSpeakingTts = false;
+            }
+        }
+
+        function speakTurkishPrompt(text) {
+            if (!ttsEnabled || !('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance(text);
+                utter.lang = 'tr-TR';
+                utter.rate = 1.08;
+                isSpeakingTts = true;
+                utter.onend = () => {
+                    setTimeout(() => { isSpeakingTts = false; }, 220);
+                };
+                utter.onerror = () => {
+                    isSpeakingTts = false;
+                };
+                window.speechSynthesis.speak(utter);
+            } catch (e) {
+                isSpeakingTts = false;
+            }
+        }
+
+        function startVoiceGradingForExam(examId) {
+            const exam = examPointList.find(e => e.id === examId);
+            if (!exam) return;
+
+            currentVoiceExamId = exam.id;
+            document.getElementById('voiceModalExamHeader').innerHTML = `
+                <i class="fa-solid fa-microphone-lines"></i>
+                <span>${escapeHtml(exam.className)} • ${escapeHtml(exam.subject)} • ${escapeHtml(exam.examNo)} (${Number(exam.questionCount)} Soru)</span>
+            `;
+
+            // Populate quick student dropdown for this class
+            const quickSelect = document.getElementById('quickClassStudentSelect');
+            quickSelect.innerHTML = '<option value="">Veya sınıftan öğrenci seçin...</option>';
+            const classStudents = getStudentsForExamClass(exam.className);
+            classStudents.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.no;
+                opt.textContent = `${s.no} - ${s.name}`;
+                quickSelect.appendChild(opt);
+            });
+
+            document.getElementById('voiceGradingModal').classList.add('active');
+            resetToStudentStep();
+            startMicrophoneListening();
+        }
+
+        function closeVoiceGradingModal() {
+            cancelAutoAdvanceTimer();
+            stopMicrophoneListening();
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            document.getElementById('voiceGradingModal').classList.remove('active');
+            renderExamsAccordion();
+        }
+
+        function resetToStudentStep() {
+            cancelAutoAdvanceTimer();
+            voiceStep = "student_no";
+            currentStudentObj = null;
+            currentQuestionIndex = 1;
+
+            document.getElementById('activeStudentCard').classList.remove('visible');
+            document.getElementById('questionsStripBox').classList.remove('visible');
+            document.getElementById('studentManualAssistRow').style.display = 'flex';
+            document.getElementById('questionManualAssistRow').style.display = 'none';
+            document.getElementById('manualStudentNoInput').value = '';
+            document.getElementById('quickClassStudentSelect').value = '';
+            document.getElementById('recognizedTranscriptWrap').style.display = 'none';
+
+            const promptText = "Notu girilecek öğrenci numarasını söyleyin";
+            document.getElementById('voicePromptHeadline').textContent = promptText;
+            document.getElementById('voiceStatusSubtext').textContent = isMicListening
+                ? "Mikrofon dinliyor... Öğrenci numarasını söyleyin."
+                : "Mikrofonu başlatmak için mikrofon simgesine dokunun veya numarayı yazın.";
+
+            speakTurkishPrompt(promptText);
+        }
+
+        function findAndSelectStudentByNo(spokenNo) {
+            const exam = examPointList.find(e => e.id === currentVoiceExamId);
+            if (!exam) return false;
+
+            const cleanNo = String(spokenNo).trim();
+            if (!cleanNo) return false;
+
+            const classStudents = getStudentsForExamClass(exam.className);
+            let matchedStudent = classStudents.find(s => String(s.no).trim() === cleanNo);
+
+            // Fallback: look across all school students if not found in class filter
+            if (!matchedStudent) {
+                matchedStudent = allStudents.find(s => s && String(s.no).trim() === cleanNo);
+            }
+
+            // If still not in allStudents (e.g., new student number), allow grading by creating a student record stub
+            if (!matchedStudent) {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'warning',
+                    title: `${cleanNo} numaralı öğrenci listede bulunamadı!`,
+                    text: 'Lütfen öğrenci numarasını tekrar söyleyin.',
+                    showConfirmButton: false,
+                    timer: 2500
+                });
+                document.getElementById('voiceStatusSubtext').textContent = `${cleanNo} numaralı öğrenci bulunamadı. Lütfen tekrar öğrenci numarasını söyleyin.`;
+                return false;
+            }
+
+            currentStudentObj = {
+                no: String(matchedStudent.no).trim(),
+                name: matchedStudent.name || `Öğrenci #${cleanNo}`,
+                class: matchedStudent.class || exam.className
+            };
+
+            // Ensure exam.scores entry exists
+            exam.scores = exam.scores || {};
+            if (!exam.scores[currentStudentObj.no]) {
+                exam.scores[currentStudentObj.no] = {
+                    studentNo: currentStudentObj.no,
+                    studentName: currentStudentObj.name,
+                    questions: {},
+                    total: 0,
+                    updatedAt: new Date().toISOString()
+                };
+            }
+
+            // Show Student Card
+            document.getElementById('activeStudentNoBadge').textContent = currentStudentObj.no;
+            document.getElementById('activeStudentNameText').textContent = currentStudentObj.name;
+            document.getElementById('activeStudentClassText').textContent = `${currentStudentObj.class} Sınıfı`;
+            document.getElementById('activeStudentCard').classList.add('visible');
+            document.getElementById('questionsStripBox').classList.add('visible');
+
+            document.getElementById('studentManualAssistRow').style.display = 'none';
+            document.getElementById('questionManualAssistRow').style.display = 'flex';
+
+            voiceStep = "question";
+            goToQuestion(1);
+            return true;
+        }
+
+        function goToQuestion(qIndex) {
+            cancelAutoAdvanceTimer();
+            const exam = examPointList.find(e => e.id === currentVoiceExamId);
+            if (!exam || !currentStudentObj) return;
+
+            const maxQ = Number(exam.questionCount) || 1;
+            if (qIndex < 1) qIndex = 1;
+            if (qIndex > maxQ) {
+                finishCurrentStudentGrading();
+                return;
+            }
+
+            currentQuestionIndex = qIndex;
+
+            // Prompt phrasing as requested:
+            // "1. sorudan kaç puan aldığını söyleyin", "2. sorudan aldığı puanı söyleyin"....
+            const promptText = qIndex === 1
+                ? "1. sorudan kaç puan aldığını söyleyin"
+                : `${qIndex}. sorudan aldığı puanı söyleyin`;
+
+            document.getElementById('voicePromptHeadline').textContent = promptText;
+            document.getElementById('voiceStatusSubtext').textContent = "Puanı söyleyin (Bir şey söylemezseniz sistem bekler)...";
+
+            const stRec = exam.scores[currentStudentObj.no] || { questions: {} };
+            const existingScore = stRec.questions ? stRec.questions[String(qIndex)] : undefined;
+            document.getElementById('manualScoreInput').value = existingScore !== undefined ? existingScore : '';
+
+            renderQuestionPills();
+            speakTurkishPrompt(promptText);
+        }
+
+        function renderQuestionPills() {
+            const exam = examPointList.find(e => e.id === currentVoiceExamId);
+            if (!exam || !currentStudentObj) return;
+
+            const maxQ = Number(exam.questionCount) || 1;
+            const stRec = (exam.scores && exam.scores[currentStudentObj.no]) || { questions: {}, total: 0 };
+            const qMap = stRec.questions || {};
+
+            let total = 0;
+            let pillsHtml = '';
+            for (let q = 1; q <= maxQ; q++) {
+                const val = qMap[String(q)];
+                const hasVal = val !== undefined && val !== null && val !== '';
+                if (hasVal) total += Number(val) || 0;
+
+                const isCurrent = (q === currentQuestionIndex);
+                const cls = isCurrent ? 'q-pill-box current' : (hasVal ? 'q-pill-box done' : 'q-pill-box');
+
+                pillsHtml += `
+                    <div class="${cls}" onclick="goToQuestion(${q})">
+                        <div class="q-pill-label">${q}. Soru</div>
+                        <div class="q-pill-val">${hasVal ? escapeHtml(val) : '-'}</div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('questionsGridPills').innerHTML = pillsHtml;
+            document.getElementById('activeStudentTotalScore').textContent = total;
+        }
+
+        async function applyQuestionScore(scoreValue, isFromVoiceOrQuick = true) {
+            const exam = examPointList.find(e => e.id === currentVoiceExamId);
+            if (!exam || !currentStudentObj) return;
+
+            const numScore = Number(scoreValue);
+            if (isNaN(numScore) || numScore < 0) return;
+
+            const stNo = currentStudentObj.no;
+            exam.scores = exam.scores || {};
+            if (!exam.scores[stNo]) {
+                exam.scores[stNo] = {
+                    studentNo: stNo,
+                    studentName: currentStudentObj.name,
+                    questions: {},
+                    total: 0,
+                    updatedAt: new Date().toISOString()
+                };
+            }
+
+            exam.scores[stNo].questions[String(currentQuestionIndex)] = numScore;
+
+            let sum = 0;
+            for (const v of Object.values(exam.scores[stNo].questions)) {
+                if (v !== '' && v !== null && !isNaN(Number(v))) {
+                    sum += Number(v);
+                }
+            }
+            exam.scores[stNo].total = sum;
+            exam.scores[stNo].updatedAt = new Date().toISOString();
+
+            document.getElementById('manualScoreInput').value = numScore;
+            renderQuestionPills();
+
+            const saveInd = document.getElementById('saveIndicatorText');
+            if (saveInd) {
+                saveInd.innerHTML = `<i class="fa-solid fa-check-double"></i> ${currentQuestionIndex}. Soru: ${numScore} Puan kaydedildi`;
+            }
+
+            // Persist to Firebase + LocalStorage immediately
+            saveExamsToStore();
+
+            // Handle transition to next question
+            if (transitionMode === 'auto15') {
+                startAutoAdvanceCountdown(1500);
+            } else {
+                document.getElementById('voiceStatusSubtext').innerHTML =
+                    `<span style="color:#059669; font-weight:800;">${currentQuestionIndex}. Soru için ${numScore} puan kaydedildi.</span> Diğer soruya geçmek için <b>"Onayla / Sonraki Soru"</b> tuşuna basın.`;
+            }
+        }
+
+        function startAutoAdvanceCountdown(durationMs = 1500) {
+            cancelAutoAdvanceTimer();
+            const wrap = document.getElementById('autoTimerWrap');
+            const fill = document.getElementById('autoTimerBarFill');
+            const label = document.getElementById('autoTimerLabel');
+
+            wrap.classList.add('active');
+            fill.style.width = '0%';
+
+            const startTime = Date.now();
+            autoAdvanceInterval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const pct = Math.min(100, (elapsed / durationMs) * 100);
+                fill.style.width = pct + '%';
+                const rem = Math.max(0, ((durationMs - elapsed) / 1000)).toFixed(1);
+                label.textContent = `${rem} sn sonra diğer soruya geçiliyor...`;
+            }, 50);
+
+            autoAdvanceTimer = setTimeout(() => {
+                cancelAutoAdvanceTimer();
+                confirmAndAdvanceQuestion();
+            }, durationMs);
+        }
+
+        function cancelAutoAdvanceTimer() {
+            if (autoAdvanceTimer) {
+                clearTimeout(autoAdvanceTimer);
+                autoAdvanceTimer = null;
+            }
+            if (autoAdvanceInterval) {
+                clearInterval(autoAdvanceInterval);
+                autoAdvanceInterval = null;
+            }
+            const wrap = document.getElementById('autoTimerWrap');
+            if (wrap) wrap.classList.remove('active');
+        }
+
+        function confirmAndAdvanceQuestion() {
+            cancelAutoAdvanceTimer();
+            const exam = examPointList.find(e => e.id === currentVoiceExamId);
+            if (!exam || !currentStudentObj) return;
+
+            const maxQ = Number(exam.questionCount) || 1;
+            if (currentQuestionIndex < maxQ) {
+                goToQuestion(currentQuestionIndex + 1);
+            } else {
+                finishCurrentStudentGrading();
+            }
+        }
+
+        function goToPrevQuestion() {
+            if (currentQuestionIndex > 1) {
+                goToQuestion(currentQuestionIndex - 1);
+            }
+        }
+
+        function finishCurrentStudentGrading() {
+            cancelAutoAdvanceTimer();
+            const exam = examPointList.find(e => e.id === currentVoiceExamId);
+            if (!exam || !currentStudentObj) return;
+
+            const stRec = exam.scores[currentStudentObj.no] || { total: 0 };
+            const finalTotal = stRec.total || 0;
+
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: `${currentStudentObj.no} - ${currentStudentObj.name} tamamlandı!`,
+                text: `Toplam Puan: ${finalTotal}`,
+                showConfirmButton: false,
+                timer: 2600
+            });
+
+            // Loop back to student number prompt for the next paper
+            resetToStudentStep();
+        }
+
+        function submitManualStudentNo() {
+            const val = document.getElementById('manualStudentNoInput').value.trim();
+            if (val) findAndSelectStudentByNo(val);
+        }
+
+        function submitManualQuestionScore() {
+            const raw = document.getElementById('manualScoreInput').value;
+            if (raw === '' || raw === null) return;
+            const num = parseFloat(String(raw).replace(',', '.'));
+            if (!isNaN(num)) {
+                applyQuestionScore(num, false);
+            }
+        }
+
+        // =========================================================
+        // TURKISH SPEECH RECOGNITION & NUMBER PARSER
+        // =========================================================
+        function parseTurkishSpokenNumber(rawText) {
+            if (!rawText) return null;
+            let text = String(rawText).toLocaleLowerCase('tr-TR').trim();
+
+            // Check special zero words
+            if (/\b(sıfır|sifir|boş|bos)\b/.test(text)) {
+                return 0;
+            }
+            if (/\byarım|yarim\b/.test(text) && !/\d/.test(text)) {
+                return 0.5;
+            }
+
+            // Handle "X buçuk" -> X.5
+            const bucukMatch = text.match(/(\d+)\s*buçuk/);
+            if (bucukMatch) {
+                return parseFloat(bucukMatch[1]) + 0.5;
+            }
+
+            // Direct digits in string (e.g. "125", "10", "7,5", "1. sorudan 15")
+            const decimalMatch = text.match(/\d+[.,]\d+/);
+            if (decimalMatch) {
+                return parseFloat(decimalMatch[0].replace(',', '.'));
+            }
+
+            const digitGroups = text.match(/\d+/g);
+            if (digitGroups && digitGroups.length > 0) {
+                // If multiple single digits spoken separately for student no like "1 2 5" -> "125"
+                if (digitGroups.length > 1 && digitGroups.every(d => d.length === 1)) {
+                    return parseInt(digitGroups.join(''), 10);
+                }
+                return parseInt(digitGroups[digitGroups.length - 1], 10);
+            }
+
+            // Parse Turkish number words
+            const units = {
+                'sıfır': 0, 'sifir': 0,
+                'bir': 1, 'iki': 2, 'üç': 3, 'uc': 3, 'dört': 4, 'dort': 4,
+                'beş': 5, 'bes': 5, 'altı': 6, 'alti': 6, 'yedi': 7, 'sekiz': 8, 'dokuz': 9
+            };
+            const tens = {
+                'on': 10, 'yirmi': 20, 'otuz': 30, 'kırk': 40, 'kirk': 40,
+                'elli': 50, 'altmış': 60, 'altmis': 60, 'yetmiş': 70, 'yetmis': 70,
+                'seksen': 80, 'doksan': 90
+            };
+
+            const words = text.replace(/[^a-z0-9çğıöşü\s]/gi, ' ').split(/\s+/).filter(Boolean);
+            let total = 0;
+            let current = 0;
+            let foundAny = false;
+            let hasBucuk = words.includes('buçuk') || words.includes('bucuk');
+
+            for (const w of words) {
+                if (w in units) {
+                    current += units[w];
+                    foundAny = true;
+                } else if (w in tens) {
+                    current += tens[w];
+                    foundAny = true;
+                } else if (w === 'yüz' || w === 'yuz') {
+                    current = (current === 0 ? 1 : current) * 100;
+                    foundAny = true;
+                } else if (w === 'bin') {
+                    total += (current === 0 ? 1 : current) * 1000;
+                    current = 0;
+                    foundAny = true;
+                }
+            }
+
+            total += current;
+            if (!foundAny) return null;
+            if (hasBucuk) total += 0.5;
+            return total;
+        }
+
+        function handleSpokenTranscript(transcript) {
+            if (!transcript || isSpeakingTts) return;
+            const cleanText = transcript.trim();
+            if (!cleanText) return;
+
+            const bubbleWrap = document.getElementById('recognizedTranscriptWrap');
+            const bubbleText = document.getElementById('recognizedTranscriptText');
+            bubbleWrap.style.display = 'block';
+            bubbleText.innerHTML = `<i class="fa-solid fa-comment-dots" style="color:#4f46e5;"></i> Algılanan: "${escapeHtml(cleanText)}"`;
+
+            const lower = cleanText.toLocaleLowerCase('tr-TR');
+
+            // Voice navigation commands during question grading
+            if (voiceStep === "question") {
+                if (/\b(onayla|tamam|geç|gec|sonraki|devam)\b/.test(lower) && parseTurkishSpokenNumber(cleanText) === null) {
+                    confirmAndAdvanceQuestion();
+                    return;
+                }
+                if (/\b(önceki|onceki|geri)\b/.test(lower) && parseTurkishSpokenNumber(cleanText) === null) {
+                    goToPrevQuestion();
+                    return;
+                }
+            }
+
+            const parsedNumber = parseTurkishSpokenNumber(cleanText);
+            if (parsedNumber === null || isNaN(parsedNumber)) {
+                return;
+            }
+
+            if (voiceStep === "student_no") {
+                findAndSelectStudentByNo(Math.round(parsedNumber));
+            } else if (voiceStep === "question") {
+                applyQuestionScore(parsedNumber, true);
+            }
+        }
+
+        function initSpeechRecognition() {
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRec) return null;
+
+            const rec = new SpeechRec();
+            rec.lang = 'tr-TR';
+            rec.continuous = true;
+            rec.interimResults = false;
+            rec.maxAlternatives = 1;
+
+            rec.onstart = () => {
+                isMicListening = true;
+                lastProcessedResultIndex = -1;
+                updateMicUiState();
+            };
+
+            rec.onresult = (event) => {
+                if (isSpeakingTts) return;
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal && i > lastProcessedResultIndex) {
+                        lastProcessedResultIndex = i;
+                        const spoken = event.results[i][0].transcript;
+                        handleSpokenTranscript(spoken);
+                    }
+                }
+            };
+
+            rec.onerror = (event) => {
+                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                    shouldKeepListening = false;
+                    isMicListening = false;
+                    updateMicUiState();
+                    document.getElementById('voiceStatusSubtext').textContent =
+                        "Mikrofon izni reddedildi. Tarayıcı adres çubuğundan mikrofon izni verin veya manuel girişi kullanın.";
+                }
+            };
+
+            rec.onend = () => {
+                isMicListening = false;
+                updateMicUiState();
+                // If user didn't speak (silence timeout on mobile/desktop), automatically keep listening without advancing!
+                if (shouldKeepListening && document.getElementById('voiceGradingModal').classList.contains('active')) {
+                    setTimeout(() => {
+                        if (shouldKeepListening && !isMicListening) {
+                            try {
+                                rec.start();
+                            } catch (e) {}
+                        }
+                    }, 250);
+                }
+            };
+
+            return rec;
+        }
+
+        function startMicrophoneListening() {
+            if (!recognition) {
+                recognition = initSpeechRecognition();
+            }
+            if (!recognition) {
+                document.getElementById('voiceStatusSubtext').textContent =
+                    "Cihaz/tarayıcı ses tanımayı desteklemiyor (Chrome veya Edge önerilir). Manuel girişi kullanabilirsiniz.";
+                return;
+            }
+            shouldKeepListening = true;
+            if (!isMicListening) {
+                try {
+                    recognition.start();
+                } catch (e) {}
+            }
+        }
+
+        function stopMicrophoneListening() {
+            shouldKeepListening = false;
+            if (recognition && isMicListening) {
+                try {
+                    recognition.stop();
+                } catch (e) {}
+            }
+            isMicListening = false;
+            updateMicUiState();
+        }
+
+        function toggleMicrophoneListening() {
+            if (isMicListening || shouldKeepListening) {
+                stopMicrophoneListening();
+                document.getElementById('voiceStatusSubtext').textContent = "Mikrofon duraklatıldı. Tekrar başlatmak için mikrofona dokunun.";
+            } else {
+                startMicrophoneListening();
+                document.getElementById('voiceStatusSubtext').textContent = "Mikrofon dinliyor... Lütfen konuşun.";
+            }
+        }
+
+        function updateMicUiState() {
+            const btn = document.getElementById('micToggleBtn');
+            const icon = document.getElementById('micToggleIcon');
+            if (!btn || !icon) return;
+            if (isMicListening) {
+                btn.classList.add('listening');
+                icon.className = 'fa-solid fa-microphone';
+            } else {
+                btn.classList.remove('listening');
+                icon.className = 'fa-solid fa-microphone-slash';
+            }
+        }
+    </script>
+</body>
+</html>
