@@ -2397,104 +2397,153 @@
         // =========================================================
         // TURKISH SPEECH RECOGNITION & NUMBER PARSER
         // =========================================================
+        const TR_NUM_PART_LIST = [
+            'doksan', 'seksen', 'yetmis', 'altmis', 'atmis', 'elli', 'kirk', 'otuz', 'yirmi',
+            'dokuz', 'sekiz', 'yedi', 'alti', 'dort', 'bes', 'iki', 'bir', 'sifir',
+            'bin', 'yuz', 'on', 'uc', 'bucuk', 'yarim'
+        ];
+        const TR_FULL_COMPOUND_RE = new RegExp('^(' + TR_NUM_PART_LIST.join('|') + ')+$');
+        const TR_PART_FIND_RE = new RegExp('(' + TR_NUM_PART_LIST.join('|') + ')', 'g');
+
+        function toAsciiTurkish(raw) {
+            if (!raw) return '';
+            let s = String(raw)
+                .replace(/İ/g, 'i')
+                .replace(/I/g, 'i')
+                .toLocaleLowerCase('tr-TR');
+            if (typeof s.normalize === 'function') {
+                s = s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+            }
+            return s
+                .replace(/ı/g, 'i')
+                .replace(/ğ/g, 'g')
+                .replace(/ü/g, 'u')
+                .replace(/ş/g, 's')
+                .replace(/ö/g, 'o')
+                .replace(/ç/g, 'c')
+                .trim();
+        }
+
         function parseTurkishSpokenNumber(rawText) {
-            if (!rawText) return null;
-            let text = String(rawText).toLocaleLowerCase('tr-TR').trim();
+            const s0 = toAsciiTurkish(rawText);
+            if (!s0) return null;
 
-            if (/\b(sıfır|sifir|boş|bos)\b/.test(text)) {
-                return 0;
-            }
-            if (/\b(yarım|yarim)\b/.test(text) && !/\d/.test(text)) {
-                return 0.5;
+            const decMatch = s0.match(/(\d+)[.,](\d+)/);
+            if (decMatch) {
+                return parseFloat(decMatch[1] + '.' + decMatch[2]);
             }
 
-            const bucukMatch = text.match(/(\d+)\s*(buçuk|bucuk)/);
-            if (bucukMatch) {
-                return parseFloat(bucukMatch[1]) + 0.5;
-            }
+            const s = s0.replace(/(\d+)/g, ' $1 ');
+            const rawTokens = s.split(/[^a-z0-9]+/).filter(Boolean);
 
-            const decimalMatch = text.match(/\d+[.,]\d+/);
-            if (decimalMatch) {
-                return parseFloat(decimalMatch[0].replace(',', '.'));
-            }
-
-            const digitGroups = text.match(/\d+/g);
-            if (digitGroups && digitGroups.length > 0) {
-                if (digitGroups.length > 1 && digitGroups.every(d => d.length === 1)) {
-                    return parseInt(digitGroups.join(''), 10);
+            const tokens = [];
+            for (const rt of rawTokens) {
+                if (!/^\d+$/.test(rt) && TR_FULL_COMPOUND_RE.test(rt)) {
+                    const parts = rt.match(TR_PART_FIND_RE);
+                    if (parts) tokens.push(...parts);
+                    else tokens.push(rt);
+                } else {
+                    tokens.push(rt);
                 }
-                return parseInt(digitGroups[digitGroups.length - 1], 10);
             }
 
             const units = {
-                'sıfır': 0, 'sifir': 0,
-                'bir': 1, 'iki': 2, 'üç': 3, 'uc': 3, 'dört': 4, 'dort': 4,
-                'beş': 5, 'bes': 5, 'altı': 6, 'alti': 6, 'yedi': 7, 'sekiz': 8, 'dokuz': 9
+                'sifir': 0, 'bos': 0, 'yok': 0,
+                'bir': 1, 'biri': 1, 'pir': 1,
+                'iki': 2,
+                'uc': 3, 'uch': 3,
+                'dort': 4, 'dor': 4, 'tort': 4,
+                'bes': 5, 'bess': 5, 'pes': 5, 'bez': 5,
+                'alti': 6, 'alt': 6,
+                'yedi': 7, 'yetti': 7,
+                'sekiz': 8, 'sekis': 8,
+                'dokuz': 9, 'dokus': 9
             };
             const tens = {
-                'on': 10, 'un': 10, 'yirmi': 20, 'otuz': 30, 'kırk': 40, 'kirk': 40,
-                'elli': 50, 'altmış': 60, 'altmis': 60, 'yetmiş': 70, 'yetmis': 70,
-                'seksen': 80, 'doksan': 90
+                'on': 10, 'un': 10, 'oon': 10,
+                'yirmi': 20,
+                'otuz': 30, 'otus': 30,
+                'kirk': 40,
+                'elli': 50, 'eli': 50,
+                'altmis': 60, 'atmis': 60,
+                'yetmis': 70,
+                'seksen': 80,
+                'doksan': 90
             };
 
-            const words = text.replace(/[^a-z0-9çğıöşü\s]/gi, ' ').split(/\s+/).filter(Boolean);
-            let total = 0;
-            let current = 0;
-            let foundAny = false;
-            let hasBucuk = words.includes('buçuk') || words.includes('bucuk');
-
-            for (const w of words) {
-                if (w in units) {
-                    current += units[w];
-                    foundAny = true;
-                } else if (w in tens) {
-                    current += tens[w];
-                    foundAny = true;
-                } else if (w === 'yüz' || w === 'yuz') {
-                    current = (current === 0 ? 1 : current) * 100;
-                    foundAny = true;
-                } else if (w === 'bin') {
-                    total += (current === 0 ? 1 : current) * 1000;
-                    current = 0;
-                    foundAny = true;
+            const items = [];
+            for (const t of tokens) {
+                if (/^\d+$/.test(t)) {
+                    items.push({ kind: 'num', val: parseInt(t, 10), len: t.length, str: t });
+                } else if (t in units) {
+                    items.push({ kind: 'unit', val: units[t], len: 1, str: String(units[t]) });
+                } else if (t in tens) {
+                    items.push({ kind: 'ten', val: tens[t], len: 2, str: String(tens[t]) });
+                } else if (t === 'yuz') {
+                    items.push({ kind: 'hundred', val: 100, len: 3, str: '100' });
+                } else if (t === 'bin') {
+                    items.push({ kind: 'thousand', val: 1000, len: 4, str: '1000' });
+                } else if (t === 'bucuk' || t === 'yarim') {
+                    items.push({ kind: 'half', val: 0.5, len: 0, str: '.5' });
                 }
             }
 
-            total += current;
-            if (!foundAny) return null;
-            if (hasBucuk) total += 0.5;
-            return total;
+            if (items.length === 0) return null;
+            if (items.length === 1 && items[0].kind === 'half') return 0.5;
+
+            // Digit-by-digit spoken numbers: e.g. "bir iki bes" -> 125, "dort sifir bes" -> 405
+            if (items.length >= 2 && items.every(it => (it.kind === 'unit' || it.kind === 'num') && it.len === 1)) {
+                return parseInt(items.map(it => it.str).join(''), 10);
+            }
+
+            let total = 0;
+            let current = 0;
+            let hasHalf = false;
+
+            for (const it of items) {
+                if (it.kind === 'half') {
+                    hasHalf = true;
+                } else if (it.kind === 'unit' || it.kind === 'num') {
+                    if (current >= 100 || [10, 20, 30, 40, 50, 60, 70, 80, 90].includes(current) || current === 0) {
+                        current += it.val;
+                    } else {
+                        current = parseInt(String(current) + String(it.val), 10);
+                    }
+                } else if (it.kind === 'ten') {
+                    current += it.val;
+                } else if (it.kind === 'hundred') {
+                    current = (current === 0 ? 1 : current) * 100;
+                } else if (it.kind === 'thousand') {
+                    total += (current === 0 ? 1 : current) * 1000;
+                    current = 0;
+                }
+            }
+
+            return total + current + (hasHalf ? 0.5 : 0);
         }
 
-        function processRecognizedAlternatives(alternativesList, isFinal, signatureKey) {
+        let processedResultIndices = new Set();
+        let processedResultValues = {};
+
+        function processRecognizedAlternatives(alternativesList, isFinal, resultIdx) {
             if (!alternativesList || alternativesList.length === 0) return false;
             if (Date.now() < ignoreSpeechUntil) return false;
 
             const primaryText = String(alternativesList[0] || '').trim();
             if (!primaryText) return false;
 
-            // Show live feedback bubble so user sees microphone is picking up voice
-            const bubbleWrap = document.getElementById('recognizedTranscriptWrap');
-            const bubbleText = document.getElementById('recognizedTranscriptText');
-            bubbleWrap.style.display = 'block';
-            bubbleText.innerHTML = `<i class="fa-solid fa-microphone-lines" style="color:${isFinal ? '#10b981' : '#6366f1'};"></i> ${isFinal ? 'Algılanan' : 'Dinleniyor'}: "${escapeHtml(primaryText)}"`;
-
-            if (signatureKey && signatureKey === lastHandledUtteranceSignature) {
-                return true;
-            }
-
             // 1. Check voice navigation commands across alternatives during question step
             if (voiceStep === "question") {
                 for (const alt of alternativesList) {
-                    const lower = String(alt || '').toLocaleLowerCase('tr-TR').trim();
-                    if (/\b(onayla|tamam|geç|gec|sonraki|devam)\b/.test(lower) && parseTurkishSpokenNumber(lower) === null) {
-                        lastHandledUtteranceSignature = signatureKey || lower;
+                    const asciiAlt = toAsciiTurkish(alt);
+                    if (/\b(onayla|tamam|gec|sonraki|devam)\b/.test(asciiAlt) && parseTurkishSpokenNumber(alt) === null) {
+                        processedResultIndices.add(resultIdx);
                         clearInterimDebounce();
                         confirmAndAdvanceQuestion();
                         return true;
                     }
-                    if (/\b(önceki|onceki|geri)\b/.test(lower) && parseTurkishSpokenNumber(lower) === null) {
-                        lastHandledUtteranceSignature = signatureKey || lower;
+                    if (/\b(onceki|geri)\b/.test(asciiAlt) && parseTurkishSpokenNumber(alt) === null) {
+                        processedResultIndices.add(resultIdx);
                         clearInterimDebounce();
                         goToPrevQuestion();
                         return true;
@@ -2504,19 +2553,33 @@
 
             // 2. Check all alternatives for a valid spoken number
             let detectedNumber = null;
+            let matchedAltText = primaryText;
             for (const alt of alternativesList) {
                 const parsed = parseTurkishSpokenNumber(alt);
                 if (parsed !== null && !isNaN(parsed)) {
                     detectedNumber = parsed;
+                    matchedAltText = String(alt).trim();
                     break;
                 }
             }
 
+            const bubbleWrap = document.getElementById('recognizedTranscriptWrap');
+            const bubbleText = document.getElementById('recognizedTranscriptText');
+            bubbleWrap.style.display = 'block';
+
             if (detectedNumber === null) {
+                bubbleText.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> Duyulan: "${escapeHtml(primaryText)}" <small style="color:#64748b;">(Sayı algılanamadı, sadece sayıyı söyleyin)</small>`;
                 return false;
             }
 
-            lastHandledUtteranceSignature = signatureKey || String(detectedNumber);
+            bubbleText.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Duyulan: "${escapeHtml(matchedAltText)}" &rarr; <b>Sayı: ${detectedNumber}</b>`;
+
+            if (processedResultIndices.has(resultIdx) && processedResultValues[resultIdx] === detectedNumber) {
+                return true;
+            }
+
+            processedResultIndices.add(resultIdx);
+            processedResultValues[resultIdx] = detectedNumber;
             clearInterimDebounce();
 
             if (voiceStep === "student_no") {
@@ -2527,71 +2590,80 @@
             return true;
         }
 
-        function createAndStartRecognition() {
+        function ensureRecognitionInstance() {
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRec) {
                 document.getElementById('voiceStatusSubtext').innerHTML =
-                    `<span style="color:#ef4444; font-weight:700;">Tarayıcınız ses tanımayı desteklemiyor (Chrome veya Edge kullanın).</span>`;
-                return;
+                    `<span style="color:#ef4444; font-weight:700;">Tarayıcınız ses tanımayı desteklemiyor (Lütfen Chrome veya Edge kullanın).</span>`;
+                return null;
             }
 
             if (recognition) {
-                try {
-                    recognition.onend = null;
-                    recognition.onresult = null;
-                    recognition.onerror = null;
-                    recognition.abort();
-                } catch (e) {}
-                recognition = null;
+                return recognition;
             }
 
             const rec = new SpeechRec();
             recognition = rec;
-            const currentSessionId = ++sessionCounter;
 
             rec.lang = 'tr-TR';
-            // Single utterance mode + auto-restart on end is much faster and more accurate for short numbers on Chrome/Android
-            rec.continuous = false;
+            rec.continuous = true;
             rec.interimResults = true;
             rec.maxAlternatives = 5;
 
             rec.onstart = () => {
                 isMicListening = true;
+                processedResultIndices = new Set();
+                processedResultValues = {};
                 updateMicUiState();
+                document.getElementById('voiceStatusSubtext').innerHTML =
+                    `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon aktif, sizi dinliyor...</span> Lütfen sayıyı söyleyin.`;
+            };
+
+            rec.onspeechstart = () => {
+                document.getElementById('voiceStatusSubtext').innerHTML =
+                    `<span style="color:#4f46e5; font-weight:700;"><i class="fa-solid fa-wave-square"></i> Ses algılanıyor...</span>`;
             };
 
             rec.onresult = (event) => {
-                if (Date.now() < ignoreSpeechUntil) return;
-
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const res = event.results[i];
-                    const alts = [];
-                    for (let j = 0; j < res.length; j++) {
-                        if (res[j] && res[j].transcript) {
-                            alts.push(res[j].transcript);
-                        }
+                if (Date.now() < ignoreSpeechUntil) {
+                    for (let k = 0; k < event.results.length; k++) {
+                        processedResultIndices.add(k);
                     }
-                    if (alts.length === 0) continue;
+                    return;
+                }
 
-                    const sig = `${currentSessionId}_${i}_${voiceStep}_${currentQuestionIndex}`;
+                const latestIdx = event.results.length - 1;
+                if (latestIdx < 0) return;
 
-                    if (res.isFinal) {
-                        clearInterimDebounce();
-                        processRecognizedAlternatives(alts, true, sig);
-                    } else {
-                        const bubbleWrap = document.getElementById('recognizedTranscriptWrap');
-                        const bubbleText = document.getElementById('recognizedTranscriptText');
-                        bubbleWrap.style.display = 'block';
-                        bubbleText.innerHTML = `<i class="fa-solid fa-wave-square" style="color:#6366f1;"></i> Duyulan: "${escapeHtml(alts[0].trim())}"`;
-
-                        // Debounced interim fallback: if browser holds short number as interim for >600ms without finalizing, process it!
-                        clearInterimDebounce();
-                        pendingInterimText = alts[0];
-                        const capturedAlts = [...alts];
-                        interimDebounceTimer = setTimeout(() => {
-                            processRecognizedAlternatives(capturedAlts, true, sig);
-                        }, 600);
+                const res = event.results[latestIdx];
+                const alts = [];
+                for (let j = 0; j < res.length; j++) {
+                    if (res[j] && res[j].transcript) {
+                        alts.push(res[j].transcript);
                     }
+                }
+                if (alts.length === 0) return;
+
+                if (res.isFinal) {
+                    clearInterimDebounce();
+                    processRecognizedAlternatives(alts, true, latestIdx);
+                } else {
+                    if (processedResultIndices.has(latestIdx)) return;
+
+                    const previewNum = parseTurkishSpokenNumber(alts[0]);
+                    const bubbleWrap = document.getElementById('recognizedTranscriptWrap');
+                    const bubbleText = document.getElementById('recognizedTranscriptText');
+                    bubbleWrap.style.display = 'block';
+                    bubbleText.innerHTML = `<i class="fa-solid fa-wave-square" style="color:#6366f1;"></i> Dinleniyor: "${escapeHtml(alts[0].trim())}"` +
+                        (previewNum !== null ? ` &rarr; <b>${previewNum}</b>` : '');
+
+                    clearInterimDebounce();
+                    pendingInterimText = alts[0];
+                    const capturedAlts = [...alts];
+                    const capturedIdx = latestIdx;
+                    interimDebounceTimer = setTimeout(() => {
+                        processRecognizedAlternatives(capturedAlts, false, capturedIdx);
+                    }, 750);
                 }
             };
 
@@ -2601,47 +2673,46 @@
                     isMicListening = false;
                     updateMicUiState();
                     document.getElementById('voiceStatusSubtext').innerHTML =
-                        `<span style="color:#ef4444; font-weight:700;">Mikrofon izni reddedildi!</span> Tarayıcı adres çubuğundaki kilit/mikrofon simgesinden mikrofon izni verin.`;
+                        `<span style="color:#ef4444; font-weight:700;">Mikrofon izni reddedildi!</span> Tarayıcı adres çubuğundaki kilit/mikrofon simgesinden izin verin.`;
                 } else if (event.error === 'audio-capture') {
                     shouldKeepListening = false;
                     isMicListening = false;
                     updateMicUiState();
                     document.getElementById('voiceStatusSubtext').innerHTML =
-                        `<span style="color:#ef4444; font-weight:700;">Mikrofon bulunamadı veya başka bir uygulama tarafından kullanılıyor.</span>`;
+                        `<span style="color:#ef4444; font-weight:700;">Mikrofon bulunamadı!</span> Cihazınızın mikrofon bağlantısını kontrol edin.`;
+                } else if (event.error === 'network') {
+                    document.getElementById('voiceStatusSubtext').innerHTML =
+                        `<span style="color:#f59e0b; font-weight:700;">Tarayıcı ses sunucusu bağlantı hatası (network).</span> Chrome veya Edge tarayıcısı kullandığınızdan emin olun.`;
                 }
             };
 
             rec.onend = () => {
-                if (pendingInterimText && interimDebounceTimer) {
-                    const textToRun = pendingInterimText;
-                    const sig = `${currentSessionId}_end_${voiceStep}_${currentQuestionIndex}`;
-                    clearInterimDebounce();
-                    processRecognizedAlternatives([textToRun], true, sig);
-                }
-
                 isMicListening = false;
                 updateMicUiState();
 
-                // Automatically restart listening if modal is still open (waits indefinitely on silence without skipping questions)
                 if (shouldKeepListening && document.getElementById('voiceGradingModal').classList.contains('active')) {
                     setTimeout(() => {
-                        if (shouldKeepListening && document.getElementById('voiceGradingModal').classList.contains('active')) {
-                            createAndStartRecognition();
+                        if (shouldKeepListening && !isMicListening && recognition) {
+                            try {
+                                recognition.start();
+                            } catch (e) {}
                         }
-                    }, 120);
+                    }, 150);
                 }
             };
 
-            try {
-                rec.start();
-            } catch (e) {
-                console.warn("SpeechRecognition start error:", e);
-            }
+            return rec;
         }
 
         function startMicrophoneListening() {
             shouldKeepListening = true;
-            createAndStartRecognition();
+            const rec = ensureRecognitionInstance();
+            if (!rec) return;
+            if (!isMicListening) {
+                try {
+                    rec.start();
+                } catch (e) {}
+            }
         }
 
         function stopMicrophoneListening() {
@@ -2649,23 +2720,19 @@
             clearInterimDebounce();
             if (recognition) {
                 try {
-                    recognition.onend = null;
-                    recognition.abort();
+                    recognition.stop();
                 } catch (e) {}
-                recognition = null;
             }
             isMicListening = false;
             updateMicUiState();
         }
 
         function toggleMicrophoneListening() {
-            if (isMicListening || shouldKeepListening) {
+            if (isMicListening) {
                 stopMicrophoneListening();
                 document.getElementById('voiceStatusSubtext').textContent = "Mikrofon duraklatıldı. Tekrar başlatmak için mikrofona dokunun.";
             } else {
                 startMicrophoneListening();
-                document.getElementById('voiceStatusSubtext').innerHTML =
-                    `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon dinliyor...</span> Lütfen konuşun.`;
             }
         }
 
@@ -2673,7 +2740,7 @@
             const btn = document.getElementById('micToggleBtn');
             const icon = document.getElementById('micToggleIcon');
             if (!btn || !icon) return;
-            if (isMicListening || shouldKeepListening) {
+            if (isMicListening) {
                 btn.classList.add('listening');
                 icon.className = 'fa-solid fa-microphone';
             } else {
