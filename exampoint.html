@@ -1360,11 +1360,13 @@
         let recognition = null;
         let isMicListening = false;
         let shouldKeepListening = false;
-        let interimDebounceTimer = null;
-        let pendingInterimText = "";
-        let lastHandledUtteranceSignature = "";
-        let ignoreSpeechUntil = 0;
-        let sessionCounter = 0;
+        let restartTimeoutId = null;
+        let settleTimerId = null;
+        let activeSegmentIndex = -1;
+        let consumedPrefixText = "";
+        let consumedWordCount = 0;
+        let lastInterimText = "";
+        let hasUnprocessedSpeechInSegment = false;
 
         function escapeHtml(str) {
             return String(str || '')
@@ -2066,12 +2068,11 @@
             } catch (e) {}
         }
 
-        function clearInterimDebounce() {
-            if (interimDebounceTimer) {
-                clearTimeout(interimDebounceTimer);
-                interimDebounceTimer = null;
+        function clearSettleTimer() {
+            if (settleTimerId) {
+                clearTimeout(settleTimerId);
+                settleTimerId = null;
             }
-            pendingInterimText = "";
         }
 
         function startVoiceGradingForExam(examId) {
@@ -2101,7 +2102,7 @@
 
         function closeVoiceGradingModal() {
             cancelAutoAdvanceTimer();
-            clearInterimDebounce();
+            clearSettleTimer();
             stopMicrophoneListening();
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
@@ -2112,9 +2113,7 @@
 
         function resetToStudentStep() {
             cancelAutoAdvanceTimer();
-            clearInterimDebounce();
-            ignoreSpeechUntil = Date.now() + 300;
-            lastHandledUtteranceSignature = "";
+            clearSettleTimer();
 
             voiceStep = "student_no";
             currentStudentObj = null;
@@ -2130,8 +2129,10 @@
 
             const promptText = "Notu girilecek öğrenci numarasını söyleyin";
             document.getElementById('voicePromptHeadline').textContent = promptText;
-            document.getElementById('voiceStatusSubtext').innerHTML =
-                `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon dinliyor...</span> Lütfen öğrenci numarasını söyleyin.`;
+            if (isMicListening || shouldKeepListening) {
+                document.getElementById('voiceStatusSubtext').innerHTML =
+                    `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon dinliyor...</span> Lütfen öğrenci numarasını söyleyin.`;
+            }
 
             speakTurkishPrompt(promptText);
         }
@@ -2146,12 +2147,10 @@
             const classStudents = getStudentsForExamClass(exam.className);
             let matchedStudent = classStudents.find(s => String(s.no).trim() === cleanNo);
 
-            // Fallback 1: look across all school students if not found in class filter
             if (!matchedStudent) {
                 matchedStudent = allStudents.find(s => s && String(s.no).trim() === cleanNo);
             }
 
-            // Fallback 2: if student is not in uploaded list yet, still allow grading by creating a student entry for this number
             if (!matchedStudent) {
                 matchedStudent = {
                     no: cleanNo,
@@ -2193,9 +2192,7 @@
 
         function goToQuestion(qIndex) {
             cancelAutoAdvanceTimer();
-            clearInterimDebounce();
-            ignoreSpeechUntil = Date.now() + 350;
-            lastHandledUtteranceSignature = "";
+            clearSettleTimer();
 
             const exam = examPointList.find(e => e.id === currentVoiceExamId);
             if (!exam || !currentStudentObj) return;
@@ -2214,8 +2211,10 @@
                 : `${qIndex}. sorudan aldığı puanı söyleyin`;
 
             document.getElementById('voicePromptHeadline').textContent = promptText;
-            document.getElementById('voiceStatusSubtext').innerHTML =
-                `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon dinliyor...</span> Puanı söyleyin (Bir şey söylemezseniz sistem bekler).`;
+            if (isMicListening || shouldKeepListening) {
+                document.getElementById('voiceStatusSubtext').innerHTML =
+                    `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon dinliyor...</span> Puanı söyleyin (Bir şey söylemezseniz sistem bekler).`;
+            }
 
             const stRec = exam.scores[currentStudentObj.no] || { questions: {} };
             const existingScore = stRec.questions ? stRec.questions[String(qIndex)] : undefined;
@@ -2449,26 +2448,26 @@
 
             const units = {
                 'sifir': 0, 'bos': 0, 'yok': 0,
-                'bir': 1, 'biri': 1, 'pir': 1,
-                'iki': 2,
-                'uc': 3, 'uch': 3,
+                'bir': 1, 'biri': 1, 'pir': 1, 'dil': 1,
+                'iki': 2, 'eki': 2,
+                'uc': 3, 'uch': 3, 'hic': 3, 'ic': 3,
                 'dort': 4, 'dor': 4, 'tort': 4,
-                'bes': 5, 'bess': 5, 'pes': 5, 'bez': 5,
-                'alti': 6, 'alt': 6,
-                'yedi': 7, 'yetti': 7,
+                'bes': 5, 'bess': 5, 'pes': 5, 'bez': 5, 'bas': 5,
+                'alti': 6, 'alt': 6, 'aldi': 6,
+                'yedi': 7, 'yetti': 7, 'yede': 7,
                 'sekiz': 8, 'sekis': 8,
                 'dokuz': 9, 'dokus': 9
             };
             const tens = {
-                'on': 10, 'un': 10, 'oon': 10,
-                'yirmi': 20,
+                'on': 10, 'un': 10, 'oon': 10, 'an': 10,
+                'yirmi': 20, 'yemi': 20,
                 'otuz': 30, 'otus': 30,
-                'kirk': 40,
+                'kirk': 40, 'kir': 40,
                 'elli': 50, 'eli': 50,
                 'altmis': 60, 'atmis': 60,
                 'yetmis': 70,
-                'seksen': 80,
-                'doksan': 90
+                'seksen': 80, 'sekzen': 80,
+                'doksan': 90, 'dokzan': 90
             };
 
             const items = [];
@@ -2479,7 +2478,7 @@
                     items.push({ kind: 'unit', val: units[t], len: 1, str: String(units[t]) });
                 } else if (t in tens) {
                     items.push({ kind: 'ten', val: tens[t], len: 2, str: String(tens[t]) });
-                } else if (t === 'yuz') {
+                } else if (t === 'yuz' || t === 'yus') {
                     items.push({ kind: 'hundred', val: 100, len: 3, str: '100' });
                 } else if (t === 'bin') {
                     items.push({ kind: 'thousand', val: 1000, len: 4, str: '1000' });
@@ -2491,7 +2490,6 @@
             if (items.length === 0) return null;
             if (items.length === 1 && items[0].kind === 'half') return 0.5;
 
-            // Digit-by-digit spoken numbers: e.g. "bir iki bes" -> 125, "dort sifir bes" -> 405
             if (items.length >= 2 && items.every(it => (it.kind === 'unit' || it.kind === 'num') && it.len === 1)) {
                 return parseInt(items.map(it => it.str).join(''), 10);
             }
@@ -2504,7 +2502,7 @@
                 if (it.kind === 'half') {
                     hasHalf = true;
                 } else if (it.kind === 'unit' || it.kind === 'num') {
-                    if (current >= 100 || [10, 20, 30, 40, 50, 60, 70, 80, 90].includes(current) || current === 0) {
+                    if (current >= 100 || [10, 20, 30, 40, 50, 60, 70, 80, 90].includes(current) || current == 0) {
                         current += it.val;
                     } else {
                         current = parseInt(String(current) + String(it.val), 10);
@@ -2522,39 +2520,62 @@
             return total + current + (hasHalf ? 0.5 : 0);
         }
 
-        let processedResultIndices = new Set();
-        let processedResultValues = {};
+        function extractUnconsumedText(rawSegmentText) {
+            const full = String(rawSegmentText || '').trim();
+            if (!full) return '';
+            if (!consumedPrefixText) return full;
 
-        function processRecognizedAlternatives(alternativesList, isFinal, resultIdx) {
-            if (!alternativesList || alternativesList.length === 0) return false;
-            if (Date.now() < ignoreSpeechUntil) return false;
+            if (full.toLowerCase() === consumedPrefixText.toLowerCase()) {
+                return '';
+            }
+            if (full.toLowerCase().startsWith(consumedPrefixText.toLowerCase())) {
+                return full.slice(consumedPrefixText.length).trim();
+            }
 
-            const primaryText = String(alternativesList[0] || '').trim();
+            // Fallback if browser slightly reformatted earlier words in the same segment
+            const words = full.split(/\s+/).filter(Boolean);
+            if (consumedWordCount > 0 && words.length > consumedWordCount) {
+                return words.slice(consumedWordCount).join(' ');
+            }
+            return full;
+        }
+
+        function markSegmentConsumed(rawSegmentText) {
+            const full = String(rawSegmentText || '').trim();
+            consumedPrefixText = full;
+            consumedWordCount = full ? full.split(/\s+/).filter(Boolean).length : 0;
+            lastInterimText = "";
+            hasUnprocessedSpeechInSegment = false;
+        }
+
+        function evaluateUnconsumedAlternatives(unconsumedAlts, rawPrimarySegment) {
+            if (!unconsumedAlts || unconsumedAlts.length === 0) return false;
+            const primaryText = String(unconsumedAlts[0] || '').trim();
             if (!primaryText) return false;
 
-            // 1. Check voice navigation commands across alternatives during question step
+            // 1. Voice navigation commands in question step
             if (voiceStep === "question") {
-                for (const alt of alternativesList) {
+                for (const alt of unconsumedAlts) {
                     const asciiAlt = toAsciiTurkish(alt);
                     if (/\b(onayla|tamam|gec|sonraki|devam)\b/.test(asciiAlt) && parseTurkishSpokenNumber(alt) === null) {
-                        processedResultIndices.add(resultIdx);
-                        clearInterimDebounce();
+                        markSegmentConsumed(rawPrimarySegment);
+                        clearSettleTimer();
                         confirmAndAdvanceQuestion();
                         return true;
                     }
                     if (/\b(onceki|geri)\b/.test(asciiAlt) && parseTurkishSpokenNumber(alt) === null) {
-                        processedResultIndices.add(resultIdx);
-                        clearInterimDebounce();
+                        markSegmentConsumed(rawPrimarySegment);
+                        clearSettleTimer();
                         goToPrevQuestion();
                         return true;
                     }
                 }
             }
 
-            // 2. Check all alternatives for a valid spoken number
+            // 2. Number detection across alternatives
             let detectedNumber = null;
             let matchedAltText = primaryText;
-            for (const alt of alternativesList) {
+            for (const alt of unconsumedAlts) {
                 const parsed = parseTurkishSpokenNumber(alt);
                 if (parsed !== null && !isNaN(parsed)) {
                     detectedNumber = parsed;
@@ -2569,18 +2590,13 @@
 
             if (detectedNumber === null) {
                 bubbleText.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> Duyulan: "${escapeHtml(primaryText)}" <small style="color:#64748b;">(Sayı algılanamadı, sadece sayıyı söyleyin)</small>`;
+                markSegmentConsumed(rawPrimarySegment);
                 return false;
             }
 
-            bubbleText.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Duyulan: "${escapeHtml(matchedAltText)}" &rarr; <b>Sayı: ${detectedNumber}</b>`;
-
-            if (processedResultIndices.has(resultIdx) && processedResultValues[resultIdx] === detectedNumber) {
-                return true;
-            }
-
-            processedResultIndices.add(resultIdx);
-            processedResultValues[resultIdx] = detectedNumber;
-            clearInterimDebounce();
+            bubbleText.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Algılanan: "${escapeHtml(matchedAltText)}" &rarr; <b>Sayı: ${detectedNumber}</b>`;
+            markSegmentConsumed(rawPrimarySegment);
+            clearSettleTimer();
 
             if (voiceStep === "student_no") {
                 findAndSelectStudentByNo(Math.round(detectedNumber));
@@ -2590,148 +2606,195 @@
             return true;
         }
 
-        function ensureRecognitionInstance() {
+        function destroyCurrentRecognition() {
+            if (restartTimeoutId) {
+                clearTimeout(restartTimeoutId);
+                restartTimeoutId = null;
+            }
+            clearSettleTimer();
+            let hadActiveRec = false;
+            if (recognition) {
+                hadActiveRec = true;
+                const oldRec = recognition;
+                recognition = null;
+                try {
+                    oldRec.onstart = null;
+                    oldRec.onresult = null;
+                    oldRec.onerror = null;
+                    oldRec.onend = null;
+                    oldRec.onspeechstart = null;
+                    oldRec.onaudiostart = null;
+                    oldRec.abort();
+                } catch (e) {}
+            }
+            return hadActiveRec;
+        }
+
+        function startMicrophoneListening() {
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRec) {
                 document.getElementById('voiceStatusSubtext').innerHTML =
                     `<span style="color:#ef4444; font-weight:700;">Tarayıcınız ses tanımayı desteklemiyor (Lütfen Chrome veya Edge kullanın).</span>`;
-                return null;
+                return;
             }
 
-            if (recognition) {
-                return recognition;
-            }
+            shouldKeepListening = true;
+            const hadPrev = destroyCurrentRecognition();
 
-            const rec = new SpeechRec();
-            recognition = rec;
+            const launchNewRec = () => {
+                if (!shouldKeepListening) return;
+                const rec = new SpeechRec();
+                recognition = rec;
+                activeSegmentIndex = -1;
+                consumedPrefixText = "";
+                consumedWordCount = 0;
+                lastInterimText = "";
+                hasUnprocessedSpeechInSegment = false;
 
-            rec.lang = 'tr-TR';
-            rec.continuous = true;
-            rec.interimResults = true;
-            rec.maxAlternatives = 5;
+                rec.lang = 'tr-TR';
+                rec.continuous = true;
+                rec.interimResults = true;
+                rec.maxAlternatives = 5;
 
-            rec.onstart = () => {
-                isMicListening = true;
-                processedResultIndices = new Set();
-                processedResultValues = {};
-                updateMicUiState();
-                document.getElementById('voiceStatusSubtext').innerHTML =
-                    `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon aktif, sizi dinliyor...</span> Lütfen sayıyı söyleyin.`;
-            };
+                rec.onstart = () => {
+                    isMicListening = true;
+                    activeSegmentIndex = -1;
+                    consumedPrefixText = "";
+                    consumedWordCount = 0;
+                    lastInterimText = "";
+                    hasUnprocessedSpeechInSegment = false;
+                    updateMicUiState();
+                    document.getElementById('voiceStatusSubtext').innerHTML =
+                        `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon aktif, sizi dinliyor...</span> Lütfen sayıyı söyleyin.`;
+                };
 
-            rec.onspeechstart = () => {
-                document.getElementById('voiceStatusSubtext').innerHTML =
-                    `<span style="color:#4f46e5; font-weight:700;"><i class="fa-solid fa-wave-square"></i> Ses algılanıyor...</span>`;
-            };
+                rec.onspeechstart = () => {
+                    document.getElementById('voiceStatusSubtext').innerHTML =
+                        `<span style="color:#4f46e5; font-weight:700;"><i class="fa-solid fa-wave-square"></i> Ses algılanıyor...</span>`;
+                };
 
-            rec.onresult = (event) => {
-                if (Date.now() < ignoreSpeechUntil) {
-                    for (let k = 0; k < event.results.length; k++) {
-                        processedResultIndices.add(k);
+                rec.onresult = (event) => {
+                    const latestIdx = event.results.length - 1;
+                    if (latestIdx < 0) return;
+
+                    if (latestIdx !== activeSegmentIndex) {
+                        activeSegmentIndex = latestIdx;
+                        consumedPrefixText = "";
+                        consumedWordCount = 0;
+                        lastInterimText = "";
+                        hasUnprocessedSpeechInSegment = false;
                     }
-                    return;
-                }
 
-                const latestIdx = event.results.length - 1;
-                if (latestIdx < 0) return;
+                    const res = event.results[latestIdx];
+                    const rawPrimary = (res[0] && res[0].transcript) ? String(res[0].transcript).trim() : '';
+                    if (!rawPrimary) return;
 
-                const res = event.results[latestIdx];
-                const alts = [];
-                for (let j = 0; j < res.length; j++) {
-                    if (res[j] && res[j].transcript) {
-                        alts.push(res[j].transcript);
+                    if (res.isFinal && consumedPrefixText !== "" && !hasUnprocessedSpeechInSegment) {
+                        markSegmentConsumed(rawPrimary);
+                        return;
                     }
-                }
-                if (alts.length === 0) return;
 
-                if (res.isFinal) {
-                    clearInterimDebounce();
-                    processRecognizedAlternatives(alts, true, latestIdx);
-                } else {
-                    if (processedResultIndices.has(latestIdx)) return;
+                    const unconsumedPrimary = extractUnconsumedText(rawPrimary);
+                    if (!unconsumedPrimary) return;
 
-                    const previewNum = parseTurkishSpokenNumber(alts[0]);
+                    const unconsumedAlts = [unconsumedPrimary];
+                    for (let j = 1; j < res.length; j++) {
+                        if (res[j] && res[j].transcript) {
+                            const uAlt = extractUnconsumedText(res[j].transcript);
+                            if (uAlt) unconsumedAlts.push(uAlt);
+                        }
+                    }
+
+                    if (res.isFinal) {
+                        clearSettleTimer();
+                        evaluateUnconsumedAlternatives(unconsumedAlts, rawPrimary);
+                        return;
+                    }
+
+                    hasUnprocessedSpeechInSegment = true;
+                    const previewNum = parseTurkishSpokenNumber(unconsumedPrimary);
                     const bubbleWrap = document.getElementById('recognizedTranscriptWrap');
                     const bubbleText = document.getElementById('recognizedTranscriptText');
                     bubbleWrap.style.display = 'block';
-                    bubbleText.innerHTML = `<i class="fa-solid fa-wave-square" style="color:#6366f1;"></i> Dinleniyor: "${escapeHtml(alts[0].trim())}"` +
+                    bubbleText.innerHTML = `<i class="fa-solid fa-wave-square" style="color:#6366f1;"></i> Duyulan: "${escapeHtml(unconsumedPrimary)}"` +
                         (previewNum !== null ? ` &rarr; <b>${previewNum}</b>` : '');
 
-                    clearInterimDebounce();
-                    pendingInterimText = alts[0];
-                    const capturedAlts = [...alts];
-                    const capturedIdx = latestIdx;
-                    interimDebounceTimer = setTimeout(() => {
-                        processRecognizedAlternatives(capturedAlts, false, capturedIdx);
-                    }, 750);
-                }
-            };
+                    if (unconsumedPrimary.toLowerCase() !== lastInterimText.toLowerCase() || !settleTimerId) {
+                        lastInterimText = unconsumedPrimary;
+                        clearSettleTimer();
+                        const capturedAlts = [...unconsumedAlts];
+                        const capturedRawPrimary = rawPrimary;
+                        settleTimerId = setTimeout(() => {
+                            evaluateUnconsumedAlternatives(capturedAlts, capturedRawPrimary);
+                        }, 650);
+                    }
+                };
 
-            rec.onerror = (event) => {
-                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                    shouldKeepListening = false;
+                rec.onerror = (event) => {
+                    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                        shouldKeepListening = false;
+                        isMicListening = false;
+                        updateMicUiState();
+                        document.getElementById('voiceStatusSubtext').innerHTML =
+                            `<span style="color:#ef4444; font-weight:700;">Mikrofon izni reddedildi!</span> Tarayıcı adres çubuğundaki kilit/mikrofon simgesinden izin verin.`;
+                    } else if (event.error === 'audio-capture') {
+                        shouldKeepListening = false;
+                        isMicListening = false;
+                        updateMicUiState();
+                        document.getElementById('voiceStatusSubtext').innerHTML =
+                            `<span style="color:#ef4444; font-weight:700;">Mikrofon bulunamadı!</span> Cihazınızın mikrofon bağlantısını kontrol edin.`;
+                    } else if (event.error === 'network') {
+                        document.getElementById('voiceStatusSubtext').innerHTML =
+                            `<span style="color:#f59e0b; font-weight:700;">Tarayıcı ses sunucusu bağlantı hatası (network).</span> Chrome veya Edge tarayıcısı kullandığınızdan emin olun.`;
+                    }
+                };
+
+                rec.onend = () => {
                     isMicListening = false;
                     updateMicUiState();
-                    document.getElementById('voiceStatusSubtext').innerHTML =
-                        `<span style="color:#ef4444; font-weight:700;">Mikrofon izni reddedildi!</span> Tarayıcı adres çubuğundaki kilit/mikrofon simgesinden izin verin.`;
-                } else if (event.error === 'audio-capture') {
-                    shouldKeepListening = false;
-                    isMicListening = false;
-                    updateMicUiState();
-                    document.getElementById('voiceStatusSubtext').innerHTML =
-                        `<span style="color:#ef4444; font-weight:700;">Mikrofon bulunamadı!</span> Cihazınızın mikrofon bağlantısını kontrol edin.`;
-                } else if (event.error === 'network') {
-                    document.getElementById('voiceStatusSubtext').innerHTML =
-                        `<span style="color:#f59e0b; font-weight:700;">Tarayıcı ses sunucusu bağlantı hatası (network).</span> Chrome veya Edge tarayıcısı kullandığınızdan emin olun.`;
-                }
-            };
 
-            rec.onend = () => {
-                isMicListening = false;
-                updateMicUiState();
+                    if (shouldKeepListening && document.getElementById('voiceGradingModal').classList.contains('active')) {
+                        restartTimeoutId = setTimeout(() => {
+                            if (shouldKeepListening && document.getElementById('voiceGradingModal').classList.contains('active')) {
+                                startMicrophoneListening();
+                            }
+                        }, 150);
+                    }
+                };
 
-                if (shouldKeepListening && document.getElementById('voiceGradingModal').classList.contains('active')) {
-                    setTimeout(() => {
-                        if (shouldKeepListening && !isMicListening && recognition) {
-                            try {
-                                recognition.start();
-                            } catch (e) {}
-                        }
-                    }, 150);
-                }
-            };
-
-            return rec;
-        }
-
-        function startMicrophoneListening() {
-            shouldKeepListening = true;
-            const rec = ensureRecognitionInstance();
-            if (!rec) return;
-            if (!isMicListening) {
                 try {
+                    isMicListening = true;
+                    updateMicUiState();
                     rec.start();
-                } catch (e) {}
+                } catch (e) {
+                    isMicListening = false;
+                    updateMicUiState();
+                    console.warn("SpeechRecognition start error:", e);
+                }
+            };
+
+            if (hadPrev) {
+                restartTimeoutId = setTimeout(launchNewRec, 60);
+            } else {
+                launchNewRec();
             }
         }
 
         function stopMicrophoneListening() {
             shouldKeepListening = false;
-            clearInterimDebounce();
-            if (recognition) {
-                try {
-                    recognition.stop();
-                } catch (e) {}
-            }
             isMicListening = false;
+            destroyCurrentRecognition();
             updateMicUiState();
         }
 
         function toggleMicrophoneListening() {
-            if (isMicListening) {
+            if (isMicListening || shouldKeepListening) {
                 stopMicrophoneListening();
-                document.getElementById('voiceStatusSubtext').textContent = "Mikrofon duraklatıldı. Tekrar başlatmak için mikrofona dokunun.";
+                document.getElementById('voiceStatusSubtext').innerHTML =
+                    `<span style="color:#ef4444; font-weight:700;"><i class="fa-solid fa-microphone-slash"></i> Mikrofon duraklatıldı.</span> Tekrar başlatmak için kırmızı mikrofon düğmesine dokunun.`;
             } else {
+                document.getElementById('voiceStatusSubtext').innerHTML =
+                    `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-spinner fa-spin"></i> Mikrofon başlatılıyor...</span>`;
                 startMicrophoneListening();
             }
         }
@@ -2740,7 +2803,7 @@
             const btn = document.getElementById('micToggleBtn');
             const icon = document.getElementById('micToggleIcon');
             if (!btn || !icon) return;
-            if (isMicListening) {
+            if (isMicListening || shouldKeepListening) {
                 btn.classList.add('listening');
                 icon.className = 'fa-solid fa-microphone';
             } else {
