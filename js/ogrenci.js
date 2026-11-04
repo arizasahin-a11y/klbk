@@ -2816,10 +2816,17 @@ DataManager._getStorageKey = function () {
                 resultsView.style.display = 'block';
                 resultsView.classList.remove('hidden');
             } else {
-                if (resultsView) resultsView.classList.add('hidden');
-                const loginView = document.getElementById('loginView');
-                if (loginView) loginView.classList.remove('hidden');
-                document.body.classList.add('login-body');
+                const savedNo = localStorage.getItem('klbk_student_session');
+                if (savedNo && !savedNo.startsWith('r') && !savedNo.startsWith('n') && !checkStudentSessionExpiry()) {
+                    const noInput = document.getElementById('studentNo');
+                    if (noInput) noInput.value = savedNo;
+                    queryExams(true);
+                } else {
+                    if (resultsView) resultsView.classList.add('hidden');
+                    const loginView = document.getElementById('loginView');
+                    if (loginView) loginView.classList.remove('hidden');
+                    document.body.classList.add('login-body');
+                }
             }
 
             if (typeof updateScreenViewButtons === 'function') updateScreenViewButtons();
