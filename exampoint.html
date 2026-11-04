@@ -2630,153 +2630,148 @@
             return hadActiveRec;
         }
 
+        function setMicStatus(html) {
+            const el = document.getElementById('voiceStatusSubtext');
+            if (el) el.innerHTML = html;
+        }
+
         function startMicrophoneListening() {
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRec) {
-                document.getElementById('voiceStatusSubtext').innerHTML =
-                    `<span style="color:#ef4444; font-weight:700;">Tarayıcınız ses tanımayı desteklemiyor (Lütfen Chrome veya Edge kullanın).</span>`;
+                setMicStatus(`<span style="color:#ef4444; font-weight:700;">Tarayıcınız ses tanımayı desteklemiyor (Lütfen Chrome veya Edge kullanın).</span>`);
                 return;
             }
 
             shouldKeepListening = true;
-            const hadPrev = destroyCurrentRecognition();
+            destroyCurrentRecognition();
 
-            const launchNewRec = () => {
-                if (!shouldKeepListening) return;
-                const rec = new SpeechRec();
-                recognition = rec;
-                activeSegmentIndex = -1;
-                consumedPrefixText = "";
-                consumedWordCount = 0;
-                lastInterimText = "";
-                hasUnprocessedSpeechInSegment = false;
+            // Her oturum tek bir cümle dinler; bitince yeni nesneyle otomatik yeniden başlar (Chrome'da en güvenilir yöntem)
+            const rec = new SpeechRec();
+            recognition = rec;
+            let sessionHandled = false;
+            let pendingAlts = null;
 
-                rec.lang = 'tr-TR';
-                rec.continuous = true;
-                rec.interimResults = true;
-                rec.maxAlternatives = 5;
+            rec.lang = 'tr-TR';
+            rec.continuous = false;
+            rec.interimResults = true;
+            rec.maxAlternatives = 5;
 
-                rec.onstart = () => {
-                    isMicListening = true;
-                    activeSegmentIndex = -1;
-                    consumedPrefixText = "";
-                    consumedWordCount = 0;
-                    lastInterimText = "";
-                    hasUnprocessedSpeechInSegment = false;
-                    updateMicUiState();
-                    document.getElementById('voiceStatusSubtext').innerHTML =
-                        `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon aktif, sizi dinliyor...</span> Lütfen sayıyı söyleyin.`;
-                };
+            const collectAlts = (event) => {
+                const alts = [];
+                const lastRes = event.results[event.results.length - 1];
+                for (let j = 0; j < lastRes.length; j++) {
+                    if (lastRes[j] && lastRes[j].transcript) alts.push(String(lastRes[j].transcript).trim());
+                }
+                // Tüm parçaların birleşimi de bir alternatif olsun
+                let joined = '';
+                for (let i = 0; i < event.results.length; i++) {
+                    if (event.results[i][0]) joined += ' ' + event.results[i][0].transcript;
+                }
+                joined = joined.trim();
+                if (joined && !alts.includes(joined)) alts.unshift(joined);
+                return alts.filter(Boolean);
+            };
 
-                rec.onspeechstart = () => {
-                    document.getElementById('voiceStatusSubtext').innerHTML =
-                        `<span style="color:#4f46e5; font-weight:700;"><i class="fa-solid fa-wave-square"></i> Ses algılanıyor...</span>`;
-                };
+            const handleAlts = (alts, rawPrimary) => {
+                if (sessionHandled) return;
+                sessionHandled = true;
+                clearSettleTimer();
+                evaluateUnconsumedAlternatives(alts, rawPrimary);
+                try { rec.stop(); } catch (e) {}
+            };
 
-                rec.onresult = (event) => {
-                    const latestIdx = event.results.length - 1;
-                    if (latestIdx < 0) return;
+            rec.onstart = () => {
+                isMicListening = true;
+                updateMicUiState();
+                setMicStatus(`<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon aktif, sizi dinliyor...</span> Lütfen ${voiceStep === 'student_no' ? 'öğrenci numarasını' : 'puanı'} söyleyin.`);
+            };
 
-                    if (latestIdx !== activeSegmentIndex) {
-                        activeSegmentIndex = latestIdx;
-                        consumedPrefixText = "";
-                        consumedWordCount = 0;
-                        lastInterimText = "";
-                        hasUnprocessedSpeechInSegment = false;
-                    }
+            rec.onspeechstart = () => {
+                setMicStatus(`<span style="color:#4f46e5; font-weight:700;"><i class="fa-solid fa-wave-square"></i> Ses algılanıyor...</span>`);
+            };
 
-                    const res = event.results[latestIdx];
-                    const rawPrimary = (res[0] && res[0].transcript) ? String(res[0].transcript).trim() : '';
-                    if (!rawPrimary) return;
+            rec.onresult = (event) => {
+                if (sessionHandled) return;
+                if (!event.results || event.results.length === 0) return;
+                const alts = collectAlts(event);
+                if (alts.length === 0) return;
+                const rawPrimary = alts[0];
+                pendingAlts = alts;
+                const lastRes = event.results[event.results.length - 1];
 
-                    if (res.isFinal && consumedPrefixText !== "" && !hasUnprocessedSpeechInSegment) {
-                        markSegmentConsumed(rawPrimary);
-                        return;
-                    }
+                const previewNum = parseTurkishSpokenNumber(rawPrimary);
+                const bubbleWrap = document.getElementById('recognizedTranscriptWrap');
+                const bubbleText = document.getElementById('recognizedTranscriptText');
+                bubbleWrap.style.display = 'block';
+                bubbleText.innerHTML = `<i class="fa-solid fa-wave-square" style="color:#6366f1;"></i> Duyulan: "${escapeHtml(rawPrimary)}"` +
+                    (previewNum !== null ? ` &rarr; <b>${previewNum}</b>` : '');
 
-                    const unconsumedPrimary = extractUnconsumedText(rawPrimary);
-                    if (!unconsumedPrimary) return;
-
-                    const unconsumedAlts = [unconsumedPrimary];
-                    for (let j = 1; j < res.length; j++) {
-                        if (res[j] && res[j].transcript) {
-                            const uAlt = extractUnconsumedText(res[j].transcript);
-                            if (uAlt) unconsumedAlts.push(uAlt);
-                        }
-                    }
-
-                    if (res.isFinal) {
-                        clearSettleTimer();
-                        evaluateUnconsumedAlternatives(unconsumedAlts, rawPrimary);
-                        return;
-                    }
-
-                    hasUnprocessedSpeechInSegment = true;
-                    const previewNum = parseTurkishSpokenNumber(unconsumedPrimary);
-                    const bubbleWrap = document.getElementById('recognizedTranscriptWrap');
-                    const bubbleText = document.getElementById('recognizedTranscriptText');
-                    bubbleWrap.style.display = 'block';
-                    bubbleText.innerHTML = `<i class="fa-solid fa-wave-square" style="color:#6366f1;"></i> Duyulan: "${escapeHtml(unconsumedPrimary)}"` +
-                        (previewNum !== null ? ` &rarr; <b>${previewNum}</b>` : '');
-
-                    if (unconsumedPrimary.toLowerCase() !== lastInterimText.toLowerCase() || !settleTimerId) {
-                        lastInterimText = unconsumedPrimary;
-                        clearSettleTimer();
-                        const capturedAlts = [...unconsumedAlts];
-                        const capturedRawPrimary = rawPrimary;
-                        settleTimerId = setTimeout(() => {
-                            evaluateUnconsumedAlternatives(capturedAlts, capturedRawPrimary);
-                        }, 650);
-                    }
-                };
-
-                rec.onerror = (event) => {
-                    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                        shouldKeepListening = false;
-                        isMicListening = false;
-                        updateMicUiState();
-                        document.getElementById('voiceStatusSubtext').innerHTML =
-                            `<span style="color:#ef4444; font-weight:700;">Mikrofon izni reddedildi!</span> Tarayıcı adres çubuğundaki kilit/mikrofon simgesinden izin verin.`;
-                    } else if (event.error === 'audio-capture') {
-                        shouldKeepListening = false;
-                        isMicListening = false;
-                        updateMicUiState();
-                        document.getElementById('voiceStatusSubtext').innerHTML =
-                            `<span style="color:#ef4444; font-weight:700;">Mikrofon bulunamadı!</span> Cihazınızın mikrofon bağlantısını kontrol edin.`;
-                    } else if (event.error === 'network') {
-                        document.getElementById('voiceStatusSubtext').innerHTML =
-                            `<span style="color:#f59e0b; font-weight:700;">Tarayıcı ses sunucusu bağlantı hatası (network).</span> Chrome veya Edge tarayıcısı kullandığınızdan emin olun.`;
-                    }
-                };
-
-                rec.onend = () => {
-                    isMicListening = false;
-                    updateMicUiState();
-
-                    if (shouldKeepListening && document.getElementById('voiceGradingModal').classList.contains('active')) {
-                        restartTimeoutId = setTimeout(() => {
-                            if (shouldKeepListening && document.getElementById('voiceGradingModal').classList.contains('active')) {
-                                startMicrophoneListening();
-                            }
-                        }, 150);
-                    }
-                };
-
-                try {
-                    isMicListening = true;
-                    updateMicUiState();
-                    rec.start();
-                } catch (e) {
-                    isMicListening = false;
-                    updateMicUiState();
-                    console.warn("SpeechRecognition start error:", e);
+                if (lastRes.isFinal) {
+                    handleAlts(alts, rawPrimary);
+                } else {
+                    clearSettleTimer();
+                    settleTimerId = setTimeout(() => {
+                        settleTimerId = null;
+                        handleAlts(alts, rawPrimary);
+                    }, 900);
                 }
             };
 
-            if (hadPrev) {
-                restartTimeoutId = setTimeout(launchNewRec, 60);
-            } else {
-                launchNewRec();
+            rec.onerror = (event) => {
+                const err = event && event.error;
+                if (err === 'not-allowed' || err === 'service-not-allowed') {
+                    shouldKeepListening = false;
+                    isMicListening = false;
+                    updateMicUiState();
+                    setMicStatus(`<span style="color:#ef4444; font-weight:700;">Mikrofon izni reddedildi!</span> Tarayıcı adres çubuğundaki kilit/mikrofon simgesinden izin verin.`);
+                } else if (err === 'audio-capture') {
+                    shouldKeepListening = false;
+                    isMicListening = false;
+                    updateMicUiState();
+                    setMicStatus(`<span style="color:#ef4444; font-weight:700;">Mikrofon bulunamadı!</span> Cihazınızın mikrofon bağlantısını kontrol edin.`);
+                } else if (err === 'network') {
+                    setMicStatus(`<span style="color:#f59e0b; font-weight:700;">Ses tanıma sunucusuna ulaşılamadı (network).</span> İnternet bağlantısını ve Chrome/Edge kullandığınızı kontrol edin.`);
+                } else if (err && err !== 'no-speech' && err !== 'aborted') {
+                    setMicStatus(`<span style="color:#f59e0b; font-weight:700;">Ses tanıma hatası: ${escapeHtml(err)}</span>`);
+                }
+            };
+
+            rec.onend = () => {
+                if (recognition !== rec) return; // eski/iptal edilmiş nesne
+                isMicListening = false;
+
+                // Süre dolmadan son ara sonuç varsa ve işlenmediyse işle (settle timer çalışmadan oturum bittiyse)
+                if (!sessionHandled && pendingAlts) {
+                    sessionHandled = true;
+                    clearSettleTimer();
+                    evaluateUnconsumedAlternatives(pendingAlts, pendingAlts[0]);
+                }
+
+                if (shouldKeepListening && document.getElementById('voiceGradingModal').classList.contains('active')) {
+                    restartTimeoutId = setTimeout(() => {
+                        restartTimeoutId = null;
+                        if (shouldKeepListening && document.getElementById('voiceGradingModal').classList.contains('active')) {
+                            startMicrophoneListening();
+                        }
+                    }, 250);
+                } else {
+                    updateMicUiState();
+                }
+            };
+
+            try {
+                isMicListening = true;
+                updateMicUiState();
+                rec.start();
+            } catch (e) {
+                isMicListening = false;
+                console.warn("SpeechRecognition start error:", e);
+                if (shouldKeepListening) {
+                    restartTimeoutId = setTimeout(() => {
+                        restartTimeoutId = null;
+                        if (shouldKeepListening) startMicrophoneListening();
+                    }, 400);
+                }
             }
         }
 
