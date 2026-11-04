@@ -2148,16 +2148,32 @@
             const classStudents = getStudentsForExamClass(exam.className);
             let matchedStudent = classStudents.find(s => String(s.no).trim() === cleanNo);
 
-            if (!matchedStudent) {
+            if (!matchedStudent && classStudents.length === 0) {
                 matchedStudent = allStudents.find(s => s && String(s.no).trim() === cleanNo);
             }
 
-            if (!matchedStudent) {
+            if (!matchedStudent && classStudents.length === 0 && allStudents.length === 0) {
                 matchedStudent = {
                     no: cleanNo,
                     name: `${cleanNo} Nolu Öğrenci`,
                     class: exam.className
                 };
+            }
+
+            if (!matchedStudent) {
+                const msg = `${cleanNo} numaralı öğrenci bulunamadı. Lütfen numarayı tekrar söyleyin`;
+                const bw = document.getElementById('recognizedTranscriptWrap');
+                const bt = document.getElementById('recognizedTranscriptText');
+                if (bw && bt) {
+                    bw.style.display = 'block';
+                    bt.innerHTML = `<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i> <b>${escapeHtml(cleanNo)}</b> numaralı öğrenci bulunamadı &mdash; tekrar söyleyin`;
+                }
+                const hl = document.getElementById('voicePromptHeadline');
+                if (hl) hl.textContent = 'Öğrenci bulunamadı, numarayı tekrar söyleyin';
+                const qs = document.getElementById('quickClassStudentSelect');
+                if (qs) qs.value = '';
+                speakTurkishPrompt(msg);
+                return false;
             }
 
             currentStudentObj = {
