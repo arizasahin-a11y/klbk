@@ -2658,6 +2658,36 @@
             return total + current + (hasHalf ? 0.5 : 0);
         }
 
+        const STRICT_NUM_WORDS = new Set([
+            'sifir', 'bir', 'iki', 'uc', 'dort', 'bes', 'alti', 'yedi', 'sekiz', 'dokuz',
+            'on', 'yirmi', 'otuz', 'kirk', 'elli', 'altmis', 'yetmis', 'seksen', 'doksan',
+            'yuz', 'bin', 'bucuk', 'yarim', 'puan', 'nokta', 'virgul'
+        ]);
+
+        // Konuşma YALNIZCA sayı kelimelerinden/rakamlardan oluşuyorsa true döner (sohbet/yan konuşma reddedilir)
+        function isPureNumberUtterance(rawText) {
+            const s = toAsciiTurkish(rawText);
+            if (!s) return false;
+            const tokens = s.split(/\s+/).filter(Boolean);
+            if (tokens.length === 0) return false;
+            let hasNumberToken = false;
+            for (const t of tokens) {
+                if (/^\d+([.,]\d+)*$/.test(t)) { hasNumberToken = true; continue; }
+                if (STRICT_NUM_WORDS.has(t)) {
+                    if (t !== 'puan' && t !== 'nokta' && t !== 'virgul') hasNumberToken = true;
+                    continue;
+                }
+                if (TR_FULL_COMPOUND_RE.test(t)) { hasNumberToken = true; continue; } // "yirmibes" gibi bitişik yazımlar
+                return false;
+            }
+            return hasNumberToken;
+        }
+
+        function parseStrictSpokenNumber(rawText) {
+            if (!isPureNumberUtterance(rawText)) return null;
+            return parseTurkishSpokenNumber(rawText);
+        }
+
         function extractUnconsumedText(rawSegmentText) {
             const full = String(rawSegmentText || '').trim();
             if (!full) return '';
@@ -2714,7 +2744,7 @@
             let detectedNumber = null;
             let matchedAltText = primaryText;
             for (const alt of unconsumedAlts) {
-                const parsed = parseTurkishSpokenNumber(alt);
+                const parsed = parseStrictSpokenNumber(alt);
                 if (parsed !== null && !isNaN(parsed)) {
                     detectedNumber = parsed;
                     matchedAltText = String(alt).trim();
@@ -2727,7 +2757,7 @@
             bubbleWrap.style.display = 'block';
 
             if (detectedNumber === null) {
-                bubbleText.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> Duyulan: "${escapeHtml(primaryText)}" <small style="color:#64748b;">(Sayı algılanamadı, sadece sayıyı söyleyin)</small>`;
+                bubbleText.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> Duyulan: "${escapeHtml(primaryText)}" <small style="color:#64748b;">(Sayı olmayan konuşma yok sayıldı, sadece sayıyı söyleyin)</small>`;
                 markSegmentConsumed(rawPrimarySegment);
                 return false;
             }
@@ -2878,7 +2908,7 @@
                 pendingAlts = alts;
                 const lastRes = event.results[event.results.length - 1];
 
-                const previewNum = parseTurkishSpokenNumber(rawPrimary);
+                const previewNum = parseStrictSpokenNumber(rawPrimary);
                 const bubbleWrap = document.getElementById('recognizedTranscriptWrap');
                 const bubbleText = document.getElementById('recognizedTranscriptText');
                 bubbleWrap.style.display = 'block';
