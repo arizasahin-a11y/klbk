@@ -271,7 +271,7 @@ DataManager._getStorageKey = function () {
             window._availableClassroomDisplay = { roomData, activeSession, displayClass };
             if (typeof updateScreenViewButtons === 'function') updateScreenViewButtons();
 
-            if (userClosedFullScreen || sessionStorage.getItem('klbk_user_closed_fs') === 'true') {
+            if (userClosedFullScreen) {
                 return false;
             }
             
@@ -398,7 +398,25 @@ DataManager._getStorageKey = function () {
 
         function checkPersistentSession() {
             try {
-                if (checkClassroomDisplay()) return;
+                if (checkClassroomDisplay()) {
+                    // Arka planda kayıtlı öğrenci varsa yükle ki KAPAT denildiğinde numara sormadan doğrudan listeye dönsün
+                    const savedNoBg = localStorage.getItem('klbk_student_session');
+                    if (savedNoBg && !savedNoBg.startsWith('r') && !savedNoBg.startsWith('n') && !checkStudentSessionExpiry()) {
+                        const students = DataManager.getStudents() || [];
+                        const normalizeNo = (val) => String(val || '').trim().replace(/^0+/, '');
+                        const targetNo = normalizeNo(savedNoBg);
+                        const found = students.find(s => s && s.no && normalizeNo(s.no) === targetNo);
+                        if (found) {
+                            currentStudent = found;
+                            const nameEl = document.getElementById('studentNameDisplay');
+                            const clsEl = document.getElementById('studentClassDisplay');
+                            if (nameEl) nameEl.textContent = currentStudent.name;
+                            if (clsEl) clsEl.textContent = currentStudent.class + (currentStudent.alan ? ` / ${currentStudent.alan}` : '');
+                            renderExams();
+                        }
+                    }
+                    return;
+                }
             } catch (err) {
                 console.error("checkClassroomDisplay crashed:", err);
             }
@@ -1032,13 +1050,6 @@ DataManager._getStorageKey = function () {
             localStorage.setItem('klbk_student_session', no);
             startStudentSession();
 
-            // Eğer kullanıcı giriş ekranından manuel numara girdiyse, ekran görünümüne direkt atlamayıp
-            // önce öğrencinin kendi sınav yerini (#resultsView) göster.
-            if (!isAutoLogin) {
-                userClosedFullScreen = true;
-                sessionStorage.setItem('klbk_user_closed_fs', 'true');
-            }
-
             document.getElementById('studentNameDisplay').textContent = currentStudent.name;
             document.getElementById('studentClassDisplay').textContent = currentStudent.class + (currentStudent.alan ? ` / ${currentStudent.alan}` : '');
 
@@ -1065,7 +1076,9 @@ DataManager._getStorageKey = function () {
             document.getElementById('loginView').classList.add('hidden');
             document.body.classList.remove('login-body');
 
-            if (now - lastAccepted > thirtyDaysMs) {
+            const hasActiveScreenView = typeof getActiveFullScreenTarget === 'function' && !!getActiveFullScreenTarget();
+
+            if (!hasActiveScreenView && !userClosedFullScreen && (now - lastAccepted > thirtyDaysMs)) {
                 // Show rules
                 renderRulesList();
                 document.getElementById('rulesView').classList.remove('hidden');
@@ -1075,7 +1088,7 @@ DataManager._getStorageKey = function () {
                     rv.classList.add('hidden');
                 }
             } else {
-                // Show results directly
+                // Show results directly (and trigger screen view if within time limit and not closed)
                 showResultsScreen();
             }
           } catch (err) {
@@ -1122,13 +1135,18 @@ DataManager._getStorageKey = function () {
                 rv.style.display = 'block';
                 rv.classList.remove('hidden');
             }
-            const overlay = document.getElementById('fullScreenPlanOverlay');
-            if (overlay) {
-                overlay.style.display = 'none';
+            if (userClosedFullScreen) {
+                const overlay = document.getElementById('fullScreenPlanOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                }
             }
             lastStates = {};
             renderExams();
             if (typeof updateScreenViewButtons === 'function') updateScreenViewButtons();
+            if (!userClosedFullScreen) {
+                checkFullScreenTriggers();
+            }
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(updateAllTimers, 1000);
 
@@ -2296,7 +2314,7 @@ DataManager._getStorageKey = function () {
 
         // --- FULL SCREEN SEATING PLAN LOGIC ---
         let currentFullScreenSessionId = null;
-        let userClosedFullScreen = sessionStorage.getItem('klbk_user_closed_fs') === 'true';
+        let userClosedFullScreen = false;
         let activeMessages = new Map(); // Store active message windows
         window.pdfTabs = window.pdfTabs || []; // To track opened PDF tabs for automatic closing
 
@@ -2382,7 +2400,6 @@ DataManager._getStorageKey = function () {
             const target = getActiveFullScreenTarget();
             if (!target) return;
             userClosedFullScreen = false;
-            sessionStorage.removeItem('klbk_user_closed_fs');
             currentFullScreenSessionId = target.activeSession.id;
             renderFullScreenPlan(target.roomData, target.activeSession, target.displayClass);
         };
@@ -2751,9 +2768,8 @@ DataManager._getStorageKey = function () {
                 };
                 const sessionHash = JSON.stringify(sessionHashData);
                 if (typeof updateScreenViewButtons === 'function') updateScreenViewButtons();
-                const isClosedByUser = userClosedFullScreen || sessionStorage.getItem('klbk_user_closed_fs') === 'true';
                 // Eğer seans değişmişse VEYA seans içindeki veriler (örn: PDF paylaşımı) değişmişse VEYA sınav başladığı/bittiği an ise yeniden çiz
-                if ((currentFullScreenSessionId !== activeSession.id || window._lastActiveSessionHash !== sessionHash) && !isClosedByUser) {
+                if ((currentFullScreenSessionId !== activeSession.id || window._lastActiveSessionHash !== sessionHash) && !userClosedFullScreen) {
                     window._lastActiveSessionHash = sessionHash;
                     
                     // Close previous session's PDF tabs if switching sessions
@@ -2779,11 +2795,9 @@ DataManager._getStorageKey = function () {
                         pdfTabs.forEach(win => { try { win.close(); } catch (e) { } });
                         pdfTabs = [];
                     }
-                }
-                currentFullScreenSessionId = null;
-                if (sessionStorage.getItem('klbk_user_closed_fs') !== 'true') {
                     userClosedFullScreen = false;
                 }
+                currentFullScreenSessionId = null;
             }
         }
 
@@ -2802,8 +2816,7 @@ DataManager._getStorageKey = function () {
 
             if (isManual) {
                 userClosedFullScreen = true;
-                sessionStorage.setItem('klbk_user_closed_fs', 'true');
-            } else if (sessionStorage.getItem('klbk_user_closed_fs') !== 'true') {
+            } else {
                 userClosedFullScreen = false; // Allow reopening if closed automatically
             }
 
@@ -2813,8 +2826,12 @@ DataManager._getStorageKey = function () {
                 resultsView.style.display = '';
             }
             if (resultsView && currentStudent) {
-                resultsView.style.display = 'block';
-                resultsView.classList.remove('hidden');
+                const rulesView = document.getElementById('rulesView');
+                if (rulesView) rulesView.classList.add('hidden');
+                const loginView = document.getElementById('loginView');
+                if (loginView) loginView.classList.add('hidden');
+                document.body.classList.remove('login-body');
+                showResultsScreen();
             } else {
                 const savedNo = localStorage.getItem('klbk_student_session');
                 if (savedNo && !savedNo.startsWith('r') && !savedNo.startsWith('n') && !checkStudentSessionExpiry()) {

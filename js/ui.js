@@ -273,6 +273,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 try {
                     const currentSchool = DataManager.getSchoolSettings();
+                    const prevDefaultScreenLimit = currentSchool.defaultTimes?.defaultScreenViewLimit ?? 8;
                     currentSchool.defaultTimes = {
                         studentLocationMinutes: locMin,
                         studentExamEndHideMinutes: studHideMin,
@@ -283,6 +284,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                         defaultScreenViewLimit: screenLimit
                     };
                     DataManager.saveSchoolSettings(currentSchool);
+
+                    // Mevcut oturumlarda varsayılan ekran görünümü süresini kullananları da yeni değere güncelle
+                    if (prevDefaultScreenLimit !== screenLimit) {
+                        const sessions = DataManager.getExamSessions() || [];
+                        sessions.forEach(ses => {
+                            if (ses && (ses.screenViewLimit === undefined || ses.screenViewLimit === prevDefaultScreenLimit)) {
+                                ses.screenViewLimit = screenLimit;
+                                DataManager.addExamSession(ses);
+                            }
+                        });
+                    }
                     return true;
                 } catch (e) {
                     Swal.showValidationMessage(e.message);
