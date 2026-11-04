@@ -1367,6 +1367,7 @@
         let consumedWordCount = 0;
         let lastInterimText = "";
         let hasUnprocessedSpeechInSegment = false;
+        let micConfigIdx = 0;
 
         function escapeHtml(str) {
             return String(str || '')
@@ -2665,10 +2666,17 @@
             let sessionHandled = false;
             let pendingAlts = null;
 
-            rec.lang = 'tr-TR';
-            rec.continuous = false;
-            rec.interimResults = true;
-            rec.maxAlternatives = 5;
+            const MIC_CONFIGS = [
+                { lang: 'tr-TR', continuous: false, interim: true, alt: 1 },
+                { lang: 'tr', continuous: true, interim: true, alt: 1 },
+                { lang: 'tr-TR', continuous: true, interim: false, alt: 1 },
+                { lang: 'en-US', continuous: false, interim: true, alt: 1 }
+            ];
+            const cfg = MIC_CONFIGS[micConfigIdx % MIC_CONFIGS.length];
+            rec.lang = cfg.lang;
+            rec.continuous = cfg.continuous;
+            rec.interimResults = cfg.interim;
+            rec.maxAlternatives = cfg.alt;
 
             const collectAlts = (event) => {
                 const alts = [];
@@ -2713,7 +2721,8 @@
                 noResultWatchdog = setTimeout(() => {
                     if (recognition === rec && !sessionHandled && !pendingAlts) {
                         setMicStatus(`<span style="color:#f59e0b; font-weight:700;">Tarayıcı sesi metne çeviremedi (sunucu yanıt vermedi).</span> Chrome veya Edge ile açın; yeniden dinleniyor...`);
-                        micDbg('sonuç gelmedi, oturum yenileniyor');
+                        micConfigIdx++;
+                        micDbg('sonuç gelmedi, ayar #' + (micConfigIdx % 4) + ' ile yeniden deneniyor');
                         try { rec.abort(); } catch (e) {}
                     }
                 }, 4000);
@@ -2797,7 +2806,7 @@
             try {
                 isMicListening = true;
                 updateMicUiState();
-                micDbg('start() çağrıldı');
+                micDbg('start() ayar#' + (micConfigIdx % MIC_CONFIGS.length) + ' ' + cfg.lang + ' cont=' + cfg.continuous);
                 rec.start();
             } catch (e) {
                 isMicListening = false;
