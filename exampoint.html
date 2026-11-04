@@ -2630,6 +2630,20 @@
             return hadActiveRec;
         }
 
+        function micDbg(msg) {
+            let el = document.getElementById('micDebugLine');
+            if (!el) {
+                const host = document.getElementById('voiceStatusSubtext');
+                if (!host || !host.parentNode) return;
+                el = document.createElement('div');
+                el.id = 'micDebugLine';
+                el.style.cssText = 'margin-top:6px; font-size:0.72rem; color:#94a3b8; font-family:monospace; word-break:break-all;';
+                host.parentNode.insertBefore(el, host.nextSibling);
+            }
+            const t = new Date().toLocaleTimeString('tr-TR');
+            el.textContent = '[v5 ' + t + '] ' + msg;
+        }
+
         function setMicStatus(html) {
             const el = document.getElementById('voiceStatusSubtext');
             if (el) el.innerHTML = html;
@@ -2690,7 +2704,15 @@
                 setMicStatus(`<span style="color:#4f46e5; font-weight:700;"><i class="fa-solid fa-wave-square"></i> Ses algılanıyor...</span>`);
             };
 
+            rec.onaudiostart = () => micDbg('audiostart (mikrofon açıldı)');
+            rec.onsoundstart = () => micDbg('soundstart (ses geldi)');
+            rec.onspeechend = () => micDbg('speechend (konuşma bitti, sonuç bekleniyor)');
+            rec.onnomatch = () => micDbg('nomatch (anlaşılamadı)');
             rec.onresult = (event) => {
+                try { micDbg('result n=' + (event.results ? event.results.length : 0) + ' "' + (event.results[event.results.length-1][0].transcript) + '" final=' + event.results[event.results.length-1].isFinal); } catch (e) {}
+                try { handleResultEvent(event); } catch (err) { micDbg('HATA onresult: ' + (err && err.message)); console.error(err); }
+            };
+            const handleResultEvent = (event) => {
                 if (sessionHandled) return;
                 if (!event.results || event.results.length === 0) return;
                 const alts = collectAlts(event);
@@ -2719,6 +2741,7 @@
 
             rec.onerror = (event) => {
                 const err = event && event.error;
+                micDbg('error: ' + err);
                 if (err === 'not-allowed' || err === 'service-not-allowed') {
                     shouldKeepListening = false;
                     isMicListening = false;
@@ -2737,6 +2760,7 @@
             };
 
             rec.onend = () => {
+                micDbg('end');
                 if (recognition !== rec) return; // eski/iptal edilmiş nesne
                 isMicListening = false;
 
@@ -2762,6 +2786,7 @@
             try {
                 isMicListening = true;
                 updateMicUiState();
+                micDbg('start() çağrıldı');
                 rec.start();
             } catch (e) {
                 isMicListening = false;
