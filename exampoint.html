@@ -2143,6 +2143,68 @@
             cancelAutoAdvanceTimer();
         }
 
+        // ---- Sesli okuma (TTS): telefon uyumlu ----
+        let ttsVoice = null, speakToken = 0, ttsResumeTimer = null;
+
+        function pickTurkishVoice() {
+            try {
+                const voices = window.speechSynthesis.getVoices() || [];
+                ttsVoice = voices.find(v => /^tr([-_]|$)/i.test(v.lang)) ||
+                           voices.find(v => /turk/i.test(v.name)) || null;
+            } catch (e) {}
+        }
+        if ('speechSynthesis' in window) {
+            pickTurkishVoice();
+            try { window.speechSynthesis.addEventListener('voiceschanged', pickTurkishVoice); } catch (e) {}
+        }
+
+        function resumeMicAfterSpeech(token, wasListening) {
+            if (token !== speakToken) return; // daha yeni bir konuşma başladı
+            if (ttsResumeTimer) { clearTimeout(ttsResumeTimer); ttsResumeTimer = null; }
+            const modal = document.getElementById('voiceGradingModal');
+            if (wasListening && shouldKeepListening && modal && modal.classList.contains('active')) {
+                startMicrophoneListening();
+            }
+        }
+
+        function speakTurkishPrompt(text) {
+            if (!ttsEnabled || !('speechSynthesis' in window)) return;
+            try {
+                const synth = window.speechSynthesis;
+                const token = ++speakToken;
+                const wasListening = shouldKeepListening;
+
+                // Telefonda aynı anda mikrofon açıkken ses çıkmaz: konuşma süresince mikrofonu durdur
+                if (wasListening) {
+                    stopVosk();
+                    destroyCurrentRecognition();
+                    isMicListening = false;
+                }
+
+                synth.cancel();
+                if (!ttsVoice) pickTurkishVoice();
+
+                setTimeout(() => {
+                    if (token !== speakToken) return;
+                    const utter = new SpeechSynthesisUtterance(text);
+                    utter.lang = 'tr-TR';
+                    if (ttsVoice) utter.voice = ttsVoice;
+                    utter.rate = 1.05;
+                    utter.volume = 1;
+                    utter.onend = () => resumeMicAfterSpeech(token, wasListening);
+                    utter.onerror = () => resumeMicAfterSpeech(token, wasListening);
+                    try { synth.resume(); } catch (e) {}
+                    synth.speak(utter);
+
+                    // Güvenlik: onend hiç tetiklenmezse mikrofonu yine de geri aç
+                    if (ttsResumeTimer) clearTimeout(ttsResumeTimer);
+                    ttsResumeTimer = setTimeout(() => resumeMicAfterSpeech(token, wasListening), 7000);
+                }, 80);
+            } catch (e) {
+                console.warn('TTS error:', e);
+            }
+        }
+
         function toggleTtsVoice() {
             ttsEnabled = !ttsEnabled;
             const icon = document.getElementById('ttsIcon');
@@ -2150,24 +2212,16 @@
             if (ttsEnabled) {
                 icon.className = 'fa-solid fa-volume-high';
                 txt.textContent = 'Sesli Okuma: Açık';
+                // Mobil tarayıcılar sesi ancak kullanıcı dokunuşuyla açar: bu tıklamada bir kez konuştur
+                speakTurkishPrompt('Sesli okuma açık');
             } else {
                 icon.className = 'fa-solid fa-volume-xmark';
                 txt.textContent = 'Sesli Okuma: Kapalı';
+                speakToken++;
                 if ('speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
                 }
             }
-        }
-
-        function speakTurkishPrompt(text) {
-            if (!ttsEnabled || !('speechSynthesis' in window)) return;
-            try {
-                window.speechSynthesis.cancel();
-                const utter = new SpeechSynthesisUtterance(text);
-                utter.lang = 'tr-TR';
-                utter.rate = 1.15;
-                window.speechSynthesis.speak(utter);
-            } catch (e) {}
         }
 
         function clearSettleTimer() {
