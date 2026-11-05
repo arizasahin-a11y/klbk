@@ -1148,6 +1148,22 @@
             .voice-prompt-box { padding: 0.5rem !important; }
             .mic-pulse-btn { width: 56px !important; height: 56px !important; font-size: 1.4rem !important; }
         }
+
+        /* ---- Sesli giriş kutusu: kompakt görünüm ---- */
+        .voice-prompt-box { padding: 0.65rem 0.9rem !important; border-width: 2px !important; border-radius: 14px !important; }
+        .mic-pulse-btn { width: 46px !important; height: 46px !important; font-size: 1.15rem !important; margin: 0 auto 0.4rem !important; }
+        @keyframes micPulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .voice-prompt-text { font-size: 1.1rem !important; margin: 0 0 0.25rem !important; line-height: 1.25 !important; }
+        .voice-status-sub { font-size: 0.8rem !important; min-height: 1.1em !important; }
+        .recognized-bubble { font-size: 0.85rem !important; padding: 3px 12px !important; margin-top: 5px !important; }
+        #micDebugLine, #micLevelDevice { display: none !important; }
+        #micLevelWrap { max-width: 180px !important; margin-top: 4px !important; }
+        #micEngineBtn { margin-top: 5px !important; padding: 3px 10px !important; font-size: 0.68rem !important; }
+        .auto-timer-wrap { margin-top: 6px !important; }
     </style>
 </head>
 <body>
@@ -2239,7 +2255,7 @@
                     if (max > 0.04) levelLastLoud = Date.now();
                     const hint = document.getElementById('micLevelHint');
                     if (hint) {
-                        if (Date.now() - levelLastLoud > 6000) {
+                        if (getMicEngine() === 'web' && Date.now() - levelLastLoud > 6000) {
                             hint.innerHTML = '<span style="color:#ef4444; font-weight:700;">Ses gelmiyor: yanlış mikrofon seçili ya da mikrofon kısık olabilir (Windows Ayarlar → Ses → Giriş).</span>';
                         } else {
                             hint.textContent = '';
