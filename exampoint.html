@@ -2268,6 +2268,23 @@
             if (w && w.parentNode) w.parentNode.removeChild(w);
         }
 
+        // Sesli giriş sırasında ilgili alana otomatik kaydır (numara okunurken öğrenci alanına, puan girilirken soru alanına)
+        function scrollVoiceFocus(kind) {
+            setTimeout(() => {
+                try {
+                    if (kind === 'student') {
+                        const el = document.querySelector('.voice-prompt-box') || document.getElementById('voicePromptHeadline');
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    } else {
+                        const head = document.querySelector('.voice-prompt-box') || document.getElementById('voicePromptHeadline');
+                        if (head) head.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        const cur = document.querySelector('#questionsGridPills .q-pill-box.current');
+                        if (cur) cur.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    }
+                } catch (e) {}
+            }, 60);
+        }
+
         function startVoiceGradingForExam(examId) {
             const exam = examPointList.find(e => e.id === examId);
             if (!exam) return;
@@ -2333,6 +2350,7 @@
             }
 
             speakTurkishPrompt(promptText);
+            scrollVoiceFocus('student');
         }
 
         function findAndSelectStudentByNo(spokenNo) {
@@ -2436,6 +2454,7 @@
 
             renderQuestionPills();
             speakTurkishPrompt(promptText);
+            scrollVoiceFocus('question');
         }
 
         function renderQuestionPills() {
