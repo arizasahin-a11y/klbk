@@ -2290,6 +2290,7 @@
 
             document.getElementById('voiceGradingModal').classList.add('active');
             acquireWakeLock();
+            ensureEngineToggle();
             startLevelMeter();
             resetToStudentStep();
             startMicrophoneListening();
@@ -2899,6 +2900,13 @@
         }
 
         function startMicrophoneListening() {
+            if (getMicEngine() === 'vosk') {
+                shouldKeepListening = true;
+                destroyCurrentRecognition();
+                startVoskListening();
+                return;
+            }
+            stopVosk();
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRec) {
                 setMicStatus(`<span style="color:#ef4444; font-weight:700;">Tarayıcınız ses tanımayı desteklemiyor (Lütfen Chrome veya Edge kullanın).</span>`);
@@ -2970,6 +2978,13 @@
                     if (recognition === rec && !sessionHandled && !pendingAlts) {
                         setMicStatus(`<span style="color:#f59e0b; font-weight:700;">Tarayıcı sesi metne çeviremedi (sunucu yanıt vermedi).</span> Mikrofon çubuğu konuşurken hareket ediyor mu? Hareket etmiyorsa Windows Ayarlar → Ses → Giriş bölümünden doğru mikrofonu seçin. Yeniden dinleniyor...`);
                         micConfigIdx++;
+                        if (micConfigIdx >= 2) {
+                            setMicEngine('vosk');
+                            micDbg('tarayıcı sesi çözemedi, çevrimdışı motora geçiliyor');
+                            destroyCurrentRecognition();
+                            startMicrophoneListening();
+                            return;
+                        }
                         micDbg('sonuç gelmedi, ayar #' + (micConfigIdx % 4) + ' ile yeniden deneniyor');
                         try { rec.abort(); } catch (e) {}
                     }
@@ -3068,7 +3083,165 @@
             }
         }
 
+        // =========================================================
+        // ÇEVRİMDIŞI VOSK SES TANIMA (yalnızca sayı/komut gramerli)
+        // Tarayıcı ses servisi sonuç döndürmediğinde (ör. bazı Windows Chrome kurulumları) otomatik devreye girer.
+        // =========================================================
+        const VOSK_MODEL_URL = 'models/vosk-model-small-tr-0.3.tar.gz';
+        const VOSK_LIB_URL = 'https://cdn.jsdelivr.net/npm/vosk-browser@0.0.8/dist/vosk.js';
+        const VOSK_GRAMMAR = JSON.stringify([
+            'sıfır', 'bir', 'iki', 'üç', 'dört', 'beş', 'altı', 'yedi', 'sekiz', 'dokuz',
+            'on', 'yirmi', 'otuz', 'kırk', 'elli', 'altmış', 'yetmiş', 'seksen', 'doksan',
+            'yüz', 'bin', 'buçuk', 'yarım',
+            'tamam', 'geç', 'sonraki', 'devam', 'onayla', 'önceki', 'geri',
+            '[unk]'
+        ]);
+        let voskModel = null, voskModelPromise = null, voskRec = null, voskCtx = null;
+        let voskStream = null, voskNode = null, voskSource = null, voskActive = false, voskToken = 0;
+
+        function getMicEngine() {
+            try { return localStorage.getItem('ep_engine') === 'vosk' ? 'vosk' : 'web'; } catch (e) { return 'web'; }
+        }
+        function setMicEngine(name) {
+            try { localStorage.setItem('ep_engine', name); } catch (e) {}
+            updateEngineToggleLabel();
+        }
+
+        function updateEngineToggleLabel() {
+            const b = document.getElementById('micEngineBtn');
+            if (!b) return;
+            b.innerHTML = getMicEngine() === 'vosk'
+                ? '<i class="fa-solid fa-microchip"></i> Ses motoru: Çevrimdışı (değiştir)'
+                : '<i class="fa-solid fa-globe"></i> Ses motoru: Tarayıcı (değiştir)';
+        }
+
+        function ensureEngineToggle() {
+            if (document.getElementById('micEngineBtn')) { updateEngineToggleLabel(); return; }
+            const host = document.getElementById('voiceStatusSubtext');
+            if (!host || !host.parentNode) return;
+            const b = document.createElement('button');
+            b.id = 'micEngineBtn';
+            b.type = 'button';
+            b.style.cssText = 'margin-top:8px; background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe; border-radius:999px; padding:5px 12px; font-size:0.74rem; font-weight:700; cursor:pointer; font-family:inherit;';
+            b.onclick = () => {
+                setMicEngine(getMicEngine() === 'vosk' ? 'web' : 'vosk');
+                if (shouldKeepListening || isMicListening) {
+                    stopMicrophoneListening();
+                }
+                startMicrophoneListening();
+            };
+            host.parentNode.insertBefore(b, host.nextSibling);
+            updateEngineToggleLabel();
+        }
+
+        function loadScriptOnce(url) {
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = url;
+                s.onload = resolve;
+                s.onerror = () => reject(new Error('Vosk kütüphanesi yüklenemedi'));
+                document.head.appendChild(s);
+            });
+        }
+
+        function loadVoskModel() {
+            if (voskModel) return Promise.resolve(voskModel);
+            if (voskModelPromise) return voskModelPromise;
+            voskModelPromise = (async () => {
+                if (!window.Vosk) await loadScriptOnce(VOSK_LIB_URL);
+                const url = new URL(VOSK_MODEL_URL, window.location.href).href;
+                const m = await window.Vosk.createModel(url);
+                voskModel = m;
+                return m;
+            })();
+            voskModelPromise.catch(() => { voskModelPromise = null; });
+            return voskModelPromise;
+        }
+
+        function handleVoskText(text, isPartial) {
+            const t = String(text || '').trim();
+            if (!t) return;
+            const bubbleWrap = document.getElementById('recognizedTranscriptWrap');
+            const bubbleText = document.getElementById('recognizedTranscriptText');
+            if (isPartial) {
+                if (t.replace(/\[unk\]/g, '').trim() === '') return;
+                bubbleWrap.style.display = 'block';
+                bubbleText.innerHTML = `<i class="fa-solid fa-wave-square" style="color:#6366f1;"></i> Duyulan: "${escapeHtml(t.replace(/\[unk\]/g, '…'))}"`;
+                return;
+            }
+            micDbg('vosk sonuç: "' + t + '"');
+            if (t.indexOf('[unk]') !== -1) {
+                // Sayı/komut dışı konuşma içeriyor: yok say
+                if (t.replace(/\[unk\]/g, '').trim() !== '') {
+                    bubbleWrap.style.display = 'block';
+                    bubbleText.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> Sayı olmayan konuşma yok sayıldı <small style="color:#64748b;">(sadece sayıyı söyleyin)</small>`;
+                }
+                return;
+            }
+            evaluateUnconsumedAlternatives([t], t);
+        }
+
+        async function startVoskListening() {
+            if (voskActive) return;
+            const token = ++voskToken;
+            voskActive = true;
+            isMicListening = true;
+            updateMicUiState();
+            try {
+                setMicStatus(`<span style="color:#4f46e5; font-weight:700;"><i class="fa-solid fa-spinner fa-spin"></i> Çevrimdışı ses modeli yükleniyor...</span> İlk açılışta yaklaşık 35 MB indirilir, lütfen bekleyin.`);
+                const model = await loadVoskModel();
+                if (token !== voskToken) return;
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                });
+                if (token !== voskToken) { stream.getTracks().forEach(t => t.stop()); return; }
+                voskStream = stream;
+
+                const AC = window.AudioContext || window.webkitAudioContext;
+                voskCtx = new AC();
+                if (voskCtx.state === 'suspended') { try { await voskCtx.resume(); } catch (e) {} }
+
+                const rec = new model.KaldiRecognizer(voskCtx.sampleRate, VOSK_GRAMMAR);
+                voskRec = rec;
+                rec.on('result', (m) => { if (token === voskToken) handleVoskText(m && m.result && m.result.text, false); });
+                rec.on('partialresult', (m) => { if (token === voskToken) handleVoskText(m && m.result && m.result.partial, true); });
+
+                voskSource = voskCtx.createMediaStreamSource(stream);
+                voskNode = voskCtx.createScriptProcessor(4096, 1, 1);
+                voskNode.onaudioprocess = (e) => {
+                    if (token !== voskToken || !voskRec) return;
+                    try { voskRec.acceptWaveform(e.inputBuffer); } catch (err) {}
+                };
+                voskSource.connect(voskNode);
+                voskNode.connect(voskCtx.destination);
+
+                setMicStatus(`<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Çevrimdışı mikrofon aktif, sizi dinliyor...</span> Sadece sayıyı söyleyin.`);
+                micDbg('vosk hazır, ' + voskCtx.sampleRate + ' Hz');
+            } catch (e) {
+                console.error(e);
+                stopVosk();
+                shouldKeepListening = false;
+                isMicListening = false;
+                updateMicUiState();
+                setMicStatus(`<span style="color:#ef4444; font-weight:700;">Çevrimdışı ses tanıma başlatılamadı:</span> ${escapeHtml(e && e.message ? e.message : String(e))}`);
+                micDbg('vosk hata: ' + (e && e.message));
+            }
+        }
+
+        function stopVosk() {
+            voskToken++;
+            voskActive = false;
+            try { if (voskNode) { voskNode.onaudioprocess = null; voskNode.disconnect(); } } catch (e) {}
+            try { if (voskSource) voskSource.disconnect(); } catch (e) {}
+            try { if (voskStream) voskStream.getTracks().forEach(t => t.stop()); } catch (e) {}
+            try { if (voskCtx) voskCtx.close(); } catch (e) {}
+            try { if (voskRec && voskRec.remove) voskRec.remove(); } catch (e) {}
+            voskNode = null; voskSource = null; voskStream = null; voskCtx = null; voskRec = null;
+        }
+
         function stopMicrophoneListening() {
+            stopVosk();
             shouldKeepListening = false;
             isMicListening = false;
             destroyCurrentRecognition();
