@@ -2189,6 +2189,85 @@
             }
         });
 
+        // ---- Mikrofon seviye göstergesi (hangi mikrofon kullanılıyor, ses geliyor mu?) ----
+        let levelStream = null, levelCtx = null, levelRaf = null, levelPeak = 0, levelLastLoud = 0;
+        async function startLevelMeter() {
+            stopLevelMeter();
+            try {
+                if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) return;
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+                levelStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if (!AC) return;
+                levelCtx = new AC();
+                if (levelCtx.state === 'suspended') { try { await levelCtx.resume(); } catch (e) {} }
+                const src = levelCtx.createMediaStreamSource(levelStream);
+                const analyser = levelCtx.createAnalyser();
+                analyser.fftSize = 512;
+                src.connect(analyser);
+                const data = new Uint8Array(analyser.fftSize);
+
+                let wrap = document.getElementById('micLevelWrap');
+                if (!wrap) {
+                    const host = document.getElementById('voiceStatusSubtext');
+                    if (!host || !host.parentNode) return;
+                    wrap = document.createElement('div');
+                    wrap.id = 'micLevelWrap';
+                    wrap.style.cssText = 'margin:8px auto 0; max-width:320px; text-align:center; font-size:0.72rem; color:#64748b;';
+                    wrap.innerHTML = '<div id="micLevelDevice" style="margin-bottom:3px; word-break:break-word;"></div>' +
+                        '<div style="height:8px; background:#e2e8f0; border-radius:99px; overflow:hidden;"><div id="micLevelBar" style="height:100%; width:0%; background:linear-gradient(90deg,#10b981,#f59e0b,#ef4444); transition:width 0.08s;"></div></div>' +
+                        '<div id="micLevelHint" style="margin-top:3px; min-height:1em;"></div>';
+                    host.parentNode.insertBefore(wrap, host.nextSibling);
+                }
+                const track = levelStream.getAudioTracks()[0];
+                document.getElementById('micLevelDevice').textContent = 'Mikrofon: ' + (track && track.label ? track.label : 'bilinmiyor');
+                levelLastLoud = Date.now();
+                levelPeak = 0;
+
+                const tick = () => {
+                    if (!levelCtx) return;
+                    analyser.getByteTimeDomainData(data);
+                    let max = 0;
+                    for (let i = 0; i < data.length; i++) {
+                        const v = Math.abs(data[i] - 128) / 128;
+                        if (v > max) max = v;
+                    }
+                    const pct = Math.min(100, Math.round(max * 220));
+                    const bar = document.getElementById('micLevelBar');
+                    if (bar) bar.style.width = pct + '%';
+                    if (max > levelPeak) levelPeak = max;
+                    if (max > 0.04) levelLastLoud = Date.now();
+                    const hint = document.getElementById('micLevelHint');
+                    if (hint) {
+                        if (Date.now() - levelLastLoud > 6000) {
+                            hint.innerHTML = '<span style="color:#ef4444; font-weight:700;">Ses gelmiyor: yanlış mikrofon seçili ya da mikrofon kısık olabilir (Windows Ayarlar → Ses → Giriş).</span>';
+                        } else {
+                            hint.textContent = '';
+                        }
+                    }
+                    levelRaf = requestAnimationFrame(tick);
+                };
+                tick();
+            } catch (e) {
+                const host = document.getElementById('voiceStatusSubtext');
+                if (host && !document.getElementById('micLevelWrap')) {
+                    const w = document.createElement('div');
+                    w.id = 'micLevelWrap';
+                    w.style.cssText = 'margin-top:6px; font-size:0.72rem; color:#ef4444;';
+                    w.textContent = 'Mikrofon erişimi: ' + (e && e.name ? e.name : 'hata');
+                    host.parentNode.insertBefore(w, host.nextSibling);
+                }
+            }
+        }
+
+        function stopLevelMeter() {
+            if (levelRaf) { cancelAnimationFrame(levelRaf); levelRaf = null; }
+            if (levelStream) { levelStream.getTracks().forEach(t => { try { t.stop(); } catch (e) {} }); levelStream = null; }
+            if (levelCtx) { try { levelCtx.close(); } catch (e) {} levelCtx = null; }
+            const w = document.getElementById('micLevelWrap');
+            if (w && w.parentNode) w.parentNode.removeChild(w);
+        }
+
         function startVoiceGradingForExam(examId) {
             const exam = examPointList.find(e => e.id === examId);
             if (!exam) return;
@@ -2211,6 +2290,7 @@
 
             document.getElementById('voiceGradingModal').classList.add('active');
             acquireWakeLock();
+            startLevelMeter();
             resetToStudentStep();
             startMicrophoneListening();
         }
@@ -2224,6 +2304,7 @@
             }
             document.getElementById('voiceGradingModal').classList.remove('active');
             releaseWakeLock();
+            stopLevelMeter();
             renderExamsAccordion();
         }
 
@@ -2887,7 +2968,7 @@
                 if (noResultWatchdog) clearTimeout(noResultWatchdog);
                 noResultWatchdog = setTimeout(() => {
                     if (recognition === rec && !sessionHandled && !pendingAlts) {
-                        setMicStatus(`<span style="color:#f59e0b; font-weight:700;">Tarayıcı sesi metne çeviremedi (sunucu yanıt vermedi).</span> Chrome veya Edge ile açın; yeniden dinleniyor...`);
+                        setMicStatus(`<span style="color:#f59e0b; font-weight:700;">Tarayıcı sesi metne çeviremedi (sunucu yanıt vermedi).</span> Mikrofon çubuğu konuşurken hareket ediyor mu? Hareket etmiyorsa Windows Ayarlar → Ses → Giriş bölümünden doğru mikrofonu seçin. Yeniden dinleniyor...`);
                         micConfigIdx++;
                         micDbg('sonuç gelmedi, ayar #' + (micConfigIdx % 4) + ' ile yeniden deneniyor');
                         try { rec.abort(); } catch (e) {}
