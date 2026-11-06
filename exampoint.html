@@ -1310,7 +1310,7 @@
                     <div class="transition-options">
                         <label class="mode-option-label selected" id="lblModeAuto">
                             <input type="radio" name="voiceTransitionMode" value="auto15" checked onchange="setTransitionMode('auto15')">
-                            <span><i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> Notu Söyledikten 1 Sn Sonra Otomatik Geç</span>
+                            <span><i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> Notu Söyledikten <input type="number" id="autoDelayInput" min="0.3" max="10" step="0.1" value="1" onclick="event.stopPropagation(); event.preventDefault();" onchange="setAutoDelay(this.value)" oninput="setAutoDelay(this.value)" style="width:62px; padding:2px 6px; margin:0 4px; border:1.5px solid #c7d2fe; border-radius:8px; font-family:inherit; font-weight:800; font-size:16px; text-align:center;"> Sn Sonra Otomatik Geç</span>
                         </label>
                         <label class="mode-option-label" id="lblModeConfirm">
                             <input type="radio" name="voiceTransitionMode" value="confirm" onchange="setTransitionMode('confirm')">
@@ -2377,6 +2377,7 @@
 
             document.getElementById('voiceGradingModal').classList.add('active');
             acquireWakeLock();
+            initAutoDelayInput();
             ensureEngineToggle();
             startLevelMeter();
             resetToStudentStep();
@@ -2598,11 +2599,32 @@
             saveExamsToStore();
 
             if (transitionMode === 'auto15') {
-                startAutoAdvanceCountdown(1000);
+                startAutoAdvanceCountdown(getAutoDelayMs());
             } else {
                 document.getElementById('voiceStatusSubtext').innerHTML =
                     `<span style="color:#059669; font-weight:800;">${currentQuestionIndex}. Soru için ${numScore} puan kaydedildi.</span> Diğer soruya geçmek için <b>"Onayla / Sonraki Soru"</b> tuşuna basın.`;
             }
+        }
+
+        // Notu söyledikten sonra otomatik geçiş bekleme süresi (kullanıcı ayarlı, cihazda saklanır)
+        function getAutoDelayMs() {
+            let v = NaN;
+            try { v = parseFloat(localStorage.getItem('ep_auto_delay')); } catch (e) {}
+            if (isNaN(v) || v < 0.3) v = 1;
+            if (v > 10) v = 10;
+            return Math.round(v * 1000);
+        }
+        function setAutoDelay(raw) {
+            const v = parseFloat(String(raw).replace(',', '.'));
+            if (isNaN(v)) return;
+            const clamped = Math.min(10, Math.max(0.3, v));
+            try { localStorage.setItem('ep_auto_delay', String(clamped)); } catch (e) {}
+            const lbl = document.getElementById('autoTimerLabel');
+            if (lbl) lbl.textContent = clamped + ' saniye içinde diğer soruya geçiliyor...';
+        }
+        function initAutoDelayInput() {
+            const inp = document.getElementById('autoDelayInput');
+            if (inp) inp.value = getAutoDelayMs() / 1000;
         }
 
         function startAutoAdvanceCountdown(durationMs = 1500) {
