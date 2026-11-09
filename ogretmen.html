@@ -921,7 +921,8 @@
                         } else if (statusVal === 'DİĞER') {
                             session.studentStatuses[studentNo] = 'DİĞER';
                         } else if (statusVal === 'TEMİZLE') {
-                            delete session.studentStatuses[studentNo];
+                            // TEMİZLE bir durum değildir: öğrenciyi varsayılan duruma (GELDİ = sistemde 'Aktif') döndürür
+                            session.studentStatuses[studentNo] = 'Aktif';
                         }
 
                         // Dağıtım sonuçlarındaki koltukta da sakla (dağıtımla birlikte kalıcı olsun)
