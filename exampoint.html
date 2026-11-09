@@ -13,11 +13,11 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- SweetAlert2 -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="js/vendor/sweetalert2.min.css">
     <!-- Base Styles -->
     <link rel="stylesheet" href="css/style.css">
     <!-- SweetAlert2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/vendor/sweetalert2.all.min.js"></script>
     <!-- Core DataManager -->
     <script src="js/core_data_v11_9_1.js"></script>
     <!-- Auth Check -->
@@ -3036,8 +3036,7 @@
             const MIC_CONFIGS = [
                 { lang: 'tr-TR', continuous: false, interim: true, alt: 1 },
                 { lang: 'tr', continuous: true, interim: true, alt: 1 },
-                { lang: 'tr-TR', continuous: true, interim: false, alt: 1 },
-                { lang: 'en-US', continuous: false, interim: true, alt: 1 }
+                { lang: 'tr-TR', continuous: true, interim: false, alt: 5 }
             ];
             const cfg = MIC_CONFIGS[micConfigIdx % MIC_CONFIGS.length];
             rec.lang = cfg.lang;
@@ -3089,7 +3088,8 @@
                     if (recognition === rec && !sessionHandled && !pendingAlts) {
                         setMicStatus(`<span style="color:#f59e0b; font-weight:700;">Tarayıcı sesi metne çeviremedi (sunucu yanıt vermedi).</span> Mikrofon çubuğu konuşurken hareket ediyor mu? Hareket etmiyorsa Windows Ayarlar → Ses → Giriş bölümünden doğru mikrofonu seçin. Yeniden dinleniyor...`);
                         micConfigIdx++;
-                        if (micConfigIdx >= 2) {
+                        const isMobileDev = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+                        if (!isMobileDev && micConfigIdx >= 2) {
                             setMicEngine('vosk');
                             micDbg('tarayıcı sesi çözemedi, çevrimdışı motora geçiliyor');
                             destroyCurrentRecognition();
@@ -3199,7 +3199,7 @@
         // Tarayıcı ses servisi sonuç döndürmediğinde (ör. bazı Windows Chrome kurulumları) otomatik devreye girer.
         // =========================================================
         const VOSK_MODEL_URL = 'models/vosk-model-small-tr-0.3.tar.gz';
-        const VOSK_LIB_URL = 'https://cdn.jsdelivr.net/npm/vosk-browser@0.0.8/dist/vosk.js';
+        const VOSK_LIB_URL = 'js/vendor/vosk.js';
         const VOSK_GRAMMAR = JSON.stringify([
             'sıfır', 'bir', 'iki', 'üç', 'dört', 'beş', 'altı', 'yedi', 'sekiz', 'dokuz',
             'on', 'yirmi', 'otuz', 'kırk', 'elli', 'altmış', 'yetmiş', 'seksen', 'doksan',
@@ -3211,10 +3211,10 @@
         let voskStream = null, voskNode = null, voskSource = null, voskActive = false, voskToken = 0;
 
         function getMicEngine() {
-            try { return localStorage.getItem('ep_engine') === 'vosk' ? 'vosk' : 'web'; } catch (e) { return 'web'; }
+            try { return sessionStorage.getItem('ep_engine_v2') === 'vosk' ? 'vosk' : 'web'; } catch (e) { return 'web'; }
         }
         function setMicEngine(name) {
-            try { localStorage.setItem('ep_engine', name); } catch (e) {}
+            try { sessionStorage.setItem('ep_engine_v2', name); } catch (e) {}
             updateEngineToggleLabel();
         }
 

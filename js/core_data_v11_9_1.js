@@ -1,3 +1,43 @@
+// Güvenli İnternet / Ağ Engeli Koruması: Doğrudan Firebase erişimi engellenirse otomatik olarak kendi alan adımızdaki (/fb_proxy/) üzerinden bağlanır
+(function() {
+    if (typeof window === 'undefined' || window._klbkFbFetchPatched || typeof window.fetch !== 'function') return;
+    window._klbkFbFetchPatched = true;
+    const origFetch = window.fetch.bind(window);
+    const FB_ORIGIN = 'https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app';
+    let preferProxy = false;
+    try { preferProxy = sessionStorage.getItem('klbk_prefer_fb_proxy') === '1'; } catch (e) {}
+
+    window.fetch = async function(input, init) {
+        const urlStr = (typeof input === 'string') ? input : (input && input.url ? input.url : '');
+        const isLocalhost = /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname || '');
+        if (!urlStr || !urlStr.startsWith(FB_ORIGIN) || isLocalhost || !window.location.protocol.startsWith('http')) {
+            return origFetch(input, init);
+        }
+        const proxyUrl = '/fb_proxy' + urlStr.substring(FB_ORIGIN.length);
+        if (preferProxy) {
+            try {
+                const pRes = await origFetch(proxyUrl, init);
+                if (pRes.ok || pRes.status < 500) return pRes;
+            } catch (e) {}
+        }
+        try {
+            const res = await origFetch(input, init);
+            return res;
+        } catch (err) {
+            try {
+                const fallbackRes = await origFetch(proxyUrl, init);
+                if (fallbackRes.ok) {
+                    preferProxy = true;
+                    try { sessionStorage.setItem('klbk_prefer_fb_proxy', '1'); } catch (e) {}
+                }
+                return fallbackRes;
+            } catch (err2) {
+                throw err;
+            }
+        }
+    };
+})();
+
 /**
  * Data Storage & Management Module
  * Manages school settings, classes, students, and classrooms using LocalStorage

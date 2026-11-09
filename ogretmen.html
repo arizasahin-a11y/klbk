@@ -17,8 +17,8 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
     <!-- PDF Modification Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/pdf-lib/dist/pdf-lib.min.js'"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js'"></script>
+    <script src="js/vendor/pdf-lib.min.js" defer></script>
+    <script src="js/vendor/fontkit.umd.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
     <!-- Ortak PDF Başlık render fonksiyonu (dashboard ile aynı tema desteği) -->
     <script src="js/pdf_engine_v11_9_1.js?v=12.4"></script>
@@ -410,7 +410,7 @@
     <script src="js/auth.js"></script>
 <script src="js/core_data_v11_9_1.js?v=12.3"></script>
     <script src="js/session_attendance_report.js?v=1.5"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/vendor/sweetalert2.all.min.js"></script>
     <script>
         // Rescue Error Handler: Log errors safely without freezing mobile browsers
         window.onerror = function(msg, url, lineNo, columnNo, error) {
@@ -498,8 +498,7 @@
         async function syncTime() {
             const statusEl = document.getElementById('timeSyncStatus');
             const timeApis = [
-                'https://timeapi.io/api/Time/current/zone?timeZone=Europe/Istanbul',
-                'https://worldtimeapi.org/api/timezone/Europe/Istanbul'
+                'https://timeapi.io/api/Time/current/zone?timeZone=Europe/Istanbul'
             ];
 
             // Set local fallback base time immediately so timers can start instantly!

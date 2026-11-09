@@ -21,7 +21,7 @@
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <link rel="stylesheet" href="css/style.css">
     <!-- Kritik JS dosyalarını önceden indir -->
-    <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/sweetalert2@11">
+    <link rel="preload" as="script" href="js/vendor/sweetalert2.all.min.js">
     <link rel="preload" as="script" href="js/core_data_v11_9_1.js?v=12.3">
     <style>
         @keyframes blink {
@@ -736,11 +736,11 @@
     </div>
 
     <!-- PDF Modification Libraries (defer: sayfa render'ı engellemez) -->
-    <script defer src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
-    <script defer src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js"></script>
+    <script defer src="js/vendor/pdf-lib.min.js"></script>
+    <script defer src="js/vendor/fontkit.umd.min.js"></script>
     <!-- Ortak PDF Başlık render fonksiyonu ve openSafePdf -->
     <script defer src="js/pdf_engine_v11_9_1.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/vendor/sweetalert2.all.min.js"></script>
     <script src="js/core_data_v11_9_1.js?v=12.3"></script>
     <script src="js/ogrenci.js?v=37"></script>
 
@@ -755,13 +755,16 @@
 </style>
 <div id="appLoader" class="loader-wrapper"><div class="loader-content"><div class="loader-spinner-alt"></div>
 <script>
-window.addEventListener('DOMContentLoaded', () => {
+function dismissAppLoader() {
     const loader = document.getElementById('appLoader');
     if (loader) {
         loader.classList.add('fade-out');
-        setTimeout(() => loader.remove(), 600);
+        setTimeout(() => { if (loader && loader.parentNode) loader.remove(); }, 400);
     }
-});
+}
+window.addEventListener('DOMContentLoaded', dismissAppLoader);
+window.addEventListener('load', dismissAppLoader);
+setTimeout(dismissAppLoader, 1200);
 </script>
 
 </body>

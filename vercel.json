@@ -1,9 +1,21 @@
 {
   "headers": [
     {
+      "source": "/js/vendor/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
       "source": "/models/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
@@ -30,6 +42,10 @@
     }
   ],
   "routes": [
+    {
+      "src": "/fb_proxy/(.*)",
+      "dest": "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app/$1"
+    },
     {
       "src": "^/$",
       "dest": "/enter.html"
