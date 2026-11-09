@@ -952,8 +952,8 @@
                         
                         // In-place UI update so mobile user doesn't lose scroll position or dropdown state
                         const safeNo = String(studentNo).replace(/\s+/g, '');
-                        const badgeEl = document.getElementById(`std-badge-${sessionId}-${safeNo}`);
-                        const rowEl = document.getElementById(`std-row-${sessionId}-${safeNo}`);
+                        const badgeEl = document.getElementById(`std-badge-${sesId}-${safeNo}`);
+                        const rowEl = document.getElementById(`std-row-${sesId}-${safeNo}`);
                         if (badgeEl && rowEl) {
                             const updatedStatus = (statusVal === 'TEMİZLE' || statusVal === 'Aktif' || !statusVal) ? 'GELDİ' : statusVal;
                             const statusColor = updatedStatus === 'GELMEDİ' ? 'var(--danger)' : (updatedStatus === 'KOPYA' ? '#7f1d1d' : (updatedStatus === 'DİĞER' ? '#0284c7' : '#059669'));
