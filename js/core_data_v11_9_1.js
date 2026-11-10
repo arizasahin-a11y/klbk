@@ -464,7 +464,14 @@ const DataManager = {
                     const formData = new URLSearchParams();
                     formData.append('action', 'upload');
                     formData.append('fileName', uniqueFileName);
-                    formData.append('mimeType', file.type || 'application/pdf');
+                    const ext = (file.name || '').split('.').pop().toLowerCase();
+                    const extMimeMap = {
+                        mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', ogg: 'audio/ogg', aac: 'audio/aac', flac: 'audio/flac',
+                        mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime', avi: 'video/x-msvideo', mkv: 'video/x-matroska',
+                        pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp'
+                    };
+                    const resolvedMime = file.type || extMimeMap[ext] || 'application/octet-stream';
+                    formData.append('mimeType', resolvedMime);
                     formData.append('fileData', base64Data);
 
                     const res = await fetch(this.gasStorageUrl, {

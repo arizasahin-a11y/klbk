@@ -4111,12 +4111,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         newRow.className = 'input-group uygulama-file-row';
         newRow.style.cssText = 'display:flex; align-items:center; gap:3px; margin-top:4px;';
         newRow.innerHTML = `
-            <span style="font-size:0.7rem; font-weight:700; color:var(--gray-500); min-width:60px;">${fIdx + 1}. dosya</span>
-            <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-uyg-idx="${fIdx}" style="flex:1; margin:0; height:30px; font-size:0.8rem; padding:0 6px;" value="" placeholder="Uygulama dosyası linki">
+            <span style="font-size:0.7rem; font-weight:700; color:var(--secondary); min-width:60px;"><i class="fa-solid fa-circle-play"></i> ${fIdx + 1}. dosya</span>
+            <input type="text" class="swal2-input meta-paper-input" data-sub="${sub}" data-uyg-idx="${fIdx}" style="flex:1; margin:0; height:30px; font-size:0.8rem; padding:0 6px;" value="" placeholder="Link (YouTube, Drive, Web) veya MP3 / MP4 / PDF">
+            <button type="button" class="btn btn-secondary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.pasteToInput(this)" title="Yapıştır"><i class="fa-solid fa-paste"></i></button>
             <button type="button" class="btn btn-secondary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.showValidationMessage('Önce bir link girin');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
-            <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem; background:#6366f1; border-color:#6366f1;" onclick="window.testUygulamaMedia(this)" title="Medya Test"><i class="fa-solid fa-play"></i> Test</button>
+            <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem; background:#6366f1; border-color:#6366f1;" onclick="window.testUygulamaMedia(this)" title="Medya / Link Test"><i class="fa-solid fa-play"></i> Test</button>
             <button type="button" class="btn btn-info btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.showCloudFiles(this)" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
-            <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.browseToInput(this)" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+            <button type="button" class="btn btn-primary btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="window.browseToInput(this)" title="Dosya Yükle (MP3, MP4, Ses, Video, PDF)"><i class="fa-solid fa-cloud-arrow-up"></i></button>
             <button type="button" class="btn btn-danger btn-sm" style="height:30px; padding:0 7px; font-size:0.7rem;" onclick="this.closest('.uygulama-file-row').remove();" title="Sil"><i class="fa-solid fa-trash"></i></button>
         `;
         container.appendChild(newRow);

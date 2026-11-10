@@ -1840,10 +1840,10 @@
                                     : `Uygulama dosyası yüklenmedi`;
 
                                 const pdfText = pdfCount > 0
-                                    ? `<strong style="color:#ef4444; font-size:0.9rem; font-weight:900;">${pdfCount}</strong> Soru kağıdı PDF'i yüklendi`
-                                    : `PDF dosyası yüklenmedi`;
+                                    ? `, <strong style="color:#ef4444; font-size:0.9rem; font-weight:900;">${pdfCount}</strong> Soru kağıdı PDF'i yüklendi`
+                                    : ``;
 
-                                subStatusText = `${uygText}, ${pdfText}`;
+                                subStatusText = `${uygText}${pdfText}`;
                             } else {
                                 subStatusText = currentPdf ? 'Sınav kağıdı yüklendi' : 'Sınav kağıdı bekleniyor...';
                             }
@@ -1946,35 +1946,24 @@
                                     const currentPdf = (typeof meta.papers === 'object' && meta.papers !== null && typeof meta.papers['default'] === 'string') ? meta.papers['default'] : '';
                                     
                                     papersHtml = `
-                                        <div style="background: #fffbeb; padding: 1.25rem; border-radius: 12px; box-shadow: var(--shadow-sm); border: 2px solid #fde68a; margin-bottom: 1.25rem;">
-                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                                <label style="font-size: 0.75rem; font-weight: 800; color: var(--gray-500); text-transform:uppercase; margin: 0;">
-                                                    <i class="fa-solid fa-file-pdf" style="color:var(--danger)"></i> Soru Kağıdı Bağlantısı
-                                                </label>
-                                            </div>
-                                            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                                                <input type="text" id="pdfLink-${ses.id}-${encodedSub}" class="form-control meta-paper-pdf-input" style="flex:1; padding:0.75rem; border:2px solid var(--gray-200); border-radius:10px; font-weight:600;" placeholder="PDF linki yazın veya yükleyin..." value="${currentPdf}" onchange="savePdfLink('${ses.id}', '${encodedSub}')">
-                                                <button class="btn btn-primary" style="padding: 0.75rem 1.25rem; border-radius:10px; font-weight:800; font-size: 0.85rem;" onclick="savePdfLink('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-save"></i> KAYDET</button>
-                                            </div>
-                                            ${renderActions(null)}
-                                        </div>
                                         <div style="background: #f0fdf4; padding: 1.25rem; border-radius: 12px; box-shadow: var(--shadow-sm); border: 2px solid #bbf7d0; margin-bottom: 1.25rem;">
-                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                                <label style="font-size: 0.75rem; font-weight: 800; color: var(--gray-500); text-transform:uppercase; margin: 0;">
-                                                    <i class="fa-solid fa-file-audio" style="color:var(--secondary)"></i> Uygulama Dosyaları
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px;">
+                                                <label style="font-size: 0.75rem; font-weight: 800; color: #166534; text-transform:uppercase; margin: 0;">
+                                                    <i class="fa-solid fa-circle-play" style="color:var(--secondary)"></i> Uygulama Dosyaları veya Linkleri (MP3, MP4, YouTube, Drive, Link, PDF)
                                                 </label>
                                             </div>
                                             <div class="uygulama-files-container" id="uyg-container-${ses.id}-${encodedSub}">`;
                                     
                                     files.forEach((fileLink, fIdx) => {
                                         papersHtml += `
-                                            <div class="input-group uygulama-file-row" style="display:flex; align-items:center; gap:5px; margin-top:8px;">
+                                            <div class="input-group uygulama-file-row" style="display:flex; align-items:center; gap:5px; margin-top:8px; flex-wrap:wrap;">
                                                 <span style="font-size:0.75rem; font-weight:700; color:var(--gray-500); min-width:60px;">${fIdx + 1}. dosya</span>
-                                                <input type="text" class="form-control meta-paper-input" data-uyg-idx="${fIdx}" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" value="${fileLink}" placeholder="Ses/video dosyası linki" onchange="saveUygulamaFiles('${ses.id}', '${encodedSub}')">
+                                                <input type="text" class="form-control meta-paper-input" data-uyg-idx="${fIdx}" style="flex:1; min-width:180px; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" value="${fileLink}" placeholder="Link (YouTube, Drive, Web) veya MP3 / MP4 / PDF dosyası..." onchange="saveUygulamaFiles('${ses.id}', '${encodedSub}')">
+                                                <button type="button" class="btn btn-secondary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="pasteUygulamaLinkTeacher(this, '${ses.id}', '${encodedSub}')" title="Panodan Link Yapıştır"><i class="fa-solid fa-paste"></i></button>
                                                 <button type="button" class="btn btn-secondary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.fire('Eksik', 'Önce bir link girin', 'warning');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
-                                                <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem; background:#6366f1; border-color:#6366f1;" onclick="testUygulamaMediaTeacher(this)" title="Medya Test"><i class="fa-solid fa-play"></i> Test</button>
+                                                <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem; background:#6366f1; border-color:#6366f1;" onclick="testUygulamaMediaTeacher(this)" title="Medya / Link Test"><i class="fa-solid fa-play"></i> Test</button>
                                                 <button type="button" class="btn btn-info btn-sm" style="padding: 0.65rem 0.85rem;" onclick="openCloudBrowserForMedia(this, '${ses.id}', '${encodedSub}')" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
-                                                <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="browseMediaFileTeacher(this, '${ses.id}', '${encodedSub}')" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+                                                <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="browseMediaFileTeacher(this, '${ses.id}', '${encodedSub}')" title="Dosya Yükle (MP3, MP4, Ses, Video, PDF)"><i class="fa-solid fa-cloud-arrow-up"></i></button>
                                                 <button type="button" class="btn btn-danger btn-sm" style="padding: 0.65rem 0.85rem;" onclick="this.closest('.uygulama-file-row').remove(); saveUygulamaFiles('${ses.id}', '${encodedSub}');" title="Sil"><i class="fa-solid fa-trash"></i></button>
                                             </div>`;
                                     });
@@ -1982,9 +1971,21 @@
                                     papersHtml += `
                                             </div>
                                             <div style="margin-top: 10px; display:flex; justify-content:space-between; align-items:center;">
-                                                <button type="button" class="btn btn-secondary btn-sm" onclick="addUygulamaFileRowTeacher('${ses.id}', '${encodedSub}')" style="font-size: 0.75rem; padding:6px 12px;"><i class="fa-solid fa-plus"></i> Ekle</button>
+                                                <button type="button" class="btn btn-secondary btn-sm" onclick="addUygulamaFileRowTeacher('${ses.id}', '${encodedSub}')" style="font-size: 0.75rem; padding:6px 12px;"><i class="fa-solid fa-plus"></i> Yeni Dosya / Link Ekle</button>
                                                 <button class="btn btn-primary" style="padding: 0.65rem 1.25rem; border-radius:10px; font-weight:800; font-size: 0.85rem;" onclick="saveUygulamaFiles('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-save"></i> TÜMÜNÜ KAYDET</button>
                                             </div>
+                                        </div>
+                                        <div style="background: #fffbeb; padding: 1.25rem; border-radius: 12px; box-shadow: var(--shadow-sm); border: 2px solid #fde68a; margin-bottom: 1.25rem;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                                <label style="font-size: 0.75rem; font-weight: 800; color: var(--gray-500); text-transform:uppercase; margin: 0;">
+                                                    <i class="fa-solid fa-file-pdf" style="color:var(--danger)"></i> Basılı Soru Kağıdı PDF Bağlantısı (İsteğe Bağlı)
+                                                </label>
+                                            </div>
+                                            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                                                <input type="text" id="pdfLink-${ses.id}-${encodedSub}" class="form-control meta-paper-pdf-input" style="flex:1; padding:0.75rem; border:2px solid var(--gray-200); border-radius:10px; font-weight:600;" placeholder="İsteğe bağlı basılı soru kağıdı PDF linki..." value="${currentPdf}" onchange="savePdfLink('${ses.id}', '${encodedSub}')">
+                                                <button class="btn btn-primary" style="padding: 0.75rem 1.25rem; border-radius:10px; font-weight:800; font-size: 0.85rem;" onclick="savePdfLink('${ses.id}', '${encodedSub}')"><i class="fa-solid fa-save"></i> KAYDET</button>
+                                            </div>
+                                            ${renderActions(null)}
                                         </div>`;
                                 } else if (hasGroups) {
                                     for (let i = 0; i < groupCount; i++) {
@@ -2451,6 +2452,23 @@
             }
         }
 
+        async function pasteUygulamaLinkTeacher(btn, sesId, encodedSub) {
+            try {
+                let text = await navigator.clipboard.readText();
+                if (text) {
+                    text = text.replace(/[",]/g, '').trim();
+                    const row = btn.closest('.uygulama-file-row');
+                    const inp = row ? row.querySelector('input.meta-paper-input') : null;
+                    if (inp) {
+                        inp.value = text;
+                        saveUygulamaFiles(sesId, encodedSub);
+                    }
+                }
+            } catch (err) {
+                Swal.fire('Bilgi', 'Panodan okuma izni verilmedi. Lütfen kutuya basılı tutup veya Ctrl+V ile yapıştırın.', 'info');
+            }
+        }
+
         function addUygulamaFileRowTeacher(sesId, encodedSub) {
             const container = document.getElementById(`uyg-container-${sesId}-${encodedSub}`);
             if (!container) return;
@@ -2459,14 +2477,15 @@
             const fIdx = rowCount;
             const newRow = document.createElement('div');
             newRow.className = 'input-group uygulama-file-row';
-            newRow.style.cssText = 'display:flex; align-items:center; gap:5px; margin-top:8px;';
+            newRow.style.cssText = 'display:flex; align-items:center; gap:5px; margin-top:8px; flex-wrap:wrap;';
             newRow.innerHTML = `
                 <span style="font-size:0.75rem; font-weight:700; color:var(--gray-500); min-width:60px;">${fIdx + 1}. dosya</span>
-                <input type="text" class="form-control meta-paper-input" data-uyg-idx="${fIdx}" style="flex:1; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" value="" placeholder="Ses/video dosyası linki" onchange="saveUygulamaFiles('${sesId}', '${encodedSub}')">
+                <input type="text" class="form-control meta-paper-input" data-uyg-idx="${fIdx}" style="flex:1; min-width:180px; padding:0.65rem; border:1px solid var(--gray-300); border-radius:8px; font-weight:600;" value="" placeholder="Link (YouTube, Drive, Web) veya MP3 / MP4 / PDF dosyası..." onchange="saveUygulamaFiles('${sesId}', '${encodedSub}')">
+                <button type="button" class="btn btn-secondary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="pasteUygulamaLinkTeacher(this, '${sesId}', '${encodedSub}')" title="Panodan Link Yapıştır"><i class="fa-solid fa-paste"></i></button>
                 <button type="button" class="btn btn-secondary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="const inp=this.closest('div').querySelector('input.meta-paper-input'); if(inp && inp.value) window.open(inp.value, '_blank'); else Swal.fire('Eksik', 'Önce bir link girin', 'warning');" title="Linki Aç"><i class="fa-solid fa-external-link"></i></button>
-                <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem; background:#6366f1; border-color:#6366f1;" onclick="testUygulamaMediaTeacher(this)" title="Medya Test"><i class="fa-solid fa-play"></i> Test</button>
+                <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem; background:#6366f1; border-color:#6366f1;" onclick="testUygulamaMediaTeacher(this)" title="Medya / Link Test"><i class="fa-solid fa-play"></i> Test</button>
                 <button type="button" class="btn btn-info btn-sm" style="padding: 0.65rem 0.85rem;" onclick="openCloudBrowserForMedia(this, '${sesId}', '${encodedSub}')" title="Buluttan Seç"><i class="fa-solid fa-cloud"></i></button>
-                <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="browseMediaFileTeacher(this, '${sesId}', '${encodedSub}')" title="Yükle"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+                <button type="button" class="btn btn-primary btn-sm" style="padding: 0.65rem 0.85rem;" onclick="browseMediaFileTeacher(this, '${sesId}', '${encodedSub}')" title="Dosya Yükle (MP3, MP4, Ses, Video, PDF)"><i class="fa-solid fa-cloud-arrow-up"></i></button>
                 <button type="button" class="btn btn-danger btn-sm" style="padding: 0.65rem 0.85rem;" onclick="this.closest('.uygulama-file-row').remove(); saveUygulamaFiles('${sesId}', '${encodedSub}');" title="Sil"><i class="fa-solid fa-trash"></i></button>
             `;
             container.appendChild(newRow);
@@ -2944,17 +2963,17 @@
                 fileInp.type = 'file';
                 fileInp.className = 'temp-media-file-input';
                 fileInp.style.display = 'none';
-                // Accept audio and video files
-                fileInp.accept = 'audio/*,video/*,.mp3,.mp4,.wav,.ogg,.webm,.avi,.mov';
+                // Accept audio, video, pdf, and image files
+                fileInp.accept = 'audio/*,video/*,application/pdf,image/*,.mp3,.mp4,.m4a,.aac,.wav,.ogg,.flac,.webm,.avi,.mov,.mkv,.pdf,.jpg,.jpeg,.png';
                 fileInp.onchange = async function() {
                     const file = fileInp.files[0];
                     if (!file) return;
                     
-                    // Validate file type
-                    const isAudio = file.type.startsWith('audio/');
-                    const isVideo = file.type.startsWith('video/');
-                    if (!isAudio && !isVideo) {
-                        Swal.fire('Hata', 'Lütfen sadece ses veya video dosyası yükleyin.', 'error');
+                    const ext = (file.name || '').split('.').pop().toLowerCase();
+                    const allowedExts = ['mp3', 'mp4', 'm4a', 'aac', 'wav', 'ogg', 'flac', 'webm', 'avi', 'mov', 'mkv', 'm4v', 'pdf', 'jpg', 'jpeg', 'png', 'webp', 'gif'];
+                    const isAllowedMime = file.type && (file.type.startsWith('audio/') || file.type.startsWith('video/') || file.type === 'application/pdf' || file.type.startsWith('image/'));
+                    if (!isAllowedMime && !allowedExts.includes(ext)) {
+                        Swal.fire('Hata', 'Lütfen geçerli bir medya (MP3, MP4, WAV vb.) veya belge (PDF, Görsel) dosyası seçin.', 'error');
                         return;
                     }
                     
@@ -3000,10 +3019,10 @@
                 didOpen: async () => {
                     try {
                         const files = await DataManager.listSupabaseFiles(true); // teacherOnly = true
-                        // Filter for media files
+                        // Filter for media & application files
                         const mediaFiles = files.filter(f => {
                             const ext = f.name.split('.').pop().toLowerCase();
-                            return ['mp3', 'mp4', 'wav', 'ogg', 'webm', 'avi', 'mov', 'm4a', 'flac'].includes(ext);
+                            return ['mp3', 'mp4', 'm4v', 'wav', 'ogg', 'webm', 'avi', 'mov', 'm4a', 'aac', 'flac', 'mkv', 'pdf', 'jpg', 'jpeg', 'png', 'webp'].includes(ext);
                         });
                         
                         if (mediaFiles.length === 0) {
