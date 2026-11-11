@@ -545,6 +545,27 @@
             background: #e0e7ff;
         }
 
+        .btn-print-exam {
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+            padding: 0.55rem 0.9rem;
+            border-radius: 10px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+
+        .btn-print-exam:hover {
+            background: #dcfce7;
+            color: #166534;
+        }
+
         .btn-delete-exam {
             background: #fef2f2;
             color: #ef4444;
@@ -1959,6 +1980,9 @@
                                 <button type="button" class="btn-table-toggle" onclick="toggleExamScoresTable('${escapeHtml(exam.id)}')" title="Öğrenci Puan Tablosunu Göster/Gizle">
                                     <i class="fa-solid fa-table-list"></i> Not Çizelgesi
                                 </button>
+                                <button type="button" class="btn-print-exam" onclick="openExamPrintPage('${escapeHtml(exam.id)}')" title="16 Sütunlu Liste Formatında Yazdır veya PDF Olarak Kaydet">
+                                    <i class="fa-solid fa-print"></i> Yazdır
+                                </button>
                                 <button type="button" class="btn-delete-exam" onclick="deleteExamItem('${escapeHtml(exam.id)}')" title="Sınavı Sil">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
@@ -2046,7 +2070,12 @@
                     <span style="font-weight:800; font-size:0.88rem; color:#334155;">
                         <i class="fa-solid fa-users"></i> ${escapeHtml(exam.className)} - ${escapeHtml(exam.subject)} (${escapeHtml(exam.examNo)}) Puan Çizelgesi
                     </span>
-                    <span style="font-size:0.78rem; color:#64748b; font-weight:600;">Hücrelere tıklayarak manuel düzeltme de yapabilirsiniz</span>
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <span style="font-size:0.78rem; color:#64748b; font-weight:600;">Hücrelere tıklayarak manuel düzeltme de yapabilirsiniz</span>
+                        <button type="button" class="btn-print-exam" onclick="openExamPrintPage('${escapeHtml(exam.id)}')" style="padding:0.4rem 0.75rem; font-size:0.8rem;">
+                            <i class="fa-solid fa-print"></i> Yazdır / PDF Kaydet
+                        </button>
+                    </div>
                 </div>
                 <table class="scores-table">
                     <thead>
@@ -2069,6 +2098,853 @@
             if (drawer) {
                 drawer.classList.toggle('open');
             }
+        }
+
+        function formatListeciStudentName(name, surname) {
+            let n = String(name || '').trim();
+            let s = String(surname || '').trim();
+            let full = (n + ' ' + s).trim();
+            if (full.length <= 30) return full;
+            let nameParts = n.split(/\s+/);
+            if (nameParts.length > 1) {
+                nameParts[1] = nameParts[1].charAt(0) + '.';
+                n = nameParts.join(' ');
+                full = (n + ' ' + s).trim();
+            }
+            if (full.length > 30 && nameParts.length > 2) {
+                nameParts[2] = nameParts[2].charAt(0) + '.';
+                n = nameParts.join(' ');
+                full = (n + ' ' + s).trim();
+            }
+            return full;
+        }
+
+        function openExamPrintPage(examId) {
+            const exam = examPointList.find(e => e.id === examId);
+            if (!exam) {
+                Swal.fire('Hata', 'Sınav bulunamadı.', 'error');
+                return;
+            }
+
+            const classStudents = getStudentsForExamClass(exam.className);
+            const scoresMap = exam.scores || {};
+            const qCount = Math.max(1, Number(exam.questionCount) || 1);
+            const colCount = Math.max(16, qCount);
+
+            const studentRows = [...classStudents];
+            const seenNos = new Set(classStudents.map(s => String(s.no).trim()));
+
+            for (const [stNo, rec] of Object.entries(scoresMap)) {
+                const cleanNo = String(stNo).trim();
+                if (!seenNos.has(cleanNo)) {
+                    studentRows.push({
+                        no: cleanNo,
+                        name: rec.studentName || `${cleanNo} Nolu Öğrenci`,
+                        surname: '',
+                        class: exam.className,
+                        alan: ''
+                    });
+                }
+            }
+
+            studentRows.sort((a, b) => (parseInt(a.no, 10) || 0) - (parseInt(b.no, 10) || 0));
+
+            const showAlan = studentRows.some(s => s && (s.alan || s.track || s.field || s.group));
+            const rowsPerPage = 40;
+            const docTitle = `${exam.className || ''} SINIFI ${exam.subject || ''} DERSİ ${exam.examNo || ''} PUAN ÇİZELGESİ`.replace(/\s+/g, ' ').trim().toLocaleUpperCase('tr-TR');
+
+            const preparedRows = studentRows.map(s => {
+                const stNo = String(s.no || '').trim();
+                const rec = scoresMap[stNo] || { questions: {}, total: null };
+                const qScores = rec.questions || {};
+                const alanVal = s.alan || s.track || s.field || s.group || '';
+                const fullName = formatListeciStudentName(s.name, s.surname);
+
+                let hasAnyScore = false;
+                let sum = 0;
+                const qVals = [];
+                for (let q = 1; q <= colCount; q++) {
+                    if (q <= qCount) {
+                        const raw = qScores[String(q)];
+                        if (raw !== undefined && raw !== null && raw !== '') {
+                            hasAnyScore = true;
+                            const num = Number(raw);
+                            if (!isNaN(num)) sum += num;
+                            qVals.push(String(raw));
+                        } else {
+                            qVals.push('');
+                        }
+                    } else {
+                        qVals.push('');
+                    }
+                }
+                const totalScoreStr = hasAnyScore ? String(Math.round(sum * 100) / 100) : '';
+                return {
+                    no: stNo,
+                    alan: String(alanVal || ''),
+                    name: fullName,
+                    qVals: qVals,
+                    total: totalScoreStr
+                };
+            });
+
+            const payloadJson = JSON.stringify({
+                docTitle: docTitle,
+                className: exam.className || '',
+                subject: exam.subject || '',
+                examNo: exam.examNo || '',
+                teacherName: exam.teacherName || activeTeacherName || '',
+                qCount: qCount,
+                colCount: colCount,
+                showAlan: showAlan,
+                rowsPerPage: rowsPerPage,
+                students: preparedRows
+            }).replace(/</g, '\\u003c');
+
+            const printWin = window.open('', '_blank');
+            if (!printWin) {
+                Swal.fire('Uyarı', 'Açılır pencere (pop-up) engellendi. Lütfen tarayıcınızdan izin verin.', 'warning');
+                return;
+            }
+
+            const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+
+            const htmlContent = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${escapeHtml(docTitle)}</title>
+    <base href="${escapeHtml(baseUrl)}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/vendor/pdf-lib.min.js"><\/script>
+    <script src="js/vendor/fontkit.umd.min.js"><\/script>
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #e2e8f0;
+        }
+        .action-bar {
+            background: white;
+            padding: 0.85rem 1.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .action-title-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .action-title-group h2 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .action-title-group span {
+            font-size: 0.8rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+        .action-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .toggle-total-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            padding: 0.55rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+            user-select: none;
+        }
+        .toggle-total-label input {
+            width: 16px;
+            height: 16px;
+            accent-color: #4f46e5;
+            cursor: pointer;
+        }
+        .btn {
+            border: none;
+            padding: 0.7rem 1.35rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .btn-print {
+            background: #4f46e5;
+            color: white;
+        }
+        .btn-pdf {
+            background: #ef4444;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: wait;
+            transform: none;
+        }
+        .page-container {
+            width: 210mm;
+            margin: 1.5rem auto;
+            background: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+            box-sizing: border-box;
+        }
+        .print-page {
+            width: 210mm;
+            height: 296mm;
+            padding: 5mm;
+            box-sizing: border-box;
+            page-break-after: always;
+            position: relative;
+            background: white;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .print-page:last-child {
+            page-break-after: auto;
+        }
+        .doc-header {
+            text-align: center;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+        .doc-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin: 0;
+            text-transform: uppercase;
+            color: #000;
+        }
+        .table-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+        .print-table {
+            width: 100%;
+            height: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 9.5pt;
+            border: 3px double #000;
+        }
+        .print-table th, .print-table td {
+            border: 1px solid #000;
+            padding: 1px 2px;
+            text-align: left;
+            box-sizing: border-box;
+        }
+        .print-table tbody tr:nth-child(even) {
+            background-color: #f1f5f9;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .print-table th {
+            font-weight: bold;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .header-row-1 th { height: 24px; }
+        .header-row-2 th { height: 50px; }
+        .col-sira { width: 25px; text-align: center !important; }
+        .col-alan { width: 35px; text-align: center !important; }
+        .col-okulno { width: 45px; text-align: center !important; }
+        .col-isim {
+            width: 200px;
+            max-width: 200px;
+            font-weight: bold;
+            text-align: left;
+            padding-left: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .col-blank {
+            width: auto;
+            text-align: center !important;
+            font-weight: 700;
+            color: #000;
+        }
+        .col-total-cell {
+            background-color: rgba(241, 245, 249, 0.7);
+            font-weight: 700;
+        }
+        .rotated-header-container {
+            width: 20px;
+            height: 85px;
+            position: relative;
+            margin: 0 auto;
+        }
+        .rotated-header-container-short {
+            width: 18px;
+            height: 46px;
+            position: relative;
+            margin: 0 auto;
+        }
+        .rotated-header {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-90deg);
+            white-space: nowrap;
+            font-weight: bold;
+            color: #000;
+            font-size: 8.5pt;
+        }
+        .print-table th:has(.rotated-header-container),
+        .print-table th:has(.rotated-header-container-short) {
+            text-align: center;
+            vertical-align: middle;
+            padding: 0;
+        }
+        @media print {
+            body {
+                background: white;
+                margin: 0;
+                padding: 0;
+            }
+            .action-bar {
+                display: none !important;
+            }
+            .page-container {
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+                width: 100%;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
+        }
+        @media screen and (max-width: 820px) {
+            .action-bar {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 0.85rem;
+            }
+            .action-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn, .toggle-total-label {
+                width: 100%;
+                justify-content: center;
+                box-sizing: border-box;
+            }
+            #pdfContent {
+                overflow-x: auto;
+                padding-bottom: 2rem;
+            }
+            .page-container {
+                margin: 0;
+                width: max-content;
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="action-bar" id="actionBar">
+        <div class="action-title-group">
+            <h2><i class="fa-solid fa-file-lines" style="color:#4f46e5;"></i> Sınav Puan Çizelgesi Önizleme (16 Sütunlu)</h2>
+            <span>${escapeHtml(docTitle)}</span>
+        </div>
+        <div class="action-controls">
+            <label class="toggle-total-label" title="Son sütunda öğrencinin toplam puanını göster/gizle">
+                <input type="checkbox" id="chkShowTotal" checked onchange="renderPrintPages()">
+                <span>Son Sütunda Toplam Puanı Göster</span>
+            </label>
+            <button class="btn btn-pdf" id="btnDownloadPdf" onclick="saveAsPdfFile()">
+                <i class="fa-solid fa-file-pdf"></i> PDF Olarak Kaydet
+            </button>
+            <button class="btn btn-print" onclick="window.print()">
+                <i class="fa-solid fa-print"></i> Yazdır
+            </button>
+        </div>
+    </div>
+
+    <div id="pdfContent">
+        <div class="page-container" id="pageContainer"></div>
+    </div>
+
+    <script>
+        const EXAM_PRINT_DATA = ${payloadJson};
+
+        function esc(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function buildSinglePageHtml(studentsSubset, startIndex, showTotalInLastCol) {
+            const { docTitle, qCount, colCount, showAlan, rowsPerPage } = EXAM_PRINT_DATA;
+            const alanTh = showAlan
+                ? '<th rowspan="2" class="col-alan"><div class="rotated-header-container"><div class="rotated-header">ALAN</div></div></th>'
+                : '';
+
+            let blankHeadersRow2 = '';
+            for (let c = 1; c <= colCount; c++) {
+                if (c <= qCount) {
+                    blankHeadersRow2 += '<th class="col-blank"><div class="rotated-header-container-short"><div class="rotated-header">' + c + '. SORU</div></div></th>';
+                } else if (showTotalInLastCol && c === colCount) {
+                    blankHeadersRow2 += '<th class="col-blank"><div class="rotated-header-container-short"><div class="rotated-header">TOPLAM</div></div></th>';
+                } else {
+                    blankHeadersRow2 += '<th class="col-blank"></th>';
+                }
+            }
+
+            let rowsHtml = '';
+            for (let i = 0; i < rowsPerPage; i++) {
+                const st = studentsSubset[i];
+                let scoreCells = '';
+                for (let c = 1; c <= colCount; c++) {
+                    let cellVal = '';
+                    let extraCls = '';
+                    if (st) {
+                        if (c <= qCount) {
+                            cellVal = st.qVals[c - 1] !== undefined ? st.qVals[c - 1] : '';
+                        } else if (showTotalInLastCol && c === colCount) {
+                            cellVal = st.total || '';
+                            extraCls = ' col-total-cell';
+                        }
+                    }
+                    scoreCells += '<td class="col-blank' + extraCls + '">' + esc(cellVal) + '</td>';
+                }
+
+                if (st) {
+                    const alanTd = showAlan ? '<td class="col-alan">' + esc(st.alan) + '</td>' : '';
+                    rowsHtml += '<tr>' +
+                        '<td class="col-sira">' + (startIndex + i) + '</td>' +
+                        alanTd +
+                        '<td class="col-okulno">' + esc(st.no) + '</td>' +
+                        '<td class="col-isim">' + esc(st.name) + '</td>' +
+                        scoreCells +
+                    '</tr>';
+                } else {
+                    const alanTd = showAlan ? '<td class="col-alan"></td>' : '';
+                    rowsHtml += '<tr>' +
+                        '<td class="col-sira">' + (startIndex + i) + '</td>' +
+                        alanTd +
+                        '<td class="col-okulno"></td>' +
+                        '<td class="col-isim"></td>' +
+                        scoreCells +
+                    '</tr>';
+                }
+            }
+
+            return '<div class="print-page">' +
+                '<div class="doc-header"><h1 class="doc-title">' + esc(docTitle) + '</h1></div>' +
+                '<div class="table-container">' +
+                    '<table class="print-table">' +
+                        '<thead>' +
+                            '<tr class="header-row-1">' +
+                                '<th rowspan="2" class="col-sira"><div class="rotated-header-container"><div class="rotated-header">SIRA</div></div></th>' +
+                                alanTh +
+                                '<th rowspan="2" class="col-okulno"><div class="rotated-header-container"><div class="rotated-header">NUMARA</div></div></th>' +
+                                '<th rowspan="2" class="col-isim">ÖĞRENCİNİN ADI SOYADI</th>' +
+                                '<th colspan="' + colCount + '" style="border-bottom: 1px solid #000;">SORU PUANLARI</th>' +
+                            '</tr>' +
+                            '<tr class="header-row-2">' +
+                                blankHeadersRow2 +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>' +
+                            rowsHtml +
+                        '</tbody>' +
+                    '</table>' +
+                '</div>' +
+            '</div>';
+        }
+
+        function renderPrintPages() {
+            const chk = document.getElementById('chkShowTotal');
+            const showTotal = chk ? chk.checked : true;
+            const { students, rowsPerPage, qCount, colCount } = EXAM_PRINT_DATA;
+            const canShowTotal = showTotal && (colCount > qCount);
+
+            let html = '';
+            if (!students || students.length === 0) {
+                html += buildSinglePageHtml([], 1, canShowTotal);
+            } else {
+                for (let i = 0; i < students.length; i += rowsPerPage) {
+                    const subset = students.slice(i, i + rowsPerPage);
+                    html += buildSinglePageHtml(subset, i + 1, canShowTotal);
+                }
+            }
+            document.getElementById('pageContainer').innerHTML = html;
+        }
+
+        async function saveAsPdfFile() {
+            const btn = document.getElementById('btnDownloadPdf');
+            const origHtml = btn ? btn.innerHTML : '';
+            try {
+                if (typeof PDFLib === 'undefined' || typeof fontkit === 'undefined') {
+                    window.print();
+                    return;
+                }
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> PDF Hazırlanıyor...';
+                }
+
+                const { PDFDocument, rgb, degrees } = PDFLib;
+                const [regBuf, boldBuf] = await Promise.all([
+                    fetch('fonts/Roboto-Regular.ttf').then(r => { if (!r.ok) throw new Error('Font load error'); return r.arrayBuffer(); }),
+                    fetch('fonts/Roboto-Bold.ttf').then(r => { if (!r.ok) throw new Error('Font load error'); return r.arrayBuffer(); })
+                ]);
+
+                const pdfDoc = await PDFDocument.create();
+                pdfDoc.registerFontkit(fontkit);
+                const fontReg = await pdfDoc.embedFont(regBuf);
+                const fontBold = await pdfDoc.embedFont(boldBuf);
+
+                const chk = document.getElementById('chkShowTotal');
+                const showTotal = chk ? chk.checked : true;
+                const { docTitle, students, rowsPerPage, qCount, colCount, showAlan, className, subject, examNo } = EXAM_PRINT_DATA;
+                const canShowTotal = showTotal && (colCount > qCount);
+
+                const chunks = [];
+                if (!students || students.length === 0) {
+                    chunks.push({ subset: [], startIndex: 1 });
+                } else {
+                    for (let i = 0; i < students.length; i += rowsPerPage) {
+                        chunks.push({ subset: students.slice(i, i + rowsPerPage), startIndex: i + 1 });
+                    }
+                }
+
+                // A4 Portrait in points: 595.28 x 841.89
+                const pageW = 595.28;
+                const pageH = 841.89;
+                const margin = 14.17; // 5mm
+                const contentW = pageW - margin * 2;
+
+                chunks.forEach(({ subset, startIndex }) => {
+                    const page = pdfDoc.addPage([pageW, pageH]);
+
+                    // Title
+                    const titleSize = 11;
+                    const titleW = fontBold.widthOfTextAtSize(docTitle, titleSize);
+                    const titleY = pageH - margin - 13;
+                    page.drawText(docTitle, {
+                        x: Math.max(margin, (pageW - titleW) / 2),
+                        y: titleY,
+                        size: titleSize,
+                        font: fontBold,
+                        color: rgb(0, 0, 0)
+                    });
+
+                    const tableTop = titleY - 8;
+                    const tableBottom = margin;
+                    const tableH = tableTop - tableBottom;
+
+                    const hRow1 = 18;
+                    const hRow2 = 38;
+                    const headerH = hRow1 + hRow2;
+                    const bodyH = tableH - headerH;
+                    const rowH = bodyH / rowsPerPage;
+
+                    const wSira = 19;
+                    const wAlan = showAlan ? 26 : 0;
+                    const wNo = 34;
+                    const wName = 150;
+                    const fixedW = wSira + wAlan + wNo + wName;
+                    const wBlank = (contentW - fixedW) / colCount;
+
+                    const xSira = margin;
+                    const xAlan = xSira + wSira;
+                    const xNo = xAlan + wAlan;
+                    const xName = xNo + wNo;
+                    const xBlankStart = xName + wName;
+
+                    // Draw Zebra Striping first
+                    for (let i = 0; i < rowsPerPage; i++) {
+                        if (i % 2 === 1) {
+                            const rTop = tableTop - headerH - i * rowH;
+                            page.drawRectangle({
+                                x: margin,
+                                y: rTop - rowH,
+                                width: contentW,
+                                height: rowH,
+                                color: rgb(0.945, 0.96, 0.976)
+                            });
+                        }
+                    }
+
+                    // Draw rotated headers for SIRA, ALAN, NUMARA
+                    const drawRotatedCentered = (txt, cellX, cellY, cellW, cellH, fSize) => {
+                        const tw = fontBold.widthOfTextAtSize(txt, fSize);
+                        page.drawText(txt, {
+                            x: cellX + cellW / 2 + fSize * 0.35,
+                            y: cellY + (cellH - tw) / 2,
+                            size: fSize,
+                            font: fontBold,
+                            color: rgb(0, 0, 0),
+                            rotate: degrees(90)
+                        });
+                    };
+
+                    const headerBottomY = tableTop - headerH;
+                    drawRotatedCentered('SIRA', xSira, headerBottomY, wSira, headerH, 8);
+                    if (showAlan) {
+                        drawRotatedCentered('ALAN', xAlan, headerBottomY, wAlan, headerH, 8);
+                    }
+                    drawRotatedCentered('NUMARA', xNo, headerBottomY, wNo, headerH, 8);
+
+                    // ÖĞRENCİNİN ADI SOYADI header
+                    const nameHdr = 'ÖĞRENCİNİN ADI SOYADI';
+                    const nameHdrW = fontBold.widthOfTextAtSize(nameHdr, 8.5);
+                    page.drawText(nameHdr, {
+                        x: xName + (wName - nameHdrW) / 2,
+                        y: headerBottomY + (headerH - 8.5) / 2 + 1,
+                        size: 8.5,
+                        font: fontBold,
+                        color: rgb(0, 0, 0)
+                    });
+
+                    // Row 1 right header: SORU PUANLARI
+                    const spHdr = 'SORU PUANLARI';
+                    const spHdrW = fontBold.widthOfTextAtSize(spHdr, 8.5);
+                    const blanksTotalW = contentW - fixedW;
+                    page.drawText(spHdr, {
+                        x: xBlankStart + (blanksTotalW - spHdrW) / 2,
+                        y: tableTop - hRow1 + (hRow1 - 8.5) / 2 + 1,
+                        size: 8.5,
+                        font: fontBold,
+                        color: rgb(0, 0, 0)
+                    });
+
+                    // Row 2 question headers
+                    for (let c = 1; c <= colCount; c++) {
+                        const cx = xBlankStart + (c - 1) * wBlank;
+                        if (c <= qCount) {
+                            drawRotatedCentered(c + '. SORU', cx, headerBottomY, wBlank, hRow2, 7.2);
+                        } else if (canShowTotal && c === colCount) {
+                            drawRotatedCentered('TOPLAM', cx, headerBottomY, wBlank, hRow2, 7.2);
+                        }
+                    }
+
+                    // Draw student rows text
+                    for (let i = 0; i < rowsPerPage; i++) {
+                        const rTop = tableTop - headerH - i * rowH;
+                        const rBottom = rTop - rowH;
+                        const textY = rBottom + (rowH - 8) / 2 + 1.2;
+
+                        // SIRA number
+                        const siraStr = String(startIndex + i);
+                        const siraW = fontReg.widthOfTextAtSize(siraStr, 8);
+                        page.drawText(siraStr, {
+                            x: xSira + (wSira - siraW) / 2,
+                            y: textY,
+                            size: 8,
+                            font: fontReg,
+                            color: rgb(0, 0, 0)
+                        });
+
+                        const st = subset[i];
+                        if (st) {
+                            if (showAlan && st.alan) {
+                                const alStr = String(st.alan);
+                                const alW = fontReg.widthOfTextAtSize(alStr, 7.5);
+                                page.drawText(alStr, {
+                                    x: xAlan + (wAlan - alW) / 2,
+                                    y: textY,
+                                    size: 7.5,
+                                    font: fontReg,
+                                    color: rgb(0, 0, 0)
+                                });
+                            }
+
+                            if (st.no) {
+                                const noStr = String(st.no);
+                                const noW = fontReg.widthOfTextAtSize(noStr, 8);
+                                page.drawText(noStr, {
+                                    x: xNo + (wNo - noW) / 2,
+                                    y: textY,
+                                    size: 8,
+                                    font: fontReg,
+                                    color: rgb(0, 0, 0)
+                                });
+                            }
+
+                            if (st.name) {
+                                let nmStr = String(st.name);
+                                while (nmStr.length > 3 && fontBold.widthOfTextAtSize(nmStr, 8) > (wName - 6)) {
+                                    nmStr = nmStr.slice(0, -1);
+                                }
+                                page.drawText(nmStr, {
+                                    x: xName + 4,
+                                    y: textY,
+                                    size: 8,
+                                    font: fontBold,
+                                    color: rgb(0, 0, 0)
+                                });
+                            }
+
+                            for (let c = 1; c <= colCount; c++) {
+                                let valStr = '';
+                                if (c <= qCount) {
+                                    valStr = st.qVals[c - 1] !== undefined ? String(st.qVals[c - 1]) : '';
+                                } else if (canShowTotal && c === colCount) {
+                                    valStr = st.total ? String(st.total) : '';
+                                }
+                                if (valStr !== '') {
+                                    const cx = xBlankStart + (c - 1) * wBlank;
+                                    const vw = fontBold.widthOfTextAtSize(valStr, 8);
+                                    page.drawText(valStr, {
+                                        x: cx + (wBlank - vw) / 2,
+                                        y: textY,
+                                        size: 8,
+                                        font: fontBold,
+                                        color: rgb(0, 0, 0)
+                                    });
+                                }
+                            }
+                        }
+                    }
+
+                    // Draw Grid Borders
+                    // Outer double border
+                    page.drawRectangle({
+                        x: margin,
+                        y: tableBottom,
+                        width: contentW,
+                        height: tableH,
+                        borderColor: rgb(0, 0, 0),
+                        borderWidth: 1.5
+                    });
+                    page.drawRectangle({
+                        x: margin - 1.8,
+                        y: tableBottom - 1.8,
+                        width: contentW + 3.6,
+                        height: tableH + 3.6,
+                        borderColor: rgb(0, 0, 0),
+                        borderWidth: 0.7
+                    });
+
+                    // Horizontal line between header row 1 and row 2 (only across blank columns)
+                    page.drawLine({
+                        start: { x: xBlankStart, y: tableTop - hRow1 },
+                        end: { x: margin + contentW, y: tableTop - hRow1 },
+                        thickness: 0.8,
+                        color: rgb(0, 0, 0)
+                    });
+
+                    // Horizontal line below header
+                    page.drawLine({
+                        start: { x: margin, y: headerBottomY },
+                        end: { x: margin + contentW, y: headerBottomY },
+                        thickness: 1,
+                        color: rgb(0, 0, 0)
+                    });
+
+                    // Horizontal lines for 40 rows
+                    for (let i = 1; i < rowsPerPage; i++) {
+                        const yLine = headerBottomY - i * rowH;
+                        page.drawLine({
+                            start: { x: margin, y: yLine },
+                            end: { x: margin + contentW, y: yLine },
+                            thickness: 0.6,
+                            color: rgb(0, 0, 0)
+                        });
+                    }
+
+                    // Vertical lines for fixed columns
+                    const fixedXCols = [xAlan];
+                    if (showAlan) fixedXCols.push(xNo);
+                    fixedXCols.push(xName, xBlankStart);
+
+                    fixedXCols.forEach(vx => {
+                        page.drawLine({
+                            start: { x: vx, y: tableTop },
+                            end: { x: vx, y: tableBottom },
+                            thickness: 0.8,
+                            color: rgb(0, 0, 0)
+                        });
+                    });
+
+                    // Vertical lines for 16 columns (from tableTop - hRow1 down to tableBottom)
+                    for (let c = 1; c < colCount; c++) {
+                        const vx = xBlankStart + c * wBlank;
+                        page.drawLine({
+                            start: { x: vx, y: tableTop - hRow1 },
+                            end: { x: vx, y: tableBottom },
+                            thickness: 0.6,
+                            color: rgb(0, 0, 0)
+                        });
+                    }
+                });
+
+                const pdfBytes = await pdfDoc.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const safeFile = (className + '_' + subject + '_' + examNo + '_Puan_Cizelgesi')
+                    .replace(/\s+/g, '_')
+                    .replace(/[^a-zA-Z0-9ÇĞİÖŞÜçğıöşü_-]/g, '');
+                a.href = url;
+                a.download = (safeFile || 'Sinav_Puan_Cizelgesi') + '.pdf';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 1500);
+            } catch (err) {
+                console.error('PDF oluşturma hatası, tarayıcı yazdırma ekranı açılıyor:', err);
+                window.print();
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+            }
+        }
+
+        renderPrintPages();
+    <\/script>
+</body>
+</html>`;
+
+            printWin.document.open();
+            printWin.document.write(htmlContent);
+            printWin.document.close();
         }
 
         async function handleTableCellScoreChange(examId, studentNo, studentName, qNum, rawValue) {
