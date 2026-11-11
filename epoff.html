@@ -1313,7 +1313,7 @@
                 <div>
                     <div class="excel-info-title" id="excelFileTitle">Öğrenci Listesi Excel Dosyası Seçin</div>
                     <p class="excel-info-sub" id="excelFileDesc">
-                        Sınıf adı <b>sekme (sayfa) adından</b>, Öğrenci No <b>2. sütundan (B)</b>, Ad Soyad <b>3. sütundan (C)</b> otomatik alınır.
+                        Sınıflar <b>Excel sekme isimlerinden</b> alınır. Seçilen sınıfta <b>5. satırdan itibaren</b> 2. sütun Öğrenci No, 3. sütun Ad Soyad olarak okunur.
                     </p>
                 </div>
             </div>
@@ -1729,7 +1729,7 @@
             const clearBtn = document.getElementById('btnClearExcel');
             const summaryBadge = document.getElementById('excelSummaryBadge');
 
-            if (allStudents.length > 0 && excelClassList.length > 0) {
+            if (excelClassList.length > 0) {
                 if (card) card.classList.add('has-file');
                 if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#16a34a;"></i> ${escapeHtml(excelFileName || 'Excel Verisi Yüklendi')}`;
                 if (descEl) descEl.innerHTML = `<b>${excelClassList.length}</b> Sınıf (Sekme) ve toplam <b>${allStudents.length}</b> öğrenci başarıyla yüklendi. Sınıflar: <b>${escapeHtml(excelClassList.join(', '))}</b>`;
@@ -1738,7 +1738,7 @@
             } else {
                 if (card) card.classList.remove('has-file');
                 if (titleEl) titleEl.textContent = 'Öğrenci Listesi Excel Dosyası Seçin';
-                if (descEl) descEl.innerHTML = 'Sınıf adı <b>sekme (sayfa) adından</b>, Öğrenci No <b>2. sütundan (B)</b>, Ad Soyad <b>3. sütundan (C)</b> otomatik alınır.';
+                if (descEl) descEl.innerHTML = 'Sınıflar <b>Excel sekme isimlerinden</b> alınır. Seçilen sınıfta <b>5. satırdan itibaren</b> 2. sütun Öğrenci No, 3. sütun Ad Soyad olarak okunur.';
                 if (clearBtn) clearBtn.style.display = 'none';
                 if (summaryBadge) summaryBadge.textContent = '';
             }
@@ -1771,6 +1771,108 @@
             });
         }
 
+        function extractStudentsFromWorksheet(sheet, className) {
+            const students = [];
+            if (!sheet) return students;
+
+            const ref = sheet['!ref'];
+            let maxRow = 250;
+            let maxCol = 15;
+            if (ref && XLSX && XLSX.utils && XLSX.utils.decode_range) {
+                try {
+                    const rng = XLSX.utils.decode_range(ref);
+                    maxRow = Math.max(rng.e.r + 1, 100);
+                    maxCol = Math.max(rng.e.c + 1, 10);
+                } catch (e) {}
+            }
+
+            const getCellStr = (rZero, cZero) => {
+                if (Array.isArray(sheet)) {
+                    const rowArr = sheet[rZero];
+                    if (!rowArr) return '';
+                    const cell = rowArr[cZero];
+                    if (!cell) return '';
+                    const val = cell.w !== undefined ? cell.w : cell.v;
+                    return val !== undefined && val !== null ? String(val).trim() : '';
+                }
+                const addr = XLSX.utils.encode_cell({ r: rZero, c: cZero });
+                const cell = sheet[addr];
+                if (!cell) return '';
+                const val = cell.w !== undefined ? cell.w : cell.v;
+                return val !== undefined && val !== null ? String(val).trim() : '';
+            };
+
+            const isHeaderWord = (str) => {
+                const up = String(str || '').toLocaleUpperCase('tr-TR').replace(/\s+/g, ' ').trim();
+                return [
+                    'NO', 'NUMARA', 'ÖĞRENCİ NO', 'OKUL NO', 'OKUL NUMARASI', 'SIRA', 'SIRA NO', 'S.NO',
+                    'ADI SOYADI', 'AD SOYAD', 'ÖĞRENCİNİN ADI SOYADI', 'ADI', 'SOYADI', 'İSİM', 'ÖĞRENCİ ADI'
+                ].includes(up);
+            };
+
+            // 1. Öncelikle 5. satırdan itibaren (rZero = 4 -> Excel 5. satır) doğrudan B sütunu (c=1: Numara) ve C sütunu (c=2: Ad Soyad) oku
+            for (let r = 4; r < maxRow; r++) {
+                let rawNo = getCellStr(r, 1);   // 2. sütun (B)
+                let rawName = getCellStr(r, 2); // 3. sütun (C)
+                let rawColD = getCellStr(r, 3); // 4. sütun (D - birleşik hücre veya ayrı soyad ihtimaline karşı)
+
+                // Eğer B sütunu boş ama A sütununda numara, B sütununda isim varsa veya C birleşik hücreden dolayı D'ye kaymışsa kontrol et
+                let noDigits = rawNo.replace(/[^0-9]/g, '');
+
+                if (noDigits && !rawName && rawColD && !isHeaderWord(rawColD)) {
+                    rawName = rawColD;
+                }
+
+                // Eğer 2. sütunda numara yoksa satırdaki dolu hücreleri kontrol et (2. dolu hücre No, 3. dolu hücre Ad Soyad)
+                if (!noDigits || !rawName) {
+                    const nonEmptyCells = [];
+                    for (let c = 0; c < maxCol; c++) {
+                        const val = getCellStr(r, c);
+                        if (val !== '') nonEmptyCells.push({ c, val });
+                    }
+                    if (nonEmptyCells.length >= 3) {
+                        const candNo = nonEmptyCells[1].val.replace(/[^0-9]/g, '');
+                        const candName = nonEmptyCells[2].val;
+                        if (candNo && candName && !/^\d+$/.test(candName)) {
+                            noDigits = candNo;
+                            rawName = candName;
+                            rawColD = nonEmptyCells.length > 3 ? nonEmptyCells[3].val : '';
+                        }
+                    } else if (nonEmptyCells.length === 2) {
+                        const candNo = nonEmptyCells[0].val.replace(/[^0-9]/g, '');
+                        const candName = nonEmptyCells[1].val;
+                        if (candNo && candName && !/^\d+$/.test(candName)) {
+                            noDigits = candNo;
+                            rawName = candName;
+                            rawColD = '';
+                        }
+                    }
+                }
+
+                if (!noDigits || !rawName) continue;
+                if (isHeaderWord(rawNo) || isHeaderWord(rawName)) continue;
+                if (/^\d+$/.test(rawName)) continue; // İsim sadece rakam olamaz
+
+                // Eğer 3. sütunda sadece Ad, 4. sütunda Soyad varsa birleştir
+                let fullName = rawName;
+                if (rawColD && !rawName.includes(' ') && !/^\d+$/.test(rawColD) && !isHeaderWord(rawColD)) {
+                    if (rawColD.length > 1) {
+                        fullName = (rawName + ' ' + rawColD).trim();
+                    }
+                }
+
+                students.push({
+                    no: noDigits,
+                    name: fullName,
+                    surname: '',
+                    class: className,
+                    alan: ''
+                });
+            }
+
+            return students;
+        }
+
         function handleExcelFileSelect(event) {
             const file = event.target.files && event.target.files[0];
             if (!file) return;
@@ -1793,62 +1895,18 @@
                         const cleanSheetName = String(sheetName || '').trim();
                         if (!cleanSheetName) return;
 
+                        // Tüm sekme isimlerini sınıf olarak ekle
+                        parsedClasses.push(cleanSheetName);
+
                         const sheet = workbook.Sheets[sheetName];
                         if (!sheet) return;
 
-                        // Read sheet as 2D array of rows
-                        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-                        let sheetStudentCount = 0;
-
-                        rows.forEach((row) => {
-                            if (!Array.isArray(row) || row.length < 3) return;
-
-                            // 2. sütun (index 1) -> Öğrenci Numarası
-                            // 3. sütun (index 2) -> Adı Soyadı
-                            const rawNo = String(row[1] !== undefined && row[1] !== null ? row[1] : '').trim();
-                            const rawName = String(row[2] !== undefined && row[2] !== null ? row[2] : '').trim();
-                            const rawSurname = row.length > 3 ? String(row[3] !== undefined && row[3] !== null ? row[3] : '').trim() : '';
-
-                            if (!rawNo || !rawName) return;
-
-                            // Başlık satırlarını atla (Örn: "NO", "NUMARA", "ÖĞRENCİ NO" vb.)
-                            const noDigits = rawNo.replace(/[^0-9]/g, '');
-                            if (!noDigits) return;
-                            const upperName = rawName.toLocaleUpperCase('tr-TR');
-                            if (upperName === 'ADI SOYADI' || upperName === 'AD SOYAD' || upperName === 'ÖĞRENCİNİN ADI SOYADI' || upperName === 'ADI') {
-                                return;
-                            }
-
-                            // Eğer 4. sütunda ayrı soyadı varsa ve 3. sütun tek kelimeyse birleştir, değilse doğrudan 3. sütunu kullan
-                            let fullName = rawName;
-                            if (rawSurname && !rawName.includes(' ') && !/^\d+$/.test(rawSurname)) {
-                               const upSur = rawSurname.toLocaleUpperCase('tr-TR');
-                               if (upSur !== 'SOYADI' && upSur !== 'SOYAD') {
-                                   fullName = (rawName + ' ' + rawSurname).trim();
-                               }
-                            }
-
-                            parsedStudents.push({
-                                no: noDigits,
-                                name: fullName,
-                                surname: '',
-                                class: cleanSheetName,
-                                alan: ''
-                            });
-                            sheetStudentCount++;
-                        });
-
-                        if (sheetStudentCount > 0) {
-                            parsedClasses.push(cleanSheetName);
-                        }
+                        const sheetStudents = extractStudentsFromWorksheet(sheet, cleanSheetName);
+                        sheetStudents.forEach(st => parsedStudents.push(st));
                     });
 
-                    if (parsedStudents.length === 0) {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Öğrenci Bulunamadı',
-                            html: 'Seçilen Excel dosyasında <b>2. sütunda (B) öğrenci numarası</b> ve <b>3. sütunda (C) ad soyad</b> bulunan geçerli satır tespit edilemedi.'
-                        });
+                    if (parsedClasses.length === 0) {
+                        Swal.fire('Uyarı', 'Seçilen Excel dosyasında hiçbir sekme (sayfa) bulunamadı.', 'warning');
                         return;
                     }
 
@@ -1860,14 +1918,22 @@
                     populateClassSelectFromExcel();
                     renderExamsAccordion();
 
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'success',
-                        title: `${parsedClasses.length} sınıf ve ${parsedStudents.length} öğrenci yüklendi!`,
-                        showConfirmButton: false,
-                        timer: 2800
-                    });
+                    if (parsedStudents.length > 0) {
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'success',
+                            title: `${parsedClasses.length} sınıf (sekme) ve ${parsedStudents.length} öğrenci yüklendi!`,
+                            showConfirmButton: false,
+                            timer: 2800
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'info',
+                            title: `${parsedClasses.length} Sınıf Sekmesi Yüklendi`,
+                            html: `Sekmeler: <b>${escapeHtml(parsedClasses.join(', '))}</b>.<br>Ancak 5. satırdan itibaren 2. sütunda numara ve 3. sütunda ad soyad bulunan öğrenci satırı tespit edilemedi.`
+                        });
+                    }
                 } catch (err) {
                     console.error('Excel okuma hatası:', err);
                     Swal.fire('Hata', 'Excel dosyası okunurken bir hata oluştu: ' + (err.message || err), 'error');
@@ -1883,7 +1949,7 @@
 
             if (excelClassList.length > 0) {
                 excelClassList.forEach(cls => {
-                    const count = allStudents.filter(s => cleanClassToken(s.class) === cleanClassToken(cls)).length;
+                    const count = allStudents.filter(s => String(s.class).trim() === String(cls).trim() || cleanClassToken(s.class) === cleanClassToken(cls)).length;
                     const opt = document.createElement('option');
                     opt.value = cls;
                     opt.textContent = `${cls} (${count} Öğrenci)`;
@@ -2013,8 +2079,13 @@
         }
 
         function getStudentsForExamClass(className) {
+            const targetRaw = String(className || '').trim();
             const targetClean = cleanClassToken(className);
-            const matched = allStudents.filter(s => s && s.class && cleanClassToken(s.class) === targetClean);
+            const matched = allStudents.filter(s => {
+                if (!s || !s.class) return false;
+                if (String(s.class).trim() === targetRaw) return true;
+                return targetClean && cleanClassToken(s.class) === targetClean;
+            });
             return matched.sort((a, b) => (parseInt(a.no, 10) || 0) - (parseInt(b.no, 10) || 0));
         }
 
