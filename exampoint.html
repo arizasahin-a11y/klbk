@@ -3965,8 +3965,7 @@
                         setMicStatus(`<span style="color:#f59e0b; font-weight:700;">Tarayıcı sesi metne çeviremedi (sunucu yanıt vermedi).</span> Mikrofon çubuğu konuşurken hareket ediyor mu? Hareket etmiyorsa Windows Ayarlar → Ses → Giriş bölümünden doğru mikrofonu seçin. Yeniden dinleniyor...`);
                         micConfigIdx++;
                         const isMobileDev = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-                        const isFileProto = window.location.protocol === 'file:';
-                        if (!isMobileDev && !isFileProto && micConfigIdx >= 2) {
+                        if (!isMobileDev && micConfigIdx >= 2) {
                             setMicEngine('vosk');
                             micDbg('tarayıcı sesi çözemedi, çevrimdışı motora geçiliyor');
                             destroyCurrentRecognition();
@@ -4087,13 +4086,11 @@
         let voskModel = null, voskModelPromise = null, voskRec = null, voskCtx = null;
         let voskStream = null, voskNode = null, voskSource = null, voskActive = false, voskToken = 0;
 
+        const VOSK_MODEL_JS_BUNDLE_URL = 'js/vendor/vosk-model-tr-data.js';
+        let customVoskModelBlobUrl = null;
+
         function getMicEngine() {
-            try {
-                if (window.location.protocol === 'file:' && !customVoskModelBlobUrl) {
-                    return 'web';
-                }
-                return sessionStorage.getItem('ep_engine_v2') === 'vosk' ? 'vosk' : 'web';
-            } catch (e) { return 'web'; }
+            try { return sessionStorage.getItem('ep_engine_v2') === 'vosk' ? 'vosk' : 'web'; } catch (e) { return 'web'; }
         }
         function setMicEngine(name) {
             try { sessionStorage.setItem('ep_engine_v2', name); } catch (e) {}
@@ -4117,12 +4114,7 @@
             b.type = 'button';
             b.style.cssText = 'margin-top:8px; background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe; border-radius:999px; padding:5px 12px; font-size:0.74rem; font-weight:700; cursor:pointer; font-family:inherit;';
             b.onclick = () => {
-                const nextEngine = getMicEngine() === 'vosk' ? 'web' : 'vosk';
-                if (nextEngine === 'vosk' && window.location.protocol === 'file:' && !customVoskModelBlobUrl) {
-                    selectLocalVoskModelFile();
-                    return;
-                }
-                setMicEngine(nextEngine);
+                setMicEngine(getMicEngine() === 'vosk' ? 'web' : 'vosk');
                 if (shouldKeepListening || isMicListening) {
                     stopMicrophoneListening();
                 }
@@ -4137,38 +4129,9 @@
                 const s = document.createElement('script');
                 s.src = url;
                 s.onload = resolve;
-                s.onerror = () => reject(new Error('Vosk kütüphanesi yüklenemedi'));
+                s.onerror = () => reject(new Error('Kütüphane yüklenemedi: ' + url));
                 document.head.appendChild(s);
             });
-        }
-
-        let customVoskModelBlobUrl = null;
-
-        function selectLocalVoskModelFile() {
-            let inp = document.getElementById('voskModelFileInput');
-            if (!inp) {
-                inp = document.createElement('input');
-                inp.type = 'file';
-                inp.id = 'voskModelFileInput';
-                inp.accept = '.gz,.tar.gz,.tgz,.zip';
-                inp.style.display = 'none';
-                inp.onchange = (ev) => {
-                    const f = ev.target.files && ev.target.files[0];
-                    if (!f) return;
-                    if (customVoskModelBlobUrl) {
-                        try { URL.revokeObjectURL(customVoskModelBlobUrl); } catch (e) {}
-                    }
-                    customVoskModelBlobUrl = URL.createObjectURL(f);
-                    voskModel = null;
-                    voskModelPromise = null;
-                    setMicEngine('vosk');
-                    stopMicrophoneListening();
-                    startMicrophoneListening();
-                };
-                document.body.appendChild(inp);
-            }
-            inp.value = '';
-            inp.click();
         }
 
         function switchToBrowserSpeechEngine() {
@@ -4177,22 +4140,41 @@
             startMicrophoneListening();
         }
 
+        async function resolveVoskModelUrl() {
+            if (customVoskModelBlobUrl) return customVoskModelBlobUrl;
+
+            // file:// protokolünde veya fetch engellendiğinde yerel JS paketinden (js/vendor/vosk-model-tr-data.js) otomatik Blob oluştur
+            if (window.location.protocol === 'file:') {
+                if (!window.VOSK_MODEL_TR_BASE64) {
+                    await loadScriptOnce(VOSK_MODEL_JS_BUNDLE_URL);
+                }
+                if (window.VOSK_MODEL_TR_BASE64) {
+                    const binStr = atob(window.VOSK_MODEL_TR_BASE64);
+                    const len = binStr.length;
+                    const bytes = new Uint8Array(len);
+                    for (let i = 0; i < len; i++) {
+                        bytes[i] = binStr.charCodeAt(i);
+                    }
+                    // Bellekte yer açmak için base64 stringi temizle
+                    try { delete window.VOSK_MODEL_TR_BASE64; } catch (e) { window.VOSK_MODEL_TR_BASE64 = null; }
+                    const blob = new Blob([bytes], { type: 'application/gzip' });
+                    customVoskModelBlobUrl = URL.createObjectURL(blob);
+                    return customVoskModelBlobUrl;
+                }
+            }
+
+            return new URL(VOSK_MODEL_URL, window.location.href).href;
+        }
+
         function loadVoskModel() {
             if (voskModel) return Promise.resolve(voskModel);
             if (voskModelPromise) return voskModelPromise;
             voskModelPromise = (async () => {
                 if (!window.Vosk) await loadScriptOnce(VOSK_LIB_URL);
-
-                let modelUrlToLoad = customVoskModelBlobUrl;
-                if (!modelUrlToLoad) {
-                    if (window.location.protocol === 'file:') {
-                        throw new Error('FILE_PROTOCOL_CORS');
-                    }
-                    modelUrlToLoad = new URL(VOSK_MODEL_URL, window.location.href).href;
-                }
+                const modelUrlToLoad = await resolveVoskModelUrl();
 
                 const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('VOSK_TIMEOUT')), 25000)
+                    setTimeout(() => reject(new Error('VOSK_TIMEOUT')), 45000)
                 );
 
                 const m = await Promise.race([
