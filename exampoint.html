@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#312e81">
     <title>Sınav Notu İşleme Ekranı</title>
     <!-- Favicon -->
     <link rel="icon" type="image/jpeg" href="img/amblem.jpg">
@@ -1185,6 +1189,234 @@
         #micLevelWrap { max-width: 180px !important; margin-top: 4px !important; }
         #micEngineBtn { margin-top: 5px !important; padding: 3px 10px !important; font-size: 0.68rem !important; }
         .auto-timer-wrap { margin-top: 6px !important; }
+
+        /* =====================================================
+           GELİŞMİŞ CEP TELEFONU / iPHONE / iPAD / TABLET UYUMLULUK
+           ===================================================== */
+        .voice-top-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .tts-chk-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0.4rem 0.72rem;
+            font-size: 0.78rem;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.32);
+            border-radius: 10px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            transition: background 0.15s;
+        }
+        .tts-chk-pill:active {
+            background: rgba(255, 255, 255, 0.28);
+        }
+        .tts-chk-pill input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #10b981;
+            cursor: pointer;
+            margin: 0;
+            flex-shrink: 0;
+        }
+        body.modal-open {
+            overflow: hidden;
+            overscroll-behavior: none;
+        }
+
+        /* Dokunmatik ekranlar (Telefon, iPhone, iPad, Android Tablet) */
+        @media (pointer: coarse) {
+            .ep-select, .ep-input, .score-cell-input, select, input[type="number"], input[type="text"] {
+                font-size: 16px !important;
+            }
+            .btn-ep, .btn-save-exam, .btn-add-exam-main, .btn-quick-num, .btn-confirm-next, .btn-print-exam, .btn-excel-select, .btn-excel-clear {
+                min-height: 44px;
+            }
+            .btn-play-exam, .btn-table-toggle, .btn-print-exam, .btn-delete-exam, .btn-close-voice {
+                min-width: 44px;
+                min-height: 44px;
+            }
+            .tts-chk-pill {
+                min-height: 38px;
+                padding: 0.42rem 0.75rem;
+            }
+            .q-chip {
+                min-height: 36px;
+                padding: 6px 13px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+
+        /* Tablet (iPad Dikey & Yatay / Android Tabletler: 641px - 1024px) */
+        @media (min-width: 641px) and (max-width: 1024px) {
+            .ep-container {
+                max-width: 96%;
+                margin: 1rem auto 2.5rem;
+            }
+            .form-grid-4, .form-grid-5 {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            .voice-modal-card {
+                max-width: 92vw;
+                max-height: 92dvh;
+            }
+            .exam-item-main {
+                flex-wrap: wrap;
+            }
+            .exam-item-actions {
+                margin-left: auto;
+            }
+        }
+
+        /* Akıllı Telefonlar (iPhone, Android Telefonlar <= 640px) */
+        @media (max-width: 640px) {
+            .form-grid-5 {
+                grid-template-columns: 1fr !important;
+                gap: 0.75rem !important;
+            }
+            .form-grid-4 {
+                grid-template-columns: 1fr !important;
+                gap: 0.75rem !important;
+            }
+            .excel-upload-card {
+                padding: 0.9rem 1rem !important;
+                flex-direction: column;
+                align-items: stretch !important;
+                gap: 0.75rem !important;
+            }
+            .excel-upload-left {
+                min-width: 0 !important;
+            }
+            .excel-upload-actions {
+                width: 100%;
+                display: flex;
+            }
+            .btn-excel-select, .btn-excel-clear {
+                flex: 1;
+                justify-content: center;
+            }
+            .exam-item-actions {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr auto auto;
+                gap: 6px !important;
+                align-items: center;
+            }
+            .btn-table-toggle, .btn-print-exam {
+                width: 100%;
+                justify-content: center;
+                padding: 0.5rem 0.6rem !important;
+                font-size: 0.8rem !important;
+            }
+            .voice-modal-card {
+                height: 100vh;
+                height: -webkit-fill-available;
+                height: 100dvh;
+                max-height: 100dvh;
+                border-radius: 0 !important;
+            }
+            .voice-modal-top {
+                flex-direction: column;
+                align-items: stretch !important;
+                gap: 8px !important;
+                padding: 0.65rem 0.8rem !important;
+                padding-top: max(0.65rem, env(safe-area-inset-top)) !important;
+            }
+            .voice-modal-exam-title {
+                font-size: 0.88rem !important;
+                justify-content: space-between;
+            }
+            .voice-top-controls {
+                width: 100%;
+                display: grid !important;
+                grid-template-columns: 1fr 1fr auto;
+                gap: 6px !important;
+                align-items: center;
+            }
+            .tts-chk-pill {
+                justify-content: center;
+                font-size: 0.73rem !important;
+                padding: 0.38rem 0.45rem !important;
+                text-align: center;
+                white-space: nowrap;
+            }
+            .mode-option-label {
+                font-size: 0.8rem !important;
+                padding: 0.5rem 0.65rem !important;
+            }
+            .mode-option-label span {
+                line-height: 1.35;
+            }
+            .quick-score-btns {
+                display: grid !important;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 6px !important;
+            }
+            .quick-score-btns > span {
+                grid-column: 1 / -1;
+                margin-bottom: 2px;
+            }
+            .btn-quick-num {
+                width: 100%;
+                min-width: 0 !important;
+                padding: 8px 0 !important;
+                text-align: center;
+                justify-content: center;
+            }
+            #questionManualAssistRow .manual-input-row {
+                flex-direction: column;
+                align-items: stretch !important;
+                gap: 8px !important;
+            }
+            #questionManualAssistRow .manual-input-row > div {
+                width: 100%;
+                display: flex;
+                gap: 8px;
+            }
+            #questionManualAssistRow .manual-input-row > div:first-child input {
+                flex: 1;
+                width: auto !important;
+            }
+            #questionManualAssistRow .manual-input-row > div:first-child button {
+                flex: 1;
+                justify-content: center;
+            }
+            #questionManualAssistRow .manual-input-row > div:last-child {
+                display: grid;
+                grid-template-columns: 1fr 1.4fr;
+                gap: 8px;
+            }
+            #btnPrevQuestion, #btnConfirmNextQuestion {
+                width: 100%;
+                justify-content: center;
+                padding: 0.65rem 0.6rem !important;
+                font-size: 0.84rem !important;
+            }
+        }
+
+        /* Küçük Ekranlı Telefonlar (iPhone SE / Mini <= 375px) */
+        @media (max-width: 375px) {
+            .exam-item-actions {
+                grid-template-columns: 1fr 1fr;
+            }
+            .tts-chk-pill {
+                font-size: 0.68rem !important;
+                padding: 0.35rem 0.35rem !important;
+            }
+            .quick-score-btns {
+                grid-template-columns: repeat(4, 1fr) !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1263,7 +1495,7 @@
                 <!-- 4. Kaç Soru Olduğu -->
                 <div class="ep-field">
                     <label for="examQuestionCount"><i class="fa-solid fa-circle-question" style="color:#4f46e5;"></i> Soru Sayısı</label>
-                    <input type="number" id="examQuestionCount" class="ep-input" min="1" max="100" value="10" placeholder="Örn: 10">
+                    <input type="number" inputmode="numeric" pattern="[0-9]*" id="examQuestionCount" class="ep-input" min="1" max="100" value="10" placeholder="Örn: 10">
                     <div class="quick-q-chips">
                         <span class="q-chip" onclick="setQuickQuestionCount(5)">5</span>
                         <span class="q-chip" onclick="setQuickQuestionCount(8)">8</span>
@@ -1311,13 +1543,13 @@
                     <i class="fa-solid fa-microphone-lines"></i>
                     <span>Sesli Sınav Notu İşleme</span>
                 </div>
-                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-                    <label style="display:inline-flex; align-items:center; gap:6px; padding:0.38rem 0.7rem; font-size:0.78rem; font-weight:700; background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.32); border-radius:10px; cursor:pointer; user-select:none;" title="Söylenen numaranın ait olduğu öğrencinin adını sesli oku">
-                        <input type="checkbox" id="chkReadStudentName" onchange="updateTtsCheckboxes('student')" style="width:15px; height:15px; accent-color:#10b981; cursor:pointer; margin:0;">
+                <div class="voice-top-controls">
+                    <label class="tts-chk-pill" title="Söylenen numaranın ait olduğu öğrencinin adını sesli oku">
+                        <input type="checkbox" id="chkReadStudentName" onchange="updateTtsCheckboxes('student')">
                         <span>Öğrencinin Adı Okunsun</span>
                     </label>
-                    <label style="display:inline-flex; align-items:center; gap:6px; padding:0.38rem 0.7rem; font-size:0.78rem; font-weight:700; background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.32); border-radius:10px; cursor:pointer; user-select:none;" title="Kaçıncı sorunun puanının söylenmesi gerektiğini sesli oku">
-                        <input type="checkbox" id="chkReadQuestionNo" onchange="updateTtsCheckboxes('question')" style="width:15px; height:15px; accent-color:#10b981; cursor:pointer; margin:0;">
+                    <label class="tts-chk-pill" title="Kaçıncı sorunun puanının söylenmesi gerektiğini sesli oku">
+                        <input type="checkbox" id="chkReadQuestionNo" onchange="updateTtsCheckboxes('question')">
                         <span>Soru No Okunsun</span>
                     </label>
                     <button type="button" class="btn-close-voice" onclick="closeVoiceGradingModal()" title="Kapat">
@@ -1336,7 +1568,7 @@
                     <div class="transition-options">
                         <label class="mode-option-label selected" id="lblModeAuto">
                             <input type="radio" name="voiceTransitionMode" value="auto15" checked onchange="setTransitionMode('auto15')">
-                            <span><i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> Notu Söyledikten <input type="number" id="autoDelayInput" min="0.3" max="10" step="0.1" value="1" onclick="event.stopPropagation(); event.preventDefault();" onchange="setAutoDelay(this.value)" oninput="setAutoDelay(this.value)" style="width:62px; padding:2px 6px; margin:0 4px; border:1.5px solid #c7d2fe; border-radius:8px; font-family:inherit; font-weight:800; font-size:16px; text-align:center;"> Sn Sonra Otomatik Geç</span>
+                            <span><i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> Notu Söyledikten <input type="number" inputmode="decimal" id="autoDelayInput" min="0.3" max="10" step="0.1" value="1" onclick="event.stopPropagation(); event.preventDefault();" onchange="setAutoDelay(this.value)" oninput="setAutoDelay(this.value)" style="width:62px; padding:2px 6px; margin:0 4px; border:1.5px solid #c7d2fe; border-radius:8px; font-family:inherit; font-weight:800; font-size:16px; text-align:center;"> Sn Sonra Otomatik Geç</span>
                         </label>
                         <label class="mode-option-label" id="lblModeConfirm">
                             <input type="radio" name="voiceTransitionMode" value="confirm" onchange="setTransitionMode('confirm')">
@@ -1407,7 +1639,7 @@
                 <div class="manual-assist-bar">
                     <!-- Öğrenci Seçim Yardımı (Step = student_no iken görünür) -->
                     <div id="studentManualAssistRow" class="manual-input-row">
-                        <input type="number" id="manualStudentNoInput" class="ep-input" style="max-width:180px; padding:0.6rem 0.8rem;" placeholder="Öğrenci No yazın..." onkeydown="if(event.key==='Enter') submitManualStudentNo()">
+                        <input type="number" inputmode="numeric" pattern="[0-9]*" id="manualStudentNoInput" class="ep-input" style="max-width:180px; padding:0.6rem 0.8rem;" placeholder="Öğrenci No yazın..." onkeydown="if(event.key==='Enter') submitManualStudentNo()">
                         <button type="button" class="btn-ep" style="background:#4f46e5; color:#fff;" onclick="submitManualStudentNo()">
                             <i class="fa-solid fa-magnifying-glass"></i> Öğrenciyi Getir
                         </button>
@@ -1437,7 +1669,7 @@
                         </div>
                         <div class="manual-input-row" style="justify-content:space-between;">
                             <div style="display:flex; gap:8px; align-items:center;">
-                                <input type="number" id="manualScoreInput" class="ep-input" style="width:120px; padding:0.6rem 0.8rem;" min="0" max="100" step="0.5" placeholder="Puan..." onkeydown="if(event.key==='Enter') submitManualQuestionScore()">
+                                <input type="number" inputmode="decimal" id="manualScoreInput" class="ep-input" style="width:120px; padding:0.6rem 0.8rem;" min="0" max="100" step="0.5" placeholder="Puan..." onkeydown="if(event.key==='Enter') submitManualQuestionScore()">
                                 <button type="button" class="btn-ep" style="background:#4f46e5; color:#fff; padding:0.6rem 1rem;" onclick="submitManualQuestionScore()">
                                     <i class="fa-solid fa-pen"></i> Kaydet
                                 </button>
@@ -2053,7 +2285,7 @@
                     }
                     tdQuestions += `
                         <td>
-                            <input type="number" class="score-cell-input" value="${val !== '' ? escapeHtml(val) : ''}"
+                            <input type="number" inputmode="decimal" class="score-cell-input" value="${val !== '' ? escapeHtml(val) : ''}"
                                 min="0" max="100" step="0.5"
                                 onchange="handleTableCellScoreChange('${escapeHtml(exam.id)}', '${escapeHtml(stNo)}', '${escapeHtml(st.name)}', ${q}, this.value)">
                         </td>
@@ -2918,20 +3150,35 @@
                 });
 
                 const pdfBytes = await pdfDoc.save();
+                const safeFile = ((className + '_' + subject + '_' + examNo + '_Puan_Cizelgesi')
+                    .replace(/\s+/g, '_')
+                    .replace(/[^a-zA-Z0-9ÇĞİÖŞÜçğıöşü_-]/g, '') || 'Sinav_Puan_Cizelgesi') + '.pdf';
                 const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+
+                const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent));
+                if (isIOS && navigator.canShare) {
+                    try {
+                        const pdfFileObj = new File([blob], safeFile, { type: 'application/pdf' });
+                        if (navigator.canShare({ files: [pdfFileObj] })) {
+                            await navigator.share({ files: [pdfFileObj], title: safeFile });
+                            return;
+                        }
+                    } catch (shareErr) {
+                        if (shareErr && shareErr.name === 'AbortError') return;
+                    }
+                }
+
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                const safeFile = (className + '_' + subject + '_' + examNo + '_Puan_Cizelgesi')
-                    .replace(/\s+/g, '_')
-                    .replace(/[^a-zA-Z0-9ÇĞİÖŞÜçğıöşü_-]/g, '');
                 a.href = url;
-                a.download = (safeFile || 'Sinav_Puan_Cizelgesi') + '.pdf';
+                a.download = safeFile;
+                if (isIOS) a.target = '_blank';
                 document.body.appendChild(a);
                 a.click();
                 setTimeout(() => {
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
-                }, 1500);
+                }, 4000);
             } catch (err) {
                 console.error('PDF oluşturma hatası, tarayıcı yazdırma ekranı açılıyor:', err);
                 window.print();
@@ -3178,7 +3425,8 @@
         async function startLevelMeter() {
             stopLevelMeter();
             try {
-                if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) return;
+                const isTouchDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent));
+                if (isTouchDevice) return;
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
                 levelStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
                 const AC = window.AudioContext || window.webkitAudioContext;
@@ -3290,9 +3538,18 @@
             });
 
             document.getElementById('voiceGradingModal').classList.add('active');
+            document.body.classList.add('modal-open');
             acquireWakeLock();
             initAutoDelayInput();
             initTtsCheckboxes();
+            // iOS / iPhone Safari için ses sentezleyiciyi kullanıcı tıklaması esnasında uyandır
+            if ((ttsReadStudentName || ttsReadQuestionNo) && 'speechSynthesis' in window) {
+                try {
+                    const warmUp = new SpeechSynthesisUtterance('');
+                    warmUp.volume = 0;
+                    window.speechSynthesis.speak(warmUp);
+                } catch (e) {}
+            }
             ensureEngineToggle();
             startLevelMeter();
             resetToStudentStep();
@@ -3307,6 +3564,7 @@
                 window.speechSynthesis.cancel();
             }
             document.getElementById('voiceGradingModal').classList.remove('active');
+            document.body.classList.remove('modal-open');
             releaseWakeLock();
             stopLevelMeter();
             renderExamsAccordion();
@@ -3960,7 +4218,11 @@
             let sessionHandled = false;
             let pendingAlts = null;
 
-            const MIC_CONFIGS = [
+            const isIOSorTouchMac = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent));
+            const MIC_CONFIGS = isIOSorTouchMac ? [
+                { lang: 'tr-TR', continuous: false, interim: true, alt: 1 },
+                { lang: 'tr-TR', continuous: false, interim: false, alt: 1 }
+            ] : [
                 { lang: 'tr-TR', continuous: false, interim: true, alt: 1 },
                 { lang: 'tr', continuous: true, interim: true, alt: 1 },
                 { lang: 'tr-TR', continuous: true, interim: false, alt: 5 }
@@ -4015,7 +4277,7 @@
                     if (recognition === rec && !sessionHandled && !pendingAlts) {
                         setMicStatus(`<span style="color:#f59e0b; font-weight:700;">Tarayıcı sesi metne çeviremedi (sunucu yanıt vermedi).</span> Mikrofon çubuğu konuşurken hareket ediyor mu? Hareket etmiyorsa Windows Ayarlar → Ses → Giriş bölümünden doğru mikrofonu seçin. Yeniden dinleniyor...`);
                         micConfigIdx++;
-                        const isMobileDev = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+                        const isMobileDev = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent));
                         if (!isMobileDev && micConfigIdx >= 2) {
                             setMicEngine('vosk');
                             micDbg('tarayıcı sesi çözemedi, çevrimdışı motora geçiliyor');
