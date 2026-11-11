@@ -1669,7 +1669,7 @@
                         </div>
                         <div class="manual-input-row" style="justify-content:space-between;">
                             <div style="display:flex; gap:8px; align-items:center;">
-                                <input type="number" inputmode="decimal" id="manualScoreInput" class="ep-input" style="width:120px; padding:0.6rem 0.8rem;" min="0" max="100" step="0.5" placeholder="Puan..." onkeydown="if(event.key==='Enter') submitManualQuestionScore()">
+                                <input type="number" inputmode="numeric" pattern="[0-9]*" id="manualScoreInput" class="ep-input" style="width:120px; padding:0.6rem 0.8rem;" min="0" max="100" step="1" placeholder="Puan..." oninput="this.value=this.value.replace(/[^0-9]/g,'')" onkeydown="if(event.key==='Enter') submitManualQuestionScore()">
                                 <button type="button" class="btn-ep" style="background:#4f46e5; color:#fff; padding:0.6rem 1rem;" onclick="submitManualQuestionScore()">
                                     <i class="fa-solid fa-pen"></i> Kaydet
                                 </button>
@@ -2276,17 +2276,19 @@
 
                 let tdQuestions = '';
                 for (let q = 1; q <= qCount; q++) {
-                    const val = qScores[String(q)] !== undefined && qScores[String(q)] !== null && qScores[String(q)] !== ''
-                        ? qScores[String(q)]
+                    const rawVal = qScores[String(q)];
+                    const val = rawVal !== undefined && rawVal !== null && rawVal !== '' && !isNaN(Number(rawVal))
+                        ? Math.round(Number(rawVal))
                         : '';
                     if (val !== '') {
                         hasAnyScore = true;
-                        sum += Number(val) || 0;
+                        sum += val;
                     }
                     tdQuestions += `
                         <td>
-                            <input type="number" inputmode="decimal" class="score-cell-input" value="${val !== '' ? escapeHtml(val) : ''}"
-                                min="0" max="100" step="0.5"
+                            <input type="number" inputmode="numeric" pattern="[0-9]*" class="score-cell-input" value="${val !== '' ? escapeHtml(val) : ''}"
+                                min="0" max="100" step="1"
+                                oninput="this.value=this.value.replace(/[^0-9]/g,'')"
                                 onchange="handleTableCellScoreChange('${escapeHtml(exam.id)}', '${escapeHtml(stNo)}', '${escapeHtml(st.name)}', ${q}, this.value)">
                         </td>
                     `;
@@ -2404,11 +2406,11 @@
                 for (let q = 1; q <= colCount; q++) {
                     if (q <= qCount) {
                         const raw = qScores[String(q)];
-                        if (raw !== undefined && raw !== null && raw !== '') {
+                        if (raw !== undefined && raw !== null && raw !== '' && !isNaN(Number(raw))) {
                             hasAnyScore = true;
-                            const num = Number(raw);
-                            if (!isNaN(num)) sum += num;
-                            qVals.push(String(raw));
+                            const num = Math.round(Number(raw));
+                            sum += num;
+                            qVals.push(String(num));
                         } else {
                             qVals.push('');
                         }
@@ -2416,7 +2418,7 @@
                         qVals.push('');
                     }
                 }
-                const totalScoreStr = hasAnyScore ? String(Math.round(sum * 100) / 100) : '';
+                const totalScoreStr = hasAnyScore ? String(Math.round(sum)) : '';
                 return {
                     no: stNo,
                     alan: String(alanVal || ''),
@@ -3217,8 +3219,8 @@
             if (rawValue === '' || rawValue === null) {
                 delete exam.scores[stKey].questions[String(qNum)];
             } else {
-                const num = parseFloat(String(rawValue).replace(',', '.'));
-                if (!isNaN(num)) {
+                const num = Math.round(parseFloat(String(rawValue).replace(',', '.')));
+                if (!isNaN(num) && num >= 0) {
                     exam.scores[stKey].questions[String(qNum)] = num;
                 }
             }
@@ -3227,7 +3229,7 @@
             let count = 0;
             for (const v of Object.values(exam.scores[stKey].questions)) {
                 if (v !== '' && v !== null && !isNaN(Number(v))) {
-                    sum += Number(v);
+                    sum += Math.round(Number(v));
                     count++;
                 }
             }
@@ -3695,7 +3697,7 @@
 
             const stRec = exam.scores[currentStudentObj.no] || { questions: {} };
             const existingScore = stRec.questions ? stRec.questions[String(qIndex)] : undefined;
-            document.getElementById('manualScoreInput').value = existingScore !== undefined ? existingScore : '';
+            document.getElementById('manualScoreInput').value = (existingScore !== undefined && existingScore !== null && existingScore !== '' && !isNaN(Number(existingScore))) ? Math.round(Number(existingScore)) : '';
 
             renderQuestionPills();
 
@@ -3724,9 +3726,10 @@
             let total = 0;
             let pillsHtml = '';
             for (let q = 1; q <= maxQ; q++) {
-                const val = qMap[String(q)];
-                const hasVal = val !== undefined && val !== null && val !== '';
-                if (hasVal) total += Number(val) || 0;
+                const rawVal = qMap[String(q)];
+                const hasVal = rawVal !== undefined && rawVal !== null && rawVal !== '' && !isNaN(Number(rawVal));
+                const intVal = hasVal ? Math.round(Number(rawVal)) : '';
+                if (hasVal) total += intVal;
 
                 const isCurrent = (q === currentQuestionIndex);
                 const cls = isCurrent ? 'q-pill-box current' : (hasVal ? 'q-pill-box done' : 'q-pill-box');
@@ -3734,7 +3737,7 @@
                 pillsHtml += `
                     <div class="${cls}" onclick="goToQuestion(${q})">
                         <div class="q-pill-label">${q}. Soru</div>
-                        <div class="q-pill-val">${hasVal ? escapeHtml(val) : '-'}</div>
+                        <div class="q-pill-val">${hasVal ? escapeHtml(intVal) : '-'}</div>
                     </div>
                 `;
             }
@@ -3747,7 +3750,7 @@
             const exam = examPointList.find(e => e.id === currentVoiceExamId);
             if (!exam || !currentStudentObj) return;
 
-            const numScore = Number(scoreValue);
+            const numScore = Math.round(Number(scoreValue));
             if (isNaN(numScore) || numScore < 0) return;
 
             const stNo = currentStudentObj.no;
@@ -3767,7 +3770,7 @@
             let sum = 0;
             for (const v of Object.values(exam.scores[stNo].questions)) {
                 if (v !== '' && v !== null && !isNaN(Number(v))) {
-                    sum += Number(v);
+                    sum += Math.round(Number(v));
                 }
             }
             exam.scores[stNo].total = sum;
@@ -3897,19 +3900,19 @@
         function submitManualQuestionScore() {
             const raw = document.getElementById('manualScoreInput').value;
             if (raw === '' || raw === null) return;
-            const num = parseFloat(String(raw).replace(',', '.'));
-            if (!isNaN(num)) {
+            const num = parseInt(String(raw).replace(/[^0-9]/g, ''), 10);
+            if (!isNaN(num) && num >= 0) {
                 applyQuestionScore(num, false);
             }
         }
 
         // =========================================================
-        // TURKISH SPEECH RECOGNITION & NUMBER PARSER
+        // TURKISH SPEECH RECOGNITION & NUMBER PARSER (TAM SAYI)
         // =========================================================
         const TR_NUM_PART_LIST = [
             'doksan', 'seksen', 'yetmis', 'altmis', 'atmis', 'elli', 'kirk', 'otuz', 'yirmi',
             'dokuz', 'sekiz', 'yedi', 'alti', 'dort', 'bes', 'iki', 'bir', 'sifir',
-            'bin', 'yuz', 'on', 'uc', 'bucuk', 'yarim'
+            'bin', 'yuz', 'on', 'uc'
         ];
         const TR_FULL_COMPOUND_RE = new RegExp('^(' + TR_NUM_PART_LIST.join('|') + ')+$');
         const TR_PART_FIND_RE = new RegExp('(' + TR_NUM_PART_LIST.join('|') + ')', 'g');
@@ -3943,9 +3946,8 @@
                 if (/^\d+$/.test(grouped)) return parseInt(grouped, 10);
             }
 
-            const decMatch = s0.match(/(\d+)[.,](\d+)/);
-            if (decMatch) {
-                return parseFloat(decMatch[1] + '.' + decMatch[2]);
+            if (/(\d+)[.,](\d+)/.test(s0)) {
+                return null;
             }
 
             const s = s0.replace(/(\d+)/g, ' $1 ');
@@ -3998,13 +4000,10 @@
                     items.push({ kind: 'hundred', val: 100, len: 3, str: '100' });
                 } else if (t === 'bin') {
                     items.push({ kind: 'thousand', val: 1000, len: 4, str: '1000' });
-                } else if (t === 'bucuk' || t === 'yarim') {
-                    items.push({ kind: 'half', val: 0.5, len: 0, str: '.5' });
                 }
             }
 
             if (items.length === 0) return null;
-            if (items.length === 1 && items[0].kind === 'half') return 0.5;
 
             if (items.length >= 2 && items.every(it => (it.kind === 'unit' || it.kind === 'num') && it.len === 1)) {
                 return parseInt(items.map(it => it.str).join(''), 10);
@@ -4012,12 +4011,9 @@
 
             let total = 0;
             let current = 0;
-            let hasHalf = false;
 
             for (const it of items) {
-                if (it.kind === 'half') {
-                    hasHalf = true;
-                } else if (it.kind === 'unit' || it.kind === 'num') {
+                if (it.kind === 'unit' || it.kind === 'num') {
                     if (current >= 100 || [10, 20, 30, 40, 50, 60, 70, 80, 90].includes(current) || current == 0) {
                         current += it.val;
                     } else {
@@ -4033,16 +4029,16 @@
                 }
             }
 
-            return total + current + (hasHalf ? 0.5 : 0);
+            return Math.round(total + current);
         }
 
         const STRICT_NUM_WORDS = new Set([
             'sifir', 'bir', 'iki', 'uc', 'dort', 'bes', 'alti', 'yedi', 'sekiz', 'dokuz',
             'on', 'yirmi', 'otuz', 'kirk', 'elli', 'altmis', 'yetmis', 'seksen', 'doksan',
-            'yuz', 'bin', 'bucuk', 'yarim', 'puan', 'nokta', 'virgul'
+            'yuz', 'bin', 'puan'
         ]);
 
-        // Konuşma YALNIZCA sayı kelimelerinden/rakamlardan oluşuyorsa true döner (sohbet/yan konuşma reddedilir)
+        // Konuşma YALNIZCA tam sayı kelimelerinden/rakamlardan oluşuyorsa true döner (sohbet/yan konuşma reddedilir)
         function isPureNumberUtterance(rawText) {
             const s = toAsciiTurkish(rawText);
             if (!s) return false;
@@ -4050,9 +4046,9 @@
             if (tokens.length === 0) return false;
             let hasNumberToken = false;
             for (const t of tokens) {
-                if (/^\d+([.,]\d+)*$/.test(t)) { hasNumberToken = true; continue; }
+                if (/^\d+$/.test(t)) { hasNumberToken = true; continue; }
                 if (STRICT_NUM_WORDS.has(t)) {
-                    if (t !== 'puan' && t !== 'nokta' && t !== 'virgul') hasNumberToken = true;
+                    if (t !== 'puan') hasNumberToken = true;
                     continue;
                 }
                 if (TR_FULL_COMPOUND_RE.test(t)) { hasNumberToken = true; continue; } // "yirmibes" gibi bitişik yazımlar
@@ -4392,7 +4388,7 @@
         const VOSK_GRAMMAR = JSON.stringify([
             'sıfır', 'bir', 'iki', 'üç', 'dört', 'beş', 'altı', 'yedi', 'sekiz', 'dokuz',
             'on', 'yirmi', 'otuz', 'kırk', 'elli', 'altmış', 'yetmiş', 'seksen', 'doksan',
-            'yüz', 'bin', 'buçuk', 'yarım',
+            'yüz', 'bin',
             'tamam', 'geç', 'sonraki', 'devam', 'onayla', 'önceki', 'geri',
             '[unk]'
         ]);
