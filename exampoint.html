@@ -3965,7 +3965,8 @@
                         setMicStatus(`<span style="color:#f59e0b; font-weight:700;">Tarayıcı sesi metne çeviremedi (sunucu yanıt vermedi).</span> Mikrofon çubuğu konuşurken hareket ediyor mu? Hareket etmiyorsa Windows Ayarlar → Ses → Giriş bölümünden doğru mikrofonu seçin. Yeniden dinleniyor...`);
                         micConfigIdx++;
                         const isMobileDev = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-                        if (!isMobileDev && micConfigIdx >= 2) {
+                        const isFileProto = window.location.protocol === 'file:';
+                        if (!isMobileDev && !isFileProto && micConfigIdx >= 2) {
                             setMicEngine('vosk');
                             micDbg('tarayıcı sesi çözemedi, çevrimdışı motora geçiliyor');
                             destroyCurrentRecognition();
@@ -4087,7 +4088,12 @@
         let voskStream = null, voskNode = null, voskSource = null, voskActive = false, voskToken = 0;
 
         function getMicEngine() {
-            try { return sessionStorage.getItem('ep_engine_v2') === 'vosk' ? 'vosk' : 'web'; } catch (e) { return 'web'; }
+            try {
+                if (window.location.protocol === 'file:' && !customVoskModelBlobUrl) {
+                    return 'web';
+                }
+                return sessionStorage.getItem('ep_engine_v2') === 'vosk' ? 'vosk' : 'web';
+            } catch (e) { return 'web'; }
         }
         function setMicEngine(name) {
             try { sessionStorage.setItem('ep_engine_v2', name); } catch (e) {}
@@ -4111,7 +4117,12 @@
             b.type = 'button';
             b.style.cssText = 'margin-top:8px; background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe; border-radius:999px; padding:5px 12px; font-size:0.74rem; font-weight:700; cursor:pointer; font-family:inherit;';
             b.onclick = () => {
-                setMicEngine(getMicEngine() === 'vosk' ? 'web' : 'vosk');
+                const nextEngine = getMicEngine() === 'vosk' ? 'web' : 'vosk';
+                if (nextEngine === 'vosk' && window.location.protocol === 'file:' && !customVoskModelBlobUrl) {
+                    selectLocalVoskModelFile();
+                    return;
+                }
+                setMicEngine(nextEngine);
                 if (shouldKeepListening || isMicListening) {
                     stopMicrophoneListening();
                 }
@@ -4131,13 +4142,63 @@
             });
         }
 
+        let customVoskModelBlobUrl = null;
+
+        function selectLocalVoskModelFile() {
+            let inp = document.getElementById('voskModelFileInput');
+            if (!inp) {
+                inp = document.createElement('input');
+                inp.type = 'file';
+                inp.id = 'voskModelFileInput';
+                inp.accept = '.gz,.tar.gz,.tgz,.zip';
+                inp.style.display = 'none';
+                inp.onchange = (ev) => {
+                    const f = ev.target.files && ev.target.files[0];
+                    if (!f) return;
+                    if (customVoskModelBlobUrl) {
+                        try { URL.revokeObjectURL(customVoskModelBlobUrl); } catch (e) {}
+                    }
+                    customVoskModelBlobUrl = URL.createObjectURL(f);
+                    voskModel = null;
+                    voskModelPromise = null;
+                    setMicEngine('vosk');
+                    stopMicrophoneListening();
+                    startMicrophoneListening();
+                };
+                document.body.appendChild(inp);
+            }
+            inp.value = '';
+            inp.click();
+        }
+
+        function switchToBrowserSpeechEngine() {
+            setMicEngine('web');
+            stopMicrophoneListening();
+            startMicrophoneListening();
+        }
+
         function loadVoskModel() {
             if (voskModel) return Promise.resolve(voskModel);
             if (voskModelPromise) return voskModelPromise;
             voskModelPromise = (async () => {
                 if (!window.Vosk) await loadScriptOnce(VOSK_LIB_URL);
-                const url = new URL(VOSK_MODEL_URL, window.location.href).href;
-                const m = await window.Vosk.createModel(url);
+
+                let modelUrlToLoad = customVoskModelBlobUrl;
+                if (!modelUrlToLoad) {
+                    if (window.location.protocol === 'file:') {
+                        throw new Error('FILE_PROTOCOL_CORS');
+                    }
+                    modelUrlToLoad = new URL(VOSK_MODEL_URL, window.location.href).href;
+                }
+
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('VOSK_TIMEOUT')), 25000)
+                );
+
+                const m = await Promise.race([
+                    window.Vosk.createModel(modelUrlToLoad),
+                    timeoutPromise
+                ]);
                 voskModel = m;
                 return m;
             })();
@@ -4211,8 +4272,32 @@
                 shouldKeepListening = false;
                 isMicListening = false;
                 updateMicUiState();
-                setMicStatus(`<span style="color:#ef4444; font-weight:700;">Çevrimdışı ses tanıma başlatılamadı:</span> ${escapeHtml(e && e.message ? e.message : String(e))}`);
-                micDbg('vosk hata: ' + (e && e.message));
+                const errMsg = e && e.message ? e.message : String(e);
+                micDbg('vosk hata: ' + errMsg);
+                if (errMsg === 'FILE_PROTOCOL_CORS' || errMsg === 'VOSK_TIMEOUT' || window.location.protocol === 'file:') {
+                    setMicStatus(`
+                        <div style="color:#b45309; font-weight:700; margin-bottom:6px;">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Dosya doğrudan (file://) açıldığı için tarayıcı güvenlik kısıtlaması nedeniyle çevrimdışı ses modelini otomatik okuyamadı.
+                        </div>
+                        <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-top:6px;">
+                            <button type="button" onclick="switchToBrowserSpeechEngine()" style="background:#4f46e5; color:#fff; border:none; border-radius:8px; padding:6px 12px; font-weight:700; font-size:0.78rem; cursor:pointer; font-family:inherit;">
+                                <i class="fa-solid fa-globe"></i> Tarayıcı Ses Motoruna Geç (Önerilen)
+                            </button>
+                            <button type="button" onclick="selectLocalVoskModelFile()" style="background:#059669; color:#fff; border:none; border-radius:8px; padding:6px 12px; font-weight:700; font-size:0.78rem; cursor:pointer; font-family:inherit;">
+                                <i class="fa-solid fa-folder-open"></i> Ses Modelini Seç (models/vosk-model-small-tr-0.3.tar.gz)
+                            </button>
+                        </div>
+                    `);
+                } else {
+                    setMicStatus(`
+                        <span style="color:#ef4444; font-weight:700;">Çevrimdışı ses tanıma başlatılamadı:</span> ${escapeHtml(errMsg)}
+                        <div style="margin-top:6px;">
+                            <button type="button" onclick="switchToBrowserSpeechEngine()" style="background:#4f46e5; color:#fff; border:none; border-radius:8px; padding:5px 12px; font-weight:700; font-size:0.76rem; cursor:pointer; font-family:inherit;">
+                                <i class="fa-solid fa-globe"></i> Tarayıcı Ses Motoruna Geç
+                            </button>
+                        </div>
+                    `);
+                }
             }
         }
 
