@@ -1448,10 +1448,15 @@
                     <i class="fa-solid fa-microphone-lines"></i>
                     <span>Sesli Sınav Notu İşleme</span>
                 </div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <button type="button" id="btnToggleTts" onclick="toggleTtsVoice()" class="btn-ep" style="padding:0.4rem 0.75rem; font-size:0.78rem; background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);" title="Soruları sesli okuma açık/kapalı">
-                        <i class="fa-solid fa-volume-xmark" id="ttsIcon"></i> <span id="ttsStatusText">Sesli Okuma: Kapalı</span>
-                    </button>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+                    <label style="display:inline-flex; align-items:center; gap:6px; padding:0.38rem 0.7rem; font-size:0.78rem; font-weight:700; background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.32); border-radius:10px; cursor:pointer; user-select:none;" title="Söylenen numaranın ait olduğu öğrencinin adını sesli oku">
+                        <input type="checkbox" id="chkReadStudentName" onchange="updateTtsCheckboxes('student')" style="width:15px; height:15px; accent-color:#10b981; cursor:pointer; margin:0;">
+                        <span>Öğrencinin Adı Okunsun</span>
+                    </label>
+                    <label style="display:inline-flex; align-items:center; gap:6px; padding:0.38rem 0.7rem; font-size:0.78rem; font-weight:700; background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.32); border-radius:10px; cursor:pointer; user-select:none;" title="Kaçıncı sorunun puanının söylenmesi gerektiğini sesli oku">
+                        <input type="checkbox" id="chkReadQuestionNo" onchange="updateTtsCheckboxes('question')" style="width:15px; height:15px; accent-color:#10b981; cursor:pointer; margin:0;">
+                        <span>Soru No Okunsun</span>
+                    </label>
                     <button type="button" class="btn-close-voice" onclick="closeVoiceGradingModal()" title="Kapat">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
@@ -1613,7 +1618,8 @@
         let transitionMode = "auto15"; // "auto15" | "confirm"
         let autoAdvanceTimer = null;
         let autoAdvanceInterval = null;
-        let ttsEnabled = false;
+        let ttsReadStudentName = false;
+        let ttsReadQuestionNo = false;
 
         // Web Speech API State
         let recognition = null;
@@ -3202,8 +3208,11 @@
             }
         }
 
-        function speakTurkishPrompt(text) {
-            if (!ttsEnabled || !('speechSynthesis' in window)) return;
+        function speakTurkishPrompt(text, forceSpeak = false) {
+            if (!forceSpeak && !ttsReadStudentName && !ttsReadQuestionNo) return;
+            if (!('speechSynthesis' in window)) return;
+            const cleanText = String(text || '').trim();
+            if (!cleanText) return;
             try {
                 const synth = window.speechSynthesis;
                 const token = ++speakToken;
@@ -3221,7 +3230,7 @@
 
                 setTimeout(() => {
                     if (token !== speakToken) return;
-                    const utter = new SpeechSynthesisUtterance(text);
+                    const utter = new SpeechSynthesisUtterance(cleanText);
                     utter.lang = 'tr-TR';
                     if (ttsVoice) utter.voice = ttsVoice;
                     utter.rate = 1.05;
@@ -3240,21 +3249,50 @@
             }
         }
 
-        function toggleTtsVoice() {
-            ttsEnabled = !ttsEnabled;
-            const icon = document.getElementById('ttsIcon');
-            const txt = document.getElementById('ttsStatusText');
-            if (ttsEnabled) {
-                icon.className = 'fa-solid fa-volume-high';
-                txt.textContent = 'Sesli Okuma: Açık';
-                // Mobil tarayıcılar sesi ancak kullanıcı dokunuşuyla açar: bu tıklamada bir kez konuştur
-                speakTurkishPrompt('Sesli okuma açık');
-            } else {
-                icon.className = 'fa-solid fa-volume-xmark';
-                txt.textContent = 'Sesli Okuma: Kapalı';
+        function initTtsCheckboxes() {
+            try {
+                ttsReadStudentName = localStorage.getItem('ep_tts_read_student') === 'true';
+                ttsReadQuestionNo = localStorage.getItem('ep_tts_read_question') === 'true';
+            } catch (e) {
+                ttsReadStudentName = false;
+                ttsReadQuestionNo = false;
+            }
+            const chkSt = document.getElementById('chkReadStudentName');
+            const chkQ = document.getElementById('chkReadQuestionNo');
+            if (chkSt) chkSt.checked = ttsReadStudentName;
+            if (chkQ) chkQ.checked = ttsReadQuestionNo;
+        }
+
+        function updateTtsCheckboxes(changedType) {
+            const chkSt = document.getElementById('chkReadStudentName');
+            const chkQ = document.getElementById('chkReadQuestionNo');
+            ttsReadStudentName = !!(chkSt && chkSt.checked);
+            ttsReadQuestionNo = !!(chkQ && chkQ.checked);
+            try {
+                localStorage.setItem('ep_tts_read_student', String(ttsReadStudentName));
+                localStorage.setItem('ep_tts_read_question', String(ttsReadQuestionNo));
+            } catch (e) {}
+
+            if (!ttsReadStudentName && !ttsReadQuestionNo) {
                 speakToken++;
                 if ('speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
+                }
+                return;
+            }
+
+            // Mobil tarayıcılar sesi kullanıcı dokunuşuyla etkinleştirir
+            if (changedType === 'student' && ttsReadStudentName) {
+                if (currentStudentObj && currentStudentObj.name) {
+                    speakTurkishPrompt(currentStudentObj.name, true);
+                } else {
+                    speakTurkishPrompt('Öğrenci adı okuma açık', true);
+                }
+            } else if (changedType === 'question' && ttsReadQuestionNo) {
+                if (voiceStep === 'question' && currentQuestionIndex) {
+                    speakTurkishPrompt(`${currentQuestionIndex}. soru`, true);
+                } else {
+                    speakTurkishPrompt('Soru numarası okuma açık', true);
                 }
             }
         }
@@ -3413,6 +3451,7 @@
             document.getElementById('voiceGradingModal').classList.add('active');
             acquireWakeLock();
             initAutoDelayInput();
+            initTtsCheckboxes();
             ensureEngineToggle();
             startLevelMeter();
             resetToStudentStep();
@@ -3455,7 +3494,6 @@
                     `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon dinliyor...</span> Lütfen öğrenci numarasını söyleyin.`;
             }
 
-            speakTurkishPrompt(promptText);
             scrollVoiceFocus('student');
         }
 
@@ -3493,7 +3531,9 @@
                 if (hl) hl.textContent = 'Öğrenci bulunamadı, numarayı tekrar söyleyin';
                 const qs = document.getElementById('quickClassStudentSelect');
                 if (qs) qs.value = '';
-                speakTurkishPrompt(msg);
+                if (ttsReadStudentName || ttsReadQuestionNo) {
+                    speakTurkishPrompt(msg, true);
+                }
                 return false;
             }
 
@@ -3524,11 +3564,11 @@
             document.getElementById('questionManualAssistRow').style.display = 'flex';
 
             voiceStep = "question";
-            goToQuestion(1);
+            goToQuestion(1, true);
             return true;
         }
 
-        function goToQuestion(qIndex) {
+        function goToQuestion(qIndex, isInitialForStudent = false) {
             cancelAutoAdvanceTimer();
             clearSettleTimer();
 
@@ -3559,7 +3599,18 @@
             document.getElementById('manualScoreInput').value = existingScore !== undefined ? existingScore : '';
 
             renderQuestionPills();
-            speakTurkishPrompt(promptText);
+
+            const speechParts = [];
+            if (isInitialForStudent && ttsReadStudentName && currentStudentObj && currentStudentObj.name) {
+                speechParts.push(currentStudentObj.name);
+            }
+            if (ttsReadQuestionNo) {
+                speechParts.push(promptText);
+            }
+            if (speechParts.length > 0) {
+                speakTurkishPrompt(speechParts.join('. '), true);
+            }
+
             scrollVoiceFocus('question');
         }
 
