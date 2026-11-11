@@ -1,0 +1,4352 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <title>Sınav Notu İşleme Ekranı (Offline / Excel)</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="img/amblem.jpg">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="js/vendor/sweetalert2.min.css">
+    <!-- Base Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    <!-- SweetAlert2 JS -->
+    <script src="js/vendor/sweetalert2.all.min.js"></script>
+    <!-- SheetJS (Excel Okuma / Yazma - Offline) -->
+    <script src="js/vendor/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --ep-primary: #4f46e5;
+            --ep-primary-dark: #3730a3;
+            --ep-primary-light: #e0e7ff;
+            --ep-accent: #10b981;
+            --ep-accent-dark: #059669;
+            --ep-danger: #ef4444;
+            --ep-warning: #f59e0b;
+            --ep-bg: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 50%, #f0fdf4 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--ep-bg);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            color: #1e293b;
+        }
+
+        .ep-container {
+            max-width: 1020px;
+            margin: 1.5rem auto 3rem;
+            padding: 0 1rem;
+        }
+
+        /* Header */
+        .ep-header {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border-radius: 18px;
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .ep-header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .ep-header-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
+            flex-shrink: 0;
+        }
+
+        .ep-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #1e1b4b;
+            margin: 0;
+            letter-spacing: -0.3px;
+        }
+
+        .ep-subtitle {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin: 3px 0 0;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .ep-teacher-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #eef2ff;
+            color: #4338ca;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.82rem;
+            border: 1px solid #c7d2fe;
+        }
+
+        .ep-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-ep {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0.65rem 1.15rem;
+            border-radius: 12px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.92rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-ep-portal {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+        .btn-ep-portal:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .btn-ep-logout {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        .btn-ep-logout:hover {
+            background: #fee2e2;
+        }
+
+        /* Top Action Bar: Yeni Sınav Ekle */
+        .ep-top-action {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-add-exam-main {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            color: #fff;
+            padding: 0.95rem 1.75rem;
+            border-radius: 14px;
+            font-size: 1.05rem;
+            font-weight: 800;
+            box-shadow: 0 8px 20px -4px rgba(79, 70, 229, 0.45);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.22s ease;
+        }
+
+        .btn-add-exam-main:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -4px rgba(79, 70, 229, 0.55);
+            background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+        }
+
+        /* Add Exam Panel */
+        .add-exam-panel {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 12px 30px -5px rgba(30, 27, 75, 0.1);
+            border: 2px solid #c7d2fe;
+            display: none;
+            animation: slideDownFade 0.25s ease-out;
+        }
+
+        .add-exam-panel.open {
+            display: block;
+        }
+
+        @keyframes slideDownFade {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .add-exam-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .add-exam-header h3 {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #1e1b4b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .ep-field label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .ep-select, .ep-input {
+            width: 100%;
+            padding: 0.8rem 0.95rem;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 0.98rem;
+            font-weight: 600;
+            color: #0f172a;
+            background: #f8fafc;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .ep-select:focus, .ep-input:focus {
+            border-color: var(--ep-primary);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+        }
+
+        .quick-q-chips {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+
+        .q-chip {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+            border-radius: 8px;
+            padding: 3px 9px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .q-chip:hover, .q-chip.active {
+            background: var(--ep-primary);
+            color: #fff;
+            border-color: var(--ep-primary);
+        }
+
+        .add-exam-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-save-exam {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #fff;
+            padding: 0.8rem 1.75rem;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 6px 15px rgba(16, 185, 129, 0.35);
+            transition: all 0.2s;
+        }
+
+        .btn-save-exam:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(16, 185, 129, 0.45);
+        }
+
+        /* Accordion: Sınavlar */
+        .ep-accordion {
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.07);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+
+        .ep-accordion-header {
+            width: 100%;
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+            color: #ffffff;
+            padding: 1.15rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+            text-align: left;
+            transition: background 0.2s;
+        }
+
+        .ep-accordion-header:hover {
+            background: linear-gradient(135deg, #312e81 0%, #3730a3 100%);
+        }
+
+        .ep-accordion-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.2rem;
+            font-weight: 800;
+        }
+
+        .ep-exam-count-badge {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 2px 11px;
+            border-radius: 999px;
+            font-size: 0.88rem;
+            font-weight: 700;
+        }
+
+        .ep-accordion-chevron {
+            font-size: 1.1rem;
+            transition: transform 0.25s ease;
+        }
+
+        .ep-accordion.open .ep-accordion-chevron {
+            transform: rotate(180deg);
+        }
+
+        .ep-accordion-body {
+            display: none;
+            padding: 1.25rem;
+            background: #f8fafc;
+        }
+
+        .ep-accordion.open .ep-accordion-body {
+            display: block;
+        }
+
+        /* Exam Card inside Accordion */
+        .exam-item-card {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            margin-bottom: 0.9rem;
+            transition: all 0.2s ease;
+            overflow: hidden;
+        }
+
+        .exam-item-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .exam-item-card:hover {
+            border-color: #a5b4fc;
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.08);
+        }
+
+        .exam-item-main {
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .exam-item-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .exam-class-badge {
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            color: #fff;
+            font-weight: 800;
+            font-size: 1.05rem;
+            padding: 0.45rem 0.9rem;
+            border-radius: 10px;
+            min-width: 58px;
+            text-align: center;
+            box-shadow: 0 3px 8px rgba(79, 70, 229, 0.25);
+        }
+
+        .exam-meta-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .exam-subject-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .exam-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .exam-tag-no {
+            background: #fef3c7;
+            color: #b45309;
+            border: 1px solid #fde68a;
+        }
+
+        .exam-tag-q {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+
+        .exam-tag-graded {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+
+        .exam-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* PLAY BUTTON */
+        .btn-play-exam {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .btn-play-exam i {
+            margin-left: 3px;
+        }
+
+        .btn-play-exam:hover {
+            transform: scale(1.08);
+            box-shadow: 0 8px 22px rgba(16, 185, 129, 0.55);
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+
+        .btn-table-toggle {
+            background: #eef2ff;
+            color: #4f46e5;
+            border: 1px solid #c7d2fe;
+            padding: 0.55rem 0.9rem;
+            border-radius: 10px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+
+        .btn-table-toggle:hover {
+            background: #e0e7ff;
+        }
+
+        .btn-print-exam {
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+            padding: 0.55rem 0.9rem;
+            border-radius: 10px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+
+        .btn-print-exam:hover {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .btn-delete-exam {
+            background: #fef2f2;
+            color: #ef4444;
+            border: 1px solid #fecaca;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-delete-exam:hover {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        /* Expandable Student Scores Table inside Exam Card */
+        .exam-scores-drawer {
+            display: none;
+            border-top: 1px solid #e2e8f0;
+            padding: 1rem 1.25rem;
+            background: #f8fafc;
+            overflow-x: auto;
+        }
+
+        .exam-scores-drawer.open {
+            display: block;
+        }
+
+        .scores-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            font-size: 0.88rem;
+            border: 1px solid #cbd5e1;
+        }
+
+        .scores-table th, .scores-table td {
+            padding: 0.55rem 0.65rem;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+        }
+
+        .scores-table th {
+            background: #f1f5f9;
+            color: #334155;
+            font-weight: 800;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        .scores-table td.st-left {
+            text-align: left;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .scores-table tr:hover {
+            background: #f8fafc;
+        }
+
+        .score-cell-input {
+            width: 46px;
+            padding: 4px;
+            text-align: center;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #1e293b;
+        }
+
+        .score-cell-input:focus {
+            border-color: var(--ep-primary);
+            outline: none;
+            background: #eef2ff;
+        }
+
+        .total-score-badge {
+            display: inline-block;
+            min-width: 38px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 800;
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        /* =====================================================
+           VOICE GRADING OVERLAY / MODAL
+           ===================================================== */
+        .voice-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(8px);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem;
+            overflow-y: auto;
+        }
+
+        .voice-modal-backdrop.active {
+            display: flex;
+        }
+
+        .voice-modal-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 720px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+            overflow: hidden;
+            border: 2px solid #e0e7ff;
+            display: flex;
+            flex-direction: column;
+            max-height: 95vh;
+        }
+
+        .voice-modal-top {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%);
+            color: #fff;
+            padding: 1rem 1.35rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .voice-modal-exam-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-close-voice {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-close-voice:hover {
+            background: #ef4444;
+            border-color: #ef4444;
+        }
+
+        .voice-modal-body {
+            padding: 1.25rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Transition Mode Bar */
+        .transition-mode-bar {
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .transition-mode-title {
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .transition-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        @media (max-width: 520px) {
+            .transition-options {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .mode-option-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0.6rem 0.85rem;
+            border-radius: 10px;
+            border: 2px solid #cbd5e1;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.86rem;
+            color: #334155;
+            transition: all 0.15s;
+        }
+
+        .mode-option-label input[type="radio"] {
+            accent-color: var(--ep-primary);
+            width: 17px;
+            height: 17px;
+            margin: 0;
+        }
+
+        .mode-option-label.selected {
+            border-color: var(--ep-primary);
+            background: #eef2ff;
+            color: #1e1b4b;
+        }
+
+        .silence-note {
+            font-size: 0.78rem;
+            color: #059669;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Prompt Stage */
+        .voice-prompt-box {
+            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+            border: 2.5px solid #818cf8;
+            border-radius: 18px;
+            padding: 1.35rem 1.25rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .mic-pulse-btn {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            margin: 0 auto 0.85rem;
+            cursor: pointer;
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+            transition: all 0.2s;
+        }
+
+        .mic-pulse-btn.listening {
+            animation: micPulse 1.6s infinite;
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        @keyframes micPulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55);
+            }
+            70% {
+                box-shadow: 0 0 0 18px rgba(16, 185, 129, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+        .voice-prompt-text {
+            font-size: 1.45rem;
+            font-weight: 900;
+            color: #1e1b4b;
+            margin: 0 0 0.5rem;
+            line-height: 1.3;
+        }
+
+        .voice-status-sub {
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: #475569;
+            min-height: 1.4em;
+        }
+
+        .recognized-bubble {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #ffffff;
+            border: 2px solid #6366f1;
+            color: #1e1b4b;
+            padding: 6px 16px;
+            border-radius: 999px;
+            font-weight: 800;
+            font-size: 1rem;
+            margin-top: 8px;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.12);
+        }
+
+        /* Auto-advance 1.5s progress bar */
+        .auto-timer-wrap {
+            margin-top: 10px;
+            display: none;
+        }
+
+        .auto-timer-wrap.active {
+            display: block;
+        }
+
+        .auto-timer-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: #cbd5e1;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .auto-timer-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #10b981, #059669);
+            transition: width 0.05s linear;
+        }
+
+        .auto-timer-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #047857;
+            margin-top: 4px;
+        }
+
+        /* Active Student Card */
+        .active-student-card {
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            border-radius: 14px;
+            padding: 0.9rem 1.15rem;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .active-student-card.visible {
+            display: flex;
+        }
+
+        .st-card-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .st-no-circle {
+            background: #16a34a;
+            color: #fff;
+            font-weight: 900;
+            font-size: 1.1rem;
+            padding: 0.45rem 0.85rem;
+            border-radius: 10px;
+        }
+
+        .st-name-title {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #064e3b;
+        }
+
+        .st-class-sub {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #15803d;
+        }
+
+        /* Questions Progress Strip */
+        .questions-strip-box {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .questions-strip-box.visible {
+            display: flex;
+        }
+
+        .questions-grid-pills {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+            gap: 8px;
+        }
+
+        .q-pill-box {
+            background: #f8fafc;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 6px 4px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .q-pill-box.current {
+            border-color: #4f46e5;
+            background: #eef2ff;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .q-pill-box.done {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+
+        .q-pill-label {
+            font-size: 0.73rem;
+            font-weight: 700;
+            color: #64748b;
+        }
+
+        .q-pill-val {
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #0f172a;
+            margin-top: 2px;
+        }
+
+        /* Manual / Quick Fallback Controls */
+        .manual-assist-bar {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 0.85rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .manual-input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .quick-score-btns {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .btn-quick-num {
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 6px 11px;
+            font-family: inherit;
+            font-weight: 800;
+            font-size: 0.88rem;
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-quick-num:hover {
+            background: #4f46e5;
+            color: #fff;
+            border-color: #4f46e5;
+        }
+
+        .btn-confirm-next {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 0.8rem 1.35rem;
+            font-family: inherit;
+            font-weight: 800;
+            font-size: 0.98rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 6px 14px rgba(16, 185, 129, 0.35);
+            transition: all 0.15s;
+        }
+
+        .btn-confirm-next:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+        }
+
+        .empty-exams-placeholder {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: #64748b;
+        }
+
+        /* =====================================================
+           MOBİL / TABLET / iPHONE UYUMLULUK
+           ===================================================== */
+        html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+        body { -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+        button, .q-chip, .q-pill-box, .btn-ep { touch-action: manipulation; }
+        .ep-header, .ep-accordion, .add-exam-panel, .active-student-card { -webkit-backdrop-filter: blur(12px); }
+        .voice-modal-backdrop { -webkit-backdrop-filter: blur(8px); overscroll-behavior: contain; }
+        .voice-modal-body { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+        .exam-scores-drawer { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .scores-table { min-width: 480px; }
+        .ep-container { padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); padding-bottom: env(safe-area-inset-bottom); }
+
+        /* iOS Safari: 16px altı alanlarda otomatik yakınlaştırma yapar, engelle */
+        @media (pointer: coarse) {
+            .ep-select, .ep-input, .score-cell-input, select, input[type="number"] { font-size: 16px !important; }
+            .btn-ep, .btn-save-exam, .btn-add-exam-main, .btn-quick-num, .btn-confirm-next { min-height: 44px; }
+            .btn-play-exam, .btn-table-toggle, .btn-delete-exam, .btn-close-voice { min-width: 44px; min-height: 44px; }
+        }
+
+        /* Tablet */
+        @media (max-width: 900px) {
+            .ep-container { margin-top: 1rem; }
+            .ep-header { padding: 1rem 1.1rem; }
+            .voice-modal-card { max-width: 640px; }
+        }
+
+        /* Telefon */
+        @media (max-width: 640px) {
+            .ep-container { margin: 0.6rem auto 2rem; padding-left: max(0.6rem, env(safe-area-inset-left)); padding-right: max(0.6rem, env(safe-area-inset-right)); }
+            .ep-header { flex-direction: column; align-items: stretch; padding: 0.9rem; border-radius: 14px; gap: 0.7rem; margin-bottom: 1rem; }
+            .ep-header-left { gap: 10px; }
+            .ep-header-icon { width: 42px; height: 42px; font-size: 1.2rem; border-radius: 11px; }
+            .ep-title { font-size: 1.2rem; }
+            .ep-header-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+            .ep-header-actions .btn-ep { justify-content: center; width: 100%; }
+            .btn-add-exam-main { width: 100%; justify-content: center; }
+            .ep-top-action { padding-left: 0; padding-right: 0; }
+            .add-exam-panel { padding: 1rem; border-radius: 14px; }
+            .form-grid-4 { grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+            .form-grid-4 .ep-field:first-child, .form-grid-4 .ep-field:nth-child(2) { grid-column: 1 / -1; }
+            .btn-save-exam { width: 100%; justify-content: center; }
+            .add-exam-footer { justify-content: stretch; }
+
+            .exam-item-card { padding: 0.8rem; }
+            .exam-item-main { flex-direction: column; align-items: stretch; gap: 0.7rem; }
+            .exam-item-info { width: 100%; }
+            .exam-item-actions { width: 100%; display: flex; justify-content: flex-end; gap: 8px; }
+            .btn-table-toggle { flex: 1; justify-content: center; }
+            .exam-subject-title { flex-wrap: wrap; gap: 6px; }
+
+            /* Sesli not girişi: tam ekran */
+            .voice-modal-backdrop { padding: 0; align-items: stretch; }
+            .voice-modal-card { max-width: 100%; max-height: none; height: 100%; height: 100dvh; border-radius: 0; border: none; }
+            .voice-modal-top { padding: 0.7rem 0.8rem; padding-top: max(0.7rem, env(safe-area-inset-top)); flex-wrap: wrap; }
+            .voice-modal-exam-title { font-size: 0.92rem; }
+            .voice-modal-body { padding: 0.8rem; padding-bottom: max(0.8rem, env(safe-area-inset-bottom)); gap: 0.8rem; flex: 1; }
+            .voice-prompt-text { font-size: 1.25rem !important; line-height: 1.3; }
+            .voice-status-sub { font-size: 0.85rem; }
+            .mic-pulse-btn { width: 78px !important; height: 78px !important; font-size: 2rem !important; }
+            .active-student-card { flex-direction: column; align-items: stretch; gap: 0.6rem; }
+            .active-student-card > div:last-child { justify-content: space-between; }
+            .questions-grid-pills { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)) !important; gap: 6px !important; }
+            .manual-input-row { flex-wrap: wrap; }
+            .manual-input-row .ep-input, .manual-input-row .ep-select, .manual-input-row .btn-ep { max-width: 100% !important; flex: 1 1 100%; }
+            .quick-score-btns { gap: 6px; }
+            .btn-quick-num { min-width: 44px; }
+            .btn-confirm-next { width: 100%; }
+            .scores-table th, .scores-table td { padding: 6px 4px; font-size: 0.8rem; }
+            .score-cell-input { width: 52px; }
+        }
+
+        /* Çok küçük telefonlar */
+        @media (max-width: 380px) {
+            .ep-title { font-size: 1.05rem; }
+            .form-grid-4 { grid-template-columns: 1fr; }
+            .voice-prompt-text { font-size: 1.1rem !important; }
+        }
+
+        /* Yatay (landscape) telefon: modal içeriği sığsın */
+        @media (max-height: 480px) and (orientation: landscape) {
+            .voice-prompt-box { padding: 0.5rem !important; }
+            .mic-pulse-btn { width: 56px !important; height: 56px !important; font-size: 1.4rem !important; }
+        }
+
+        /* ---- Sesli giriş kutusu: kompakt görünüm ---- */
+        .voice-prompt-box { padding: 0.65rem 0.9rem !important; border-width: 2px !important; border-radius: 14px !important; }
+        .mic-pulse-btn { width: 46px !important; height: 46px !important; font-size: 1.15rem !important; margin: 0 auto 0.4rem !important; }
+        @keyframes micPulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .voice-prompt-text { font-size: 1.1rem !important; margin: 0 0 0.25rem !important; line-height: 1.25 !important; }
+        .voice-status-sub { font-size: 0.8rem !important; min-height: 1.1em !important; }
+        .recognized-bubble { font-size: 0.85rem !important; padding: 3px 12px !important; margin-top: 5px !important; }
+        #micDebugLine, #micLevelDevice { display: none !important; }
+        #micLevelWrap { max-width: 180px !important; margin-top: 4px !important; }
+        #micEngineBtn { margin-top: 5px !important; padding: 3px 10px !important; font-size: 0.68rem !important; }
+        .auto-timer-wrap { margin-top: 6px !important; }
+
+        /* Excel Upload Box Styles for epoff.html */
+        .excel-upload-card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 1.15rem 1.4rem;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+            border: 2px dashed #86efac;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            transition: all 0.2s;
+        }
+        .excel-upload-card.has-file {
+            border-style: solid;
+            border-color: #22c55e;
+            background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+        }
+        .excel-upload-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex: 1;
+            min-width: 240px;
+        }
+        .excel-icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 13px;
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+            box-shadow: 0 6px 14px rgba(22, 163, 74, 0.25);
+        }
+        .excel-info-title {
+            font-weight: 800;
+            font-size: 1rem;
+            color: #0f172a;
+            margin: 0 0 3px;
+        }
+        .excel-info-sub {
+            font-size: 0.82rem;
+            color: #475569;
+            font-weight: 500;
+            margin: 0;
+        }
+        .excel-upload-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-excel-select {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            color: #fff;
+            border: none;
+            padding: 0.68rem 1.2rem;
+            border-radius: 12px;
+            font-family: inherit;
+            font-weight: 800;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 6px 16px rgba(22, 163, 74, 0.28);
+            transition: all 0.2s;
+        }
+        .btn-excel-select:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(22, 163, 74, 0.36);
+        }
+        .btn-excel-clear {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            padding: 0.65rem 0.9rem;
+            border-radius: 12px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.84rem;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            gap: 6px;
+        }
+        .form-grid-5 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="ep-container">
+        <!-- HEADER -->
+        <header class="ep-header">
+            <div class="ep-header-left">
+                <div class="ep-header-icon">
+                    <i class="fa-solid fa-microphone-lines"></i>
+                </div>
+                <div>
+                    <h1 class="ep-title">Sınav Notu İşleme Ekranı (Offline)</h1>
+                    <div class="ep-subtitle">
+                        <span class="ep-teacher-badge" id="teacherNameBadge">
+                            <i class="fa-solid fa-file-excel"></i>
+                            <span id="teacherNameText">Excel Destekli Çevrimdışı Mod</span>
+                        </span>
+                        <span id="excelSummaryBadge" style="font-size:0.82rem; color:#15803d; font-weight:700;"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="ep-header-actions">
+                <button type="button" class="btn-ep btn-ep-portal" onclick="document.getElementById('excelFileInput').click()">
+                    <i class="fa-solid fa-file-arrow-up" style="color:#16a34a;"></i> Excel Yükle
+                </button>
+            </div>
+        </header>
+
+        <!-- EXCEL ÖĞRENCİ LİSTESİ YÜKLEME ALANI -->
+        <div class="excel-upload-card" id="excelUploadCard">
+            <div class="excel-upload-left">
+                <div class="excel-icon-box">
+                    <i class="fa-solid fa-file-excel"></i>
+                </div>
+                <div>
+                    <div class="excel-info-title" id="excelFileTitle">Öğrenci Listesi Excel Dosyası Seçin</div>
+                    <p class="excel-info-sub" id="excelFileDesc">
+                        Sınıf adı <b>sekme (sayfa) adından</b>, Öğrenci No <b>2. sütundan (B)</b>, Ad Soyad <b>3. sütundan (C)</b> otomatik alınır.
+                    </p>
+                </div>
+            </div>
+            <div class="excel-upload-actions">
+                <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleExcelFileSelect(event)">
+                <button type="button" class="btn-excel-select" onclick="document.getElementById('excelFileInput').click()">
+                    <i class="fa-solid fa-folder-open"></i> Excel Dosyası Seç
+                </button>
+                <button type="button" class="btn-excel-clear" id="btnClearExcel" onclick="clearLoadedExcelData()" title="Yüklü Excel verisini temizle">
+                    <i class="fa-solid fa-trash-can"></i> Temizle
+                </button>
+            </div>
+        </div>
+
+        <!-- YENİ SINAV EKLE BUTTON -->
+        <div class="ep-top-action">
+            <button type="button" class="btn-add-exam-main" id="btnToggleAddExam" onclick="toggleAddExamForm()">
+                <i class="fa-solid fa-circle-plus"></i> Yeni Sınav Ekle
+            </button>
+        </div>
+
+        <!-- YENİ SINAV EKLE FORM PANEL (Açık olarak başlar) -->
+        <section class="add-exam-panel open" id="addExamPanel">
+            <div class="add-exam-header">
+                <h3><i class="fa-solid fa-file-circle-plus" style="color:#4f46e5;"></i> Yeni Sınav Tanımla</h3>
+                <button type="button" class="btn-ep btn-ep-portal" style="padding:0.4rem 0.75rem; font-size:0.82rem;" onclick="toggleAddExamForm(false)">
+                    <i class="fa-solid fa-xmark"></i> Kapat
+                </button>
+            </div>
+
+            <div class="form-grid-5">
+                <!-- 1. Sınıf Seçimi (Excel Sekmelerinden veya Manuel) -->
+                <div class="ep-field">
+                    <label for="examClassSelect"><i class="fa-solid fa-users-rectangle" style="color:#4f46e5;"></i> Sınıf (Excel Sekmesi)</label>
+                    <select id="examClassSelect" class="ep-select">
+                        <option value="">Önce Excel Yükleyin...</option>
+                    </select>
+                </div>
+
+                <!-- 2. Ders Adı (Öğretmen Tarafından Girilir) -->
+                <div class="ep-field">
+                    <label for="examSubjectInput"><i class="fa-solid fa-book-open" style="color:#4f46e5;"></i> Ders Adı</label>
+                    <input type="text" id="examSubjectInput" class="ep-input" list="commonSubjectsList" placeholder="Ders adını yazın (Örn: Matematik)">
+                    <datalist id="commonSubjectsList">
+                        <option value="Türk Dili ve Edebiyatı">
+                        <option value="Matematik">
+                        <option value="Fizik">
+                        <option value="Kimya">
+                        <option value="Biyoloji">
+                        <option value="Tarih">
+                        <option value="Coğrafya">
+                        <option value="İngilizce">
+                        <option value="Din Kültürü ve Ahlak Bilgisi">
+                        <option value="Felsefe">
+                        <option value="Beden Eğitimi">
+                        <option value="Görsel Sanatlar">
+                        <option value="Müzik">
+                        <option value="Bilişim Teknolojileri">
+                    </datalist>
+                </div>
+
+                <!-- 3. Kaçıncı Sınav Olduğu (Öğretmen Tarafından Girilir/Seçilir) -->
+                <div class="ep-field">
+                    <label for="examNumberSelect"><i class="fa-solid fa-list-ol" style="color:#4f46e5;"></i> Sınav No</label>
+                    <input type="text" id="examNumberSelect" class="ep-input" list="examNumbersDatalist" value="1.DÖNEM 1.YAZILI SINAVI" placeholder="Örn: 1.DÖNEM 1.YAZILI SINAVI">
+                    <datalist id="examNumbersDatalist">
+                        <option value="1.DÖNEM 1.YAZILI SINAVI">
+                        <option value="1.DÖNEM 2.YAZILI SINAVI">
+                        <option value="2.DÖNEM 1.YAZILI SINAVI">
+                        <option value="2.DÖNEM 2.YAZILI SINAVI">
+                        <option value="1. Sınav">
+                        <option value="2. Sınav">
+                        <option value="3. Sınav">
+                        <option value="Uygulama Sınavı">
+                    </datalist>
+                </div>
+
+                <!-- 4. Kaç Soru Olduğu (Öğretmen Tarafından Girilir) -->
+                <div class="ep-field">
+                    <label for="examQuestionCount"><i class="fa-solid fa-circle-question" style="color:#4f46e5;"></i> Soru Sayısı</label>
+                    <input type="number" id="examQuestionCount" class="ep-input" min="1" max="100" value="10" placeholder="Örn: 10">
+                    <div class="quick-q-chips">
+                        <span class="q-chip" onclick="setQuickQuestionCount(5)">5</span>
+                        <span class="q-chip" onclick="setQuickQuestionCount(8)">8</span>
+                        <span class="q-chip active" onclick="setQuickQuestionCount(10)">10</span>
+                        <span class="q-chip" onclick="setQuickQuestionCount(12)">12</span>
+                        <span class="q-chip" onclick="setQuickQuestionCount(15)">15</span>
+                        <span class="q-chip" onclick="setQuickQuestionCount(20)">20</span>
+                    </div>
+                </div>
+
+                <!-- 5. Öğretmen Adı (İsteğe Bağlı) -->
+                <div class="ep-field">
+                    <label for="examTeacherInput"><i class="fa-solid fa-chalkboard-user" style="color:#4f46e5;"></i> Öğretmen Adı (İsteğe Bağlı)</label>
+                    <input type="text" id="examTeacherInput" class="ep-input" placeholder="Ad Soyad...">
+                </div>
+            </div>
+
+            <div class="add-exam-footer">
+                <button type="button" class="btn-save-exam" onclick="handleAddExam()">
+                    <i class="fa-solid fa-check"></i> Sınavı Ekle
+                </button>
+            </div>
+        </section>
+
+        <!-- SINAVLAR AKORDİON MENÜ -->
+        <section class="ep-accordion open" id="examsAccordion">
+            <button type="button" class="ep-accordion-header" onclick="toggleExamsAccordion()">
+                <div class="ep-accordion-title">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <span>Sınavlar</span>
+                    <span class="ep-exam-count-badge" id="examsCountBadge">0</span>
+                </div>
+                <i class="fa-solid fa-chevron-down ep-accordion-chevron"></i>
+            </button>
+            <div class="ep-accordion-body" id="examsAccordionList">
+                <div class="empty-exams-placeholder">
+                    <i class="fa-solid fa-spinner fa-spin" style="font-size:2rem; margin-bottom:0.5rem; color:#6366f1;"></i>
+                    <p>Sınavlar yükleniyor...</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- =====================================================
+         SESLİ NOT GİRİŞ ASİSTANI MODAL (PLAY TUŞU EKRANI)
+         ===================================================== -->
+    <div class="voice-modal-backdrop" id="voiceGradingModal">
+        <div class="voice-modal-card">
+            <div class="voice-modal-top">
+                <div class="voice-modal-exam-title" id="voiceModalExamHeader">
+                    <i class="fa-solid fa-microphone-lines"></i>
+                    <span>Sesli Sınav Notu İşleme</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button type="button" id="btnToggleTts" onclick="toggleTtsVoice()" class="btn-ep" style="padding:0.4rem 0.75rem; font-size:0.78rem; background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);" title="Soruları sesli okuma açık/kapalı">
+                        <i class="fa-solid fa-volume-xmark" id="ttsIcon"></i> <span id="ttsStatusText">Sesli Okuma: Kapalı</span>
+                    </button>
+                    <button type="button" class="btn-close-voice" onclick="closeVoiceGradingModal()" title="Kapat">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="voice-modal-body">
+                <!-- Sorular Arası Geçiş Seçeneği -->
+                <div class="transition-mode-bar">
+                    <div class="transition-mode-title">
+                        <span><i class="fa-solid fa-sliders"></i> Sorular Arası Geçiş Seçeneği</span>
+                        <span class="silence-note"><i class="fa-solid fa-hourglass-half"></i> Bir şey söylenmezse sistem geçmez, bekler</span>
+                    </div>
+                    <div class="transition-options">
+                        <label class="mode-option-label selected" id="lblModeAuto">
+                            <input type="radio" name="voiceTransitionMode" value="auto15" checked onchange="setTransitionMode('auto15')">
+                            <span><i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> Notu Söyledikten <input type="number" id="autoDelayInput" min="0.3" max="10" step="0.1" value="1" onclick="event.stopPropagation(); event.preventDefault();" onchange="setAutoDelay(this.value)" oninput="setAutoDelay(this.value)" style="width:62px; padding:2px 6px; margin:0 4px; border:1.5px solid #c7d2fe; border-radius:8px; font-family:inherit; font-weight:800; font-size:16px; text-align:center;"> Sn Sonra Otomatik Geç</span>
+                        </label>
+                        <label class="mode-option-label" id="lblModeConfirm">
+                            <input type="radio" name="voiceTransitionMode" value="confirm" onchange="setTransitionMode('confirm')">
+                            <span><i class="fa-solid fa-hand-pointer" style="color:#4f46e5;"></i> Onay Tuşuna Basınca Diğer Soruya Geç</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Seçili Öğrenci Kartı -->
+                <div class="active-student-card" id="activeStudentCard">
+                    <div class="st-card-left">
+                        <div class="st-no-circle" id="activeStudentNoBadge">-</div>
+                        <div>
+                            <div class="st-name-title" id="activeStudentNameText">-</div>
+                            <div class="st-class-sub" id="activeStudentClassText">-</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="text-align:right;">
+                            <div style="font-size:0.72rem; font-weight:800; color:#15803d; text-transform:uppercase;">Toplam Puan</div>
+                            <div style="font-size:1.45rem; font-weight:900; color:#166534;" id="activeStudentTotalScore">0</div>
+                        </div>
+                        <button type="button" class="btn-ep btn-ep-portal" style="padding:0.45rem 0.8rem; font-size:0.8rem;" onclick="resetToStudentStep()">
+                            <i class="fa-solid fa-user-pen"></i> Öğrenci Değiştir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ANA SESLİ KOMUT VE SORU EKRANI -->
+                <div class="voice-prompt-box">
+                    <button type="button" class="mic-pulse-btn" id="micToggleBtn" onclick="toggleMicrophoneListening()" title="Mikrofonu Aç / Kapat">
+                        <i class="fa-solid fa-microphone" id="micToggleIcon"></i>
+                    </button>
+
+                    <h2 class="voice-prompt-text" id="voicePromptHeadline">
+                        Notu girilecek öğrenci numarasını söyleyin
+                    </h2>
+
+                    <div class="voice-status-sub" id="voiceStatusSubtext">
+                        Mikrofon dinliyor... Lütfen konuşun.
+                    </div>
+
+                    <div id="recognizedTranscriptWrap" style="display:none;">
+                        <span class="recognized-bubble" id="recognizedTranscriptText"></span>
+                    </div>
+
+                    <!-- 1.5 Saniye Otomatik Geçiş Çubuğu -->
+                    <div class="auto-timer-wrap" id="autoTimerWrap">
+                        <div class="auto-timer-bar-bg">
+                            <div class="auto-timer-bar-fill" id="autoTimerBarFill"></div>
+                        </div>
+                        <div class="auto-timer-label" id="autoTimerLabel">1 saniye içinde diğer soruya geçiliyor...</div>
+                    </div>
+                </div>
+
+                <!-- Soru Kutucukları (1..N) -->
+                <div class="questions-strip-box" id="questionsStripBox">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:0.8rem; font-weight:800; color:#475569; text-transform:uppercase;">
+                            <i class="fa-solid fa-list-check"></i> Soru Bazlı Puanlar (Düzenlemek istediğiniz soruya tıklayabilirsiniz)
+                        </span>
+                        <span id="saveIndicatorText" style="font-size:0.8rem; font-weight:700; color:#059669;"></span>
+                    </div>
+                    <div class="questions-grid-pills" id="questionsGridPills"></div>
+                </div>
+
+                <!-- Manuel Giriş & Onay Tuşu Alanı -->
+                <div class="manual-assist-bar">
+                    <!-- Öğrenci Seçim Yardımı (Step = student_no iken görünür) -->
+                    <div id="studentManualAssistRow" class="manual-input-row">
+                        <input type="number" id="manualStudentNoInput" class="ep-input" style="max-width:180px; padding:0.6rem 0.8rem;" placeholder="Öğrenci No yazın..." onkeydown="if(event.key==='Enter') submitManualStudentNo()">
+                        <button type="button" class="btn-ep" style="background:#4f46e5; color:#fff;" onclick="submitManualStudentNo()">
+                            <i class="fa-solid fa-magnifying-glass"></i> Öğrenciyi Getir
+                        </button>
+                        <select id="quickClassStudentSelect" class="ep-select" style="flex:1; min-width:190px; padding:0.6rem 0.8rem;" onchange="if(this.value) findAndSelectStudentByNo(this.value)">
+                            <option value="">Veya sınıftan öğrenci seçin...</option>
+                        </select>
+                    </div>
+
+                    <!-- Soru Puanı Giriş & Onay Tuşu (Step = question iken görünür) -->
+                    <div id="questionManualAssistRow" style="display:none; flex-direction:column; gap:10px;">
+                        <div class="quick-score-btns">
+                            <span style="font-size:0.78rem; font-weight:700; color:#64748b; align-self:center; margin-right:4px;">Hızlı Puan:</span>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(0, true)">0</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(1, true)">1</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(2, true)">2</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(3, true)">3</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(4, true)">4</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(5, true)">5</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(6, true)">6</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(7, true)">7</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(8, true)">8</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(9, true)">9</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(10, true)">10</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(15, true)">15</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(20, true)">20</button>
+                            <button type="button" class="btn-quick-num" onclick="applyQuestionScore(25, true)">25</button>
+                        </div>
+                        <div class="manual-input-row" style="justify-content:space-between;">
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <input type="number" id="manualScoreInput" class="ep-input" style="width:120px; padding:0.6rem 0.8rem;" min="0" max="100" step="0.5" placeholder="Puan..." onkeydown="if(event.key==='Enter') submitManualQuestionScore()">
+                                <button type="button" class="btn-ep" style="background:#4f46e5; color:#fff; padding:0.6rem 1rem;" onclick="submitManualQuestionScore()">
+                                    <i class="fa-solid fa-pen"></i> Kaydet
+                                </button>
+                            </div>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <button type="button" class="btn-ep btn-ep-portal" onclick="goToPrevQuestion()" id="btnPrevQuestion" style="padding:0.65rem 0.9rem;">
+                                    <i class="fa-solid fa-arrow-left"></i> Önceki Soru
+                                </button>
+                                <button type="button" class="btn-confirm-next" id="btnConfirmNextQuestion" onclick="confirmAndAdvanceQuestion()">
+                                    <i class="fa-solid fa-circle-check"></i> Onayla / Sonraki Soru
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================
+        // GLOBAL STATE & INITIALIZATION
+        // =========================================================
+        const FIREBASE_DB_URL = (window.DataManager && window.DataManager.firebaseDatabaseUrl)
+            ? window.DataManager.firebaseDatabaseUrl
+            : "https://klbk-620b0-default-rtdb.europe-west1.firebasedatabase.app";
+
+        let activeTeacherUsername = "";
+        let activeTeacherName = "";
+        let activeTeacherRole = "ogretmen";
+        let activeTeacherObject = null;
+        let allStudents = [];
+        let schoolData = {};
+        let examPointList = [];
+
+        // Voice Grading State
+        let currentVoiceExamId = null;
+        let voiceStep = "student_no"; // "student_no" | "question"
+        let currentStudentObj = null; // { no, name, class }
+        let currentQuestionIndex = 1; // 1..N
+        let transitionMode = "auto15"; // "auto15" | "confirm"
+        let autoAdvanceTimer = null;
+        let autoAdvanceInterval = null;
+        let ttsEnabled = false;
+
+        // Web Speech API State
+        let recognition = null;
+        let isMicListening = false;
+        let shouldKeepListening = false;
+        let restartTimeoutId = null;
+        let settleTimerId = null;
+        let activeSegmentIndex = -1;
+        let consumedPrefixText = "";
+        let consumedWordCount = 0;
+        let lastInterimText = "";
+        let hasUnprocessedSpeechInSegment = false;
+        let micConfigIdx = 0;
+
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function logoutExamPoint() {
+            if (window.DataManager && typeof window.DataManager.logout === 'function') {
+                window.DataManager.logout('manual');
+            } else {
+                sessionStorage.clear();
+                localStorage.removeItem('klbk_isLoggedIn');
+                window.location.href = '/enter.html?logout=true';
+            }
+        }
+
+        function normalizeScheduleDays(rawSchedule) {
+            if (!rawSchedule || typeof rawSchedule !== 'object') return {};
+            const normalized = {};
+            for (const [key, val] of Object.entries(rawSchedule)) {
+                if (!key) continue;
+                const k = key.trim().toLowerCase();
+                let targetKey = null;
+                if (k.startsWith('pa') || k === 'pt' || k.includes('paz')) targetKey = 'Pa';
+                else if (k.startsWith('sa') || k.includes('sal')) targetKey = 'Sa';
+                else if (k.startsWith('ça') || k.startsWith('ca') || k.includes('çar') || k.includes('car')) targetKey = 'Ça';
+                else if (k.startsWith('pe') || k.includes('per')) targetKey = 'Pe';
+                else if (k.startsWith('cu') || k.includes('cum')) targetKey = 'Cu';
+                else if (k.startsWith('ct') || k.includes('cumartesi')) targetKey = 'Ct';
+                else if (k.startsWith('pz') || k.includes('pazar')) targetKey = 'Pz';
+                if (targetKey) normalized[targetKey] = val;
+            }
+            return normalized;
+        }
+
+        function cleanClassToken(str) {
+            return String(str || '').toLocaleUpperCase('tr-TR').replace(/[^A-Z0-9ÇĞİÖŞÜ]/g, '');
+        }
+
+        const EPOFF_STUDENTS_KEY = 'epoff_excel_students_v1';
+        const EPOFF_CLASSES_KEY = 'epoff_excel_classes_v1';
+        const EPOFF_FILENAME_KEY = 'epoff_excel_filename_v1';
+        const EPOFF_EXAMS_KEY = 'epoff_exams_list_v1';
+        const EPOFF_TEACHER_KEY = 'epoff_teacher_name_v1';
+
+        let excelClassList = [];
+        let excelFileName = '';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTeacher = localStorage.getItem(EPOFF_TEACHER_KEY) || '';
+            const teacherInput = document.getElementById('examTeacherInput');
+            if (teacherInput && savedTeacher) {
+                teacherInput.value = savedTeacher;
+                activeTeacherName = savedTeacher;
+            } else {
+                activeTeacherName = '';
+            }
+
+            loadExcelDataFromLocal();
+            loadExamsFromStore();
+            populateClassSelectFromExcel();
+            renderExamsAccordion();
+        });
+
+        function loadExcelDataFromLocal() {
+            try {
+                const rawStudents = JSON.parse(localStorage.getItem(EPOFF_STUDENTS_KEY) || '[]');
+                const rawClasses = JSON.parse(localStorage.getItem(EPOFF_CLASSES_KEY) || '[]');
+                const savedFile = localStorage.getItem(EPOFF_FILENAME_KEY) || '';
+                if (Array.isArray(rawStudents)) allStudents = rawStudents;
+                if (Array.isArray(rawClasses)) excelClassList = rawClasses;
+                excelFileName = savedFile;
+            } catch (e) {
+                allStudents = [];
+                excelClassList = [];
+                excelFileName = '';
+            }
+            updateExcelUploadUi();
+        }
+
+        function saveExcelDataToLocal() {
+            try {
+                localStorage.setItem(EPOFF_STUDENTS_KEY, JSON.stringify(allStudents));
+                localStorage.setItem(EPOFF_CLASSES_KEY, JSON.stringify(excelClassList));
+                localStorage.setItem(EPOFF_FILENAME_KEY, excelFileName || '');
+            } catch (e) {
+                console.warn('LocalStorage kayıt hatası:', e);
+            }
+            updateExcelUploadUi();
+        }
+
+        function updateExcelUploadUi() {
+            const card = document.getElementById('excelUploadCard');
+            const titleEl = document.getElementById('excelFileTitle');
+            const descEl = document.getElementById('excelFileDesc');
+            const clearBtn = document.getElementById('btnClearExcel');
+            const summaryBadge = document.getElementById('excelSummaryBadge');
+
+            if (allStudents.length > 0 && excelClassList.length > 0) {
+                if (card) card.classList.add('has-file');
+                if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#16a34a;"></i> ${escapeHtml(excelFileName || 'Excel Verisi Yüklendi')}`;
+                if (descEl) descEl.innerHTML = `<b>${excelClassList.length}</b> Sınıf (Sekme) ve toplam <b>${allStudents.length}</b> öğrenci başarıyla yüklendi. Sınıflar: <b>${escapeHtml(excelClassList.join(', '))}</b>`;
+                if (clearBtn) clearBtn.style.display = 'inline-flex';
+                if (summaryBadge) summaryBadge.textContent = `${excelClassList.length} Sınıf • ${allStudents.length} Öğrenci`;
+            } else {
+                if (card) card.classList.remove('has-file');
+                if (titleEl) titleEl.textContent = 'Öğrenci Listesi Excel Dosyası Seçin';
+                if (descEl) descEl.innerHTML = 'Sınıf adı <b>sekme (sayfa) adından</b>, Öğrenci No <b>2. sütundan (B)</b>, Ad Soyad <b>3. sütundan (C)</b> otomatik alınır.';
+                if (clearBtn) clearBtn.style.display = 'none';
+                if (summaryBadge) summaryBadge.textContent = '';
+            }
+        }
+
+        function clearLoadedExcelData() {
+            Swal.fire({
+                title: 'Excel Verisi Temizlensin mi?',
+                text: 'Yüklü öğrenci listesi kaldırılacak (eklediğiniz sınavlar ve girilen puanlar silinmez).',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Evet, Temizle',
+                cancelButtonText: 'İptal'
+            }).then(res => {
+                if (res.isConfirmed) {
+                    allStudents = [];
+                    excelClassList = [];
+                    excelFileName = '';
+                    localStorage.removeItem(EPOFF_STUDENTS_KEY);
+                    localStorage.removeItem(EPOFF_CLASSES_KEY);
+                    localStorage.removeItem(EPOFF_FILENAME_KEY);
+                    const fileInp = document.getElementById('excelFileInput');
+                    if (fileInp) fileInp.value = '';
+                    updateExcelUploadUi();
+                    populateClassSelectFromExcel();
+                    renderExamsAccordion();
+                }
+            });
+        }
+
+        function handleExcelFileSelect(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            if (typeof XLSX === 'undefined') {
+                Swal.fire('Hata', 'Excel okuma kütüphanesi (xlsx.full.min.js) yüklenemedi.', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    const parsedStudents = [];
+                    const parsedClasses = [];
+
+                    workbook.SheetNames.forEach(sheetName => {
+                        const cleanSheetName = String(sheetName || '').trim();
+                        if (!cleanSheetName) return;
+
+                        const sheet = workbook.Sheets[sheetName];
+                        if (!sheet) return;
+
+                        // Read sheet as 2D array of rows
+                        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+                        let sheetStudentCount = 0;
+
+                        rows.forEach((row) => {
+                            if (!Array.isArray(row) || row.length < 3) return;
+
+                            // 2. sütun (index 1) -> Öğrenci Numarası
+                            // 3. sütun (index 2) -> Adı Soyadı
+                            const rawNo = String(row[1] !== undefined && row[1] !== null ? row[1] : '').trim();
+                            const rawName = String(row[2] !== undefined && row[2] !== null ? row[2] : '').trim();
+                            const rawSurname = row.length > 3 ? String(row[3] !== undefined && row[3] !== null ? row[3] : '').trim() : '';
+
+                            if (!rawNo || !rawName) return;
+
+                            // Başlık satırlarını atla (Örn: "NO", "NUMARA", "ÖĞRENCİ NO" vb.)
+                            const noDigits = rawNo.replace(/[^0-9]/g, '');
+                            if (!noDigits) return;
+                            const upperName = rawName.toLocaleUpperCase('tr-TR');
+                            if (upperName === 'ADI SOYADI' || upperName === 'AD SOYAD' || upperName === 'ÖĞRENCİNİN ADI SOYADI' || upperName === 'ADI') {
+                                return;
+                            }
+
+                            // Eğer 4. sütunda ayrı soyadı varsa ve 3. sütun tek kelimeyse birleştir, değilse doğrudan 3. sütunu kullan
+                            let fullName = rawName;
+                            if (rawSurname && !rawName.includes(' ') && !/^\d+$/.test(rawSurname)) {
+                               const upSur = rawSurname.toLocaleUpperCase('tr-TR');
+                               if (upSur !== 'SOYADI' && upSur !== 'SOYAD') {
+                                   fullName = (rawName + ' ' + rawSurname).trim();
+                               }
+                            }
+
+                            parsedStudents.push({
+                                no: noDigits,
+                                name: fullName,
+                                surname: '',
+                                class: cleanSheetName,
+                                alan: ''
+                            });
+                            sheetStudentCount++;
+                        });
+
+                        if (sheetStudentCount > 0) {
+                            parsedClasses.push(cleanSheetName);
+                        }
+                    });
+
+                    if (parsedStudents.length === 0) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Öğrenci Bulunamadı',
+                            html: 'Seçilen Excel dosyasında <b>2. sütunda (B) öğrenci numarası</b> ve <b>3. sütunda (C) ad soyad</b> bulunan geçerli satır tespit edilemedi.'
+                        });
+                        return;
+                    }
+
+                    allStudents = parsedStudents;
+                    excelClassList = parsedClasses;
+                    excelFileName = file.name;
+
+                    saveExcelDataToLocal();
+                    populateClassSelectFromExcel();
+                    renderExamsAccordion();
+
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: `${parsedClasses.length} sınıf ve ${parsedStudents.length} öğrenci yüklendi!`,
+                        showConfirmButton: false,
+                        timer: 2800
+                    });
+                } catch (err) {
+                    console.error('Excel okuma hatası:', err);
+                    Swal.fire('Hata', 'Excel dosyası okunurken bir hata oluştu: ' + (err.message || err), 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function populateClassSelectFromExcel() {
+            const classSelect = document.getElementById('examClassSelect');
+            if (!classSelect) return;
+            classSelect.innerHTML = '';
+
+            if (excelClassList.length > 0) {
+                excelClassList.forEach(cls => {
+                    const count = allStudents.filter(s => cleanClassToken(s.class) === cleanClassToken(cls)).length;
+                    const opt = document.createElement('option');
+                    opt.value = cls;
+                    opt.textContent = `${cls} (${count} Öğrenci)`;
+                    classSelect.appendChild(opt);
+                });
+                classSelect.value = excelClassList[0];
+            } else {
+                const defaultClasses = ['9A', '9B', '9C', '9D', '10A', '10B', '10C', '10D', '11A', '11B', '11C', '11D', '12A', '12B', '12C', '12D'];
+                const placeholderOpt = document.createElement('option');
+                placeholderOpt.value = '';
+                placeholderOpt.textContent = 'Excel yükleyin veya sınıf seçin...';
+                classSelect.appendChild(placeholderOpt);
+                defaultClasses.forEach(cls => {
+                    const opt = document.createElement('option');
+                    opt.value = cls;
+                    opt.textContent = cls;
+                    classSelect.appendChild(opt);
+                });
+            }
+        }
+
+        // =========================================================
+        // ADD EXAM & OFFLINE PERSISTENCE
+        // =========================================================
+        function toggleAddExamForm(forceState) {
+            const panel = document.getElementById('addExamPanel');
+            if (typeof forceState === 'boolean') {
+                panel.classList.toggle('open', forceState);
+            } else {
+                panel.classList.toggle('open');
+            }
+        }
+
+        function setQuickQuestionCount(count) {
+            const input = document.getElementById('examQuestionCount');
+            input.value = count;
+            document.querySelectorAll('.q-chip').forEach(chip => {
+                chip.classList.toggle('active', parseInt(chip.textContent, 10) === count);
+            });
+        }
+
+        function loadExamsFromStore() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(EPOFF_EXAMS_KEY) || '[]');
+                examPointList = Array.isArray(saved) ? saved.filter(Boolean) : [];
+            } catch (e) {
+                examPointList = [];
+            }
+        }
+
+        async function saveExamsToStore() {
+            try {
+                localStorage.setItem(EPOFF_EXAMS_KEY, JSON.stringify(examPointList));
+            } catch (e) {
+                console.warn('Sınavlar kaydedilemedi:', e);
+            }
+        }
+
+        function getVisibleExamsForCurrentUser() {
+            return examPointList;
+        }
+
+        async function handleAddExam() {
+            const selectedClass = document.getElementById('examClassSelect').value.trim();
+            const selectedSubject = document.getElementById('examSubjectInput').value.trim();
+            const selectedExamNo = document.getElementById('examNumberSelect').value.trim();
+            const questionCount = parseInt(document.getElementById('examQuestionCount').value, 10);
+            const teacherInputEl = document.getElementById('examTeacherInput');
+            const teacherVal = teacherInputEl ? teacherInputEl.value.trim() : '';
+
+            if (!selectedClass) {
+                Swal.fire('Uyarı', 'Lütfen önce Excel dosyasını yükleyip bir sınıf (sekme) seçiniz.', 'warning');
+                return;
+            }
+            if (!selectedSubject) {
+                Swal.fire('Uyarı', 'Lütfen ders adını giriniz.', 'warning');
+                return;
+            }
+            if (!selectedExamNo) {
+                Swal.fire('Uyarı', 'Lütfen sınav numarasını giriniz.', 'warning');
+                return;
+            }
+            if (!questionCount || questionCount < 1 || questionCount > 100) {
+                Swal.fire('Uyarı', 'Lütfen geçerli bir soru sayısı giriniz (1 - 100).', 'warning');
+                return;
+            }
+
+            if (teacherVal) {
+                activeTeacherName = teacherVal;
+                localStorage.setItem(EPOFF_TEACHER_KEY, teacherVal);
+            }
+
+            const newExam = {
+                id: 'epoff_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+                teacherUsername: 'offline',
+                teacherName: teacherVal || '',
+                className: selectedClass,
+                subject: selectedSubject,
+                examNo: selectedExamNo,
+                questionCount: questionCount,
+                createdAt: new Date().toISOString(),
+                scores: {}
+            };
+
+            examPointList.unshift(newExam);
+            await saveExamsToStore();
+
+            const acc = document.getElementById('examsAccordion');
+            if (acc && !acc.classList.contains('open')) {
+                acc.classList.add('open');
+            }
+            renderExamsAccordion();
+
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: `${selectedClass} - ${selectedSubject} (${selectedExamNo}) eklendi!`,
+                showConfirmButton: false,
+                timer: 2200
+            });
+        }
+
+        function toggleExamsAccordion() {
+            const acc = document.getElementById('examsAccordion');
+            if (acc) acc.classList.toggle('open');
+        }
+
+        function getStudentsForExamClass(className) {
+            const targetClean = cleanClassToken(className);
+            const matched = allStudents.filter(s => s && s.class && cleanClassToken(s.class) === targetClean);
+            return matched.sort((a, b) => (parseInt(a.no, 10) || 0) - (parseInt(b.no, 10) || 0));
+        }
+
+        function renderExamsAccordion() {
+            const container = document.getElementById('examsAccordionList');
+            const badge = document.getElementById('examsCountBadge');
+            const visibleExams = getVisibleExamsForCurrentUser();
+
+            if (badge) badge.textContent = visibleExams.length;
+
+            if (visibleExams.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-exams-placeholder">
+                        <i class="fa-solid fa-folder-plus" style="font-size:2.5rem; color:#94a3b8; margin-bottom:0.75rem;"></i>
+                        <div style="font-weight:800; font-size:1.05rem; color:#334155;">Henüz eklenmiş bir sınav bulunmuyor</div>
+                        <p style="margin:6px 0 0; font-size:0.9rem;">Yukarıdaki <b>"Yeni Sınav Ekle"</b> tuşuna basarak sınıf, ders, sınav numarası ve soru sayısını seçip ekleyebilirsiniz.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            visibleExams.forEach(exam => {
+                const classStudents = getStudentsForExamClass(exam.className);
+                const scoresMap = exam.scores || {};
+                const gradedCount = Object.keys(scoresMap).length;
+                const totalClassCount = classStudents.length;
+                const gradedText = totalClassCount > 0
+                    ? `${gradedCount} / ${totalClassCount} Öğrenci Girildi`
+                    : `${gradedCount} Öğrenci Girildi`;
+
+                html += `
+                    <div class="exam-item-card" id="examCard_${escapeHtml(exam.id)}">
+                        <div class="exam-item-main">
+                            <div class="exam-item-info" onclick="toggleExamScoresTable('${escapeHtml(exam.id)}')" title="Not çizelgesini açmak için tıklayın">
+                                <div class="exam-class-badge">${escapeHtml(exam.className)}</div>
+                                <div class="exam-meta-group">
+                                    <div class="exam-subject-title">
+                                        <span>${escapeHtml(exam.subject)}</span>
+                                        <span class="exam-tag exam-tag-no"><i class="fa-solid fa-award"></i> ${escapeHtml(exam.examNo)}</span>
+                                        <span class="exam-tag exam-tag-q"><i class="fa-solid fa-list-ol"></i> ${Number(exam.questionCount) || 0} Soru</span>
+                                        <span class="exam-tag exam-tag-graded"><i class="fa-solid fa-user-check"></i> ${gradedText}</span>
+                                    </div>
+                                    <div style="font-size:0.78rem; color:#64748b; font-weight:600;">
+                                        <i class="fa-solid fa-chalkboard-user"></i> ${escapeHtml(exam.teacherName || '')}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="exam-item-actions">
+                                <button type="button" class="btn-table-toggle" onclick="toggleExamScoresTable('${escapeHtml(exam.id)}')" title="Öğrenci Puan Tablosunu Göster/Gizle">
+                                    <i class="fa-solid fa-table-list"></i> Not Çizelgesi
+                                </button>
+                                <button type="button" class="btn-print-exam" onclick="openExamPrintPage('${escapeHtml(exam.id)}')" title="16 Sütunlu Liste Formatında Yazdır veya PDF Olarak Kaydet">
+                                    <i class="fa-solid fa-print"></i> Yazdır
+                                </button>
+                                <button type="button" class="btn-delete-exam" onclick="deleteExamItem('${escapeHtml(exam.id)}')" title="Sınavı Sil">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                                <button type="button" class="btn-play-exam" onclick="startVoiceGradingForExam('${escapeHtml(exam.id)}')" title="Sesli Not Girişini Başlat (Play)">
+                                    <i class="fa-solid fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="exam-scores-drawer" id="drawer_${escapeHtml(exam.id)}">
+                            ${buildExamScoresTableHtml(exam, classStudents)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function buildExamScoresTableHtml(exam, classStudents) {
+            const qCount = Number(exam.questionCount) || 1;
+            const scoresMap = exam.scores || {};
+
+            const studentRows = [...classStudents];
+            const seenNos = new Set(classStudents.map(s => String(s.no).trim()));
+
+            for (const [stNo, rec] of Object.entries(scoresMap)) {
+                if (!seenNos.has(String(stNo).trim())) {
+                    studentRows.push({
+                        no: stNo,
+                        name: rec.studentName || `${stNo} Nolu Öğrenci`,
+                        class: exam.className
+                    });
+                }
+            }
+
+            if (studentRows.length === 0) {
+                return `<div style="padding:1rem; text-align:center; color:#64748b; font-weight:600;">Bu sınıfta henüz kayıtlı öğrenci veya girilmiş not bulunmuyor. Sağdaki <b>Play (▶)</b> tuşuna basarak öğrenci numarasıyla not girebilirsiniz.</div>`;
+            }
+
+            let thQuestions = '';
+            for (let q = 1; q <= qCount; q++) {
+                thQuestions += `<th>S.${q}</th>`;
+            }
+
+            let rowsHtml = '';
+            studentRows.forEach(st => {
+                const stNo = String(st.no).trim();
+                const rec = scoresMap[stNo] || { questions: {}, total: null };
+                const qScores = rec.questions || {};
+                let hasAnyScore = false;
+                let sum = 0;
+
+                let tdQuestions = '';
+                for (let q = 1; q <= qCount; q++) {
+                    const val = qScores[String(q)] !== undefined && qScores[String(q)] !== null && qScores[String(q)] !== ''
+                        ? qScores[String(q)]
+                        : '';
+                    if (val !== '') {
+                        hasAnyScore = true;
+                        sum += Number(val) || 0;
+                    }
+                    tdQuestions += `
+                        <td>
+                            <input type="number" class="score-cell-input" value="${val !== '' ? escapeHtml(val) : ''}"
+                                min="0" max="100" step="0.5"
+                                onchange="handleTableCellScoreChange('${escapeHtml(exam.id)}', '${escapeHtml(stNo)}', '${escapeHtml(st.name)}', ${q}, this.value)">
+                        </td>
+                    `;
+                }
+
+                const totalDisplay = hasAnyScore ? sum : '-';
+                rowsHtml += `
+                    <tr>
+                        <td style="font-weight:800; color:#4f46e5;">${escapeHtml(stNo)}</td>
+                        <td class="st-left">${escapeHtml(st.name)}</td>
+                        ${tdQuestions}
+                        <td><span class="total-score-badge" id="tot_${escapeHtml(exam.id)}_${escapeHtml(stNo)}">${totalDisplay}</span></td>
+                    </tr>
+                `;
+            });
+
+            return `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.65rem; flex-wrap:wrap; gap:8px;">
+                    <span style="font-weight:800; font-size:0.88rem; color:#334155;">
+                        <i class="fa-solid fa-users"></i> ${escapeHtml(exam.className)} - ${escapeHtml(exam.subject)} (${escapeHtml(exam.examNo)}) Puan Çizelgesi
+                    </span>
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <span style="font-size:0.78rem; color:#64748b; font-weight:600;">Hücrelere tıklayarak manuel düzeltme de yapabilirsiniz</span>
+                        <button type="button" class="btn-print-exam" onclick="openExamPrintPage('${escapeHtml(exam.id)}')" style="padding:0.4rem 0.75rem; font-size:0.8rem;">
+                            <i class="fa-solid fa-print"></i> Yazdır / PDF Kaydet
+                        </button>
+                    </div>
+                </div>
+                <table class="scores-table">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th style="text-align:left;">Adı Soyadı</th>
+                            ${thQuestions}
+                            <th>Toplam</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function toggleExamScoresTable(examId) {
+            const drawer = document.getElementById('drawer_' + examId);
+            if (drawer) {
+                drawer.classList.toggle('open');
+            }
+        }
+
+        function formatListeciStudentName(name, surname) {
+            let n = String(name || '').trim();
+            let s = String(surname || '').trim();
+            let full = (n + ' ' + s).trim();
+            if (full.length <= 30) return full;
+            let nameParts = n.split(/\s+/);
+            if (nameParts.length > 1) {
+                nameParts[1] = nameParts[1].charAt(0) + '.';
+                n = nameParts.join(' ');
+                full = (n + ' ' + s).trim();
+            }
+            if (full.length > 30 && nameParts.length > 2) {
+                nameParts[2] = nameParts[2].charAt(0) + '.';
+                n = nameParts.join(' ');
+                full = (n + ' ' + s).trim();
+            }
+            return full;
+        }
+
+        function openExamPrintPage(examId) {
+            const exam = examPointList.find(e => e.id === examId);
+            if (!exam) {
+                Swal.fire('Hata', 'Sınav bulunamadı.', 'error');
+                return;
+            }
+
+            const classStudents = getStudentsForExamClass(exam.className);
+            const scoresMap = exam.scores || {};
+            const qCount = Math.max(1, Number(exam.questionCount) || 1);
+            const colCount = Math.max(16, qCount);
+
+            const studentRows = [...classStudents];
+            const seenNos = new Set(classStudents.map(s => String(s.no).trim()));
+
+            for (const [stNo, rec] of Object.entries(scoresMap)) {
+                const cleanNo = String(stNo).trim();
+                if (!seenNos.has(cleanNo)) {
+                    studentRows.push({
+                        no: cleanNo,
+                        name: rec.studentName || `${cleanNo} Nolu Öğrenci`,
+                        surname: '',
+                        class: exam.className,
+                        alan: ''
+                    });
+                }
+            }
+
+            studentRows.sort((a, b) => (parseInt(a.no, 10) || 0) - (parseInt(b.no, 10) || 0));
+
+            const showAlan = studentRows.some(s => s && (s.alan || s.track || s.field || s.group));
+            const rowsPerPage = 40;
+            const docTitle = `${exam.className || ''} SINIFI ${exam.subject || ''} DERSİ ${exam.examNo || ''} PUAN ÇİZELGESİ`.replace(/\s+/g, ' ').trim().toLocaleUpperCase('tr-TR');
+
+            const preparedRows = studentRows.map(s => {
+                const stNo = String(s.no || '').trim();
+                const rec = scoresMap[stNo] || { questions: {}, total: null };
+                const qScores = rec.questions || {};
+                const alanVal = s.alan || s.track || s.field || s.group || '';
+                const fullName = formatListeciStudentName(s.name, s.surname);
+
+                let hasAnyScore = false;
+                let sum = 0;
+                const qVals = [];
+                for (let q = 1; q <= colCount; q++) {
+                    if (q <= qCount) {
+                        const raw = qScores[String(q)];
+                        if (raw !== undefined && raw !== null && raw !== '') {
+                            hasAnyScore = true;
+                            const num = Number(raw);
+                            if (!isNaN(num)) sum += num;
+                            qVals.push(String(raw));
+                        } else {
+                            qVals.push('');
+                        }
+                    } else {
+                        qVals.push('');
+                    }
+                }
+                const totalScoreStr = hasAnyScore ? String(Math.round(sum * 100) / 100) : '';
+                return {
+                    no: stNo,
+                    alan: String(alanVal || ''),
+                    name: fullName,
+                    qVals: qVals,
+                    total: totalScoreStr
+                };
+            });
+
+            const payloadJson = JSON.stringify({
+                docTitle: docTitle,
+                className: exam.className || '',
+                subject: exam.subject || '',
+                examNo: exam.examNo || '',
+                teacherName: exam.teacherName || activeTeacherName || '',
+                qCount: qCount,
+                colCount: colCount,
+                showAlan: showAlan,
+                rowsPerPage: rowsPerPage,
+                students: preparedRows
+            }).replace(/</g, '\\u003c');
+
+            const printWin = window.open('', '_blank');
+            if (!printWin) {
+                Swal.fire('Uyarı', 'Açılır pencere (pop-up) engellendi. Lütfen tarayıcınızdan izin verin.', 'warning');
+                return;
+            }
+
+            const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+
+            const htmlContent = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${escapeHtml(docTitle)}</title>
+    <base href="${escapeHtml(baseUrl)}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/vendor/pdf-lib.min.js"><\/script>
+    <script src="js/vendor/fontkit.umd.min.js"><\/script>
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #e2e8f0;
+        }
+        .action-bar {
+            background: white;
+            padding: 0.85rem 1.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .action-title-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .action-title-group h2 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .action-title-group span {
+            font-size: 0.8rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+        .action-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .toggle-total-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            padding: 0.55rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+            user-select: none;
+        }
+        .toggle-total-label input {
+            width: 16px;
+            height: 16px;
+            accent-color: #4f46e5;
+            cursor: pointer;
+        }
+        .btn {
+            border: none;
+            padding: 0.7rem 1.35rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .btn-print {
+            background: #4f46e5;
+            color: white;
+        }
+        .btn-pdf {
+            background: #ef4444;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: wait;
+            transform: none;
+        }
+        .page-container {
+            width: 210mm;
+            margin: 1.5rem auto;
+            background: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+            box-sizing: border-box;
+        }
+        .print-page {
+            width: 210mm;
+            height: 296mm;
+            padding: 5mm;
+            box-sizing: border-box;
+            page-break-after: always;
+            position: relative;
+            background: white;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .print-page:last-child {
+            page-break-after: auto;
+        }
+        .doc-header {
+            text-align: center;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+        .doc-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin: 0;
+            text-transform: uppercase;
+            color: #000;
+        }
+        .table-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+        .print-table {
+            width: 100%;
+            height: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 9.5pt;
+            border: 3px double #000;
+        }
+        .print-table th, .print-table td {
+            border: 1px solid #000;
+            padding: 1px 2px;
+            text-align: left;
+            box-sizing: border-box;
+        }
+        .print-table tbody tr:nth-child(even) {
+            background-color: #f1f5f9;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .print-table th {
+            font-weight: bold;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .header-row-1 th { height: 24px; }
+        .header-row-2 th { height: 50px; }
+        .col-sira { width: 25px; text-align: center !important; }
+        .col-alan { width: 35px; text-align: center !important; }
+        .col-okulno { width: 45px; text-align: center !important; }
+        .col-isim {
+            width: 200px;
+            max-width: 200px;
+            font-weight: bold;
+            text-align: left;
+            padding-left: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .col-blank {
+            width: auto;
+            text-align: center !important;
+            font-weight: 700;
+            color: #000;
+        }
+        .col-total-cell {
+            background-color: rgba(241, 245, 249, 0.7);
+            font-weight: 700;
+        }
+        .rotated-header-container {
+            width: 20px;
+            height: 85px;
+            position: relative;
+            margin: 0 auto;
+        }
+        .rotated-header-container-short {
+            width: 18px;
+            height: 46px;
+            position: relative;
+            margin: 0 auto;
+        }
+        .rotated-header {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-90deg);
+            white-space: nowrap;
+            font-weight: bold;
+            color: #000;
+            font-size: 8.5pt;
+        }
+        .print-table th:has(.rotated-header-container),
+        .print-table th:has(.rotated-header-container-short) {
+            text-align: center;
+            vertical-align: middle;
+            padding: 0;
+        }
+        @media print {
+            body {
+                background: white;
+                margin: 0;
+                padding: 0;
+            }
+            .action-bar {
+                display: none !important;
+            }
+            .page-container {
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+                width: 100%;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
+        }
+        @media screen and (max-width: 820px) {
+            .action-bar {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 0.85rem;
+            }
+            .action-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn, .toggle-total-label {
+                width: 100%;
+                justify-content: center;
+                box-sizing: border-box;
+            }
+            #pdfContent {
+                overflow-x: auto;
+                padding-bottom: 2rem;
+            }
+            .page-container {
+                margin: 0;
+                width: max-content;
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="action-bar" id="actionBar">
+        <div class="action-title-group">
+            <h2><i class="fa-solid fa-file-lines" style="color:#4f46e5;"></i> Sınav Puan Çizelgesi Önizleme (16 Sütunlu)</h2>
+            <span>${escapeHtml(docTitle)}</span>
+        </div>
+        <div class="action-controls">
+            <label class="toggle-total-label" title="Son sütunda öğrencinin toplam puanını göster/gizle">
+                <input type="checkbox" id="chkShowTotal" checked onchange="renderPrintPages()">
+                <span>Son Sütunda Toplam Puanı Göster</span>
+            </label>
+            <button class="btn btn-pdf" id="btnDownloadPdf" onclick="saveAsPdfFile()">
+                <i class="fa-solid fa-file-pdf"></i> PDF Olarak Kaydet
+            </button>
+            <button class="btn btn-print" onclick="window.print()">
+                <i class="fa-solid fa-print"></i> Yazdır
+            </button>
+        </div>
+    </div>
+
+    <div id="pdfContent">
+        <div class="page-container" id="pageContainer"></div>
+    </div>
+
+    <script>
+        const EXAM_PRINT_DATA = ${payloadJson};
+
+        function esc(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function buildSinglePageHtml(studentsSubset, startIndex, showTotalInLastCol) {
+            const { docTitle, qCount, colCount, showAlan, rowsPerPage } = EXAM_PRINT_DATA;
+            const alanTh = showAlan
+                ? '<th rowspan="2" class="col-alan"><div class="rotated-header-container"><div class="rotated-header">ALAN</div></div></th>'
+                : '';
+
+            let blankHeadersRow2 = '';
+            for (let c = 1; c <= colCount; c++) {
+                if (c <= qCount) {
+                    blankHeadersRow2 += '<th class="col-blank"><div class="rotated-header-container-short"><div class="rotated-header">' + c + '. SORU</div></div></th>';
+                } else if (showTotalInLastCol && c === colCount) {
+                    blankHeadersRow2 += '<th class="col-blank"><div class="rotated-header-container-short"><div class="rotated-header">TOPLAM</div></div></th>';
+                } else {
+                    blankHeadersRow2 += '<th class="col-blank"></th>';
+                }
+            }
+
+            let rowsHtml = '';
+            for (let i = 0; i < rowsPerPage; i++) {
+                const st = studentsSubset[i];
+                let scoreCells = '';
+                for (let c = 1; c <= colCount; c++) {
+                    let cellVal = '';
+                    let extraCls = '';
+                    if (st) {
+                        if (c <= qCount) {
+                            cellVal = st.qVals[c - 1] !== undefined ? st.qVals[c - 1] : '';
+                        } else if (showTotalInLastCol && c === colCount) {
+                            cellVal = st.total || '';
+                            extraCls = ' col-total-cell';
+                        }
+                    }
+                    scoreCells += '<td class="col-blank' + extraCls + '">' + esc(cellVal) + '</td>';
+                }
+
+                if (st) {
+                    const alanTd = showAlan ? '<td class="col-alan">' + esc(st.alan) + '</td>' : '';
+                    rowsHtml += '<tr>' +
+                        '<td class="col-sira">' + (startIndex + i) + '</td>' +
+                        alanTd +
+                        '<td class="col-okulno">' + esc(st.no) + '</td>' +
+                        '<td class="col-isim">' + esc(st.name) + '</td>' +
+                        scoreCells +
+                    '</tr>';
+                } else {
+                    const alanTd = showAlan ? '<td class="col-alan"></td>' : '';
+                    rowsHtml += '<tr>' +
+                        '<td class="col-sira">' + (startIndex + i) + '</td>' +
+                        alanTd +
+                        '<td class="col-okulno"></td>' +
+                        '<td class="col-isim"></td>' +
+                        scoreCells +
+                    '</tr>';
+                }
+            }
+
+            return '<div class="print-page">' +
+                '<div class="doc-header"><h1 class="doc-title">' + esc(docTitle) + '</h1></div>' +
+                '<div class="table-container">' +
+                    '<table class="print-table">' +
+                        '<thead>' +
+                            '<tr class="header-row-1">' +
+                                '<th rowspan="2" class="col-sira"><div class="rotated-header-container"><div class="rotated-header">SIRA</div></div></th>' +
+                                alanTh +
+                                '<th rowspan="2" class="col-okulno"><div class="rotated-header-container"><div class="rotated-header">NUMARA</div></div></th>' +
+                                '<th rowspan="2" class="col-isim">ÖĞRENCİNİN ADI SOYADI</th>' +
+                                '<th colspan="' + colCount + '" style="border-bottom: 1px solid #000;">SORU PUANLARI</th>' +
+                            '</tr>' +
+                            '<tr class="header-row-2">' +
+                                blankHeadersRow2 +
+                            '</tr>' +
+                        '</thead>' +
+                        '<tbody>' +
+                            rowsHtml +
+                        '</tbody>' +
+                    '</table>' +
+                '</div>' +
+            '</div>';
+        }
+
+        function renderPrintPages() {
+            const chk = document.getElementById('chkShowTotal');
+            const showTotal = chk ? chk.checked : true;
+            const { students, rowsPerPage, qCount, colCount } = EXAM_PRINT_DATA;
+            const canShowTotal = showTotal && (colCount > qCount);
+
+            let html = '';
+            if (!students || students.length === 0) {
+                html += buildSinglePageHtml([], 1, canShowTotal);
+            } else {
+                for (let i = 0; i < students.length; i += rowsPerPage) {
+                    const subset = students.slice(i, i + rowsPerPage);
+                    html += buildSinglePageHtml(subset, i + 1, canShowTotal);
+                }
+            }
+            document.getElementById('pageContainer').innerHTML = html;
+        }
+
+        async function saveAsPdfFile() {
+            const btn = document.getElementById('btnDownloadPdf');
+            const origHtml = btn ? btn.innerHTML : '';
+            try {
+                if (typeof PDFLib === 'undefined' || typeof fontkit === 'undefined') {
+                    window.print();
+                    return;
+                }
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> PDF Hazırlanıyor...';
+                }
+
+                const { PDFDocument, rgb, degrees } = PDFLib;
+                const [regBuf, boldBuf] = await Promise.all([
+                    fetch('fonts/Roboto-Regular.ttf').then(r => { if (!r.ok) throw new Error('Font load error'); return r.arrayBuffer(); }),
+                    fetch('fonts/Roboto-Bold.ttf').then(r => { if (!r.ok) throw new Error('Font load error'); return r.arrayBuffer(); })
+                ]);
+
+                const pdfDoc = await PDFDocument.create();
+                pdfDoc.registerFontkit(fontkit);
+                const fontReg = await pdfDoc.embedFont(regBuf);
+                const fontBold = await pdfDoc.embedFont(boldBuf);
+
+                const chk = document.getElementById('chkShowTotal');
+                const showTotal = chk ? chk.checked : true;
+                const { docTitle, students, rowsPerPage, qCount, colCount, showAlan, className, subject, examNo } = EXAM_PRINT_DATA;
+                const canShowTotal = showTotal && (colCount > qCount);
+
+                const chunks = [];
+                if (!students || students.length === 0) {
+                    chunks.push({ subset: [], startIndex: 1 });
+                } else {
+                    for (let i = 0; i < students.length; i += rowsPerPage) {
+                        chunks.push({ subset: students.slice(i, i + rowsPerPage), startIndex: i + 1 });
+                    }
+                }
+
+                // A4 Portrait in points: 595.28 x 841.89
+                const pageW = 595.28;
+                const pageH = 841.89;
+                const margin = 14.17; // 5mm
+                const contentW = pageW - margin * 2;
+
+                chunks.forEach(({ subset, startIndex }) => {
+                    const page = pdfDoc.addPage([pageW, pageH]);
+
+                    // Title
+                    const titleSize = 11;
+                    const titleW = fontBold.widthOfTextAtSize(docTitle, titleSize);
+                    const titleY = pageH - margin - 13;
+                    page.drawText(docTitle, {
+                        x: Math.max(margin, (pageW - titleW) / 2),
+                        y: titleY,
+                        size: titleSize,
+                        font: fontBold,
+                        color: rgb(0, 0, 0)
+                    });
+
+                    const tableTop = titleY - 8;
+                    const tableBottom = margin;
+                    const tableH = tableTop - tableBottom;
+
+                    const hRow1 = 18;
+                    const hRow2 = 38;
+                    const headerH = hRow1 + hRow2;
+                    const bodyH = tableH - headerH;
+                    const rowH = bodyH / rowsPerPage;
+
+                    const wSira = 19;
+                    const wAlan = showAlan ? 26 : 0;
+                    const wNo = 34;
+                    const wName = 150;
+                    const fixedW = wSira + wAlan + wNo + wName;
+                    const wBlank = (contentW - fixedW) / colCount;
+
+                    const xSira = margin;
+                    const xAlan = xSira + wSira;
+                    const xNo = xAlan + wAlan;
+                    const xName = xNo + wNo;
+                    const xBlankStart = xName + wName;
+
+                    // Draw Zebra Striping first
+                    for (let i = 0; i < rowsPerPage; i++) {
+                        if (i % 2 === 1) {
+                            const rTop = tableTop - headerH - i * rowH;
+                            page.drawRectangle({
+                                x: margin,
+                                y: rTop - rowH,
+                                width: contentW,
+                                height: rowH,
+                                color: rgb(0.945, 0.96, 0.976)
+                            });
+                        }
+                    }
+
+                    // Draw rotated headers for SIRA, ALAN, NUMARA
+                    const drawRotatedCentered = (txt, cellX, cellY, cellW, cellH, fSize) => {
+                        const tw = fontBold.widthOfTextAtSize(txt, fSize);
+                        page.drawText(txt, {
+                            x: cellX + cellW / 2 + fSize * 0.35,
+                            y: cellY + (cellH - tw) / 2,
+                            size: fSize,
+                            font: fontBold,
+                            color: rgb(0, 0, 0),
+                            rotate: degrees(90)
+                        });
+                    };
+
+                    const headerBottomY = tableTop - headerH;
+                    drawRotatedCentered('SIRA', xSira, headerBottomY, wSira, headerH, 8);
+                    if (showAlan) {
+                        drawRotatedCentered('ALAN', xAlan, headerBottomY, wAlan, headerH, 8);
+                    }
+                    drawRotatedCentered('NUMARA', xNo, headerBottomY, wNo, headerH, 8);
+
+                    // ÖĞRENCİNİN ADI SOYADI header
+                    const nameHdr = 'ÖĞRENCİNİN ADI SOYADI';
+                    const nameHdrW = fontBold.widthOfTextAtSize(nameHdr, 8.5);
+                    page.drawText(nameHdr, {
+                        x: xName + (wName - nameHdrW) / 2,
+                        y: headerBottomY + (headerH - 8.5) / 2 + 1,
+                        size: 8.5,
+                        font: fontBold,
+                        color: rgb(0, 0, 0)
+                    });
+
+                    // Row 1 right header: SORU PUANLARI
+                    const spHdr = 'SORU PUANLARI';
+                    const spHdrW = fontBold.widthOfTextAtSize(spHdr, 8.5);
+                    const blanksTotalW = contentW - fixedW;
+                    page.drawText(spHdr, {
+                        x: xBlankStart + (blanksTotalW - spHdrW) / 2,
+                        y: tableTop - hRow1 + (hRow1 - 8.5) / 2 + 1,
+                        size: 8.5,
+                        font: fontBold,
+                        color: rgb(0, 0, 0)
+                    });
+
+                    // Row 2 question headers
+                    for (let c = 1; c <= colCount; c++) {
+                        const cx = xBlankStart + (c - 1) * wBlank;
+                        if (c <= qCount) {
+                            drawRotatedCentered(c + '. SORU', cx, headerBottomY, wBlank, hRow2, 7.2);
+                        } else if (canShowTotal && c === colCount) {
+                            drawRotatedCentered('TOPLAM', cx, headerBottomY, wBlank, hRow2, 7.2);
+                        }
+                    }
+
+                    // Draw student rows text
+                    for (let i = 0; i < rowsPerPage; i++) {
+                        const rTop = tableTop - headerH - i * rowH;
+                        const rBottom = rTop - rowH;
+                        const textY = rBottom + (rowH - 8) / 2 + 1.2;
+
+                        // SIRA number
+                        const siraStr = String(startIndex + i);
+                        const siraW = fontReg.widthOfTextAtSize(siraStr, 8);
+                        page.drawText(siraStr, {
+                            x: xSira + (wSira - siraW) / 2,
+                            y: textY,
+                            size: 8,
+                            font: fontReg,
+                            color: rgb(0, 0, 0)
+                        });
+
+                        const st = subset[i];
+                        if (st) {
+                            if (showAlan && st.alan) {
+                                const alStr = String(st.alan);
+                                const alW = fontReg.widthOfTextAtSize(alStr, 7.5);
+                                page.drawText(alStr, {
+                                    x: xAlan + (wAlan - alW) / 2,
+                                    y: textY,
+                                    size: 7.5,
+                                    font: fontReg,
+                                    color: rgb(0, 0, 0)
+                                });
+                            }
+
+                            if (st.no) {
+                                const noStr = String(st.no);
+                                const noW = fontReg.widthOfTextAtSize(noStr, 8);
+                                page.drawText(noStr, {
+                                    x: xNo + (wNo - noW) / 2,
+                                    y: textY,
+                                    size: 8,
+                                    font: fontReg,
+                                    color: rgb(0, 0, 0)
+                                });
+                            }
+
+                            if (st.name) {
+                                let nmStr = String(st.name);
+                                while (nmStr.length > 3 && fontBold.widthOfTextAtSize(nmStr, 8) > (wName - 6)) {
+                                    nmStr = nmStr.slice(0, -1);
+                                }
+                                page.drawText(nmStr, {
+                                    x: xName + 4,
+                                    y: textY,
+                                    size: 8,
+                                    font: fontBold,
+                                    color: rgb(0, 0, 0)
+                                });
+                            }
+
+                            for (let c = 1; c <= colCount; c++) {
+                                let valStr = '';
+                                if (c <= qCount) {
+                                    valStr = st.qVals[c - 1] !== undefined ? String(st.qVals[c - 1]) : '';
+                                } else if (canShowTotal && c === colCount) {
+                                    valStr = st.total ? String(st.total) : '';
+                                }
+                                if (valStr !== '') {
+                                    const cx = xBlankStart + (c - 1) * wBlank;
+                                    const vw = fontBold.widthOfTextAtSize(valStr, 8);
+                                    page.drawText(valStr, {
+                                        x: cx + (wBlank - vw) / 2,
+                                        y: textY,
+                                        size: 8,
+                                        font: fontBold,
+                                        color: rgb(0, 0, 0)
+                                    });
+                                }
+                            }
+                        }
+                    }
+
+                    // Draw Grid Borders
+                    // Outer double border
+                    page.drawRectangle({
+                        x: margin,
+                        y: tableBottom,
+                        width: contentW,
+                        height: tableH,
+                        borderColor: rgb(0, 0, 0),
+                        borderWidth: 1.5
+                    });
+                    page.drawRectangle({
+                        x: margin - 1.8,
+                        y: tableBottom - 1.8,
+                        width: contentW + 3.6,
+                        height: tableH + 3.6,
+                        borderColor: rgb(0, 0, 0),
+                        borderWidth: 0.7
+                    });
+
+                    // Horizontal line between header row 1 and row 2 (only across blank columns)
+                    page.drawLine({
+                        start: { x: xBlankStart, y: tableTop - hRow1 },
+                        end: { x: margin + contentW, y: tableTop - hRow1 },
+                        thickness: 0.8,
+                        color: rgb(0, 0, 0)
+                    });
+
+                    // Horizontal line below header
+                    page.drawLine({
+                        start: { x: margin, y: headerBottomY },
+                        end: { x: margin + contentW, y: headerBottomY },
+                        thickness: 1,
+                        color: rgb(0, 0, 0)
+                    });
+
+                    // Horizontal lines for 40 rows
+                    for (let i = 1; i < rowsPerPage; i++) {
+                        const yLine = headerBottomY - i * rowH;
+                        page.drawLine({
+                            start: { x: margin, y: yLine },
+                            end: { x: margin + contentW, y: yLine },
+                            thickness: 0.6,
+                            color: rgb(0, 0, 0)
+                        });
+                    }
+
+                    // Vertical lines for fixed columns
+                    const fixedXCols = [xAlan];
+                    if (showAlan) fixedXCols.push(xNo);
+                    fixedXCols.push(xName, xBlankStart);
+
+                    fixedXCols.forEach(vx => {
+                        page.drawLine({
+                            start: { x: vx, y: tableTop },
+                            end: { x: vx, y: tableBottom },
+                            thickness: 0.8,
+                            color: rgb(0, 0, 0)
+                        });
+                    });
+
+                    // Vertical lines for 16 columns (from tableTop - hRow1 down to tableBottom)
+                    for (let c = 1; c < colCount; c++) {
+                        const vx = xBlankStart + c * wBlank;
+                        page.drawLine({
+                            start: { x: vx, y: tableTop - hRow1 },
+                            end: { x: vx, y: tableBottom },
+                            thickness: 0.6,
+                            color: rgb(0, 0, 0)
+                        });
+                    }
+                });
+
+                const pdfBytes = await pdfDoc.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const safeFile = (className + '_' + subject + '_' + examNo + '_Puan_Cizelgesi')
+                    .replace(/\s+/g, '_')
+                    .replace(/[^a-zA-Z0-9ÇĞİÖŞÜçğıöşü_-]/g, '');
+                a.href = url;
+                a.download = (safeFile || 'Sinav_Puan_Cizelgesi') + '.pdf';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 1500);
+            } catch (err) {
+                console.error('PDF oluşturma hatası, tarayıcı yazdırma ekranı açılıyor:', err);
+                window.print();
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+            }
+        }
+
+        renderPrintPages();
+    <\/script>
+</body>
+</html>`;
+
+            printWin.document.open();
+            printWin.document.write(htmlContent);
+            printWin.document.close();
+        }
+
+        async function handleTableCellScoreChange(examId, studentNo, studentName, qNum, rawValue) {
+            const exam = examPointList.find(e => e.id === examId);
+            if (!exam) return;
+            exam.scores = exam.scores || {};
+            const stKey = String(studentNo).trim();
+            if (!exam.scores[stKey]) {
+                exam.scores[stKey] = {
+                    studentNo: stKey,
+                    studentName: studentName,
+                    questions: {},
+                    total: 0,
+                    updatedAt: new Date().toISOString()
+                };
+            }
+            if (rawValue === '' || rawValue === null) {
+                delete exam.scores[stKey].questions[String(qNum)];
+            } else {
+                const num = parseFloat(String(rawValue).replace(',', '.'));
+                if (!isNaN(num)) {
+                    exam.scores[stKey].questions[String(qNum)] = num;
+                }
+            }
+
+            let sum = 0;
+            let count = 0;
+            for (const v of Object.values(exam.scores[stKey].questions)) {
+                if (v !== '' && v !== null && !isNaN(Number(v))) {
+                    sum += Number(v);
+                    count++;
+                }
+            }
+            exam.scores[stKey].total = sum;
+            exam.scores[stKey].updatedAt = new Date().toISOString();
+
+            const badge = document.getElementById(`tot_${examId}_${stKey}`);
+            if (badge) badge.textContent = count > 0 ? sum : '-';
+
+            await saveExamsToStore();
+        }
+
+        async function deleteExamItem(examId) {
+            const exam = examPointList.find(e => e.id === examId);
+            if (!exam) return;
+
+            const res = await Swal.fire({
+                title: 'Sınavı Sil?',
+                html: `<b>${escapeHtml(exam.className)} - ${escapeHtml(exam.subject)} (${escapeHtml(exam.examNo)})</b> sınavını ve girilen notları silmek istediğinize emin misiniz?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Evet, Sil',
+                cancelButtonText: 'İptal'
+            });
+
+            if (res.isConfirmed) {
+                examPointList = examPointList.filter(e => e.id !== examId);
+                await saveExamsToStore();
+                renderExamsAccordion();
+            }
+        }
+
+        // =========================================================
+        // VOICE GRADING ASSISTANT (PLAY BUTTON FLOW)
+        // =========================================================
+        function setTransitionMode(mode) {
+            transitionMode = mode;
+            document.getElementById('lblModeAuto').classList.toggle('selected', mode === 'auto15');
+            document.getElementById('lblModeConfirm').classList.toggle('selected', mode === 'confirm');
+            cancelAutoAdvanceTimer();
+        }
+
+        // ---- Sesli okuma (TTS): telefon uyumlu ----
+        let ttsVoice = null, speakToken = 0, ttsResumeTimer = null;
+
+        function pickTurkishVoice() {
+            try {
+                const voices = window.speechSynthesis.getVoices() || [];
+                ttsVoice = voices.find(v => /^tr([-_]|$)/i.test(v.lang)) ||
+                           voices.find(v => /turk/i.test(v.name)) || null;
+            } catch (e) {}
+        }
+        if ('speechSynthesis' in window) {
+            pickTurkishVoice();
+            try { window.speechSynthesis.addEventListener('voiceschanged', pickTurkishVoice); } catch (e) {}
+        }
+
+        function resumeMicAfterSpeech(token, wasListening) {
+            if (token !== speakToken) return; // daha yeni bir konuşma başladı
+            if (ttsResumeTimer) { clearTimeout(ttsResumeTimer); ttsResumeTimer = null; }
+            const modal = document.getElementById('voiceGradingModal');
+            if (wasListening && shouldKeepListening && modal && modal.classList.contains('active')) {
+                startMicrophoneListening();
+            }
+        }
+
+        function speakTurkishPrompt(text) {
+            if (!ttsEnabled || !('speechSynthesis' in window)) return;
+            try {
+                const synth = window.speechSynthesis;
+                const token = ++speakToken;
+                const wasListening = shouldKeepListening;
+
+                // Telefonda aynı anda mikrofon açıkken ses çıkmaz: konuşma süresince mikrofonu durdur
+                if (wasListening) {
+                    stopVosk();
+                    destroyCurrentRecognition();
+                    isMicListening = false;
+                }
+
+                synth.cancel();
+                if (!ttsVoice) pickTurkishVoice();
+
+                setTimeout(() => {
+                    if (token !== speakToken) return;
+                    const utter = new SpeechSynthesisUtterance(text);
+                    utter.lang = 'tr-TR';
+                    if (ttsVoice) utter.voice = ttsVoice;
+                    utter.rate = 1.05;
+                    utter.volume = 1;
+                    utter.onend = () => resumeMicAfterSpeech(token, wasListening);
+                    utter.onerror = () => resumeMicAfterSpeech(token, wasListening);
+                    try { synth.resume(); } catch (e) {}
+                    synth.speak(utter);
+
+                    // Güvenlik: onend hiç tetiklenmezse mikrofonu yine de geri aç
+                    if (ttsResumeTimer) clearTimeout(ttsResumeTimer);
+                    ttsResumeTimer = setTimeout(() => resumeMicAfterSpeech(token, wasListening), 7000);
+                }, 80);
+            } catch (e) {
+                console.warn('TTS error:', e);
+            }
+        }
+
+        function toggleTtsVoice() {
+            ttsEnabled = !ttsEnabled;
+            const icon = document.getElementById('ttsIcon');
+            const txt = document.getElementById('ttsStatusText');
+            if (ttsEnabled) {
+                icon.className = 'fa-solid fa-volume-high';
+                txt.textContent = 'Sesli Okuma: Açık';
+                // Mobil tarayıcılar sesi ancak kullanıcı dokunuşuyla açar: bu tıklamada bir kez konuştur
+                speakTurkishPrompt('Sesli okuma açık');
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark';
+                txt.textContent = 'Sesli Okuma: Kapalı';
+                speakToken++;
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                }
+            }
+        }
+
+        function clearSettleTimer() {
+            if (settleTimerId) {
+                clearTimeout(settleTimerId);
+                settleTimerId = null;
+            }
+        }
+
+        // Ekran uyanık tutma (Screen Wake Lock) - not girme ekranı açıkken telefon ekranı kapanmasın
+        let wakeLockSentinel = null;
+        async function acquireWakeLock() {
+            try {
+                if (!('wakeLock' in navigator)) return;
+                if (wakeLockSentinel && !wakeLockSentinel.released) return;
+                wakeLockSentinel = await navigator.wakeLock.request('screen');
+                wakeLockSentinel.addEventListener('release', () => { wakeLockSentinel = null; });
+            } catch (e) {
+                console.warn('WakeLock error:', e);
+            }
+        }
+        async function releaseWakeLock() {
+            try {
+                if (wakeLockSentinel) {
+                    const s = wakeLockSentinel;
+                    wakeLockSentinel = null;
+                    await s.release();
+                }
+            } catch (e) {}
+        }
+        document.addEventListener('visibilitychange', () => {
+            const modal = document.getElementById('voiceGradingModal');
+            if (document.visibilityState === 'visible' && modal && modal.classList.contains('active')) {
+                acquireWakeLock();
+            }
+        });
+
+        // ---- Mikrofon seviye göstergesi (hangi mikrofon kullanılıyor, ses geliyor mu?) ----
+        let levelStream = null, levelCtx = null, levelRaf = null, levelPeak = 0, levelLastLoud = 0;
+        async function startLevelMeter() {
+            stopLevelMeter();
+            try {
+                if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) return;
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+                levelStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if (!AC) return;
+                levelCtx = new AC();
+                if (levelCtx.state === 'suspended') { try { await levelCtx.resume(); } catch (e) {} }
+                const src = levelCtx.createMediaStreamSource(levelStream);
+                const analyser = levelCtx.createAnalyser();
+                analyser.fftSize = 512;
+                src.connect(analyser);
+                const data = new Uint8Array(analyser.fftSize);
+
+                let wrap = document.getElementById('micLevelWrap');
+                if (!wrap) {
+                    const host = document.getElementById('voiceStatusSubtext');
+                    if (!host || !host.parentNode) return;
+                    wrap = document.createElement('div');
+                    wrap.id = 'micLevelWrap';
+                    wrap.style.cssText = 'margin:8px auto 0; max-width:320px; text-align:center; font-size:0.72rem; color:#64748b;';
+                    wrap.innerHTML = '<div id="micLevelDevice" style="margin-bottom:3px; word-break:break-word;"></div>' +
+                        '<div style="height:8px; background:#e2e8f0; border-radius:99px; overflow:hidden;"><div id="micLevelBar" style="height:100%; width:0%; background:linear-gradient(90deg,#10b981,#f59e0b,#ef4444); transition:width 0.08s;"></div></div>' +
+                        '<div id="micLevelHint" style="margin-top:3px; min-height:1em;"></div>';
+                    host.parentNode.insertBefore(wrap, host.nextSibling);
+                }
+                const track = levelStream.getAudioTracks()[0];
+                document.getElementById('micLevelDevice').textContent = 'Mikrofon: ' + (track && track.label ? track.label : 'bilinmiyor');
+                levelLastLoud = Date.now();
+                levelPeak = 0;
+
+                const tick = () => {
+                    if (!levelCtx) return;
+                    analyser.getByteTimeDomainData(data);
+                    let max = 0;
+                    for (let i = 0; i < data.length; i++) {
+                        const v = Math.abs(data[i] - 128) / 128;
+                        if (v > max) max = v;
+                    }
+                    const pct = Math.min(100, Math.round(max * 220));
+                    const bar = document.getElementById('micLevelBar');
+                    if (bar) bar.style.width = pct + '%';
+                    if (max > levelPeak) levelPeak = max;
+                    if (max > 0.04) levelLastLoud = Date.now();
+                    const hint = document.getElementById('micLevelHint');
+                    if (hint) {
+                        if (getMicEngine() === 'web' && Date.now() - levelLastLoud > 6000) {
+                            hint.innerHTML = '<span style="color:#ef4444; font-weight:700;">Ses gelmiyor: yanlış mikrofon seçili ya da mikrofon kısık olabilir (Windows Ayarlar → Ses → Giriş).</span>';
+                        } else {
+                            hint.textContent = '';
+                        }
+                    }
+                    levelRaf = requestAnimationFrame(tick);
+                };
+                tick();
+            } catch (e) {
+                const host = document.getElementById('voiceStatusSubtext');
+                if (host && !document.getElementById('micLevelWrap')) {
+                    const w = document.createElement('div');
+                    w.id = 'micLevelWrap';
+                    w.style.cssText = 'margin-top:6px; font-size:0.72rem; color:#ef4444;';
+                    w.textContent = 'Mikrofon erişimi: ' + (e && e.name ? e.name : 'hata');
+                    host.parentNode.insertBefore(w, host.nextSibling);
+                }
+            }
+        }
+
+        function stopLevelMeter() {
+            if (levelRaf) { cancelAnimationFrame(levelRaf); levelRaf = null; }
+            if (levelStream) { levelStream.getTracks().forEach(t => { try { t.stop(); } catch (e) {} }); levelStream = null; }
+            if (levelCtx) { try { levelCtx.close(); } catch (e) {} levelCtx = null; }
+            const w = document.getElementById('micLevelWrap');
+            if (w && w.parentNode) w.parentNode.removeChild(w);
+        }
+
+        // Sesli giriş sırasında ilgili alana otomatik kaydır (numara okunurken öğrenci alanına, puan girilirken soru alanına)
+        function scrollVoiceFocus(kind) {
+            setTimeout(() => {
+                try {
+                    if (kind === 'student') {
+                        const el = document.querySelector('.voice-prompt-box') || document.getElementById('voicePromptHeadline');
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    } else {
+                        const head = document.querySelector('.voice-prompt-box') || document.getElementById('voicePromptHeadline');
+                        if (head) head.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        const cur = document.querySelector('#questionsGridPills .q-pill-box.current');
+                        if (cur) cur.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    }
+                } catch (e) {}
+            }, 60);
+        }
+
+        function startVoiceGradingForExam(examId) {
+            const exam = examPointList.find(e => e.id === examId);
+            if (!exam) return;
+
+            currentVoiceExamId = exam.id;
+            document.getElementById('voiceModalExamHeader').innerHTML = `
+                <i class="fa-solid fa-microphone-lines"></i>
+                <span>${escapeHtml(exam.className)} • ${escapeHtml(exam.subject)} • ${escapeHtml(exam.examNo)} (${Number(exam.questionCount)} Soru)</span>
+            `;
+
+            const quickSelect = document.getElementById('quickClassStudentSelect');
+            quickSelect.innerHTML = '<option value="">Veya sınıftan öğrenci seçin...</option>';
+            const classStudents = getStudentsForExamClass(exam.className);
+            classStudents.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.no;
+                opt.textContent = `${s.no} - ${s.name}`;
+                quickSelect.appendChild(opt);
+            });
+
+            document.getElementById('voiceGradingModal').classList.add('active');
+            acquireWakeLock();
+            initAutoDelayInput();
+            ensureEngineToggle();
+            startLevelMeter();
+            resetToStudentStep();
+            startMicrophoneListening();
+        }
+
+        function closeVoiceGradingModal() {
+            cancelAutoAdvanceTimer();
+            clearSettleTimer();
+            stopMicrophoneListening();
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            document.getElementById('voiceGradingModal').classList.remove('active');
+            releaseWakeLock();
+            stopLevelMeter();
+            renderExamsAccordion();
+        }
+
+        function resetToStudentStep() {
+            cancelAutoAdvanceTimer();
+            clearSettleTimer();
+
+            voiceStep = "student_no";
+            currentStudentObj = null;
+            currentQuestionIndex = 1;
+
+            document.getElementById('activeStudentCard').classList.remove('visible');
+            document.getElementById('questionsStripBox').classList.remove('visible');
+            document.getElementById('studentManualAssistRow').style.display = 'flex';
+            document.getElementById('questionManualAssistRow').style.display = 'none';
+            document.getElementById('manualStudentNoInput').value = '';
+            document.getElementById('quickClassStudentSelect').value = '';
+            document.getElementById('recognizedTranscriptWrap').style.display = 'none';
+
+            const promptText = "Notu girilecek öğrenci numarasını söyleyin";
+            document.getElementById('voicePromptHeadline').textContent = promptText;
+            if (isMicListening || shouldKeepListening) {
+                document.getElementById('voiceStatusSubtext').innerHTML =
+                    `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon dinliyor...</span> Lütfen öğrenci numarasını söyleyin.`;
+            }
+
+            speakTurkishPrompt(promptText);
+            scrollVoiceFocus('student');
+        }
+
+        function findAndSelectStudentByNo(spokenNo) {
+            const exam = examPointList.find(e => e.id === currentVoiceExamId);
+            if (!exam) return false;
+
+            const cleanNo = String(spokenNo).trim();
+            if (!cleanNo) return false;
+
+            const classStudents = getStudentsForExamClass(exam.className);
+            let matchedStudent = classStudents.find(s => String(s.no).trim() === cleanNo);
+
+            if (!matchedStudent && classStudents.length === 0) {
+                matchedStudent = allStudents.find(s => s && String(s.no).trim() === cleanNo);
+            }
+
+            if (!matchedStudent && classStudents.length === 0 && allStudents.length === 0) {
+                matchedStudent = {
+                    no: cleanNo,
+                    name: `${cleanNo} Nolu Öğrenci`,
+                    class: exam.className
+                };
+            }
+
+            if (!matchedStudent) {
+                const msg = `${cleanNo} numaralı öğrenci bulunamadı. Lütfen numarayı tekrar söyleyin`;
+                const bw = document.getElementById('recognizedTranscriptWrap');
+                const bt = document.getElementById('recognizedTranscriptText');
+                if (bw && bt) {
+                    bw.style.display = 'block';
+                    bt.innerHTML = `<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i> <b>${escapeHtml(cleanNo)}</b> numaralı öğrenci bulunamadı &mdash; tekrar söyleyin`;
+                }
+                const hl = document.getElementById('voicePromptHeadline');
+                if (hl) hl.textContent = 'Öğrenci bulunamadı, numarayı tekrar söyleyin';
+                const qs = document.getElementById('quickClassStudentSelect');
+                if (qs) qs.value = '';
+                speakTurkishPrompt(msg);
+                return false;
+            }
+
+            currentStudentObj = {
+                no: String(matchedStudent.no).trim(),
+                name: matchedStudent.name || `${cleanNo} Nolu Öğrenci`,
+                class: matchedStudent.class || exam.className
+            };
+
+            exam.scores = exam.scores || {};
+            if (!exam.scores[currentStudentObj.no]) {
+                exam.scores[currentStudentObj.no] = {
+                    studentNo: currentStudentObj.no,
+                    studentName: currentStudentObj.name,
+                    questions: {},
+                    total: 0,
+                    updatedAt: new Date().toISOString()
+                };
+            }
+
+            document.getElementById('activeStudentNoBadge').textContent = currentStudentObj.no;
+            document.getElementById('activeStudentNameText').textContent = currentStudentObj.name;
+            document.getElementById('activeStudentClassText').textContent = `${currentStudentObj.class} Sınıfı`;
+            document.getElementById('activeStudentCard').classList.add('visible');
+            document.getElementById('questionsStripBox').classList.add('visible');
+
+            document.getElementById('studentManualAssistRow').style.display = 'none';
+            document.getElementById('questionManualAssistRow').style.display = 'flex';
+
+            voiceStep = "question";
+            goToQuestion(1);
+            return true;
+        }
+
+        function goToQuestion(qIndex) {
+            cancelAutoAdvanceTimer();
+            clearSettleTimer();
+
+            const exam = examPointList.find(e => e.id === currentVoiceExamId);
+            if (!exam || !currentStudentObj) return;
+
+            const maxQ = Number(exam.questionCount) || 1;
+            if (qIndex < 1) qIndex = 1;
+            if (qIndex > maxQ) {
+                finishCurrentStudentGrading();
+                return;
+            }
+
+            currentQuestionIndex = qIndex;
+
+            const promptText = qIndex === 1
+                ? "1. sorudan kaç puan aldığını söyleyin"
+                : `${qIndex}. sorudan aldığı puanı söyleyin`;
+
+            document.getElementById('voicePromptHeadline').textContent = promptText;
+            if (isMicListening || shouldKeepListening) {
+                document.getElementById('voiceStatusSubtext').innerHTML =
+                    `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon dinliyor...</span> Puanı söyleyin (Bir şey söylemezseniz sistem bekler).`;
+            }
+
+            const stRec = exam.scores[currentStudentObj.no] || { questions: {} };
+            const existingScore = stRec.questions ? stRec.questions[String(qIndex)] : undefined;
+            document.getElementById('manualScoreInput').value = existingScore !== undefined ? existingScore : '';
+
+            renderQuestionPills();
+            speakTurkishPrompt(promptText);
+            scrollVoiceFocus('question');
+        }
+
+        function renderQuestionPills() {
+            const exam = examPointList.find(e => e.id === currentVoiceExamId);
+            if (!exam || !currentStudentObj) return;
+
+            const maxQ = Number(exam.questionCount) || 1;
+            const stRec = (exam.scores && exam.scores[currentStudentObj.no]) || { questions: {}, total: 0 };
+            const qMap = stRec.questions || {};
+
+            let total = 0;
+            let pillsHtml = '';
+            for (let q = 1; q <= maxQ; q++) {
+                const val = qMap[String(q)];
+                const hasVal = val !== undefined && val !== null && val !== '';
+                if (hasVal) total += Number(val) || 0;
+
+                const isCurrent = (q === currentQuestionIndex);
+                const cls = isCurrent ? 'q-pill-box current' : (hasVal ? 'q-pill-box done' : 'q-pill-box');
+
+                pillsHtml += `
+                    <div class="${cls}" onclick="goToQuestion(${q})">
+                        <div class="q-pill-label">${q}. Soru</div>
+                        <div class="q-pill-val">${hasVal ? escapeHtml(val) : '-'}</div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('questionsGridPills').innerHTML = pillsHtml;
+            document.getElementById('activeStudentTotalScore').textContent = total;
+        }
+
+        async function applyQuestionScore(scoreValue, isFromVoiceOrQuick = true) {
+            const exam = examPointList.find(e => e.id === currentVoiceExamId);
+            if (!exam || !currentStudentObj) return;
+
+            const numScore = Number(scoreValue);
+            if (isNaN(numScore) || numScore < 0) return;
+
+            const stNo = currentStudentObj.no;
+            exam.scores = exam.scores || {};
+            if (!exam.scores[stNo]) {
+                exam.scores[stNo] = {
+                    studentNo: stNo,
+                    studentName: currentStudentObj.name,
+                    questions: {},
+                    total: 0,
+                    updatedAt: new Date().toISOString()
+                };
+            }
+
+            exam.scores[stNo].questions[String(currentQuestionIndex)] = numScore;
+
+            let sum = 0;
+            for (const v of Object.values(exam.scores[stNo].questions)) {
+                if (v !== '' && v !== null && !isNaN(Number(v))) {
+                    sum += Number(v);
+                }
+            }
+            exam.scores[stNo].total = sum;
+            exam.scores[stNo].updatedAt = new Date().toISOString();
+
+            document.getElementById('manualScoreInput').value = numScore;
+            renderQuestionPills();
+
+            const saveInd = document.getElementById('saveIndicatorText');
+            if (saveInd) {
+                saveInd.innerHTML = `<i class="fa-solid fa-check-double"></i> ${currentQuestionIndex}. Soru: ${numScore} Puan kaydedildi`;
+            }
+
+            saveExamsToStore();
+
+            if (transitionMode === 'auto15') {
+                startAutoAdvanceCountdown(getAutoDelayMs());
+            } else {
+                document.getElementById('voiceStatusSubtext').innerHTML =
+                    `<span style="color:#059669; font-weight:800;">${currentQuestionIndex}. Soru için ${numScore} puan kaydedildi.</span> Diğer soruya geçmek için <b>"Onayla / Sonraki Soru"</b> tuşuna basın.`;
+            }
+        }
+
+        // Notu söyledikten sonra otomatik geçiş bekleme süresi (kullanıcı ayarlı, cihazda saklanır)
+        function getAutoDelayMs() {
+            let v = NaN;
+            try { v = parseFloat(localStorage.getItem('ep_auto_delay')); } catch (e) {}
+            if (isNaN(v) || v < 0.3) v = 1;
+            if (v > 10) v = 10;
+            return Math.round(v * 1000);
+        }
+        function setAutoDelay(raw) {
+            const v = parseFloat(String(raw).replace(',', '.'));
+            if (isNaN(v)) return;
+            const clamped = Math.min(10, Math.max(0.3, v));
+            try { localStorage.setItem('ep_auto_delay', String(clamped)); } catch (e) {}
+            const lbl = document.getElementById('autoTimerLabel');
+            if (lbl) lbl.textContent = clamped + ' saniye içinde diğer soruya geçiliyor...';
+        }
+        function initAutoDelayInput() {
+            const inp = document.getElementById('autoDelayInput');
+            if (inp) inp.value = getAutoDelayMs() / 1000;
+        }
+
+        function startAutoAdvanceCountdown(durationMs = 1500) {
+            cancelAutoAdvanceTimer();
+            const wrap = document.getElementById('autoTimerWrap');
+            const fill = document.getElementById('autoTimerBarFill');
+            const label = document.getElementById('autoTimerLabel');
+
+            wrap.classList.add('active');
+            fill.style.width = '0%';
+
+            const startTime = Date.now();
+            autoAdvanceInterval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const pct = Math.min(100, (elapsed / durationMs) * 100);
+                fill.style.width = pct + '%';
+                const rem = Math.max(0, ((durationMs - elapsed) / 1000)).toFixed(1);
+                label.textContent = `${rem} sn sonra diğer soruya geçiliyor...`;
+            }, 50);
+
+            autoAdvanceTimer = setTimeout(() => {
+                cancelAutoAdvanceTimer();
+                confirmAndAdvanceQuestion();
+            }, durationMs);
+        }
+
+        function cancelAutoAdvanceTimer() {
+            if (autoAdvanceTimer) {
+                clearTimeout(autoAdvanceTimer);
+                autoAdvanceTimer = null;
+            }
+            if (autoAdvanceInterval) {
+                clearInterval(autoAdvanceInterval);
+                autoAdvanceInterval = null;
+            }
+            const wrap = document.getElementById('autoTimerWrap');
+            if (wrap) wrap.classList.remove('active');
+        }
+
+        function confirmAndAdvanceQuestion() {
+            cancelAutoAdvanceTimer();
+            const exam = examPointList.find(e => e.id === currentVoiceExamId);
+            if (!exam || !currentStudentObj) return;
+
+            const maxQ = Number(exam.questionCount) || 1;
+            if (currentQuestionIndex < maxQ) {
+                goToQuestion(currentQuestionIndex + 1);
+            } else {
+                finishCurrentStudentGrading();
+            }
+        }
+
+        function goToPrevQuestion() {
+            if (currentQuestionIndex > 1) {
+                goToQuestion(currentQuestionIndex - 1);
+            }
+        }
+
+        function finishCurrentStudentGrading() {
+            cancelAutoAdvanceTimer();
+            const exam = examPointList.find(e => e.id === currentVoiceExamId);
+            if (!exam || !currentStudentObj) return;
+
+            const stRec = exam.scores[currentStudentObj.no] || { total: 0 };
+            const finalTotal = stRec.total || 0;
+
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: `${currentStudentObj.no} - ${currentStudentObj.name} tamamlandı!`,
+                text: `Toplam Puan: ${finalTotal}`,
+                showConfirmButton: false,
+                timer: 2600
+            });
+
+            resetToStudentStep();
+        }
+
+        function submitManualStudentNo() {
+            const val = document.getElementById('manualStudentNoInput').value.trim();
+            if (val) findAndSelectStudentByNo(val);
+        }
+
+        function submitManualQuestionScore() {
+            const raw = document.getElementById('manualScoreInput').value;
+            if (raw === '' || raw === null) return;
+            const num = parseFloat(String(raw).replace(',', '.'));
+            if (!isNaN(num)) {
+                applyQuestionScore(num, false);
+            }
+        }
+
+        // =========================================================
+        // TURKISH SPEECH RECOGNITION & NUMBER PARSER
+        // =========================================================
+        const TR_NUM_PART_LIST = [
+            'doksan', 'seksen', 'yetmis', 'altmis', 'atmis', 'elli', 'kirk', 'otuz', 'yirmi',
+            'dokuz', 'sekiz', 'yedi', 'alti', 'dort', 'bes', 'iki', 'bir', 'sifir',
+            'bin', 'yuz', 'on', 'uc', 'bucuk', 'yarim'
+        ];
+        const TR_FULL_COMPOUND_RE = new RegExp('^(' + TR_NUM_PART_LIST.join('|') + ')+$');
+        const TR_PART_FIND_RE = new RegExp('(' + TR_NUM_PART_LIST.join('|') + ')', 'g');
+
+        function toAsciiTurkish(raw) {
+            if (!raw) return '';
+            let s = String(raw)
+                .replace(/İ/g, 'i')
+                .replace(/I/g, 'i')
+                .toLocaleLowerCase('tr-TR');
+            if (typeof s.normalize === 'function') {
+                s = s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+            }
+            return s
+                .replace(/ı/g, 'i')
+                .replace(/ğ/g, 'g')
+                .replace(/ü/g, 'u')
+                .replace(/ş/g, 's')
+                .replace(/ö/g, 'o')
+                .replace(/ç/g, 'c')
+                .trim();
+        }
+
+        function parseTurkishSpokenNumber(rawText) {
+            const s0 = toAsciiTurkish(rawText);
+            if (!s0) return null;
+
+            const thousandsMatch = s0.match(/\b(\d{1,3})(?:[.,\s](\d{3}))+\b/);
+            if (thousandsMatch) {
+                const grouped = thousandsMatch[0].replace(/[.,\s]/g, '');
+                if (/^\d+$/.test(grouped)) return parseInt(grouped, 10);
+            }
+
+            const decMatch = s0.match(/(\d+)[.,](\d+)/);
+            if (decMatch) {
+                return parseFloat(decMatch[1] + '.' + decMatch[2]);
+            }
+
+            const s = s0.replace(/(\d+)/g, ' $1 ');
+            const rawTokens = s.split(/[^a-z0-9]+/).filter(Boolean);
+
+            const tokens = [];
+            for (const rt of rawTokens) {
+                if (!/^\d+$/.test(rt) && TR_FULL_COMPOUND_RE.test(rt)) {
+                    const parts = rt.match(TR_PART_FIND_RE);
+                    if (parts) tokens.push(...parts);
+                    else tokens.push(rt);
+                } else {
+                    tokens.push(rt);
+                }
+            }
+
+            const units = {
+                'sifir': 0, 'bos': 0, 'yok': 0,
+                'bir': 1, 'biri': 1, 'pir': 1, 'dil': 1,
+                'iki': 2, 'eki': 2,
+                'uc': 3, 'uch': 3, 'hic': 3, 'ic': 3,
+                'dort': 4, 'dor': 4, 'tort': 4,
+                'bes': 5, 'bess': 5, 'pes': 5, 'bez': 5, 'bas': 5,
+                'alti': 6, 'alt': 6, 'aldi': 6,
+                'yedi': 7, 'yetti': 7, 'yede': 7,
+                'sekiz': 8, 'sekis': 8,
+                'dokuz': 9, 'dokus': 9
+            };
+            const tens = {
+                'on': 10, 'un': 10, 'oon': 10, 'an': 10,
+                'yirmi': 20, 'yemi': 20,
+                'otuz': 30, 'otus': 30,
+                'kirk': 40, 'kir': 40,
+                'elli': 50, 'eli': 50,
+                'altmis': 60, 'atmis': 60,
+                'yetmis': 70,
+                'seksen': 80, 'sekzen': 80,
+                'doksan': 90, 'dokzan': 90
+            };
+
+            const items = [];
+            for (const t of tokens) {
+                if (/^\d+$/.test(t)) {
+                    items.push({ kind: 'num', val: parseInt(t, 10), len: t.length, str: t });
+                } else if (t in units) {
+                    items.push({ kind: 'unit', val: units[t], len: 1, str: String(units[t]) });
+                } else if (t in tens) {
+                    items.push({ kind: 'ten', val: tens[t], len: 2, str: String(tens[t]) });
+                } else if (t === 'yuz' || t === 'yus') {
+                    items.push({ kind: 'hundred', val: 100, len: 3, str: '100' });
+                } else if (t === 'bin') {
+                    items.push({ kind: 'thousand', val: 1000, len: 4, str: '1000' });
+                } else if (t === 'bucuk' || t === 'yarim') {
+                    items.push({ kind: 'half', val: 0.5, len: 0, str: '.5' });
+                }
+            }
+
+            if (items.length === 0) return null;
+            if (items.length === 1 && items[0].kind === 'half') return 0.5;
+
+            if (items.length >= 2 && items.every(it => (it.kind === 'unit' || it.kind === 'num') && it.len === 1)) {
+                return parseInt(items.map(it => it.str).join(''), 10);
+            }
+
+            let total = 0;
+            let current = 0;
+            let hasHalf = false;
+
+            for (const it of items) {
+                if (it.kind === 'half') {
+                    hasHalf = true;
+                } else if (it.kind === 'unit' || it.kind === 'num') {
+                    if (current >= 100 || [10, 20, 30, 40, 50, 60, 70, 80, 90].includes(current) || current == 0) {
+                        current += it.val;
+                    } else {
+                        current = parseInt(String(current) + String(it.val), 10);
+                    }
+                } else if (it.kind === 'ten') {
+                    current += it.val;
+                } else if (it.kind === 'hundred') {
+                    current = (current === 0 ? 1 : current) * 100;
+                } else if (it.kind === 'thousand') {
+                    total += (current === 0 ? 1 : current) * 1000;
+                    current = 0;
+                }
+            }
+
+            return total + current + (hasHalf ? 0.5 : 0);
+        }
+
+        const STRICT_NUM_WORDS = new Set([
+            'sifir', 'bir', 'iki', 'uc', 'dort', 'bes', 'alti', 'yedi', 'sekiz', 'dokuz',
+            'on', 'yirmi', 'otuz', 'kirk', 'elli', 'altmis', 'yetmis', 'seksen', 'doksan',
+            'yuz', 'bin', 'bucuk', 'yarim', 'puan', 'nokta', 'virgul'
+        ]);
+
+        // Konuşma YALNIZCA sayı kelimelerinden/rakamlardan oluşuyorsa true döner (sohbet/yan konuşma reddedilir)
+        function isPureNumberUtterance(rawText) {
+            const s = toAsciiTurkish(rawText);
+            if (!s) return false;
+            const tokens = s.split(/\s+/).filter(Boolean);
+            if (tokens.length === 0) return false;
+            let hasNumberToken = false;
+            for (const t of tokens) {
+                if (/^\d+([.,]\d+)*$/.test(t)) { hasNumberToken = true; continue; }
+                if (STRICT_NUM_WORDS.has(t)) {
+                    if (t !== 'puan' && t !== 'nokta' && t !== 'virgul') hasNumberToken = true;
+                    continue;
+                }
+                if (TR_FULL_COMPOUND_RE.test(t)) { hasNumberToken = true; continue; } // "yirmibes" gibi bitişik yazımlar
+                return false;
+            }
+            return hasNumberToken;
+        }
+
+        function parseStrictSpokenNumber(rawText) {
+            if (!isPureNumberUtterance(rawText)) return null;
+            return parseTurkishSpokenNumber(rawText);
+        }
+
+        function extractUnconsumedText(rawSegmentText) {
+            const full = String(rawSegmentText || '').trim();
+            if (!full) return '';
+            if (!consumedPrefixText) return full;
+
+            if (full.toLowerCase() === consumedPrefixText.toLowerCase()) {
+                return '';
+            }
+            if (full.toLowerCase().startsWith(consumedPrefixText.toLowerCase())) {
+                return full.slice(consumedPrefixText.length).trim();
+            }
+
+            // Fallback if browser slightly reformatted earlier words in the same segment
+            const words = full.split(/\s+/).filter(Boolean);
+            if (consumedWordCount > 0 && words.length > consumedWordCount) {
+                return words.slice(consumedWordCount).join(' ');
+            }
+            return full;
+        }
+
+        function markSegmentConsumed(rawSegmentText) {
+            const full = String(rawSegmentText || '').trim();
+            consumedPrefixText = full;
+            consumedWordCount = full ? full.split(/\s+/).filter(Boolean).length : 0;
+            lastInterimText = "";
+            hasUnprocessedSpeechInSegment = false;
+        }
+
+        function evaluateUnconsumedAlternatives(unconsumedAlts, rawPrimarySegment) {
+            if (!unconsumedAlts || unconsumedAlts.length === 0) return false;
+            const primaryText = String(unconsumedAlts[0] || '').trim();
+            if (!primaryText) return false;
+
+            // 1. Voice navigation commands in question step
+            if (voiceStep === "question") {
+                for (const alt of unconsumedAlts) {
+                    const asciiAlt = toAsciiTurkish(alt);
+                    if (/\b(onayla|tamam|gec|sonraki|devam)\b/.test(asciiAlt) && parseTurkishSpokenNumber(alt) === null) {
+                        markSegmentConsumed(rawPrimarySegment);
+                        clearSettleTimer();
+                        confirmAndAdvanceQuestion();
+                        return true;
+                    }
+                    if (/\b(onceki|geri)\b/.test(asciiAlt) && parseTurkishSpokenNumber(alt) === null) {
+                        markSegmentConsumed(rawPrimarySegment);
+                        clearSettleTimer();
+                        goToPrevQuestion();
+                        return true;
+                    }
+                }
+            }
+
+            // 2. Number detection across alternatives
+            let detectedNumber = null;
+            let matchedAltText = primaryText;
+            for (const alt of unconsumedAlts) {
+                const parsed = parseStrictSpokenNumber(alt);
+                if (parsed !== null && !isNaN(parsed)) {
+                    detectedNumber = parsed;
+                    matchedAltText = String(alt).trim();
+                    break;
+                }
+            }
+
+            const bubbleWrap = document.getElementById('recognizedTranscriptWrap');
+            const bubbleText = document.getElementById('recognizedTranscriptText');
+            bubbleWrap.style.display = 'block';
+
+            if (detectedNumber === null) {
+                bubbleText.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> Duyulan: "${escapeHtml(primaryText)}" <small style="color:#64748b;">(Sayı olmayan konuşma yok sayıldı, sadece sayıyı söyleyin)</small>`;
+                markSegmentConsumed(rawPrimarySegment);
+                return false;
+            }
+
+            bubbleText.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Algılanan: "${escapeHtml(matchedAltText)}" &rarr; <b>Sayı: ${detectedNumber}</b>`;
+            markSegmentConsumed(rawPrimarySegment);
+            clearSettleTimer();
+
+            if (voiceStep === "student_no") {
+                findAndSelectStudentByNo(Math.round(detectedNumber));
+            } else if (voiceStep === "question") {
+                applyQuestionScore(detectedNumber, true);
+            }
+            return true;
+        }
+
+        function destroyCurrentRecognition() {
+            if (restartTimeoutId) {
+                clearTimeout(restartTimeoutId);
+                restartTimeoutId = null;
+            }
+            clearSettleTimer();
+            let hadActiveRec = false;
+            if (recognition) {
+                hadActiveRec = true;
+                const oldRec = recognition;
+                recognition = null;
+                try {
+                    oldRec.onstart = null;
+                    oldRec.onresult = null;
+                    oldRec.onerror = null;
+                    oldRec.onend = null;
+                    oldRec.onspeechstart = null;
+                    oldRec.onaudiostart = null;
+                    oldRec.abort();
+                } catch (e) {}
+            }
+            return hadActiveRec;
+        }
+
+        function micDbg(msg) {
+            let el = document.getElementById('micDebugLine');
+            if (!el) {
+                const host = document.getElementById('voiceStatusSubtext');
+                if (!host || !host.parentNode) return;
+                el = document.createElement('div');
+                el.id = 'micDebugLine';
+                el.style.cssText = 'margin-top:6px; font-size:0.72rem; color:#94a3b8; font-family:monospace; word-break:break-all;';
+                host.parentNode.insertBefore(el, host.nextSibling);
+            }
+            const t = new Date().toLocaleTimeString('tr-TR');
+            el.textContent = '[v5 ' + t + '] ' + msg;
+        }
+
+        function setMicStatus(html) {
+            const el = document.getElementById('voiceStatusSubtext');
+            if (el) el.innerHTML = html;
+        }
+
+        function startMicrophoneListening() {
+            if (getMicEngine() === 'vosk') {
+                shouldKeepListening = true;
+                destroyCurrentRecognition();
+                startVoskListening();
+                return;
+            }
+            stopVosk();
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRec) {
+                setMicStatus(`<span style="color:#ef4444; font-weight:700;">Tarayıcınız ses tanımayı desteklemiyor (Lütfen Chrome veya Edge kullanın).</span>`);
+                return;
+            }
+
+            shouldKeepListening = true;
+            destroyCurrentRecognition();
+
+            // Her oturum tek bir cümle dinler; bitince yeni nesneyle otomatik yeniden başlar (Chrome'da en güvenilir yöntem)
+            const rec = new SpeechRec();
+            recognition = rec;
+            let sessionHandled = false;
+            let pendingAlts = null;
+
+            const MIC_CONFIGS = [
+                { lang: 'tr-TR', continuous: false, interim: true, alt: 1 },
+                { lang: 'tr', continuous: true, interim: true, alt: 1 },
+                { lang: 'tr-TR', continuous: true, interim: false, alt: 5 }
+            ];
+            const cfg = MIC_CONFIGS[micConfigIdx % MIC_CONFIGS.length];
+            rec.lang = cfg.lang;
+            rec.continuous = cfg.continuous;
+            rec.interimResults = cfg.interim;
+            rec.maxAlternatives = cfg.alt;
+
+            const collectAlts = (event) => {
+                const alts = [];
+                const lastRes = event.results[event.results.length - 1];
+                for (let j = 0; j < lastRes.length; j++) {
+                    if (lastRes[j] && lastRes[j].transcript) alts.push(String(lastRes[j].transcript).trim());
+                }
+                // Tüm parçaların birleşimi de bir alternatif olsun
+                let joined = '';
+                for (let i = 0; i < event.results.length; i++) {
+                    if (event.results[i][0]) joined += ' ' + event.results[i][0].transcript;
+                }
+                joined = joined.trim();
+                if (joined && !alts.includes(joined)) alts.unshift(joined);
+                return alts.filter(Boolean);
+            };
+
+            const handleAlts = (alts, rawPrimary) => {
+                if (sessionHandled) return;
+                sessionHandled = true;
+                clearSettleTimer();
+                evaluateUnconsumedAlternatives(alts, rawPrimary);
+                try { rec.stop(); } catch (e) {}
+            };
+
+            rec.onstart = () => {
+                isMicListening = true;
+                updateMicUiState();
+                setMicStatus(`<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon aktif, sizi dinliyor...</span> Lütfen ${voiceStep === 'student_no' ? 'öğrenci numarasını' : 'puanı'} söyleyin.`);
+            };
+
+            rec.onspeechstart = () => {
+                setMicStatus(`<span style="color:#4f46e5; font-weight:700;"><i class="fa-solid fa-wave-square"></i> Ses algılanıyor...</span>`);
+            };
+
+            rec.onaudiostart = () => micDbg('audiostart (mikrofon açıldı)');
+            rec.onsoundstart = () => micDbg('soundstart (ses geldi)');
+            let noResultWatchdog = null;
+            rec.onspeechend = () => {
+                micDbg('speechend (konuşma bitti, sonuç bekleniyor)');
+                if (noResultWatchdog) clearTimeout(noResultWatchdog);
+                noResultWatchdog = setTimeout(() => {
+                    if (recognition === rec && !sessionHandled && !pendingAlts) {
+                        setMicStatus(`<span style="color:#f59e0b; font-weight:700;">Tarayıcı sesi metne çeviremedi (sunucu yanıt vermedi).</span> Mikrofon çubuğu konuşurken hareket ediyor mu? Hareket etmiyorsa Windows Ayarlar → Ses → Giriş bölümünden doğru mikrofonu seçin. Yeniden dinleniyor...`);
+                        micConfigIdx++;
+                        const isMobileDev = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+                        if (!isMobileDev && micConfigIdx >= 2) {
+                            setMicEngine('vosk');
+                            micDbg('tarayıcı sesi çözemedi, çevrimdışı motora geçiliyor');
+                            destroyCurrentRecognition();
+                            startMicrophoneListening();
+                            return;
+                        }
+                        micDbg('sonuç gelmedi, ayar #' + (micConfigIdx % 4) + ' ile yeniden deneniyor');
+                        try { rec.abort(); } catch (e) {}
+                    }
+                }, 4000);
+            };
+            rec.onnomatch = () => micDbg('nomatch (anlaşılamadı)');
+            rec.onresult = (event) => {
+                try { micDbg('result n=' + (event.results ? event.results.length : 0) + ' "' + (event.results[event.results.length-1][0].transcript) + '" final=' + event.results[event.results.length-1].isFinal); } catch (e) {}
+                try { handleResultEvent(event); } catch (err) { micDbg('HATA onresult: ' + (err && err.message)); console.error(err); }
+            };
+            const handleResultEvent = (event) => {
+                if (sessionHandled) return;
+                if (!event.results || event.results.length === 0) return;
+                const alts = collectAlts(event);
+                if (alts.length === 0) return;
+                const rawPrimary = alts[0];
+                pendingAlts = alts;
+                const lastRes = event.results[event.results.length - 1];
+
+                const previewNum = parseStrictSpokenNumber(rawPrimary);
+                const bubbleWrap = document.getElementById('recognizedTranscriptWrap');
+                const bubbleText = document.getElementById('recognizedTranscriptText');
+                bubbleWrap.style.display = 'block';
+                bubbleText.innerHTML = `<i class="fa-solid fa-wave-square" style="color:#6366f1;"></i> Duyulan: "${escapeHtml(rawPrimary)}"` +
+                    (previewNum !== null ? ` &rarr; <b>${previewNum}</b>` : '');
+
+                if (lastRes.isFinal) {
+                    handleAlts(alts, rawPrimary);
+                } else {
+                    clearSettleTimer();
+                    settleTimerId = setTimeout(() => {
+                        settleTimerId = null;
+                        handleAlts(alts, rawPrimary);
+                    }, 500);
+                }
+            };
+
+            rec.onerror = (event) => {
+                const err = event && event.error;
+                micDbg('error: ' + err);
+                if (err === 'not-allowed' || err === 'service-not-allowed') {
+                    shouldKeepListening = false;
+                    isMicListening = false;
+                    updateMicUiState();
+                    setMicStatus(`<span style="color:#ef4444; font-weight:700;">Mikrofon izni reddedildi!</span> Tarayıcı adres çubuğundaki kilit/mikrofon simgesinden izin verin.`);
+                } else if (err === 'audio-capture') {
+                    shouldKeepListening = false;
+                    isMicListening = false;
+                    updateMicUiState();
+                    setMicStatus(`<span style="color:#ef4444; font-weight:700;">Mikrofon bulunamadı!</span> Cihazınızın mikrofon bağlantısını kontrol edin.`);
+                } else if (err === 'network') {
+                    setMicStatus(`<span style="color:#f59e0b; font-weight:700;">Ses tanıma sunucusuna ulaşılamadı (network).</span> İnternet bağlantısını ve Chrome/Edge kullandığınızı kontrol edin.`);
+                } else if (err && err !== 'no-speech' && err !== 'aborted') {
+                    setMicStatus(`<span style="color:#f59e0b; font-weight:700;">Ses tanıma hatası: ${escapeHtml(err)}</span>`);
+                }
+            };
+
+            rec.onend = () => {
+                micDbg('end');
+                if (recognition !== rec) return; // eski/iptal edilmiş nesne
+                isMicListening = false;
+
+                // Süre dolmadan son ara sonuç varsa ve işlenmediyse işle (settle timer çalışmadan oturum bittiyse)
+                if (!sessionHandled && pendingAlts) {
+                    sessionHandled = true;
+                    clearSettleTimer();
+                    evaluateUnconsumedAlternatives(pendingAlts, pendingAlts[0]);
+                }
+
+                if (shouldKeepListening && document.getElementById('voiceGradingModal').classList.contains('active')) {
+                    restartTimeoutId = setTimeout(() => {
+                        restartTimeoutId = null;
+                        if (shouldKeepListening && document.getElementById('voiceGradingModal').classList.contains('active')) {
+                            startMicrophoneListening();
+                        }
+                    }, 80);
+                } else {
+                    updateMicUiState();
+                }
+            };
+
+            try {
+                isMicListening = true;
+                updateMicUiState();
+                micDbg('start() ayar#' + (micConfigIdx % MIC_CONFIGS.length) + ' ' + cfg.lang + ' cont=' + cfg.continuous);
+                rec.start();
+            } catch (e) {
+                isMicListening = false;
+                console.warn("SpeechRecognition start error:", e);
+                if (shouldKeepListening) {
+                    restartTimeoutId = setTimeout(() => {
+                        restartTimeoutId = null;
+                        if (shouldKeepListening) startMicrophoneListening();
+                    }, 400);
+                }
+            }
+        }
+
+        // =========================================================
+        // ÇEVRİMDIŞI VOSK SES TANIMA (yalnızca sayı/komut gramerli)
+        // Tarayıcı ses servisi sonuç döndürmediğinde (ör. bazı Windows Chrome kurulumları) otomatik devreye girer.
+        // =========================================================
+        const VOSK_MODEL_URL = 'models/vosk-model-small-tr-0.3.tar.gz';
+        const VOSK_LIB_URL = 'js/vendor/vosk.js';
+        const VOSK_GRAMMAR = JSON.stringify([
+            'sıfır', 'bir', 'iki', 'üç', 'dört', 'beş', 'altı', 'yedi', 'sekiz', 'dokuz',
+            'on', 'yirmi', 'otuz', 'kırk', 'elli', 'altmış', 'yetmiş', 'seksen', 'doksan',
+            'yüz', 'bin', 'buçuk', 'yarım',
+            'tamam', 'geç', 'sonraki', 'devam', 'onayla', 'önceki', 'geri',
+            '[unk]'
+        ]);
+        let voskModel = null, voskModelPromise = null, voskRec = null, voskCtx = null;
+        let voskStream = null, voskNode = null, voskSource = null, voskActive = false, voskToken = 0;
+
+        function getMicEngine() {
+            try { return sessionStorage.getItem('ep_engine_v2') === 'vosk' ? 'vosk' : 'web'; } catch (e) { return 'web'; }
+        }
+        function setMicEngine(name) {
+            try { sessionStorage.setItem('ep_engine_v2', name); } catch (e) {}
+            updateEngineToggleLabel();
+        }
+
+        function updateEngineToggleLabel() {
+            const b = document.getElementById('micEngineBtn');
+            if (!b) return;
+            b.innerHTML = getMicEngine() === 'vosk'
+                ? '<i class="fa-solid fa-microchip"></i> Ses motoru: Çevrimdışı (değiştir)'
+                : '<i class="fa-solid fa-globe"></i> Ses motoru: Tarayıcı (değiştir)';
+        }
+
+        function ensureEngineToggle() {
+            if (document.getElementById('micEngineBtn')) { updateEngineToggleLabel(); return; }
+            const host = document.getElementById('voiceStatusSubtext');
+            if (!host || !host.parentNode) return;
+            const b = document.createElement('button');
+            b.id = 'micEngineBtn';
+            b.type = 'button';
+            b.style.cssText = 'margin-top:8px; background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe; border-radius:999px; padding:5px 12px; font-size:0.74rem; font-weight:700; cursor:pointer; font-family:inherit;';
+            b.onclick = () => {
+                setMicEngine(getMicEngine() === 'vosk' ? 'web' : 'vosk');
+                if (shouldKeepListening || isMicListening) {
+                    stopMicrophoneListening();
+                }
+                startMicrophoneListening();
+            };
+            host.parentNode.insertBefore(b, host.nextSibling);
+            updateEngineToggleLabel();
+        }
+
+        function loadScriptOnce(url) {
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = url;
+                s.onload = resolve;
+                s.onerror = () => reject(new Error('Vosk kütüphanesi yüklenemedi'));
+                document.head.appendChild(s);
+            });
+        }
+
+        function loadVoskModel() {
+            if (voskModel) return Promise.resolve(voskModel);
+            if (voskModelPromise) return voskModelPromise;
+            voskModelPromise = (async () => {
+                if (!window.Vosk) await loadScriptOnce(VOSK_LIB_URL);
+                const url = new URL(VOSK_MODEL_URL, window.location.href).href;
+                const m = await window.Vosk.createModel(url);
+                voskModel = m;
+                return m;
+            })();
+            voskModelPromise.catch(() => { voskModelPromise = null; });
+            return voskModelPromise;
+        }
+
+        function handleVoskText(text, isPartial) {
+            const t = String(text || '').trim();
+            if (!t) return;
+            const bubbleWrap = document.getElementById('recognizedTranscriptWrap');
+            const bubbleText = document.getElementById('recognizedTranscriptText');
+            if (isPartial) {
+                if (t.replace(/\[unk\]/g, '').trim() === '') return;
+                bubbleWrap.style.display = 'block';
+                bubbleText.innerHTML = `<i class="fa-solid fa-wave-square" style="color:#6366f1;"></i> Duyulan: "${escapeHtml(t.replace(/\[unk\]/g, '…'))}"`;
+                return;
+            }
+            micDbg('vosk sonuç: "' + t + '"');
+            if (t.indexOf('[unk]') !== -1) {
+                // Sayı/komut dışı konuşma içeriyor: yok say
+                if (t.replace(/\[unk\]/g, '').trim() !== '') {
+                    bubbleWrap.style.display = 'block';
+                    bubbleText.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> Sayı olmayan konuşma yok sayıldı <small style="color:#64748b;">(sadece sayıyı söyleyin)</small>`;
+                }
+                return;
+            }
+            evaluateUnconsumedAlternatives([t], t);
+        }
+
+        async function startVoskListening() {
+            if (voskActive) return;
+            const token = ++voskToken;
+            voskActive = true;
+            isMicListening = true;
+            updateMicUiState();
+            try {
+                setMicStatus(`<span style="color:#4f46e5; font-weight:700;"><i class="fa-solid fa-spinner fa-spin"></i> Çevrimdışı ses modeli yükleniyor...</span> İlk açılışta yaklaşık 35 MB indirilir, lütfen bekleyin.`);
+                const model = await loadVoskModel();
+                if (token !== voskToken) return;
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                });
+                if (token !== voskToken) { stream.getTracks().forEach(t => t.stop()); return; }
+                voskStream = stream;
+
+                const AC = window.AudioContext || window.webkitAudioContext;
+                voskCtx = new AC();
+                if (voskCtx.state === 'suspended') { try { await voskCtx.resume(); } catch (e) {} }
+
+                const rec = new model.KaldiRecognizer(voskCtx.sampleRate, VOSK_GRAMMAR);
+                voskRec = rec;
+                rec.on('result', (m) => { if (token === voskToken) handleVoskText(m && m.result && m.result.text, false); });
+                rec.on('partialresult', (m) => { if (token === voskToken) handleVoskText(m && m.result && m.result.partial, true); });
+
+                voskSource = voskCtx.createMediaStreamSource(stream);
+                voskNode = voskCtx.createScriptProcessor(4096, 1, 1);
+                voskNode.onaudioprocess = (e) => {
+                    if (token !== voskToken || !voskRec) return;
+                    try { voskRec.acceptWaveform(e.inputBuffer); } catch (err) {}
+                };
+                voskSource.connect(voskNode);
+                voskNode.connect(voskCtx.destination);
+
+                setMicStatus(`<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Çevrimdışı mikrofon aktif, sizi dinliyor...</span> Sadece sayıyı söyleyin.`);
+                micDbg('vosk hazır, ' + voskCtx.sampleRate + ' Hz');
+            } catch (e) {
+                console.error(e);
+                stopVosk();
+                shouldKeepListening = false;
+                isMicListening = false;
+                updateMicUiState();
+                setMicStatus(`<span style="color:#ef4444; font-weight:700;">Çevrimdışı ses tanıma başlatılamadı:</span> ${escapeHtml(e && e.message ? e.message : String(e))}`);
+                micDbg('vosk hata: ' + (e && e.message));
+            }
+        }
+
+        function stopVosk() {
+            voskToken++;
+            voskActive = false;
+            try { if (voskNode) { voskNode.onaudioprocess = null; voskNode.disconnect(); } } catch (e) {}
+            try { if (voskSource) voskSource.disconnect(); } catch (e) {}
+            try { if (voskStream) voskStream.getTracks().forEach(t => t.stop()); } catch (e) {}
+            try { if (voskCtx) voskCtx.close(); } catch (e) {}
+            try { if (voskRec && voskRec.remove) voskRec.remove(); } catch (e) {}
+            voskNode = null; voskSource = null; voskStream = null; voskCtx = null; voskRec = null;
+        }
+
+        function stopMicrophoneListening() {
+            stopVosk();
+            shouldKeepListening = false;
+            isMicListening = false;
+            destroyCurrentRecognition();
+            updateMicUiState();
+        }
+
+        function toggleMicrophoneListening() {
+            if (isMicListening || shouldKeepListening) {
+                stopMicrophoneListening();
+                document.getElementById('voiceStatusSubtext').innerHTML =
+                    `<span style="color:#ef4444; font-weight:700;"><i class="fa-solid fa-microphone-slash"></i> Mikrofon duraklatıldı.</span> Tekrar başlatmak için kırmızı mikrofon düğmesine dokunun.`;
+            } else {
+                document.getElementById('voiceStatusSubtext').innerHTML =
+                    `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-spinner fa-spin"></i> Mikrofon başlatılıyor...</span>`;
+                startMicrophoneListening();
+            }
+        }
+
+        function updateMicUiState() {
+            const btn = document.getElementById('micToggleBtn');
+            const icon = document.getElementById('micToggleIcon');
+            if (!btn || !icon) return;
+            if (isMicListening || shouldKeepListening) {
+                btn.classList.add('listening');
+                icon.className = 'fa-solid fa-microphone';
+            } else {
+                btn.classList.remove('listening');
+                icon.className = 'fa-solid fa-microphone-slash';
+            }
+        }
+    </script>
+</body>
+</html>
