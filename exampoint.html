@@ -807,6 +807,63 @@
             color: #1e1b4b;
         }
 
+        .delay-stepper {
+            display: inline-flex;
+            align-items: center;
+            background: #fff;
+            border: 1.5px solid #a5b4fc;
+            border-radius: 9px;
+            overflow: hidden;
+            margin: 0 4px;
+            vertical-align: middle;
+        }
+
+        .delay-step-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #e0e7ff;
+            color: #3730a3;
+            font-weight: 900;
+            font-size: 1.05rem;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            padding: 0;
+            transition: background 0.15s;
+        }
+
+        .delay-step-btn:hover {
+            background: #c7d2fe;
+        }
+
+        .delay-step-btn:active {
+            background: #a5b4fc;
+        }
+
+        .delay-stepper input[type="number"] {
+            width: 48px;
+            height: 32px;
+            padding: 0 2px;
+            margin: 0;
+            border: none;
+            border-left: 1px solid #c7d2fe;
+            border-right: 1px solid #c7d2fe;
+            border-radius: 0;
+            font-family: inherit;
+            font-weight: 800;
+            font-size: 16px;
+            text-align: center;
+            color: #1e1b4b;
+            background: #fff;
+            outline: none;
+        }
+
         .silence-note {
             font-size: 0.78rem;
             color: #059669;
@@ -1566,10 +1623,18 @@
                         <span class="silence-note"><i class="fa-solid fa-hourglass-half"></i> Bir şey söylenmezse sistem geçmez, bekler</span>
                     </div>
                     <div class="transition-options">
-                        <label class="mode-option-label selected" id="lblModeAuto">
+                        <div class="mode-option-label selected" id="lblModeAuto" onclick="setTransitionMode('auto15')">
                             <input type="radio" name="voiceTransitionMode" value="auto15" checked onchange="setTransitionMode('auto15')">
-                            <span><i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> Notu Söyledikten <input type="number" inputmode="decimal" id="autoDelayInput" min="0.3" max="10" step="0.1" value="1" onclick="event.stopPropagation(); event.preventDefault();" onchange="setAutoDelay(this.value)" oninput="setAutoDelay(this.value)" style="width:62px; padding:2px 6px; margin:0 4px; border:1.5px solid #c7d2fe; border-radius:8px; font-family:inherit; font-weight:800; font-size:16px; text-align:center;"> Sn Sonra Otomatik Geç</span>
-                        </label>
+                            <span style="display:inline-flex; align-items:center; flex-wrap:wrap; gap:3px;">
+                                <i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> Notu Söyledikten
+                                <span class="delay-stepper" onclick="event.stopPropagation();">
+                                    <button type="button" class="delay-step-btn" onclick="event.stopPropagation(); stepAutoDelay(-0.5);" title="Süreyi Azalt" aria-label="Süreyi azalt">-</button>
+                                    <input type="number" inputmode="decimal" id="autoDelayInput" min="0.3" max="10" step="0.1" value="1" onclick="event.stopPropagation();" onchange="setAutoDelay(this.value)" oninput="setAutoDelay(this.value)">
+                                    <button type="button" class="delay-step-btn" onclick="event.stopPropagation(); stepAutoDelay(0.5);" title="Süreyi Artır" aria-label="Süreyi artır">+</button>
+                                </span>
+                                Sn Sonra Otomatik Geç
+                            </span>
+                        </div>
                         <label class="mode-option-label" id="lblModeConfirm">
                             <input type="radio" name="voiceTransitionMode" value="confirm" onchange="setTransitionMode('confirm')">
                             <span><i class="fa-solid fa-hand-pointer" style="color:#4f46e5;"></i> Onay Tuşuna Basınca Diğer Soruya Geç</span>
@@ -3271,6 +3336,9 @@
             transitionMode = mode;
             document.getElementById('lblModeAuto').classList.toggle('selected', mode === 'auto15');
             document.getElementById('lblModeConfirm').classList.toggle('selected', mode === 'confirm');
+            document.querySelectorAll('input[name="voiceTransitionMode"]').forEach(r => {
+                r.checked = (r.value === mode);
+            });
             cancelAutoAdvanceTimer();
         }
 
@@ -3805,10 +3873,29 @@
         function setAutoDelay(raw) {
             const v = parseFloat(String(raw).replace(',', '.'));
             if (isNaN(v)) return;
-            const clamped = Math.min(10, Math.max(0.3, v));
+            const clamped = Math.round(Math.min(10, Math.max(0.3, v)) * 10) / 10;
             try { localStorage.setItem('ep_auto_delay', String(clamped)); } catch (e) {}
             const lbl = document.getElementById('autoTimerLabel');
             if (lbl) lbl.textContent = clamped + ' saniye içinde diğer soruya geçiliyor...';
+        }
+        function stepAutoDelay(delta) {
+            const inp = document.getElementById('autoDelayInput');
+            let cur = inp ? parseFloat(String(inp.value).replace(',', '.')) : (getAutoDelayMs() / 1000);
+            if (isNaN(cur)) cur = 1;
+            let next;
+            if (delta < 0 && cur <= 0.5) {
+                next = 0.3;
+            } else if (delta > 0 && cur < 0.5) {
+                next = 0.5;
+            } else {
+                next = Math.round((cur + delta) * 10) / 10;
+            }
+            next = Math.min(10, Math.max(0.3, next));
+            if (inp) inp.value = next;
+            setAutoDelay(next);
+            if (transitionMode !== 'auto15') {
+                setTransitionMode('auto15');
+            }
         }
         function initAutoDelayInput() {
             const inp = document.getElementById('autoDelayInput');
