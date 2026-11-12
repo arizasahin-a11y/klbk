@@ -1712,9 +1712,11 @@ function computeRealDutyTallies(originalPlan, startDateStr, dutyType, targetMond
     let dir = (nobetSettings && nobetSettings.rotationDir) || 'asc';
     let cycleWeeks = (dutyType === 'monthly') ? 4 : 1;
 
-    // Her gün için rotationTally alt yapısını başlat
+    // Her gün için rotationTally ve aktif (tatil olmayan) hafta sayacını başlat
+    let activeWeeksByDay = {};
     dates.forEach(d => {
         window.rotationTally[d] = {};
+        activeWeeksByDay[d] = 0;
     });
 
     function addTally(dayKey, shiftId, uname) {
@@ -1739,17 +1741,20 @@ function computeRealDutyTallies(originalPlan, startDateStr, dutyType, targetMond
         let wMonday = new Date(startMonday);
         wMonday.setDate(startMonday.getDate() + w * 7);
         let wMondayStr = `${wMonday.getFullYear()}-${String(wMonday.getMonth() + 1).padStart(2, '0')}-${String(wMonday.getDate()).padStart(2, '0')}`;
-        let normalCycle = Math.floor(w / cycleWeeks);
 
         for (let dIdx = 0; dIdx < dates.length; dIdx++) {
             let dayKey = dates[dIdx];
             if (!dayKey || !originalPlan[dayKey]) continue;
 
+            let dObj = new Date(parseInt(dayKey.split('-')[0]), parseInt(dayKey.split('-')[1]) - 1, parseInt(dayKey.split('-')[2]), 12, 0, 0);
+            let dayOfWeek = dObj.getDay();
+            let dayOffset = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1);
+
             let calDate = new Date(wMonday);
-            calDate.setDate(wMonday.getDate() + dIdx);
+            calDate.setDate(wMonday.getDate() + dayOffset);
             let calDateStr = `${calDate.getFullYear()}-${String(calDate.getMonth() + 1).padStart(2, '0')}-${String(calDate.getDate()).padStart(2, '0')}`;
 
-            // Tatil kontrolü: Yağış tatili veya resmi tatillerde nöbet tutulmaz
+            // Tatil kontrolü: Tatil olan günlerde ve haftalarda nöbet tutulmaz ve sıra kaymaz
             let isHol = false;
             if (typeof window.getHolidayInfo === 'function' && window.getHolidayInfo(calDateStr)) {
                 isHol = true;
@@ -1757,12 +1762,11 @@ function computeRealDutyTallies(originalPlan, startDateStr, dutyType, targetMond
             if (originalPlan[dayKey] && originalPlan[dayKey]._isHoliday) {
                 isHol = true;
             }
-            if (isHol) continue; // Tatil gününde nöbet tutulmadı, sayılmıyor!
+            if (isHol) continue; // Tatil gününde nöbet tutulmadı, sıra ilerlemez!
 
-            // Günün döngü indeksi (12-16 Ekim <-> 19-23 Ekim değişimi dahil)
-            let cycleForThisDay = normalCycle;
-            let dObj = new Date(parseInt(dayKey.split('-')[0]), parseInt(dayKey.split('-')[1]) - 1, parseInt(dayKey.split('-')[2]), 12, 0, 0);
-            let dayOfWeek = dObj.getDay();
+            let activeW = activeWeeksByDay[dayKey] || 0;
+            let cycleForThisDay = Math.floor(activeW / cycleWeeks);
+            activeWeeksByDay[dayKey] = activeW + 1;
 
             if (window.OCTOBER_2026_SWAP_CONFIG && window.OCTOBER_2026_SWAP_CONFIG.enabled && dutyType === 'weekly') {
                 let cfg = window.OCTOBER_2026_SWAP_CONFIG;
@@ -1853,14 +1857,13 @@ function computeRealDutyTallies(originalPlan, startDateStr, dutyType, targetMond
 function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateObj) {
     if (!startDateStr || !originalPlan) return originalPlan;
     
-    let startDate = new Date(startDateStr);
+    let sParts = startDateStr.split('-');
+    let startMonday = new Date(parseInt(sParts[0]), parseInt(sParts[1]) - 1, parseInt(sParts[2]), 12, 0, 0);
+    let sDay = startMonday.getDay();
+    let sDiff = (sDay === 0) ? 1 : ((sDay === 6) ? 2 : (1 - sDay));
+    startMonday.setDate(startMonday.getDate() + sDiff);
+
     let currentDate = targetDateObj ? new Date(targetDateObj) : new Date();
-    let diffTime = currentDate.getTime() - startDate.getTime();
-    let weeksPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
-    if (weeksPassed < 0) weeksPassed = 0;
-    
-    let cycleWeeks = dutyType === 'monthly' ? 4 : 1;
-    let cyclesPassed = Math.floor(weeksPassed / cycleWeeks);
     
     // Görüntülenen haftanın Pazartesi'sini belirle
     let cDate = new Date(currentDate);
@@ -1871,17 +1874,41 @@ function applyDynamicRotation(originalPlan, startDateStr, dutyType, targetDateOb
     viewMonday.setDate(cDate.getDate() + cDaysToMonday);
     let viewMondayStr = `${viewMonday.getFullYear()}-${String(viewMonday.getMonth()+1).padStart(2,'0')}-${String(viewMonday.getDate()).padStart(2,'0')}`;
 
+    let diffTime = viewMonday.getTime() - startMonday.getTime();
+    let weeksPassed = Math.max(0, Math.round(diffTime / (1000 * 60 * 60 * 24 * 7)));
+    
+    let cycleWeeks = dutyType === 'monthly' ? 4 : 1;
+
     let dir = nobetSettings.rotationDir || 'asc';
     let newPlan = JSON.parse(JSON.stringify(originalPlan));
     
-    let dates = Object.keys(newPlan);
+    let dates = Object.keys(newPlan).sort();
     for (let day of dates) {
         let parts = day.split('-');
         let dObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
         let dayOfWeek = dObj.getDay();
+        let dayOffset = (dayOfWeek === 0) ? 6 : (dayOfWeek - 1);
+
+        // Tatil olan günlerde ve haftalarda sıra kaymaması için yalnızca nöbet tutulan (tatil olmayan) geçmiş haftaları say
+        let activeWeeksForDay = 0;
+        for (let w = 0; w < weeksPassed; w++) {
+            let calDate = new Date(startMonday);
+            calDate.setDate(startMonday.getDate() + w * 7 + dayOffset);
+            let calDateStr = `${calDate.getFullYear()}-${String(calDate.getMonth() + 1).padStart(2, '0')}-${String(calDate.getDate()).padStart(2, '0')}`;
+            let isHol = false;
+            if (typeof window.getHolidayInfo === 'function' && window.getHolidayInfo(calDateStr)) {
+                isHol = true;
+            }
+            if (originalPlan[day] && originalPlan[day]._isHoliday) {
+                isHol = true;
+            }
+            if (!isHol) {
+                activeWeeksForDay++;
+            }
+        }
 
         // 12-16 Ekim <-> 19-23 Ekim yer değişimi (Salı hariç)
-        let targetCycleForDay = cyclesPassed;
+        let targetCycleForDay = Math.floor(activeWeeksForDay / cycleWeeks);
         if (window.OCTOBER_2026_SWAP_CONFIG && window.OCTOBER_2026_SWAP_CONFIG.enabled && dutyType === 'weekly') {
             let cfg = window.OCTOBER_2026_SWAP_CONFIG;
             let isExcluded = cfg.excludedDaysOfWeek && cfg.excludedDaysOfWeek.includes(dayOfWeek);
