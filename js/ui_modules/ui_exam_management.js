@@ -1554,7 +1554,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <i class="fa-solid fa-layer-group" style="margin-top:5px;"></i> <b>Dersler:</b> 
                                     ${(ses.subjects || []).map(s => typeof s === 'object' ? s.name : s).join(', ') || 'Tanımsız'}
                                 </div>
-                                <div class="archived-actions">
+                                <div class="archived-actions" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+                                    ${ses.type === 'uygulama' ? `
+                                        <select id="mode-select-${ses.id}" class="mode-selector-select" onchange="window.viewSessionDistribution('${ses.id}', null, true)" style="border: 1px solid var(--gray-200); padding: 6px 10px; border-radius: 8px; font-size: 0.85rem; background: white; cursor: pointer; font-weight: 600; color: var(--dark); outline: none; height: 34px; font-family: 'Outfit', sans-serif;">
+                                            <option value="class" selected>Sınıf</option>
+                                        </select>
+                                    ` : `
+                                        <select id="mode-select-${ses.id}" class="mode-selector-select" onchange="window.viewSessionDistribution('${ses.id}', null, true)" style="border: 1px solid var(--gray-200); padding: 6px 10px; border-radius: 8px; font-size: 0.85rem; background: white; cursor: pointer; font-weight: 600; color: var(--dark); outline: none; height: 34px; font-family: 'Outfit', sans-serif;">
+                                            <option value="seating" ${(window._currentlyOpenSessionMode[ses.id] === 'seating' || (!window._currentlyOpenSessionMode[ses.id] && ses.type !== 'uygulama')) ? 'selected' : ''}>Şema</option>
+                                            <option value="room" ${(window._currentlyOpenSessionMode[ses.id] === 'room') ? 'selected' : ''}>Salon</option>
+                                            <option value="class" ${(window._currentlyOpenSessionMode[ses.id] === 'class') ? 'selected' : ''}>Sınıf</option>
+                                        </select>
+                                    `}
                                     <button onclick="window.viewSessionDistribution('${ses.id}')">
                                         <i class="fa-solid fa-eye"></i> Görüntüle
                                     </button>
@@ -1573,6 +1584,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <button class="danger" onclick="window.deleteExamSession('${ses.id}')">
                                         <i class="fa-solid fa-trash"></i> Sil
                                     </button>
+                                </div>
+                                <div id="accordion-body-${ses.id}" class="hidden" style="margin-top: 15px; background: #fafafa; border-radius: 8px; overflow-x: auto;">
+                                    <div id="results-container-${ses.id}" style="padding: 1.25rem; border-left: 4px solid var(--primary);">
+                                        <!-- Results will be injected here -->
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1609,6 +1625,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const body = document.getElementById(`accordion-body-${window._currentlyOpenSessionId}`);
             if (body) {
                 body.classList.remove('hidden');
+                const parentArchived = body.closest('.archived-item');
+                if (parentArchived) parentArchived.classList.add('open');
                 const arrow = document.getElementById(`arrow-${window._currentlyOpenSessionId}`);
                 if (arrow) arrow.style.transform = 'rotate(90deg)';
                 // Also re-trigger distribution view to populate the container if it was recently updated
@@ -5977,6 +5995,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const resultsContainer = document.getElementById(`results-container-${id}`);
             const arrow = document.getElementById(`arrow-${id}`);
 
+            if (!accordionBody || !resultsContainer) return;
+
             // Toggle logic ONLY if it's NOT a mode switch or auto-refresh
             if (!isModeSwitch && !isAutoRefresh) {
                 const isCurrentlyHidden = accordionBody.classList.contains('hidden');
@@ -5987,6 +6007,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (isCurrentlyHidden) {
                     accordionBody.classList.remove('hidden');
+                    const parentArchived = accordionBody.closest('.archived-item');
+                    if (parentArchived) parentArchived.classList.add('open');
                     if (arrow) arrow.style.transform = 'rotate(90deg)';
                     window._currentlyOpenSessionId = id;
                 } else {
