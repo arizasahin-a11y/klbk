@@ -943,6 +943,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 }
                             }
                         }
+
+                        // Kapalı koltuk veya kapasite nedeniyle dışarıda kalan sınıf öğrencisi varsa onları da yerleştir
+                        if (studentIdx < roomStudents.length && Array.isArray(room.disabledSeats)) {
+                            for (const dSid of room.disabledSeats) {
+                                if (studentIdx >= roomStudents.length) break;
+                                if (!assigned[dSid]) {
+                                    assigned[dSid] = roomStudents[studentIdx++];
+                                }
+                            }
+                        }
+                        let extraSeatIdx = 1;
+                        while (studentIdx < roomStudents.length) {
+                            assigned[`G1-S99-C${extraSeatIdx++}`] = roomStudents[studentIdx++];
+                        }
                         
                         return {
                             name: room.name, groups: room.groups, groupConfigs: room.groupConfigs,
