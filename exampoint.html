@@ -4490,7 +4490,7 @@
         // Tarayıcı ses servisi sonuç döndürmediğinde (ör. bazı Windows Chrome kurulumları) otomatik devreye girer.
         // =========================================================
         const VOSK_MODEL_URL = 'models/vosk-model-small-tr-0.3.tar.gz';
-        const VOSK_LIB_URL = 'js/vendor/vosk.js';
+        const VOSK_LIB_URL = 'js/vendor/vosk.js?v=2';
         const VOSK_GRAMMAR = JSON.stringify([
             'sıfır', 'bir', 'iki', 'üç', 'dört', 'beş', 'altı', 'yedi', 'sekiz', 'dokuz',
             'on', 'yirmi', 'otuz', 'kırk', 'elli', 'altmış', 'yetmiş', 'seksen', 'doksan',
@@ -4556,13 +4556,81 @@
             });
         }
 
+        async function fetchVoskModelBlobUrl(modelUrl) {
+            if (!modelUrl || modelUrl.startsWith('blob:')) return modelUrl;
+            try {
+                if ('caches' in window) {
+                    const cache = await caches.open('klbk-vosk-cache-v1');
+                    const cached = await cache.match(modelUrl);
+                    if (cached) {
+                        const blob = await cached.blob();
+                        if (blob && blob.size > 1000000) {
+                            return URL.createObjectURL(blob);
+                        }
+                    }
+                }
+            } catch (e) {}
+
+            const res = await fetch(modelUrl);
+            if (!res.ok) throw new Error('Ses modeli indirilemedi (HTTP ' + res.status + ')');
+
+            const total = parseInt(res.headers.get('Content-Length') || '36823809', 10);
+            if (!res.body || !res.body.getReader) {
+                const blob = await res.blob();
+                try {
+                    if ('caches' in window) {
+                        const cache = await caches.open('klbk-vosk-cache-v1');
+                        await cache.put(modelUrl, new Response(blob));
+                    }
+                } catch (e) {}
+                return URL.createObjectURL(blob);
+            }
+
+            const reader = res.body.getReader();
+            const chunks = [];
+            let loaded = 0;
+            let lastUiUpdate = 0;
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                chunks.push(value);
+                loaded += value.byteLength;
+                const nowMs = Date.now();
+                if (nowMs - lastUiUpdate > 200) {
+                    lastUiUpdate = nowMs;
+                    const pct = total > 0 ? Math.min(99, Math.round((loaded / total) * 100)) : 0;
+                    const mbLoaded = (loaded / (1024 * 1024)).toFixed(1);
+                    const mbTotal = (total / (1024 * 1024)).toFixed(1);
+                    setMicStatus(`<span style="color:#4f46e5; font-weight:700;"><i class="fa-solid fa-spinner fa-spin"></i> Çevrimdışı ses modeli indiriliyor... %${pct} (${mbLoaded} / ${mbTotal} MB)</span>`);
+                }
+            }
+
+            const blob = new Blob(chunks, { type: 'application/gzip' });
+            try {
+                if ('caches' in window) {
+                    const cache = await caches.open('klbk-vosk-cache-v1');
+                    await cache.put(modelUrl, new Response(blob));
+                }
+            } catch (e) {}
+            return URL.createObjectURL(blob);
+        }
+
         function loadVoskModel() {
             if (voskModel) return Promise.resolve(voskModel);
             if (voskModelPromise) return voskModelPromise;
             voskModelPromise = (async () => {
                 if (!window.Vosk) await loadScriptOnce(VOSK_LIB_URL);
-                const url = new URL(VOSK_MODEL_URL, window.location.href).href;
-                const m = await window.Vosk.createModel(url);
+                const rawUrl = new URL(VOSK_MODEL_URL, window.location.href).href;
+                const blobUrl = await fetchVoskModelBlobUrl(rawUrl);
+                setMicStatus(`<span style="color:#4f46e5; font-weight:700;"><i class="fa-solid fa-spinner fa-spin"></i> Ses modeli hazırlanıyor...</span> Lütfen bekleyin.`);
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Ses modeli zaman aşımına uğradı. Sayfayı yenileyip tekrar deneyin.')), 60000)
+                );
+                const m = await Promise.race([
+                    window.Vosk.createModel(blobUrl),
+                    timeoutPromise
+                ]);
                 voskModel = m;
                 return m;
             })();

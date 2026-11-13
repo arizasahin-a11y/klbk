@@ -4649,7 +4649,7 @@
         // Tarayıcı ses servisi sonuç döndürmediğinde (ör. bazı Windows Chrome kurulumları) otomatik devreye girer.
         // =========================================================
         const VOSK_MODEL_URL = 'models/vosk-model-small-tr-0.3.tar.gz';
-        const VOSK_LIB_URL = 'js/vendor/vosk.js';
+        const VOSK_LIB_URL = 'js/vendor/vosk.js?v=2';
         const VOSK_GRAMMAR = JSON.stringify([
             'sıfır', 'bir', 'iki', 'üç', 'dört', 'beş', 'altı', 'yedi', 'sekiz', 'dokuz',
             'on', 'yirmi', 'otuz', 'kırk', 'elli', 'altmış', 'yetmiş', 'seksen', 'doksan',
@@ -4750,21 +4750,78 @@
             return new URL(VOSK_MODEL_URL, window.location.href).href;
         }
 
+        async function fetchVoskModelBlobUrl(modelUrl) {
+            if (modelUrl.startsWith('blob:')) return modelUrl;
+            const cacheName = 'klbk-vosk-cache-v1';
+            if ('caches' in window) {
+                try {
+                    const cache = await caches.open(cacheName);
+                    const cached = await cache.match(modelUrl);
+                    if (cached) {
+                        const blob = await cached.blob();
+                        return URL.createObjectURL(blob);
+                    }
+                } catch (e) {}
+            }
+
+            const resp = await fetch(modelUrl);
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+            const contentLength = Number(resp.headers.get('content-length')) || 36823809;
+            if (!resp.body || !resp.body.getReader) {
+                const blob = await resp.blob();
+                return URL.createObjectURL(blob);
+            }
+
+            const reader = resp.body.getReader();
+            const chunks = [];
+            let received = 0;
+            let lastUpdate = 0;
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                chunks.push(value);
+                received += value.length;
+                const now = Date.now();
+                if (now - lastUpdate > 150) {
+                    lastUpdate = now;
+                    const pct = Math.min(99, Math.round((received / contentLength) * 100));
+                    const mb = (received / (1024 * 1024)).toFixed(1);
+                    const totalMb = (contentLength / (1024 * 1024)).toFixed(1);
+                    setMicStatus(`<span class="text-indigo-600 font-semibold"><i class="fas fa-spinner fa-spin mr-1"></i> Ses modeli indiriliyor: %${pct}</span> (${mb} / ${totalMb} MB)`);
+                }
+            }
+
+            const blob = new Blob(chunks, { type: 'application/gzip' });
+            if ('caches' in window) {
+                try {
+                    const cache = await caches.open(cacheName);
+                    await cache.put(modelUrl, new Response(blob, { headers: { 'Content-Type': 'application/gzip' } }));
+                } catch (e) {}
+            }
+            return URL.createObjectURL(blob);
+        }
+
         function loadVoskModel() {
             if (voskModel) return Promise.resolve(voskModel);
             if (voskModelPromise) return voskModelPromise;
             voskModelPromise = (async () => {
                 if (!window.Vosk) await loadScriptOnce(VOSK_LIB_URL);
                 const modelUrlToLoad = await resolveVoskModelUrl();
+                const finalBlobUrl = await fetchVoskModelBlobUrl(modelUrlToLoad);
+                setMicStatus(`<span class="text-indigo-600 font-semibold"><i class="fas fa-spinner fa-spin mr-1"></i> Ses modeli hazırlanıyor...</span> Lütfen bekleyin.`);
 
                 const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('VOSK_TIMEOUT')), 45000)
+                    setTimeout(() => reject(new Error('VOSK_TIMEOUT')), 60000)
                 );
 
                 const m = await Promise.race([
-                    window.Vosk.createModel(modelUrlToLoad),
+                    window.Vosk.createModel(finalBlobUrl),
                     timeoutPromise
                 ]);
+                if (finalBlobUrl !== modelUrlToLoad && finalBlobUrl.startsWith('blob:')) {
+                    try { URL.revokeObjectURL(finalBlobUrl); } catch (e) {}
+                }
                 voskModel = m;
                 return m;
             })();
