@@ -1196,8 +1196,87 @@ DataManager._getStorageKey = function () {
             if (overlay) overlay.remove();
             document.getElementById('studentNo').value = '';
             openSessions.clear();
+            _preloadedUygulamaUrls.clear();
             document.body.classList.add('login-body');
             if (typeof updateScreenViewButtons === 'function') updateScreenViewButtons();
+        }
+
+        const _preloadedUygulamaUrls = new Set();
+
+        function getExamFilesActiveMinutes(schoolDefs) {
+            const raw = schoolDefs ? schoolDefs.examFilesActiveMinutes : undefined;
+            const parsed = parseInt(raw, 10);
+            return (!isNaN(parsed) && parsed >= 0) ? parsed : 3;
+        }
+
+        // Öğrenci paneline giriş yapılmışsa, tam sınav başlama saatinde (now >= targetTime)
+        // uygulama sınavı dosyalarını arka planda sessizce indirir (öğrencilere görünmez).
+        function preloadUygulamaSessions(sessions, now) {
+            if (!currentStudent || !Array.isArray(sessions) || sessions.length === 0) return;
+
+            sessions.forEach(ses => {
+                if (!ses || !ses.isPublished || ses.type !== 'uygulama' || !Array.isArray(ses.results)) return;
+
+                const targetTime = parseDateTime(ses.date, ses.time);
+                const endTime = getExamEndTime(ses.date, ses.time, ses.examDuration);
+                if (!targetTime || !endTime) return;
+
+                // Tam sınav başlama saati gelmeden indirme başlatma; sınav bitmişse de indirme
+                if (now < targetTime || now > endTime) return;
+
+                let matchedSubject = '';
+                let mySeatNum = null;
+
+                ses.results.forEach(room => {
+                    if (!room || !room.seats) return;
+                    let roomSeatCounter = 1;
+                    const seatToNum = {};
+                    for (let g = 1; g <= (room.groups || 1); g++) {
+                        const conf = room.groupConfigs ? room.groupConfigs[g - 1] : { rows: room.rows || 1, cols: room.cols || 1 };
+                        for (let r = 1; r <= conf.rows; r++) {
+                            for (let c = 1; c <= conf.cols; c++) {
+                                const sid = `G${g}-S${r}-C${c}`;
+                                if (!(room.disabledSeats && room.disabledSeats.includes(sid))) seatToNum[sid] = roomSeatCounter++;
+                            }
+                        }
+                    }
+                    Object.entries(room.seats).forEach(([sid, std]) => {
+                        if (std && std.no && std.no.toString() === currentStudent.no.toString()) {
+                            matchedSubject = std._matchedSubject || '';
+                            mySeatNum = seatToNum[sid];
+                        }
+                    });
+                });
+
+                if (!matchedSubject) return;
+
+                const meta = DataManager.getSanitizedSubjectMetadata(ses, matchedSubject) || {};
+                const papers = meta.papers || {};
+                const files = (Array.isArray(papers.uygulamaFiles) ? papers.uygulamaFiles : (typeof papers === 'string' && papers ? [papers] : [])).filter(f => f && f.trim().length > 5);
+
+                files.forEach((fUrl, index) => {
+                    const mInfo = DataManager.classifyMedia ? DataManager.classifyMedia(fUrl) : {};
+                    if (mInfo.type === 'youtube' || mInfo.type === 'vimeo') return;
+                    if (_preloadedUygulamaUrls.has(fUrl) || DataManager._fileBytesCache[fUrl]) return;
+
+                    _preloadedUygulamaUrls.add(fUrl);
+
+                    DataManager._getIdbCache(fUrl).then(idbBuffer => {
+                        if (idbBuffer && DataManager.validateBuffer(idbBuffer)) {
+                            DataManager._fileBytesCache[fUrl] = idbBuffer;
+                            return;
+                        }
+
+                        const seatOffset = (mySeatNum && !isNaN(mySeatNum)) ? (parseInt(mySeatNum, 10) % 10) * 1500 : Math.random() * 8000;
+                        const fileOffset = index * 2000;
+                        const totalDelay = 500 + seatOffset + fileOffset;
+
+                        setTimeout(() => {
+                            DataManager.getFileBytes(fUrl).catch(() => {});
+                        }, totalDelay);
+                    }).catch(() => {});
+                });
+            });
         }
 
 
@@ -1211,6 +1290,8 @@ DataManager._getStorageKey = function () {
                 studentExamEndHideMinutes: 30,
                 examFilesActiveMinutes: 3
             };
+            const activeDelayMins = getExamFilesActiveMinutes(schoolDefs);
+            preloadUygulamaSessions(sessions, now);
 
             const myExams = [];
             sessions.forEach(ses => {
@@ -1287,7 +1368,7 @@ DataManager._getStorageKey = function () {
                     }
                 }
                 
-                const stateKey = stateCode + (ses.type === 'uygulama' ? `_unlocked_${((now - targetTime) / 1000 / 60) >= schoolDefs.examFilesActiveMinutes}` : '');
+                const stateKey = stateCode + (ses.type === 'uygulama' ? `_unlocked_${((now - targetTime) / 1000 / 60) >= activeDelayMins}` : '');
                 lastStates[ses.id] = stateKey;
 
                 const displayTime = ses.time.includes('. Ders') ? `${ses.time} (${targetTime.getHours().toString().padStart(2, '0')}:${targetTime.getMinutes().toString().padStart(2, '0')})` : ses.time;
@@ -1355,6 +1436,8 @@ DataManager._getStorageKey = function () {
                 studentExamEndHideMinutes: 30,
                 examFilesActiveMinutes: 3
             };
+            const activeDelayMins = getExamFilesActiveMinutes(schoolDefs);
+            preloadUygulamaSessions(sessions, now);
             let needsFullRender = false;
             sessions.forEach(ses => {
                 const card = document.querySelector(`.exam-card[data-ses-id="${ses.id}"]`);
@@ -1397,7 +1480,7 @@ DataManager._getStorageKey = function () {
                     }
                 }
 
-                const newStateKey = newState === 'hidden' ? 'hidden' : (newState + (ses.type === 'uygulama' ? `_unlocked_${((now - targetTime) / 1000 / 60) >= schoolDefs.examFilesActiveMinutes}` : ''));
+                const newStateKey = newState === 'hidden' ? 'hidden' : (newState + (ses.type === 'uygulama' ? `_unlocked_${((now - targetTime) / 1000 / 60) >= activeDelayMins}` : ''));
 
                 // Only trigger full render if state actually changes
                 if (newStateKey !== lastStates[ses.id]) {
@@ -1570,43 +1653,19 @@ DataManager._getStorageKey = function () {
                 const papers = meta.papers || {};
                 const files = (Array.isArray(papers.uygulamaFiles) ? papers.uygulamaFiles : (typeof papers === 'string' && papers ? [papers] : [])).filter(f => f && f.trim().length > 5);
 
-                // Arka planda dosyaları IndexedDB önbelleğine almaya başla (Hızlı oynatma için, kademeli ve akıllı gecikmeli)
-                if (files && files.length > 0) {
-                    files.forEach((fUrl, index) => {
-                        const mInfo = DataManager.classifyMedia ? DataManager.classifyMedia(fUrl) : {};
-                        if (mInfo.type === 'youtube' || mInfo.type === 'vimeo') return; // YouTube ve Vimeo platform akışları önbelleğe indirilmez
-                        // Bellek önbelleğinde varsa zaten işlem yapmaya gerek yok
-                        if (DataManager._fileBytesCache[fUrl]) return;
-                        
-                        // Önce IndexedDB'yi yerel olarak kontrol et (ağ çağrısı yapmaz)
-                        DataManager._getIdbCache(fUrl).then(idbBuffer => {
-                            if (idbBuffer && DataManager.validateBuffer(idbBuffer)) {
-                                DataManager._fileBytesCache[fUrl] = idbBuffer;
-                                return;
-                            }
-                            
-                            // Önbellekte yoksa, okul ağını tıkamamak için kademeli/gecikmeli olarak indirmeye başla
-                            // Sıra (seatNum) bilgisine göre her öğrencinin isteğini farklı zaman dilimlerine yayıyoruz
-                            const seatOffset = (mySeatNum && !isNaN(mySeatNum)) ? (parseInt(mySeatNum) % 10) * 1500 : Math.random() * 8000;
-                            const fileOffset = index * 2000; // Aynı öğrencinin birden fazla dosyası varsa aralarında 2 saniye bekle
-                            const totalDelay = 500 + seatOffset + fileOffset;
-                            
-                            setTimeout(() => {
-                                DataManager.getFileBytes(fUrl).catch(() => {});
-                            }, totalDelay);
-                        }).catch(() => {});
-                    });
-                }
+                const activeDelayMins = getExamFilesActiveMinutes(schoolDefs);
+                // Tam sınav başlama saatinde (now >= targetTime) arka planda sessiz indirmeyi tetikle
+                preloadUygulamaSessions([ses], now);
 
                 const turkishNumbers = ["BİRİNCİ", "İKİNCİ", "ÜÇÜNCÜ", "DÖRDÜNCÜ", "BEŞİNCİ", "ALTINCI", "YEDİNCİ", "SEKİZİNCİ", "DOKUZUNCU", "ONUNCU"];
 
                 let filesSection = '';
-                if (diffStartMins < schoolDefs.examFilesActiveMinutes) {
+                if (diffStartMins < activeDelayMins) {
                     filesSection = `
                         <div class="glass-panel" style="padding: 2rem; border-radius: 16px; text-align: center; border: 1.5px dashed var(--warning); color: #c2410c; background: rgba(245, 158, 11, 0.04); margin-bottom: 1.5rem; box-shadow: var(--shadow-sm);">
                             <i class="fa-solid fa-clock-rotate-left" style="font-size: 2.5rem; margin-bottom: 15px; display: block; color: var(--warning);"></i>
                             <div style="font-size: 1.05rem; font-weight: 800; line-height: 1.6; color: #7c2d12;">
-                                Uygulama Sınavı dosyaları sınav başlama saatinden ${schoolDefs.examFilesActiveMinutes} dakika sonra aktif olacaktır.<br>
+                                Uygulama Sınavı dosyaları sınav başlama saatinden ${activeDelayMins} dakika sonra aktif olacaktır.<br>
                                 <span style="font-size: 0.9rem; font-weight: 600; color: var(--gray-600); opacity: 0.95;">Eğer zamanı geldiği halde dosyalar görünmüyorsa sayfayı yenileyin.</span>
                             </div>
                         </div>`;
