@@ -1142,13 +1142,16 @@
         /* =====================================================
            MOBİL / TABLET / iPHONE UYUMLULUK
            ===================================================== */
-        html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+        html { -webkit-text-size-adjust: 100%; -moz-text-size-adjust: 100%; text-size-adjust: 100%; }
         body { -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         button, .q-chip, .q-pill-box, .btn-ep { touch-action: manipulation; }
-        .ep-header, .ep-accordion, .add-exam-panel, .active-student-card { -webkit-backdrop-filter: blur(12px); }
-        .voice-modal-backdrop { -webkit-backdrop-filter: blur(8px); overscroll-behavior: contain; }
-        .voice-modal-body { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
-        .exam-scores-drawer { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .ep-header, .ep-accordion, .add-exam-panel, .active-student-card { -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+        .voice-modal-backdrop { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); overscroll-behavior: contain; }
+        .voice-modal-body { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+        .exam-scores-drawer { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+        input[type="number"] { -moz-appearance: textfield; -webkit-appearance: none; appearance: none; }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         .scores-table { min-width: 480px; }
         .ep-container { padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); padding-bottom: env(safe-area-inset-bottom); }
 
@@ -3548,19 +3551,24 @@
                 setTimeout(() => {
                     if (token !== speakToken) return;
                     const utter = new SpeechSynthesisUtterance(cleanText);
+                    window._epActiveUtterance = utter;
                     utter.lang = 'tr-TR';
                     if (ttsVoice) utter.voice = ttsVoice;
                     utter.rate = 1.05;
                     utter.volume = 1;
-                    utter.onend = () => resumeMicAfterSpeech(token, wasListening);
-                    utter.onerror = () => resumeMicAfterSpeech(token, wasListening);
+                    const done = () => {
+                        if (window._epActiveUtterance === utter) window._epActiveUtterance = null;
+                        resumeMicAfterSpeech(token, wasListening);
+                    };
+                    utter.onend = done;
+                    utter.onerror = done;
                     try { synth.resume(); } catch (e) {}
                     synth.speak(utter);
 
                     // Güvenlik: onend hiç tetiklenmezse mikrofonu yine de geri aç
                     if (ttsResumeTimer) clearTimeout(ttsResumeTimer);
-                    ttsResumeTimer = setTimeout(() => resumeMicAfterSpeech(token, wasListening), 7000);
-                }, 80);
+                    ttsResumeTimer = setTimeout(done, 7000);
+                }, 100);
             } catch (e) {
                 console.warn('TTS error:', e);
             }
@@ -3657,7 +3665,11 @@
                 const isTouchDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent));
                 if (isTouchDevice) return;
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
-                levelStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+                try {
+                    levelStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+                } catch (constraintErr) {
+                    levelStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                }
                 const AC = window.AudioContext || window.webkitAudioContext;
                 if (!AC) return;
                 levelCtx = new AC();
@@ -4437,8 +4449,13 @@
             if (el) el.innerHTML = html;
         }
 
+        function hasWebSpeechSupport() {
+            return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+        }
+
         function startMicrophoneListening() {
-            if (getMicEngine() === 'vosk') {
+            if (getMicEngine() === 'vosk' || !hasWebSpeechSupport()) {
+                if (!hasWebSpeechSupport()) setMicEngine('vosk');
                 shouldKeepListening = true;
                 destroyCurrentRecognition();
                 startVoskListening();
@@ -4447,7 +4464,9 @@
             stopVosk();
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRec) {
-                setMicStatus(`<span style="color:#ef4444; font-weight:700;">Tarayıcınız ses tanımayı desteklemiyor (Lütfen Chrome veya Edge kullanın).</span>`);
+                setMicEngine('vosk');
+                shouldKeepListening = true;
+                startVoskListening();
                 return;
             }
 
@@ -4639,22 +4658,28 @@
             '[unk]'
         ]);
         let voskModel = null, voskModelPromise = null, voskRec = null, voskCtx = null;
-        let voskStream = null, voskNode = null, voskSource = null, voskActive = false, voskToken = 0;
+        let voskStream = null, voskNode = null, voskSource = null, voskGain = null, voskActive = false, voskToken = 0;
 
         const VOSK_MODEL_JS_BUNDLE_URL = 'js/vendor/vosk-model-tr-data.js';
         let customVoskModelBlobUrl = null;
 
         function getMicEngine() {
+            if (!hasWebSpeechSupport()) return 'vosk';
             try { return sessionStorage.getItem('ep_engine_v2') === 'vosk' ? 'vosk' : 'web'; } catch (e) { return 'web'; }
         }
         function setMicEngine(name) {
-            try { sessionStorage.setItem('ep_engine_v2', name); } catch (e) {}
+            const finalName = (!hasWebSpeechSupport()) ? 'vosk' : name;
+            try { sessionStorage.setItem('ep_engine_v2', finalName); } catch (e) {}
             updateEngineToggleLabel();
         }
 
         function updateEngineToggleLabel() {
             const b = document.getElementById('micEngineBtn');
             if (!b) return;
+            if (!hasWebSpeechSupport()) {
+                b.innerHTML = '<i class="fa-solid fa-microchip"></i> Ses motoru: Çevrimdışı (Tarayıcı uyumlu)';
+                return;
+            }
             b.innerHTML = getMicEngine() === 'vosk'
                 ? '<i class="fa-solid fa-microchip"></i> Ses motoru: Çevrimdışı (değiştir)'
                 : '<i class="fa-solid fa-globe"></i> Ses motoru: Tarayıcı (değiştir)';
@@ -4669,6 +4694,10 @@
             b.type = 'button';
             b.style.cssText = 'margin-top:8px; background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe; border-radius:999px; padding:5px 12px; font-size:0.74rem; font-weight:700; cursor:pointer; font-family:inherit;';
             b.onclick = () => {
+                if (!hasWebSpeechSupport()) {
+                    setMicStatus('<span style="color:#4f46e5; font-weight:700;">Bu tarayıcıda (Firefox/Safari) yerleşik çevrimdışı ses motoru otomatik olarak kullanılır.</span>');
+                    return;
+                }
                 setMicEngine(getMicEngine() === 'vosk' ? 'web' : 'vosk');
                 if (shouldKeepListening || isMicListening) {
                     stopMicrophoneListening();
@@ -4777,13 +4806,22 @@
                 const model = await loadVoskModel();
                 if (token !== voskToken) return;
 
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-                });
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Tarayıcınız mikrofon erişimini desteklemiyor veya sayfa HTTPS üzerinden açılmamış.');
+                }
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                    });
+                } catch (constraintErr) {
+                    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                }
                 if (token !== voskToken) { stream.getTracks().forEach(t => t.stop()); return; }
                 voskStream = stream;
 
                 const AC = window.AudioContext || window.webkitAudioContext;
+                if (!AC) throw new Error('Tarayıcınız Web Audio API (AudioContext) desteklemiyor.');
                 voskCtx = new AC();
                 if (voskCtx.state === 'suspended') { try { await voskCtx.resume(); } catch (e) {} }
 
@@ -4798,8 +4836,11 @@
                     if (token !== voskToken || !voskRec) return;
                     try { voskRec.acceptWaveform(e.inputBuffer); } catch (err) {}
                 };
+                voskGain = voskCtx.createGain();
+                voskGain.gain.value = 0;
                 voskSource.connect(voskNode);
-                voskNode.connect(voskCtx.destination);
+                voskNode.connect(voskGain);
+                voskGain.connect(voskCtx.destination);
 
                 setMicStatus(`<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Çevrimdışı mikrofon aktif, sizi dinliyor...</span> Sadece sayıyı söyleyin.`);
                 micDbg('vosk hazır, ' + voskCtx.sampleRate + ' Hz');
@@ -4842,11 +4883,12 @@
             voskToken++;
             voskActive = false;
             try { if (voskNode) { voskNode.onaudioprocess = null; voskNode.disconnect(); } } catch (e) {}
+            try { if (voskGain) voskGain.disconnect(); } catch (e) {}
             try { if (voskSource) voskSource.disconnect(); } catch (e) {}
             try { if (voskStream) voskStream.getTracks().forEach(t => t.stop()); } catch (e) {}
             try { if (voskCtx) voskCtx.close(); } catch (e) {}
             try { if (voskRec && voskRec.remove) voskRec.remove(); } catch (e) {}
-            voskNode = null; voskSource = null; voskStream = null; voskCtx = null; voskRec = null;
+            voskNode = null; voskGain = null; voskSource = null; voskStream = null; voskCtx = null; voskRec = null;
         }
 
         function stopMicrophoneListening() {
