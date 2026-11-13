@@ -1228,6 +1228,26 @@ DataManager._getStorageKey = function () {
             el.style.color = downloaded ? '#39FF14' : '#ef4444';
         }
 
+        function cleanupFinishedUygulamaSession(sesId) {
+            const files = _uygulamaDownloadableFilesMap[sesId];
+            if (Array.isArray(files) && files.length > 0 && DataManager._fileBytesCache) {
+                files.forEach(fUrl => {
+                    delete DataManager._fileBytesCache[fUrl];
+                    _preloadedUygulamaUrls.delete(fUrl);
+                });
+            }
+            if (window._activeUygulamaMediaSessionId === sesId) {
+                const audio = document.getElementById('klbk-native-audio');
+                const video = document.getElementById('klbk-native-video');
+                if (audio) { try { audio.pause(); audio.src = ''; } catch (e) {} }
+                if (video) { try { video.pause(); video.src = ''; } catch (e) {} }
+                window._activeUygulamaMediaSessionId = null;
+                if (typeof Swal !== 'undefined' && Swal.isVisible()) {
+                    Swal.close();
+                }
+            }
+        }
+
         function getExamFilesActiveMinutes(schoolDefs) {
             const raw = schoolDefs ? schoolDefs.examFilesActiveMinutes : undefined;
             const parsed = parseInt(raw, 10);
@@ -1508,6 +1528,10 @@ DataManager._getStorageKey = function () {
                     }
                 }
 
+                if (ses.type === 'uygulama' && (newState === 'finished' || newState === 'hidden')) {
+                    cleanupFinishedUygulamaSession(ses.id);
+                }
+
                 const newStateKey = newState === 'hidden' ? 'hidden' : (newState + (ses.type === 'uygulama' ? `_unlocked_${((now - targetTime) / 1000 / 60) >= activeDelayMins}` : ''));
 
                 // Only trigger full render if state actually changes
@@ -1678,20 +1702,27 @@ DataManager._getStorageKey = function () {
                 // Application Exam View: No seating plan schema, has duration timer & file launcher
                 const now = getNow();
                 const targetTime = parseDateTime(ses.date, ses.time);
+                const endTime = getExamEndTime(ses.date, ses.time, ses.examDuration);
                 const diffStartMins = (now - targetTime) / 1000 / 60;
+                const isExamFinished = now >= endTime;
 
                 const meta = DataManager.getSanitizedSubjectMetadata(ses, matchedSubject) || {};
                 const papers = meta.papers || {};
-                const files = (Array.isArray(papers.uygulamaFiles) ? papers.uygulamaFiles : (typeof papers === 'string' && papers ? [papers] : [])).filter(f => f && f.trim().length > 5);
+                const files = isExamFinished ? [] : (Array.isArray(papers.uygulamaFiles) ? papers.uygulamaFiles : (typeof papers === 'string' && papers ? [papers] : [])).filter(f => f && f.trim().length > 5);
 
                 const activeDelayMins = getExamFilesActiveMinutes(schoolDefs);
-                // Tam sınav başlama saatinde (now >= targetTime) arka planda sessiz indirmeyi tetikle
-                preloadUygulamaSessions([ses], now);
+                if (!isExamFinished) {
+                    // Tam sınav başlama saatinde (now >= targetTime) arka planda sessiz indirmeyi tetikle
+                    preloadUygulamaSessions([ses], now);
+                }
 
                 const turkishNumbers = ["BİRİNCİ", "İKİNCİ", "ÜÇÜNCÜ", "DÖRDÜNCÜ", "BEŞİNCİ", "ALTINCI", "YEDİNCİ", "SEKİZİNCİ", "DOKUZUNCU", "ONUNCU"];
 
                 let filesSection = '';
-                if (diffStartMins < activeDelayMins) {
+                if (isExamFinished) {
+                    // Sınav bitince uygulama dosyaları derhal kaldırılır ve görünmez
+                    filesSection = '';
+                } else if (diffStartMins < activeDelayMins) {
                     filesSection = `
                         <div class="glass-panel" style="padding: 2rem; border-radius: 16px; text-align: center; border: 1.5px dashed var(--warning); color: #c2410c; background: rgba(245, 158, 11, 0.04); margin-bottom: 1.5rem; box-shadow: var(--shadow-sm);">
                             <i class="fa-solid fa-clock-rotate-left" style="font-size: 2.5rem; margin-bottom: 15px; display: block; color: var(--warning);"></i>
@@ -1742,7 +1773,7 @@ DataManager._getStorageKey = function () {
                                         }
 
                                         return `
-                                            <button type="button" class="btn btn-primary" onclick="window.playUygulamaMediaStudent(decodeURIComponent('${encodedUrl}'))" style="width: 100%; padding: 1rem 1.5rem; border-radius: 12px; font-weight: 800; font-size: 1rem; display: flex; align-items: center; justify-content: space-between; background: ${btnBg}; border: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); transition: all 0.2s; text-align: left; color: white; cursor: pointer;">
+                                            <button type="button" class="btn btn-primary" onclick="window.playUygulamaMediaStudent(decodeURIComponent('${encodedUrl}'), '${ses.id}')" style="width: 100%; padding: 1rem 1.5rem; border-radius: 12px; font-weight: 800; font-size: 1rem; display: flex; align-items: center; justify-content: space-between; background: ${btnBg}; border: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); transition: all 0.2s; text-align: left; color: white; cursor: pointer;">
                                                 <span style="display: flex; align-items: center; gap: 12px;">
                                                     <span style="width: 32px; height: 32px; background: rgba(255, 255, 255, 0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 900;">
                                                         ${fIdx + 1}
@@ -2053,11 +2084,24 @@ DataManager._getStorageKey = function () {
             }
         };
 
-        window.playUygulamaMediaStudent = async function(url) {
+        window.playUygulamaMediaStudent = async function(url, sessionId = null) {
             if (!url) {
                 Swal.fire('Eksik', 'Geçersiz dosya bağlantısı', 'warning');
                 return;
             }
+            if (sessionId) {
+                const sessions = DataManager.getExamSessions ? DataManager.getExamSessions() : [];
+                const ses = sessions.find(s => s.id === sessionId);
+                if (ses && ses.type === 'uygulama') {
+                    const endTime = getExamEndTime(ses.date, ses.time, ses.examDuration);
+                    if (endTime && getNow() >= endTime) {
+                        cleanupFinishedUygulamaSession(sessionId);
+                        Swal.fire('Süre Doldu', 'Sınav süresi sona erdiği için uygulama dosyaları kaldırılmıştır.', 'info');
+                        return;
+                    }
+                }
+            }
+            window._activeUygulamaMediaSessionId = sessionId || null;
             const cleanUrl = url.trim();
             const lowerUrl = cleanUrl.toLowerCase();
             const media = DataManager.classifyMedia ? DataManager.classifyMedia(cleanUrl) : {};
