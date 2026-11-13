@@ -1029,7 +1029,8 @@
 
         .questions-grid-pills {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(76px, 92px));
+            justify-content: center;
             gap: 8px;
         }
 
@@ -3758,12 +3759,15 @@
                 try {
                     if (kind === 'student') {
                         const el = document.querySelector('.voice-prompt-box') || document.getElementById('voicePromptHeadline');
-                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     } else {
-                        const head = document.querySelector('.voice-prompt-box') || document.getElementById('voicePromptHeadline');
-                        if (head) head.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         const cur = document.querySelector('#questionsGridPills .q-pill-box.current');
-                        if (cur) cur.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                        const strip = document.getElementById('questionsStripBox');
+                        if (cur) {
+                            cur.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                        } else if (strip) {
+                            strip.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
                     }
                 } catch (e) {}
             }, 60);
