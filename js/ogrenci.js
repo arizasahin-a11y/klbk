@@ -2972,24 +2972,35 @@ DataManager._getStorageKey = function () {
 
                 if (now < examStartTime) {
                     diff = examStartTime - now;
-                    timerEl.style.color = '#39FF14'; // Phosphor Green (Before Start)
-                    timerEl.style.borderColor = 'rgba(57, 255, 20, 0.4)';
+                    if (sessionData.type !== 'uygulama') {
+                        timerEl.style.color = '#00E5FF'; // Neon Blue (Before Start for normal exams)
+                        timerEl.style.borderColor = 'rgba(0, 229, 255, 0.55)';
+                        timerEl.style.textShadow = '0 0 18px rgba(0, 229, 255, 0.7)';
+                    } else {
+                        timerEl.style.color = '#39FF14'; // Phosphor Green (Before Start)
+                        timerEl.style.borderColor = 'rgba(57, 255, 20, 0.4)';
+                        timerEl.style.textShadow = '0 0 15px rgba(57, 255, 20, 0.4)';
+                    }
                 } else if (progress <= 0.5) {
                     diff = examEndTime - now;
                     timerEl.style.color = '#39FF14'; // Phosphor Green (First Half)
                     timerEl.style.borderColor = 'rgba(57, 255, 20, 0.4)';
+                    timerEl.style.textShadow = '0 0 15px rgba(57, 255, 20, 0.4)';
                 } else if (progress <= 0.75) {
                     diff = examEndTime - now;
                     timerEl.style.color = '#FFFF00'; // Pure Yellow (50% - 75%)
                     timerEl.style.borderColor = 'rgba(255, 255, 0, 0.5)';
+                    timerEl.style.textShadow = '0 0 15px rgba(255, 255, 0, 0.4)';
                 } else if (progress <= 0.875) {
                     diff = examEndTime - now;
                     timerEl.style.color = '#FFA500'; // Orange (75% - 87.5%)
                     timerEl.style.borderColor = 'rgba(255, 165, 0, 0.5)';
+                    timerEl.style.textShadow = '0 0 15px rgba(255, 165, 0, 0.4)';
                 } else if (now < examEndTime) {
                     diff = examEndTime - now;
                     timerEl.style.color = '#FF3131'; // Neon Red (> 87.5%)
                     timerEl.style.borderColor = 'rgba(255, 49, 49, 0.6)';
+                    timerEl.style.textShadow = '0 0 15px rgba(255, 49, 49, 0.5)';
                 } else {
                     isFinished = true;
                     // Auto-close any opened PDF tabs when exam finishes
@@ -3101,6 +3112,10 @@ DataManager._getStorageKey = function () {
 
             // Floating Info Panel Layer (Zaman Sayacı Seçeneği)
             const showTimer = sessionData.screenViewTimerEnabled !== false;
+            const isInitialBeforeNormalStart = (sessionData.type !== 'uygulama' && getNow().getTime() < examStartTime);
+            const initTimerColor = isInitialBeforeNormalStart ? '#00E5FF' : '#39FF14';
+            const initTimerBorder = isInitialBeforeNormalStart ? 'rgba(0, 229, 255, 0.55)' : 'rgba(57, 255, 20, 0.6)';
+            const initTimerShadow = isInitialBeforeNormalStart ? 'rgba(0, 229, 255, 0.7)' : 'rgba(57, 255, 20, 0.4)';
             let html = `
                 <div style="background: var(--dark); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
                     <div style="display: flex; align-items: center; gap: 20px;">
@@ -3157,7 +3172,7 @@ DataManager._getStorageKey = function () {
                     <!-- Label -->
                     <div id="fullScreenLessonLabel" style="
                         padding: 6px 20px;
-                        background: #39FF14;
+                        background: ${initTimerColor};
                         color: black;
                         font-weight: 900;
                         font-size: 1.1rem;
@@ -3166,8 +3181,8 @@ DataManager._getStorageKey = function () {
                         letter-spacing: 1.5px;
                         width: 100%;
                         text-align: center;
-                        box-shadow: 0 -5px 15px rgba(57, 255, 20, 0.2);
-                        border: 2px solid #39FF14;
+                        box-shadow: 0 -5px 15px ${initTimerShadow};
+                        border: 2px solid ${initTimerColor};
                         border-top: none;
                         border-bottom: none;
                         pointer-events: none;
@@ -3179,15 +3194,15 @@ DataManager._getStorageKey = function () {
                         font-family: 'JetBrains Mono', 'Courier New', monospace;
                         font-weight: 900;
                         font-size: 3.2rem;
-                        color: #39FF14;
+                        color: ${initTimerColor};
                         background: rgba(0,0,0,0.75);
                         padding: 10px 20px;
                         border-radius: 0 0 16px 16px;
-                        border: 5px double rgba(57, 255, 20, 0.6);
+                        border: 5px double ${initTimerBorder};
                         box-shadow: 0 15px 40px rgba(0,0,0,0.6);
                         letter-spacing: 3px;
                         text-align: center;
-                        text-shadow: 0 0 15px rgba(57, 255, 20, 0.4);
+                        text-shadow: 0 0 15px ${initTimerShadow};
                         line-height: 1;
                         display: flex;
                         align-items: center;
