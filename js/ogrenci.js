@@ -1202,6 +1202,31 @@ DataManager._getStorageKey = function () {
         }
 
         const _preloadedUygulamaUrls = new Set();
+        const _uygulamaDownloadableFilesMap = {};
+
+        function getDownloadableUygulamaFiles(ses, matchedSubject) {
+            if (!ses || !matchedSubject) return [];
+            const meta = DataManager.getSanitizedSubjectMetadata(ses, matchedSubject) || {};
+            const papers = meta.papers || {};
+            const files = (Array.isArray(papers.uygulamaFiles) ? papers.uygulamaFiles : (typeof papers === 'string' && papers ? [papers] : [])).filter(f => f && f.trim().length > 5);
+            return files.filter(fUrl => {
+                const mInfo = DataManager.classifyMedia ? DataManager.classifyMedia(fUrl) : {};
+                return mInfo.type !== 'youtube' && mInfo.type !== 'vimeo';
+            });
+        }
+
+        function areUygulamaFilesDownloaded(sesId, downloadableFiles) {
+            const list = downloadableFiles || _uygulamaDownloadableFilesMap[sesId] || [];
+            if (list.length === 0) return true;
+            return list.every(fUrl => Boolean(DataManager._fileBytesCache && DataManager._fileBytesCache[fUrl]));
+        }
+
+        function updateUygulamaTimerLabelColor(sesId) {
+            const el = document.getElementById(`detail-timer-label-${sesId}`);
+            if (!el) return;
+            const downloaded = areUygulamaFilesDownloaded(sesId);
+            el.style.color = downloaded ? '#39FF14' : '#ef4444';
+        }
 
         function getExamFilesActiveMinutes(schoolDefs) {
             const raw = schoolDefs ? schoolDefs.examFilesActiveMinutes : undefined;
@@ -1250,20 +1275,21 @@ DataManager._getStorageKey = function () {
 
                 if (!matchedSubject) return;
 
-                const meta = DataManager.getSanitizedSubjectMetadata(ses, matchedSubject) || {};
-                const papers = meta.papers || {};
-                const files = (Array.isArray(papers.uygulamaFiles) ? papers.uygulamaFiles : (typeof papers === 'string' && papers ? [papers] : [])).filter(f => f && f.trim().length > 5);
+                const files = getDownloadableUygulamaFiles(ses, matchedSubject);
+                _uygulamaDownloadableFilesMap[ses.id] = files;
 
                 files.forEach((fUrl, index) => {
-                    const mInfo = DataManager.classifyMedia ? DataManager.classifyMedia(fUrl) : {};
-                    if (mInfo.type === 'youtube' || mInfo.type === 'vimeo') return;
-                    if (_preloadedUygulamaUrls.has(fUrl) || DataManager._fileBytesCache[fUrl]) return;
+                    if (_preloadedUygulamaUrls.has(fUrl) || DataManager._fileBytesCache[fUrl]) {
+                        updateUygulamaTimerLabelColor(ses.id);
+                        return;
+                    }
 
                     _preloadedUygulamaUrls.add(fUrl);
 
                     DataManager._getIdbCache(fUrl).then(idbBuffer => {
                         if (idbBuffer && DataManager.validateBuffer(idbBuffer)) {
                             DataManager._fileBytesCache[fUrl] = idbBuffer;
+                            updateUygulamaTimerLabelColor(ses.id);
                             return;
                         }
 
@@ -1272,7 +1298,9 @@ DataManager._getStorageKey = function () {
                         const totalDelay = 500 + seatOffset + fileOffset;
 
                         setTimeout(() => {
-                            DataManager.getFileBytes(fUrl).catch(() => {});
+                            DataManager.getFileBytes(fUrl)
+                                .then(() => updateUygulamaTimerLabelColor(ses.id))
+                                .catch(() => {});
                         }, totalDelay);
                     }).catch(() => {});
                 });
@@ -1509,6 +1537,9 @@ DataManager._getStorageKey = function () {
 
                 const dtEl = document.getElementById(`detail-timer-${ses.id}`);
                 if (dtEl) {
+                    if (ses.type === 'uygulama') {
+                        updateUygulamaTimerLabelColor(ses.id);
+                    }
                     let text = '';
                     if (diffEndMins < 0) {
                         text = 'SINAV BİTTİ';
@@ -1761,11 +1792,16 @@ DataManager._getStorageKey = function () {
                 });
                 classStudents.sort((a, b) => parseInt(a.no) - parseInt(b.no));
 
+                const downloadableFiles = getDownloadableUygulamaFiles(ses, matchedSubject);
+                _uygulamaDownloadableFilesMap[ses.id] = downloadableFiles;
+                const isAllFilesDownloaded = areUygulamaFilesDownloaded(ses.id, downloadableFiles);
+                const timerLabelColor = isAllFilesDownloaded ? '#39FF14' : '#ef4444';
+
                 return `
                     <div class="details-panel">
                         <!-- Sınav Süre Sayacı -->
                         <div style="background: linear-gradient(135deg, #0f172a, #1e293b); border: 1px solid rgba(57,255,20,0.25); border-radius: 16px; padding: 1rem 1.25rem 1.25rem; margin-bottom: 1.5rem; text-align: center; color: white; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
-                            <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #39FF14; letter-spacing: 1.5px; margin-bottom: 8px; opacity:0.85;">
+                            <div id="detail-timer-label-${ses.id}" style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: ${timerLabelColor}; letter-spacing: 1.5px; margin-bottom: 8px; opacity:0.95; transition: color 0.3s ease;">
                                 <i class="fa-solid fa-stopwatch" style="margin-right: 6px;"></i> KALAN SÜRENİZ
                             </div>
                             <div id="detail-timer-${ses.id}" style="font-size: 2.6rem; font-weight: 900; font-family: 'JetBrains Mono', 'Courier New', monospace; color: #39FF14; letter-spacing: 3px; text-shadow: 0 0 18px rgba(57,255,20,0.6); padding: 8px 0;">--:--:--</div>
