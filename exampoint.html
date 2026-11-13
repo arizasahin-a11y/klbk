@@ -3775,6 +3775,9 @@
             }
 
             currentQuestionIndex = qIndex;
+            voiceStep = "question";
+            document.getElementById('studentManualAssistRow').style.display = 'none';
+            document.getElementById('questionManualAssistRow').style.display = 'flex';
 
             const promptText = qIndex === 1
                 ? "1. sorudan kaç puan aldığını söyleyin"
@@ -3962,6 +3965,18 @@
             if (wrap) wrap.classList.remove('active');
         }
 
+        function findFirstUnscoredQuestion(exam, studentNo) {
+            const maxQ = Number(exam.questionCount) || 1;
+            const qMap = (exam.scores && exam.scores[studentNo] && exam.scores[studentNo].questions) || {};
+            for (let q = 1; q <= maxQ; q++) {
+                const val = qMap[String(q)];
+                if (val === undefined || val === null || val === '' || isNaN(Number(val))) {
+                    return q;
+                }
+            }
+            return null;
+        }
+
         function confirmAndAdvanceQuestion() {
             cancelAutoAdvanceTimer();
             const exam = examPointList.find(e => e.id === currentVoiceExamId);
@@ -3971,7 +3986,12 @@
             if (currentQuestionIndex < maxQ) {
                 goToQuestion(currentQuestionIndex + 1);
             } else {
-                finishCurrentStudentGrading();
+                const firstEmptyQ = findFirstUnscoredQuestion(exam, currentStudentObj.no);
+                if (firstEmptyQ !== null) {
+                    goToQuestion(firstEmptyQ);
+                } else {
+                    finishCurrentStudentGrading();
+                }
             }
         }
 
@@ -3983,6 +4003,7 @@
 
         function finishCurrentStudentGrading() {
             cancelAutoAdvanceTimer();
+            clearSettleTimer();
             const exam = examPointList.find(e => e.id === currentVoiceExamId);
             if (!exam || !currentStudentObj) return;
 
@@ -3999,7 +4020,18 @@
                 timer: 2600
             });
 
-            resetToStudentStep();
+            // Öğrenci kartı ve soru puanları yeni numara söyleninceye kadar ekranda kalsın,
+            // sistem ise yeni öğrenci numarasını bekleyip dinlesin.
+            voiceStep = "student_no";
+            document.getElementById('studentManualAssistRow').style.display = 'flex';
+            document.getElementById('questionManualAssistRow').style.display = 'none';
+            document.getElementById('manualStudentNoInput').value = '';
+            document.getElementById('quickClassStudentSelect').value = '';
+            document.getElementById('voicePromptHeadline').textContent = 'Öğrenci tamamlandı! Yeni öğrenci numarasını söyleyin';
+            if (isMicListening || shouldKeepListening) {
+                document.getElementById('voiceStatusSubtext').innerHTML =
+                    `<span style="color:#059669; font-weight:700;"><i class="fa-solid fa-circle-dot fa-beat"></i> Mikrofon dinliyor...</span> Yeni öğrenci numarasını söyleyin.`;
+            }
             if (ttsReadStudentName || ttsReadQuestionNo) {
                 speakTurkishPrompt('Öğrenci tamamlandı. Yeni öğrenci numarasını söyleyin', true);
             }
