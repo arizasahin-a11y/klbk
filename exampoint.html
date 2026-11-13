@@ -3351,8 +3351,14 @@
         function pickTurkishVoice() {
             try {
                 const voices = window.speechSynthesis.getVoices() || [];
-                ttsVoice = voices.find(v => /^tr([-_]|$)/i.test(v.lang)) ||
-                           voices.find(v => /turk/i.test(v.name)) || null;
+                const trVoices = voices.filter(v => /^tr([-_]|$)/i.test(v.lang) || /turk/i.test(v.name));
+                if (!trVoices.length) { ttsVoice = null; return; }
+                const isMale = v => /\b(ahmet|tolga|cem|mehmet|ali|male|man|erkek)\b/i.test(v.name || '');
+                const isFemale = v => /(emel|yelda|seda|filiz|zeynep|ayse|ayla|female|woman|kadin|kadın|google türkçe|google turkce)/i.test(v.name || '');
+                ttsVoice =
+                    trVoices.find(v => isFemale(v) && !isMale(v)) ||
+                    trVoices.find(v => !isMale(v)) ||
+                    trVoices[0] || null;
             } catch (e) {}
         }
         if ('speechSynthesis' in window) {
